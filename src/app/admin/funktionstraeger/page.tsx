@@ -2,12 +2,7 @@ import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mannschaften, users } from "@/db/schema";
-import {
-  createFunktionstraeger,
-  funktionstraegerAktivToggeln,
-  funktionstraegerImportieren,
-  updateFunktionstraeger,
-} from "../actions";
+import { createFunktionstraeger, funktionstraegerImportieren } from "../actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FunktionstraegerTabelle } from "@/components/funktionstraeger-tabelle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
@@ -126,78 +122,7 @@ export default async function FunktionstraegerPage({
             <CardTitle>Alle Funktionsträger</CardTitle>
           </CardHeader>
           <CardContent>
-            {personen.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Noch keine Funktionsträger angelegt.
-              </p>
-            ) : (
-              <div className="flex flex-col divide-y">
-                {personen.map((p) => (
-                  <div key={p.userId} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
-                    <form
-                      action={updateFunktionstraeger}
-                      className="flex flex-col gap-2 sm:flex-row sm:items-center"
-                    >
-                      <input type="hidden" name="userId" value={p.userId} />
-                      <Input
-                        key={`name-${p.name}`}
-                        name="name"
-                        defaultValue={p.name ?? ""}
-                        required
-                        className="h-8 w-full sm:w-36"
-                      />
-                      <Input
-                        key={`email-${p.email}`}
-                        name="email"
-                        type="email"
-                        defaultValue={p.email}
-                        required
-                        className="h-8 w-full sm:w-48"
-                      />
-                      <Button
-                        type="submit"
-                        variant="outline"
-                        size="sm"
-                        className="w-full sm:w-auto"
-                      >
-                        Speichern
-                      </Button>
-                    </form>
-                    <div className="flex flex-wrap gap-1.5">
-                      {p.rollen.map((r) => (
-                        <span
-                          key={r.rolleId}
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs ${
-                            r.aktiv
-                              ? "border-border"
-                              : "border-destructive/30 text-destructive"
-                          }`}
-                        >
-                          <span className="font-medium">
-                            {TYP_LABEL[r.typ] ?? r.typ}
-                            {r.mannschaftName ? ` (${r.mannschaftName})` : ""}
-                            {!r.aktiv && " · inaktiv"}
-                          </span>
-                          <form action={funktionstraegerAktivToggeln}>
-                            <input
-                              type="hidden"
-                              name="rolleId"
-                              value={r.rolleId}
-                            />
-                            <button
-                              type="submit"
-                              className="text-muted-foreground underline"
-                            >
-                              {r.aktiv ? "Deaktivieren" : "Aktivieren"}
-                            </button>
-                          </form>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <FunktionstraegerTabelle personen={personen} />
           </CardContent>
         </Card>
 

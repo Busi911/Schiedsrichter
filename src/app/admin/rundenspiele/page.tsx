@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mannschaften, termine } from "@/db/schema";
@@ -44,7 +44,7 @@ export default async function RundenspielePage({
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
       .where(and(eq(termine.vereinId, vereinId), eq(termine.typ, "rundenspiel")))
-      .orderBy(desc(termine.start))
+      .orderBy(asc(termine.start))
   );
 
   const unbekannteMannschaften = gruppiereUnbekannteMannschaften(liste);
@@ -118,13 +118,17 @@ export default async function RundenspielePage({
             <CardTitle>Unbekannte Mannschaften</CardTitle>
             <CardDescription>
               Heim-/Auswärtsnamen aus dem Import, die noch keiner Mannschaft
-              zugeordnet sind — sortiert nach Häufigkeit. Da die Halle auch
-              von anderen Vereinen bespielt wird, stehen hier zwangsläufig
-              auch fremde Mannschaften; legt nur eure eigenen an. Bereits
-              importierte Rundenspiele werden dabei rückwirkend verknüpft.
+              zugeordnet sind — sortiert nach Häufigkeit. Bereits importierte
+              Rundenspiele werden beim Anlegen rückwirkend verknüpft.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-4">
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+              <strong>Nur eure eigenen Mannschaften anlegen.</strong> Die
+              Halle wird auch von anderen Vereinen bespielt — deren
+              Mannschaften tauchen hier zwangsläufig mit auf und sollten
+              &uuml;bersprungen werden.
+            </div>
             <div className="flex flex-col divide-y">
               {unbekannteMannschaften.map((m) => (
                 <form

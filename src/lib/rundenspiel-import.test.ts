@@ -40,13 +40,35 @@ describe("parseRundenspielJson", () => {
     expect(ereignisse).toHaveLength(1);
     expect(ereignisse[0]).toMatchObject({
       ort: "Sporthalle Heuchelheim",
-      beschreibung: "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1 · Mä/männl.",
+      beschreibung:
+        "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1 · Mä/männl. · Freundschaftsspiel/Turnier",
       heimMannschaft: "TSF Heuchelheim 1",
       auswaertsMannschaft: "HSG Lumdatal e.V. 1",
     });
     expect(ereignisse[0].start.toISOString()).toBe(
       new Date("2026-08-02T15:00:00+02:00").toISOString()
     );
+  });
+
+  it("kennzeichnet echte Pflichtspiele (Spielnummer != 0) als Ligaspiel statt Freundschaftsspiel/Turnier", () => {
+    const { ereignisse } = parseRundenspielJson(
+      beispielJson({
+        events: [
+          {
+            date: "2026-08-02",
+            time: "15:00",
+            start: "2026-08-02T15:00:00+02:00",
+            title: "x",
+            gameNumber: "42",
+            home: "TSF Heuchelheim 1",
+            away: "HSG Lumdatal e.V. 1",
+            location: "Sporthalle Heuchelheim",
+            locationId: 30402,
+          },
+        ],
+      })
+    );
+    expect(ereignisse[0].beschreibung).toContain("Ligaspiel Nr. 42");
   });
 
   it("bildet dieselbe UID bei erneutem Parsen desselben Spiels (Re-Import-Erkennung)", () => {
