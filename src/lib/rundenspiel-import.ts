@@ -117,7 +117,16 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       // ("Mä/männl.", "Fr/weibl.") — an den Titel angehängt, da die exakten
       // Kürzel je Landesverband variieren und hier nicht übersetzt werden.
       const kategorie = typeof e.category === "string" ? e.category : undefined;
-      const beschreibung = kategorie ? `${titel} · ${kategorie}` : titel;
+      // gameNumber "0"/fehlend = kein echtes Pflichtspiel mit vom Verband
+      // vergebener Spielnummer (siehe bildeUid oben) — zuverlässigeres
+      // Unterscheidungsmerkmal Freundschaftsspiel/Turnier vs. Ligaspiel als
+      // der uneinheitlich formatierte "league"-Rohtext aus dem Export.
+      const gameNumberRoh = typeof e.gameNumber === "string" ? e.gameNumber : undefined;
+      const istPflichtspiel = !!gameNumberRoh && gameNumberRoh !== "0";
+      const spielArt = istPflichtspiel
+        ? `Ligaspiel Nr. ${gameNumberRoh}`
+        : "Freundschaftsspiel/Turnier";
+      const beschreibung = [titel, kategorie, spielArt].filter(Boolean).join(" · ");
 
       ereignisse.push({
         uid,

@@ -6,13 +6,8 @@ import { mannschaften, termine } from "@/db/schema";
 import { createTermin } from "../actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/collapsible-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
@@ -112,13 +107,8 @@ export default async function TerminePage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Neuer Termin</CardTitle>
-            <CardDescription>Testspiel oder Turnier anlegen</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form action={createTermin} className="flex flex-col gap-4">
+        <CollapsibleCard title="Neuer Termin" description="Testspiel oder Turnier anlegen">
+          <form action={createTermin} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="typ">Typ</Label>
                 <LabeledSelect
@@ -175,8 +165,7 @@ export default async function TerminePage() {
                 Anlegen
               </Button>
             </form>
-          </CardContent>
-        </Card>
+        </CollapsibleCard>
       </div>
     </div>
   );
