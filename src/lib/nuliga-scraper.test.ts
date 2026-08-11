@@ -83,4 +83,26 @@ describe("parseNuligaSeite", () => {
     const { events } = parseNuligaSeite(html, "1");
     expect(events).toHaveLength(0);
   });
+
+  it("verwendet MEZ (+01:00) statt MESZ für Termine in der Winterzeit", () => {
+    // Das rollierende 10-Monats-Fenster reicht zwangsläufig auch in die
+    // Wintermonate — ein fest verdrahtetes +02:00 (siehe Git-Historie)
+    // hätte Winterspiele eine Stunde zu früh gespeichert.
+    const html = `
+      <h1>Halle (1)</h1>
+      <table>
+        <tr>
+          <td>15.12.2026</td>
+          <td>18:00</td>
+          <td>0</td>
+          <td>Mä/männl.</td>
+          <td>Liga</td>
+          <td>Heim 1</td>
+          <td>Gast 1</td>
+        </tr>
+      </table>
+    `;
+    const { events } = parseNuligaSeite(html, "1");
+    expect(events[0].start).toBe("2026-12-15T18:00:00+01:00");
+  });
 });
