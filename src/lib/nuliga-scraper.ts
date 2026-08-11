@@ -183,6 +183,31 @@ export function parseNuligaSeite(
 
 export type NuligaHolFehler = { locationId: string; requestedMonth: string; grund: string };
 
+// Ein Eintrag pro abgerufener URL — auch bei Erfolg, nicht nur bei Fehlern.
+// Ohne das wäre "0 Spiele gefunden" nicht von "Seite falsch geparst" oder
+// "Server hat eine leere/andere Seite geliefert" unterscheidbar (siehe
+// /admin/einstellungen, wo eine Kurzfassung angezeigt wird).
+export type NuligaDiagnose = {
+  locationId: string;
+  requestedMonth: string;
+  httpStatus: number;
+  htmlLaenge: number;
+  zeilenGefunden: number;
+  eventsGefunden: number;
+};
+
+// nuLiga (ein sehr altes Apple-WebObjects-Java-Framework) liefert bei
+// Anfragen ohne plausiblen Browser-Header teils andere/leere Seiten aus.
+// fetch() setzt von sich aus keinen browserähnlichen User-Agent — hier
+// daher explizit einen mitgeben.
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  Accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  "Accept-Language": "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
+};
+
 // Ruft alle Monats-URLs ab (best effort — ein einzelner fehlgeschlagener
 // Monat/Halle bricht den Gesamtlauf nicht ab) und aggregiert die Ergebnisse
 // zum selben Block-Format wie der bisherige manuelle JSON-Export
@@ -192,9 +217,10 @@ export async function holeNuligaJson(
   hallenIds: string[],
   anzahlMonateVorwaerts = 10,
   jetzt = new Date()
-): Promise<{ json: string; fehler: NuligaHolFehler[] }> {
+): Promise<{ json: string; fehler: NuligaHolFehler[]; diagnose: NuligaDiagnose[] }> {
   const urls = baueMonatsUrls(hallenIds, anzahlMonateVorwaerts, jetzt);
   const fehler: NuligaHolFehler[] = [];
+  const diagnose: NuligaDiagnose[] = [];
 
   const blockByLocation = new Map<
     string,
@@ -206,8 +232,13 @@ export async function holeNuligaJson(
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 20_000);
       let html: string;
+      let httpStatus: number;
       try {
-        const response = await fetch(eintrag.url, { signal: controller.signal });
+        const response = await fetch(eintrag.url, {
+          signal: controller.signal,
+          headers: BROWSER_HEADERS,
+        });
+        httpStatus = response.status;
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -217,6 +248,15 @@ export async function holeNuligaJson(
       }
 
       const { locationName, events } = parseNuligaSeite(html, eintrag.locationId);
+      const zeilenGefunden = (html.match(/<tr\b/gi) ?? []).length;
+      diagnose.push({
+        locationId: eintrag.locationId,
+        requestedMonth: eintrag.requestedMonth,
+        httpStatus,
+        htmlLaenge: html.length,
+        zeilenGefunden,
+        eventsGefunden: events.length,
+      });
 
       const block = blockByLocation.get(eintrag.locationId) ?? {
         location: { id: eintrag.locationId, name: locationName },
@@ -233,5 +273,5 @@ export async function holeNuligaJson(
     }
   }
 
-  return { json: JSON.stringify([...blockByLocation.values()]), fehler };
+  return { json: JSON.stringify([...blockByLocation.values()]), fehler, diagnose };
 }

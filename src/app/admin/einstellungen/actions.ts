@@ -106,6 +106,17 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
       ...ergebnis.parseFehler.map((f) => `Eintrag ${f.index}: ${f.grund}`),
     ];
     if (fehlerListe.length) params.set("nuligaFehler", fehlerListe.join(" | "));
+
+    // Diagnose IMMER anzeigen (auch ohne Fehler) — sonst ist "0 Spiele
+    // gefunden" von "Seite falsch geparst" nicht zu unterscheiden.
+    const statusCodes = [...new Set(ergebnis.diagnose.map((d) => d.httpStatus))];
+    const zeilenGesamt = ergebnis.diagnose.reduce((s, d) => s + d.zeilenGefunden, 0);
+    const htmlLaengeGesamt = ergebnis.diagnose.reduce((s, d) => s + d.htmlLaenge, 0);
+    params.set(
+      "nuligaDiagnose",
+      `${ergebnis.diagnose.length} Anfragen, HTTP ${statusCodes.join("/") || "—"}, ` +
+        `${zeilenGesamt} Tabellenzeilen, ${htmlLaengeGesamt} Zeichen HTML insgesamt`
+    );
   }
 
   revalidatePath("/admin/einstellungen");
