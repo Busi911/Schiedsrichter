@@ -269,6 +269,23 @@ duplizieren):
   Auto-Import; nach dem Speichern der Hallen-IDs läuft zusätzlich sofort ein
   erster Sync, statt auf den nächsten Cron-Termin zu warten.
 
+Die Beschreibung importierter Rundenspiele kennzeichnet zusätzlich
+Freundschaftsspiel/Turnier vs. echtes Ligaspiel (anhand der vom Verband
+vergebenen Spielnummer, `gameNumber` — siehe `bildeUid` in
+`rundenspiel-import.ts`) sowie ggf. weitere Zellen nach Heim-/Auswärtsteam
+im nuLiga-Export (z.B. ein Schiedsrichter-Kürzel, Format je Halle/Verband
+unbestätigt, daher roh statt interpretiert angehängt).
+
+**Duplikat-Erkennung** (`src/lib/duplikat-erkennung.ts`): Admins legen
+Testspiele oft manuell an, bevor ein Spiel offiziell im Verbandssystem
+geführt wird (z.B. weil noch kein Schiedsrichter feststeht). Erscheint
+dieselbe Begegnung später über den nuLiga-Sync als Rundenspiel, existieren
+beide Termine parallel und doppeln sich im Kalender. `/admin/rundenspiele`
+zeigt solche Fälle (gleicher Kalendertag + Team-Name-Match oder zeitliche
+Nähe) als Vorschlagsliste zum manuellen Aufräumen — bewusst kein
+automatisches Löschen, da beide Signale nicht zuverlässig genug für eine
+automatische Entscheidung sind.
+
 ## Systemadmin (vereinsübergreifend)
 
 Nutzer mit `user.ist_system_admin = true` haben **kein** `verein_id` (gehören

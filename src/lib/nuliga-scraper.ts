@@ -138,6 +138,11 @@ type NuligaEvent = {
   away: string;
   location: string;
   locationId: string;
+  // Zellen nach "away" (z.B. Schiedsrichter-Kürzel) — Inhalt/Vorhandensein
+  // je Landesverband/Hallenseite unbestätigt, daher unausgewertet
+  // durchgereicht statt geraten geparst (siehe beschreibung in
+  // rundenspiel-import.ts, wo das sichtbar an den Admin durchgereicht wird).
+  zusatz: string | null;
 };
 
 // Analog zum bisherigen n8n-Code-Node "Events aufbereiten": Tabellenzeilen
@@ -175,6 +180,7 @@ export function parseNuligaSeite(
     const home = afterTime[gameNumberIndex + 3];
     const away = afterTime[gameNumberIndex + 4];
     if (!league || !home || !away) continue;
+    const zusatzZellen = afterTime.slice(gameNumberIndex + 5).filter(Boolean);
 
     const dateMatch = currentDate.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
     if (!dateMatch) continue;
@@ -193,6 +199,7 @@ export function parseNuligaSeite(
       away,
       location: locationName,
       locationId,
+      zusatz: zusatzZellen.length ? zusatzZellen.join(" · ") : null,
     });
   }
 

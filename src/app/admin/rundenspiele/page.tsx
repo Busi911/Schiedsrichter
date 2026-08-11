@@ -2,8 +2,13 @@ import { and, asc, eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mannschaften, termine } from "@/db/schema";
-import { mannschaftAusRundenspielAnlegen, rundenspieleImportieren } from "../actions";
+import {
+  mannschaftAusRundenspielAnlegen,
+  rundenspieleImportieren,
+  testspielDuplikatLoeschen,
+} from "../actions";
 import { gruppiereUnbekannteMannschaften } from "@/lib/rundenspiel-import";
+import { findeTestspielDuplikate } from "@/lib/duplikat-erkennung";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +53,7 @@ export default async function RundenspielePage({
   );
 
   const unbekannteMannschaften = gruppiereUnbekannteMannschaften(liste);
+  const moeglicheDuplikate = await findeTestspielDuplikate(vereinId);
 
   return (
     <div className="flex flex-col gap-6">
@@ -147,6 +153,48 @@ export default async function RundenspielePage({
                     Als Mannschaft anlegen
                   </Button>
                 </form>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {moeglicheDuplikate.length > 0 && (
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <CardTitle>Mögliche Duplikate</CardTitle>
+            <CardDescription>
+              Manuell angelegte Testspiele (z.B. weil noch kein
+              Schiedsrichter feststand), die inzwischen auch offiziell als
+              Rundenspiel importiert wurden — dieselbe Begegnung taucht
+              sonst doppelt im Kalender auf. Prüft die Zuordnung, bevor ihr
+              das Testspiel löscht.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col divide-y">
+              {moeglicheDuplikate.map((d) => (
+                <div
+                  key={`${d.testspielId}-${d.rundenspielId}`}
+                  className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="text-sm">
+                    <p>
+                      <strong>Testspiel:</strong> {formatDateTime(d.testspielStart)}
+                      {d.testspielBeschreibung ? ` · ${d.testspielBeschreibung}` : ""}
+                    </p>
+                    <p className="text-muted-foreground">
+                      <strong>Rundenspiel:</strong> {formatDateTime(d.rundenspielStart)}
+                      {d.rundenspielBeschreibung ? ` · ${d.rundenspielBeschreibung}` : ""}
+                    </p>
+                  </div>
+                  <form action={testspielDuplikatLoeschen}>
+                    <input type="hidden" name="terminId" value={d.testspielId} />
+                    <Button type="submit" variant="outline" size="sm">
+                      Testspiel löschen
+                    </Button>
+                  </form>
+                </div>
               ))}
             </div>
           </CardContent>

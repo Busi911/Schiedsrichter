@@ -126,7 +126,14 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       const spielArt = istPflichtspiel
         ? `Ligaspiel Nr. ${gameNumberRoh}`
         : "Freundschaftsspiel/Turnier";
-      const beschreibung = [titel, kategorie, spielArt].filter(Boolean).join(" · ");
+      // Zellen nach Heim/Auswärts im nuLiga-Export (z.B. Schiedsrichter-
+      // Kürzel) — Format/Vorhandensein je Landesverband unbestätigt, daher
+      // roh angehängt statt geraten interpretiert (siehe Kommentar in
+      // nuliga-scraper.ts).
+      const zusatz = typeof e.zusatz === "string" ? e.zusatz : undefined;
+      const beschreibung = [titel, kategorie, spielArt, zusatz]
+        .filter(Boolean)
+        .join(" · ");
 
       ereignisse.push({
         uid,

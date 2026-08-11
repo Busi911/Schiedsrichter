@@ -591,6 +591,32 @@ export async function deleteTermin(formData: FormData) {
   redirect("/admin/termine");
 }
 
+// Gezieltes Löschen eines manuell angelegten Testspiels, das sich als
+// Duplikat eines später offiziell importierten Rundenspiels herausgestellt
+// hat (siehe findeTestspielDuplikate) — bewusst ohne Redirect, da von
+// /admin/rundenspiele statt /admin/termine aus aufgerufen.
+export async function testspielDuplikatLoeschen(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const terminId = formData.get("terminId");
+  if (typeof terminId !== "string" || !terminId) {
+    throw new Error("Termin fehlt.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    const bestehend = await tx.query.termine.findFirst({
+      where: and(eq(termine.id, terminId), eq(termine.vereinId, vereinId)),
+    });
+    if (!bestehend || bestehend.quelle !== "manuell" || bestehend.typ !== "testspiel") {
+      throw new Error("Termin nicht gefunden oder nicht löschbar.");
+    }
+    await tx.delete(termine).where(eq(termine.id, terminId));
+  });
+
+  revalidatePath("/admin/rundenspiele");
+}
+
 // ---------------------------------------------------------------------------
 // Turnier-Spielplan: einzelne Spiele innerhalb eines Turnier-Containers
 // (termine.typ = "turnier"). Dienste-Bedarf (Ordner/Kiosk) gilt weiterhin
