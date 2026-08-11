@@ -61,9 +61,12 @@ export default async function OeffentlicheTurnierseite({
           funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
           name: users.name,
           email: users.email,
+          externerName: terminZuordnungen.externerName,
         })
         .from(terminZuordnungen)
-        .innerJoin(users, eq(terminZuordnungen.userId, users.id))
+        // LEFT JOIN: Zuordnungen ohne Login-Account (externerName statt
+        // userId) sollen im öffentlichen Spielplan trotzdem sichtbar sein.
+        .leftJoin(users, eq(terminZuordnungen.userId, users.id))
         .where(inArray(terminZuordnungen.terminId, spielIds))
     : [];
 
@@ -144,12 +147,12 @@ export default async function OeffentlicheTurnierseite({
                           <div className="flex flex-wrap gap-1">
                             {besetzung.map((z) => (
                               <Badge
-                                key={`${z.terminId}-${z.funktionstraegerTyp}-${z.email}`}
+                                key={`${z.terminId}-${z.funktionstraegerTyp}-${z.email ?? z.externerName}`}
                                 variant="secondary"
                               >
                                 {ROLLE_LABEL[z.funktionstraegerTyp] ??
                                   z.funktionstraegerTyp}
-                                : {z.name ?? z.email}
+                                : {z.name ?? z.externerName ?? z.email}
                               </Badge>
                             ))}
                           </div>

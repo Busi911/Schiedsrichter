@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, termine, terminZuordnungen } from "@/db/schema";
 import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
+import { berechneBesetzung } from "@/lib/besetzung";
 import { MonatsKalender, type KalenderEintrag } from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -13,6 +14,8 @@ const TYP_LABEL: Record<string, string> = {
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
 };
+
+const BESETZUNGSRELEVANTE_TYPEN = ["spiel_ics", "testspiel", "turnier_spiel"];
 
 function formatZeit(d: Date) {
   return new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" }).format(d);
@@ -30,7 +33,7 @@ export default async function ProfilKalenderPage({
   const { jahr, monatNull } = parseMonatParam(monat);
   const { von, bis } = monatsBereich(jahr, monatNull);
 
-  const termineDesMonats = await withTenant(vereinId, async (tx) => {
+  const [termineDesMonats, alleZuordnungen] = await withTenant(vereinId, async (tx) => {
     const eigeneRollen = await tx.query.funktionstraegerRollen.findMany({
       where: eq(funktionstraegerRollen.userId, userId),
     });
@@ -38,10 +41,10 @@ export default async function ProfilKalenderPage({
       .filter((r) => r.typ === "trainer" && r.mannschaftId)
       .map((r) => r.mannschaftId!);
 
-    const zuordnungen = await tx.query.terminZuordnungen.findMany({
+    const eigeneZuordnungen = await tx.query.terminZuordnungen.findMany({
       where: eq(terminZuordnungen.userId, userId),
     });
-    const zugeordneteTerminIds = zuordnungen.map((z) => z.terminId);
+    const zugeordneteTerminIds = eigeneZuordnungen.map((z) => z.terminId);
 
     const bedingungen = [eq(termine.icsSchiedsrichterId, userId)];
     if (zugeordneteTerminIds.length) {
@@ -51,13 +54,14 @@ export default async function ProfilKalenderPage({
       bedingungen.push(inArray(termine.mannschaftId, mannschaftIds));
     }
 
-    return tx
+    const termineDesMonats = await tx
       .select({
         id: termine.id,
         typ: termine.typ,
         start: termine.start,
         ort: termine.ort,
         beschreibung: termine.beschreibung,
+        hatIcsSchiedsrichter: termine.icsSchiedsrichterId,
       })
       .from(termine)
       .where(
@@ -68,17 +72,39 @@ export default async function ProfilKalenderPage({
           or(...bedingungen)
         )
       );
+
+    const terminIds = termineDesMonats.map((t) => t.id);
+    const alleZuordnungen = terminIds.length
+      ? await tx
+          .select({
+            terminId: terminZuordnungen.terminId,
+            funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+          })
+          .from(terminZuordnungen)
+          .where(inArray(terminZuordnungen.terminId, terminIds))
+      : [];
+
+    return [termineDesMonats, alleZuordnungen];
   });
 
   const eintraegeProTag = new Map<string, KalenderEintrag[]>();
   for (const t of termineDesMonats) {
     const key = tagKey(t.start);
     const liste = eintraegeProTag.get(key) ?? [];
+    const besetzung = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ)
+      ? berechneBesetzung(
+          alleZuordnungen.filter((z) => z.terminId === t.id),
+          !!t.hatIcsSchiedsrichter
+        ).vollstaendig
+        ? ("vollstaendig" as const)
+        : ("offen" as const)
+      : undefined;
     liste.push({
       id: t.id,
       zeit: formatZeit(t.start),
       label: t.beschreibung ?? t.ort ?? TYP_LABEL[t.typ] ?? t.typ,
       typLabel: TYP_LABEL[t.typ] ?? t.typ,
+      besetzung,
     });
     eintraegeProTag.set(key, liste);
   }

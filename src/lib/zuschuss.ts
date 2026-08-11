@@ -53,7 +53,11 @@ export async function holeOffeneEinsaetze(
         and(
           eq(termine.vereinId, vereinId),
           lt(termine.start, jetzt),
-          inArray(terminZuordnungen.funktionstraegerTyp, [...ABRECHENBARE_TYPEN])
+          inArray(terminZuordnungen.funktionstraegerTyp, [...ABRECHENBARE_TYPEN]),
+          // Zuordnungen ohne Login-Account (externerName statt userId) haben
+          // keinen Zahlungsempfänger im System und tauchen hier bewusst
+          // nicht auf.
+          isNotNull(terminZuordnungen.userId)
         )
       );
 
@@ -87,7 +91,14 @@ export async function holeOffeneEinsaetze(
 
     const alle = new Map<string, OffenerEinsatz>();
     for (const e of ausZuordnung) {
-      alle.set(`${e.terminId}:${e.userId}:${e.funktionstraegerTyp}`, e);
+      // Die DB-Abfrage filtert bereits auf userId IS NOT NULL (siehe oben);
+      // dieser Check ist nur für TypeScript, das das nicht aus dem Join
+      // ableiten kann.
+      if (!e.userId) continue;
+      alle.set(`${e.terminId}:${e.userId}:${e.funktionstraegerTyp}`, {
+        ...e,
+        userId: e.userId,
+      });
     }
     for (const e of ausIcsFeed) {
       if (!e.userId) continue;

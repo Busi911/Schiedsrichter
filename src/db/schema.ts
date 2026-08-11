@@ -237,9 +237,13 @@ export const terminZuordnungen = pgTable("termin_zuordnung", {
   terminId: uuid("termin_id")
     .notNull()
     .references(() => termine.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+  // Nullable: eine Zuordnung kann auch eine Person OHNE Zugang im System
+  // sein (z.B. ein Schiedsrichter eines anderen Vereins, der nicht
+  // eingeladen werden soll) — dann ist externerName gesetzt statt userId.
+  // Diese Personen bekommen keine Benachrichtigungen, da es keine E-Mail
+  // gibt, an die versendet werden könnte.
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  externerName: text("externer_name"),
   funktionstraegerTyp: funktionstraegerTypEnum("funktionstraeger_typ").notNull(),
   quelle: zuordnungQuelleEnum("quelle").notNull(),
 });

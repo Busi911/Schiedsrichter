@@ -36,13 +36,17 @@ export async function holeTermineMitZuordnungen(vereinId: string) {
           .select({
             id: terminZuordnungen.id,
             terminId: terminZuordnungen.terminId,
+            userId: terminZuordnungen.userId,
             funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
             quelle: terminZuordnungen.quelle,
+            // LEFT JOIN statt innerJoin: Zuordnungen ohne Account
+            // (externerName gesetzt, userId null) müssen erhalten bleiben.
             name: users.name,
             email: users.email,
+            externerName: terminZuordnungen.externerName,
           })
           .from(terminZuordnungen)
-          .innerJoin(users, eq(terminZuordnungen.userId, users.id))
+          .leftJoin(users, eq(terminZuordnungen.userId, users.id))
           .where(inArray(terminZuordnungen.terminId, terminIds))
       : [];
 
