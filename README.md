@@ -1,4 +1,4 @@
-# FunktionsträgerHub
+# Handballpate
 
 Verwaltungsplattform für Handball-Vereine: Funktionsträger (Schiedsrichter,
 Zeitnehmer, Sekretäre, Trainer, Ordner, Kioskdienst), Terminverwaltung inkl.
@@ -90,10 +90,20 @@ const id = crypto.randomUUID();
 await withTenant(id, (tx) => tx.insert(vereine).values({ id, name }));
 ```
 
-## Täglicher ICS-Sync (Vercel Cron)
+## ICS-Sync (Vercel Cron)
 
-`vercel.json` registriert `GET /api/cron/ics-sync`, einmal täglich ausgeführt
-von Vercel Cron. Die Route ist per `CRON_SECRET` geschützt (Vercel sendet den
+`vercel.json` registriert `GET /api/cron/ics-sync`, einmal täglich
+ausgeführt von Vercel Cron. Ein häufigerer Schedule (z.B. alle 6 Stunden)
+wurde versucht, aber der Vercel-Hobby-Plan **lehnt das Deployment komplett
+ab**, sobald ein Cron öfter als 1x/Tag laufen würde ("Hobby accounts are
+limited to daily cron jobs") — kein stilles Herunterregeln, sondern ein
+harter Deploy-Fehler. Ohne Upgrade auf den Pro-Plan bleibt es daher bei
+einmal täglich. (Eine zwischenzeitliche Vermutung, der Hobby-Plan begrenze
+zusätzlich die *Anzahl* an Cron Jobs pro Projekt, war ein Irrweg — der
+eigentliche Grund für weitere fehlgeschlagene Deployments war ein fehlendes
+`DATABASE_URL` in der Vercel-Projektkonfiguration, siehe
+[Lokales Setup](#lokales-setup) für die vollständige Liste nötiger
+Env-Variablen.) Die Route ist per `CRON_SECRET` geschützt (Vercel sendet den
 Header `Authorization: Bearer $CRON_SECRET` automatisch mit, wenn die
 Env-Variable gesetzt ist). Lokal manuell auslösen:
 
@@ -134,21 +144,59 @@ verträgt sich deshalb nicht mit dem Server-Bundling — daher steht es in
 `vercel.json` registriert zusätzlich `GET /api/cron/terminerinnerungen`,
 täglich eine Stunde nach dem ICS-Sync. Sucht Termine, die innerhalb der
 nächsten 36 Stunden starten (`src/lib/terminerinnerungen.ts`), und schickt
-eine E-Mail an:
+eine E-Mail (plus Push, siehe unten) an:
 
-- den zugeordneten Schiedsrichter (bei ICS-Feed-Terminen), und
+- den zugeordneten Schiedsrichter (bei ICS-Feed-Terminen),
 - alle Trainer der betroffenen Mannschaft (falls eine Mannschaft hinterlegt
-  ist).
+  ist), und
+- alle über `/admin/zuordnung` oder Selbst-Anmeldung einem Termin
+  zugeordneten Personen (Zeitnehmer, Sekretäre, Ordner, Kioskdienst, weitere
+  Schiedsrichter) — schließt die Lücke bei Testspielen/Turnieren ohne
+  Mannschaft, bei denen sonst niemand erreicht würde.
 
 Bereits verschickte Erinnerungen werden in `benachrichtigung` protokolliert
 und beim nächsten Lauf übersprungen (kein Doppel-Versand). Schlägt der
 Mailversand fehl (z.B. SMTP nicht erreichbar), wird **keine**
 Benachrichtigung protokolliert, sodass der nächste Cron-Lauf automatisch
-erneut versucht. Lokal manuell auslösen:
+erneut versucht. Push ist dabei ein zusätzlicher, unabhängiger Kanal — ein
+fehlgeschlagener Push-Versand markiert die (bereits erfolgreiche) E-Mail
+nicht als fehlgeschlagen. Lokal manuell auslösen:
 
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/terminerinnerungen
 ```
+
+## Push-Benachrichtigungen
+
+Zusätzlich zur E-Mail können Nutzer auf `/profil` Push-Benachrichtigungen für
+ihr aktuelles Gerät aktivieren (`src/components/push-anmelden.tsx`, Web Push
+Standard über `public/sw.js`). Abos landen in `push_abo`
+(`src/lib/push.ts`); der Terminerinnerungen-Cron sendet dorthin parallel zur
+E-Mail. Abgelaufene Abos (Browser meldet 404/410) werden beim nächsten
+Sendeversuch automatisch entfernt.
+
+VAPID-Keys erzeugen und in `.env` eintragen:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Ohne `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` bleibt Push
+einfach inaktiv (kein Fehler) — der Rest der App funktioniert unverändert.
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` (derselbe Wert wie `VAPID_PUBLIC_KEY`) muss
+zusätzlich gesetzt sein, damit der Browser ihn zum Abonnieren lesen kann.
+
+## PWA / Installierbarkeit
+
+`public/manifest.json` + `public/sw.js` machen die App auf Mobilgeräten als
+"App" installierbar (Add to Home Screen). Das Icon (`src/app/icon.svg`) kommt
+über die Next.js Metadata-File-Convention automatisch als Favicon zum
+Einsatz; `public/icon-192.png`/`icon-512.png`/`apple-touch-icon.png` sind
+daraus gerasterte Fallbacks für das Manifest bzw. iOS-Homescreen-Icons, wo
+SVG nicht zuverlässig unterstützt wird. Der Service Worker registriert sich
+global (`src/components/sw-register.tsx`, Root Layout) und übernimmt
+zusätzlich die Push-Zustellung — bewusst ohne Offline-Caching/Fetch-Handler,
+da die App durchgehend serverseitig (Server Actions, RLS-Session) rendert.
 
 ## Spielzuordnung, Selbst-Anmeldung, Zuschüsse (Phase 3)
 
@@ -174,7 +222,10 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/term
   `zuschuss`-Datensatz an. "Offene als CSV exportieren" liefert eine CSV
   aller offenen Zuschüsse und markiert sie im selben Request als
   `exportiert` — bewusst kein eigenes Rechnungs-/Zahlungsmodul, das läuft im
-  externen Abrechnungssystem.
+  externen Abrechnungssystem. Schiedsrichter sehen den Status ihrer eigenen
+  Zuschüsse (offen/exportiert) transparent auf `/profil`
+  (`holeEigeneZuschuesse` in `src/lib/zuschuss.ts`), statt nur der
+  Admin-Ansicht vertrauen zu müssen.
 
 ## Dienste-Bedarf (Ordner/Kioskdienst-Kapazität)
 
@@ -190,6 +241,33 @@ Kapazität ("2/3") und können sich anmelden, solange der Bedarf nicht erreicht
 ist. Ist er erreicht, verschwindet der Anmelden-Button (serverseitig in
 `selbstAnmelden()` zusätzlich abgesichert, falls zwei Personen gleichzeitig
 den letzten Platz beanspruchen).
+
+## Rundenspiele: manueller Import & automatischer nuLiga-Sync
+
+`/admin/rundenspiele` importiert Pflichtspiele aus dem Liga-Spielplan —
+enthält bewusst **alle** Spiele an der eigenen Halle (nicht nur die eigenen
+Mannschaften), da die Halle für jedes dort stattfindende Spiel
+Ordner-/Kioskdienst braucht. Zwei Wege dorthin, beide über dieselbe
+Import-/Dedup-Logik (`importiereRundenspielEreignisse` in
+`src/lib/rundenspiel-sync.ts`, Match über `termin.ics_uid` — ein erneuter
+Import aktualisiert bestehende Spiele bei Terminverlegung statt sie zu
+duplizieren):
+
+- **Manueller JSON-Upload** (`parseRundenspielJson`,
+  `src/lib/rundenspiel-import.ts`): JSON-Export pro Halle, z.B. aus einem
+  bestehenden Scraping-Workflow.
+- **Automatischer nuLiga-Sync** (`src/lib/nuliga-scraper.ts`): Auf
+  `/admin/einstellungen` bis zu drei Hallen-IDs hinterlegen und aktivieren —
+  dieselben Angaben, die zuvor manuell in einen externen Scraping-Workflow
+  eingetragen wurden. Holt das nuLiga-Hallen-HTML direkt per `fetch()` (fest
+  verdrahtet auf `hhv-handball.liga.nu`/HHV, siehe Kommentar in
+  `nuliga-scraper.ts` — andere Landesverbände brauchen eine weitere
+  Domain-Konstante) für ein rollierendes 10-Monats-Fenster ab dem
+  aktuellen Monat, statt eines fest einzutragenden Start-/Endmonats, der mit
+  der Zeit veralten würde. Läuft montags + donnerstags per Vercel Cron
+  (`/api/cron/rundenspiel-sync`) für alle Vereine mit aktiviertem
+  Auto-Import; nach dem Speichern der Hallen-IDs läuft zusätzlich sofort ein
+  erster Sync, statt auf den nächsten Cron-Termin zu warten.
 
 ## Systemadmin (vereinsübergreifend)
 
@@ -221,9 +299,11 @@ vorhandene Personen/Rollen werden beim Import übersprungen statt dupliziert;
 das Ergebnis (angelegt/übersprungen/Fehler pro Zeile) wird nach dem Import
 als Banner auf der Seite angezeigt.
 
-*Bewusst nicht Teil dieses Imports:* eine Selbstverwaltung, mit der
-Funktionsträger ihre eigenen Stammdaten später selbst aktualisieren können —
-das ist als Backlog-Punkt vorgemerkt, nicht umgesetzt.
+Für die eigenen Stammdaten (Name, Telefonnummer) danach gibt es keinen
+erneuten Import-Bedarf: Funktionsträger pflegen das selbst auf `/profil`
+(`updateStammdaten` in `src/app/profil/actions.ts`) — bewusst ohne
+E-Mail-Änderung, die bleibt login-kritisch Admin-Aufgabe
+(`updateFunktionstraeger`).
 
 ## Termine bearbeiten/löschen
 
@@ -305,7 +385,10 @@ ergänzt werden:
 - `exceljs` zieht transitiv eine `uuid`-Version mit einer moderate-severity-
   Lücke (Buffer-Bounds-Check bei explizit übergebenem Buffer — wird von uns
   nicht in dieser Form aufgerufen).
-- Testspiele/Turniere ohne hinterlegte Mannschaft und ohne Zuordnung
-  bekommen aktuell keine Erinnerung, da niemand konkret zugeordnet ist.
-- Selbstverwaltung für Funktionsträger-Stammdaten (Update durch die Person
-  selbst) ist als Backlog-Punkt vorgemerkt, nicht umgesetzt.
+- Testspiele/Turniere ganz ohne jede Zuordnung (weder Mannschaft noch
+  `termin_zuordnung`) bekommen weiterhin keine Erinnerung, da niemand
+  konkret ermittelbar ist.
+- Der automatische nuLiga-Sync ist fest auf einen Landesverband (HHV)
+  verdrahtet (siehe `src/lib/nuliga-scraper.ts`) — weitere Verbände
+  bräuchten eine zusätzliche Domain-Konstante bzw. ein Verein-Einstellungsfeld
+  dafür.

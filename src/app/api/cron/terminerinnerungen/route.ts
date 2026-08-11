@@ -1,5 +1,6 @@
 import { sendeAusstehendeErinnerungen } from "@/lib/terminerinnerungen";
 
+// Läuft täglich per Vercel Cron (siehe vercel.json).
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (

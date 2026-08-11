@@ -32,7 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async sendVerificationRequest({ identifier: email, url }) {
         await sendMail(
           email,
-          "Dein Login-Link für FunktionsträgerHub",
+          "Dein Login-Link für Handballpate",
           loginMailText(url),
           loginMailHtml(url)
         );

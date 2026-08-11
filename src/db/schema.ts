@@ -93,6 +93,16 @@ export const vereine = pgTable("verein", {
   // mindestens eine Zuschussart gepflegt hat, taucht auf /admin/zuschuesse
   // überhaupt etwas auf.
   zuschuesseAktiviert: boolean("zuschuesse_aktiviert").notNull().default(false),
+  // Automatischer nuLiga-Rundenspiel-Import (siehe src/lib/nuliga-scraper.ts):
+  // bis zu drei Hallen-IDs (dieselben Angaben wie im bisherigen manuellen
+  // Export-Workflow), Import läuft nur, wenn aktiviert UND mindestens eine
+  // Hallen-ID gesetzt ist (siehe /api/cron/rundenspiel-sync).
+  nuligaHalle1Id: text("nuliga_halle_1_id"),
+  nuligaHalle2Id: text("nuliga_halle_2_id"),
+  nuligaHalle3Id: text("nuliga_halle_3_id"),
+  nuligaAutoImportAktiviert: boolean("nuliga_auto_import_aktiviert")
+    .notNull()
+    .default(false),
 });
 
 export const mannschaften = pgTable("mannschaft", {
@@ -125,6 +135,10 @@ export const users = pgTable("user", {
   // anlegen, siehe /system/vereine. Löst den SETUP_SECRET-Bootstrap für den
   // Regelbetrieb ab (der bleibt als Notfall-Fallback bestehen).
   istSystemAdmin: boolean("ist_system_admin").notNull().default(false),
+  // Selbstverwaltung durch die Person selbst (siehe /profil) — bewusst ohne
+  // E-Mail-Änderung, die bleibt Admin-Aufgabe (login-kritisch, siehe
+  // updateFunktionstraeger in admin/actions.ts).
+  telefonnummer: text("telefonnummer"),
 });
 
 export const accounts = pgTable(
@@ -324,4 +338,19 @@ export const benachrichtigungen = pgTable("benachrichtigung", {
     .references(() => users.id, { onDelete: "cascade" }),
   typ: text("typ").notNull(),
   versendetAm: timestamp("versendet_am", { mode: "date" }),
+});
+
+// Web-Push-Abos (siehe src/lib/push.ts). Ein Nutzer kann mehrere Geräte
+// abonnieren (mehrere Zeilen); der Browser liefert je Gerät eine eigene
+// endpoint-URL. Kein eigenes verein_id nötig — RLS läuft über den Join auf
+// user (analog schiedsrichter_profil).
+export const pushAbos = pgTable("push_abo", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });

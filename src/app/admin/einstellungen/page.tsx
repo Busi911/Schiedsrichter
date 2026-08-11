@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
-import { dienstBedarfSpeichern } from "./actions";
+import { dienstBedarfSpeichern, nuligaEinstellungenSpeichern } from "./actions";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,10 +14,20 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
-export default async function EinstellungenPage() {
+export default async function EinstellungenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    nuligaNeu?: string;
+    nuligaAktualisiert?: string;
+    nuligaFehler?: string;
+  }>;
+}) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
+  const nuligaErgebnis = await searchParams;
 
   const verein = await withTenant(vereinId, (tx) =>
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
@@ -148,6 +159,89 @@ export default async function EinstellungenPage() {
 
             <Button type="submit" className="w-full">
               Speichern
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {nuligaErgebnis.nuligaNeu !== undefined && (
+        <Alert
+          variant={nuligaErgebnis.nuligaFehler ? "destructive" : "default"}
+          className="max-w-md"
+        >
+          <AlertTitle>
+            nuLiga-Sync: {nuligaErgebnis.nuligaNeu} neu,{" "}
+            {nuligaErgebnis.nuligaAktualisiert ?? 0} aktualisiert
+          </AlertTitle>
+          {nuligaErgebnis.nuligaFehler && (
+            <AlertDescription>
+              {nuligaErgebnis.nuligaFehler.split(" | ").map((f) => (
+                <p key={f}>{f}</p>
+              ))}
+            </AlertDescription>
+          )}
+        </Alert>
+      )}
+
+      <Card className="max-w-md">
+        <CardHeader>
+          <CardTitle>nuLiga Automatischer Import</CardTitle>
+          <CardDescription>
+            Bis zu drei Hallen-IDs eintragen (leere Felder werden
+            übersprungen) — dieselben Angaben wie im bisherigen manuellen
+            Export-Workflow. Bei aktiviertem Import lädt der Verein montags
+            und donnerstags automatisch neue Rundenspiele; nach dem
+            Speichern läuft sofort ein erster Sync.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            action={nuligaEinstellungenSpeichern}
+            className="flex flex-col gap-4"
+          >
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="nuligaHalle1Id">Halle 1</Label>
+              <Input
+                id="nuligaHalle1Id"
+                name="nuligaHalle1Id"
+                inputMode="numeric"
+                placeholder="z.B. 30402"
+                defaultValue={verein?.nuligaHalle1Id ?? ""}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="nuligaHalle2Id">Halle 2</Label>
+              <Input
+                id="nuligaHalle2Id"
+                name="nuligaHalle2Id"
+                inputMode="numeric"
+                placeholder="optional"
+                defaultValue={verein?.nuligaHalle2Id ?? ""}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="nuligaHalle3Id">Halle 3</Label>
+              <Input
+                id="nuligaHalle3Id"
+                name="nuligaHalle3Id"
+                inputMode="numeric"
+                placeholder="optional"
+                defaultValue={verein?.nuligaHalle3Id ?? ""}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="nuligaAutoImportAktiviert" className="font-normal">
+                Automatischer Import aktiv (Mo + Do)
+              </Label>
+              <Switch
+                key={String(verein?.nuligaAutoImportAktiviert ?? false)}
+                id="nuligaAutoImportAktiviert"
+                name="nuligaAutoImportAktiviert"
+                defaultChecked={verein?.nuligaAutoImportAktiviert ?? false}
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Speichern{verein?.nuligaAutoImportAktiviert ? " & synchronisieren" : ""}
             </Button>
           </form>
         </CardContent>

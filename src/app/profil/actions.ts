@@ -6,15 +6,48 @@ import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
+  pushAbos,
   schiedsrichterProfile,
   termine,
   terminZuordnungen,
+  users,
   vereine,
 } from "@/db/schema";
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
 import { bedarfFuer } from "@/lib/dienste";
 
 const SELBST_ANMELDBARE_TYPEN = ["ordner", "kioskdienst"] as const;
+
+// Selbstverwaltung der eigenen Stammdaten (Name, Telefonnummer) — bewusst
+// OHNE E-Mail-Änderung, die bleibt Admin-Aufgabe (login-kritisch, siehe
+// updateFunktionstraeger in admin/actions.ts, das zusätzlich beide Adressen
+// informiert).
+export async function updateStammdaten(formData: FormData) {
+  const session = await requireSession();
+  const vereinId = session.user.vereinId!;
+  const userId = session.user.id;
+
+  const name = formData.get("name");
+  const telefonnummer = formData.get("telefonnummer");
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Name ist erforderlich.");
+  }
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .update(users)
+      .set({
+        name: name.trim(),
+        telefonnummer:
+          typeof telefonnummer === "string" && telefonnummer.trim()
+            ? telefonnummer.trim()
+            : null,
+      })
+      .where(eq(users.id, userId))
+  );
+
+  revalidatePath("/profil");
+}
 
 export async function updateIcsFeedUrl(formData: FormData) {
   const session = await requireSession();
@@ -135,6 +168,48 @@ export async function selbstAbmelden(formData: FormData) {
   });
 
   revalidatePath("/profil");
+}
+
+type PushSubscriptionJson = {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+};
+
+// Vom Client (siehe src/components/push-anmelden.tsx) direkt aufgerufene
+// Server Actions, kein <form> — Next.js erlaubt das für "use server"-
+// exportierte Funktionen genauso wie den form-action-Aufruf.
+export async function pushAbonnieren(subscription: PushSubscriptionJson) {
+  const session = await requireSession();
+  const vereinId = session.user.vereinId!;
+  const userId = session.user.id;
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .insert(pushAbos)
+      .values({
+        userId,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+      })
+      .onConflictDoUpdate({
+        target: pushAbos.endpoint,
+        set: {
+          userId,
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+        },
+      })
+  );
+}
+
+export async function pushAbbestellen(endpoint: string) {
+  const session = await requireSession();
+  const vereinId = session.user.vereinId!;
+
+  await withTenant(vereinId, (tx) =>
+    tx.delete(pushAbos).where(eq(pushAbos.endpoint, endpoint))
+  );
 }
 
 export async function syncJetzt() {

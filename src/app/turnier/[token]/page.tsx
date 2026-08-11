@@ -146,7 +146,7 @@ export default async function OeffentlicheTurnierseite({
       </Card>
 
       <p className="text-center text-xs text-muted-foreground">
-        Rein lesende Ansicht — FunktionsträgerHub
+        Rein lesende Ansicht — Handballpate
       </p>
     </main>
   );
