@@ -17,3 +17,13 @@ export async function requireAdmin() {
   }
   return session;
 }
+
+// Systemadmins gehören keinem Verein an (vereinId ist null) — deshalb
+// eigenständig und NICHT über requireSession(), das vereinId voraussetzt.
+export async function requireSystemAdmin() {
+  const session = await auth();
+  if (!session?.user?.istSystemAdmin) {
+    redirect("/login");
+  }
+  return session;
+}

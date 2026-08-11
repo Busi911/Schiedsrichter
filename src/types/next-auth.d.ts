@@ -6,6 +6,7 @@ declare module "next-auth" {
       id: string;
       vereinId: string | null;
       istAdmin: boolean;
+      istSystemAdmin: boolean;
     } & DefaultSession["user"];
   }
 }
@@ -14,5 +15,6 @@ declare module "next-auth/adapters" {
   interface AdapterUser {
     vereinId: string | null;
     istAdmin: boolean;
+    istSystemAdmin: boolean;
   }
 }

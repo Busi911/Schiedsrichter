@@ -1,9 +1,18 @@
 import "server-only";
-import { and, desc, eq, inArray, isNotNull, lt } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { termine, terminZuordnungen, users, zuschuesse } from "@/db/schema";
+import {
+  termine,
+  terminZuordnungen,
+  users,
+  vereine,
+  zuschuesse,
+  zuschussarten,
+} from "@/db/schema";
 
-const ABRECHENBARE_TYPEN = ["schiedsrichter", "zeitnehmer", "sekretaer"] as const;
+// Zuschüsse gibt es (erstmal) nur für Schiedsrichter — auf ausdrücklichen
+// Wunsch, nicht für Zeitnehmer/Sekretär.
+const ABRECHENBARE_TYPEN = ["schiedsrichter"] as const;
 
 export type OffenerEinsatz = {
   terminId: string;
@@ -115,6 +124,21 @@ export async function holeZuschuesse(vereinId: string) {
       .innerJoin(users, eq(zuschuesse.userId, users.id))
       .where(eq(termine.vereinId, vereinId))
       .orderBy(desc(termine.start))
+  );
+}
+
+export async function holeZuschussEinstellungen(vereinId: string) {
+  return withTenant(vereinId, (tx) =>
+    tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
+  );
+}
+
+export async function holeZuschussarten(vereinId: string) {
+  return withTenant(vereinId, (tx) =>
+    tx.query.zuschussarten.findMany({
+      where: eq(zuschussarten.vereinId, vereinId),
+      orderBy: (z) => [asc(z.bezeichnung)],
+    })
   );
 }
 

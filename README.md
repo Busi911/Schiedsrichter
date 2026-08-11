@@ -162,14 +162,19 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/term
   Rolle `ordner` oder `kioskdienst` sehen anstehende Termine des Vereins und
   können sich selbst ein-/austragen (`quelle = selbst_angemeldet`). Erscheint
   bei `/admin/zuordnung` entsprechend gekennzeichnet.
-- **`/admin/zuschuesse`** (`src/lib/zuschuss.ts`): listet vergangene
-  Einsätze (Schiedsrichter/Zeitnehmer/Sekretär, aus `termin_zuordnung` und
-  `ics_schiedsrichter_id` zusammengeführt) ohne bestehenden Zuschuss. Admin
-  trägt einen Satz (€) ein → legt einen `zuschuss`-Datensatz an (Satz × 1
-  Einsatz = Betrag). "Offene als CSV exportieren" liefert eine CSV aller
-  offenen Zuschüsse und markiert sie im selben Request als `exportiert` —
-  bewusst kein eigenes Rechnungs-/Zahlungsmodul, das läuft im externen
-  Abrechnungssystem.
+- **`/admin/zuschuesse`** (`src/lib/zuschuss.ts`): Zuschüsse sind ein
+  **Opt-in** pro Verein (`verein.zuschuesse_aktiviert`, Schalter oben auf der
+  Seite) und gelten bewusst **nur für Schiedsrichter** (nicht
+  Zeitnehmer/Sekretär). Der Admin pflegt zuerst einen Katalog an
+  **Zuschussarten** (`zuschussart`: Bezeichnung + Satz, z.B.
+  "Aufwandsentschädigung Schiedsrichter" / 20 €). "Offene Einsätze" listet
+  vergangene Schiedsrichter-Einsätze (aus `termin_zuordnung` und
+  `ics_schiedsrichter_id` zusammengeführt) ohne bestehenden Zuschuss; der
+  Admin wählt dort eine Zuschussart aus (kein freier Betrag) → legt einen
+  `zuschuss`-Datensatz an. "Offene als CSV exportieren" liefert eine CSV
+  aller offenen Zuschüsse und markiert sie im selben Request als
+  `exportiert` — bewusst kein eigenes Rechnungs-/Zahlungsmodul, das läuft im
+  externen Abrechnungssystem.
 
 ## Dienste-Bedarf (Ordner/Kioskdienst-Kapazität)
 
@@ -186,13 +191,77 @@ ist. Ist er erreicht, verschwindet der Anmelden-Button (serverseitig in
 `selbstAnmelden()` zusätzlich abgesichert, falls zwei Personen gleichzeitig
 den letzten Platz beanspruchen).
 
+## Systemadmin (vereinsübergreifend)
+
+Nutzer mit `user.ist_system_admin = true` haben **kein** `verein_id` (gehören
+keinem einzelnen Verein an) und verwalten stattdessen unter
+`/system/vereine` (`src/app/system/`) alle Vereine im System — Liste
+(via `adminDb`, bewusst privilegiert/vereinsübergreifend) und ein Formular,
+das analog zu `/setup` einen neuen Verein + dessen ersten Admin anlegt
+(`withTenant`-Insert, RLS-konform). Das ersetzt den `SETUP_SECRET`-Bootstrap
+für den Regelbetrieb — `/setup` bleibt als Notfall-Fallback bestehen, falls
+kein Systemadmin mehr erreichbar ist.
+
+`requireSystemAdmin()` (`src/lib/session.ts`) prüft nur die Session, nicht
+`vereinId` (im Gegensatz zu `requireSession()`/`requireAdmin()`), da
+Systemadmins bewusst keinem Verein zugeordnet sind. Auf der Startseite
+(`src/app/page.tsx`) werden sie vor der normalen Admin-Weiterleitung zuerst
+auf `/system/vereine` geleitet.
+
+## Excel-Import für Funktionsträger
+
+`/admin/funktionstraeger` → "Aus Excel importieren": Kopfzeile mit den
+Spalten Name, E-Mail, Rolle (deutsche Bezeichnung oder Rollen-Key) und
+optional Mannschaft (nur bei Trainer, muss namentlich zu einer bestehenden
+Mannschaft passen). Parsing über `exceljs`
+(`src/lib/funktionstraeger-import.ts`) — **bewusst nicht** das populäre
+`xlsx`/SheetJS-Paket, dessen npm-Version ungepatchte Prototype-Pollution-
+und ReDoS-Lücken hat (kritisch bei nutzergeladenen Dateien). Bereits
+vorhandene Personen/Rollen werden beim Import übersprungen statt dupliziert;
+das Ergebnis (angelegt/übersprungen/Fehler pro Zeile) wird nach dem Import
+als Banner auf der Seite angezeigt.
+
+*Bewusst nicht Teil dieses Imports:* eine Selbstverwaltung, mit der
+Funktionsträger ihre eigenen Stammdaten später selbst aktualisieren können —
+das ist als Backlog-Punkt vorgemerkt, nicht umgesetzt.
+
+## Design (shadcn/ui)
+
+Die Oberfläche nutzt [shadcn/ui](https://ui.shadcn.com) im "Nova"-Stil auf
+Basis von [Base UI](https://base-ui.com) (nicht Radix — neuere
+shadcn-Generation) und Tailwind v4, siehe `components.json` und
+`src/components/ui/`. Wichtige Stolpersteine, falls weitere Komponenten
+ergänzt werden:
+
+- **Formulare bleiben native `<form action={serverAction}>`-Elemente ohne
+  Client-JS-State.** `Select` funktioniert trotzdem mit reinen Server
+  Actions, weil Base UI bei gesetztem `name`-Prop einen versteckten nativen
+  `<input>` rendert. Wiederverwendbare Wrapper-Komponente:
+  `src/components/labeled-select.tsx`.
+- **Kein Function-as-Children von Server- an Client-Components.** `<Select>`
+  bräuchte eigentlich eine Render-Funktion für das Label, aber Server
+  Components dürfen keine Funktionen als Props/Children an Client
+  Components weiterreichen (RSC-Serialisierungsgrenze). Deshalb kapselt
+  `LabeledSelect` diese Funktion selbst als Client Component; Server
+  Components übergeben ihr nur reine Daten (`{value, label}[]`).
+- **`<Button render={<a href="..." />}>` braucht `nativeButton={false}`**,
+  sonst wirft Base UI eine Konsolen-Warnung (Button erwartet standardmäßig
+  ein natives `<button>`-Element hinter dem `render`-Prop).
+- Ein serverseitig neu berechneter `defaultChecked`/`defaultValue` an einer
+  unveränderten Komponentenposition (z.B. nach `revalidatePath()`) wird von
+  React als "uncontrolled component ändert sich nach Initialisierung"
+  gewarnt — beheben mit `key={...}`, um einen echten Remount zu erzwingen
+  (siehe `Switch` in `src/app/admin/zuschuesse/page.tsx`).
+
 ## Bekannte offene Punkte
 
 - `drizzle-kit` zieht transitiv eine veraltete `esbuild`-Version (moderate,
   nur Dev-Dependency, betrifft nur den lokalen `drizzle-kit`-Dev-Server).
+- `exceljs` zieht transitiv eine `uuid`-Version mit einer moderate-severity-
+  Lücke (Buffer-Bounds-Check bei explizit übergebenem Buffer — wird von uns
+  nicht in dieser Form aufgerufen).
 - Termin-Bearbeiten/-Löschen gibt es noch nicht (nur Anlegen).
 - Testspiele/Turniere ohne hinterlegte Mannschaft und ohne Zuordnung
   bekommen aktuell keine Erinnerung, da niemand konkret zugeordnet ist.
-- Zuschuss-Sätze werden manuell pro Einsatz eingegeben; feste Sätze pro
-  Rolle/Verband oder Fahrtkosten-Berechnung sind (wie im ursprünglichen Plan
-  vorgesehen) bewusst nicht Teil des MVP.
+- Selbstverwaltung für Funktionsträger-Stammdaten (Update durch die Person
+  selbst) ist als Backlog-Punkt vorgemerkt, nicht umgesetzt.

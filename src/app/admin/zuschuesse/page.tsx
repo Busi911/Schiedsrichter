@@ -1,12 +1,37 @@
 import { requireAdmin } from "@/lib/session";
-import { holeOffeneEinsaetze, holeZuschuesse } from "@/lib/zuschuss";
-import { zuschussAnlegen } from "./actions";
-
-const TYP_LABEL: Record<string, string> = {
-  schiedsrichter: "Schiedsrichter",
-  zeitnehmer: "Zeitnehmer",
-  sekretaer: "Sekretär",
-};
+import {
+  holeOffeneEinsaetze,
+  holeZuschussarten,
+  holeZuschussEinstellungen,
+  holeZuschuesse,
+} from "@/lib/zuschuss";
+import {
+  zuschussAktivierungSpeichern,
+  zuschussAnlegen,
+  zuschussartAnlegen,
+  zuschussartEntfernen,
+} from "./actions";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LabeledSelect } from "@/components/labeled-select";
+import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function formatDate(d: Date) {
   return new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(d);
@@ -16,112 +41,264 @@ export default async function ZuschuessePage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
 
-  const [offeneEinsaetze, zuschuesseListe] = await Promise.all([
-    holeOffeneEinsaetze(vereinId),
-    holeZuschuesse(vereinId),
-  ]);
+  const verein = await holeZuschussEinstellungen(vereinId);
+  const aktiviert = verein?.zuschuesseAktiviert ?? false;
+
+  const [zuschussartenListe, zuschuesseListe, offeneEinsaetze] =
+    await Promise.all([
+      holeZuschussarten(vereinId),
+      holeZuschuesse(vereinId),
+      aktiviert ? holeOffeneEinsaetze(vereinId) : Promise.resolve([]),
+    ]);
 
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-lg font-semibold">Zuschüsse</h1>
-      <p className="max-w-2xl text-sm text-gray-600">
-        Einfache Zuschussberechnung pro geleitetem Einsatz (Satz × 1). Die
-        eigentliche Abrechnung/Auszahlung läuft in einem externen System —
-        hier nur Berechnung und Export.
-      </p>
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">Zuschüsse</h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Einfache Zuschussberechnung für Schiedsrichter-Einsätze. Die
+          eigentliche Abrechnung/Auszahlung läuft in einem externen System —
+          hier nur Berechnung und Export.
+        </p>
+      </div>
 
-      <section>
-        <h2 className="font-medium">Offene Einsätze (noch kein Zuschuss)</h2>
-        <table className="mt-2 w-full max-w-3xl text-left text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="py-1 pr-4">Datum</th>
-              <th className="py-1 pr-4">Beschreibung</th>
-              <th className="py-1 pr-4">Person</th>
-              <th className="py-1 pr-4">Rolle</th>
-              <th className="py-1">Satz (€)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {offeneEinsaetze.length === 0 && (
-              <tr>
-                <td colSpan={5} className="py-2 text-gray-500">
-                  Keine offenen Einsätze.
-                </td>
-              </tr>
-            )}
-            {offeneEinsaetze.map((e) => (
-              <tr
-                key={`${e.terminId}-${e.userId}-${e.funktionstraegerTyp}`}
-                className="border-b"
-              >
-                <td className="py-1 pr-4">{formatDate(e.terminStart)}</td>
-                <td className="py-1 pr-4">{e.terminBeschreibung ?? "—"}</td>
-                <td className="py-1 pr-4">{e.personName ?? e.personEmail}</td>
-                <td className="py-1 pr-4">
-                  {TYP_LABEL[e.funktionstraegerTyp] ?? e.funktionstraegerTyp}
-                </td>
-                <td className="py-1">
-                  <form action={zuschussAnlegen} className="flex items-center gap-2">
-                    <input type="hidden" name="terminId" value={e.terminId} />
-                    <input type="hidden" name="userId" value={e.userId} />
-                    <input
-                      type="number"
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>Zuschüsse aktivieren</CardTitle>
+          <CardDescription>
+            Solange deaktiviert, taucht auf dieser Seite nichts zum Anlegen
+            auf.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            action={zuschussAktivierungSpeichern}
+            className="flex items-center gap-3"
+          >
+            <Switch
+              key={String(aktiviert)}
+              name="aktiviert"
+              defaultChecked={aktiviert}
+              id="aktiviert"
+            />
+            <Label htmlFor="aktiviert">Zuschüsse für diesen Verein aktiv</Label>
+            <Button type="submit" variant="outline" size="sm">
+              Speichern
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {!aktiviert && (
+        <Alert className="max-w-2xl">
+          <AlertTitle>Zuschüsse sind deaktiviert</AlertTitle>
+          <AlertDescription>
+            Aktiviere sie oben, um Zuschussarten zu pflegen und Zuschüsse für
+            Schiedsrichter-Einsätze anzulegen.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {aktiviert && (
+        <>
+          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+            <Card>
+              <CardHeader>
+                <CardTitle>Zuschussarten</CardTitle>
+                <CardDescription>
+                  Vom Verein gepflegte Sätze, z.B. „Aufwandsentschädigung
+                  Schiedsrichter“.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {zuschussartenListe.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Noch keine Zuschussarten angelegt.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Bezeichnung</TableHead>
+                        <TableHead>Satz</TableHead>
+                        <TableHead />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {zuschussartenListe.map((art) => (
+                        <TableRow key={art.id}>
+                          <TableCell className="font-medium">
+                            {art.bezeichnung}
+                          </TableCell>
+                          <TableCell>{art.satz} €</TableCell>
+                          <TableCell className="text-right">
+                            <form action={zuschussartEntfernen}>
+                              <input
+                                type="hidden"
+                                name="zuschussartId"
+                                value={art.id}
+                              />
+                              <button
+                                type="submit"
+                                className="text-xs text-muted-foreground underline"
+                              >
+                                Entfernen
+                              </button>
+                            </form>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Neue Zuschussart</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form
+                  action={zuschussartAnlegen}
+                  className="flex flex-col gap-4"
+                >
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="bezeichnung">Bezeichnung</Label>
+                    <Input id="bezeichnung" name="bezeichnung" required />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="artSatz">Satz (€)</Label>
+                    <Input
+                      id="artSatz"
                       name="satz"
+                      type="number"
                       min="0"
                       step="0.01"
                       required
-                      className="w-20 rounded border px-2 py-1"
                     />
-                    <button type="submit" className="rounded border px-2 py-1 text-xs">
-                      Zuschuss anlegen
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+                  </div>
+                  <Button type="submit" className="w-full">
+                    Anlegen
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
 
-      <section>
-        <div className="flex items-center gap-3">
-          <h2 className="font-medium">Zuschüsse</h2>
-          <a
-            href="/admin/zuschuesse/export"
-            className="rounded bg-black px-3 py-1 text-sm text-white"
+          <Card>
+            <CardHeader>
+              <CardTitle>Offene Einsätze (noch kein Zuschuss)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {zuschussartenListe.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Erst eine Zuschussart anlegen, um Zuschüsse vergeben zu
+                  können.
+                </p>
+              ) : offeneEinsaetze.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Keine offenen Einsätze.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Datum</TableHead>
+                      <TableHead>Beschreibung</TableHead>
+                      <TableHead>Schiedsrichter</TableHead>
+                      <TableHead>Zuschussart</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {offeneEinsaetze.map((e) => (
+                      <TableRow
+                        key={`${e.terminId}-${e.userId}-${e.funktionstraegerTyp}`}
+                      >
+                        <TableCell>{formatDate(e.terminStart)}</TableCell>
+                        <TableCell>{e.terminBeschreibung ?? "—"}</TableCell>
+                        <TableCell>{e.personName ?? e.personEmail}</TableCell>
+                        <TableCell>
+                          <form
+                            action={zuschussAnlegen}
+                            className="flex items-center gap-2"
+                          >
+                            <input
+                              type="hidden"
+                              name="terminId"
+                              value={e.terminId}
+                            />
+                            <input
+                              type="hidden"
+                              name="userId"
+                              value={e.userId}
+                            />
+                            <div className="w-56">
+                              <LabeledSelect
+                                name="zuschussartId"
+                                placeholder="Zuschussart wählen…"
+                                required
+                                options={zuschussartenListe.map((art) => ({
+                                  value: art.id,
+                                  label: `${art.bezeichnung} (${art.satz} €)`,
+                                }))}
+                              />
+                            </div>
+                            <Button type="submit" variant="outline" size="sm">
+                              Anlegen
+                            </Button>
+                          </form>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Zuschüsse</CardTitle>
+          <Button
+            size="sm"
+            nativeButton={false}
+            render={<a href="/admin/zuschuesse/export" />}
           >
             Offene als CSV exportieren
-          </a>
-        </div>
-        <table className="mt-2 w-full max-w-3xl text-left text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="py-1 pr-4">Datum</th>
-              <th className="py-1 pr-4">Person</th>
-              <th className="py-1 pr-4">Betrag</th>
-              <th className="py-1">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {zuschuesseListe.length === 0 && (
-              <tr>
-                <td colSpan={4} className="py-2 text-gray-500">
-                  Noch keine Zuschüsse angelegt.
-                </td>
-              </tr>
-            )}
-            {zuschuesseListe.map((z) => (
-              <tr key={z.id} className="border-b">
-                <td className="py-1 pr-4">{formatDate(z.terminStart)}</td>
-                <td className="py-1 pr-4">{z.personName ?? z.personEmail}</td>
-                <td className="py-1 pr-4">{z.berechneterBetrag} €</td>
-                <td className="py-1">{z.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {zuschuesseListe.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Noch keine Zuschüsse angelegt.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Datum</TableHead>
+                  <TableHead>Person</TableHead>
+                  <TableHead>Betrag</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {zuschuesseListe.map((z) => (
+                  <TableRow key={z.id}>
+                    <TableCell>{formatDate(z.terminStart)}</TableCell>
+                    <TableCell>{z.personName ?? z.personEmail}</TableCell>
+                    <TableCell>{z.berechneterBetrag} €</TableCell>
+                    <TableCell>{z.status}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

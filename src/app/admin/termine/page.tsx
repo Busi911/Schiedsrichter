@@ -3,6 +3,26 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mannschaften, termine } from "@/db/schema";
 import { createTermin } from "../actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LabeledSelect } from "@/components/labeled-select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Testspiel",
@@ -36,89 +56,124 @@ export default async function TerminePage() {
   });
 
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-lg font-semibold">Testspiele &amp; Turniere</h1>
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">
+          Testspiele &amp; Turniere
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Vom Verein selbst veranstaltete Termine (unabhängig vom
+          ICS-Feed der Schiedsrichter).
+        </p>
+      </div>
 
-      <ul className="flex flex-col gap-2">
-        {liste.length === 0 && (
-          <li className="text-sm text-gray-500">Noch keine Termine angelegt.</li>
-        )}
-        {liste.map((t) => (
-          <li key={t.id} className="rounded border px-3 py-2 text-sm">
-            <span className="font-medium">{TYP_LABEL[t.typ] ?? t.typ}</span>{" "}
-            — {formatDateTime(t.start)}
-            {t.ort ? ` · ${t.ort}` : ""}
-            {t.beschreibung ? ` · ${t.beschreibung}` : ""}
-          </li>
-        ))}
-      </ul>
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Alle Termine</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {liste.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Noch keine Termine angelegt.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Datum</TableHead>
+                    <TableHead>Typ</TableHead>
+                    <TableHead>Ort</TableHead>
+                    <TableHead>Beschreibung</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {liste.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="font-medium">
+                        {formatDateTime(t.start)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {TYP_LABEL[t.typ] ?? t.typ}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{t.ort ?? "—"}</TableCell>
+                      <TableCell>{t.beschreibung ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
 
-      <form action={createTermin} className="flex max-w-sm flex-col gap-3">
-        <h2 className="font-medium">Neuer Termin</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>Neuer Termin</CardTitle>
+            <CardDescription>Testspiel oder Turnier anlegen</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={createTermin} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="typ">Typ</Label>
+                <LabeledSelect
+                  id="typ"
+                  name="typ"
+                  defaultValue="testspiel"
+                  required
+                  options={[
+                    { value: "testspiel", label: "Testspiel" },
+                    { value: "turnier", label: "Turnier" },
+                  ]}
+                />
+              </div>
 
-        <label htmlFor="typ" className="text-sm">
-          Typ
-        </label>
-        <select id="typ" name="typ" required className="rounded border px-3 py-2">
-          <option value="testspiel">Testspiel</option>
-          <option value="turnier">Turnier</option>
-        </select>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="start">Start</Label>
+                <Input
+                  id="start"
+                  name="start"
+                  type="datetime-local"
+                  required
+                />
+              </div>
 
-        <label htmlFor="start" className="text-sm">
-          Start
-        </label>
-        <input
-          id="start"
-          name="start"
-          type="datetime-local"
-          required
-          className="rounded border px-3 py-2"
-        />
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ende">Ende (optional)</Label>
+                <Input id="ende" name="ende" type="datetime-local" />
+              </div>
 
-        <label htmlFor="ende" className="text-sm">
-          Ende (optional)
-        </label>
-        <input
-          id="ende"
-          name="ende"
-          type="datetime-local"
-          className="rounded border px-3 py-2"
-        />
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ort">Ort</Label>
+                <Input id="ort" name="ort" />
+              </div>
 
-        <label htmlFor="ort" className="text-sm">
-          Ort
-        </label>
-        <input id="ort" name="ort" className="rounded border px-3 py-2" />
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="beschreibung">Beschreibung / Gegner</Label>
+                <Input id="beschreibung" name="beschreibung" />
+              </div>
 
-        <label htmlFor="beschreibung" className="text-sm">
-          Beschreibung / Gegner
-        </label>
-        <input
-          id="beschreibung"
-          name="beschreibung"
-          className="rounded border px-3 py-2"
-        />
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="mannschaftId">Mannschaft (optional)</Label>
+                <LabeledSelect
+                  id="mannschaftId"
+                  name="mannschaftId"
+                  placeholder="—"
+                  options={mannschaftsListe.map((m) => ({
+                    value: m.id,
+                    label: m.name,
+                  }))}
+                />
+              </div>
 
-        <label htmlFor="mannschaftId" className="text-sm">
-          Mannschaft (optional)
-        </label>
-        <select
-          id="mannschaftId"
-          name="mannschaftId"
-          className="rounded border px-3 py-2"
-        >
-          <option value="">—</option>
-          {mannschaftsListe.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-
-        <button type="submit" className="rounded bg-black px-3 py-2 text-white">
-          Anlegen
-        </button>
-      </form>
+              <Button type="submit" className="w-full">
+                Anlegen
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

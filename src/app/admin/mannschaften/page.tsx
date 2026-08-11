@@ -3,6 +3,24 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mannschaften } from "@/db/schema";
 import { createMannschaft } from "../actions";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default async function MannschaftenPage() {
   const session = await requireAdmin();
@@ -16,44 +34,67 @@ export default async function MannschaftenPage() {
   );
 
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-lg font-semibold">Mannschaften</h1>
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">Mannschaften</h1>
+        <p className="text-sm text-muted-foreground">
+          Mannschaften des Vereins verwalten.
+        </p>
+      </div>
 
-      <ul className="flex flex-col gap-2">
-        {liste.length === 0 && (
-          <li className="text-sm text-gray-500">Noch keine Mannschaften angelegt.</li>
-        )}
-        {liste.map((m) => (
-          <li key={m.id} className="rounded border px-3 py-2 text-sm">
-            {m.name}
-            {m.altersklasse ? ` (${m.altersklasse})` : ""}
-          </li>
-        ))}
-      </ul>
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Alle Mannschaften</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {liste.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Noch keine Mannschaften angelegt.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Altersklasse</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {liste.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell className="font-medium">{m.name}</TableCell>
+                      <TableCell>{m.altersklasse ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
 
-      <form action={createMannschaft} className="flex max-w-sm flex-col gap-3">
-        <h2 className="font-medium">Neue Mannschaft</h2>
-        <label htmlFor="name" className="text-sm">
-          Name
-        </label>
-        <input
-          id="name"
-          name="name"
-          required
-          className="rounded border px-3 py-2"
-        />
-        <label htmlFor="altersklasse" className="text-sm">
-          Altersklasse (optional)
-        </label>
-        <input
-          id="altersklasse"
-          name="altersklasse"
-          className="rounded border px-3 py-2"
-        />
-        <button type="submit" className="rounded bg-black px-3 py-2 text-white">
-          Anlegen
-        </button>
-      </form>
+        <Card>
+          <CardHeader>
+            <CardTitle>Neue Mannschaft</CardTitle>
+            <CardDescription>Team anlegen</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={createMannschaft} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" name="name" required />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="altersklasse">Altersklasse (optional)</Label>
+                <Input id="altersklasse" name="altersklasse" />
+              </div>
+              <Button type="submit" className="w-full">
+                Anlegen
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -1,37 +1,52 @@
 import { signIn } from "@/auth";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
-      <h1 className="text-xl font-semibold">FunktionsträgerHub Login</h1>
-      <form
-        action={async (formData) => {
-          "use server";
-          const email = formData.get("email");
-          if (typeof email === "string" && email) {
-            await signIn("nodemailer", { email, redirectTo: "/" });
-          }
-        }}
-        className="flex flex-col gap-3"
-      >
-        <label htmlFor="email" className="text-sm">
-          E-Mail-Adresse
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          placeholder="name@verein.de"
-          className="rounded border px-3 py-2"
-        />
-        <button
-          type="submit"
-          className="rounded bg-black px-3 py-2 text-white"
-        >
-          Login-Link senden
-        </button>
-      </form>
+    <main className="flex min-h-screen flex-col items-center justify-center p-6">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Login</CardTitle>
+          <CardDescription>
+            Wir schicken dir einen Login-Link per E-Mail.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            action={async (formData) => {
+              "use server";
+              const email = formData.get("email");
+              if (typeof email === "string" && email) {
+                await signIn("nodemailer", { email, redirectTo: "/" });
+              }
+            }}
+            className="flex flex-col gap-4"
+          >
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">E-Mail-Adresse</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                required
+                placeholder="name@verein.de"
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Login-Link senden
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </main>
   );
 }

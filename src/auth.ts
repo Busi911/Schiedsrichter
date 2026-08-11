@@ -35,6 +35,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.id = user.id;
       session.user.vereinId = user.vereinId;
       session.user.istAdmin = user.istAdmin;
+      session.user.istSystemAdmin = user.istSystemAdmin;
       return session;
     },
   },

@@ -4,6 +4,16 @@ import {
   holeZuordenbareFunktionstraeger,
 } from "@/lib/zuordnung";
 import { zuordnen, zuordnungEntfernen } from "./actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { LabeledSelect } from "@/components/labeled-select";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -36,66 +46,92 @@ export default async function ZuordnungPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold">Spielzuordnung</h1>
-      <p className="max-w-2xl text-sm text-gray-600">
-        Schiedsrichter aus dem ICS-Feed sind bereits automatisch zugeordnet.
-        Hier zusätzlich Zeitnehmer, Sekretäre (oder weitere Schiedsrichter,
-        z.B. für Testspiele/Turniere) zu anstehenden Terminen zuordnen.
-      </p>
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">Spielzuordnung</h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Schiedsrichter aus dem ICS-Feed sind bereits automatisch zugeordnet.
+          Hier zusätzlich Zeitnehmer, Sekretäre (oder weitere Schiedsrichter,
+          z.B. für Testspiele/Turniere) zu anstehenden Terminen zuordnen.
+        </p>
+      </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="grid gap-4">
         {termine.length === 0 && (
-          <p className="text-sm text-gray-500">Keine anstehenden Termine.</p>
+          <p className="text-sm text-muted-foreground">
+            Keine anstehenden Termine.
+          </p>
         )}
         {termine.map((termin) => (
-          <div key={termin.id} className="max-w-2xl rounded border p-4">
-            <p className="font-medium">
-              {formatDateTime(termin.start)} · {TYP_LABEL[termin.typ] ?? termin.typ}
-              {termin.ort ? ` · ${termin.ort}` : ""}
-            </p>
-            {termin.beschreibung && (
-              <p className="text-sm text-gray-600">{termin.beschreibung}</p>
-            )}
-
-            <ul className="mt-2 flex flex-col gap-1 text-sm">
-              {termin.icsSchiedsrichter && (
-                <li>
-                  Schiedsrichter (ICS): {termin.icsSchiedsrichter.name ?? termin.icsSchiedsrichter.email}
-                </li>
+          <Card key={termin.id} className="max-w-2xl">
+            <CardHeader>
+              <CardTitle className="text-base">
+                {formatDateTime(termin.start)} ·{" "}
+                {TYP_LABEL[termin.typ] ?? termin.typ}
+                {termin.ort ? ` · ${termin.ort}` : ""}
+              </CardTitle>
+              {termin.beschreibung && (
+                <CardDescription>{termin.beschreibung}</CardDescription>
               )}
-              {termin.zuordnungen.length === 0 && !termin.icsSchiedsrichter && (
-                <li className="text-gray-500">Noch niemand zugeordnet.</li>
-              )}
-              {termin.zuordnungen.map((z) => (
-                <li key={z.id} className="flex items-center gap-2">
-                  {TYP_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}:{" "}
-                  {z.name ?? z.email}
-                  {z.quelle === "selbst_angemeldet" && " (selbst angemeldet)"}
-                  <form action={zuordnungEntfernen}>
-                    <input type="hidden" name="zuordnungId" value={z.id} />
-                    <button type="submit" className="text-xs underline">
-                      Entfernen
-                    </button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-
-            <form action={zuordnen} className="mt-3 flex items-center gap-2">
-              <input type="hidden" name="terminId" value={termin.id} />
-              <select name="personTyp" required className="rounded border px-2 py-1 text-sm">
-                <option value="">Person wählen…</option>
-                {personen.map((p) => (
-                  <option key={`${p.userId}-${p.typ}`} value={`${p.userId}|${p.typ}`}>
-                    {(p.name ?? p.email) + ` (${TYP_LABEL[p.typ] ?? p.typ})`}
-                  </option>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-2">
+                {termin.icsSchiedsrichter && (
+                  <Badge variant="outline">
+                    Schiedsrichter (ICS):{" "}
+                    {termin.icsSchiedsrichter.name ??
+                      termin.icsSchiedsrichter.email}
+                  </Badge>
+                )}
+                {termin.zuordnungen.length === 0 &&
+                  !termin.icsSchiedsrichter && (
+                    <p className="text-sm text-muted-foreground">
+                      Noch niemand zugeordnet.
+                    </p>
+                  )}
+                {termin.zuordnungen.map((z) => (
+                  <span
+                    key={z.id}
+                    className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs"
+                  >
+                    <span className="font-medium">
+                      {TYP_LABEL[z.funktionstraegerTyp] ??
+                        z.funktionstraegerTyp}
+                      :
+                    </span>{" "}
+                    {z.name ?? z.email}
+                    {z.quelle === "selbst_angemeldet" && " (selbst angemeldet)"}
+                    <form action={zuordnungEntfernen}>
+                      <input type="hidden" name="zuordnungId" value={z.id} />
+                      <button
+                        type="submit"
+                        className="ml-1 text-muted-foreground underline"
+                      >
+                        Entfernen
+                      </button>
+                    </form>
+                  </span>
                 ))}
-              </select>
-              <button type="submit" className="rounded border px-3 py-1 text-sm">
-                Zuordnen
-              </button>
-            </form>
-          </div>
+              </div>
+
+              <form action={zuordnen} className="flex items-center gap-2">
+                <input type="hidden" name="terminId" value={termin.id} />
+                <div className="w-56">
+                  <LabeledSelect
+                    name="personTyp"
+                    placeholder="Person wählen…"
+                    required
+                    options={personen.map((p) => ({
+                      value: `${p.userId}|${p.typ}`,
+                      label: `${p.name ?? p.email} (${TYP_LABEL[p.typ] ?? p.typ})`,
+                    }))}
+                  />
+                </div>
+                <Button type="submit" variant="outline" size="sm">
+                  Zuordnen
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

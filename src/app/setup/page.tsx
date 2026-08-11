@@ -1,65 +1,55 @@
 import { bootstrapVerein } from "./actions";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function SetupPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
-      <h1 className="text-xl font-semibold">Verein einrichten</h1>
-      <p className="text-sm text-gray-600">
-        Einmaliger Bootstrap: legt den ersten Verein und dessen Admin-Account
-        an. Erfordert das Setup-Secret aus der Server-Umgebung.
-      </p>
-      <form action={bootstrapVerein} className="flex flex-col gap-3">
-        <label htmlFor="secret" className="text-sm">
-          Setup-Secret
-        </label>
-        <input
-          id="secret"
-          name="secret"
-          type="password"
-          required
-          className="rounded border px-3 py-2"
-        />
+    <main className="flex min-h-screen flex-col items-center justify-center p-6">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Verein einrichten</CardTitle>
+          <CardDescription>
+            Einmaliger Bootstrap: legt den ersten Verein und dessen
+            Admin-Account an. Erfordert das Setup-Secret aus der
+            Server-Umgebung.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={bootstrapVerein} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="secret">Setup-Secret</Label>
+              <Input id="secret" name="secret" type="password" required />
+            </div>
 
-        <label htmlFor="vereinsname" className="text-sm">
-          Vereinsname
-        </label>
-        <input
-          id="vereinsname"
-          name="vereinsname"
-          type="text"
-          required
-          className="rounded border px-3 py-2"
-        />
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="vereinsname">Vereinsname</Label>
+              <Input id="vereinsname" name="vereinsname" type="text" required />
+            </div>
 
-        <label htmlFor="adminName" className="text-sm">
-          Name des Admins
-        </label>
-        <input
-          id="adminName"
-          name="adminName"
-          type="text"
-          required
-          className="rounded border px-3 py-2"
-        />
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="adminName">Name des Admins</Label>
+              <Input id="adminName" name="adminName" type="text" required />
+            </div>
 
-        <label htmlFor="adminEmail" className="text-sm">
-          E-Mail des Admins
-        </label>
-        <input
-          id="adminEmail"
-          name="adminEmail"
-          type="email"
-          required
-          className="rounded border px-3 py-2"
-        />
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="adminEmail">E-Mail des Admins</Label>
+              <Input id="adminEmail" name="adminEmail" type="email" required />
+            </div>
 
-        <button
-          type="submit"
-          className="rounded bg-black px-3 py-2 text-white"
-        >
-          Verein anlegen
-        </button>
-      </form>
+            <Button type="submit" className="w-full">
+              Verein anlegen
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </main>
   );
 }

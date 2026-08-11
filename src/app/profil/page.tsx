@@ -16,6 +16,17 @@ import {
   syncJetzt,
   updateIcsFeedUrl,
 } from "./actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -113,81 +124,97 @@ export default async function ProfilPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b px-6 py-4">
-        <div>
-          <p className="text-xs uppercase text-gray-500">Mein Profil</p>
-          <p className="font-medium">
-            {session.user.name ?? session.user.email}
-          </p>
+      <header className="border-b bg-background">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+          <div>
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              Mein Profil
+            </p>
+            <p className="font-heading text-lg font-semibold">
+              {session.user.name ?? session.user.email}
+            </p>
+          </div>
+          <form
+            action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/login" });
+            }}
+          >
+            <Button type="submit" variant="outline" size="sm">
+              Logout
+            </Button>
+          </form>
         </div>
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/login" });
-          }}
-        >
-          <button type="submit" className="text-sm underline">
-            Logout
-          </button>
-        </form>
       </header>
 
-      <main className="flex flex-col gap-8 p-6">
-        <section>
-          <h1 className="text-lg font-semibold">Meine Rollen</h1>
-          <p className="text-sm text-gray-600">
-            {rollen.length > 0
-              ? rollen.map((r) => TYP_LABEL[r.typ] ?? r.typ).join(", ")
-              : "Noch keine Rolle zugewiesen."}
-          </p>
-        </section>
-
-        {istSchiedsrichter && (
-          <section className="flex max-w-sm flex-col gap-3">
-            <h2 className="font-medium">ICS-Feed (Spielansetzungen)</h2>
-            <form action={updateIcsFeedUrl} className="flex flex-col gap-3">
-              <label htmlFor="icsFeedUrl" className="text-sm">
-                ICS-Feed-URL
-              </label>
-              <input
-                id="icsFeedUrl"
-                name="icsFeedUrl"
-                type="url"
-                defaultValue={profil?.icsFeedUrl ?? ""}
-                placeholder="https://.../schiedsrichter.ics"
-                className="rounded border px-3 py-2"
-              />
-              <button
-                type="submit"
-                className="rounded bg-black px-3 py-2 text-white"
-              >
-                Speichern
-              </button>
-            </form>
-
-            <form action={syncJetzt}>
-              <button type="submit" className="rounded border px-3 py-2">
-                Jetzt synchronisieren
-              </button>
-            </form>
-
-            {profil?.letzterSyncAm && (
-              <p className="text-sm text-gray-600">
-                Letzter Sync: {formatDateTime(profil.letzterSyncAm)} (
-                {profil.letzterSyncStatus})
+      <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Meine Rollen</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {rollen.length > 0 ? (
+              rollen.map((r) => (
+                <Badge key={r.id} variant="secondary">
+                  {TYP_LABEL[r.typ] ?? r.typ}
+                </Badge>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Noch keine Rolle zugewiesen.
               </p>
             )}
-          </section>
+          </CardContent>
+        </Card>
+
+        {istSchiedsrichter && (
+          <Card>
+            <CardHeader>
+              <CardTitle>ICS-Feed (Spielansetzungen)</CardTitle>
+              <CardDescription>
+                Abo-Link deines Verbands hinterlegen, damit deine Einsätze
+                automatisch synchronisiert werden.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <form action={updateIcsFeedUrl} className="flex flex-col gap-3">
+                <Label htmlFor="icsFeedUrl">ICS-Feed-URL</Label>
+                <Input
+                  id="icsFeedUrl"
+                  name="icsFeedUrl"
+                  type="url"
+                  defaultValue={profil?.icsFeedUrl ?? ""}
+                  placeholder="https://.../schiedsrichter.ics"
+                />
+                <Button type="submit">Speichern</Button>
+              </form>
+
+              <form action={syncJetzt}>
+                <Button type="submit" variant="outline" className="w-full">
+                  Jetzt synchronisieren
+                </Button>
+              </form>
+
+              {profil?.letzterSyncAm && (
+                <p className="text-sm text-muted-foreground">
+                  Letzter Sync: {formatDateTime(profil.letzterSyncAm)} (
+                  {profil.letzterSyncStatus})
+                </p>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {eigeneTypen.length > 0 && vereinEinstellungen && (
-          <section>
-            <h2 className="font-medium">Dienste (Ordner/Kioskdienst)</h2>
-            <ul className="flex flex-col gap-2 pt-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Dienste (Ordner/Kioskdienst)</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
               {verfuegbareTermine.length === 0 && (
-                <li className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Keine anstehenden Termine.
-                </li>
+                </p>
               )}
               {verfuegbareTermine.map((termin) => {
                 const rollenMitBedarf = eigeneTypen.filter(
@@ -196,16 +223,13 @@ export default async function ProfilPage() {
                 if (rollenMitBedarf.length === 0) return null;
 
                 return (
-                  <li
-                    key={termin.id}
-                    className="rounded border px-3 py-2 text-sm"
-                  >
+                  <div key={termin.id} className="rounded-lg border p-3 text-sm">
                     <p>
                       {formatDateTime(termin.start)}
                       {termin.ort ? ` · ${termin.ort}` : ""}
                       {termin.beschreibung ? ` · ${termin.beschreibung}` : ""}
                     </p>
-                    <div className="mt-1 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       {rollenMitBedarf.map((typ) => {
                         const bedarf = bedarfFuer(
                           vereinEinstellungen,
@@ -230,25 +254,19 @@ export default async function ProfilPage() {
                                 name="zuordnungId"
                                 value={bestehend.id}
                               />
-                              <button
-                                type="submit"
-                                className="rounded border px-2 py-1 text-xs"
-                              >
+                              <Button type="submit" variant="outline" size="sm">
                                 {TYP_LABEL[typ]}: angemeldet (
                                 {angemeldet.length}/{bedarf}) — abmelden
-                              </button>
+                              </Button>
                             </form>
                           );
                         }
                         if (voll) {
                           return (
-                            <span
-                              key={typ}
-                              className="rounded border px-2 py-1 text-xs text-gray-500"
-                            >
+                            <Badge key={typ} variant="outline">
                               {TYP_LABEL[typ]}: voll ({angemeldet.length}/
                               {bedarf})
-                            </span>
+                            </Badge>
                           );
                         }
                         return (
@@ -259,41 +277,40 @@ export default async function ProfilPage() {
                               value={termin.id}
                             />
                             <input type="hidden" name="typ" value={typ} />
-                            <button
-                              type="submit"
-                              className="rounded bg-black px-2 py-1 text-xs text-white"
-                            >
+                            <Button type="submit" size="sm">
                               Als {TYP_LABEL[typ]} anmelden ({angemeldet.length}
                               /{bedarf})
-                            </button>
+                            </Button>
                           </form>
                         );
                       })}
                     </div>
-                  </li>
+                  </div>
                 );
               })}
-            </ul>
-          </section>
+            </CardContent>
+          </Card>
         )}
 
-        <section>
-          <h2 className="font-medium">Meine Termine</h2>
-          <ul className="flex flex-col gap-2 pt-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Meine Termine</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
             {eigeneTermine.length === 0 && (
-              <li className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Keine Termine vorhanden.
-              </li>
+              </p>
             )}
             {eigeneTermine.map((t) => (
-              <li key={t.id} className="rounded border px-3 py-2 text-sm">
+              <div key={t.id} className="rounded-lg border p-3 text-sm">
                 {formatDateTime(t.start)}
                 {t.ort ? ` · ${t.ort}` : ""}
                 {t.beschreibung ? ` · ${t.beschreibung}` : ""}
-              </li>
+              </div>
             ))}
-          </ul>
-        </section>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

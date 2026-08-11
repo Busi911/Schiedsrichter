@@ -3,6 +3,20 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, users } from "@/db/schema";
 import { holeTermineFuerAuswertung } from "@/lib/termin-auswertung";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LabeledSelect } from "@/components/labeled-select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -51,117 +65,121 @@ export default async function AuswertungPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold">Terminauswertung</h1>
+      <div>
+        <h1 className="font-heading text-2xl font-semibold">
+          Terminauswertung
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Basis für die spätere Zuschussberechnung — filterbar und
+          exportierbar.
+        </p>
+      </div>
 
-      <form method="get" className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="von" className="text-sm">
-            Von
-          </label>
-          <input
-            id="von"
-            name="von"
-            type="date"
-            defaultValue={filter.von}
-            className="rounded border px-3 py-2"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="bis" className="text-sm">
-            Bis
-          </label>
-          <input
-            id="bis"
-            name="bis"
-            type="date"
-            defaultValue={filter.bis}
-            className="rounded border px-3 py-2"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="typ" className="text-sm">
-            Typ
-          </label>
-          <select
-            id="typ"
-            name="typ"
-            defaultValue={filter.typ ?? ""}
-            className="rounded border px-3 py-2"
+      <Card>
+        <CardContent>
+          <form
+            method="get"
+            className="flex flex-wrap items-end gap-3"
           >
-            <option value="">Alle</option>
-            {Object.entries(TYP_LABEL).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="schiedsrichterId" className="text-sm">
-            Schiedsrichter
-          </label>
-          <select
-            id="schiedsrichterId"
-            name="schiedsrichterId"
-            defaultValue={filter.schiedsrichterId ?? ""}
-            className="rounded border px-3 py-2"
-          >
-            <option value="">Alle</option>
-            {schiedsrichterListe.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name ?? s.email}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button type="submit" className="rounded border px-3 py-2">
-          Filtern
-        </button>
-        <a
-          href={`/admin/auswertung/export?${exportParams.toString()}`}
-          className="rounded bg-black px-3 py-2 text-white"
-        >
-          Als CSV exportieren
-        </a>
-        <a
-          href={`/admin/auswertung/export/pdf?${exportParams.toString()}`}
-          className="rounded border px-3 py-2"
-        >
-          Als PDF exportieren
-        </a>
-      </form>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="von">Von</Label>
+              <Input id="von" name="von" type="date" defaultValue={filter.von} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="bis">Bis</Label>
+              <Input id="bis" name="bis" type="date" defaultValue={filter.bis} />
+            </div>
+            <div className="flex w-40 flex-col gap-1.5">
+              <Label htmlFor="typ">Typ</Label>
+              <LabeledSelect
+                id="typ"
+                name="typ"
+                defaultValue={filter.typ ?? undefined}
+                placeholder="Alle"
+                options={Object.entries(TYP_LABEL).map(([value, label]) => ({
+                  value,
+                  label,
+                }))}
+              />
+            </div>
+            <div className="flex w-56 flex-col gap-1.5">
+              <Label htmlFor="schiedsrichterId">Schiedsrichter</Label>
+              <LabeledSelect
+                id="schiedsrichterId"
+                name="schiedsrichterId"
+                defaultValue={filter.schiedsrichterId ?? undefined}
+                placeholder="Alle"
+                options={schiedsrichterListe.map((s) => ({
+                  value: s.id,
+                  label: s.name ?? s.email,
+                }))}
+              />
+            </div>
+            <Button type="submit" variant="outline">
+              Filtern
+            </Button>
+            <Button
+              render={<a href={`/admin/auswertung/export?${exportParams.toString()}`} />}
+              nativeButton={false}
+            >
+              Als CSV exportieren
+            </Button>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={
+                <a href={`/admin/auswertung/export/pdf?${exportParams.toString()}`} />
+              }
+            >
+              Als PDF exportieren
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-      <table className="w-full max-w-4xl text-left text-sm">
-        <thead>
-          <tr className="border-b">
-            <th className="py-1 pr-4">Datum</th>
-            <th className="py-1 pr-4">Typ</th>
-            <th className="py-1 pr-4">Ort</th>
-            <th className="py-1 pr-4">Beschreibung</th>
-            <th className="py-1 pr-4">Mannschaft</th>
-            <th className="py-1">Schiedsrichter</th>
-          </tr>
-        </thead>
-        <tbody>
-          {termineListe.length === 0 && (
-            <tr>
-              <td colSpan={6} className="py-2 text-gray-500">
-                Keine Termine für die gewählten Filter.
-              </td>
-            </tr>
+      <Card>
+        <CardHeader>
+          <CardTitle>Termine</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {termineListe.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Keine Termine für die gewählten Filter.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Datum</TableHead>
+                  <TableHead>Typ</TableHead>
+                  <TableHead>Ort</TableHead>
+                  <TableHead>Beschreibung</TableHead>
+                  <TableHead>Mannschaft</TableHead>
+                  <TableHead>Schiedsrichter</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {termineListe.map((t) => (
+                  <TableRow key={t.id}>
+                    <TableCell className="font-medium">
+                      {formatDateTime(t.start)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {TYP_LABEL[t.typ] ?? t.typ}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{t.ort ?? "—"}</TableCell>
+                    <TableCell>{t.beschreibung ?? "—"}</TableCell>
+                    <TableCell>{t.mannschaftName ?? "—"}</TableCell>
+                    <TableCell>{t.schiedsrichterName ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-          {termineListe.map((t) => (
-            <tr key={t.id} className="border-b">
-              <td className="py-1 pr-4">{formatDateTime(t.start)}</td>
-              <td className="py-1 pr-4">{TYP_LABEL[t.typ] ?? t.typ}</td>
-              <td className="py-1 pr-4">{t.ort ?? "—"}</td>
-              <td className="py-1 pr-4">{t.beschreibung ?? "—"}</td>
-              <td className="py-1 pr-4">{t.mannschaftName ?? "—"}</td>
-              <td className="py-1">{t.schiedsrichterName ?? "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

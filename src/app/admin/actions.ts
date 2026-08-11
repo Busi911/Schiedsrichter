@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
@@ -10,6 +11,7 @@ import {
   termine,
   users,
 } from "@/db/schema";
+import { parseFunktionstraegerExcel } from "@/lib/funktionstraeger-import";
 
 export async function createMannschaft(formData: FormData) {
   const session = await requireAdmin();
@@ -96,6 +98,87 @@ export async function createFunktionstraeger(formData: FormData) {
   });
 
   revalidatePath("/admin/funktionstraeger");
+}
+
+export async function funktionstraegerImportieren(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const datei = formData.get("datei");
+  if (!(datei instanceof File) || datei.size === 0) {
+    throw new Error("Bitte eine Excel-Datei auswählen.");
+  }
+
+  const buffer = Buffer.from(await datei.arrayBuffer());
+  const { zeilen, fehler } = await parseFunktionstraegerExcel(buffer);
+  const fehlerListe = fehler.map((f) => `Zeile ${f.zeilenNr}: ${f.grund}`);
+
+  let angelegt = 0;
+  let uebersprungen = 0;
+
+  await withTenant(vereinId, async (tx) => {
+    const mannschaftsListe = await tx.query.mannschaften.findMany({
+      where: eq(mannschaften.vereinId, vereinId),
+    });
+
+    for (const zeile of zeilen) {
+      let user = await tx.query.users.findFirst({
+        where: eq(users.email, zeile.email),
+      });
+      if (user && user.vereinId !== vereinId) {
+        fehlerListe.push(
+          `Zeile ${zeile.zeilenNr}: E-Mail bereits einem anderen Verein zugeordnet.`
+        );
+        continue;
+      }
+      if (!user) {
+        [user] = await tx
+          .insert(users)
+          .values({ email: zeile.email, name: zeile.name, vereinId })
+          .returning();
+      }
+
+      let mannschaftId: string | null = null;
+      if (zeile.typ === "trainer" && zeile.mannschaftName) {
+        const gefunden = mannschaftsListe.find(
+          (m) => m.name.toLowerCase() === zeile.mannschaftName!.toLowerCase()
+        );
+        if (!gefunden) {
+          fehlerListe.push(
+            `Zeile ${zeile.zeilenNr}: Mannschaft "${zeile.mannschaftName}" nicht gefunden.`
+          );
+        } else {
+          mannschaftId = gefunden.id;
+        }
+      }
+
+      const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
+        where: and(
+          eq(funktionstraegerRollen.userId, user.id),
+          eq(funktionstraegerRollen.typ, zeile.typ)
+        ),
+      });
+      if (vorhandeneRolle) {
+        uebersprungen++;
+        continue;
+      }
+
+      await tx.insert(funktionstraegerRollen).values({
+        userId: user.id,
+        typ: zeile.typ,
+        mannschaftId,
+      });
+      angelegt++;
+    }
+  });
+
+  revalidatePath("/admin/funktionstraeger");
+
+  const params = new URLSearchParams();
+  params.set("importAngelegt", String(angelegt));
+  params.set("importUebersprungen", String(uebersprungen));
+  if (fehlerListe.length) params.set("importFehler", fehlerListe.join(" | "));
+  redirect(`/admin/funktionstraeger?${params.toString()}`);
 }
 
 const TERMIN_TYPEN = ["testspiel", "turnier"] as const;

@@ -72,6 +72,10 @@ export const vereine = pgTable("verein", {
   turnierKioskdienstBedarf: integer("turnier_kioskdienst_bedarf")
     .notNull()
     .default(0),
+  // Zuschüsse sind ein Opt-in: erst wenn der Admin sie aktiviert UND
+  // mindestens eine Zuschussart gepflegt hat, taucht auf /admin/zuschuesse
+  // überhaupt etwas auf.
+  zuschuesseAktiviert: boolean("zuschuesse_aktiviert").notNull().default(false),
 });
 
 export const mannschaften = pgTable("mannschaft", {
@@ -100,6 +104,10 @@ export const users = pgTable("user", {
     onDelete: "cascade",
   }),
   istAdmin: boolean("ist_admin").notNull().default(false),
+  // Vereinsübergreifende Rolle (kein vereinId nötig): kann neue Vereine
+  // anlegen, siehe /system/vereine. Löst den SETUP_SECRET-Bootstrap für den
+  // Regelbetrieb ab (der bleibt als Notfall-Fallback bestehen).
+  istSystemAdmin: boolean("ist_system_admin").notNull().default(false),
 });
 
 export const accounts = pgTable(
@@ -220,6 +228,18 @@ export const terminZuordnungen = pgTable("termin_zuordnung", {
 
 // Einfache Zuschussberechnung pro geleitetem Spiel — bewusst schlank, da die
 // eigentliche Abrechnung/Rechnungsstellung in einem externen System läuft.
+// Vom Admin gepflegter Katalog möglicher Zuschüsse (z.B. "Schiedsrichter-
+// Aufwandsentschädigung", 25,00 €), damit beim Anlegen eines Zuschusses kein
+// freier Betrag getippt wird, sondern eine gepflegte Art gewählt wird.
+export const zuschussarten = pgTable("zuschussart", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  bezeichnung: text("bezeichnung").notNull(),
+  satz: numeric("satz", { precision: 10, scale: 2 }).notNull(),
+});
+
 export const zuschuesse = pgTable("zuschuss", {
   id: uuid("id").primaryKey().defaultRandom(),
   terminId: uuid("termin_id")
@@ -228,6 +248,9 @@ export const zuschuesse = pgTable("zuschuss", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  zuschussartId: uuid("zuschussart_id").references(() => zuschussarten.id, {
+    onDelete: "set null",
+  }),
   satz: numeric("satz", { precision: 10, scale: 2 }).notNull(),
   berechneterBetrag: numeric("berechneter_betrag", {
     precision: 10,
