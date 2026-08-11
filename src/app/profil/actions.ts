@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
+  funktionstraegerRollen,
   schiedsrichterProfile,
   termine,
   terminZuordnungen,
@@ -58,6 +59,16 @@ export async function selbstAnmelden(formData: FormData) {
   const rolle = typ as (typeof SELBST_ANMELDBARE_TYPEN)[number];
 
   await withTenant(vereinId, async (tx) => {
+    const eigeneRolle = await tx.query.funktionstraegerRollen.findFirst({
+      where: and(
+        eq(funktionstraegerRollen.userId, userId),
+        eq(funktionstraegerRollen.typ, rolle)
+      ),
+    });
+    if (!eigeneRolle || !eigeneRolle.aktiv) {
+      throw new Error("Diese Rolle ist für dich nicht (mehr) aktiv.");
+    }
+
     const vorhanden = await tx.query.terminZuordnungen.findFirst({
       where: and(
         eq(terminZuordnungen.terminId, terminId),

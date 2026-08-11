@@ -225,6 +225,51 @@ als Banner auf der Seite angezeigt.
 Funktionsträger ihre eigenen Stammdaten später selbst aktualisieren können —
 das ist als Backlog-Punkt vorgemerkt, nicht umgesetzt.
 
+## Termine bearbeiten/löschen
+
+`/admin/termine/[id]` erlaubt das Bearbeiten und Löschen manuell angelegter
+Termine (Testspiele/Turniere). Termine aus dem ICS-Feed (`quelle: "ics_feed"`)
+sind davon bewusst ausgeschlossen — sie werden vom Sync verwaltet und würden
+bei manueller Änderung beim nächsten Lauf wieder überschrieben.
+
+## Willkommens-Mail & Aktivierung
+
+Beim Anlegen eines Funktionsträgers (einzeln oder per Excel-Import) kann per
+Schalter gewählt werden, ob sofort eine Willkommens-Mail mit Login-Hinweis
+verschickt wird, oder ob die Person zunächst **ohne Login** angelegt wird.
+Im zweiten Fall taucht sie inaktiv in der Liste auf; erst wenn ein Admin sie
+über "Aktivieren" freischaltet, geht die Mail raus (`funktionstraegerAktivToggeln`
+in `src/app/admin/actions.ts`). Das Aktiv-Flag lebt pro Rolle
+(`funktionstraeger_rolle.aktiv`), nicht pro Person — inaktive Rollen tauchen
+nicht mehr in Zuordnung oder Selbst-Anmeldung auf, bleiben aber in der
+Zuordnungs-/Zuschuss-Historie erhalten (bewusst kein Löschen).
+
+Wird jemand einem Termin als Schiedsrichter/Zeitnehmer/Sekretär zugeordnet
+(`/admin/zuordnung`), geht ebenfalls automatisch eine Mail raus
+(`src/app/admin/zuordnung/actions.ts`).
+
+Bei der Einzelanlage können mehrere Rollen gleichzeitig per Checkbox-Gruppe
+ausgewählt werden (`typen` statt `typ` im Formular) — ein Nutzer kann
+beliebig viele Funktionsträger-Rollen gleichzeitig haben.
+
+## Admin-Dashboard & Kalender
+
+`/admin` zeigt eine Übersicht (nächste Termine, unbesetzte Ordner-/
+Kioskdienst-Termine, offene Zuschuss-Einsätze) statt direkt auf Mannschaften
+zu leiten. `/admin/kalender` zeigt einen Monatskalender mit allen
+Vereinsterminen; `/profil/kalender` zeigt jedem Funktionsträger die Termine,
+bei denen er/sie beteiligt ist (ICS-Zuordnung, Termin-Zuordnung oder eigene
+Mannschaft als Trainer). Die Kalender-Logik (Monatsraster, Wochenstart
+Montag) ist bewusst dependency-frei in `src/lib/kalender.ts` implementiert.
+
+## Tests
+
+`npm test` führt Vitest über die reine Business-Logik aus (Dienste-Bedarf,
+Kalender-Berechnung, CSV-Formatierer, Excel-Import-Parser) — kein Browser,
+keine Testdatenbank nötig. Da `"server-only"` kein echtes npm-Paket ist
+(Next.js löst es intern auf), aliast `vitest.config.mts` es auf ein leeres
+Stub-Modul (`test/server-only-stub.ts`).
+
 ## Design (shadcn/ui)
 
 Die Oberfläche nutzt [shadcn/ui](https://ui.shadcn.com) im "Nova"-Stil auf
@@ -260,7 +305,6 @@ ergänzt werden:
 - `exceljs` zieht transitiv eine `uuid`-Version mit einer moderate-severity-
   Lücke (Buffer-Bounds-Check bei explizit übergebenem Buffer — wird von uns
   nicht in dieser Form aufgerufen).
-- Termin-Bearbeiten/-Löschen gibt es noch nicht (nur Anlegen).
 - Testspiele/Turniere ohne hinterlegte Mannschaft und ohne Zuordnung
   bekommen aktuell keine Erinnerung, da niemand konkret zugeordnet ist.
 - Selbstverwaltung für Funktionsträger-Stammdaten (Update durch die Person

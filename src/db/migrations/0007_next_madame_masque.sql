@@ -1,0 +1,1 @@
+ALTER TABLE "funktionstraeger_rolle" ADD COLUMN "aktiv" boolean DEFAULT true NOT NULL;

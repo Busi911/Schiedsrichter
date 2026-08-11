@@ -2,7 +2,11 @@ import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mannschaften, users } from "@/db/schema";
-import { createFunktionstraeger, funktionstraegerImportieren } from "../actions";
+import {
+  createFunktionstraeger,
+  funktionstraegerAktivToggeln,
+  funktionstraegerImportieren,
+} from "../actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -52,6 +57,7 @@ export default async function FunktionstraegerPage({
       .select({
         rolleId: funktionstraegerRollen.id,
         typ: funktionstraegerRollen.typ,
+        aktiv: funktionstraegerRollen.aktiv,
         name: users.name,
         email: users.email,
         mannschaftName: mannschaften.name,
@@ -121,6 +127,8 @@ export default async function FunktionstraegerPage({
                     <TableHead>E-Mail</TableHead>
                     <TableHead>Rolle</TableHead>
                     <TableHead>Mannschaft</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -136,6 +144,22 @@ export default async function FunktionstraegerPage({
                         </Badge>
                       </TableCell>
                       <TableCell>{r.mannschaftName ?? "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant={r.aktiv ? "outline" : "destructive"}>
+                          {r.aktiv ? "Aktiv" : "Inaktiv"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <form action={funktionstraegerAktivToggeln}>
+                          <input type="hidden" name="rolleId" value={r.rolleId} />
+                          <button
+                            type="submit"
+                            className="text-xs text-muted-foreground underline"
+                          >
+                            {r.aktiv ? "Deaktivieren" : "Aktivieren"}
+                          </button>
+                        </form>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -165,17 +189,24 @@ export default async function FunktionstraegerPage({
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="typ">Rolle</Label>
-                <LabeledSelect
-                  id="typ"
-                  name="typ"
-                  defaultValue="schiedsrichter"
-                  required
-                  options={Object.entries(TYP_LABEL).map(([value, label]) => ({
-                    value,
-                    label,
-                  }))}
-                />
+                <Label>Rollen (Mehrfachauswahl möglich)</Label>
+                <div className="flex flex-col gap-1.5 rounded-lg border p-3">
+                  {Object.entries(TYP_LABEL).map(([value, label]) => (
+                    <label
+                      key={value}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        name="typen"
+                        value={value}
+                        defaultChecked={value === "schiedsrichter"}
+                        className="size-4"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -190,6 +221,18 @@ export default async function FunktionstraegerPage({
                   }))}
                 />
               </div>
+
+              <div className="flex items-center gap-3">
+                <Switch name="sofortAktiv" id="sofortAktiv" defaultChecked />
+                <Label htmlFor="sofortAktiv">
+                  Sofort aktivieren (Willkommens-Mail mit Login-Link senden)
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Ohne Haken wird die Person ohne Login angelegt — die Mail
+                geht erst raus, wenn sie später über &bdquo;Aktivieren&ldquo;
+                freigeschaltet wird.
+              </p>
 
               <Button type="submit" className="w-full">
                 Anlegen
@@ -208,26 +251,46 @@ export default async function FunktionstraegerPage({
             Zeitnehmer, Sekretär, Trainer, Ordner oder Kioskdienst) und
             optional <strong>Mannschaft</strong> (nur bei Trainer, muss einer
             bestehenden Mannschaft entsprechen). Bereits vorhandene
-            Personen/Rollen werden übersprungen, nicht dupliziert.
+            Personen/Rollen werden übersprungen, nicht dupliziert. Für
+            mehrere Rollen pro Person einfach mehrere Zeilen mit derselben
+            E-Mail-Adresse verwenden.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form
             action={funktionstraegerImportieren}
-            className="flex flex-wrap items-end gap-3"
+            className="flex flex-col gap-3"
           >
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="datei">Excel-Datei (.xlsx)</Label>
-              <input
-                id="datei"
-                name="datei"
-                type="file"
-                accept=".xlsx,.xls"
-                required
-                className="text-sm"
-              />
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="datei">Excel-Datei (.xlsx)</Label>
+                <input
+                  id="datei"
+                  name="datei"
+                  type="file"
+                  accept=".xlsx,.xls"
+                  required
+                  className="text-sm"
+                />
+              </div>
+              <Button type="submit">Importieren</Button>
             </div>
-            <Button type="submit">Importieren</Button>
+            <div className="flex items-center gap-3">
+              <Switch
+                name="sofortAktiv"
+                id="importSofortAktiv"
+                defaultChecked
+              />
+              <Label htmlFor="importSofortAktiv">
+                Sofort aktivieren (Willkommens-Mails an alle neuen Personen
+                senden)
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ohne Haken werden alle importierten Personen ohne Login
+              angelegt — du aktivierst sie danach einzeln in der Liste oben,
+              jeweils mit eigener Willkommens-Mail zu dem Zeitpunkt.
+            </p>
           </form>
         </CardContent>
       </Card>

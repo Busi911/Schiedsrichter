@@ -168,6 +168,10 @@ export const funktionstraegerRollen = pgTable("funktionstraeger_rolle", {
   mannschaftId: uuid("mannschaft_id").references(() => mannschaften.id, {
     onDelete: "set null",
   }),
+  // Statt Löschen: wer den Verein verlässt, wird deaktiviert (bleibt aber in
+  // der Historie von Zuordnungen/Zuschüssen erhalten). Inaktive Rollen
+  // tauchen nicht mehr in Zuordnung/Selbst-Anmeldung auf.
+  aktiv: boolean("aktiv").notNull().default(true),
 });
 
 export const schiedsrichterProfile = pgTable("schiedsrichter_profil", {

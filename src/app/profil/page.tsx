@@ -1,4 +1,5 @@
 import { and, eq, gte, inArray } from "drizzle-orm";
+import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
@@ -74,6 +75,7 @@ export default async function ProfilPage() {
     });
 
     const eigeneTypen = rollen
+      .filter((r) => r.aktiv)
       .map((r) => r.typ)
       .filter((t): t is (typeof SELBST_ANMELDBARE_TYPEN)[number] =>
         (SELBST_ANMELDBARE_TYPEN as readonly string[]).includes(t)
@@ -115,8 +117,11 @@ export default async function ProfilPage() {
     };
   });
 
-  const istSchiedsrichter = rollen.some((r) => r.typ === "schiedsrichter");
+  const istSchiedsrichter = rollen.some(
+    (r) => r.typ === "schiedsrichter" && r.aktiv
+  );
   const eigeneTypen = rollen
+    .filter((r) => r.aktiv)
     .map((r) => r.typ)
     .filter((t): t is (typeof SELBST_ANMELDBARE_TYPEN)[number] =>
       (SELBST_ANMELDBARE_TYPEN as readonly string[]).includes(t)
@@ -134,16 +139,26 @@ export default async function ProfilPage() {
               {session.user.name ?? session.user.email}
             </p>
           </div>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/login" });
-            }}
-          >
-            <Button type="submit" variant="outline" size="sm">
-              Logout
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link href="/profil/kalender" />}
+              nativeButton={false}
+            >
+              Kalender
             </Button>
-          </form>
+            <form
+              action={async () => {
+                "use server";
+                await signOut({ redirectTo: "/login" });
+              }}
+            >
+              <Button type="submit" variant="outline" size="sm">
+                Logout
+              </Button>
+            </form>
+          </div>
         </div>
       </header>
 
@@ -155,8 +170,9 @@ export default async function ProfilPage() {
           <CardContent className="flex flex-wrap gap-2">
             {rollen.length > 0 ? (
               rollen.map((r) => (
-                <Badge key={r.id} variant="secondary">
+                <Badge key={r.id} variant={r.aktiv ? "secondary" : "outline"}>
                   {TYP_LABEL[r.typ] ?? r.typ}
+                  {!r.aktiv && " (inaktiv)"}
                 </Badge>
               ))
             ) : (

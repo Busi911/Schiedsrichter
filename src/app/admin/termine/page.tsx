@@ -1,4 +1,5 @@
 import { and, eq, inArray } from "drizzle-orm";
+import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mannschaften, termine } from "@/db/schema";
@@ -85,6 +86,7 @@ export default async function TerminePage() {
                     <TableHead>Typ</TableHead>
                     <TableHead>Ort</TableHead>
                     <TableHead>Beschreibung</TableHead>
+                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -100,6 +102,14 @@ export default async function TerminePage() {
                       </TableCell>
                       <TableCell>{t.ort ?? "—"}</TableCell>
                       <TableCell>{t.beschreibung ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Link
+                          href={`/admin/termine/${t.id}`}
+                          className="text-xs text-muted-foreground underline"
+                        >
+                          Bearbeiten
+                        </Link>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

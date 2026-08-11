@@ -76,7 +76,10 @@ export async function holeZuordenbareFunktionstraeger(vereinId: string) {
       .from(funktionstraegerRollen)
       .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
       .where(
-        inArray(funktionstraegerRollen.typ, [...ZUORDENBARE_TYPEN])
+        and(
+          inArray(funktionstraegerRollen.typ, [...ZUORDENBARE_TYPEN]),
+          eq(funktionstraegerRollen.aktiv, true)
+        )
       )
       .orderBy(asc(users.name))
   );

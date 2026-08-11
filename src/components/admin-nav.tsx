@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
 const NAV_ITEMS = [
+  { href: "/admin", label: "Übersicht", exact: true },
+  { href: "/admin/kalender", label: "Kalender" },
   { href: "/admin/mannschaften", label: "Mannschaften" },
   { href: "/admin/funktionstraeger", label: "Funktionsträger" },
   { href: "/admin/termine", label: "Termine" },
@@ -21,8 +23,9 @@ export function AdminNav() {
   return (
     <nav className="flex flex-wrap gap-1">
       {NAV_ITEMS.map((item) => {
-        const active =
-          pathname === item.href || pathname?.startsWith(item.href + "/");
+        const active = item.exact
+          ? pathname === item.href
+          : pathname === item.href || pathname?.startsWith(item.href + "/");
         return (
           <Link
             key={item.href}

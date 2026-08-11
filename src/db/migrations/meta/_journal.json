@@ -50,6 +50,13 @@
       "when": 1786432470805,
       "tag": "0006_zuschussart_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786447643258,
+      "tag": "0007_next_madame_masque",
+      "breakpoints": true
     }
   ]
 }
