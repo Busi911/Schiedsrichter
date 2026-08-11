@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/logo";
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -59,7 +60,11 @@ export default async function ProfilPage() {
     verfuegbareTermine,
     zuordnungenFuerVerfuegbare,
     vereinEinstellungen,
+    verein,
   } = await withTenant(vereinId, async (tx) => {
+    const verein = await tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+    });
     const rollen = await tx.query.funktionstraegerRollen.findMany({
       where: eq(funktionstraegerRollen.userId, userId),
     });
@@ -114,6 +119,7 @@ export default async function ProfilPage() {
       verfuegbareTermine,
       zuordnungenFuerVerfuegbare,
       vereinEinstellungen,
+      verein,
     };
   });
 
@@ -131,15 +137,28 @@ export default async function ProfilPage() {
     <div className="min-h-screen">
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <div>
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              Mein Profil
-            </p>
-            <p className="font-heading text-lg font-semibold">
-              {session.user.name ?? session.user.email}
-            </p>
+          <div className="flex items-center gap-3">
+            <Logo className="size-8 shrink-0 text-primary" />
+            <div>
+              <p className="font-heading text-lg font-semibold">
+                {verein?.name ?? "Verein"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {session.user.name ?? session.user.email}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
+            {session.user.istAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                render={<Link href="/admin" />}
+                nativeButton={false}
+              >
+                Zum Admin-Bereich
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

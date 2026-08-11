@@ -3,6 +3,8 @@ import Nodemailer from "next-auth/providers/nodemailer";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "@/db";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
+import { sendMail } from "@/lib/mailer";
+import { loginMailHtml, loginMailText } from "@/lib/login-mail";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db, {
@@ -25,6 +27,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
       },
       from: process.env.SMTP_FROM,
+      // Eigenes Template statt der generischen Auth.js-Standardmail — nutzt
+      // denselben Transporter wie der Rest der App (src/lib/mailer.ts).
+      async sendVerificationRequest({ identifier: email, url }) {
+        await sendMail(
+          email,
+          "Dein Login-Link für FunktionsträgerHub",
+          loginMailText(url),
+          loginMailHtml(url)
+        );
+      },
     }),
   ],
   pages: {

@@ -9,12 +9,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/logo";
 
 export default function LoginPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
       <Card className="w-full max-w-sm">
-        <CardHeader>
+        <CardHeader className="items-center text-center">
+          <Logo className="mb-1 size-10 text-primary" />
           <CardTitle className="text-xl">Login</CardTitle>
           <CardDescription>
             Wir schicken dir einen Login-Link per E-Mail.

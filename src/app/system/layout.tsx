@@ -1,6 +1,8 @@
 import { requireSystemAdmin } from "@/lib/session";
 import { signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
+import { SystemNav } from "@/components/system-nav";
+import { Logo } from "@/components/logo";
 
 export default async function SystemLayout({
   children,
@@ -13,14 +15,18 @@ export default async function SystemLayout({
     <div className="min-h-screen">
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <div>
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              Systemadmin
-            </p>
-            <p className="font-heading text-lg font-semibold">
-              {session.user.name ?? session.user.email}
-            </p>
+          <div className="flex items-center gap-3">
+            <Logo className="size-8 shrink-0 text-primary" />
+            <div>
+              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Systemadmin
+              </p>
+              <p className="font-heading text-lg font-semibold">
+                {session.user.name ?? session.user.email}
+              </p>
+            </div>
           </div>
+          <SystemNav />
           <form
             action={async () => {
               "use server";

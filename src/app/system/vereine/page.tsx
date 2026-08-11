@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { users, vereine } from "@/db/schema";
+import { users } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
 import { vereinErstellen } from "./actions";
 import { Button } from "@/components/ui/button";

@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Logo } from "@/components/logo";
 
 export default async function Home() {
   const session = await auth();
@@ -17,7 +18,8 @@ export default async function Home() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-6">
         <Card className="w-full max-w-sm">
-          <CardHeader className="text-center">
+          <CardHeader className="items-center text-center">
+            <Logo className="mb-1 size-10 text-primary" />
             <CardTitle className="text-xl">FunktionsträgerHub</CardTitle>
             <CardDescription>
               Verwaltungsplattform für Funktionsträger im Handballverein.
@@ -37,6 +39,6 @@ export default async function Home() {
     );
   }
 
-  if (session.user.istSystemAdmin) redirect("/system/vereine");
+  if (session.user.istSystemAdmin) redirect("/system");
   redirect(session.user.istAdmin ? "/admin" : "/profil");
 }

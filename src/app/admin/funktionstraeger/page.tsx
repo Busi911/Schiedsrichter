@@ -8,7 +8,6 @@ import {
   funktionstraegerImportieren,
 } from "../actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -56,6 +55,7 @@ export default async function FunktionstraegerPage({
     const rollen = await tx
       .select({
         rolleId: funktionstraegerRollen.id,
+        userId: funktionstraegerRollen.userId,
         typ: funktionstraegerRollen.typ,
         aktiv: funktionstraegerRollen.aktiv,
         name: users.name,
@@ -77,6 +77,24 @@ export default async function FunktionstraegerPage({
 
     return [rollen, mannschaftsListe];
   });
+
+  // Eine Person kann mehrere Rollen haben — in der Übersicht bekommt sie
+  // eine Zeile mit allen Rollen als Chips statt einer Zeile pro Rolle.
+  const personen = Array.from(
+    rollen
+      .reduce((map, r) => {
+        const eintrag = map.get(r.userId) ?? {
+          userId: r.userId,
+          name: r.name,
+          email: r.email,
+          rollen: [] as typeof rollen,
+        };
+        eintrag.rollen.push(r);
+        map.set(r.userId, eintrag);
+        return map;
+      }, new Map<string, { userId: string; name: string | null; email: string; rollen: typeof rollen }>())
+      .values()
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -115,7 +133,7 @@ export default async function FunktionstraegerPage({
             <CardTitle>Alle Funktionsträger</CardTitle>
           </CardHeader>
           <CardContent>
-            {rollen.length === 0 ? (
+            {personen.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Noch keine Funktionsträger angelegt.
               </p>
@@ -125,40 +143,50 @@ export default async function FunktionstraegerPage({
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>E-Mail</TableHead>
-                    <TableHead>Rolle</TableHead>
-                    <TableHead>Mannschaft</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead />
+                    <TableHead>Rollen</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rollen.map((r) => (
-                    <TableRow key={r.rolleId}>
-                      <TableCell className="font-medium">{r.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {r.email}
+                  {personen.map((p) => (
+                    <TableRow key={p.userId}>
+                      <TableCell className="font-medium align-top">
+                        {p.name}
+                      </TableCell>
+                      <TableCell className="align-top text-muted-foreground">
+                        {p.email}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">
-                          {TYP_LABEL[r.typ] ?? r.typ}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{r.mannschaftName ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant={r.aktiv ? "outline" : "destructive"}>
-                          {r.aktiv ? "Aktiv" : "Inaktiv"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <form action={funktionstraegerAktivToggeln}>
-                          <input type="hidden" name="rolleId" value={r.rolleId} />
-                          <button
-                            type="submit"
-                            className="text-xs text-muted-foreground underline"
-                          >
-                            {r.aktiv ? "Deaktivieren" : "Aktivieren"}
-                          </button>
-                        </form>
+                        <div className="flex flex-wrap gap-1.5">
+                          {p.rollen.map((r) => (
+                            <span
+                              key={r.rolleId}
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs ${
+                                r.aktiv
+                                  ? "border-border"
+                                  : "border-destructive/30 text-destructive"
+                              }`}
+                            >
+                              <span className="font-medium">
+                                {TYP_LABEL[r.typ] ?? r.typ}
+                                {r.mannschaftName ? ` (${r.mannschaftName})` : ""}
+                                {!r.aktiv && " · inaktiv"}
+                              </span>
+                              <form action={funktionstraegerAktivToggeln}>
+                                <input
+                                  type="hidden"
+                                  name="rolleId"
+                                  value={r.rolleId}
+                                />
+                                <button
+                                  type="submit"
+                                  className="text-muted-foreground underline"
+                                >
+                                  {r.aktiv ? "Deaktivieren" : "Aktivieren"}
+                                </button>
+                              </form>
+                            </span>
+                          ))}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
