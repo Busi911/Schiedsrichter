@@ -1,5 +1,17 @@
+"use client";
+
 import Link from "next/link";
 import { monatKey, monatsGitter, tagKey } from "@/lib/kalender";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
@@ -10,6 +22,9 @@ export type KalenderEintrag = {
   typLabel: string;
   // undefined = für diesen Termin-Typ nicht zutreffend (z.B. Turnier-Container)
   besetzung?: "vollstaendig" | "offen";
+  ort?: string | null;
+  besetzungsDetails?: string[];
+  bearbeitenHref?: string;
 };
 
 export function MonatsKalender({
@@ -99,29 +114,70 @@ export function MonatsKalender({
                 </p>
                 <div className="flex flex-col gap-0.5">
                   {eintraege.map((e) => (
-                    <p
-                      key={e.id}
-                      title={`${e.zeit} ${e.typLabel}: ${e.label}${
-                        e.besetzung === "vollstaendig"
-                          ? " (Besetzung vollständig)"
-                          : e.besetzung === "offen"
-                            ? " (Besetzung offen)"
-                            : ""
-                      }`}
-                      className="flex items-center gap-1 truncate rounded bg-secondary px-1 py-0.5 text-secondary-foreground"
-                    >
-                      {e.besetzung && (
-                        <span
-                          className={`inline-block size-1.5 shrink-0 rounded-full ${
-                            e.besetzung === "vollstaendig"
-                              ? "bg-emerald-500"
-                              : "bg-amber-500"
-                          }`}
-                        />
-                      )}
-                      {e.zeit && <span className="font-medium">{e.zeit} </span>}
-                      {e.label}
-                    </p>
+                    <Dialog key={e.id}>
+                      <DialogTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-1 truncate rounded bg-secondary px-1 py-0.5 text-left text-secondary-foreground hover:bg-secondary/70"
+                          />
+                        }
+                      >
+                        {e.besetzung && (
+                          <span
+                            className={`inline-block size-1.5 shrink-0 rounded-full ${
+                              e.besetzung === "vollstaendig"
+                                ? "bg-emerald-500"
+                                : "bg-amber-500"
+                            }`}
+                          />
+                        )}
+                        {e.zeit && <span className="font-medium">{e.zeit} </span>}
+                        <span className="truncate">{e.label}</span>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>{e.label}</DialogTitle>
+                          <DialogDescription>
+                            {e.typLabel}
+                            {e.zeit ? ` · ${e.zeit} Uhr` : ""}
+                            {e.ort ? ` · ${e.ort}` : ""}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col gap-2 text-sm">
+                          {e.besetzung && (
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={
+                                  e.besetzung === "vollstaendig" ? "secondary" : "outline"
+                                }
+                              >
+                                {e.besetzung === "vollstaendig"
+                                  ? "Besetzung vollständig"
+                                  : "Besetzung offen"}
+                              </Badge>
+                            </div>
+                          )}
+                          {e.besetzungsDetails && e.besetzungsDetails.length > 0 && (
+                            <ul className="flex flex-col gap-1 text-muted-foreground">
+                              {e.besetzungsDetails.map((d) => (
+                                <li key={d}>{d}</li>
+                              ))}
+                            </ul>
+                          )}
+                          {e.bearbeitenHref && (
+                            <Button
+                              size="sm"
+                              className="mt-2"
+                              render={<Link href={e.bearbeitenHref} />}
+                              nativeButton={false}
+                            >
+                              Bearbeiten
+                            </Button>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   ))}
                 </div>
               </div>

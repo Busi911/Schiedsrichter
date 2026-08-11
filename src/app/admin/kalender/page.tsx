@@ -14,10 +14,19 @@ const TYP_LABEL: Record<string, string> = {
   turnier_spiel: "Turnierspiel",
 };
 
+const ROLLE_LABEL: Record<string, string> = {
+  schiedsrichter: "Schiedsrichter",
+  zeitnehmer: "Zeitnehmer",
+  sekretaer: "Sekretär",
+};
+
 // Nur diese Typen brauchen eine Schiri-/Zeitnehmer-/Sekretär-Zuordnung —
 // der Turnier-Container selbst wird pro Einzelspiel besetzt (siehe
 // src/lib/zuordnung.ts).
 const BESETZUNGSRELEVANTE_TYPEN = ["spiel_ics", "testspiel", "turnier_spiel"];
+// Nur manuell angelegte Termine (Testspiel/Turnier/Turnierspiel) sind
+// bearbeitbar — ICS-Feed-Termine werden vom Sync verwaltet.
+const BEARBEITBARE_TYPEN = ["testspiel", "turnier", "turnier_spiel"];
 
 function formatZeit(d: Date) {
   return new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" }).format(d);
@@ -42,6 +51,7 @@ export default async function AdminKalenderPage({
         start: termine.start,
         ort: termine.ort,
         beschreibung: termine.beschreibung,
+        turnierId: termine.turnierId,
         schiedsrichterName: users.name,
         schiedsrichterEmail: users.email,
       })
@@ -57,8 +67,12 @@ export default async function AdminKalenderPage({
           .select({
             terminId: terminZuordnungen.terminId,
             funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+            name: users.name,
+            email: users.email,
+            externerName: terminZuordnungen.externerName,
           })
           .from(terminZuordnungen)
+          .leftJoin(users, eq(terminZuordnungen.userId, users.id))
           .where(inArray(terminZuordnungen.terminId, terminIds))
       : [];
 
@@ -74,14 +88,29 @@ export default async function AdminKalenderPage({
       t.ort ??
       (t.typ === "spiel_ics" ? t.schiedsrichterName ?? t.schiedsrichterEmail ?? "Spiel" : TYP_LABEL[t.typ]);
 
+    const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
     const besetzung = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ)
       ? berechneBesetzung(
-          zuordnungen.filter((z) => z.terminId === t.id),
+          eigeneZuordnungen,
           t.typ === "spiel_ics" && !!t.schiedsrichterEmail
         ).vollstaendig
         ? ("vollstaendig" as const)
         : ("offen" as const)
       : undefined;
+
+    const besetzungsDetails: string[] = [];
+    if (t.typ === "spiel_ics" && t.schiedsrichterEmail) {
+      besetzungsDetails.push(
+        `Schiedsrichter: ${t.schiedsrichterName ?? t.schiedsrichterEmail}`
+      );
+    }
+    for (const z of eigeneZuordnungen) {
+      besetzungsDetails.push(
+        `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
+          z.name ?? z.externerName ?? z.email
+        }${z.externerName && !z.email ? " (ohne Login)" : ""}`
+      );
+    }
 
     liste.push({
       id: t.id,
@@ -89,6 +118,11 @@ export default async function AdminKalenderPage({
       label,
       typLabel: TYP_LABEL[t.typ] ?? t.typ,
       besetzung,
+      ort: t.ort,
+      besetzungsDetails,
+      bearbeitenHref: BEARBEITBARE_TYPEN.includes(t.typ)
+        ? `/admin/termine/${t.typ === "turnier_spiel" ? t.turnierId : t.id}`
+        : undefined,
     });
     eintraegeProTag.set(key, liste);
   }
@@ -98,7 +132,8 @@ export default async function AdminKalenderPage({
       <div>
         <h1 className="font-heading text-2xl font-semibold">Kalender</h1>
         <p className="text-sm text-muted-foreground">
-          Alle Termine des Vereins — Spiele aus dem ICS-Feed sowie Testspiele/Turniere.
+          Alle Termine des Vereins — Spiele aus dem ICS-Feed sowie Testspiele/Turniere. Zum
+          Anschauen der Details auf einen Termin klicken.
           <span className="ml-2 inline-flex items-center gap-1">
             <span className="inline-block size-2 rounded-full bg-emerald-500" /> Besetzung
             vollständig
