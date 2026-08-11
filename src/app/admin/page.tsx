@@ -15,6 +15,7 @@ const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
   testspiel: "Testspiel",
   turnier: "Turnier",
+  turnier_spiel: "Turnierspiel",
 };
 
 const ROLLE_LABEL: Record<string, string> = {

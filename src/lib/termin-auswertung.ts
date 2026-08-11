@@ -10,7 +10,12 @@ export type AuswertungFilter = {
   schiedsrichterId?: string;
 };
 
-const TERMIN_TYPEN = ["spiel_ics", "testspiel", "turnier"] as const;
+const TERMIN_TYPEN = [
+  "spiel_ics",
+  "testspiel",
+  "turnier",
+  "turnier_spiel",
+] as const;
 
 export async function holeTermineFuerAuswertung(
   vereinId: string,

@@ -3,6 +3,7 @@ import { async as icalAsync } from "node-ical";
 import { and, eq } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { icsSyncLog, schiedsrichterProfile, termine } from "@/db/schema";
+import { istSaisonAbgeschlossen } from "./saison";
 
 // Viele Kalendersysteme (u.a. nuLiga, von zahlreichen Sportverbänden
 // genutzt) geben Abo-Links mit dem "webcal://"-Schema aus. Das ist nur eine
@@ -82,6 +83,9 @@ export async function syncSchiedsrichterIcsFeed(
 
         const bestehend = vorhandeneByUid.get(uid);
         if (bestehend) {
+          // Festgeschriebene (abgeschlossene) Saisons bleiben unangetastet,
+          // selbst wenn der Feed für dieses Datum abweichende Werte liefert.
+          if (istSaisonAbgeschlossen(bestehend.start)) continue;
           await tx
             .update(termine)
             .set(werte)
@@ -100,9 +104,20 @@ export async function syncSchiedsrichterIcsFeed(
         }
       }
 
-      // Termine, die nicht mehr im Feed enthalten sind (z.B. Absagen), entfernen.
+      // Termine, die nicht mehr im Feed enthalten sind (z.B. Absagen), entfernen —
+      // ABER nur innerhalb der laufenden, noch nicht festgeschriebenen
+      // Saison. Viele Verbands-Feeds (nuLiga u.a.) zeigen ohnehin nur die
+      // laufende Saison; mit Saisonwechsel verschwinden dort einfach alte
+      // Spiele aus dem Feed, ohne dass real etwas abgesagt wurde. Ohne diese
+      // Festschreibung würde jeder Saisonwechsel (oder eine geänderte
+      // Feed-URL) die komplette Vergangenheit löschen — das wäre kein
+      // "Verlauf" mehr.
       for (const t of vorhandene) {
-        if (t.icsUid && !gesehenUids.has(t.icsUid)) {
+        if (
+          t.icsUid &&
+          !gesehenUids.has(t.icsUid) &&
+          !istSaisonAbgeschlossen(t.start)
+        ) {
           await tx.delete(termine).where(eq(termine.id, t.id));
           entfernt++;
         }

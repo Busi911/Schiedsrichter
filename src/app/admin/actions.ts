@@ -46,6 +46,61 @@ export async function createMannschaft(formData: FormData) {
   revalidatePath("/admin/mannschaften");
 }
 
+export async function updateMannschaft(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const mannschaftId = formData.get("mannschaftId");
+  const name = formData.get("name");
+  const altersklasse = formData.get("altersklasse");
+  if (typeof mannschaftId !== "string" || !mannschaftId) {
+    throw new Error("Mannschaft fehlt.");
+  }
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Name ist erforderlich.");
+  }
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .update(mannschaften)
+      .set({
+        name: name.trim(),
+        altersklasse:
+          typeof altersklasse === "string" && altersklasse.trim()
+            ? altersklasse.trim()
+            : null,
+      })
+      .where(
+        and(eq(mannschaften.id, mannschaftId), eq(mannschaften.vereinId, vereinId))
+      )
+  );
+
+  revalidatePath("/admin/mannschaften");
+}
+
+export async function deleteMannschaft(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const mannschaftId = formData.get("mannschaftId");
+  if (typeof mannschaftId !== "string" || !mannschaftId) {
+    throw new Error("Mannschaft fehlt.");
+  }
+
+  // Trainer-Rollen und Termine, die auf diese Mannschaft verweisen, verlieren
+  // beim Löschen nur die Zuordnung (onDelete: "set null" im Schema) — sie
+  // bleiben als Funktionsträger bzw. Termine erhalten.
+  await withTenant(vereinId, (tx) =>
+    tx
+      .delete(mannschaften)
+      .where(
+        and(eq(mannschaften.id, mannschaftId), eq(mannschaften.vereinId, vereinId))
+      )
+  );
+
+  revalidatePath("/admin/mannschaften");
+}
+
 const FUNKTIONSTRAEGER_TYPEN = [
   "schiedsrichter",
   "zeitnehmer",
@@ -208,6 +263,96 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
+function emailGeaendertText(vereinName: string, neueEmail: string, istNeueAdresse: boolean) {
+  if (istNeueAdresse) {
+    return [
+      `Deine E-Mail-Adresse im FunktionsträgerHub von ${vereinName} wurde auf diese Adresse geändert.`,
+      `Du kannst dich ab sofort mit ${neueEmail} unter ${appUrl()}/login einloggen.`,
+    ].join("\n\n");
+  }
+  return [
+    `Deine E-Mail-Adresse im FunktionsträgerHub von ${vereinName} wurde geändert — dein Zugang läuft jetzt über ${neueEmail}.`,
+    `Falls das nicht du warst bzw. dir diese Änderung nicht bekannt vorkommt, melde dich bitte beim Vereinsadmin.`,
+  ].join("\n\n");
+}
+
+// Name/E-Mail einer bestehenden Person bearbeiten. Bei E-Mail-Änderung geht
+// eine Info sowohl an die neue als auch an die alte Adresse raus, damit ein
+// versehentlicher/unbefugter Wechsel auffällt.
+export async function updateFunktionstraeger(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const userId = formData.get("userId");
+  const name = formData.get("name");
+  const email = formData.get("email");
+
+  if (typeof userId !== "string" || !userId) {
+    throw new Error("Person fehlt.");
+  }
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Name ist erforderlich.");
+  }
+  if (typeof email !== "string" || !email.trim()) {
+    throw new Error("E-Mail ist erforderlich.");
+  }
+  const neueEmail = email.trim().toLowerCase();
+
+  const ergebnis = await withTenant(vereinId, async (tx) => {
+    const bestehend = await tx.query.users.findFirst({
+      where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
+    });
+    if (!bestehend) throw new Error("Person nicht gefunden.");
+
+    if (neueEmail !== bestehend.email) {
+      const belegt = await tx.query.users.findFirst({
+        where: eq(users.email, neueEmail),
+      });
+      if (belegt) {
+        throw new Error(
+          "Diese E-Mail-Adresse wird bereits von einem anderen Zugang verwendet."
+        );
+      }
+    }
+
+    const alteEmail = bestehend.email;
+    await tx
+      .update(users)
+      .set({ name: name.trim(), email: neueEmail })
+      .where(eq(users.id, userId));
+
+    if (neueEmail === alteEmail) return null;
+
+    const vereinRow = await tx.query.vereine.findFirst({
+      where: (v, { eq }) => eq(v.id, vereinId),
+    });
+    return { alteEmail, neueEmail, vereinName: vereinRow?.name ?? "deinem Verein" };
+  });
+
+  if (ergebnis) {
+    try {
+      await sendMail(
+        ergebnis.neueEmail,
+        "E-Mail-Adresse geändert",
+        emailGeaendertText(ergebnis.vereinName, ergebnis.neueEmail, true)
+      );
+    } catch (err) {
+      console.error("Info-Mail an neue Adresse fehlgeschlagen:", err);
+    }
+    try {
+      await sendMail(
+        ergebnis.alteEmail,
+        "E-Mail-Adresse geändert",
+        emailGeaendertText(ergebnis.vereinName, ergebnis.neueEmail, false)
+      );
+    } catch (err) {
+      console.error("Info-Mail an alte Adresse fehlgeschlagen:", err);
+    }
+  }
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
 export async function funktionstraegerImportieren(formData: FormData) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
@@ -351,6 +496,9 @@ export async function createTermin(formData: FormData) {
         typeof mannschaftId === "string" && mannschaftId
           ? mannschaftId
           : null,
+      // Turniere bekommen sofort einen Freigabe-Token für die öffentliche,
+      // login-freie Lese-Ansicht (/turnier/[token]).
+      freigabeToken: typ === "turnier" ? crypto.randomUUID() : null,
     })
   );
 
@@ -432,9 +580,171 @@ export async function deleteTermin(formData: FormData) {
     if (!bestehend || bestehend.quelle !== "manuell") {
       throw new Error("Termin nicht gefunden oder nicht löschbar.");
     }
+    // Einzelspiele eines Turniers hängen per ON DELETE CASCADE an
+    // turnier_id und werden hier automatisch mitgelöscht.
     await tx.delete(termine).where(eq(termine.id, terminId));
   });
 
   revalidatePath("/admin/termine");
   redirect("/admin/termine");
+}
+
+// ---------------------------------------------------------------------------
+// Turnier-Spielplan: einzelne Spiele innerhalb eines Turnier-Containers
+// (termine.typ = "turnier"). Dienste-Bedarf (Ordner/Kiosk) gilt weiterhin
+// nur für den Container, nicht für jedes Einzelspiel — die brauchen aber
+// jeweils eigene Schiri-/Zeitnehmer-/Sekretär-Zuordnung.
+// ---------------------------------------------------------------------------
+
+async function ladeTurnierContainer(
+  tx: Parameters<Parameters<typeof withTenant>[1]>[0],
+  turnierId: string,
+  vereinId: string
+) {
+  const turnier = await tx.query.termine.findFirst({
+    where: and(
+      eq(termine.id, turnierId),
+      eq(termine.vereinId, vereinId),
+      eq(termine.typ, "turnier")
+    ),
+  });
+  if (!turnier) throw new Error("Turnier nicht gefunden.");
+  return turnier;
+}
+
+export async function createTurnierSpiel(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const turnierId = formData.get("turnierId");
+  const start = formData.get("start");
+  const ende = formData.get("ende");
+  const ort = formData.get("ort");
+  const beschreibung = formData.get("beschreibung");
+
+  if (typeof turnierId !== "string" || !turnierId) {
+    throw new Error("Turnier fehlt.");
+  }
+  if (typeof start !== "string" || !start) {
+    throw new Error("Start ist erforderlich.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    await ladeTurnierContainer(tx, turnierId, vereinId);
+
+    await tx.insert(termine).values({
+      vereinId,
+      typ: "turnier_spiel",
+      turnierId,
+      start: new Date(start),
+      ende: typeof ende === "string" && ende ? new Date(ende) : null,
+      ort: typeof ort === "string" && ort.trim() ? ort.trim() : null,
+      beschreibung:
+        typeof beschreibung === "string" && beschreibung.trim()
+          ? beschreibung.trim()
+          : null,
+      quelle: "manuell",
+      erstelltVon: session.user.id,
+    });
+  });
+
+  revalidatePath(`/admin/termine/${turnierId}`);
+}
+
+export async function updateTurnierSpiel(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const terminId = formData.get("terminId");
+  const turnierId = formData.get("turnierId");
+  const start = formData.get("start");
+  const ende = formData.get("ende");
+  const ort = formData.get("ort");
+  const beschreibung = formData.get("beschreibung");
+
+  if (typeof terminId !== "string" || !terminId) {
+    throw new Error("Spiel fehlt.");
+  }
+  if (typeof turnierId !== "string" || !turnierId) {
+    throw new Error("Turnier fehlt.");
+  }
+  if (typeof start !== "string" || !start) {
+    throw new Error("Start ist erforderlich.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    const bestehend = await tx.query.termine.findFirst({
+      where: and(
+        eq(termine.id, terminId),
+        eq(termine.vereinId, vereinId),
+        eq(termine.typ, "turnier_spiel"),
+        eq(termine.turnierId, turnierId)
+      ),
+    });
+    if (!bestehend) throw new Error("Spiel nicht gefunden.");
+
+    await tx
+      .update(termine)
+      .set({
+        start: new Date(start),
+        ende: typeof ende === "string" && ende ? new Date(ende) : null,
+        ort: typeof ort === "string" && ort.trim() ? ort.trim() : null,
+        beschreibung:
+          typeof beschreibung === "string" && beschreibung.trim()
+            ? beschreibung.trim()
+            : null,
+      })
+      .where(eq(termine.id, terminId));
+  });
+
+  revalidatePath(`/admin/termine/${turnierId}`);
+}
+
+export async function deleteTurnierSpiel(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const terminId = formData.get("terminId");
+  const turnierId = formData.get("turnierId");
+  if (typeof terminId !== "string" || !terminId) {
+    throw new Error("Spiel fehlt.");
+  }
+  if (typeof turnierId !== "string" || !turnierId) {
+    throw new Error("Turnier fehlt.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    await tx
+      .delete(termine)
+      .where(
+        and(
+          eq(termine.id, terminId),
+          eq(termine.vereinId, vereinId),
+          eq(termine.typ, "turnier_spiel"),
+          eq(termine.turnierId, turnierId)
+        )
+      );
+  });
+
+  revalidatePath(`/admin/termine/${turnierId}`);
+}
+
+export async function turnierLinkErneuern(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const turnierId = formData.get("turnierId");
+  if (typeof turnierId !== "string" || !turnierId) {
+    throw new Error("Turnier fehlt.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    await ladeTurnierContainer(tx, turnierId, vereinId);
+    await tx
+      .update(termine)
+      .set({ freigabeToken: crypto.randomUUID() })
+      .where(eq(termine.id, turnierId));
+  });
+
+  revalidatePath(`/admin/termine/${turnierId}`);
 }

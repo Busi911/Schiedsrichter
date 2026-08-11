@@ -2,8 +2,9 @@ import { and, eq, gte, inArray, lte, or } from "drizzle-orm";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
-import { funktionstraegerRollen, termine, terminZuordnungen } from "@/db/schema";
+import { funktionstraegerRollen, termine, terminZuordnungen, users } from "@/db/schema";
 import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
+import { berechneBesetzung } from "@/lib/besetzung";
 import { MonatsKalender, type KalenderEintrag } from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -11,7 +12,16 @@ const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
   testspiel: "Testspiel",
   turnier: "Turnier",
+  turnier_spiel: "Turnierspiel",
 };
+
+const ROLLE_LABEL: Record<string, string> = {
+  schiedsrichter: "Schiedsrichter",
+  zeitnehmer: "Zeitnehmer",
+  sekretaer: "Sekretär",
+};
+
+const BESETZUNGSRELEVANTE_TYPEN = ["spiel_ics", "testspiel", "turnier_spiel"];
 
 function formatZeit(d: Date) {
   return new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" }).format(d);
@@ -29,7 +39,7 @@ export default async function ProfilKalenderPage({
   const { jahr, monatNull } = parseMonatParam(monat);
   const { von, bis } = monatsBereich(jahr, monatNull);
 
-  const termineDesMonats = await withTenant(vereinId, async (tx) => {
+  const [termineDesMonats, alleZuordnungen] = await withTenant(vereinId, async (tx) => {
     const eigeneRollen = await tx.query.funktionstraegerRollen.findMany({
       where: eq(funktionstraegerRollen.userId, userId),
     });
@@ -37,10 +47,10 @@ export default async function ProfilKalenderPage({
       .filter((r) => r.typ === "trainer" && r.mannschaftId)
       .map((r) => r.mannschaftId!);
 
-    const zuordnungen = await tx.query.terminZuordnungen.findMany({
+    const eigeneZuordnungen = await tx.query.terminZuordnungen.findMany({
       where: eq(terminZuordnungen.userId, userId),
     });
-    const zugeordneteTerminIds = zuordnungen.map((z) => z.terminId);
+    const zugeordneteTerminIds = eigeneZuordnungen.map((z) => z.terminId);
 
     const bedingungen = [eq(termine.icsSchiedsrichterId, userId)];
     if (zugeordneteTerminIds.length) {
@@ -50,13 +60,14 @@ export default async function ProfilKalenderPage({
       bedingungen.push(inArray(termine.mannschaftId, mannschaftIds));
     }
 
-    return tx
+    const termineDesMonats = await tx
       .select({
         id: termine.id,
         typ: termine.typ,
         start: termine.start,
         ort: termine.ort,
         beschreibung: termine.beschreibung,
+        hatIcsSchiedsrichter: termine.icsSchiedsrichterId,
       })
       .from(termine)
       .where(
@@ -67,17 +78,49 @@ export default async function ProfilKalenderPage({
           or(...bedingungen)
         )
       );
+
+    const terminIds = termineDesMonats.map((t) => t.id);
+    const alleZuordnungen = terminIds.length
+      ? await tx
+          .select({
+            terminId: terminZuordnungen.terminId,
+            funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+            name: users.name,
+            email: users.email,
+            externerName: terminZuordnungen.externerName,
+          })
+          .from(terminZuordnungen)
+          .leftJoin(users, eq(terminZuordnungen.userId, users.id))
+          .where(inArray(terminZuordnungen.terminId, terminIds))
+      : [];
+
+    return [termineDesMonats, alleZuordnungen];
   });
 
   const eintraegeProTag = new Map<string, KalenderEintrag[]>();
   for (const t of termineDesMonats) {
     const key = tagKey(t.start);
     const liste = eintraegeProTag.get(key) ?? [];
+    const eigeneZuordnungen = alleZuordnungen.filter((z) => z.terminId === t.id);
+    const besetzung = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ)
+      ? berechneBesetzung(eigeneZuordnungen, !!t.hatIcsSchiedsrichter).vollstaendig
+        ? ("vollstaendig" as const)
+        : ("offen" as const)
+      : undefined;
+    const besetzungsDetails = eigeneZuordnungen.map(
+      (z) =>
+        `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
+          z.name ?? z.externerName ?? z.email
+        }${z.externerName && !z.email ? " (ohne Login)" : ""}`
+    );
     liste.push({
       id: t.id,
       zeit: formatZeit(t.start),
       label: t.beschreibung ?? t.ort ?? TYP_LABEL[t.typ] ?? t.typ,
       typLabel: TYP_LABEL[t.typ] ?? t.typ,
+      besetzung,
+      ort: t.ort,
+      besetzungsDetails,
     });
     eintraegeProTag.set(key, liste);
   }

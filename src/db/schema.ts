@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   boolean,
   integer,
   numeric,
@@ -28,6 +29,10 @@ export const terminTypEnum = pgEnum("termin_typ", [
   "spiel_ics",
   "testspiel",
   "turnier",
+  // Einzelnes Spiel innerhalb eines Turniers (siehe termine.turnierId) —
+  // Dienste-Bedarf (Ordner/Kiosk) gilt weiterhin nur für den Turnier-
+  // Container selbst (typ "turnier"), nicht für jedes Einzelspiel.
+  "turnier_spiel",
 ]);
 
 export const terminQuelleEnum = pgEnum("termin_quelle", [
@@ -215,6 +220,15 @@ export const termine = pgTable("termin", {
     () => users.id,
     { onDelete: "cascade" }
   ),
+  // Nur bei typ = 'turnier_spiel' gesetzt: verweist auf den Turnier-
+  // Container (typ = 'turnier'), zu dem dieses Einzelspiel gehört.
+  turnierId: uuid("turnier_id").references((): AnyPgColumn => termine.id, {
+    onDelete: "cascade",
+  }),
+  // Nur beim Turnier-Container (typ = 'turnier') gesetzt: zufälliger, nicht
+  // erratbarer Token für die öffentliche, login-freie Lese-Ansicht
+  // (/turnier/[token]) — Kenntnis des Links ist die Berechtigung.
+  freigabeToken: text("freigabe_token").unique(),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -223,9 +237,13 @@ export const terminZuordnungen = pgTable("termin_zuordnung", {
   terminId: uuid("termin_id")
     .notNull()
     .references(() => termine.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+  // Nullable: eine Zuordnung kann auch eine Person OHNE Zugang im System
+  // sein (z.B. ein Schiedsrichter eines anderen Vereins, der nicht
+  // eingeladen werden soll) — dann ist externerName gesetzt statt userId.
+  // Diese Personen bekommen keine Benachrichtigungen, da es keine E-Mail
+  // gibt, an die versendet werden könnte.
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  externerName: text("externer_name"),
   funktionstraegerTyp: funktionstraegerTypEnum("funktionstraeger_typ").notNull(),
   quelle: zuordnungQuelleEnum("quelle").notNull(),
 });
