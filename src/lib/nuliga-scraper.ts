@@ -76,6 +76,24 @@ export function baueMonatsUrls(
   return urls;
 }
 
+// Deutschland wechselt zwischen MESZ (+02:00, Ende März bis Ende Oktober)
+// und MEZ (+01:00, Rest des Jahres) — bei einem rollierenden 10-Monats-
+// Fenster fällt ein Teil der Termine zwangsläufig in die Winterzeit. Noon
+// UTC liegt an jedem Kalendertag sicher auf derselben Seite der (jeweils um
+// 01:00 UTC stattfindenden) EU-Zeitumstellung, daher als Ankerzeitpunkt zur
+// Offset-Bestimmung geeignet, unabhängig von der tatsächlichen Uhrzeit des
+// Spiels.
+function berlinOffset(isoDate: string): string {
+  const anker = new Date(`${isoDate}T12:00:00Z`);
+  const teile = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Berlin",
+    timeZoneName: "shortOffset",
+  }).formatToParts(anker);
+  const tzTeil = teile.find((t) => t.type === "timeZoneName")?.value ?? "GMT+1";
+  const stunden = Number(tzTeil.replace("GMT", "")) || 1;
+  return `${stunden >= 0 ? "+" : "-"}${String(Math.abs(stunden)).padStart(2, "0")}:00`;
+}
+
 function decodeHtml(value: string): string {
   return value
     .replace(/<br\s*\/?>/gi, " ")
@@ -166,7 +184,7 @@ export function parseNuligaSeite(
     events.push({
       date: isoDate,
       time,
-      start: `${isoDate}T${time}:00+02:00`,
+      start: `${isoDate}T${time}:00${berlinOffset(isoDate)}`,
       title: `${home} – ${away}`,
       gameNumber,
       category,
