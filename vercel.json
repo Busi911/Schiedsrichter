@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/ics-sync",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/terminerinnerungen",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/rundenspiel-sync",
+      "schedule": "0 4 * * 1,4"
     }
   ]
 }

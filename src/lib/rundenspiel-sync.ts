@@ -102,13 +102,7 @@ export async function synchronisiereNuligaHallen(
   return { neu, aktualisiert, parseFehler, abrufFehler };
 }
 
-// Läuft aus /api/cron/ics-sync mit, statt einen eigenen Vercel-Cron-Eintrag
-// zu bekommen: der Hobby-Plan begrenzt Projekte auf zwei Cron Jobs
-// insgesamt, unabhängig von der Ausführungshäufigkeit (siehe README) — ein
-// dritter Eintrag lässt das Deployment fehlschlagen. Der Aufrufer entscheidet
-// per Wochentags-Check, ob das an einem gegebenen Lauf überhaupt passieren
-// soll (siehe ics-sync/route.ts); die Route selbst bleibt zusätzlich als
-// eigener, manuell auslösbarer Endpunkt bestehen (siehe rundenspiel-sync/route.ts).
+// Für alle Vereine mit aktiviertem Auto-Import (siehe /api/cron/rundenspiel-sync).
 export async function synchronisiereAlleAktivenNuligaVereine() {
   const kandidaten = await adminDb.query.vereine.findMany({
     where: eq(vereine.nuligaAutoImportAktiviert, true),

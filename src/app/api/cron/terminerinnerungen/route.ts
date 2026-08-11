@@ -1,9 +1,6 @@
 import { sendeAusstehendeErinnerungen } from "@/lib/terminerinnerungen";
 
-// Kein eigener Vercel-Cron-Eintrag mehr — läuft im ics-sync-Cron mit (siehe
-// Kommentar dort). Bleibt als eigener, manuell auslösbarer Endpunkt
-// bestehen, z.B. zum Testen:
-//   curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/terminerinnerungen
+// Läuft täglich per Vercel Cron (siehe vercel.json).
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (

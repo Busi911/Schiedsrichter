@@ -1,9 +1,6 @@
 import { synchronisiereAlleAktivenNuligaVereine } from "@/lib/rundenspiel-sync";
 
-// Kein eigener Vercel-Cron-Eintrag mehr (siehe Kommentar in rundenspiel-sync.ts) —
-// läuft montags/donnerstags über /api/cron/ics-sync mit. Diese Route bleibt
-// als manuell auslösbarer Endpunkt bestehen, z.B. zum Testen:
-//   curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/rundenspiel-sync
+// Läuft montags + donnerstags per Vercel Cron (siehe vercel.json).
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (

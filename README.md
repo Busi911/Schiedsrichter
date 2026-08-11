@@ -90,33 +90,29 @@ const id = crypto.randomUUID();
 await withTenant(id, (tx) => tx.insert(vereine).values({ id, name }));
 ```
 
-## Täglicher Cron: ICS-Sync, Terminerinnerungen, nuLiga-Sync
+## ICS-Sync (Vercel Cron)
 
-`vercel.json` registriert **einen einzigen** Cron-Eintrag,
-`GET /api/cron/ics-sync`, einmal täglich. Die Route erledigt bewusst alles
-Tägliche nacheinander in einer Route: ICS-Sync, danach Terminerinnerungen
-(braucht die frisch synchronisierten `ics_feed`-Termine), danach
-montags/donnerstags zusätzlich den nuLiga-Sync (siehe unten). Grund für
-diese Bündelung: der Vercel-Hobby-Plan **lehnt das Deployment komplett ab**,
-sobald ein Cron öfter als 1x/Tag laufen würde ("Hobby accounts are limited
-to daily cron jobs", ein harter Deploy-Fehler mit konkreter Fehlermeldung) —
-**und** begrenzt zusätzlich unabhängig davon die Gesamtzahl an Cron Jobs pro
-Projekt auf ein Minimum, das schon bei zwei separaten täglichen Cron-
-Einträgen überschritten war (hier ohne konkrete Fehlermeldung, nur als
-generischer Deploy-Fehler sichtbar). Ohne Upgrade auf den Pro-Plan bleibt es
-daher bei einem einzigen täglichen Cron-Aufruf. `/api/cron/terminerinnerungen`
-und `/api/cron/rundenspiel-sync` bleiben als eigene Routen bestehen (siehe
-unten) und sind weiterhin manuell/lokal auslösbar, aber nicht mehr in
-`vercel.json` registriert. Die Route ist per `CRON_SECRET` geschützt (Vercel
-sendet den Header `Authorization: Bearer $CRON_SECRET` automatisch mit,
-wenn die Env-Variable gesetzt ist). Lokal manuell auslösen:
+`vercel.json` registriert `GET /api/cron/ics-sync`, einmal täglich
+ausgeführt von Vercel Cron. Ein häufigerer Schedule (z.B. alle 6 Stunden)
+wurde versucht, aber der Vercel-Hobby-Plan **lehnt das Deployment komplett
+ab**, sobald ein Cron öfter als 1x/Tag laufen würde ("Hobby accounts are
+limited to daily cron jobs") — kein stilles Herunterregeln, sondern ein
+harter Deploy-Fehler. Ohne Upgrade auf den Pro-Plan bleibt es daher bei
+einmal täglich. (Eine zwischenzeitliche Vermutung, der Hobby-Plan begrenze
+zusätzlich die *Anzahl* an Cron Jobs pro Projekt, war ein Irrweg — der
+eigentliche Grund für weitere fehlgeschlagene Deployments war ein fehlendes
+`DATABASE_URL` in der Vercel-Projektkonfiguration, siehe
+[Lokales Setup](#lokales-setup) für die vollständige Liste nötiger
+Env-Variablen.) Die Route ist per `CRON_SECRET` geschützt (Vercel sendet den
+Header `Authorization: Bearer $CRON_SECRET` automatisch mit, wenn die
+Env-Variable gesetzt ist). Lokal manuell auslösen:
 
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/ics-sync
 ```
 
-**ICS-Sync:** Nutzt `adminDb` (privilegierte, RLS-freie Verbindung) **nur**,
-um vereinsübergreifend alle Schiedsrichter mit hinterlegter ICS-Feed-URL
+Die Route nutzt `adminDb` (privilegierte, RLS-freie Verbindung) **nur**, um
+vereinsübergreifend alle Schiedsrichter mit hinterlegter ICS-Feed-URL
 aufzulisten. Der eigentliche Sync pro Schiedsrichter läuft danach über
 `syncSchiedsrichterIcsFeed()`, das intern `withTenant()` verwendet — die
 Schreibzugriffe bleiben also RLS-konform pro Verein.
@@ -143,11 +139,12 @@ beide mit denselben Filtern als Query-Parametern:
 verträgt sich deshalb nicht mit dem Server-Bundling — daher steht es in
 `serverExternalPackages` in `next.config.ts`.
 
-## Terminerinnerungen
+## Terminerinnerungen (Vercel Cron)
 
-Läuft täglich im ICS-Sync-Cron mit (siehe oben). Sucht Termine, die
-innerhalb der nächsten 36 Stunden starten (`src/lib/terminerinnerungen.ts`),
-und schickt eine E-Mail (plus Push, siehe unten) an:
+`vercel.json` registriert zusätzlich `GET /api/cron/terminerinnerungen`,
+täglich eine Stunde nach dem ICS-Sync. Sucht Termine, die innerhalb der
+nächsten 36 Stunden starten (`src/lib/terminerinnerungen.ts`), und schickt
+eine E-Mail (plus Push, siehe unten) an:
 
 - den zugeordneten Schiedsrichter (bei ICS-Feed-Terminen),
 - alle Trainer der betroffenen Mannschaft (falls eine Mannschaft hinterlegt
@@ -267,16 +264,10 @@ duplizieren):
   `nuliga-scraper.ts` — andere Landesverbände brauchen eine weitere
   Domain-Konstante) für ein rollierendes 10-Monats-Fenster ab dem
   aktuellen Monat, statt eines fest einzutragenden Start-/Endmonats, der mit
-  der Zeit veralten würde. Läuft montags + donnerstags **mit dem
-  ICS-Sync-Cron** (`/api/cron/ics-sync`, Wochentags-Check per
-  `getUTCDay()`) statt einen eigenen Vercel-Cron-Eintrag zu bekommen — der
-  Hobby-Plan begrenzt Projekte auf zwei Cron Jobs insgesamt, unabhängig von
-  der Ausführungshäufigkeit (ein dritter Eintrag ließ das Deployment
-  fehlschlagen). `/api/cron/rundenspiel-sync` bleibt als eigener,
-  manuell auslösbarer Endpunkt bestehen (z.B. zum Testen), ist aber nicht
-  mehr in `vercel.json` registriert. Nach dem Speichern der Hallen-IDs auf
-  `/admin/einstellungen` läuft zusätzlich sofort ein erster Sync, statt auf
-  den nächsten Mo/Do-Lauf zu warten.
+  der Zeit veralten würde. Läuft montags + donnerstags per Vercel Cron
+  (`/api/cron/rundenspiel-sync`) für alle Vereine mit aktiviertem
+  Auto-Import; nach dem Speichern der Hallen-IDs läuft zusätzlich sofort ein
+  erster Sync, statt auf den nächsten Cron-Termin zu warten.
 
 ## Systemadmin (vereinsübergreifend)
 
