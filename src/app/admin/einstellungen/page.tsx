@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function EinstellungenPage({
   searchParams,
@@ -23,6 +24,7 @@ export default async function EinstellungenPage({
     nuligaNeu?: string;
     nuligaAktualisiert?: string;
     nuligaFehler?: string;
+    nuligaDiagnose?: string;
   }>;
 }) {
   const session = await requireAdmin();
@@ -173,11 +175,16 @@ export default async function EinstellungenPage({
             nuLiga-Sync: {nuligaErgebnis.nuligaNeu} neu,{" "}
             {nuligaErgebnis.nuligaAktualisiert ?? 0} aktualisiert
           </AlertTitle>
-          {nuligaErgebnis.nuligaFehler && (
+          {(nuligaErgebnis.nuligaFehler || nuligaErgebnis.nuligaDiagnose) && (
             <AlertDescription>
-              {nuligaErgebnis.nuligaFehler.split(" | ").map((f) => (
+              {nuligaErgebnis.nuligaFehler?.split(" | ").map((f) => (
                 <p key={f}>{f}</p>
               ))}
+              {nuligaErgebnis.nuligaDiagnose && (
+                <p className="text-xs text-muted-foreground">
+                  {nuligaErgebnis.nuligaDiagnose}
+                </p>
+              )}
             </AlertDescription>
           )}
         </Alert>
@@ -195,6 +202,29 @@ export default async function EinstellungenPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">
+              Woher bekomme ich die Hallen-ID?
+            </p>
+            <p className="mt-1">
+              Die ID steht nicht sichtbar auf der Seite, sondern nur in der
+              Adresszeile des Browsers: Sucht eure Halle im Spielbetrieb des
+              Verbands (z.B. auf{" "}
+              <a
+                href="https://hhv-handball.liga.nu"
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                hhv-handball.liga.nu
+              </a>{" "}
+              unter „Hallen“ oder „Spielbetrieb“), öffnet die Hallenseite und
+              lest die Zahl hinter <code>location=</code> in der URL ab —
+              z.B. bei{" "}
+              <code>...courtInfo?federation=HHV&amp;location=30402</code>{" "}
+              ist die Hallen-ID <code>30402</code>.
+            </p>
+          </div>
           <form
             action={nuligaEinstellungenSpeichern}
             className="flex flex-col gap-4"
@@ -240,9 +270,12 @@ export default async function EinstellungenPage({
                 defaultChecked={verein?.nuligaAutoImportAktiviert ?? false}
               />
             </div>
-            <Button type="submit" className="w-full">
+            <SubmitButton
+              className="w-full"
+              pendingText="Synchronisiert…"
+            >
               Speichern{verein?.nuligaAutoImportAktiviert ? " & synchronisieren" : ""}
-            </Button>
+            </SubmitButton>
           </form>
         </CardContent>
       </Card>

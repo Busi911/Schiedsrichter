@@ -8,7 +8,7 @@ import {
   parseRundenspielJson,
   type RundenspielEreignis,
 } from "./rundenspiel-import";
-import { holeNuligaJson } from "./nuliga-scraper";
+import { holeNuligaJson, type NuligaDiagnose } from "./nuliga-scraper";
 
 // DB-Import-Logik für bereits geparste Rundenspiel-Ereignisse — geteilt
 // zwischen dem manuellen JSON-Upload (/admin/rundenspiele, siehe
@@ -76,6 +76,7 @@ export type NuligaSyncErgebnis = {
   aktualisiert: number;
   parseFehler: { index: number; grund: string }[];
   abrufFehler: { locationId: string; requestedMonth: string; grund: string }[];
+  diagnose: NuligaDiagnose[];
 };
 
 // Automatischer End-to-End-Sync für einen Verein: nuLiga abrufen (bis zu
@@ -89,17 +90,17 @@ export async function synchronisiereNuligaHallen(
   hallenIds: string[]
 ): Promise<NuligaSyncErgebnis> {
   if (hallenIds.length === 0) {
-    return { neu: 0, aktualisiert: 0, parseFehler: [], abrufFehler: [] };
+    return { neu: 0, aktualisiert: 0, parseFehler: [], abrufFehler: [], diagnose: [] };
   }
 
-  const { json, fehler: abrufFehler } = await holeNuligaJson(hallenIds);
+  const { json, fehler: abrufFehler, diagnose } = await holeNuligaJson(hallenIds);
   const { ereignisse, fehler: parseFehler } = parseRundenspielJson(json);
   const { neu, aktualisiert } = await importiereRundenspielEreignisse(
     vereinId,
     ereignisse
   );
 
-  return { neu, aktualisiert, parseFehler, abrufFehler };
+  return { neu, aktualisiert, parseFehler, abrufFehler, diagnose };
 }
 
 // Für alle Vereine mit aktiviertem Auto-Import (siehe /api/cron/rundenspiel-sync).
