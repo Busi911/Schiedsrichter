@@ -2,6 +2,7 @@ import { and, eq, isNotNull, ne } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { schiedsrichterProfile, users } from "@/db/schema";
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
+import { synchronisiereAlleAktivenNuligaVereine } from "@/lib/rundenspiel-sync";
 
 // Läuft täglich per Vercel Cron (siehe vercel.json). Nutzt adminDb NUR zum
 // vereinsübergreifenden Auflisten der Kandidaten — der eigentliche Sync pro
@@ -48,5 +49,20 @@ export async function GET(request: Request) {
     }
   }
 
-  return Response.json({ synchronisiert: ergebnisse.length, ergebnisse });
+  // Läuft montags/donnerstags mit, statt einen eigenen Cron-Eintrag zu
+  // bekommen (siehe Kommentar in rundenspiel-sync.ts). Wochentag in UTC
+  // geprüft — der Cron feuert zu einer festen UTC-Stunde, die auch in
+  // Europe/Berlin zuverlässig auf denselben Kalendertag fällt.
+  const wochentag = new Date().getUTCDay(); // 0=So, 1=Mo, ..., 4=Do
+  const nuligaErgebnisse =
+    wochentag === 1 || wochentag === 4
+      ? await synchronisiereAlleAktivenNuligaVereine()
+      : [];
+
+  return Response.json({
+    synchronisiert: ergebnisse.length,
+    ergebnisse,
+    nuligaSynchronisiert: nuligaErgebnisse.length,
+    nuligaErgebnisse,
+  });
 }
