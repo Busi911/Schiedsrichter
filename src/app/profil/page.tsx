@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
+import { saisonLabel, saisonSortKey } from "@/lib/saison";
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -208,7 +209,8 @@ export default async function ProfilPage() {
               <CardTitle>ICS-Feed (Spielansetzungen)</CardTitle>
               <CardDescription>
                 Abo-Link deines Verbands hinterlegen, damit deine Einsätze
-                automatisch synchronisiert werden.
+                automatisch synchronisiert werden. Aktuelle Spielzeit:{" "}
+                <strong>Saison {saisonLabel(new Date())}</strong>.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -330,20 +332,42 @@ export default async function ProfilPage() {
         <Card>
           <CardHeader>
             <CardTitle>Meine Termine</CardTitle>
+            <CardDescription>
+              Nach Saison gruppiert (Juli–Juni) — ein fortlaufender Verlauf
+              über mehrere Spielzeiten.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2">
+          <CardContent className="flex flex-col gap-5">
             {eigeneTermine.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 Keine Termine vorhanden.
               </p>
             )}
-            {eigeneTermine.map((t) => (
-              <div key={t.id} className="rounded-lg border p-3 text-sm">
-                {formatDateTime(t.start)}
-                {t.ort ? ` · ${t.ort}` : ""}
-                {t.beschreibung ? ` · ${t.beschreibung}` : ""}
-              </div>
-            ))}
+            {Object.entries(
+              eigeneTermine.reduce<Record<string, typeof eigeneTermine>>(
+                (gruppen, t) => {
+                  const saison = saisonLabel(t.start);
+                  (gruppen[saison] ??= []).push(t);
+                  return gruppen;
+                },
+                {}
+              )
+            )
+              .sort(([a], [b]) => saisonSortKey(b) - saisonSortKey(a))
+              .map(([saison, termineDerSaison]) => (
+                <div key={saison} className="flex flex-col gap-2">
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Saison {saison}
+                  </p>
+                  {termineDerSaison.map((t) => (
+                    <div key={t.id} className="rounded-lg border p-3 text-sm">
+                      {formatDateTime(t.start)}
+                      {t.ort ? ` · ${t.ort}` : ""}
+                      {t.beschreibung ? ` · ${t.beschreibung}` : ""}
+                    </div>
+                  ))}
+                </div>
+              ))}
           </CardContent>
         </Card>
       </main>

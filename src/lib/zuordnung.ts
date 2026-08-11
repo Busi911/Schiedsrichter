@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, gte, inArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, ne } from "drizzle-orm";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
@@ -20,7 +20,13 @@ export const ZUORDENBARE_TYPEN = [
 export async function holeTermineMitZuordnungen(vereinId: string) {
   return withTenant(vereinId, async (tx) => {
     const terminListe = await tx.query.termine.findMany({
-      where: and(eq(termine.vereinId, vereinId), gte(termine.start, new Date())),
+      // Der Turnier-Container selbst ist kein Zuordnungsziel — zugeordnet
+      // wird pro Einzelspiel (typ "turnier_spiel").
+      where: and(
+        eq(termine.vereinId, vereinId),
+        gte(termine.start, new Date()),
+        ne(termine.typ, "turnier")
+      ),
       orderBy: (t, { asc }) => [asc(t.start)],
     });
 

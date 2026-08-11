@@ -10,6 +10,7 @@ const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
   testspiel: "Testspiel",
   turnier: "Turnier",
+  turnier_spiel: "Turnierspiel",
 };
 
 function formatZeit(d: Date) {

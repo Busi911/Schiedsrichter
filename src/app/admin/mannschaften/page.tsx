@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mannschaften } from "@/db/schema";
-import { createMannschaft } from "../actions";
+import { createMannschaft, deleteMannschaft, updateMannschaft } from "../actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -58,13 +58,43 @@ export default async function MannschaftenPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Altersklasse</TableHead>
+                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {liste.map((m) => (
                     <TableRow key={m.id}>
-                      <TableCell className="font-medium">{m.name}</TableCell>
-                      <TableCell>{m.altersklasse ?? "—"}</TableCell>
+                      <TableCell colSpan={3} className="p-0">
+                        <div className="flex flex-wrap items-center gap-2 p-3">
+                          <form
+                            action={updateMannschaft}
+                            className="flex flex-wrap items-center gap-2"
+                          >
+                            <input type="hidden" name="mannschaftId" value={m.id} />
+                            <Input
+                              name="name"
+                              defaultValue={m.name}
+                              required
+                              className="h-8 w-40"
+                            />
+                            <Input
+                              name="altersklasse"
+                              defaultValue={m.altersklasse ?? ""}
+                              placeholder="Altersklasse"
+                              className="h-8 w-36"
+                            />
+                            <Button type="submit" variant="outline" size="sm">
+                              Speichern
+                            </Button>
+                          </form>
+                          <form action={deleteMannschaft}>
+                            <input type="hidden" name="mannschaftId" value={m.id} />
+                            <Button type="submit" variant="ghost" size="sm">
+                              Löschen
+                            </Button>
+                          </form>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

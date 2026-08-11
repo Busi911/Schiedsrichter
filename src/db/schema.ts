@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   boolean,
   integer,
   numeric,
@@ -28,6 +29,10 @@ export const terminTypEnum = pgEnum("termin_typ", [
   "spiel_ics",
   "testspiel",
   "turnier",
+  // Einzelnes Spiel innerhalb eines Turniers (siehe termine.turnierId) —
+  // Dienste-Bedarf (Ordner/Kiosk) gilt weiterhin nur für den Turnier-
+  // Container selbst (typ "turnier"), nicht für jedes Einzelspiel.
+  "turnier_spiel",
 ]);
 
 export const terminQuelleEnum = pgEnum("termin_quelle", [
@@ -215,6 +220,15 @@ export const termine = pgTable("termin", {
     () => users.id,
     { onDelete: "cascade" }
   ),
+  // Nur bei typ = 'turnier_spiel' gesetzt: verweist auf den Turnier-
+  // Container (typ = 'turnier'), zu dem dieses Einzelspiel gehört.
+  turnierId: uuid("turnier_id").references((): AnyPgColumn => termine.id, {
+    onDelete: "cascade",
+  }),
+  // Nur beim Turnier-Container (typ = 'turnier') gesetzt: zufälliger, nicht
+  // erratbarer Token für die öffentliche, login-freie Lese-Ansicht
+  // (/turnier/[token]) — Kenntnis des Links ist die Berechtigung.
+  freigabeToken: text("freigabe_token").unique(),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 
