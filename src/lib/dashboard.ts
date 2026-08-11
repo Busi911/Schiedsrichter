@@ -78,7 +78,7 @@ export async function holeUnbesetzteDienste(
       where: and(
         eq(termine.vereinId, vereinId),
         gte(termine.start, new Date()),
-        inArray(termine.typ, ["testspiel", "turnier"])
+        inArray(termine.typ, ["testspiel", "turnier", "rundenspiel"])
       ),
       orderBy: (t, { asc }) => [asc(t.start)],
     });

@@ -6,6 +6,8 @@ const verein = {
   testspielKioskdienstBedarf: 1,
   turnierOrdnerBedarf: 0,
   turnierKioskdienstBedarf: 0,
+  rundenspielOrdnerBedarf: 0,
+  rundenspielKioskdienstBedarf: 0,
 };
 
 describe("berechneUnbesetzteDienste", () => {

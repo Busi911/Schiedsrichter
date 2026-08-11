@@ -10,25 +10,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { formatDatumZeit as formatDateTime } from "@/lib/format";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
   testspiel: "Testspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
+  rundenspiel: "Rundenspiel",
 };
 
 const ROLLE_LABEL: Record<string, string> = {
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
 };
-
-function formatDateTime(d: Date) {
-  return new Intl.DateTimeFormat("de-DE", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(d);
-}
 
 export default async function AdminDashboardPage() {
   const session = await requireAdmin();

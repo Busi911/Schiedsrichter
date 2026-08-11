@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatMonatJahr } from "@/lib/format";
 
 const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
@@ -43,10 +44,7 @@ export function MonatsKalender({
     monatNull === 0 ? { jahr: jahr - 1, monatNull: 11 } : { jahr, monatNull: monatNull - 1 };
   const naechsterMonat =
     monatNull === 11 ? { jahr: jahr + 1, monatNull: 0 } : { jahr, monatNull: monatNull + 1 };
-  const monatsName = new Intl.DateTimeFormat("de-DE", {
-    month: "long",
-    year: "numeric",
-  }).format(new Date(jahr, monatNull, 1));
+  const monatsName = formatMonatJahr(jahr, monatNull);
   const heute = new Date();
   const istAktuellerMonat =
     jahr === heute.getFullYear() && monatNull === heute.getMonth();

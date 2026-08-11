@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
@@ -12,6 +12,11 @@ import {
   users,
 } from "@/db/schema";
 import { parseFunktionstraegerExcel } from "@/lib/funktionstraeger-import";
+import {
+  findeMannschaft,
+  normalisiereMannschaftsname,
+  parseRundenspielJson,
+} from "@/lib/rundenspiel-import";
 import { sendMail } from "@/lib/mailer";
 import { appUrl } from "@/lib/app-url";
 
@@ -747,4 +752,121 @@ export async function turnierLinkErneuern(formData: FormData) {
   });
 
   revalidatePath(`/admin/termine/${turnierId}`);
+}
+
+export async function rundenspieleImportieren(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const datei = formData.get("datei");
+  if (!(datei instanceof File) || datei.size === 0) {
+    throw new Error("Bitte eine JSON-Datei auswählen.");
+  }
+
+  const text = await datei.text();
+  const { ereignisse, fehler } = parseRundenspielJson(text);
+  const fehlerListe = fehler.map((f) => `Eintrag ${f.index}: ${f.grund}`);
+
+  let neu = 0;
+  let aktualisiert = 0;
+
+  await withTenant(vereinId, async (tx) => {
+    const mannschaftsListe = await tx.query.mannschaften.findMany({
+      where: eq(mannschaften.vereinId, vereinId),
+    });
+
+    for (const ereignis of ereignisse) {
+      const mannschaftId = findeMannschaft(ereignis, mannschaftsListe);
+      const bestehend = await tx.query.termine.findFirst({
+        where: and(
+          eq(termine.vereinId, vereinId),
+          eq(termine.icsUid, ereignis.uid)
+        ),
+      });
+
+      if (bestehend) {
+        await tx
+          .update(termine)
+          .set({
+            start: ereignis.start,
+            ort: ereignis.ort,
+            beschreibung: ereignis.beschreibung,
+            mannschaftId,
+            heimMannschaftName: ereignis.heimMannschaft,
+            auswaertsMannschaftName: ereignis.auswaertsMannschaft,
+          })
+          .where(eq(termine.id, bestehend.id));
+        aktualisiert++;
+      } else {
+        await tx.insert(termine).values({
+          vereinId,
+          typ: "rundenspiel",
+          quelle: "rundenspiel_import",
+          start: ereignis.start,
+          ort: ereignis.ort,
+          beschreibung: ereignis.beschreibung,
+          mannschaftId,
+          icsUid: ereignis.uid,
+          heimMannschaftName: ereignis.heimMannschaft,
+          auswaertsMannschaftName: ereignis.auswaertsMannschaft,
+        });
+        neu++;
+      }
+    }
+  });
+
+  revalidatePath("/admin/rundenspiele");
+  revalidatePath("/admin/kalender");
+  revalidatePath("/admin");
+
+  const params = new URLSearchParams();
+  params.set("importNeu", String(neu));
+  params.set("importAktualisiert", String(aktualisiert));
+  if (fehlerListe.length) params.set("importFehler", fehlerListe.join(" | "));
+  redirect(`/admin/rundenspiele?${params.toString()}`);
+}
+
+export async function mannschaftAusRundenspielAnlegen(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const name = formData.get("name");
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Name fehlt.");
+  }
+  const normZiel = normalisiereMannschaftsname(name);
+
+  await withTenant(vereinId, async (tx) => {
+    const [mannschaft] = await tx
+      .insert(mannschaften)
+      .values({ vereinId, name: name.trim() })
+      .returning();
+
+    // Bestehende, noch nicht verknüpfte Rundenspiele rückwirkend mit der
+    // neu angelegten Mannschaft verknüpfen (nicht nur künftige Importe).
+    const offeneRundenspiele = await tx.query.termine.findMany({
+      where: and(
+        eq(termine.vereinId, vereinId),
+        eq(termine.typ, "rundenspiel"),
+        isNull(termine.mannschaftId)
+      ),
+    });
+    for (const r of offeneRundenspiele) {
+      const heimNorm = r.heimMannschaftName
+        ? normalisiereMannschaftsname(r.heimMannschaftName)
+        : null;
+      const auswaertsNorm = r.auswaertsMannschaftName
+        ? normalisiereMannschaftsname(r.auswaertsMannschaftName)
+        : null;
+      if (heimNorm === normZiel || auswaertsNorm === normZiel) {
+        await tx
+          .update(termine)
+          .set({ mannschaftId: mannschaft.id })
+          .where(eq(termine.id, r.id));
+      }
+    }
+  });
+
+  revalidatePath("/admin/rundenspiele");
+  revalidatePath("/admin/mannschaften");
 }

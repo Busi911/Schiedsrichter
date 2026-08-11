@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { berechneBesetzung } from "./besetzung";
+import { berechneBesetzung, istBesetzungVollstaendig } from "./besetzung";
 
 describe("berechneBesetzung", () => {
   it("ist unvollständig ohne jede Zuordnung", () => {
@@ -60,5 +60,30 @@ describe("berechneBesetzung", () => {
     ]);
     expect(status.schiriAnzahl).toBe(0);
     expect(status.zeitnehmerSekretaerAnzahl).toBe(0);
+  });
+});
+
+describe("istBesetzungVollstaendig", () => {
+  it("verlangt bei Rundenspielen nur Zeitnehmer/Sekretär, keinen Schiedsrichter (kommt vom Verband)", () => {
+    const nurZeitnehmer = berechneBesetzung([
+      { funktionstraegerTyp: "zeitnehmer" },
+    ]);
+    expect(istBesetzungVollstaendig(nurZeitnehmer, "rundenspiel")).toBe(true);
+
+    const nichts = berechneBesetzung([]);
+    expect(istBesetzungVollstaendig(nichts, "rundenspiel")).toBe(false);
+  });
+
+  it("verlangt bei allen anderen besetzungsrelevanten Typen weiterhin auch einen Schiedsrichter", () => {
+    const nurZeitnehmer = berechneBesetzung([
+      { funktionstraegerTyp: "zeitnehmer" },
+    ]);
+    expect(istBesetzungVollstaendig(nurZeitnehmer, "testspiel")).toBe(false);
+
+    const beides = berechneBesetzung([
+      { funktionstraegerTyp: "schiedsrichter" },
+      { funktionstraegerTyp: "zeitnehmer" },
+    ]);
+    expect(istBesetzungVollstaendig(beides, "testspiel")).toBe(true);
   });
 });

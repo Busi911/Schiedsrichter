@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, eq, gte, lte, type SQL } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { mannschaften, termine, users } from "@/db/schema";
+import { formatDatumKurz, formatZeitKurz } from "./format";
 
 export type AuswertungFilter = {
   von?: string;
@@ -15,6 +16,7 @@ const TERMIN_TYPEN = [
   "testspiel",
   "turnier",
   "turnier_spiel",
+  "rundenspiel",
 ] as const;
 
 export async function holeTermineFuerAuswertung(
@@ -82,8 +84,8 @@ export function terminAlsCsv(
 
   const zeilenText = zeilen.map((z) =>
     [
-      z.start.toLocaleDateString("de-DE"),
-      z.start.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+      formatDatumKurz(z.start),
+      formatZeitKurz(z.start),
       z.typ,
       z.ort,
       z.beschreibung,

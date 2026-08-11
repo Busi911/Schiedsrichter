@@ -1,6 +1,7 @@
 import "server-only";
 import { and, asc, desc, eq, inArray, isNotNull, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
+import { formatDatumKurz } from "@/lib/format";
 import {
   termine,
   terminZuordnungen,
@@ -174,7 +175,7 @@ export function zuschuesseAlsCsv(
 
   const zeilenText = zeilen.map((z) =>
     [
-      z.terminStart.toLocaleDateString("de-DE"),
+      formatDatumKurz(z.terminStart),
       z.terminBeschreibung,
       z.personName,
       z.personEmail,

@@ -29,6 +29,14 @@ export async function dienstBedarfSpeichern(formData: FormData) {
     formData,
     "turnierKioskdienstBedarf"
   );
+  const rundenspielOrdnerBedarf = parseAnzahl(
+    formData,
+    "rundenspielOrdnerBedarf"
+  );
+  const rundenspielKioskdienstBedarf = parseAnzahl(
+    formData,
+    "rundenspielKioskdienstBedarf"
+  );
 
   await withTenant(vereinId, (tx) =>
     tx
@@ -38,6 +46,8 @@ export async function dienstBedarfSpeichern(formData: FormData) {
         testspielKioskdienstBedarf,
         turnierOrdnerBedarf,
         turnierKioskdienstBedarf,
+        rundenspielOrdnerBedarf,
+        rundenspielKioskdienstBedarf,
       })
       .where(eq(vereine.id, vereinId))
   );

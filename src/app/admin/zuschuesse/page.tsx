@@ -32,10 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-function formatDate(d: Date) {
-  return new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(d);
-}
+import { formatDatum as formatDate } from "@/lib/format";
 
 export default async function ZuschuessePage() {
   const session = await requireAdmin();

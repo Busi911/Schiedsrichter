@@ -42,3 +42,16 @@ export function berechneBesetzung(
     vollstaendig: schiriErfuellt && zeitnehmerSekretaerErfuellt,
   };
 }
+
+// Bei Rundenspielen (Heimspiele im eigenen Liga-Spielplan) stellt der
+// Schiedsrichter der Verband — der Verein braucht nur Zeitnehmer/Sekretär.
+// Die Schiri-Pflicht aus berechneBesetzung() gilt daher hier bewusst nicht;
+// alle anderen besetzungsrelevanten Typen (Testspiel, Turnierspiel,
+// ICS-Spiel) verlangen weiterhin auch einen Schiedsrichter.
+export function istBesetzungVollstaendig(
+  status: Besetzungsstatus,
+  typ: string
+): boolean {
+  if (typ === "rundenspiel") return status.zeitnehmerSekretaerErfuellt;
+  return status.vollstaendig;
+}

@@ -33,11 +33,17 @@ export const terminTypEnum = pgEnum("termin_typ", [
   // Dienste-Bedarf (Ordner/Kiosk) gilt weiterhin nur für den Turnier-
   // Container selbst (typ "turnier"), nicht für jedes Einzelspiel.
   "turnier_spiel",
+  // Pflichtspiel aus dem Liga-Spielplan, importiert aus einem nuLiga-JSON-
+  // Export pro Halle (siehe src/lib/rundenspiel-import.ts). Enthält alle
+  // Spiele an der eigenen Halle, nicht nur die der eigenen Mannschaften —
+  // relevant für Ordner-/Kioskdienst-Bedarf am Spieltag.
+  "rundenspiel",
 ]);
 
 export const terminQuelleEnum = pgEnum("termin_quelle", [
   "ics_feed",
   "manuell",
+  "rundenspiel_import",
 ]);
 
 export const zuordnungQuelleEnum = pgEnum("zuordnung_quelle", [
@@ -75,6 +81,12 @@ export const vereine = pgTable("verein", {
     .default(0),
   turnierOrdnerBedarf: integer("turnier_ordner_bedarf").notNull().default(0),
   turnierKioskdienstBedarf: integer("turnier_kioskdienst_bedarf")
+    .notNull()
+    .default(0),
+  rundenspielOrdnerBedarf: integer("rundenspiel_ordner_bedarf")
+    .notNull()
+    .default(0),
+  rundenspielKioskdienstBedarf: integer("rundenspiel_kioskdienst_bedarf")
     .notNull()
     .default(0),
   // Zuschüsse sind ein Opt-in: erst wenn der Admin sie aktiviert UND
@@ -229,6 +241,12 @@ export const termine = pgTable("termin", {
   // erratbarer Token für die öffentliche, login-freie Lese-Ansicht
   // (/turnier/[token]) — Kenntnis des Links ist die Berechtigung.
   freigabeToken: text("freigabe_token").unique(),
+  // Nur bei typ = 'rundenspiel' gesetzt: Roh-Namen aus dem nuLiga-Import,
+  // unabhängig davon, ob eine der beiden Mannschaften erkannt wurde. Basis
+  // dafür, dem Admin nachträglich "unbekannte Mannschaften" zum Anlegen
+  // vorzuschlagen (siehe src/lib/rundenspiel-import.ts).
+  heimMannschaftName: text("heim_mannschaft_name"),
+  auswaertsMannschaftName: text("auswaerts_mannschaft_name"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 

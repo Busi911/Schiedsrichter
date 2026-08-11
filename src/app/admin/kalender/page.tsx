@@ -3,15 +3,17 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { termine, terminZuordnungen, users } from "@/db/schema";
 import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
-import { berechneBesetzung } from "@/lib/besetzung";
+import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { MonatsKalender, type KalenderEintrag } from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatZeit } from "@/lib/format";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
   testspiel: "Testspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
+  rundenspiel: "Rundenspiel",
 };
 
 const ROLLE_LABEL: Record<string, string> = {
@@ -22,15 +24,18 @@ const ROLLE_LABEL: Record<string, string> = {
 
 // Nur diese Typen brauchen eine Schiri-/Zeitnehmer-/Sekretär-Zuordnung —
 // der Turnier-Container selbst wird pro Einzelspiel besetzt (siehe
-// src/lib/zuordnung.ts).
-const BESETZUNGSRELEVANTE_TYPEN = ["spiel_ics", "testspiel", "turnier_spiel"];
+// src/lib/zuordnung.ts). Rundenspiele brauchen nur Zeitnehmer/Sekretär
+// (siehe istBesetzungVollstaendig in src/lib/besetzung.ts).
+const BESETZUNGSRELEVANTE_TYPEN = [
+  "spiel_ics",
+  "testspiel",
+  "turnier_spiel",
+  "rundenspiel",
+];
 // Nur manuell angelegte Termine (Testspiel/Turnier/Turnierspiel) sind
-// bearbeitbar — ICS-Feed-Termine werden vom Sync verwaltet.
+// bearbeitbar — ICS-Feed- und Rundenspiel-Import-Termine werden von ihrer
+// jeweiligen Quelle verwaltet.
 const BEARBEITBARE_TYPEN = ["testspiel", "turnier", "turnier_spiel"];
-
-function formatZeit(d: Date) {
-  return new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" }).format(d);
-}
 
 export default async function AdminKalenderPage({
   searchParams,
@@ -90,10 +95,13 @@ export default async function AdminKalenderPage({
 
     const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
     const besetzung = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ)
-      ? berechneBesetzung(
-          eigeneZuordnungen,
-          t.typ === "spiel_ics" && !!t.schiedsrichterEmail
-        ).vollstaendig
+      ? istBesetzungVollstaendig(
+          berechneBesetzung(
+            eigeneZuordnungen,
+            t.typ === "spiel_ics" && !!t.schiedsrichterEmail
+          ),
+          t.typ
+        )
         ? ("vollstaendig" as const)
         : ("offen" as const)
       : undefined;

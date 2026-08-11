@@ -32,11 +32,11 @@ export default async function EinstellungenPage() {
         <CardHeader>
           <CardTitle>Dienste-Bedarf pro Termin</CardTitle>
           <CardDescription>
-            Wie viele Ordner und Kioskdienst-Kräfte pro Testspiel bzw.
-            Turnier benötigt werden. Sobald diese Anzahl erreicht ist, können
-            sich weitere Interessenten nicht mehr anmelden. Gilt nicht für
-            Termine aus dem ICS-Feed (das sind die persönlichen Einsätze der
-            Schiedsrichter).
+            Wie viele Ordner und Kioskdienst-Kräfte pro Testspiel, Turnier
+            bzw. Rundenspiel benötigt werden. Sobald diese Anzahl erreicht
+            ist, können sich weitere Interessenten nicht mehr anmelden. Gilt
+            nicht für Termine aus dem ICS-Feed (das sind die persönlichen
+            Einsätze der Schiedsrichter).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -106,6 +106,41 @@ export default async function EinstellungenPage() {
                   min="0"
                   step="1"
                   defaultValue={verein?.turnierKioskdienstBedarf ?? 0}
+                  className="w-20"
+                />
+              </div>
+            </fieldset>
+
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-1 text-sm font-medium">Rundenspiele</legend>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="rundenspielOrdnerBedarf" className="font-normal">
+                  Ordner
+                </Label>
+                <Input
+                  id="rundenspielOrdnerBedarf"
+                  type="number"
+                  name="rundenspielOrdnerBedarf"
+                  min="0"
+                  step="1"
+                  defaultValue={verein?.rundenspielOrdnerBedarf ?? 0}
+                  className="w-20"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label
+                  htmlFor="rundenspielKioskdienstBedarf"
+                  className="font-normal"
+                >
+                  Kioskdienst
+                </Label>
+                <Input
+                  id="rundenspielKioskdienstBedarf"
+                  type="number"
+                  name="rundenspielKioskdienstBedarf"
+                  min="0"
+                  step="1"
+                  defaultValue={verein?.rundenspielKioskdienstBedarf ?? 0}
                   className="w-20"
                 />
               </div>

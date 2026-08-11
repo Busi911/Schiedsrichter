@@ -1,6 +1,7 @@
 import "server-only";
 import PDFDocument from "pdfkit";
 import type { holeTermineFuerAuswertung } from "./termin-auswertung";
+import { formatDatumKurz, formatZeitKurz } from "./format";
 
 type Zeile = Awaited<ReturnType<typeof holeTermineFuerAuswertung>>[number];
 
@@ -9,6 +10,7 @@ const TYP_LABEL: Record<string, string> = {
   testspiel: "Testspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
+  rundenspiel: "Rundenspiel",
 };
 
 const SPALTEN = [
@@ -66,11 +68,8 @@ export function terminAlsPdf(zeilen: Zeile[]): Promise<Buffer> {
       }
       zeichneZeile(
         [
-          z.start.toLocaleDateString("de-DE"),
-          z.start.toLocaleTimeString("de-DE", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          formatDatumKurz(z.start),
+          formatZeitKurz(z.start),
           TYP_LABEL[z.typ] ?? z.typ,
           z.ort ?? "",
           z.beschreibung ?? "",

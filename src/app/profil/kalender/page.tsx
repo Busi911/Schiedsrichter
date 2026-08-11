@@ -4,15 +4,17 @@ import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, termine, terminZuordnungen, users } from "@/db/schema";
 import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
-import { berechneBesetzung } from "@/lib/besetzung";
+import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { MonatsKalender, type KalenderEintrag } from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatZeit } from "@/lib/format";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
   testspiel: "Testspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
+  rundenspiel: "Rundenspiel",
 };
 
 const ROLLE_LABEL: Record<string, string> = {
@@ -21,11 +23,12 @@ const ROLLE_LABEL: Record<string, string> = {
   sekretaer: "Sekretär",
 };
 
-const BESETZUNGSRELEVANTE_TYPEN = ["spiel_ics", "testspiel", "turnier_spiel"];
-
-function formatZeit(d: Date) {
-  return new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" }).format(d);
-}
+const BESETZUNGSRELEVANTE_TYPEN = [
+  "spiel_ics",
+  "testspiel",
+  "turnier_spiel",
+  "rundenspiel",
+];
 
 export default async function ProfilKalenderPage({
   searchParams,
@@ -103,7 +106,10 @@ export default async function ProfilKalenderPage({
     const liste = eintraegeProTag.get(key) ?? [];
     const eigeneZuordnungen = alleZuordnungen.filter((z) => z.terminId === t.id);
     const besetzung = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ)
-      ? berechneBesetzung(eigeneZuordnungen, !!t.hatIcsSchiedsrichter).vollstaendig
+      ? istBesetzungVollstaendig(
+          berechneBesetzung(eigeneZuordnungen, !!t.hatIcsSchiedsrichter),
+          t.typ
+        )
         ? ("vollstaendig" as const)
         : ("offen" as const)
       : undefined;

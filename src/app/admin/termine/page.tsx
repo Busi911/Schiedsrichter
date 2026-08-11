@@ -24,18 +24,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatDatumZeit as formatDateTime } from "@/lib/format";
 
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Testspiel",
   turnier: "Turnier",
 };
-
-function formatDateTime(d: Date) {
-  return new Intl.DateTimeFormat("de-DE", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(d);
-}
 
 export default async function TerminePage() {
   const session = await requireAdmin();

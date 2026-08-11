@@ -6,6 +6,8 @@ const verein = {
   testspielKioskdienstBedarf: 1,
   turnierOrdnerBedarf: 4,
   turnierKioskdienstBedarf: 3,
+  rundenspielOrdnerBedarf: 5,
+  rundenspielKioskdienstBedarf: 6,
 };
 
 describe("bedarfFuer", () => {
@@ -32,5 +34,10 @@ describe("bedarfFuer", () => {
 
   it("liefert 0 für unbekannte Termin-Typen", () => {
     expect(bedarfFuer(verein, "unbekannt", "ordner")).toBe(0);
+  });
+
+  it("liefert den Ordner-/Kioskdienst-Bedarf für Rundenspiele", () => {
+    expect(bedarfFuer(verein, "rundenspiel", "ordner")).toBe(5);
+    expect(bedarfFuer(verein, "rundenspiel", "kioskdienst")).toBe(6);
   });
 });

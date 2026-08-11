@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
 import { saisonLabel, saisonSortKey } from "@/lib/saison";
+import { formatDatumZeit as formatDateTime } from "@/lib/format";
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -41,13 +42,6 @@ const TYP_LABEL: Record<string, string> = {
 };
 
 const SELBST_ANMELDBARE_TYPEN = ["ordner", "kioskdienst"] as const;
-
-function formatDateTime(d: Date) {
-  return new Intl.DateTimeFormat("de-DE", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(d);
-}
 
 export default async function ProfilPage() {
   const session = await requireSession();
@@ -87,14 +81,15 @@ export default async function ProfilPage() {
         (SELBST_ANMELDBARE_TYPEN as readonly string[]).includes(t)
       );
 
-    // Dienste gelten bewusst nur für testspiel/turnier, nicht für spiel_ics
-    // (persönliche Einsätze des Schiedsrichters, oft bei fremden Vereinen).
+    // Dienste gelten bewusst nur für testspiel/turnier/rundenspiel, nicht
+    // für spiel_ics (persönliche Einsätze des Schiedsrichters, oft bei
+    // fremden Vereinen).
     const verfuegbareTermine = eigeneTypen.length
       ? await tx.query.termine.findMany({
           where: and(
             eq(termine.vereinId, vereinId),
             gte(termine.start, new Date()),
-            inArray(termine.typ, ["testspiel", "turnier"])
+            inArray(termine.typ, ["testspiel", "turnier", "rundenspiel"])
           ),
           orderBy: (t, { asc }) => [asc(t.start)],
         })

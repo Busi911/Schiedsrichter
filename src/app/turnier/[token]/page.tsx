@@ -5,19 +5,13 @@ import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Logo } from "@/components/logo";
+import { formatDatumZeit as formatDateTime } from "@/lib/format";
 
 const ROLLE_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
   zeitnehmer: "Zeitnehmer",
   sekretaer: "Sekretär",
 };
-
-function formatDateTime(d: Date) {
-  return new Intl.DateTimeFormat("de-DE", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(d);
-}
 
 // Öffentliche, login-freie Lese-Ansicht — Kenntnis des Tokens ist die
 // Berechtigung (wie bei den Login-Links). Bewusst adminDb (RLS-frei), da es

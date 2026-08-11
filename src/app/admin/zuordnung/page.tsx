@@ -4,7 +4,7 @@ import {
   holeZuordenbareFunktionstraeger,
   ZUORDENBARE_TYPEN,
 } from "@/lib/zuordnung";
-import { berechneBesetzung } from "@/lib/besetzung";
+import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { externeZuordnung, zuordnen, zuordnungEntfernen } from "./actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
+import { formatDatumZeit as formatDateTime } from "@/lib/format";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
   testspiel: "Testspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
+  rundenspiel: "Rundenspiel",
   schiedsrichter: "Schiedsrichter",
   zeitnehmer: "Zeitnehmer",
   sekretaer: "Sekretär",
@@ -31,13 +33,6 @@ const TYP_LABEL: Record<string, string> = {
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
 };
-
-function formatDateTime(d: Date) {
-  return new Intl.DateTimeFormat("de-DE", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(d);
-}
 
 export default async function ZuordnungPage() {
   const session = await requireAdmin();
@@ -72,6 +67,8 @@ export default async function ZuordnungPage() {
             termin.zuordnungen,
             !!termin.icsSchiedsrichter
           );
+          const vollstaendig = istBesetzungVollstaendig(besetzung, termin.typ);
+          const istRundenspiel = termin.typ === "rundenspiel";
           return (
             <Card key={termin.id} className="max-w-2xl">
               <CardHeader>
@@ -79,20 +76,24 @@ export default async function ZuordnungPage() {
                   {formatDateTime(termin.start)} ·{" "}
                   {TYP_LABEL[termin.typ] ?? termin.typ}
                   {termin.ort ? ` · ${termin.ort}` : ""}
-                  <Badge variant={besetzung.vollstaendig ? "secondary" : "outline"}>
-                    {besetzung.vollstaendig
-                      ? "Pflicht erfüllt"
-                      : "Besetzung offen"}
+                  <Badge variant={vollstaendig ? "secondary" : "outline"}>
+                    {vollstaendig ? "Pflicht erfüllt" : "Besetzung offen"}
                   </Badge>
                 </CardTitle>
                 {termin.beschreibung && (
                   <CardDescription>{termin.beschreibung}</CardDescription>
                 )}
                 <CardDescription>
-                  Schiedsrichter {besetzung.schiriAnzahl}/2
-                  {besetzung.schiriErfuellt ? "" : " · fehlt"} · Zeitnehmer/
-                  Sekretär {besetzung.zeitnehmerSekretaerAnzahl}/2
+                  {!istRundenspiel && (
+                    <>
+                      Schiedsrichter {besetzung.schiriAnzahl}/2
+                      {besetzung.schiriErfuellt ? "" : " · fehlt"} ·{" "}
+                    </>
+                  )}
+                  Zeitnehmer/Sekretär {besetzung.zeitnehmerSekretaerAnzahl}/2
                   {besetzung.zeitnehmerSekretaerErfuellt ? "" : " · fehlt"}
+                  {istRundenspiel &&
+                    " (Schiedsrichter kommt vom Verband, nicht hier zugeordnet)"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">

@@ -7,11 +7,14 @@ type VereinBedarf = Pick<
   | "testspielKioskdienstBedarf"
   | "turnierOrdnerBedarf"
   | "turnierKioskdienstBedarf"
+  | "rundenspielOrdnerBedarf"
+  | "rundenspielKioskdienstBedarf"
 >;
 
-// Dienste-Bedarf gilt bewusst nur für testspiel/turnier (eigene
-// Veranstaltungen des Vereins) — nicht für spiel_ics (persönliche Einsätze
-// des Schiedsrichters, oft bei fremden Vereinen).
+// Dienste-Bedarf gilt bewusst nur für testspiel/turnier/rundenspiel (eigene
+// Veranstaltungen bzw. Heimspiele an der eigenen Halle) — nicht für
+// spiel_ics (persönliche Einsätze des Schiedsrichters, oft bei fremden
+// Vereinen).
 export function bedarfFuer(
   verein: VereinBedarf,
   typ: string,
@@ -26,6 +29,11 @@ export function bedarfFuer(
     return rolle === "ordner"
       ? verein.turnierOrdnerBedarf
       : verein.turnierKioskdienstBedarf;
+  }
+  if (typ === "rundenspiel") {
+    return rolle === "ordner"
+      ? verein.rundenspielOrdnerBedarf
+      : verein.rundenspielKioskdienstBedarf;
   }
   return 0;
 }
