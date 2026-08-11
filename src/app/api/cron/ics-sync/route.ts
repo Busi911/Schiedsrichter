@@ -3,11 +3,18 @@ import { adminDb } from "@/db/admin";
 import { schiedsrichterProfile, users } from "@/db/schema";
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
 import { synchronisiereAlleAktivenNuligaVereine } from "@/lib/rundenspiel-sync";
+import { sendeAusstehendeErinnerungen } from "@/lib/terminerinnerungen";
 
-// Läuft täglich per Vercel Cron (siehe vercel.json). Nutzt adminDb NUR zum
-// vereinsübergreifenden Auflisten der Kandidaten — der eigentliche Sync pro
-// Schiedsrichter läuft über withTenant() (siehe src/lib/ics-sync.ts) und
-// bleibt damit RLS-konform.
+// Einziger registrierter Vercel Cron (siehe vercel.json) — der Hobby-Plan
+// begrenzt Projekte auf zwei Cron Jobs insgesamt, und schon zwei Einträge
+// ließen das Deployment weiterhin fehlschlagen (ohne dass Vercel dafür einen
+// spezifischen Fehlertext lieferte wie beim Frequenz-Limit). Statt weiter zu
+// raten, läuft hier bewusst alles Tägliche in einer einzigen Route:
+// ICS-Sync, danach Terminerinnerungen (braucht die frisch synchronisierten
+// ics_feed-Termine), danach montags/donnerstags der nuLiga-Sync.
+// /api/cron/terminerinnerungen und /api/cron/rundenspiel-sync bleiben als
+// eigene, manuell auslösbare Endpunkte bestehen, sind aber nicht mehr in
+// vercel.json registriert.
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (
@@ -49,10 +56,10 @@ export async function GET(request: Request) {
     }
   }
 
-  // Läuft montags/donnerstags mit, statt einen eigenen Cron-Eintrag zu
-  // bekommen (siehe Kommentar in rundenspiel-sync.ts). Wochentag in UTC
-  // geprüft — der Cron feuert zu einer festen UTC-Stunde, die auch in
-  // Europe/Berlin zuverlässig auf denselben Kalendertag fällt.
+  const erinnerungenErgebnis = await sendeAusstehendeErinnerungen();
+
+  // Wochentag in UTC geprüft — der Cron feuert zu einer festen UTC-Stunde,
+  // die auch in Europe/Berlin zuverlässig auf denselben Kalendertag fällt.
   const wochentag = new Date().getUTCDay(); // 0=So, 1=Mo, ..., 4=Do
   const nuligaErgebnisse =
     wochentag === 1 || wochentag === 4
@@ -62,6 +69,7 @@ export async function GET(request: Request) {
   return Response.json({
     synchronisiert: ergebnisse.length,
     ergebnisse,
+    erinnerungen: erinnerungenErgebnis,
     nuligaSynchronisiert: nuligaErgebnisse.length,
     nuligaErgebnisse,
   });
