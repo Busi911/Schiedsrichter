@@ -92,10 +92,13 @@ await withTenant(id, (tx) => tx.insert(vereine).values({ id, name }));
 
 ## ICS-Sync (Vercel Cron)
 
-`vercel.json` registriert `GET /api/cron/ics-sync`, alle 6 Stunden ausgeführt
-von Vercel Cron (bis Ende 2025 lief das noch einmal täglich — auf Wunsch
-näher an Echtzeit gebracht, siehe unten den Hinweis zu Vercel-Plan-Limits).
-Die Route ist per `CRON_SECRET` geschützt (Vercel sendet den Header
+`vercel.json` registriert `GET /api/cron/ics-sync`, einmal täglich ausgeführt
+von Vercel Cron. Ein häufigerer Schedule (z.B. alle 6 Stunden) wurde
+versucht, aber der Vercel-Hobby-Plan **lehnt das Deployment komplett ab**,
+sobald ein Cron öfter als 1x/Tag laufen würde ("Hobby accounts are limited
+to daily cron jobs") — kein stilles Herunterregeln, sondern ein harter
+Deploy-Fehler. Ohne Upgrade auf den Pro-Plan bleibt es daher bei einmal
+täglich. Die Route ist per `CRON_SECRET` geschützt (Vercel sendet den Header
 `Authorization: Bearer $CRON_SECRET` automatisch mit, wenn die Env-Variable
 gesetzt ist). Lokal manuell auslösen:
 
@@ -134,9 +137,10 @@ verträgt sich deshalb nicht mit dem Server-Bundling — daher steht es in
 ## Terminerinnerungen (Vercel Cron)
 
 `vercel.json` registriert zusätzlich `GET /api/cron/terminerinnerungen`,
-viermal täglich (alle 6 Stunden, versetzt zum ICS-Sync). Sucht Termine, die
-innerhalb der nächsten 36 Stunden starten (`src/lib/terminerinnerungen.ts`),
-und schickt eine E-Mail (plus Push, siehe unten) an:
+täglich eine Stunde nach dem ICS-Sync (siehe oben zum Hobby-Plan-Limit, das
+eine häufigere Ausführung verhindert). Sucht Termine, die innerhalb der
+nächsten 36 Stunden starten (`src/lib/terminerinnerungen.ts`), und schickt
+eine E-Mail (plus Push, siehe unten) an:
 
 - den zugeordneten Schiedsrichter (bei ICS-Feed-Terminen),
 - alle Trainer der betroffenen Mannschaft (falls eine Mannschaft hinterlegt
@@ -157,11 +161,6 @@ nicht als fehlgeschlagen. Lokal manuell auslösen:
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/terminerinnerungen
 ```
-
-**Hinweis zu Vercel-Plan-Limits:** Auf dem Hobby-Plan führt Vercel Cron Jobs
-unabhängig vom konfigurierten Schedule höchstens einmal täglich aus — die
-6-Stunden-Taktung oben greift dann effektiv nicht. Für echte Mehrfach-am-Tag-
-Ausführung ist ein Pro-Plan nötig.
 
 ## Push-Benachrichtigungen
 
