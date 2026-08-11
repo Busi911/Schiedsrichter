@@ -12,17 +12,14 @@ import {
   users,
 } from "@/db/schema";
 import { parseFunktionstraegerExcel } from "@/lib/funktionstraeger-import";
-import {
-  findeMannschaft,
-  normalisiereMannschaftsname,
-  parseRundenspielJson,
-} from "@/lib/rundenspiel-import";
+import { normalisiereMannschaftsname, parseRundenspielJson } from "@/lib/rundenspiel-import";
+import { importiereRundenspielEreignisse } from "@/lib/rundenspiel-sync";
 import { sendMail } from "@/lib/mailer";
 import { appUrl } from "@/lib/app-url";
 
 function willkommensText(vereinName: string, email: string) {
   return [
-    `Für dich wurde ein Zugang im FunktionsträgerHub von ${vereinName} angelegt.`,
+    `Für dich wurde ein Zugang im Handballpate von ${vereinName} angelegt.`,
     `Melde dich mit deiner E-Mail-Adresse (${email}) unter ${appUrl()}/login an — du bekommst dort einen Login-Link per E-Mail zugeschickt, ein Passwort ist nicht nötig.`,
   ].join("\n\n");
 }
@@ -197,7 +194,7 @@ export async function createFunktionstraeger(formData: FormData) {
     try {
       await sendMail(
         normalizedEmail,
-        "Zugang für FunktionsträgerHub",
+        "Zugang für Handballpate",
         willkommensText(vereinName, normalizedEmail)
       );
     } catch (err) {
@@ -257,7 +254,7 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
     try {
       await sendMail(
         aktivierung.email,
-        "Zugang für FunktionsträgerHub",
+        "Zugang für Handballpate",
         willkommensText(aktivierung.vereinName, aktivierung.email)
       );
     } catch (err) {
@@ -271,12 +268,12 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
 function emailGeaendertText(vereinName: string, neueEmail: string, istNeueAdresse: boolean) {
   if (istNeueAdresse) {
     return [
-      `Deine E-Mail-Adresse im FunktionsträgerHub von ${vereinName} wurde auf diese Adresse geändert.`,
+      `Deine E-Mail-Adresse im Handballpate von ${vereinName} wurde auf diese Adresse geändert.`,
       `Du kannst dich ab sofort mit ${neueEmail} unter ${appUrl()}/login einloggen.`,
     ].join("\n\n");
   }
   return [
-    `Deine E-Mail-Adresse im FunktionsträgerHub von ${vereinName} wurde geändert — dein Zugang läuft jetzt über ${neueEmail}.`,
+    `Deine E-Mail-Adresse im Handballpate von ${vereinName} wurde geändert — dein Zugang läuft jetzt über ${neueEmail}.`,
     `Falls das nicht du warst bzw. dir diese Änderung nicht bekannt vorkommt, melde dich bitte beim Vereinsadmin.`,
   ].join("\n\n");
 }
@@ -444,7 +441,7 @@ export async function funktionstraegerImportieren(formData: FormData) {
     try {
       await sendMail(
         nutzer.email,
-        "Zugang für FunktionsträgerHub",
+        "Zugang für Handballpate",
         willkommensText(vereinName, nutzer.email)
       );
     } catch (err) {
@@ -767,53 +764,10 @@ export async function rundenspieleImportieren(formData: FormData) {
   const { ereignisse, fehler } = parseRundenspielJson(text);
   const fehlerListe = fehler.map((f) => `Eintrag ${f.index}: ${f.grund}`);
 
-  let neu = 0;
-  let aktualisiert = 0;
-
-  await withTenant(vereinId, async (tx) => {
-    const mannschaftsListe = await tx.query.mannschaften.findMany({
-      where: eq(mannschaften.vereinId, vereinId),
-    });
-
-    for (const ereignis of ereignisse) {
-      const mannschaftId = findeMannschaft(ereignis, mannschaftsListe);
-      const bestehend = await tx.query.termine.findFirst({
-        where: and(
-          eq(termine.vereinId, vereinId),
-          eq(termine.icsUid, ereignis.uid)
-        ),
-      });
-
-      if (bestehend) {
-        await tx
-          .update(termine)
-          .set({
-            start: ereignis.start,
-            ort: ereignis.ort,
-            beschreibung: ereignis.beschreibung,
-            mannschaftId,
-            heimMannschaftName: ereignis.heimMannschaft,
-            auswaertsMannschaftName: ereignis.auswaertsMannschaft,
-          })
-          .where(eq(termine.id, bestehend.id));
-        aktualisiert++;
-      } else {
-        await tx.insert(termine).values({
-          vereinId,
-          typ: "rundenspiel",
-          quelle: "rundenspiel_import",
-          start: ereignis.start,
-          ort: ereignis.ort,
-          beschreibung: ereignis.beschreibung,
-          mannschaftId,
-          icsUid: ereignis.uid,
-          heimMannschaftName: ereignis.heimMannschaft,
-          auswaertsMannschaftName: ereignis.auswaertsMannschaft,
-        });
-        neu++;
-      }
-    }
-  });
+  const { neu, aktualisiert } = await importiereRundenspielEreignisse(
+    vereinId,
+    ereignisse
+  );
 
   revalidatePath("/admin/rundenspiele");
   revalidatePath("/admin/kalender");

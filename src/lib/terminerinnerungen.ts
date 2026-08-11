@@ -1,14 +1,16 @@
 import "server-only";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { withTenant } from "@/db";
 import {
   benachrichtigungen,
   funktionstraegerRollen,
+  terminZuordnungen,
   termine,
   users,
 } from "@/db/schema";
 import { sendMail } from "./mailer";
+import { sendePushAn } from "./push";
 
 const ERINNERUNG_TYP = "erinnerung_24h";
 // Täglicher Cron-Lauf + 36h-Fenster, damit zwischen zwei Läufen keine
@@ -46,6 +48,23 @@ async function ermittleEmpfaenger(termin: Termin) {
       );
     for (const t of trainer) empfaenger.set(t.id, t);
   }
+
+  // Zeitnehmer/Sekretäre/weitere Schiedsrichter/Ordner/Kioskdienst, die über
+  // /admin/zuordnung oder Selbst-Anmeldung einem Termin zugeordnet wurden.
+  // Schließt die Lücke bei Testspielen/Turnieren ohne Mannschaft, die sonst
+  // (ohne icsSchiedsrichterId und ohne mannschaftId) niemanden erreichen
+  // würden, obwohl konkret jemand zugeordnet ist.
+  const zugeordnete = await adminDb
+    .select({ id: users.id, email: users.email })
+    .from(terminZuordnungen)
+    .innerJoin(users, eq(terminZuordnungen.userId, users.id))
+    .where(
+      and(
+        eq(terminZuordnungen.terminId, termin.id),
+        isNotNull(terminZuordnungen.userId)
+      )
+    );
+  for (const z of zugeordnete) empfaenger.set(z.id, z);
 
   return [...empfaenger.values()];
 }
@@ -91,6 +110,20 @@ export async function sendeAusstehendeErinnerungen() {
           "Erinnerung: anstehender Termin",
           erinnerungsText(termin)
         );
+        // Push ist ein zusätzlicher, best-effort Kanal — ein fehlendes/
+        // ungültiges Abo darf den (bereits erfolgreichen) E-Mail-Versand
+        // nicht als Fehler markieren, daher eigenes try/catch statt im
+        // äußeren Block mitgefangen zu werden.
+        try {
+          await sendePushAn(person.id, {
+            title: "Erinnerung: anstehender Termin",
+            body: erinnerungsText(termin),
+            url: "/profil",
+          });
+        } catch {
+          // Push-Fehler bewusst ignoriert (siehe sendePushAn: räumt ungültige
+          // Abos bereits selbst auf), die E-Mail ist der verlässliche Kanal.
+        }
         await withTenant(termin.vereinId, (tx) =>
           tx.insert(benachrichtigungen).values({
             terminId: termin.id,

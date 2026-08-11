@@ -2,11 +2,15 @@
   "crons": [
     {
       "path": "/api/cron/ics-sync",
-      "schedule": "0 4 * * *"
+      "schedule": "0 */6 * * *"
     },
     {
       "path": "/api/cron/terminerinnerungen",
-      "schedule": "0 5 * * *"
+      "schedule": "0 5,11,17,23 * * *"
+    },
+    {
+      "path": "/api/cron/rundenspiel-sync",
+      "schedule": "0 4 * * 1,4"
     }
   ]
 }

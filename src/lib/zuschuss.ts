@@ -139,6 +139,26 @@ export async function holeZuschuesse(vereinId: string) {
   );
 }
 
+// Für /profil: eigene Zuschüsse eines Schiedsrichters (Transparenz über
+// Status offen/exportiert, statt einer Admin-only-Blackbox).
+export async function holeEigeneZuschuesse(vereinId: string, userId: string) {
+  return withTenant(vereinId, (tx) =>
+    tx
+      .select({
+        id: zuschuesse.id,
+        terminStart: termine.start,
+        terminBeschreibung: termine.beschreibung,
+        satz: zuschuesse.satz,
+        berechneterBetrag: zuschuesse.berechneterBetrag,
+        status: zuschuesse.status,
+      })
+      .from(zuschuesse)
+      .innerJoin(termine, eq(zuschuesse.terminId, termine.id))
+      .where(and(eq(termine.vereinId, vereinId), eq(zuschuesse.userId, userId)))
+      .orderBy(desc(termine.start))
+  );
+}
+
 export async function holeZuschussEinstellungen(vereinId: string) {
   return withTenant(vereinId, (tx) =>
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
