@@ -6,6 +6,7 @@ import {
   createFunktionstraeger,
   funktionstraegerAktivToggeln,
   funktionstraegerImportieren,
+  updateFunktionstraeger,
 } from "../actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -149,11 +150,31 @@ export default async function FunktionstraegerPage({
                 <TableBody>
                   {personen.map((p) => (
                     <TableRow key={p.userId}>
-                      <TableCell className="font-medium align-top">
-                        {p.name}
-                      </TableCell>
-                      <TableCell className="align-top text-muted-foreground">
-                        {p.email}
+                      <TableCell colSpan={2} className="align-top">
+                        <form
+                          action={updateFunktionstraeger}
+                          className="flex flex-wrap items-center gap-2"
+                        >
+                          <input type="hidden" name="userId" value={p.userId} />
+                          <Input
+                            key={`name-${p.name}`}
+                            name="name"
+                            defaultValue={p.name ?? ""}
+                            required
+                            className="h-8 w-36"
+                          />
+                          <Input
+                            key={`email-${p.email}`}
+                            name="email"
+                            type="email"
+                            defaultValue={p.email}
+                            required
+                            className="h-8 w-48"
+                          />
+                          <Button type="submit" variant="outline" size="sm">
+                            Speichern
+                          </Button>
+                        </form>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1.5">

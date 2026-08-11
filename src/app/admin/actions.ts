@@ -263,6 +263,96 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
+function emailGeaendertText(vereinName: string, neueEmail: string, istNeueAdresse: boolean) {
+  if (istNeueAdresse) {
+    return [
+      `Deine E-Mail-Adresse im FunktionsträgerHub von ${vereinName} wurde auf diese Adresse geändert.`,
+      `Du kannst dich ab sofort mit ${neueEmail} unter ${appUrl()}/login einloggen.`,
+    ].join("\n\n");
+  }
+  return [
+    `Deine E-Mail-Adresse im FunktionsträgerHub von ${vereinName} wurde geändert — dein Zugang läuft jetzt über ${neueEmail}.`,
+    `Falls das nicht du warst bzw. dir diese Änderung nicht bekannt vorkommt, melde dich bitte beim Vereinsadmin.`,
+  ].join("\n\n");
+}
+
+// Name/E-Mail einer bestehenden Person bearbeiten. Bei E-Mail-Änderung geht
+// eine Info sowohl an die neue als auch an die alte Adresse raus, damit ein
+// versehentlicher/unbefugter Wechsel auffällt.
+export async function updateFunktionstraeger(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const userId = formData.get("userId");
+  const name = formData.get("name");
+  const email = formData.get("email");
+
+  if (typeof userId !== "string" || !userId) {
+    throw new Error("Person fehlt.");
+  }
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Name ist erforderlich.");
+  }
+  if (typeof email !== "string" || !email.trim()) {
+    throw new Error("E-Mail ist erforderlich.");
+  }
+  const neueEmail = email.trim().toLowerCase();
+
+  const ergebnis = await withTenant(vereinId, async (tx) => {
+    const bestehend = await tx.query.users.findFirst({
+      where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
+    });
+    if (!bestehend) throw new Error("Person nicht gefunden.");
+
+    if (neueEmail !== bestehend.email) {
+      const belegt = await tx.query.users.findFirst({
+        where: eq(users.email, neueEmail),
+      });
+      if (belegt) {
+        throw new Error(
+          "Diese E-Mail-Adresse wird bereits von einem anderen Zugang verwendet."
+        );
+      }
+    }
+
+    const alteEmail = bestehend.email;
+    await tx
+      .update(users)
+      .set({ name: name.trim(), email: neueEmail })
+      .where(eq(users.id, userId));
+
+    if (neueEmail === alteEmail) return null;
+
+    const vereinRow = await tx.query.vereine.findFirst({
+      where: (v, { eq }) => eq(v.id, vereinId),
+    });
+    return { alteEmail, neueEmail, vereinName: vereinRow?.name ?? "deinem Verein" };
+  });
+
+  if (ergebnis) {
+    try {
+      await sendMail(
+        ergebnis.neueEmail,
+        "E-Mail-Adresse geändert",
+        emailGeaendertText(ergebnis.vereinName, ergebnis.neueEmail, true)
+      );
+    } catch (err) {
+      console.error("Info-Mail an neue Adresse fehlgeschlagen:", err);
+    }
+    try {
+      await sendMail(
+        ergebnis.alteEmail,
+        "E-Mail-Adresse geändert",
+        emailGeaendertText(ergebnis.vereinName, ergebnis.neueEmail, false)
+      );
+    } catch (err) {
+      console.error("Info-Mail an alte Adresse fehlgeschlagen:", err);
+    }
+  }
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
 export async function funktionstraegerImportieren(formData: FormData) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
