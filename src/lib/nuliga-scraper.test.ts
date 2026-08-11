@@ -73,6 +73,31 @@ describe("parseNuligaSeite", () => {
     });
   });
 
+  it("liefert zusatz=null ohne weitere Zellen nach Heim/Auswärts", () => {
+    const { events } = parseNuligaSeite(beispielHtml(), "30402");
+    expect(events[0].zusatz).toBeNull();
+  });
+
+  it("reicht weitere Zellen nach Heim/Auswärts (z.B. Schiedsrichter-Kürzel) roh als zusatz durch", () => {
+    const html = `
+      <h1>Halle (1)</h1>
+      <table>
+        <tr>
+          <td>02.08.2026</td>
+          <td>15:00</td>
+          <td>0</td>
+          <td>Mä/männl.</td>
+          <td>Liga</td>
+          <td>Heim 1</td>
+          <td>Gast 1</td>
+          <td>SR: M. Mueller</td>
+        </tr>
+      </table>
+    `;
+    const { events } = parseNuligaSeite(html, "1");
+    expect(events[0].zusatz).toBe("SR: M. Mueller");
+  });
+
   it("fällt auf einen generischen Namen zurück, wenn keine Überschrift gefunden wird", () => {
     const { locationName } = parseNuligaSeite("<html><body>leer</body></html>", "999");
     expect(locationName).toBe("nuLiga Halle 999");
