@@ -124,6 +124,15 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* body ist flex-col (siehe layout.tsx). Ohne width:100% + min-width:0
+     nimmt ein direktes Kind mit "mx-auto" (Auto-Margin auf der Cross-Achse)
+     statt der vollen Breite seine inhaltsbasierte Breite an (z.B. eine
+     Tabelle mit whitespace-nowrap-Zellen) — die ganze Seite läuft dann auf
+     Mobilgeräten horizontal über statt nur die Tabelle selbst zu scrollen. */
+  body > * {
+    width: 100%;
+    min-width: 0;
+  }
   html {
     @apply font-sans;
   }

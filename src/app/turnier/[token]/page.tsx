@@ -4,14 +4,6 @@ import { adminDb } from "@/db/admin";
 import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Logo } from "@/components/logo";
 
 const ROLLE_LABEL: Record<string, string> = {
@@ -107,7 +99,7 @@ export default async function OeffentlicheTurnierseite({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="min-w-0">
         <CardHeader>
           <CardTitle className="text-base">Spielplan</CardTitle>
         </CardHeader>
@@ -117,52 +109,44 @@ export default async function OeffentlicheTurnierseite({
               Der Spielplan steht noch nicht fest.
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Start</TableHead>
-                  <TableHead>Ort</TableHead>
-                  <TableHead>Begegnung</TableHead>
-                  <TableHead>Besetzung</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {spiele.map((s) => {
-                  const besetzung = alleZuordnungen.filter(
-                    (z) => z.terminId === s.id
-                  );
-                  return (
-                    <TableRow key={s.id}>
-                      <TableCell className="font-medium">
+            <div className="flex flex-col divide-y">
+              {spiele.map((s) => {
+                const besetzung = alleZuordnungen.filter(
+                  (z) => z.terminId === s.id
+                );
+                return (
+                  <div key={s.id} className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                      <span className="font-medium">
                         {formatDateTime(s.start)}
-                      </TableCell>
-                      <TableCell>{s.ort ?? "—"}</TableCell>
-                      <TableCell>{s.beschreibung ?? "—"}</TableCell>
-                      <TableCell>
-                        {besetzung.length === 0 ? (
-                          <span className="text-xs text-muted-foreground">
-                            noch offen
-                          </span>
-                        ) : (
-                          <div className="flex flex-wrap gap-1">
-                            {besetzung.map((z) => (
-                              <Badge
-                                key={`${z.terminId}-${z.funktionstraegerTyp}-${z.email ?? z.externerName}`}
-                                variant="secondary"
-                              >
-                                {ROLLE_LABEL[z.funktionstraegerTyp] ??
-                                  z.funktionstraegerTyp}
-                                : {z.name ?? z.externerName ?? z.email}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {s.ort ?? "—"}
+                      </span>
+                    </div>
+                    <p className="text-sm">{s.beschreibung ?? "—"}</p>
+                    {besetzung.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">
+                        Besetzung noch offen
+                      </span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {besetzung.map((z) => (
+                          <Badge
+                            key={`${z.terminId}-${z.funktionstraegerTyp}-${z.email ?? z.externerName}`}
+                            variant="secondary"
+                          >
+                            {ROLLE_LABEL[z.funktionstraegerTyp] ??
+                              z.funktionstraegerTyp}
+                            : {z.name ?? z.externerName ?? z.email}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </CardContent>
       </Card>
