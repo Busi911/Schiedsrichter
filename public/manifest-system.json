@@ -1,0 +1,31 @@
+{
+  "name": "HandballerPate Systemadmin",
+  "short_name": "HP System",
+  "description": "Vereinsübergreifende Systemverwaltung im HandballerPate",
+  "start_url": "/system",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f4f5",
+  "theme_color": "#1c1c1e",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "/icons/system.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/system-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/system-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "HandballerPate Ordnerwart",
+  "short_name": "Ordnerwart",
+  "description": "Ordner-/Kioskdienst-Ressourcenplanung im HandballerPate",
+  "start_url": "/profil/ordnerwart",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f4f5",
+  "theme_color": "#1c1c1e",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "/icons/ordnerwart.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/ordnerwart-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/ordnerwart-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
