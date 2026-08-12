@@ -53,7 +53,9 @@ async function ermittleEmpfaenger(termin: Termin) {
   }
 
   // Zeitnehmer/Sekretäre/weitere Schiedsrichter/Ordner/Kioskdienst, die über
-  // /admin/zuordnung oder Selbst-Anmeldung einem Termin zugeordnet wurden.
+  // die jeweiligen Wart-Rollen (/profil/schiedsrichterwart,
+  // /profil/zeitnehmerwart, /profil/ordnerwart) oder Selbst-Anmeldung einem
+  // Termin zugeordnet wurden.
   // Schließt die Lücke bei Testspielen/Turnieren ohne Mannschaft, die sonst
   // (ohne icsSchiedsrichterId und ohne mannschaftId) niemanden erreichen
   // würden, obwohl konkret jemand zugeordnet ist.

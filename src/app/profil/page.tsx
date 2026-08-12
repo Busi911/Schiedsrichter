@@ -44,6 +44,8 @@ const TYP_LABEL: Record<string, string> = {
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
   schiedsrichterwart: "Schiedsrichterwart",
+  zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
+  ordnerwart: "Ordner-/Kioskdienstwart",
 };
 
 const SELBST_ANMELDBARE_TYPEN = ["ordner", "kioskdienst"] as const;
@@ -184,6 +186,12 @@ export default async function ProfilPage() {
   // (System-)Admin sein (siehe src/lib/schiedsrichterwart.ts).
   const istSchiedsrichterwart = rollen.some(
     (r) => r.typ === "schiedsrichterwart" && r.aktiv
+  );
+  const istZeitnehmerwart = rollen.some(
+    (r) => r.typ === "zeitnehmerwart" && r.aktiv
+  );
+  const istOrdnerwart = rollen.some(
+    (r) => r.typ === "ordnerwart" && r.aktiv
   );
   const eigeneTypen = rollen
     .filter((r) => r.aktiv)
@@ -357,6 +365,46 @@ export default async function ProfilPage() {
                 className="rounded-lg border p-3 text-sm underline"
               >
                 Zur Schiedsrichterwart-Übersicht
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {istZeitnehmerwart && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Zeitnehmer-/Sekretärwart</CardTitle>
+              <CardDescription>
+                Übersicht über alle Zeitnehmer/Sekretäre im Verein, ihre
+                Einsätze und offene Termine.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/profil/zeitnehmerwart"
+                className="rounded-lg border p-3 text-sm underline"
+              >
+                Zur Zeitnehmerwart-Übersicht
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {istOrdnerwart && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Ordner-/Kioskdienstwart</CardTitle>
+              <CardDescription>
+                Übersicht über alle Ordner/Kioskdienst-Helfer im Verein,
+                ihre Einsätze und offene Termine.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/profil/ordnerwart"
+                className="rounded-lg border p-3 text-sm underline"
+              >
+                Zur Ordnerwart-Übersicht
               </Link>
             </CardContent>
           </Card>

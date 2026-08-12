@@ -24,13 +24,16 @@ const ZUORDNUNGS_ROLLE_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
   zeitnehmer: "Zeitnehmer",
   sekretaer: "Sekretär",
+  ordner: "Ordner",
+  kioskdienst: "Kioskdienst",
 };
 
-// Gemeinsam genutzt von /admin/zuordnung (Admin) und
-// /profil/schiedsrichterwart (Schiedsrichterwart-Rolle) — beide
-// benachrichtigen die zugeordnete Person per Mail im selben Format. Liegt
-// hier statt in einer der beiden "use server"-Action-Dateien, da deren
-// Exporte ausschließlich async Server Actions sein dürfen.
+// Gemeinsam genutzt vom Kalender-Modal (admin/zuordnung/actions.ts, siehe
+// monats-kalender.tsx) und den Wart-Rollen (/profil/schiedsrichterwart,
+// /profil/zeitnehmerwart, /profil/ordnerwart) — alle benachrichtigen die
+// zugeordnete Person per Mail im selben Format. Liegt hier statt in einer
+// der "use server"-Action-Dateien, da deren Exporte ausschließlich async
+// Server Actions sein dürfen.
 export function zuordnungsMailInhalt(
   rolle: string,
   termin: { start: Date; ort: string | null; beschreibung: string | null }
@@ -49,10 +52,11 @@ export function zuordnungsMailInhalt(
 // eingetragen wird — schiedsrichter max. SCHIRI_GESPANN_MAX (fest 2),
 // zeitnehmer+sekretaer zusammen max. vereine.zeitnehmerSekretaerMax
 // (konfigurierbar, siehe /admin/einstellungen). Wirft, wenn die Grenze für
-// `rolle` bereits erreicht ist. Gemeinsam genutzt von /admin/zuordnung und
-// /profil/schiedsrichterwart — liegt hier statt in einer der beiden "use
-// server"-Action-Dateien, da deren Exporte ausschließlich async Server
-// Actions mit serialisierbaren Parametern sein dürfen (tx ist das nicht).
+// `rolle` bereits erreicht ist. Gemeinsam genutzt vom Kalender-Modal und
+// den Wart-Rollen /profil/schiedsrichterwart und /profil/zeitnehmerwart —
+// liegt hier statt in einer der "use server"-Action-Dateien, da deren
+// Exporte ausschließlich async Server Actions mit serialisierbaren
+// Parametern sein dürfen (tx ist das nicht).
 export async function pruefeBesetzungsgrenze(
   tx: Parameters<Parameters<typeof withTenant>[1]>[0],
   vereinId: string,

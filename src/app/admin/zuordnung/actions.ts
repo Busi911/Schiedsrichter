@@ -92,7 +92,6 @@ export async function zuordnen(formData: FormData) {
     }
   }
 
-  revalidatePath("/admin/zuordnung");
   revalidatePath("/admin/kalender");
 }
 
@@ -139,7 +138,6 @@ export async function externeZuordnung(formData: FormData) {
     });
   });
 
-  revalidatePath("/admin/zuordnung");
   revalidatePath("/admin/kalender");
 }
 
@@ -156,6 +154,5 @@ export async function zuordnungEntfernen(formData: FormData) {
     tx.delete(terminZuordnungen).where(eq(terminZuordnungen.id, zuordnungId))
   );
 
-  revalidatePath("/admin/zuordnung");
   revalidatePath("/admin/kalender");
 }

@@ -29,6 +29,17 @@ export const funktionstraegerTypEnum = pgEnum("funktionstraeger_typ", [
   // andere Funktionsträger-Rolle mehrfach vergebbar und unabhängig von
   // istAdmin bzw. einer eigenen "schiedsrichter"-Rolle derselben Person.
   "schiedsrichterwart",
+  // Analog zu "schiedsrichterwart", aber für die Rollen "zeitnehmer" UND
+  // "sekretaer" zusammen (die beiden werden in der Besetzung ohnehin
+  // gemeinsam gezählt, siehe berechneBesetzung in besetzung.ts) — siehe
+  // /profil/zeitnehmerwart.
+  "zeitnehmerwart",
+  // Analog zu "schiedsrichterwart", aber für "ordner" UND "kioskdienst"
+  // zusammen — anders als Schiedsrichter/Zeitnehmer/Sekretär liefen diese
+  // beiden Rollen bisher NUR über Selbst-Anmeldung (siehe
+  // SELBST_ANMELDBARE_TYPEN in profil/actions.ts); der Ordnerwart kann
+  // zusätzlich manuell zuordnen — siehe /profil/ordnerwart.
+  "ordnerwart",
 ]);
 
 export const terminTypEnum = pgEnum("termin_typ", [

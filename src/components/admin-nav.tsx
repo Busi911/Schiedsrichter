@@ -21,7 +21,6 @@ const PRIMARY_ITEMS = [
   { href: "/admin", label: "Übersicht", exact: true },
   { href: "/admin/kalender", label: "Kalender" },
   { href: "/admin/termine", label: "Termine" },
-  { href: "/admin/zuordnung", label: "Zuordnung" },
 ];
 
 const VERWALTUNG_ITEMS = [

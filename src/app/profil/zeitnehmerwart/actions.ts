@@ -6,50 +6,57 @@ import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { pruefeBesetzungsgrenze, zuordnungsMailInhalt } from "@/lib/zuordnung";
-import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
+import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
 
-// Eigene, bewusst eng begrenzte Actions statt Wiederverwendung von
-// /admin/zuordnung/actions.ts' zuordnen()/externeZuordnung() (die
-// requireAdmin() voraussetzen und jede ZUORDENBARE_TYPEN-Rolle erlauben) —
-// der Schiedsrichterwart darf NUR die Rolle "schiedsrichter" zuordnen bzw.
-// entfernen, unabhängig davon, was ein manipulierter Request sonst
-// versuchen würde.
-async function requireSchiedsrichterwartZugriff() {
+const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
+type ZeitnehmerRolle = (typeof ZEITNEHMER_ROLLEN)[number];
+
+// Eigene, bewusst eng begrenzte Actions (siehe Kommentar in
+// schiedsrichterwart/actions.ts) — der Zeitnehmerwart darf NUR die Rollen
+// "zeitnehmer"/"sekretaer" zuordnen bzw. entfernen.
+async function requireZeitnehmerwartZugriff() {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
-  const berechtigt = await istSchiedsrichterwart(vereinId, session.user.id);
+  const berechtigt = await istZeitnehmerwart(vereinId, session.user.id);
   if (!berechtigt) {
-    throw new Error("Keine Berechtigung als Schiedsrichterwart.");
+    throw new Error("Keine Berechtigung als Zeitnehmerwart.");
   }
   return { session, vereinId };
 }
 
-export async function schiedsrichterZuordnen(formData: FormData) {
-  const { vereinId } = await requireSchiedsrichterwartZugriff();
+export async function zeitnehmerZuordnen(formData: FormData) {
+  const { vereinId } = await requireZeitnehmerwartZugriff();
 
   const terminId = formData.get("terminId");
-  const userId = formData.get("userId");
-  // Bei einer Umbesetzung (siehe Formular in page.tsx) werden die IDs der
-  // bisherigen Schiedsrichter-Zuordnungen mitgeschickt — die werden VOR dem
-  // Zuordnen entfernt, statt die neue Person zusätzlich hinzuzufügen. Ohne
-  // das würde "Umbesetzen" die alte Person nur ergänzen statt ersetzen.
+  // Kombiniert Person + Rolle in einem Wert ("userId|rolle") — dieselbe
+  // Konvention wie im ursprünglichen admin/zuordnung (personTyp) und im
+  // Kalender-Modal, da eine Person sowohl Zeitnehmer als auch Sekretär sein
+  // kann und hier explizit gewählt werden muss, ALS welche Rolle sie diesem
+  // Termin zugeordnet wird.
+  const auswahl = formData.get("personRolle");
   const ersetzeZuordnungIds = formData.getAll("ersetzeZuordnungId");
 
   if (typeof terminId !== "string" || !terminId) {
     throw new Error("Termin ist erforderlich.");
   }
-  if (typeof userId !== "string" || !userId) {
-    throw new Error("Bitte einen Schiedsrichter auswählen.");
+  if (typeof auswahl !== "string" || !auswahl.includes("|")) {
+    throw new Error("Bitte eine Person auswählen.");
   }
+  const [userId, rolleRoh] = auswahl.split("|");
+  if (
+    !userId ||
+    !(ZEITNEHMER_ROLLEN as readonly string[]).includes(rolleRoh)
+  ) {
+    throw new Error("Ungültige Auswahl.");
+  }
+  const rolle = rolleRoh as ZeitnehmerRolle;
 
   const benachrichtigung = await withTenant(vereinId, async (tx) => {
-    // userId kommt roh aus dem Formular (Dropdown zeigt zwar nur aktive
-    // Schiedsrichter des eigenen Vereins, ein manipulierter Request könnte
-    // aber eine beliebige userId schicken). "user" hat bewusst KEIN RLS
-    // (siehe 0001_enable_rls_multi_tenant.sql) — Mandantentrennung muss
-    // hier deshalb explizit geprüft werden.
+    // userId kommt roh aus dem Formular — "user" hat bewusst KEIN RLS
+    // (siehe 0001_enable_rls_multi_tenant.sql), Mandantentrennung muss hier
+    // deshalb explizit geprüft werden.
     const person = await tx.query.users.findFirst({
       where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
     });
@@ -57,17 +64,18 @@ export async function schiedsrichterZuordnen(formData: FormData) {
 
     for (const zuordnungId of ersetzeZuordnungIds) {
       if (typeof zuordnungId !== "string" || !zuordnungId) continue;
-      // Nur tatsächliche Schiedsrichter-Zuordnungen DIESES Termins löschen —
-      // ein manipulierter Request könnte sonst versuchen, über dieses Feld
-      // beliebige andere Zuordnungen zu entfernen.
       const zuordnung = await tx.query.terminZuordnungen.findFirst({
         where: and(
           eq(terminZuordnungen.id, zuordnungId),
-          eq(terminZuordnungen.terminId, terminId),
-          eq(terminZuordnungen.funktionstraegerTyp, "schiedsrichter")
+          eq(terminZuordnungen.terminId, terminId)
         ),
       });
-      if (zuordnung) {
+      if (
+        zuordnung &&
+        (ZEITNEHMER_ROLLEN as readonly string[]).includes(
+          zuordnung.funktionstraegerTyp
+        )
+      ) {
         await tx
           .delete(terminZuordnungen)
           .where(eq(terminZuordnungen.id, zuordnungId));
@@ -78,17 +86,17 @@ export async function schiedsrichterZuordnen(formData: FormData) {
       where: and(
         eq(terminZuordnungen.terminId, terminId),
         eq(terminZuordnungen.userId, userId),
-        eq(terminZuordnungen.funktionstraegerTyp, "schiedsrichter")
+        eq(terminZuordnungen.funktionstraegerTyp, rolle)
       ),
     });
     if (vorhanden) return null;
 
-    await pruefeBesetzungsgrenze(tx, vereinId, terminId, "schiedsrichter");
+    await pruefeBesetzungsgrenze(tx, vereinId, terminId, rolle);
 
     await tx.insert(terminZuordnungen).values({
       terminId,
       userId,
-      funktionstraegerTyp: "schiedsrichter",
+      funktionstraegerTyp: rolle,
       quelle: "zugeordnet_durch_admin",
     });
 
@@ -105,13 +113,14 @@ export async function schiedsrichterZuordnen(formData: FormData) {
       termin,
       email: person.email,
       vereinName: verein?.name ?? "HandballerPate",
+      rolle,
     };
   });
 
   if (benachrichtigung) {
     const mailParams = {
       vereinName: benachrichtigung.vereinName,
-      ...zuordnungsMailInhalt("schiedsrichter", benachrichtigung.termin),
+      ...zuordnungsMailInhalt(benachrichtigung.rolle, benachrichtigung.termin),
     };
     try {
       await sendMail(
@@ -125,12 +134,12 @@ export async function schiedsrichterZuordnen(formData: FormData) {
     }
   }
 
-  revalidatePath("/profil/schiedsrichterwart");
+  revalidatePath("/profil/zeitnehmerwart");
   revalidatePath("/admin/kalender");
 }
 
-export async function schiedsrichterZuordnungEntfernen(formData: FormData) {
-  const { vereinId } = await requireSchiedsrichterwartZugriff();
+export async function zeitnehmerZuordnungEntfernen(formData: FormData) {
+  const { vereinId } = await requireZeitnehmerwartZugriff();
 
   const zuordnungId = formData.get("zuordnungId");
   if (typeof zuordnungId !== "string" || !zuordnungId) {
@@ -138,16 +147,17 @@ export async function schiedsrichterZuordnungEntfernen(formData: FormData) {
   }
 
   await withTenant(vereinId, async (tx) => {
-    // Sicherstellen, dass es sich TATSÄCHLICH um eine Schiedsrichter-
-    // Zuordnung handelt, bevor gelöscht wird — der Schiedsrichterwart ist
-    // nur für diese Rolle berechtigt, nicht für Ordner/Kioskdienst/
-    // Zeitnehmer/Sekretär.
     const zuordnung = await tx.query.terminZuordnungen.findFirst({
       where: eq(terminZuordnungen.id, zuordnungId),
     });
-    if (!zuordnung || zuordnung.funktionstraegerTyp !== "schiedsrichter") {
+    if (
+      !zuordnung ||
+      !(ZEITNEHMER_ROLLEN as readonly string[]).includes(
+        zuordnung.funktionstraegerTyp
+      )
+    ) {
       throw new Error(
-        "Zuordnung nicht gefunden oder keine Schiedsrichter-Rolle."
+        "Zuordnung nicht gefunden oder keine Zeitnehmer-/Sekretär-Rolle."
       );
     }
     await tx
@@ -155,6 +165,6 @@ export async function schiedsrichterZuordnungEntfernen(formData: FormData) {
       .where(eq(terminZuordnungen.id, zuordnungId));
   });
 
-  revalidatePath("/profil/schiedsrichterwart");
+  revalidatePath("/profil/zeitnehmerwart");
   revalidatePath("/admin/kalender");
 }

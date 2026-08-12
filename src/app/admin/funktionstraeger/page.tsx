@@ -26,6 +26,8 @@ const TYP_LABEL: Record<string, string> = {
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
   schiedsrichterwart: "Schiedsrichterwart",
+  zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
+  ordnerwart: "Ordner-/Kioskdienstwart",
 };
 
 export default async function FunktionstraegerPage({

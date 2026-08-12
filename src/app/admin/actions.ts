@@ -114,6 +114,8 @@ const FUNKTIONSTRAEGER_TYPEN = [
   "ordner",
   "kioskdienst",
   "schiedsrichterwart",
+  "zeitnehmerwart",
+  "ordnerwart",
 ] as const;
 
 export async function createFunktionstraeger(formData: FormData) {
