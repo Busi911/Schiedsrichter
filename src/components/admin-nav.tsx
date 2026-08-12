@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { href: "/admin/mannschaften", label: "Mannschaften" },
   { href: "/admin/funktionstraeger", label: "Funktionsträger" },
   { href: "/admin/termine", label: "Termine" },
-  { href: "/admin/rundenspiele", label: "Rundenspiele" },
+  { href: "/admin/rundenspiele", label: "Hallenspielplan" },
   { href: "/admin/zuordnung", label: "Zuordnung" },
   { href: "/admin/auswertung", label: "Auswertung" },
   { href: "/admin/zuschuesse", label: "Zuschüsse" },
