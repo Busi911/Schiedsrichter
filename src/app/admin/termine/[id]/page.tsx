@@ -13,6 +13,7 @@ import {
   updateTurnierSpiel,
 } from "../../actions";
 import { appUrl } from "@/lib/app-url";
+import { formatDatumZeit as formatDateTime, toDatetimeLocalWert } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/collapsible-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
@@ -32,13 +34,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-function toDatetimeLocal(d: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
-}
 
 export default async function TerminBearbeitenPage({
   params,
@@ -90,11 +85,8 @@ export default async function TerminBearbeitenPage({
         </h1>
       </div>
 
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle>Details</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CollapsibleCard title="Details" className="max-w-md">
+        <div className="flex flex-col gap-4">
           <form action={updateTermin} className="flex flex-col gap-4">
             <input type="hidden" name="terminId" value={termin.id} />
 
@@ -120,7 +112,7 @@ export default async function TerminBearbeitenPage({
                 id="start"
                 name="start"
                 type="datetime-local"
-                defaultValue={toDatetimeLocal(termin.start)}
+                defaultValue={toDatetimeLocalWert(termin.start)}
                 required
               />
             </div>
@@ -133,7 +125,7 @@ export default async function TerminBearbeitenPage({
                 id="ende"
                 name="ende"
                 type="datetime-local"
-                defaultValue={termin.ende ? toDatetimeLocal(termin.ende) : ""}
+                defaultValue={termin.ende ? toDatetimeLocalWert(termin.ende) : ""}
               />
             </div>
 
@@ -173,14 +165,14 @@ export default async function TerminBearbeitenPage({
             </Button>
           </form>
 
-          <form action={deleteTermin} className="mt-4">
+          <form action={deleteTermin}>
             <input type="hidden" name="terminId" value={termin.id} />
             <Button type="submit" variant="destructive" className="w-full">
               {istTurnier ? "Turnier löschen" : "Termin löschen"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleCard>
 
       {istTurnier && (
         <>
@@ -236,40 +228,61 @@ export default async function TerminBearbeitenPage({
                     {spiele.map((s) => (
                       <TableRow key={s.id}>
                         <TableCell colSpan={4} className="p-0">
-                          <div className="flex flex-wrap items-center gap-2 p-3">
-                            <form
-                              action={updateTurnierSpiel}
-                              className="flex flex-wrap items-center gap-2"
-                            >
-                              <input type="hidden" name="terminId" value={s.id} />
-                              <input
-                                type="hidden"
-                                name="turnierId"
-                                value={termin.id}
-                              />
-                              <Input
-                                name="start"
-                                type="datetime-local"
-                                defaultValue={toDatetimeLocal(s.start)}
-                                required
-                                className="h-8 w-48"
-                              />
-                              <Input
-                                name="ort"
-                                defaultValue={s.ort ?? ""}
-                                placeholder="Ort"
-                                className="h-8 w-28"
-                              />
-                              <Input
-                                name="beschreibung"
-                                defaultValue={s.beschreibung ?? ""}
-                                placeholder="z.B. TSV A – TSV B"
-                                className="h-8 w-48"
-                              />
-                              <Button type="submit" variant="outline" size="sm">
-                                Speichern
-                              </Button>
-                            </form>
+                          <div className="flex items-start justify-between gap-2 p-3">
+                            <details className="group min-w-0 flex-1">
+                              <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                                <span className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm">
+                                  <span className="font-medium">
+                                    {formatDateTime(s.start)}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    {s.ort ?? "—"}
+                                  </span>
+                                  <span>{s.beschreibung ?? "—"}</span>
+                                  <span className="text-xs text-muted-foreground underline">
+                                    <span className="group-open:hidden">
+                                      Bearbeiten
+                                    </span>
+                                    <span className="hidden group-open:inline">
+                                      Schließen
+                                    </span>
+                                  </span>
+                                </span>
+                              </summary>
+                              <form
+                                action={updateTurnierSpiel}
+                                className="mt-2 flex flex-wrap items-center gap-2"
+                              >
+                                <input type="hidden" name="terminId" value={s.id} />
+                                <input
+                                  type="hidden"
+                                  name="turnierId"
+                                  value={termin.id}
+                                />
+                                <Input
+                                  name="start"
+                                  type="datetime-local"
+                                  defaultValue={toDatetimeLocalWert(s.start)}
+                                  required
+                                  className="h-8 w-48"
+                                />
+                                <Input
+                                  name="ort"
+                                  defaultValue={s.ort ?? ""}
+                                  placeholder="Ort"
+                                  className="h-8 w-28"
+                                />
+                                <Input
+                                  name="beschreibung"
+                                  defaultValue={s.beschreibung ?? ""}
+                                  placeholder="z.B. TSV A – TSV B"
+                                  className="h-8 w-48"
+                                />
+                                <Button type="submit" variant="outline" size="sm">
+                                  Speichern
+                                </Button>
+                              </form>
+                            </details>
                             <form action={deleteTurnierSpiel}>
                               <input type="hidden" name="terminId" value={s.id} />
                               <input

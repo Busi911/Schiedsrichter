@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { berlinOffset, parseBerlinDatumZeit } from "./format";
+import {
+  berlinOffset,
+  formatDatumZeitLang,
+  parseBerlinDatumZeit,
+  toDatetimeLocalWert,
+} from "./format";
 
 describe("berlinOffset", () => {
   it("liefert +02:00 für ein Datum in der Sommerzeit", () => {
@@ -33,5 +38,39 @@ describe("parseBerlinDatumZeit", () => {
   it("fällt auf Mitternacht zurück, wenn kein Zeitanteil übergeben wird", () => {
     const d = parseBerlinDatumZeit("2026-08-26");
     expect(d.toISOString()).toBe(new Date("2026-08-26T00:00:00+02:00").toISOString());
+  });
+});
+
+describe("toDatetimeLocalWert", () => {
+  it("ist das Gegenstück zu parseBerlinDatumZeit (Sommerzeit)", () => {
+    // Regression: d.getHours() etc. ohne Zeitzonen-Behandlung würde auf einem
+    // UTC-Server (Vercel) 17:45 UTC statt 19:45 Berlin ins Bearbeiten-
+    // Formular schreiben.
+    const d = new Date("2026-08-26T17:45:00Z");
+    expect(toDatetimeLocalWert(d)).toBe("2026-08-26T19:45");
+  });
+
+  it("ist das Gegenstück zu parseBerlinDatumZeit (Winterzeit)", () => {
+    const d = new Date("2026-12-15T17:00:00Z");
+    expect(toDatetimeLocalWert(d)).toBe("2026-12-15T18:00");
+  });
+
+  it("zeigt bei Terminen kurz nach Mitternacht Berliner Zeit noch den korrekten (nächsten) Tag", () => {
+    // 23:30 UTC am 25. ist bereits 01:30 Berliner Sommerzeit am 26.
+    const d = new Date("2026-08-25T23:30:00Z");
+    expect(toDatetimeLocalWert(d)).toBe("2026-08-26T01:30");
+  });
+
+  it("ist die exakte Umkehrfunktion von parseBerlinDatumZeit", () => {
+    const wert = "2026-08-26T19:45";
+    expect(toDatetimeLocalWert(parseBerlinDatumZeit(wert))).toBe(wert);
+  });
+});
+
+describe("formatDatumZeitLang", () => {
+  it("formatiert mit ausgeschriebenem Wochentag in Berliner Zeit", () => {
+    const d = new Date("2026-08-26T17:45:00Z");
+    expect(formatDatumZeitLang(d)).toContain("19:45");
+    expect(formatDatumZeitLang(d)).toMatch(/Mittwoch/);
   });
 });

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
-import { holeNaechsteTermine, holeUnbesetzteDienste } from "@/lib/dashboard";
+import { holeNaechsteTermine, holeOffenePosten } from "@/lib/dashboard";
 import { holeZuschussEinstellungen, holeOffeneEinsaetze } from "@/lib/zuschuss";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
 
@@ -24,6 +25,7 @@ const TYP_LABEL: Record<string, string> = {
 const ROLLE_LABEL: Record<string, string> = {
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
+  zeitnehmer: "Zeitnehmer/Sekretär",
 };
 
 export default async function AdminDashboardPage() {
@@ -33,10 +35,10 @@ export default async function AdminDashboardPage() {
   const verein = await holeZuschussEinstellungen(vereinId);
   const zuschuesseAktiviert = verein?.zuschuesseAktiviert ?? false;
 
-  const [naechsteTermine, unbesetzteDienste, offeneEinsaetze] =
+  const [naechsteTermine, offenePosten, offeneEinsaetze] =
     await Promise.all([
       holeNaechsteTermine(vereinId),
-      holeUnbesetzteDienste(vereinId),
+      holeOffenePosten(vereinId),
       zuschuesseAktiviert ? holeOffeneEinsaetze(vereinId) : Promise.resolve([]),
     ]);
 
@@ -87,23 +89,38 @@ export default async function AdminDashboardPage() {
           <CardHeader>
             <CardTitle className="text-base">Unbesetzte Dienste</CardTitle>
             <CardDescription>
-              Freundschaftsspiele/Turniere mit offenem Ordner-/Kioskdienst-Bedarf
+              Offener Ordner-/Kioskdienst-Bedarf sowie fehlende Zeitnehmer/
+              Sekretär — ein Termin mit mehreren offenen Rollen zählt hier nur
+              einmal.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {unbesetzteDienste.length === 0 ? (
+            {offenePosten.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Alle Dienste sind besetzt.
               </p>
             ) : (
-              unbesetzteDienste.map((d) => (
-                <div key={`${d.terminId}-${d.rolle}`} className="text-sm">
-                  <span className="font-medium">{formatDateTime(d.start)}</span>{" "}
-                  <span className="text-muted-foreground">
-                    · {ROLLE_LABEL[d.rolle]}: {d.vorhanden}/{d.bedarf}
-                  </span>
-                </div>
-              ))
+              <Table>
+                <TableBody>
+                  {offenePosten.flatMap((p) =>
+                    p.luecken.map((l, i) => (
+                      <TableRow key={`${p.terminId}-${l.rolle}`}>
+                        {i === 0 && (
+                          <TableCell
+                            rowSpan={p.luecken.length}
+                            className="w-0 align-top text-sm font-medium whitespace-normal"
+                          >
+                            {formatDateTime(p.start)}
+                          </TableCell>
+                        )}
+                        <TableCell className="text-sm whitespace-normal text-muted-foreground">
+                          {ROLLE_LABEL[l.rolle]}: {l.vorhanden}/{l.bedarf}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             )}
             <Link
               href="/admin/einstellungen"

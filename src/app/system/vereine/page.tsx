@@ -4,13 +4,8 @@ import { users } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
 import { vereinErstellen } from "./actions";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/collapsible-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -83,33 +78,28 @@ export default async function SystemVereinePage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Neuer Verein</CardTitle>
-            <CardDescription>
-              Legt den Verein und dessen ersten Admin-Account an.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form action={vereinErstellen} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="vereinsname">Vereinsname</Label>
-                <Input id="vereinsname" name="vereinsname" required />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="adminName">Name des Admins</Label>
-                <Input id="adminName" name="adminName" required />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="adminEmail">E-Mail des Admins</Label>
-                <Input id="adminEmail" name="adminEmail" type="email" required />
-              </div>
-              <Button type="submit" className="w-full">
-                Verein anlegen
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <CollapsibleCard
+          title="Neuer Verein"
+          description="Legt den Verein und dessen ersten Admin-Account an."
+        >
+          <form action={vereinErstellen} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="vereinsname">Vereinsname</Label>
+              <Input id="vereinsname" name="vereinsname" required />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="adminName">Name des Admins</Label>
+              <Input id="adminName" name="adminName" required />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="adminEmail">E-Mail des Admins</Label>
+              <Input id="adminEmail" name="adminEmail" type="email" required />
+            </div>
+            <Button type="submit" className="w-full">
+              Verein anlegen
+            </Button>
+          </form>
+        </CollapsibleCard>
       </div>
     </div>
   );

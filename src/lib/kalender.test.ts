@@ -5,6 +5,13 @@ describe("tagKey", () => {
   it("formatiert als YYYY-MM-DD", () => {
     expect(tagKey(new Date(2026, 8, 5))).toBe("2026-09-05");
   });
+
+  it("ordnet einem Zeitpunkt kurz nach Mitternacht Berliner Zeit den korrekten (nächsten) Tag zu", () => {
+    // Regression: getFullYear()/getMonth()/getDate() ohne Zeitzonen-Behandlung
+    // würden auf einem UTC-Server (Vercel) diesen Zeitpunkt noch dem 25.
+    // zuordnen, obwohl er in Berlin (Sommerzeit) bereits am 26. liegt.
+    expect(tagKey(new Date("2026-08-25T23:30:00Z"))).toBe("2026-08-26");
+  });
 });
 
 describe("monatKey", () => {

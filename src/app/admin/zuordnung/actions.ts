@@ -12,6 +12,7 @@ import {
   berechneBesetzung,
 } from "@/lib/besetzung";
 import { sendMail } from "@/lib/mailer";
+import { formatDatumZeitLang } from "@/lib/format";
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -23,10 +24,7 @@ function zuordnungsText(
   rolle: string,
   termin: { start: Date; ort: string | null; beschreibung: string | null }
 ) {
-  const zeitpunkt = termin.start.toLocaleString("de-DE", {
-    dateStyle: "full",
-    timeStyle: "short",
-  });
+  const zeitpunkt = formatDatumZeitLang(termin.start);
   const zeilen = [
     `Du wurdest als ${TYP_LABEL[rolle] ?? rolle} für den Termin am ${zeitpunkt} eingeteilt.`,
   ];

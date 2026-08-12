@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { sendMail } from "./mailer";
 import { sendePushAn } from "./push";
+import { formatDatumZeitLang } from "./format";
 
 const ERINNERUNG_TYP = "erinnerung_24h";
 // Täglicher Cron-Lauf + 36h-Fenster, damit zwischen zwei Läufen keine
@@ -70,10 +71,7 @@ async function ermittleEmpfaenger(termin: Termin) {
 }
 
 function erinnerungsText(termin: Termin) {
-  const zeitpunkt = termin.start.toLocaleString("de-DE", {
-    dateStyle: "full",
-    timeStyle: "short",
-  });
+  const zeitpunkt = formatDatumZeitLang(termin.start);
   const zeilen = [`Erinnerung an deinen Termin am ${zeitpunkt}.`];
   if (termin.ort) zeilen.push(`Ort: ${termin.ort}`);
   if (termin.beschreibung) zeilen.push(termin.beschreibung);

@@ -14,14 +14,16 @@ export async function holeNaechsteTermine(vereinId: string, limit = 5) {
   );
 }
 
-export type UnbesetzterDienst = {
+export type OffenePosten = {
   terminId: string;
   start: Date;
   typ: string;
   ort: string | null;
-  rolle: "ordner" | "kioskdienst";
-  vorhanden: number;
-  bedarf: number;
+  luecken: {
+    rolle: "ordner" | "kioskdienst" | "zeitnehmer";
+    vorhanden: number;
+    bedarf: number;
+  }[];
 };
 
 type VereinBedarf = Parameters<typeof bedarfFuer>[0];
@@ -33,41 +35,60 @@ type AnstehenderTermin = {
 };
 type Zuordnung = { terminId: string; funktionstraegerTyp: string };
 
-// Reine Berechnung (ohne DB-Zugriff), damit sie ohne Testdatenbank
-// getestet werden kann — siehe src/lib/dashboard.test.ts.
-export function berechneUnbesetzteDienste(
+// Nur diese Typen brauchen eine Zeitnehmer-/Sekretär-Zuordnung — deckungsgleich
+// mit BESETZUNGSRELEVANTE_TYPEN in den Kalenderansichten (siehe
+// src/app/admin/kalender/page.tsx). Der Turnier-Container selbst wird pro
+// Einzelspiel (turnier_spiel) besetzt.
+const ZEITNEHMER_RELEVANTE_TYPEN = ["spiel_ics", "testspiel", "turnier_spiel", "rundenspiel"];
+
+// Reine Berechnung (ohne DB-Zugriff), damit sie ohne Testdatenbank getestet
+// werden kann — siehe src/lib/dashboard.test.ts. Bündelt alle offenen Rollen
+// eines Termins (Ordner/Kioskdienst-Bedarf sowie Zeitnehmer/Sekretär) in
+// EINEM Eintrag statt separater Zeilen pro Rolle, damit ein einzelner Termin
+// mit mehreren offenen Rollen nicht wie mehrere doppelte Termine aussieht.
+export function berechneOffenePosten(
   verein: VereinBedarf,
   anstehende: AnstehenderTermin[],
   zuordnungen: Zuordnung[]
-): UnbesetzterDienst[] {
-  const luecken: UnbesetzterDienst[] = [];
+): OffenePosten[] {
+  const posten: OffenePosten[] = [];
+
   for (const termin of anstehende) {
+    const luecken: OffenePosten["luecken"] = [];
+
     for (const rolle of ["ordner", "kioskdienst"] as const) {
       const bedarf = bedarfFuer(verein, termin.typ, rolle);
       if (bedarf <= 0) continue;
       const vorhanden = zuordnungen.filter(
         (z) => z.terminId === termin.id && z.funktionstraegerTyp === rolle
       ).length;
-      if (vorhanden < bedarf) {
-        luecken.push({
-          terminId: termin.id,
-          start: termin.start,
-          typ: termin.typ,
-          ort: termin.ort,
-          rolle,
-          vorhanden,
-          bedarf,
-        });
-      }
+      if (vorhanden < bedarf) luecken.push({ rolle, vorhanden, bedarf });
+    }
+
+    if (ZEITNEHMER_RELEVANTE_TYPEN.includes(termin.typ)) {
+      const vorhanden = zuordnungen.filter(
+        (z) =>
+          z.terminId === termin.id &&
+          (z.funktionstraegerTyp === "zeitnehmer" || z.funktionstraegerTyp === "sekretaer")
+      ).length;
+      if (vorhanden < 1) luecken.push({ rolle: "zeitnehmer", vorhanden, bedarf: 1 });
+    }
+
+    if (luecken.length > 0) {
+      posten.push({
+        terminId: termin.id,
+        start: termin.start,
+        typ: termin.typ,
+        ort: termin.ort,
+        luecken,
+      });
     }
   }
 
-  return luecken.sort((a, b) => a.start.getTime() - b.start.getTime());
+  return posten.sort((a, b) => a.start.getTime() - b.start.getTime());
 }
 
-export async function holeUnbesetzteDienste(
-  vereinId: string
-): Promise<UnbesetzterDienst[]> {
+export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]> {
   return withTenant(vereinId, async (tx) => {
     const verein = await tx.query.vereine.findFirst({
       where: eq(vereine.id, vereinId),
@@ -78,7 +99,13 @@ export async function holeUnbesetzteDienste(
       where: and(
         eq(termine.vereinId, vereinId),
         gte(termine.start, new Date()),
-        inArray(termine.typ, ["testspiel", "turnier", "rundenspiel"])
+        inArray(termine.typ, [
+          "spiel_ics",
+          "testspiel",
+          "turnier",
+          "turnier_spiel",
+          "rundenspiel",
+        ])
       ),
       orderBy: (t, { asc }) => [asc(t.start)],
     });
@@ -93,6 +120,6 @@ export async function holeUnbesetzteDienste(
       .from(terminZuordnungen)
       .where(inArray(terminZuordnungen.terminId, terminIds));
 
-    return berechneUnbesetzteDienste(verein, anstehende, zuordnungen);
+    return berechneOffenePosten(verein, anstehende, zuordnungen);
   });
 }

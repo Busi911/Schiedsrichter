@@ -6,11 +6,21 @@
 // hätte Anzeigen um 1-2h verschoben und bei Terminen nahe Mitternacht sogar
 // das falsche Datum gezeigt. Handballtermine sind immer in deutscher
 // Ortszeit gemeint, unabhängig davon, wo der Code gerade läuft.
-const ZEITZONE = "Europe/Berlin";
+export const ZEITZONE = "Europe/Berlin";
 
 export function formatDatumZeit(d: Date): string {
   return new Intl.DateTimeFormat("de-DE", {
     dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: ZEITZONE,
+  }).format(d);
+}
+
+// Für Mail-/Push-Texte, bei denen der ausgeschriebene Wochentag den Termin
+// eindeutiger macht als das kurze "medium"-Format von formatDatumZeit.
+export function formatDatumZeitLang(d: Date): string {
+  return new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "full",
     timeStyle: "short",
     timeZone: ZEITZONE,
   }).format(d);
@@ -79,4 +89,26 @@ export function parseBerlinDatumZeit(wert: string): Date {
   const zeitTeil = wert.length > 10 ? wert.slice(11) : "00:00";
   const mitSekunden = zeitTeil.length === 5 ? `${zeitTeil}:00` : zeitTeil;
   return new Date(`${datumTeil}T${mitSekunden}${berlinOffset(datumTeil)}`);
+}
+
+// Gegenstück zu parseBerlinDatumZeit: liefert den Wert für ein
+// <input type="datetime-local"> in Europe/Berlin-Zeit, statt (wie
+// d.getFullYear()/d.getHours()/... es täten) in der Zeitzone der
+// Laufzeitumgebung. Ohne diese Behandlung würde ein Bearbeiten-Formular auf
+// Vercel (UTC) einen bereits gespeicherten Termin um 1-2h zu früh anzeigen —
+// und beim Speichern ohne Korrektur würde parseBerlinDatumZeit diese falsche
+// Zeit erneut als Berlin-Zeit interpretieren und der Termin würde bei jedem
+// Bearbeiten weiter nach vorne wandern.
+export function toDatetimeLocalWert(d: Date): string {
+  const teile = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZEITZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(d);
+  const teil = (typ: string) => teile.find((t) => t.type === typ)?.value ?? "";
+  return `${teil("year")}-${teil("month")}-${teil("day")}T${teil("hour")}:${teil("minute")}`;
 }

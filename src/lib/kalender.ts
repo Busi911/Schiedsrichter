@@ -1,5 +1,6 @@
 // Reine Kalender-Berechnung (kein DB-Zugriff), damit sie ohne Testdatenbank
 // getestet werden kann — siehe src/lib/kalender.test.ts.
+import { ZEITZONE } from "./format";
 
 export type KalenderTag = {
   datum: Date;
@@ -7,10 +8,22 @@ export type KalenderTag = {
   heute: boolean;
 };
 
+// Ordnet einen Zeitpunkt seinem Kalendertag in Europe/Berlin zu — nicht der
+// Zeitzone der Laufzeitumgebung. tagKey wird sowohl serverseitig (echte
+// Termin-Zeitstempel aus der DB, z.B. admin/kalender) als auch clientseitig
+// (synthetische Tages-Zellen im Kalendergitter) aufgerufen; ohne feste
+// Zeitzone würden Termine kurz nach Mitternacht Berliner Zeit auf einem
+// UTC-Server (Vercel) noch dem Vortag zugeordnet und tauchten in der
+// Tagesansicht am falschen Tag auf.
 export function tagKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
+  const teile = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZEITZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const teil = (typ: string) => teile.find((t) => t.type === typ)?.value ?? "";
+  return `${teil("year")}-${teil("month")}-${teil("day")}`;
 }
 
 export function monatKey(jahr: number, monatNull: number): string {
