@@ -10,7 +10,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
 
@@ -62,19 +69,34 @@ export default async function AdminDashboardPage() {
                 Keine anstehenden Termine.
               </p>
             ) : (
-              naechsteTermine.map((t) => (
-                <div key={t.id} className="text-sm">
-                  <span className="font-medium">{formatDateTime(t.start)}</span>{" "}
-                  <Badge variant="secondary" className="ml-1">
-                    {t.typ === "rundenspiel"
-                      ? rundenspielTypLabel(t.pflichtspiel)
-                      : TYP_LABEL[t.typ] ?? t.typ}
-                  </Badge>
-                  {t.ort && (
-                    <span className="text-muted-foreground"> · {t.ort}</span>
-                  )}
-                </div>
-              ))
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Termin</TableHead>
+                    <TableHead>Typ</TableHead>
+                    <TableHead>Ort</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {naechsteTermine.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="font-medium">
+                        {formatDateTime(t.start)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {t.typ === "rundenspiel"
+                            ? rundenspielTypLabel(t.pflichtspiel)
+                            : TYP_LABEL[t.typ] ?? t.typ}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {t.ort ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
             <Link
               href="/admin/termine"
