@@ -64,14 +64,45 @@ describe("berechneBesetzung", () => {
 });
 
 describe("istBesetzungVollstaendig", () => {
-  it("verlangt bei Rundenspielen nur Zeitnehmer/Sekretär, keinen Schiedsrichter (kommt vom Verband)", () => {
+  it("verlangt bei echten Ligaspielen (pflichtspiel = true) nur Zeitnehmer/Sekretär, keinen Schiedsrichter (kommt vom Verband)", () => {
     const nurZeitnehmer = berechneBesetzung([
       { funktionstraegerTyp: "zeitnehmer" },
     ]);
-    expect(istBesetzungVollstaendig(nurZeitnehmer, "rundenspiel")).toBe(true);
+    expect(istBesetzungVollstaendig(nurZeitnehmer, "rundenspiel", true)).toBe(
+      true
+    );
 
     const nichts = berechneBesetzung([]);
-    expect(istBesetzungVollstaendig(nichts, "rundenspiel")).toBe(false);
+    expect(istBesetzungVollstaendig(nichts, "rundenspiel", true)).toBe(false);
+  });
+
+  it("verlangt bei Freundschaftsspielen/Turnieren im Liga-Spielplan (pflichtspiel = false) weiterhin auch einen Schiedsrichter", () => {
+    // Regression: der Verband stellt den Schiedsrichter nur bei echten
+    // Ligaspielen automatisch — bei Freundschaftsspielen/Turnieren im
+    // Liga-Spielplan (typ = "rundenspiel", pflichtspiel = false) ordnet der
+    // Verein selbst einen zu und meldet ihn im Nachgang an den Verband.
+    const nurZeitnehmer = berechneBesetzung([
+      { funktionstraegerTyp: "zeitnehmer" },
+    ]);
+    expect(istBesetzungVollstaendig(nurZeitnehmer, "rundenspiel", false)).toBe(
+      false
+    );
+
+    const beides = berechneBesetzung([
+      { funktionstraegerTyp: "schiedsrichter" },
+      { funktionstraegerTyp: "zeitnehmer" },
+    ]);
+    expect(istBesetzungVollstaendig(beides, "rundenspiel", false)).toBe(true);
+  });
+
+  it("verlangt ohne bekannten pflichtspiel-Wert (null/undefined) sicherheitshalber ebenfalls einen Schiedsrichter", () => {
+    const nurZeitnehmer = berechneBesetzung([
+      { funktionstraegerTyp: "zeitnehmer" },
+    ]);
+    expect(istBesetzungVollstaendig(nurZeitnehmer, "rundenspiel")).toBe(false);
+    expect(istBesetzungVollstaendig(nurZeitnehmer, "rundenspiel", null)).toBe(
+      false
+    );
   });
 
   it("verlangt bei allen anderen besetzungsrelevanten Typen weiterhin auch einen Schiedsrichter", () => {

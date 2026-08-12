@@ -113,7 +113,8 @@ export default async function ProfilKalenderPage({
     const besetzung = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ)
       ? istBesetzungVollstaendig(
           berechneBesetzung(eigeneZuordnungen, !!t.hatIcsSchiedsrichter),
-          t.typ
+          t.typ,
+          t.pflichtspiel
         )
         ? ("vollstaendig" as const)
         : ("offen" as const)
