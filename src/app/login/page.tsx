@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { signIn } from "@/auth";
 import {
   Card,
@@ -8,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/password-input";
 import { Logo } from "@/components/logo";
 import { SubmitButton } from "@/components/submit-button";
 
@@ -69,10 +71,9 @@ export default async function LoginPage({
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="password">Passwort</Label>
-              <Input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 required
                 autoComplete="current-password"
               />
@@ -80,6 +81,23 @@ export default async function LoginPage({
             <SubmitButton className="w-full" pendingText="Wird geprüft…">
               Einloggen
             </SubmitButton>
+            <button
+              type="submit"
+              formNoValidate
+              formAction={async (formData) => {
+                "use server";
+                const email = formData.get("email");
+                if (typeof email === "string" && email) {
+                  await signIn("nodemailer", {
+                    email,
+                    redirectTo: "/profil/passwort-aendern",
+                  });
+                }
+              }}
+              className="text-center text-xs text-muted-foreground underline"
+            >
+              Passwort vergessen? Login-Link zum Zurücksetzen senden
+            </button>
           </form>
         </CardContent>
       </Card>
@@ -125,6 +143,16 @@ export default async function LoginPage({
           </form>
         </CardContent>
       </Card>
+
+      <p className="text-center text-xs text-muted-foreground">
+        <Link href="/datenschutz" className="underline">
+          Datenschutz
+        </Link>
+        {" · "}
+        <Link href="/impressum" className="underline">
+          Impressum
+        </Link>
+      </p>
     </main>
   );
 }

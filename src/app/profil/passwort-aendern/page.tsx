@@ -11,8 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/password-input";
 import { Logo } from "@/components/logo";
 import { SubmitButton } from "@/components/submit-button";
 
@@ -50,10 +50,9 @@ export default async function PasswortAendernPage() {
             {bisherigesPasswortNoetig && (
               <div className="flex flex-col gap-2">
                 <Label htmlFor="bisherigesPasswort">Bisheriges Passwort</Label>
-                <Input
+                <PasswordInput
                   id="bisherigesPasswort"
                   name="bisherigesPasswort"
-                  type="password"
                   required
                   autoComplete="current-password"
                 />
@@ -61,10 +60,9 @@ export default async function PasswortAendernPage() {
             )}
             <div className="flex flex-col gap-2">
               <Label htmlFor="neuesPasswort">Neues Passwort</Label>
-              <Input
+              <PasswordInput
                 id="neuesPasswort"
                 name="neuesPasswort"
-                type="password"
                 required
                 minLength={8}
                 autoComplete="new-password"
@@ -74,10 +72,9 @@ export default async function PasswortAendernPage() {
               <Label htmlFor="neuesPasswortWiederholung">
                 Neues Passwort wiederholen
               </Label>
-              <Input
+              <PasswordInput
                 id="neuesPasswortWiederholung"
                 name="neuesPasswortWiederholung"
-                type="password"
                 required
                 minLength={8}
                 autoComplete="new-password"

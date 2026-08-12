@@ -17,31 +17,35 @@ import { normalisiereMannschaftsname } from "@/lib/rundenspiel-import";
 import { vergebeEinmalPasswortFallsNoetig } from "@/lib/passwort";
 import { sendMail } from "@/lib/mailer";
 import { appUrl } from "@/lib/app-url";
+import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { istTurnierBerechtigt } from "@/lib/turnier-zugriff";
 
 // einmalPasswort ist nur bei einer neu vergebenen Einmal-Passwort-Zeile
 // gesetzt (siehe vergebeEinmalPasswortFallsNoetig) — hat die Person schon
-// eins (oder loggt sich per Magic-Link ein), bleibt es null.
-function willkommensText(
+// eins (oder loggt sich per Magic-Link ein), bleibt es null. Ein
+// EmailInhalt statt getrennter Text-/Html-Funktionen (wie in login-mail.ts/
+// termin-mail.ts) — siehe CLAUDE.md, EIN Aufbau für beide Formate ist
+// weniger fehleranfällig als zwei parallel gepflegte Texte.
+function willkommensInhalt(
   vereinName: string,
   email: string,
   einmalPasswort: string | null
-) {
-  const zeilen = [
-    `Für dich wurde ein Zugang im HandballerPate von ${vereinName} angelegt.`,
-  ];
-  if (einmalPasswort) {
-    zeilen.push(
-      `Melde dich mit deiner E-Mail-Adresse (${email}) und diesem Einmal-Passwort unter ${appUrl()}/login an: ${einmalPasswort}`,
-      `Direkt nach dem ersten Login musst du ein eigenes Passwort vergeben. Alternativ kannst du dich dort auch jederzeit ohne Passwort per Login-Link einloggen.`
-    );
-  } else {
-    zeilen.push(
-      `Melde dich mit deiner E-Mail-Adresse (${email}) unter ${appUrl()}/login an — du bekommst dort einen Login-Link per E-Mail zugeschickt.`
-    );
-  }
-  return zeilen.join("\n\n");
+): EmailInhalt {
+  return {
+    vereinName,
+    ueberschrift: "Für dich wurde ein Zugang angelegt.",
+    zeilen: einmalPasswort
+      ? [
+          `Melde dich mit deiner E-Mail-Adresse (${email}) und dem folgenden Einmal-Passwort an.`,
+          `Einmal-Passwort: ${einmalPasswort}`,
+          "Direkt nach dem ersten Login musst du ein eigenes Passwort vergeben. Alternativ kannst du dich jederzeit auch ohne Passwort per Login-Link einloggen.",
+        ]
+      : [
+          `Melde dich mit deiner E-Mail-Adresse (${email}) an — du bekommst dort einen Login-Link per E-Mail zugeschickt.`,
+        ],
+    cta: { text: "Jetzt einloggen", url: `${appUrl()}/login` },
+  };
 }
 
 export async function createMannschaft(formData: FormData) {
@@ -248,10 +252,12 @@ export async function createFunktionstraeger(formData: FormData) {
   // Aktivieren (siehe funktionstraegerAktivToggeln).
   if (sofortAktiv) {
     try {
+      const inhalt = willkommensInhalt(vereinName, normalizedEmail, einmalPasswort);
       await sendMail(
         normalizedEmail,
         "Zugang für HandballerPate",
-        willkommensText(vereinName, normalizedEmail, einmalPasswort)
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
       );
     } catch (err) {
       console.error("Willkommens-Mail konnte nicht gesendet werden:", err);
@@ -319,14 +325,16 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
   // vom Zugang erfahren.
   if (aktivierung) {
     try {
+      const inhalt = willkommensInhalt(
+        aktivierung.vereinName,
+        aktivierung.email,
+        aktivierung.einmalPasswort
+      );
       await sendMail(
         aktivierung.email,
         "Zugang für HandballerPate",
-        willkommensText(
-          aktivierung.vereinName,
-          aktivierung.email,
-          aktivierung.einmalPasswort
-        )
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
       );
     } catch (err) {
       console.error("Willkommens-Mail konnte nicht gesendet werden:", err);
@@ -336,17 +344,24 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
-function emailGeaendertText(vereinName: string, neueEmail: string, istNeueAdresse: boolean) {
-  if (istNeueAdresse) {
-    return [
-      `Deine E-Mail-Adresse im HandballerPate von ${vereinName} wurde auf diese Adresse geändert.`,
-      `Du kannst dich ab sofort mit ${neueEmail} unter ${appUrl()}/login einloggen.`,
-    ].join("\n\n");
-  }
-  return [
-    `Deine E-Mail-Adresse im HandballerPate von ${vereinName} wurde geändert — dein Zugang läuft jetzt über ${neueEmail}.`,
-    `Falls das nicht du warst bzw. dir diese Änderung nicht bekannt vorkommt, melde dich bitte beim Vereinsadmin.`,
-  ].join("\n\n");
+function emailGeaendertInhalt(
+  vereinName: string,
+  neueEmail: string,
+  istNeueAdresse: boolean
+): EmailInhalt {
+  return {
+    vereinName,
+    ueberschrift: "Deine E-Mail-Adresse wurde geändert.",
+    zeilen: istNeueAdresse
+      ? [`Du kannst dich ab sofort mit ${neueEmail} einloggen.`]
+      : [
+          `Dein Zugang läuft jetzt über ${neueEmail}.`,
+          "Falls das nicht du warst bzw. dir diese Änderung nicht bekannt vorkommt, melde dich bitte beim Vereinsadmin.",
+        ],
+    cta: istNeueAdresse
+      ? { text: "Zum Login", url: `${appUrl()}/login` }
+      : undefined,
+  };
 }
 
 // Name/E-Mail einer bestehenden Person bearbeiten. Bei E-Mail-Änderung geht
@@ -404,19 +419,23 @@ export async function updateFunktionstraeger(formData: FormData) {
 
   if (ergebnis) {
     try {
+      const inhalt = emailGeaendertInhalt(ergebnis.vereinName, ergebnis.neueEmail, true);
       await sendMail(
         ergebnis.neueEmail,
         "E-Mail-Adresse geändert",
-        emailGeaendertText(ergebnis.vereinName, ergebnis.neueEmail, true)
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
       );
     } catch (err) {
       console.error("Info-Mail an neue Adresse fehlgeschlagen:", err);
     }
     try {
+      const inhalt = emailGeaendertInhalt(ergebnis.vereinName, ergebnis.neueEmail, false);
       await sendMail(
         ergebnis.alteEmail,
         "E-Mail-Adresse geändert",
-        emailGeaendertText(ergebnis.vereinName, ergebnis.neueEmail, false)
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
       );
     } catch (err) {
       console.error("Info-Mail an alte Adresse fehlgeschlagen:", err);
@@ -554,10 +573,12 @@ export async function funktionstraegerImportieren(formData: FormData) {
 
   for (const nutzer of neueNutzer) {
     try {
+      const inhalt = willkommensInhalt(vereinName, nutzer.email, nutzer.einmalPasswort);
       await sendMail(
         nutzer.email,
         "Zugang für HandballerPate",
-        willkommensText(vereinName, nutzer.email, nutzer.einmalPasswort)
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
       );
     } catch (err) {
       console.error("Willkommens-Mail konnte nicht gesendet werden:", err);

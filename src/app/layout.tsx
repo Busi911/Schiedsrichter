@@ -26,7 +26,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1c1c1e",
+  // Passt Browser-UI (z.B. Statusleiste bei installierter PWA) an den
+  // Dark-Mode an, der ausschließlich der System-Einstellung folgt (siehe
+  // globals.css) — kein manueller Umschalter in der App.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f4f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1c1e" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
