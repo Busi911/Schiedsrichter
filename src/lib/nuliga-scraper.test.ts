@@ -3,7 +3,7 @@ import { baueMonatsUrls, parseNuligaSeite } from "./nuliga-scraper";
 
 describe("baueMonatsUrls", () => {
   it("erzeugt pro Halle die angegebene Anzahl Monats-URLs, rollierend ab dem übergebenen Datum", () => {
-    const urls = baueMonatsUrls(["30402"], 3, new Date("2026-11-15T00:00:00Z"));
+    const urls = baueMonatsUrls(["30402"], 3, new Date("2026-11-15T00:00:00Z"), 0);
     expect(urls).toHaveLength(3);
     expect(urls.map((u) => u.requestedMonth)).toEqual([
       "2026-11",
@@ -13,20 +13,35 @@ describe("baueMonatsUrls", () => {
   });
 
   it("rollt über den Jahreswechsel korrekt", () => {
-    const urls = baueMonatsUrls(["1"], 2, new Date("2026-12-20T00:00:00Z"));
+    const urls = baueMonatsUrls(["1"], 2, new Date("2026-12-20T00:00:00Z"), 0);
     expect(urls.map((u) => u.requestedMonth)).toEqual(["2026-12", "2027-01"]);
   });
 
   it("baut für jede Halle eine eigene URL-Serie", () => {
-    const urls = baueMonatsUrls(["1", "2"], 1, new Date("2026-08-01T00:00:00Z"));
+    const urls = baueMonatsUrls(["1", "2"], 1, new Date("2026-08-01T00:00:00Z"), 0);
     expect(urls.map((u) => u.locationId)).toEqual(["1", "2"]);
   });
 
   it("kodiert den Monatsnamen als URL-Parameter mit '+' statt Leerzeichen", () => {
-    const [url] = baueMonatsUrls(["30402"], 1, new Date("2026-08-01T00:00:00Z"));
+    const [url] = baueMonatsUrls(["30402"], 1, new Date("2026-08-01T00:00:00Z"), 0);
     expect(url.url).toContain("month=August+2026");
     expect(url.url).toContain("location=30402");
     expect(url.url).toContain("federation=HHV");
+  });
+
+  it("nimmt standardmäßig zusätzlich einen Monat rückwärts mit, damit nachträgliche Änderungen/Ergebnisse nicht aus dem Sync-Fenster fallen", () => {
+    const urls = baueMonatsUrls(["30402"], 3, new Date("2026-11-15T00:00:00Z"));
+    expect(urls.map((u) => u.requestedMonth)).toEqual([
+      "2026-10",
+      "2026-11",
+      "2026-12",
+      "2027-01",
+    ]);
+  });
+
+  it("rollt beim Rückwärts-Monat über den Jahreswechsel korrekt", () => {
+    const urls = baueMonatsUrls(["1"], 1, new Date("2027-01-05T00:00:00Z"));
+    expect(urls.map((u) => u.requestedMonth)).toEqual(["2026-12", "2027-01"]);
   });
 });
 

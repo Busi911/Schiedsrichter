@@ -38,20 +38,36 @@ export async function importiereRundenspielEreignisse(
       });
 
       if (bestehend) {
-        await tx
-          .update(termine)
-          .set({
-            start: ereignis.start,
-            ort: ereignis.ort,
-            beschreibung: ereignis.beschreibung,
-            mannschaftId,
-            heimMannschaftName: ereignis.heimMannschaft,
-            auswaertsMannschaftName: ereignis.auswaertsMannschaft,
-            kategorie: ereignis.kategorie,
-            pflichtspiel: ereignis.pflichtspiel,
-          })
-          .where(eq(termine.id, bestehend.id));
-        aktualisiert++;
+        // Nur EINE Zeile schreiben und als "aktualisiert" zählen, wenn sich
+        // tatsächlich etwas geändert hat — sonst würde jeder Sync-Lauf (per
+        // Cron mehrmals wöchentlich) jedes unveränderte Spiel erneut als
+        // "aktualisiert" ausweisen, obwohl nichts passiert ist.
+        const geaendert =
+          bestehend.start.getTime() !== ereignis.start.getTime() ||
+          bestehend.ort !== ereignis.ort ||
+          bestehend.beschreibung !== ereignis.beschreibung ||
+          bestehend.mannschaftId !== mannschaftId ||
+          bestehend.heimMannschaftName !== ereignis.heimMannschaft ||
+          bestehend.auswaertsMannschaftName !== ereignis.auswaertsMannschaft ||
+          bestehend.kategorie !== ereignis.kategorie ||
+          bestehend.pflichtspiel !== ereignis.pflichtspiel;
+
+        if (geaendert) {
+          await tx
+            .update(termine)
+            .set({
+              start: ereignis.start,
+              ort: ereignis.ort,
+              beschreibung: ereignis.beschreibung,
+              mannschaftId,
+              heimMannschaftName: ereignis.heimMannschaft,
+              auswaertsMannschaftName: ereignis.auswaertsMannschaft,
+              kategorie: ereignis.kategorie,
+              pflichtspiel: ereignis.pflichtspiel,
+            })
+            .where(eq(termine.id, bestehend.id));
+          aktualisiert++;
+        }
       } else {
         await tx.insert(termine).values({
           vereinId,

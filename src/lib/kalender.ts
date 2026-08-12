@@ -44,6 +44,70 @@ export function gruppiereProTag<T extends { start: Date }>(
   return [...gruppen.entries()].map(([tag, items]) => ({ tag, items }));
 }
 
+export type TurnierBalken = {
+  id: string;
+  label: string;
+  href?: string;
+  // tagKey-Format (YYYY-MM-DD, Europe/Berlin) — Grenzen inklusiv.
+  startTag: string;
+  endTag: string;
+};
+
+export type PlatzierterBalken = TurnierBalken & {
+  startSpalte: number; // 1-7 (Montag=1) — CSS-Grid-Spalte innerhalb der Woche
+  spannweite: number; // Anzahl Spalten in dieser Woche
+  lane: number; // 0-basiert; bei Überschneidung mehrerer Balken in derselben Woche
+};
+
+// Platziert mehrtägige Balken (z.B. Turniere) pro Kalenderwoche als
+// CSS-Grid-Spalten + Lane (Zeile bei Überschneidung) — Greedy-
+// Intervallfärbung, sortiert nach Dauer (lang zuerst) für ein ruhigeres
+// Bild. Reicht für die in der Praxis seltenen gleichzeitig laufenden
+// Turniere; ein Balken, der über mehrere Wochen läuft, wird pro Woche
+// separat (mit an die Woche geklammerten Start-/Endspalten) platziert,
+// damit er über die Wochenzeilen hinweg durchgehend wirkt.
+export function platziereBalken(
+  wochen: KalenderTag[][],
+  balken: TurnierBalken[]
+): PlatzierterBalken[][] {
+  return wochen.map((woche) => {
+    const wocheKeys = woche.map((t) => tagKey(t.datum));
+
+    const ueberlappend = balken
+      .map((b) => {
+        const startIdx = wocheKeys.findIndex((k) => k >= b.startTag);
+        let endIdx = -1;
+        for (let i = wocheKeys.length - 1; i >= 0; i--) {
+          if (wocheKeys[i] <= b.endTag) {
+            endIdx = i;
+            break;
+          }
+        }
+        if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) return null;
+        return {
+          ...b,
+          startSpalte: startIdx + 1,
+          spannweite: endIdx - startIdx + 1,
+        };
+      })
+      .filter((b): b is TurnierBalken & { startSpalte: number; spannweite: number } => b !== null)
+      .sort((a, b) => b.spannweite - a.spannweite || a.startSpalte - b.startSpalte);
+
+    const laneEnden: number[] = []; // laneEnden[lane] = letzte belegte Spalte dieser Lane
+    const platziert: PlatzierterBalken[] = [];
+    for (const b of ueberlappend) {
+      let lane = laneEnden.findIndex((ende) => ende < b.startSpalte);
+      if (lane === -1) {
+        lane = laneEnden.length;
+        laneEnden.push(0);
+      }
+      laneEnden[lane] = b.startSpalte + b.spannweite - 1;
+      platziert.push({ ...b, lane });
+    }
+    return platziert;
+  });
+}
+
 export function monatKey(jahr: number, monatNull: number): string {
   return `${jahr}-${String(monatNull + 1).padStart(2, "0")}`;
 }

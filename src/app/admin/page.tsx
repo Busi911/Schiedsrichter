@@ -51,7 +51,7 @@ export default async function AdminDashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Nächste Termine</CardTitle>
@@ -131,34 +131,21 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Offene Zuschüsse</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {!zuschuesseAktiviert ? (
-              <p className="text-sm text-muted-foreground">
-                Zuschüsse sind für diesen Verein deaktiviert.
-              </p>
-            ) : offeneEinsaetze.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Keine offenen Einsätze.
-              </p>
-            ) : (
-              <p className="text-sm">
-                <span className="font-medium">{offeneEinsaetze.length}</span>{" "}
-                Einsätze ohne Zuschuss
-              </p>
-            )}
-            <Link
-              href="/admin/zuschuesse"
-              className="mt-1 text-xs text-muted-foreground underline"
-            >
-              Zu den Zuschüssen
-            </Link>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Bewusst kein eigenes Grid-Card mehr — bei deaktivierten Zuschüssen
+          oder ohne offene Einsätze gibt es hier nichts zu tun, ein leerer/
+          negativer Hinweis wäre nur Lärm auf der Übersicht. */}
+      {zuschuesseAktiviert && offeneEinsaetze.length > 0 && (
+        <Link
+          href="/admin/zuschuesse"
+          className="text-sm text-muted-foreground underline"
+        >
+          {offeneEinsaetze.length}{" "}
+          {offeneEinsaetze.length === 1 ? "Einsatz" : "Einsätze"} ohne
+          Zuschuss
+        </Link>
+      )}
     </div>
   );
 }

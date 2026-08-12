@@ -1,10 +1,14 @@
-import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, lte, or } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { termine, terminZuordnungen, users } from "@/db/schema";
 import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
-import { MonatsKalender, type KalenderEintrag } from "@/components/monats-kalender";
+import {
+  MonatsKalender,
+  type KalenderEintrag,
+  type TurnierBalken,
+} from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatZeit } from "@/lib/format";
 import { formatErgebnis, rundenspielTypLabel } from "@/lib/termin-label";
@@ -55,6 +59,7 @@ export default async function AdminKalenderPage({
         id: termine.id,
         typ: termine.typ,
         start: termine.start,
+        ende: termine.ende,
         ort: termine.ort,
         beschreibung: termine.beschreibung,
         turnierId: termine.turnierId,
@@ -67,7 +72,22 @@ export default async function AdminKalenderPage({
       .from(termine)
       .leftJoin(users, eq(termine.icsSchiedsrichterId, users.id))
       .where(
-        and(eq(termine.vereinId, vereinId), gte(termine.start, von), lte(termine.start, bis))
+        and(
+          eq(termine.vereinId, vereinId),
+          // Normalfall: Termin beginnt im angezeigten Monat. Zusätzlich
+          // mehrtägige Turniere, die VOR diesem Monat begonnen haben, aber
+          // noch hineinreichen (sonst würde der Balken im zweiten Monat
+          // fehlen, siehe MonatsKalender-Balken-Rendering).
+          or(
+            and(gte(termine.start, von), lte(termine.start, bis)),
+            and(
+              eq(termine.typ, "turnier"),
+              isNotNull(termine.ende),
+              gte(termine.ende, von),
+              lte(termine.start, bis)
+            )
+          )
+        )
       )
       .orderBy(asc(termine.start));
 
@@ -90,7 +110,24 @@ export default async function AdminKalenderPage({
   });
 
   const eintraegeProTag = new Map<string, KalenderEintrag[]>();
+  const mehrtaegigeEintraege: TurnierBalken[] = [];
   for (const t of termineDesMonats) {
+    // Ein Turnier mit Ende an einem ANDEREN Kalendertag ist ein "Container",
+    // der die ganze Spanne als Balken abdeckt (siehe MonatsKalender) — kein
+    // Eintrag am Starttag mehr, sonst erschiene es doppelt. Eintägige
+    // Turniere (kein Ende oder Ende am selben Tag) laufen unverändert durch
+    // die normale Einzeltag-Anzeige.
+    if (t.typ === "turnier" && t.ende && tagKey(t.ende) !== tagKey(t.start)) {
+      mehrtaegigeEintraege.push({
+        id: t.id,
+        label: t.beschreibung ?? "Turnier",
+        href: `/admin/termine/${t.id}`,
+        startTag: tagKey(t.start),
+        endTag: tagKey(t.ende),
+      });
+      continue;
+    }
+
     const key = tagKey(t.start);
     const liste = eintraegeProTag.get(key) ?? [];
     const typLabel =
@@ -169,6 +206,7 @@ export default async function AdminKalenderPage({
             jahr={jahr}
             monatNull={monatNull}
             eintraegeProTag={eintraegeProTag}
+            mehrtaegigeEintraege={mehrtaegigeEintraege}
             basisPfad="/admin/kalender"
           />
         </CardContent>

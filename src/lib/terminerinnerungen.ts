@@ -8,10 +8,12 @@ import {
   terminZuordnungen,
   termine,
   users,
+  vereine,
 } from "@/db/schema";
 import { sendMail } from "./mailer";
 import { sendePushAn } from "./push";
 import { formatDatumZeitLang } from "./format";
+import { terminMailHtml, terminMailText } from "./termin-mail";
 
 const ERINNERUNG_TYP = "erinnerung_24h";
 // Täglicher Cron-Lauf + 36h-Fenster, damit zwischen zwei Läufen keine
@@ -70,12 +72,32 @@ async function ermittleEmpfaenger(termin: Termin) {
   return [...empfaenger.values()];
 }
 
-function erinnerungsText(termin: Termin) {
+function erinnerungsMailInhalt(termin: Termin) {
+  const zeitpunkt = formatDatumZeitLang(termin.start);
+  const zeilen: string[] = [`Termin: ${zeitpunkt}`];
+  if (termin.ort) zeilen.push(`Ort: ${termin.ort}`);
+  if (termin.beschreibung) zeilen.push(termin.beschreibung);
+  return { ueberschrift: "Erinnerung an deinen anstehenden Termin.", zeilen };
+}
+
+function erinnerungsPushText(termin: Termin) {
   const zeitpunkt = formatDatumZeitLang(termin.start);
   const zeilen = [`Erinnerung an deinen Termin am ${zeitpunkt}.`];
   if (termin.ort) zeilen.push(`Ort: ${termin.ort}`);
   if (termin.beschreibung) zeilen.push(termin.beschreibung);
   return zeilen.join("\n");
+}
+
+const vereinNamenCache = new Map<string, string>();
+async function holeVereinName(vereinId: string): Promise<string> {
+  const gecacht = vereinNamenCache.get(vereinId);
+  if (gecacht) return gecacht;
+  const verein = await adminDb.query.vereine.findFirst({
+    where: eq(vereine.id, vereinId),
+  });
+  const name = verein?.name ?? "Handballpate";
+  vereinNamenCache.set(vereinId, name);
+  return name;
 }
 
 export async function sendeAusstehendeErinnerungen() {
@@ -103,10 +125,13 @@ export async function sendeAusstehendeErinnerungen() {
       if (bereitsVersendet) continue;
 
       try {
+        const vereinName = await holeVereinName(termin.vereinId);
+        const mailParams = { vereinName, ...erinnerungsMailInhalt(termin) };
         await sendMail(
           person.email,
           "Erinnerung: anstehender Termin",
-          erinnerungsText(termin)
+          terminMailText(mailParams),
+          terminMailHtml(mailParams)
         );
         // Push ist ein zusätzlicher, best-effort Kanal — ein fehlendes/
         // ungültiges Abo darf den (bereits erfolgreichen) E-Mail-Versand
@@ -115,7 +140,7 @@ export async function sendeAusstehendeErinnerungen() {
         try {
           await sendePushAn(person.id, {
             title: "Erinnerung: anstehender Termin",
-            body: erinnerungsText(termin),
+            body: erinnerungsPushText(termin),
             url: "/profil",
           });
         } catch {

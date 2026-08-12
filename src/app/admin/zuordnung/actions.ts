@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
-import { termine, terminZuordnungen, users } from "@/db/schema";
+import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { ZUORDENBARE_TYPEN } from "@/lib/zuordnung";
 import {
   SCHIRI_GESPANN_MAX,
@@ -13,6 +13,7 @@ import {
 } from "@/lib/besetzung";
 import { sendMail } from "@/lib/mailer";
 import { formatDatumZeitLang } from "@/lib/format";
+import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -20,17 +21,18 @@ const TYP_LABEL: Record<string, string> = {
   sekretaer: "Sekretär",
 };
 
-function zuordnungsText(
+function zuordnungsMailInhalt(
   rolle: string,
   termin: { start: Date; ort: string | null; beschreibung: string | null }
 ) {
   const zeitpunkt = formatDatumZeitLang(termin.start);
-  const zeilen = [
-    `Du wurdest als ${TYP_LABEL[rolle] ?? rolle} für den Termin am ${zeitpunkt} eingeteilt.`,
-  ];
+  const zeilen: string[] = [`Termin: ${zeitpunkt}`];
   if (termin.ort) zeilen.push(`Ort: ${termin.ort}`);
   if (termin.beschreibung) zeilen.push(termin.beschreibung);
-  return zeilen.join("\n");
+  return {
+    ueberschrift: `Du wurdest als ${TYP_LABEL[rolle] ?? rolle} eingeteilt.`,
+    zeilen,
+  };
 }
 
 // Prüft die Gespann-/Zweierbesetzung-Obergrenze, BEVOR eine weitere Person
@@ -115,15 +117,24 @@ export async function zuordnen(formData: FormData) {
     });
     if (!termin) return null;
 
-    return { termin, email: person.email };
+    const verein = await tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+    });
+
+    return { termin, email: person.email, vereinName: verein?.name ?? "Handballpate" };
   });
 
   if (benachrichtigung) {
+    const mailParams = {
+      vereinName: benachrichtigung.vereinName,
+      ...zuordnungsMailInhalt(rolle, benachrichtigung.termin),
+    };
     try {
       await sendMail(
         benachrichtigung.email,
         "Neue Termin-Zuordnung",
-        zuordnungsText(rolle, benachrichtigung.termin)
+        terminMailText(mailParams),
+        terminMailHtml(mailParams)
       );
     } catch (err) {
       console.error("Zuordnungs-Mail konnte nicht gesendet werden:", err);

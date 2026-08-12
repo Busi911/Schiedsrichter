@@ -41,18 +41,32 @@ export type MonatsUrl = {
 // Zeitraum mit der Zeit veralten und müsste jede Saison manuell nachgepflegt
 // werden — das ist genau die Reibung, die der automatische Import beseitigen
 // soll.
+//
+// Ein Monat rückwärts standardmäßig mit dabei: Anwurfzeiten/Ergebnisse für
+// bereits gespielte Partien werden bei nuLiga teils erst nachträglich
+// eingetragen (siehe verlegte/nachgemeldete Spiele) — ohne den Rückwärts-
+// Monat würden solche Nachträge nie mehr synchronisiert, sobald der Monat
+// aus dem reinen Vorwärts-Fenster gerollt ist.
 export function baueMonatsUrls(
   hallenIds: string[],
   anzahlMonateVorwaerts = 10,
-  jetzt = new Date()
+  jetzt = new Date(),
+  anzahlMonateRueckwaerts = 1
 ): MonatsUrl[] {
   const urls: MonatsUrl[] = [];
 
   for (const locationId of hallenIds) {
     let jahr = jetzt.getFullYear();
     let monat = jetzt.getMonth() + 1; // 1-12
+    for (let i = 0; i < anzahlMonateRueckwaerts; i++) {
+      monat--;
+      if (monat < 1) {
+        monat = 12;
+        jahr--;
+      }
+    }
 
-    for (let i = 0; i < anzahlMonateVorwaerts; i++) {
+    for (let i = 0; i < anzahlMonateVorwaerts + anzahlMonateRueckwaerts; i++) {
       const monatName = MONAT_NAMEN[monat - 1];
       const monatParam = encodeURIComponent(`${monatName} ${jahr}`).replace(
         /%20/g,

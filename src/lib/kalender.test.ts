@@ -5,6 +5,7 @@ import {
   monatsBereich,
   monatsGitter,
   parseMonatParam,
+  platziereBalken,
   tagKey,
 } from "./kalender";
 
@@ -46,6 +47,55 @@ describe("gruppiereProTag", () => {
 
   it("liefert eine leere Liste für eine leere Eingabe", () => {
     expect(gruppiereProTag([])).toEqual([]);
+  });
+});
+
+describe("platziereBalken", () => {
+  // September 2026: Woche 0 = Mo 31.08.–So 06.09., Woche 1 = Mo 07.09.–So 13.09.
+  const wochen = monatsGitter(2026, 8);
+
+  it("platziert einen Balken innerhalb einer Woche mit korrekter Spalte/Spannweite", () => {
+    const platziert = platziereBalken(wochen, [
+      { id: "t1", label: "Turnier", startTag: "2026-09-02", endTag: "2026-09-04" },
+    ]);
+    // Mi=Spalte 3, Fr=Spalte 5 -> Spannweite 3
+    expect(platziert[0]).toEqual([
+      { id: "t1", label: "Turnier", startTag: "2026-09-02", endTag: "2026-09-04", startSpalte: 3, spannweite: 3, lane: 0 },
+    ]);
+    expect(platziert[1]).toEqual([]);
+  });
+
+  it("klammert einen wochenübergreifenden Balken pro Woche an die Wochengrenzen", () => {
+    // Sa 05.09.–So 06.09. (Woche 0, Spalte 6–7), Mo 07.09.–Di 08.09. (Woche 1, Spalte 1–2)
+    const platziert = platziereBalken(wochen, [
+      { id: "t1", label: "Turnier", startTag: "2026-09-05", endTag: "2026-09-08" },
+    ]);
+    expect(platziert[0]).toMatchObject([{ startSpalte: 6, spannweite: 2 }]);
+    expect(platziert[1]).toMatchObject([{ startSpalte: 1, spannweite: 2 }]);
+  });
+
+  it("weist überschneidenden Balken derselben Woche unterschiedliche Lanes zu", () => {
+    const platziert = platziereBalken(wochen, [
+      { id: "a", label: "A", startTag: "2026-09-01", endTag: "2026-09-03" },
+      { id: "b", label: "B", startTag: "2026-09-02", endTag: "2026-09-05" },
+    ]);
+    const lanes = new Set(platziert[0].map((b) => b.lane));
+    expect(lanes.size).toBe(2);
+  });
+
+  it("gibt nicht überschneidenden Balken dieselbe Lane", () => {
+    const platziert = platziereBalken(wochen, [
+      { id: "a", label: "A", startTag: "2026-09-01", endTag: "2026-09-02" },
+      { id: "b", label: "B", startTag: "2026-09-03", endTag: "2026-09-04" },
+    ]);
+    expect(platziert[0].every((b) => b.lane === 0)).toBe(true);
+  });
+
+  it("ignoriert Balken außerhalb des Wochenbereichs", () => {
+    const platziert = platziereBalken(wochen, [
+      { id: "t1", label: "Turnier", startTag: "2026-11-01", endTag: "2026-11-03" },
+    ]);
+    expect(platziert.every((woche) => woche.length === 0)).toBe(true);
   });
 });
 
