@@ -106,7 +106,7 @@ export default async function TerminBearbeitenPage({
                 defaultValue={termin.typ}
                 required
                 options={[
-                  { value: "testspiel", label: "Testspiel" },
+                  { value: "testspiel", label: "Freundschaftsspiel" },
                   { value: "turnier", label: "Turnier" },
                 ]}
               />

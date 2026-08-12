@@ -4,7 +4,7 @@ import { withTenant } from "@/db";
 import { termine } from "@/db/schema";
 import { normalisiereMannschaftsname } from "./rundenspiel-import";
 
-// Admins legen Testspiele oft manuell an, bevor der Verband/nuLiga das
+// Admins legen Freundschaftsspiele oft manuell an, bevor der Verband/nuLiga das
 // Spiel offiziell führt (z.B. weil noch kein Schiedsrichter feststeht) —
 // erscheint das Spiel später über den automatischen nuLiga-Sync als
 // "rundenspiel", existieren beide Termine parallel und doppeln sich im

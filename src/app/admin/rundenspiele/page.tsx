@@ -5,7 +5,7 @@ import { mannschaften, termine } from "@/db/schema";
 import {
   mannschaftAusRundenspielAnlegen,
   rundenspieleImportieren,
-  testspielDuplikatLoeschen,
+  testspielDuplikatVerknuepfen,
 } from "../actions";
 import { gruppiereUnbekannteMannschaften } from "@/lib/rundenspiel-import";
 import { findeTestspielDuplikate } from "@/lib/duplikat-erkennung";
@@ -170,12 +170,15 @@ export default async function RundenspielePage({
           <CardHeader>
             <CardTitle>Mögliche Duplikate</CardTitle>
             <CardDescription>
-              Manuell angelegte Testspiele (z.B. weil noch kein
+              Manuell angelegte Freundschaftsspiele (z.B. weil noch kein
               Schiedsrichter feststand), die inzwischen auch über den
               Hallenspielplan importiert wurden (als Liga- oder
               Freundschaftsspiel, siehe Beschreibung unten) — dieselbe
-              Begegnung taucht sonst doppelt im Kalender auf. Prüft die
-              Zuordnung, bevor ihr das Testspiel löscht.
+              Begegnung taucht sonst doppelt im Kalender auf. Beim
+              Verknüpfen werden bereits erfasste Zuordnungen (Schiedsrichter/
+              Zeitnehmer/Sekretär) und Zuschüsse auf den Hallenspielplan-
+              Eintrag übertragen, das doppelte Freundschaftsspiel wird
+              anschließend entfernt.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -187,7 +190,8 @@ export default async function RundenspielePage({
                 >
                   <div className="text-sm">
                     <p>
-                      <strong>Testspiel:</strong> {formatDateTime(d.testspielStart)}
+                      <strong>Freundschaftsspiel:</strong>{" "}
+                      {formatDateTime(d.testspielStart)}
                       {d.testspielBeschreibung ? ` · ${d.testspielBeschreibung}` : ""}
                     </p>
                     <p className="text-muted-foreground">
@@ -195,10 +199,11 @@ export default async function RundenspielePage({
                       {d.rundenspielBeschreibung ? ` · ${d.rundenspielBeschreibung}` : ""}
                     </p>
                   </div>
-                  <form action={testspielDuplikatLoeschen}>
-                    <input type="hidden" name="terminId" value={d.testspielId} />
+                  <form action={testspielDuplikatVerknuepfen}>
+                    <input type="hidden" name="testspielId" value={d.testspielId} />
+                    <input type="hidden" name="rundenspielId" value={d.rundenspielId} />
                     <Button type="submit" variant="outline" size="sm">
-                      Testspiel löschen
+                      Verknüpfen
                     </Button>
                   </form>
                 </div>

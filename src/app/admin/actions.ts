@@ -9,7 +9,9 @@ import {
   funktionstraegerRollen,
   mannschaften,
   termine,
+  terminZuordnungen,
   users,
+  zuschuesse,
 } from "@/db/schema";
 import { parseFunktionstraegerExcel } from "@/lib/funktionstraeger-import";
 import { normalisiereMannschaftsname, parseRundenspielJson } from "@/lib/rundenspiel-import";
@@ -592,27 +594,81 @@ export async function deleteTermin(formData: FormData) {
   redirect("/admin/termine");
 }
 
-// Gezieltes Löschen eines manuell angelegten Testspiels, das sich als
-// Duplikat eines später offiziell importierten Rundenspiels herausgestellt
-// hat (siehe findeTestspielDuplikate) — bewusst ohne Redirect, da von
-// /admin/rundenspiele statt /admin/termine aus aufgerufen.
-export async function testspielDuplikatLoeschen(formData: FormData) {
+// Verknüpft ein manuell angelegtes Freundschaftsspiel (typ "testspiel") mit
+// dem später offiziell über den Hallenspielplan importierten Rundenspiel,
+// das sich als Duplikat herausgestellt hat (siehe findeTestspielDuplikate).
+// Statt das Freundschaftsspiel einfach zu löschen (und damit bereits
+// erfasste Zuordnungen wie Schiedsrichter/Zeitnehmer/Sekretär sowie
+// gebuchte Zuschüsse zu verlieren, die per ON DELETE CASCADE an termin_id
+// hängen), werden diese zuerst auf das Rundenspiel übertragen. Bereits am
+// Rundenspiel vorhandene, inhaltlich identische Zuordnungen (gleiche Rolle
+// + gleiche Person) werden dabei verworfen statt dupliziert.
+export async function testspielDuplikatVerknuepfen(formData: FormData) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
 
-  const terminId = formData.get("terminId");
-  if (typeof terminId !== "string" || !terminId) {
-    throw new Error("Termin fehlt.");
+  const testspielId = formData.get("testspielId");
+  const rundenspielId = formData.get("rundenspielId");
+  if (
+    typeof testspielId !== "string" ||
+    !testspielId ||
+    typeof rundenspielId !== "string" ||
+    !rundenspielId
+  ) {
+    throw new Error("Termine fehlen.");
   }
 
   await withTenant(vereinId, async (tx) => {
-    const bestehend = await tx.query.termine.findFirst({
-      where: and(eq(termine.id, terminId), eq(termine.vereinId, vereinId)),
-    });
-    if (!bestehend || bestehend.quelle !== "manuell" || bestehend.typ !== "testspiel") {
-      throw new Error("Termin nicht gefunden oder nicht löschbar.");
+    const [testspiel, rundenspiel] = await Promise.all([
+      tx.query.termine.findFirst({
+        where: and(eq(termine.id, testspielId), eq(termine.vereinId, vereinId)),
+      }),
+      tx.query.termine.findFirst({
+        where: and(eq(termine.id, rundenspielId), eq(termine.vereinId, vereinId)),
+      }),
+    ]);
+    if (
+      !testspiel ||
+      testspiel.quelle !== "manuell" ||
+      testspiel.typ !== "testspiel" ||
+      !rundenspiel ||
+      rundenspiel.typ !== "rundenspiel"
+    ) {
+      throw new Error("Termine nicht gefunden oder nicht verknüpfbar.");
     }
-    await tx.delete(termine).where(eq(termine.id, terminId));
+
+    const [bestehendeZuordnungen, testspielZuordnungen] = await Promise.all([
+      tx.query.terminZuordnungen.findMany({
+        where: eq(terminZuordnungen.terminId, rundenspielId),
+      }),
+      tx.query.terminZuordnungen.findMany({
+        where: eq(terminZuordnungen.terminId, testspielId),
+      }),
+    ]);
+
+    for (const z of testspielZuordnungen) {
+      const bereitsVorhanden = bestehendeZuordnungen.some(
+        (b) =>
+          b.funktionstraegerTyp === z.funktionstraegerTyp &&
+          b.userId === z.userId &&
+          b.externerName === z.externerName
+      );
+      if (bereitsVorhanden) {
+        await tx.delete(terminZuordnungen).where(eq(terminZuordnungen.id, z.id));
+      } else {
+        await tx
+          .update(terminZuordnungen)
+          .set({ terminId: rundenspielId })
+          .where(eq(terminZuordnungen.id, z.id));
+      }
+    }
+
+    await tx
+      .update(zuschuesse)
+      .set({ terminId: rundenspielId })
+      .where(eq(zuschuesse.terminId, testspielId));
+
+    await tx.delete(termine).where(eq(termine.id, testspielId));
   });
 
   revalidatePath("/admin/rundenspiele");
