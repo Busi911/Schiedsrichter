@@ -20,7 +20,7 @@ export default async function Home() {
         <Card className="w-full max-w-sm">
           <CardHeader className="items-center text-center">
             <Logo className="mb-1 size-10 text-primary" />
-            <CardTitle className="text-xl">Handballpate</CardTitle>
+            <CardTitle className="text-xl">HandballerPate</CardTitle>
             <CardDescription>
               Verwaltungsplattform für Funktionsträger im Handballverein.
             </CardDescription>

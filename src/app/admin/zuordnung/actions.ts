@@ -121,7 +121,7 @@ export async function zuordnen(formData: FormData) {
       where: eq(vereine.id, vereinId),
     });
 
-    return { termin, email: person.email, vereinName: verein?.name ?? "Handballpate" };
+    return { termin, email: person.email, vereinName: verein?.name ?? "HandballerPate" };
   });
 
   if (benachrichtigung) {
@@ -142,6 +142,7 @@ export async function zuordnen(formData: FormData) {
   }
 
   revalidatePath("/admin/zuordnung");
+  revalidatePath("/admin/kalender");
 }
 
 // Zuordnung einer Person OHNE Zugang im System (z.B. Schiedsrichter eines
@@ -187,6 +188,7 @@ export async function externeZuordnung(formData: FormData) {
   });
 
   revalidatePath("/admin/zuordnung");
+  revalidatePath("/admin/kalender");
 }
 
 export async function zuordnungEntfernen(formData: FormData) {
@@ -203,4 +205,5 @@ export async function zuordnungEntfernen(formData: FormData) {
   );
 
   revalidatePath("/admin/zuordnung");
+  revalidatePath("/admin/kalender");
 }

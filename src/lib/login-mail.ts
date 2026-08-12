@@ -2,7 +2,7 @@ import "server-only";
 
 export function loginMailText(url: string) {
   return [
-    "Dein Login-Link für Handballpate:",
+    "Dein Login-Link für HandballerPate:",
     url,
     "",
     "Der Link ist eine kurze Zeit gültig und nur einmal verwendbar.",
@@ -26,7 +26,7 @@ export function loginMailHtml(url: string) {
                 <div style="width:48px;height:48px;margin:0 auto 16px;border-radius:14px;background:#1c1c1e;text-align:center;line-height:48px;">
                   <span style="color:#f97316;font-size:22px;">●</span>
                 </div>
-                <h1 style="margin:0;font-size:20px;color:#18181b;">Handballpate</h1>
+                <h1 style="margin:0;font-size:20px;color:#18181b;">HandballerPate</h1>
               </td>
             </tr>
             <tr>

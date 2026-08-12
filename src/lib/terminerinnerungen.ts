@@ -95,7 +95,7 @@ async function holeVereinName(vereinId: string): Promise<string> {
   const verein = await adminDb.query.vereine.findFirst({
     where: eq(vereine.id, vereinId),
   });
-  const name = verein?.name ?? "Handballpate";
+  const name = verein?.name ?? "HandballerPate";
   vereinNamenCache.set(vereinId, name);
   return name;
 }

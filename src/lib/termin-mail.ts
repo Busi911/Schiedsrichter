@@ -46,7 +46,7 @@ export function terminMailHtml(params: {
                 <p style="margin:0 0 4px;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#a1a1aa;">
                   ${escapeHtml(params.vereinName)}
                 </p>
-                <h1 style="margin:0;font-size:18px;color:#18181b;">Handballpate</h1>
+                <h1 style="margin:0;font-size:18px;color:#18181b;">HandballerPate</h1>
               </td>
             </tr>
             <tr>

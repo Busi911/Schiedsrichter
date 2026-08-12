@@ -186,7 +186,7 @@ export default async function OeffentlicheTurnierseite({
       )}
 
       <p className="text-center text-xs text-muted-foreground">
-        Rein lesende Ansicht — Handballpate
+        Rein lesende Ansicht — HandballerPate
       </p>
     </main>
   );

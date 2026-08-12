@@ -120,12 +120,15 @@ export default async function ProfilKalenderPage({
         ? ("vollstaendig" as const)
         : ("offen" as const)
       : undefined;
-    const besetzungsDetails = eigeneZuordnungen.map(
-      (z) =>
-        `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
-          z.name ?? z.externerName ?? z.email
-        }${z.externerName && !z.email ? " (ohne Login)" : ""}`
-    );
+    // Rein informativ auf dieser Seite (kein Zuordnen/Entfernen für den
+    // Funktionsträger selbst) — synthetische id genügt, da monats-kalender
+    // Entfernen-Buttons ohnehin nur bei zuordenbar=true anzeigt.
+    const besetzungsDetails = eigeneZuordnungen.map((z, i) => ({
+      id: `${t.id}-${i}`,
+      label: `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
+        z.name ?? z.externerName ?? z.email
+      }${z.externerName && !z.email ? " (ohne Login)" : ""}`,
+    }));
     const typLabel =
       t.typ === "rundenspiel"
         ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)

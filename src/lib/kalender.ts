@@ -53,11 +53,13 @@ export type TurnierBalken = {
   endTag: string;
 };
 
-export type PlatzierterBalken = TurnierBalken & {
+export type PlatzierungsInfo = {
   startSpalte: number; // 1-7 (Montag=1) — CSS-Grid-Spalte innerhalb der Woche
   spannweite: number; // Anzahl Spalten in dieser Woche
   lane: number; // 0-basiert; bei Überschneidung mehrerer Balken in derselben Woche
 };
+
+export type PlatzierterBalken = TurnierBalken & PlatzierungsInfo;
 
 // Platziert mehrtägige Balken (z.B. Turniere) pro Kalenderwoche als
 // CSS-Grid-Spalten + Lane (Zeile bei Überschneidung) — Greedy-
@@ -66,10 +68,14 @@ export type PlatzierterBalken = TurnierBalken & {
 // Turniere; ein Balken, der über mehrere Wochen läuft, wird pro Woche
 // separat (mit an die Woche geklammerten Start-/Endspalten) platziert,
 // damit er über die Wochenzeilen hinweg durchgehend wirkt.
-export function platziereBalken(
+//
+// Generisch über T, damit Aufrufer zusätzliche Felder (z.B. für ein
+// Bearbeiten-Formular im Kalender-Modal) unverändert durchreichen können,
+// ohne dass diese reine Platzierungs-Logik davon wissen muss.
+export function platziereBalken<T extends TurnierBalken>(
   wochen: KalenderTag[][],
-  balken: TurnierBalken[]
-): PlatzierterBalken[][] {
+  balken: T[]
+): (T & PlatzierungsInfo)[][] {
   return wochen.map((woche) => {
     const wocheKeys = woche.map((t) => tagKey(t.datum));
 
@@ -90,11 +96,11 @@ export function platziereBalken(
           spannweite: endIdx - startIdx + 1,
         };
       })
-      .filter((b): b is TurnierBalken & { startSpalte: number; spannweite: number } => b !== null)
+      .filter((b): b is T & { startSpalte: number; spannweite: number } => b !== null)
       .sort((a, b) => b.spannweite - a.spannweite || a.startSpalte - b.startSpalte);
 
     const laneEnden: number[] = []; // laneEnden[lane] = letzte belegte Spalte dieser Lane
-    const platziert: PlatzierterBalken[] = [];
+    const platziert: (T & PlatzierungsInfo)[] = [];
     for (const b of ueberlappend) {
       let lane = laneEnden.findIndex((ende) => ende < b.startSpalte);
       if (lane === -1) {

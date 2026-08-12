@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Handballpate",
+  title: "HandballerPate",
   description: "Verwaltungsplattform für Funktionsträger im Handballverein",
   manifest: "/manifest.json",
   // Favicon selbst kommt bereits automatisch aus src/app/icon.svg (Next.js

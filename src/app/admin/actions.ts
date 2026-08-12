@@ -22,7 +22,7 @@ import { istTurnierBerechtigt } from "@/lib/turnier-zugriff";
 
 function willkommensText(vereinName: string, email: string) {
   return [
-    `Für dich wurde ein Zugang im Handballpate von ${vereinName} angelegt.`,
+    `Für dich wurde ein Zugang im HandballerPate von ${vereinName} angelegt.`,
     `Melde dich mit deiner E-Mail-Adresse (${email}) unter ${appUrl()}/login an — du bekommst dort einen Login-Link per E-Mail zugeschickt, ein Passwort ist nicht nötig.`,
   ].join("\n\n");
 }
@@ -197,7 +197,7 @@ export async function createFunktionstraeger(formData: FormData) {
     try {
       await sendMail(
         normalizedEmail,
-        "Zugang für Handballpate",
+        "Zugang für HandballerPate",
         willkommensText(vereinName, normalizedEmail)
       );
     } catch (err) {
@@ -257,7 +257,7 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
     try {
       await sendMail(
         aktivierung.email,
-        "Zugang für Handballpate",
+        "Zugang für HandballerPate",
         willkommensText(aktivierung.vereinName, aktivierung.email)
       );
     } catch (err) {
@@ -271,12 +271,12 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
 function emailGeaendertText(vereinName: string, neueEmail: string, istNeueAdresse: boolean) {
   if (istNeueAdresse) {
     return [
-      `Deine E-Mail-Adresse im Handballpate von ${vereinName} wurde auf diese Adresse geändert.`,
+      `Deine E-Mail-Adresse im HandballerPate von ${vereinName} wurde auf diese Adresse geändert.`,
       `Du kannst dich ab sofort mit ${neueEmail} unter ${appUrl()}/login einloggen.`,
     ].join("\n\n");
   }
   return [
-    `Deine E-Mail-Adresse im Handballpate von ${vereinName} wurde geändert — dein Zugang läuft jetzt über ${neueEmail}.`,
+    `Deine E-Mail-Adresse im HandballerPate von ${vereinName} wurde geändert — dein Zugang läuft jetzt über ${neueEmail}.`,
     `Falls das nicht du warst bzw. dir diese Änderung nicht bekannt vorkommt, melde dich bitte beim Vereinsadmin.`,
   ].join("\n\n");
 }
@@ -444,7 +444,7 @@ export async function funktionstraegerImportieren(formData: FormData) {
     try {
       await sendMail(
         nutzer.email,
-        "Zugang für Handballpate",
+        "Zugang für HandballerPate",
         willkommensText(vereinName, nutzer.email)
       );
     } catch (err) {
@@ -510,11 +510,14 @@ export async function createTermin(formData: FormData) {
   revalidatePath("/admin/termine");
 }
 
-// Bearbeiten/Löschen ist bewusst nur für manuell angelegte Termine gedacht
-// (Testspiele/Turniere) — ICS-Feed-Termine werden vom Sync verwaltet und
-// würden bei manueller Änderung beim nächsten Sync wieder überschrieben.
-export async function updateTermin(formData: FormData) {
-  const session = await requireAdmin();
+// Geteilte Kernlogik zwischen updateTermin (dedizierte Bearbeiten-Seite,
+// springt danach zur Liste zurück) und updateTerminInline (Schnell-Bearbeiten
+// direkt im Kalender-Modal, bleibt auf der Kalenderseite) — beide validieren/
+// speichern identisch, unterscheiden sich nur im Verhalten NACH dem Speichern.
+async function aktualisiereTerminFelder(
+  session: Awaited<ReturnType<typeof requireAdmin>>,
+  formData: FormData
+) {
   const vereinId = session.user.vereinId!;
 
   const terminId = formData.get("terminId");
@@ -594,8 +597,29 @@ export async function updateTermin(formData: FormData) {
       .where(eq(termine.id, terminId));
   });
 
+  return { terminId, typ };
+}
+
+// Bearbeiten/Löschen ist bewusst nur für manuell angelegte Termine gedacht
+// (Testspiele/Turniere) — ICS-Feed-Termine werden vom Sync verwaltet und
+// würden bei manueller Änderung beim nächsten Sync wieder überschrieben.
+export async function updateTermin(formData: FormData) {
+  const session = await requireAdmin();
+  await aktualisiereTerminFelder(session, formData);
+
   revalidatePath("/admin/termine");
   redirect("/admin/termine");
+}
+
+// Schnell-Bearbeiten direkt im Kalender-Modal (siehe MonatsKalender-Balken)
+// — bewusst OHNE redirect, damit der Admin auf der Kalenderseite bleibt
+// statt zur Termine-Liste zu springen.
+export async function updateTerminInline(formData: FormData) {
+  const session = await requireAdmin();
+  await aktualisiereTerminFelder(session, formData);
+
+  revalidatePath("/admin/kalender");
+  revalidatePath("/admin/termine");
 }
 
 export async function deleteTermin(formData: FormData) {

@@ -1,6 +1,6 @@
 {
-  "name": "Handballpate",
-  "short_name": "Handballpate",
+  "name": "HandballerPate",
+  "short_name": "HandballerPate",
   "description": "Verwaltungsplattform für Funktionsträger im Handballverein",
   "start_url": "/",
   "scope": "/",

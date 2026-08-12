@@ -10,11 +10,11 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: "Handballpate", body: event.data.text() };
+    payload = { title: "HandballerPate", body: event.data.text() };
   }
 
   event.waitUntil(
-    self.registration.showNotification(payload.title ?? "Handballpate", {
+    self.registration.showNotification(payload.title ?? "HandballerPate", {
       body: payload.body,
       icon: "/icon-192.png",
       badge: "/icon-192.png",

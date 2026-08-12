@@ -1,13 +1,14 @@
 import { and, asc, eq, gte, inArray, isNotNull, lte, or } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
-import { termine, terminZuordnungen, users } from "@/db/schema";
+import { funktionstraegerRollen, mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
 import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
+import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
   MonatsKalender,
   type KalenderEintrag,
-  type TurnierBalken,
+  type TurnierBalkenBearbeitbar,
 } from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatZeit } from "@/lib/format";
@@ -53,65 +54,91 @@ export default async function AdminKalenderPage({
   const { jahr, monatNull } = parseMonatParam(monat);
   const { von, bis } = monatsBereich(jahr, monatNull);
 
-  const [termineDesMonats, zuordnungen] = await withTenant(vereinId, async (tx) => {
-    const termineDesMonats = await tx
-      .select({
-        id: termine.id,
-        typ: termine.typ,
-        start: termine.start,
-        ende: termine.ende,
-        ort: termine.ort,
-        beschreibung: termine.beschreibung,
-        turnierId: termine.turnierId,
-        pflichtspiel: termine.pflichtspiel,
-        freundschaftsTyp: termine.freundschaftsTyp,
-        ergebnisHeim: termine.ergebnisHeim,
-        ergebnisAuswaerts: termine.ergebnisAuswaerts,
-        schiedsrichterName: users.name,
-        schiedsrichterEmail: users.email,
-      })
-      .from(termine)
-      .leftJoin(users, eq(termine.icsSchiedsrichterId, users.id))
-      .where(
-        and(
-          eq(termine.vereinId, vereinId),
-          // Normalfall: Termin beginnt im angezeigten Monat. Zusätzlich
-          // mehrtägige Turniere, die VOR diesem Monat begonnen haben, aber
-          // noch hineinreichen (sonst würde der Balken im zweiten Monat
-          // fehlen, siehe MonatsKalender-Balken-Rendering).
-          or(
-            and(gte(termine.start, von), lte(termine.start, bis)),
-            and(
-              eq(termine.typ, "turnier"),
-              isNotNull(termine.ende),
-              gte(termine.ende, von),
-              lte(termine.start, bis)
+  const [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe] =
+    await withTenant(vereinId, async (tx) => {
+      const termineDesMonats = await tx
+        .select({
+          id: termine.id,
+          typ: termine.typ,
+          start: termine.start,
+          ende: termine.ende,
+          ort: termine.ort,
+          beschreibung: termine.beschreibung,
+          turnierId: termine.turnierId,
+          pflichtspiel: termine.pflichtspiel,
+          freundschaftsTyp: termine.freundschaftsTyp,
+          ergebnisHeim: termine.ergebnisHeim,
+          ergebnisAuswaerts: termine.ergebnisAuswaerts,
+          mannschaftId: termine.mannschaftId,
+          turnierVerantwortlicherId: termine.turnierVerantwortlicherId,
+          schiedsrichterName: users.name,
+          schiedsrichterEmail: users.email,
+        })
+        .from(termine)
+        .leftJoin(users, eq(termine.icsSchiedsrichterId, users.id))
+        .where(
+          and(
+            eq(termine.vereinId, vereinId),
+            // Normalfall: Termin beginnt im angezeigten Monat. Zusätzlich
+            // mehrtägige Turniere, die VOR diesem Monat begonnen haben, aber
+            // noch hineinreichen (sonst würde der Balken im zweiten Monat
+            // fehlen, siehe MonatsKalender-Balken-Rendering).
+            or(
+              and(gte(termine.start, von), lte(termine.start, bis)),
+              and(
+                eq(termine.typ, "turnier"),
+                isNotNull(termine.ende),
+                gte(termine.ende, von),
+                lte(termine.start, bis)
+              )
             )
           )
         )
-      )
-      .orderBy(asc(termine.start));
+        .orderBy(asc(termine.start));
 
-    const terminIds = termineDesMonats.map((t) => t.id);
-    const zuordnungen = terminIds.length
-      ? await tx
-          .select({
-            terminId: terminZuordnungen.terminId,
-            funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
-            name: users.name,
-            email: users.email,
-            externerName: terminZuordnungen.externerName,
-          })
-          .from(terminZuordnungen)
-          .leftJoin(users, eq(terminZuordnungen.userId, users.id))
-          .where(inArray(terminZuordnungen.terminId, terminIds))
-      : [];
+      const terminIds = termineDesMonats.map((t) => t.id);
+      const zuordnungen = terminIds.length
+        ? await tx
+            .select({
+              id: terminZuordnungen.id,
+              terminId: terminZuordnungen.terminId,
+              funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+              name: users.name,
+              email: users.email,
+              externerName: terminZuordnungen.externerName,
+            })
+            .from(terminZuordnungen)
+            .leftJoin(users, eq(terminZuordnungen.userId, users.id))
+            .where(inArray(terminZuordnungen.terminId, terminIds))
+        : [];
 
-    return [termineDesMonats, zuordnungen];
-  });
+      const mannschaftsListe = await tx.query.mannschaften.findMany({
+        where: eq(mannschaften.vereinId, vereinId),
+        orderBy: (m, { asc }) => [asc(m.name)],
+      });
+
+      // Kandidaten für "Turnierverantwortlicher" — funktionstraeger_rolle ist
+      // per RLS ohnehin auf den eigenen Verein beschränkt (siehe
+      // 0001_enable_rls_multi_tenant.sql).
+      const trainerListe = await tx
+        .select({ userId: users.id, name: users.name, email: users.email })
+        .from(funktionstraegerRollen)
+        .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+        .where(
+          and(
+            eq(funktionstraegerRollen.typ, "trainer"),
+            eq(funktionstraegerRollen.aktiv, true)
+          )
+        )
+        .orderBy(users.name);
+
+      return [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe];
+    });
+
+  const zuordenbarePersonen = await holeZuordenbareFunktionstraeger(vereinId);
 
   const eintraegeProTag = new Map<string, KalenderEintrag[]>();
-  const mehrtaegigeEintraege: TurnierBalken[] = [];
+  const mehrtaegigeEintraege: TurnierBalkenBearbeitbar[] = [];
   for (const t of termineDesMonats) {
     // Ein Turnier mit Ende an einem ANDEREN Kalendertag ist ein "Container",
     // der die ganze Spanne als Balken abdeckt (siehe MonatsKalender) — kein
@@ -125,6 +152,11 @@ export default async function AdminKalenderPage({
         href: `/admin/termine/${t.id}`,
         startTag: tagKey(t.start),
         endTag: tagKey(t.ende),
+        start: t.start,
+        ende: t.ende,
+        ort: t.ort,
+        mannschaftId: t.mannschaftId,
+        turnierVerantwortlicherId: t.turnierVerantwortlicherId,
       });
       continue;
     }
@@ -141,7 +173,8 @@ export default async function AdminKalenderPage({
       (t.typ === "spiel_ics" ? t.schiedsrichterName ?? t.schiedsrichterEmail ?? "Spiel" : typLabel);
 
     const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
-    const besetzung = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ)
+    const zuordenbar = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ);
+    const besetzung = zuordenbar
       ? istBesetzungVollstaendig(
           berechneBesetzung(
             eigeneZuordnungen,
@@ -154,18 +187,20 @@ export default async function AdminKalenderPage({
         : ("offen" as const)
       : undefined;
 
-    const besetzungsDetails: string[] = [];
+    const besetzungsDetails: { id: string; label: string }[] = [];
     if (t.typ === "spiel_ics" && t.schiedsrichterEmail) {
-      besetzungsDetails.push(
-        `Schiedsrichter: ${t.schiedsrichterName ?? t.schiedsrichterEmail}`
-      );
+      besetzungsDetails.push({
+        id: `ics-${t.id}`,
+        label: `Schiedsrichter: ${t.schiedsrichterName ?? t.schiedsrichterEmail}`,
+      });
     }
     for (const z of eigeneZuordnungen) {
-      besetzungsDetails.push(
-        `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
+      besetzungsDetails.push({
+        id: z.id,
+        label: `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
           z.name ?? z.externerName ?? z.email
-        }${z.externerName && !z.email ? " (ohne Login)" : ""}`
-      );
+        }${z.externerName && !z.email ? " (ohne Login)" : ""}`,
+      });
     }
 
     liste.push({
@@ -174,6 +209,7 @@ export default async function AdminKalenderPage({
       label,
       typLabel,
       besetzung,
+      zuordenbar,
       ort: t.ort,
       besetzungsDetails,
       ergebnis: formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts),
@@ -211,6 +247,9 @@ export default async function AdminKalenderPage({
             monatNull={monatNull}
             eintraegeProTag={eintraegeProTag}
             mehrtaegigeEintraege={mehrtaegigeEintraege}
+            mannschaftsListe={mannschaftsListe}
+            trainerListe={trainerListe}
+            zuordenbarePersonen={zuordenbarePersonen}
             basisPfad="/admin/kalender"
           />
         </CardContent>

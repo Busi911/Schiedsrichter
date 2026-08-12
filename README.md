@@ -1,4 +1,4 @@
-# Handballpate
+# HandballerPate
 
 Verwaltungsplattform für Handball-Vereine: Funktionsträger (Schiedsrichter,
 Zeitnehmer, Sekretäre, Trainer, Ordner, Kioskdienst), Terminverwaltung inkl.

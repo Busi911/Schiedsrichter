@@ -8,6 +8,8 @@ import {
   tagKey,
   type TurnierBalken,
 } from "@/lib/kalender";
+import { updateTerminInline } from "@/app/admin/actions";
+import { zuordnen, zuordnungEntfernen } from "@/app/admin/zuordnung/actions";
 import {
   Dialog,
   DialogContent,
@@ -18,9 +20,18 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatMonatJahr } from "@/lib/format";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LabeledSelect } from "@/components/labeled-select";
+import { formatMonatJahr, toDatetimeLocalWert } from "@/lib/format";
 
 const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+const ZUORDENBARE_TYP_LABEL: Record<string, string> = {
+  schiedsrichter: "Schiedsrichter",
+  zeitnehmer: "Zeitnehmer",
+  sekretaer: "Sekretär",
+};
 
 export type KalenderEintrag = {
   id: string;
@@ -31,8 +42,13 @@ export type KalenderEintrag = {
   // Wird bei vorhandenem ergebnis ignoriert (siehe unten) — ein bereits
   // abgepfiffenes Spiel braucht keinen Besetzungs-Hinweis mehr.
   besetzung?: "vollstaendig" | "offen";
+  // Ob im Modal ein "Person zuordnen"-Mini-Formular angeboten wird (siehe
+  // zuordenbarePersonen-Prop) — deckt sich mit BESETZUNGSRELEVANTE_TYPEN.
+  zuordenbar?: boolean;
   ort?: string | null;
-  besetzungsDetails?: string[];
+  // id = terminZuordnungen-Id (für "Entfernen"), bei nicht entfernbaren
+  // Einträgen (z.B. ICS-Schiedsrichter) ein synthetischer Platzhalter.
+  besetzungsDetails?: { id: string; label: string }[];
   bearbeitenHref?: string;
   // "24:20"-Format, nur gesetzt wenn beide Werte erfasst sind (siehe
   // ergebnisHeim/ergebnisAuswaerts in db/schema.ts).
@@ -46,17 +62,41 @@ export type KalenderEintrag = {
 // Einzelspiele.
 export type { TurnierBalken };
 
+// Balken mit den Feldern, die das Schnell-Bearbeiten-Formular im Modal
+// braucht (siehe updateTerminInline in admin/actions.ts) — id/label/href/
+// startTag/endTag kommen bereits aus TurnierBalken.
+export type TurnierBalkenBearbeitbar = TurnierBalken & {
+  start: Date;
+  ende: Date | null;
+  ort: string | null;
+  mannschaftId: string | null;
+  turnierVerantwortlicherId: string | null;
+};
+
+export type ZuordenbarePerson = {
+  userId: string;
+  name: string | null;
+  email: string;
+  typ: string;
+};
+
 export function MonatsKalender({
   jahr,
   monatNull,
   eintraegeProTag,
   mehrtaegigeEintraege = [],
+  mannschaftsListe = [],
+  trainerListe = [],
+  zuordenbarePersonen = [],
   basisPfad,
 }: {
   jahr: number;
   monatNull: number;
   eintraegeProTag: Map<string, KalenderEintrag[]>;
-  mehrtaegigeEintraege?: TurnierBalken[];
+  mehrtaegigeEintraege?: TurnierBalkenBearbeitbar[];
+  mannschaftsListe?: { id: string; name: string; altersklasse?: string | null }[];
+  trainerListe?: { userId: string; name: string | null; email: string }[];
+  zuordenbarePersonen?: ZuordenbarePerson[];
   basisPfad: string;
 }) {
   const wochen = monatsGitter(jahr, monatNull);
@@ -178,14 +218,103 @@ export function MonatsKalender({
                         <DialogTitle>{b.label}</DialogTitle>
                         <DialogDescription>Turnier</DialogDescription>
                       </DialogHeader>
+                      <form
+                        action={updateTerminInline}
+                        className="flex flex-col gap-3"
+                      >
+                        <input type="hidden" name="terminId" value={b.id} />
+                        <input type="hidden" name="typ" value="turnier" />
+                        <div className="flex gap-2">
+                          <div className="flex flex-1 flex-col gap-1.5">
+                            <Label htmlFor={`start-${b.id}`} className="text-xs">
+                              Beginn
+                            </Label>
+                            <Input
+                              id={`start-${b.id}`}
+                              name="start"
+                              type="datetime-local"
+                              defaultValue={toDatetimeLocalWert(b.start)}
+                              required
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="flex flex-1 flex-col gap-1.5">
+                            <Label htmlFor={`ende-${b.id}`} className="text-xs">
+                              Ende
+                            </Label>
+                            <Input
+                              id={`ende-${b.id}`}
+                              name="ende"
+                              type="datetime-local"
+                              defaultValue={b.ende ? toDatetimeLocalWert(b.ende) : ""}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Label htmlFor={`titel-${b.id}`} className="text-xs">
+                            Titel
+                          </Label>
+                          <Input
+                            id={`titel-${b.id}`}
+                            name="beschreibung"
+                            defaultValue={b.label}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <Label htmlFor={`ort-${b.id}`} className="text-xs">
+                            Ort
+                          </Label>
+                          <Input
+                            id={`ort-${b.id}`}
+                            name="ort"
+                            defaultValue={b.ort ?? ""}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        {mannschaftsListe.length > 0 && (
+                          <div className="flex flex-col gap-1.5">
+                            <Label className="text-xs">Mannschaft (optional)</Label>
+                            <LabeledSelect
+                              name="mannschaftId"
+                              placeholder="—"
+                              defaultValue={b.mannschaftId ?? undefined}
+                              options={mannschaftsListe.map((m) => ({
+                                value: m.id,
+                                label: m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name,
+                              }))}
+                            />
+                          </div>
+                        )}
+                        {trainerListe.length > 0 && (
+                          <div className="flex flex-col gap-1.5">
+                            <Label className="text-xs">
+                              Turnierverantwortlicher (optional)
+                            </Label>
+                            <LabeledSelect
+                              name="turnierVerantwortlicherId"
+                              placeholder="— (nur Admin verwaltet)"
+                              defaultValue={b.turnierVerantwortlicherId ?? undefined}
+                              options={trainerListe.map((t) => ({
+                                value: t.userId,
+                                label: t.name ?? t.email,
+                              }))}
+                            />
+                          </div>
+                        )}
+                        <Button type="submit" size="sm" className="mt-1">
+                          Speichern
+                        </Button>
+                      </form>
                       {b.href && (
                         <Button
                           size="sm"
-                          className="mt-2 w-fit"
+                          variant="outline"
                           render={<Link href={b.href} />}
                           nativeButton={false}
                         >
-                          Bearbeiten
+                          Spielplan &amp; mehr
                         </Button>
                       )}
                     </DialogContent>
@@ -261,11 +390,55 @@ export function MonatsKalender({
                                 )
                               )}
                               {e.besetzungsDetails && e.besetzungsDetails.length > 0 && (
-                                <ul className="flex flex-col gap-1 text-muted-foreground">
+                                <ul className="flex flex-col gap-1">
                                   {e.besetzungsDetails.map((d) => (
-                                    <li key={d}>{d}</li>
+                                    <li
+                                      key={d.id}
+                                      className="flex items-center justify-between gap-2 text-muted-foreground"
+                                    >
+                                      <span>{d.label}</span>
+                                      {e.zuordenbar && !d.id.startsWith("ics-") && (
+                                        <form action={zuordnungEntfernen}>
+                                          <input
+                                            type="hidden"
+                                            name="zuordnungId"
+                                            value={d.id}
+                                          />
+                                          <button
+                                            type="submit"
+                                            className="shrink-0 underline"
+                                          >
+                                            Entfernen
+                                          </button>
+                                        </form>
+                                      )}
+                                    </li>
                                   ))}
                                 </ul>
+                              )}
+                              {e.zuordenbar && zuordenbarePersonen.length > 0 && (
+                                <form
+                                  action={zuordnen}
+                                  className="flex items-center gap-2 border-t pt-2"
+                                >
+                                  <input type="hidden" name="terminId" value={e.id} />
+                                  <div className="flex-1">
+                                    <LabeledSelect
+                                      name="personTyp"
+                                      placeholder="Person wählen…"
+                                      required
+                                      options={zuordenbarePersonen.map((p) => ({
+                                        value: `${p.userId}|${p.typ}`,
+                                        label: `${p.name ?? p.email} (${
+                                          ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ
+                                        })`,
+                                      }))}
+                                    />
+                                  </div>
+                                  <Button type="submit" variant="outline" size="sm">
+                                    Zuordnen
+                                  </Button>
+                                </form>
                               )}
                               {e.bearbeitenHref && (
                                 <Button
