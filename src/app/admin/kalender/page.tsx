@@ -13,6 +13,7 @@ import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { bedarfFuer } from "@/lib/dienste";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
+import { schiedsrichterKuerzelPasstZu } from "@/lib/rundenspiel-import";
 import {
   MonatsKalender,
   type KalenderEintrag,
@@ -77,6 +78,7 @@ export default async function AdminKalenderPage({
           freundschaftsTyp: termine.freundschaftsTyp,
           ergebnisHeim: termine.ergebnisHeim,
           ergebnisAuswaerts: termine.ergebnisAuswaerts,
+          nuligaSchiedsrichterKuerzel: termine.nuligaSchiedsrichterKuerzel,
           mannschaftId: termine.mannschaftId,
           turnierVerantwortlicherId: termine.turnierVerantwortlicherId,
           schiedsrichterName: users.name,
@@ -209,11 +211,23 @@ export default async function AdminKalenderPage({
       });
     }
     for (const z of eigeneZuordnungen) {
+      let label = `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
+        z.name ?? z.externerName ?? z.email
+      }${z.externerName && !z.email ? " (ohne Login)" : ""}`;
+      if (z.funktionstraegerTyp === "schiedsrichter" && t.nuligaSchiedsrichterKuerzel) {
+        label += schiedsrichterKuerzelPasstZu(t.nuligaSchiedsrichterKuerzel, z.name)
+          ? ` (✓ passt zu nuLiga: ${t.nuligaSchiedsrichterKuerzel})`
+          : ` (⚠ nuLiga nennt: ${t.nuligaSchiedsrichterKuerzel})`;
+      }
+      besetzungsDetails.push({ id: z.id, label });
+    }
+    if (
+      t.nuligaSchiedsrichterKuerzel &&
+      !eigeneZuordnungen.some((z) => z.funktionstraegerTyp === "schiedsrichter")
+    ) {
       besetzungsDetails.push({
-        id: z.id,
-        label: `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
-          z.name ?? z.externerName ?? z.email
-        }${z.externerName && !z.email ? " (ohne Login)" : ""}`,
+        id: `nuliga-kuerzel-${t.id}`,
+        label: `nuLiga-Ansetzung: ${t.nuligaSchiedsrichterKuerzel} (noch nicht zugeordnet)`,
       });
     }
 

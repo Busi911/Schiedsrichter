@@ -7,6 +7,7 @@ import {
 } from "@/lib/schiedsrichterwart";
 import { holeTermineMitZuordnungen } from "@/lib/zuordnung";
 import { berechneBesetzung } from "@/lib/besetzung";
+import { schiedsrichterKuerzelPasstZu } from "@/lib/rundenspiel-import";
 import {
   schiedsrichterZuordnen,
   schiedsrichterZuordnungEntfernen,
@@ -223,9 +224,20 @@ export default async function SchiedsrichterwartPage() {
                       {t.beschreibung}
                     </p>
                   )}
+                  {t.nuligaSchiedsrichterKuerzel && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      nuLiga-Ansetzung: {t.nuligaSchiedsrichterKuerzel}
+                    </p>
+                  )}
                   {bestehendeSchiedsrichter.length > 0 && (
                     <ul className="mt-2 flex flex-col gap-1">
-                      {bestehendeSchiedsrichter.map((z) => (
+                      {bestehendeSchiedsrichter.map((z) => {
+                        const kuerzel = t.nuligaSchiedsrichterKuerzel;
+                        const passt =
+                          kuerzel != null
+                            ? schiedsrichterKuerzelPasstZu(kuerzel, z.name)
+                            : null;
+                        return (
                         <li key={z.id}>
                           <div className="flex items-center justify-between gap-2">
                             <span>
@@ -234,6 +246,16 @@ export default async function SchiedsrichterwartPage() {
                               {z.externerName && !z.email
                                 ? " (ohne Login)"
                                 : ""}
+                              {passt === true && (
+                                <Badge variant="secondary" className="ml-2">
+                                  ✓ passt zu nuLiga ({kuerzel})
+                                </Badge>
+                              )}
+                              {passt === false && (
+                                <Badge variant="outline" className="ml-2 border-amber-500/50 text-amber-600 dark:text-amber-400">
+                                  ⚠ nuLiga nennt {kuerzel}
+                                </Badge>
+                              )}
                             </span>
                             <div className="flex items-center gap-3">
                               {personOptionen.length > 0 && (
@@ -296,7 +318,8 @@ export default async function SchiedsrichterwartPage() {
                             </div>
                           </div>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   )}
                   {!t.besetzung.schiriVoll &&

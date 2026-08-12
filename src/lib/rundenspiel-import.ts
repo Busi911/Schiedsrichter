@@ -38,6 +38,13 @@ export type RundenspielEreignis = {
   // beide zusammen oder keins, wie bei turnier_spiel (siehe schema.ts).
   ergebnisHeim: number | null;
   ergebnisAuswaerts: number | null;
+  // Von nuLiga selbst angesetzter Schiedsrichter, als abgekürzter Nachname
+  // mit Punkt (z.B. "Geru." für "Gerullis") — aus derselben Zusatz-Zelle
+  // extrahiert wie das Ergebnis (siehe extrahiereSchiedsrichterKuerzel
+  // unten). Dient als Abgleich/Bestätigung gegen die im Verein zugeordnete
+  // Person, nicht als automatische Zuordnung (die exakte Kürzung ist nicht
+  // zuverlässig bekannt).
+  schiedsrichterKuerzel: string | null;
 };
 
 export type RundenspielParseFehler = { index: number; grund: string };
@@ -115,6 +122,57 @@ function extrahiereErgebnis(zusatz: string | undefined): {
     ergebnisAuswaerts,
     zusatzOhneErgebnis: rest.length ? rest.join(" · ") : undefined,
   };
+}
+
+// nuLiga trägt bei manchen Verbänden zusätzlich den angesetzten
+// Schiedsrichter als abgekürzten Nachnamen mit Punkt ein (beobachtet:
+// "Geru." für einen Schiedsrichter mit Nachnamen "Gerullis") — landet im
+// selben Zusatz-Kanal wie das Ergebnis (siehe extrahiereErgebnis oben),
+// nach dessen Extraktion aufgerufen. Die genaue Kürzungsregel (Anzahl
+// Buchstaben) ist nicht zuverlässig bekannt, daher bewusst kein exaktes
+// Muster, sondern nur "ein Wort, groß beginnend, mit Punkt endend" — genug,
+// um es aus dem Titel herauszuhalten und als Abgleichs-Hinweis gegen die
+// zugeordnete Person anzuzeigen (siehe schiedsrichterKuerzelPasstZu), NICHT
+// um automatisch jemanden zuzuordnen.
+const KUERZEL_MUSTER = /^[A-ZÄÖÜ][a-zäöüß]{1,14}\.$/;
+
+function extrahiereSchiedsrichterKuerzel(zusatz: string | undefined): {
+  kuerzel: string | null;
+  zusatzOhneKuerzel: string | undefined;
+} {
+  if (!zusatz) return { kuerzel: null, zusatzOhneKuerzel: zusatz };
+  const teile = zusatz.split(" · ");
+  const rest: string[] = [];
+  let kuerzel: string | null = null;
+  for (const teil of teile) {
+    const getrimmt = teil.trim();
+    if (kuerzel === null && KUERZEL_MUSTER.test(getrimmt)) {
+      kuerzel = getrimmt;
+    } else {
+      rest.push(teil);
+    }
+  }
+  return {
+    kuerzel,
+    zusatzOhneKuerzel: rest.length ? rest.join(" · ") : undefined,
+  };
+}
+
+// Grobe Heuristik: passt, wenn der (angenommene) Nachname der zugeordneten
+// Person mit dem nuLiga-Kürzel beginnt (ohne den abschließenden Punkt,
+// Groß-/Kleinschreibung ignoriert). "Nachname" = letztes Wort von `name`,
+// da hier keine getrennten Vor-/Nachname-Felder existieren — funktioniert
+// nicht bei mehrteiligen Nachnamen, ist aber als reiner Bestätigungs-
+// Hinweis gedacht, kein hartes Kriterium.
+export function schiedsrichterKuerzelPasstZu(
+  kuerzel: string,
+  name: string | null | undefined
+): boolean {
+  if (!name) return false;
+  const woerter = name.trim().split(/\s+/);
+  const nachname = woerter[woerter.length - 1];
+  const kuerzelOhnePunkt = kuerzel.replace(/\.$/, "").toLowerCase();
+  return nachname.toLowerCase().startsWith(kuerzelOhnePunkt);
 }
 
 type RundenturnierKandidat = {
@@ -214,6 +272,7 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
     zusatz: string | undefined;
     ergebnisHeim: number | null;
     ergebnisAuswaerts: number | null;
+    schiedsrichterKuerzel: string | null;
   };
   const rohEreignisse: RohEreignis[] = [];
 
@@ -285,11 +344,14 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       // Kürzel, aber bei bereits ausgetragenen Spielen auch der Endstand) —
       // Format/Vorhandensein je Landesverband unbestätigt, daher roh
       // angehängt statt geraten interpretiert (siehe Kommentar in
-      // nuliga-scraper.ts). Ein enthaltenes Ergebnis wird herausgelöst
-      // (siehe extrahiereErgebnis oben), der Rest bleibt wie bisher roh.
+      // nuliga-scraper.ts). Ergebnis und Schiedsrichter-Kürzel werden
+      // herausgelöst (siehe extrahiereErgebnis/extrahiereSchiedsrichterKuerzel
+      // oben), der Rest bleibt wie bisher roh.
       const zusatzRoh = typeof e.zusatz === "string" ? e.zusatz : undefined;
-      const { ergebnisHeim, ergebnisAuswaerts, zusatzOhneErgebnis: zusatz } =
+      const { ergebnisHeim, ergebnisAuswaerts, zusatzOhneErgebnis } =
         extrahiereErgebnis(zusatzRoh);
+      const { kuerzel: schiedsrichterKuerzel, zusatzOhneKuerzel: zusatz } =
+        extrahiereSchiedsrichterKuerzel(zusatzOhneErgebnis);
 
       rohEreignisse.push({
         uid,
@@ -305,6 +367,7 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
         zusatz,
         ergebnisHeim,
         ergebnisAuswaerts,
+        schiedsrichterKuerzel,
       });
     }
   }
@@ -352,6 +415,7 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       freundschaftsTyp,
       ergebnisHeim: r.ergebnisHeim,
       ergebnisAuswaerts: r.ergebnisAuswaerts,
+      schiedsrichterKuerzel: r.schiedsrichterKuerzel,
     };
   });
 

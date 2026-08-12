@@ -53,7 +53,8 @@ export async function importiereRundenspielEreignisse(
           bestehend.pflichtspiel !== ereignis.pflichtspiel ||
           bestehend.freundschaftsTyp !== ereignis.freundschaftsTyp ||
           bestehend.ergebnisHeim !== ereignis.ergebnisHeim ||
-          bestehend.ergebnisAuswaerts !== ereignis.ergebnisAuswaerts;
+          bestehend.ergebnisAuswaerts !== ereignis.ergebnisAuswaerts ||
+          bestehend.nuligaSchiedsrichterKuerzel !== ereignis.schiedsrichterKuerzel;
 
         if (geaendert) {
           await tx
@@ -70,6 +71,7 @@ export async function importiereRundenspielEreignisse(
               freundschaftsTyp: ereignis.freundschaftsTyp,
               ergebnisHeim: ereignis.ergebnisHeim,
               ergebnisAuswaerts: ereignis.ergebnisAuswaerts,
+              nuligaSchiedsrichterKuerzel: ereignis.schiedsrichterKuerzel,
             })
             .where(eq(termine.id, bestehend.id));
           aktualisiert++;
@@ -91,6 +93,7 @@ export async function importiereRundenspielEreignisse(
           freundschaftsTyp: ereignis.freundschaftsTyp,
           ergebnisHeim: ereignis.ergebnisHeim,
           ergebnisAuswaerts: ereignis.ergebnisAuswaerts,
+          nuligaSchiedsrichterKuerzel: ereignis.schiedsrichterKuerzel,
         });
         neu++;
       }

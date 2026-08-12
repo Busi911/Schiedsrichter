@@ -345,6 +345,12 @@ export const termine = pgTable("termin", {
   // Tabellenberechnung später ohne Textparsing möglich wäre.
   ergebnisHeim: integer("ergebnis_heim"),
   ergebnisAuswaerts: integer("ergebnis_auswaerts"),
+  // Nur bei typ = 'rundenspiel' ggf. gesetzt: von nuLiga selbst angesetzter
+  // Schiedsrichter, als abgekürzter Nachname mit Punkt (z.B. "Geru.") — aus
+  // der Zusatz-Zelle extrahiert (siehe rundenspiel-import.ts). Dient nur als
+  // Abgleichs-Hinweis gegen die im Verein zugeordnete Person (siehe
+  // schiedsrichterKuerzelPasstZu), nicht als automatische Zuordnung.
+  nuligaSchiedsrichterKuerzel: text("nuliga_schiedsrichter_kuerzel"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 

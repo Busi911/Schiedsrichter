@@ -4,6 +4,7 @@ import {
   gruppiereUnbekannteMannschaften,
   normalisiereMannschaftsname,
   parseRundenspielJson,
+  schiedsrichterKuerzelPasstZu,
 } from "./rundenspiel-import";
 
 function beispielJson(overrides: Record<string, unknown> = {}) {
@@ -135,6 +136,67 @@ describe("parseRundenspielJson", () => {
     expect(ereignisse[0].beschreibung).toBe(
       "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1 · Mä/männl. · Freundschaftsspiel · SR: M. Mueller"
     );
+  });
+
+  it("extrahiert ein von nuLiga angesetztes Schiedsrichter-Kürzel aus der Zusatz-Zelle", () => {
+    const { ereignisse } = parseRundenspielJson(
+      beispielJson({
+        events: [
+          {
+            date: "2026-08-02",
+            time: "15:00",
+            start: "2026-08-02T15:00:00+02:00",
+            title: "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1",
+            gameNumber: "0",
+            category: "Mä/männl.",
+            league: "F 2026-08-02 M TSF Heuchelheim (BOL) gg HSG Lumdatal (LL)",
+            home: "TSF Heuchelheim 1",
+            away: "HSG Lumdatal e.V. 1",
+            location: "Sporthalle Heuchelheim",
+            locationId: 30402,
+            zusatz: "Geru.",
+          },
+        ],
+      })
+    );
+    expect(ereignisse[0].schiedsrichterKuerzel).toBe("Geru.");
+    expect(ereignisse[0].beschreibung).toBe(
+      "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1 · Mä/männl. · Freundschaftsspiel"
+    );
+  });
+
+  it("extrahiert Ergebnis UND Schiedsrichter-Kürzel gemeinsam aus der Zusatz-Zelle", () => {
+    const { ereignisse } = parseRundenspielJson(
+      beispielJson({
+        events: [
+          {
+            date: "2026-08-02",
+            time: "15:00",
+            start: "2026-08-02T15:00:00+02:00",
+            title: "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1",
+            gameNumber: "0",
+            category: "Mä/männl.",
+            league: "F 2026-08-02 M TSF Heuchelheim (BOL) gg HSG Lumdatal (LL)",
+            home: "TSF Heuchelheim 1",
+            away: "HSG Lumdatal e.V. 1",
+            location: "Sporthalle Heuchelheim",
+            locationId: 30402,
+            zusatz: "Geru. · 40:25",
+          },
+        ],
+      })
+    );
+    expect(ereignisse[0].ergebnisHeim).toBe(40);
+    expect(ereignisse[0].ergebnisAuswaerts).toBe(25);
+    expect(ereignisse[0].schiedsrichterKuerzel).toBe("Geru.");
+    expect(ereignisse[0].beschreibung).toBe(
+      "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1 · Mä/männl. · Freundschaftsspiel"
+    );
+  });
+
+  it("lässt schiedsrichterKuerzel null, wenn die Zusatz-Zelle kein Kürzel-Muster enthält", () => {
+    const { ereignisse } = parseRundenspielJson(beispielJson());
+    expect(ereignisse[0].schiedsrichterKuerzel).toBeNull();
   });
 
   it("kennzeichnet echte Pflichtspiele (Spielnummer != 0) als Ligaspiel statt Freundschaftsspiel/Turnier", () => {
@@ -584,5 +646,24 @@ describe("gruppiereUnbekannteMannschaften", () => {
     ]);
     expect(vorschlaege).toHaveLength(1);
     expect(vorschlaege[0].anzeigeName).toBe("Eigene Mannschaft");
+  });
+});
+
+describe("schiedsrichterKuerzelPasstZu", () => {
+  it("erkennt ein Kürzel, das dem Nachnamens-Anfang entspricht", () => {
+    expect(schiedsrichterKuerzelPasstZu("Geru.", "Sabrina Gerullis")).toBe(true);
+  });
+
+  it("ist unempfindlich gegenüber Groß-/Kleinschreibung", () => {
+    expect(schiedsrichterKuerzelPasstZu("geru.", "Sabrina GERULLIS")).toBe(true);
+  });
+
+  it("lehnt ein Kürzel ab, das nicht zum Nachnamen passt", () => {
+    expect(schiedsrichterKuerzelPasstZu("Mue.", "Sabrina Gerullis")).toBe(false);
+  });
+
+  it("gibt false zurück, wenn kein Name vorhanden ist", () => {
+    expect(schiedsrichterKuerzelPasstZu("Geru.", null)).toBe(false);
+    expect(schiedsrichterKuerzelPasstZu("Geru.", undefined)).toBe(false);
   });
 });

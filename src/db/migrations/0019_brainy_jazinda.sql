@@ -1,0 +1,1 @@
+ALTER TABLE "termin" ADD COLUMN "nuliga_schiedsrichter_kuerzel" text;
