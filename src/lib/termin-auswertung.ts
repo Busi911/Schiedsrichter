@@ -32,6 +32,7 @@ export type AuswertungsBasisZeile = {
   icsSchiedsrichterId: string | null;
   icsSchiedsrichterName: string | null;
   icsSchiedsrichterEmail: string | null;
+  nuligaSchiedsrichterKuerzel: string | null;
 };
 
 export type ManuelleSchiedsrichterZuordnung = {
@@ -51,7 +52,14 @@ export type ManuelleSchiedsrichterZuordnung = {
 // werden pro Termin zu EINER Schiedsrichter-Spalte kombiniert (" / "
 // getrennt bei Gespann-Besetzung, siehe SCHIRI_GESPANN_MAX in
 // besetzung.ts) — manuelle Zuordnung hat Vorrang, falls (unüblich) beides
-// für denselben Termin vorhanden wäre.
+// für denselben Termin vorhanden wäre. Ist noch niemand zugeordnet, aber
+// nuLiga hat für den Termin ein Schiedsrichter-Kürzel geliefert (siehe
+// nuligaSchiedsrichterKuerzel in rundenspiel-import.ts), wird das als
+// Fallback angezeigt statt "—" — analog zur "nuLiga-Ansetzung
+// (noch nicht zugeordnet)"-Zeile im Kalender-Modal (admin/kalender/
+// page.tsx), aber bewusst nicht in schiedsrichterIds, da es keine echte
+// Person mit userId ist und daher nicht über den Schiedsrichter-Filter
+// gefunden werden kann.
 export function kombiniereSchiedsrichterZuordnungen(
   basisListe: AuswertungsBasisZeile[],
   manuelleZuordnungen: ManuelleSchiedsrichterZuordnung[],
@@ -71,6 +79,13 @@ export function kombiniereSchiedsrichterZuordnungen(
       t.icsSchiedsrichterId,
     ].filter((id): id is string => id !== null);
 
+    const schiedsrichterName = manuell.length
+      ? manuell.map((m) => m.name ?? m.email ?? "").join(" / ")
+      : t.icsSchiedsrichterName ??
+        (t.nuligaSchiedsrichterKuerzel
+          ? `${t.nuligaSchiedsrichterKuerzel} (laut nuLiga, noch nicht zugeordnet)`
+          : null);
+
     return {
       id: t.id,
       typ: t.typ,
@@ -81,9 +96,7 @@ export function kombiniereSchiedsrichterZuordnungen(
       pflichtspiel: t.pflichtspiel,
       freundschaftsTyp: t.freundschaftsTyp,
       mannschaftName: t.mannschaftName,
-      schiedsrichterName: manuell.length
-        ? manuell.map((m) => m.name ?? m.email ?? "").join(" / ")
-        : t.icsSchiedsrichterName,
+      schiedsrichterName,
       schiedsrichterEmail: manuell.length
         ? manuell.map((m) => m.email).filter((e) => e).join(" / ") || null
         : t.icsSchiedsrichterEmail,
@@ -129,6 +142,7 @@ export async function holeTermineFuerAuswertung(
         icsSchiedsrichterId: termine.icsSchiedsrichterId,
         icsSchiedsrichterName: users.name,
         icsSchiedsrichterEmail: users.email,
+        nuligaSchiedsrichterKuerzel: termine.nuligaSchiedsrichterKuerzel,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))

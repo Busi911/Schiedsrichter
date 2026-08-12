@@ -61,6 +61,7 @@ function basisAuswertungsZeile(
     icsSchiedsrichterId: null,
     icsSchiedsrichterName: null,
     icsSchiedsrichterEmail: null,
+    nuligaSchiedsrichterKuerzel: null,
     ...overrides,
   };
 }
@@ -134,5 +135,30 @@ describe("kombiniereSchiedsrichterZuordnungen", () => {
     expect(
       kombiniereSchiedsrichterZuordnungen(basis, []).map((z) => z.id)
     ).toEqual(["t1", "t2"]);
+  });
+
+  it("zeigt das nuLiga-Kürzel als Fallback, wenn noch niemand zugeordnet ist", () => {
+    const [zeile] = kombiniereSchiedsrichterZuordnungen(
+      [basisAuswertungsZeile({ nuligaSchiedsrichterKuerzel: "Schu." })],
+      []
+    );
+    expect(zeile.schiedsrichterName).toBe(
+      "Schu. (laut nuLiga, noch nicht zugeordnet)"
+    );
+  });
+
+  it("bevorzugt eine echte Zuordnung gegenüber dem nuLiga-Kürzel-Fallback", () => {
+    const [zeile] = kombiniereSchiedsrichterZuordnungen(
+      [basisAuswertungsZeile({ nuligaSchiedsrichterKuerzel: "Geru." })],
+      [{ terminId: "t1", userId: "u1", name: "Sabrina Gerullis", email: null }]
+    );
+    expect(zeile.schiedsrichterName).toBe("Sabrina Gerullis");
+  });
+
+  it("lässt den nuLiga-Kürzel-Fallback beim Schiedsrichter-Filter unberücksichtigt", () => {
+    const basis = [basisAuswertungsZeile({ id: "t1", nuligaSchiedsrichterKuerzel: "Schu." })];
+    expect(
+      kombiniereSchiedsrichterZuordnungen(basis, [], "u1").map((z) => z.id)
+    ).toEqual([]);
   });
 });
