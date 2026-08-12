@@ -72,6 +72,7 @@ export default async function ProfilKalenderPage({
         ort: termine.ort,
         beschreibung: termine.beschreibung,
         pflichtspiel: termine.pflichtspiel,
+        freundschaftsTyp: termine.freundschaftsTyp,
         hatIcsSchiedsrichter: termine.icsSchiedsrichterId,
         ergebnisHeim: termine.ergebnisHeim,
         ergebnisAuswaerts: termine.ergebnisAuswaerts,
@@ -126,7 +127,9 @@ export default async function ProfilKalenderPage({
         }${z.externerName && !z.email ? " (ohne Login)" : ""}`
     );
     const typLabel =
-      t.typ === "rundenspiel" ? rundenspielTypLabel(t.pflichtspiel) : TYP_LABEL[t.typ] ?? t.typ;
+      t.typ === "rundenspiel"
+        ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
+        : TYP_LABEL[t.typ] ?? t.typ;
     liste.push({
       id: t.id,
       zeit: formatZeit(t.start),

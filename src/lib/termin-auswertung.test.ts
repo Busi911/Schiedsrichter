@@ -9,6 +9,7 @@ const basisZeile = {
   ort: "Sporthalle",
   beschreibung: "gegen TuS Musterstadt",
   pflichtspiel: null,
+  freundschaftsTyp: null,
   mannschaftName: "Herren 1",
   schiedsrichterName: null,
   schiedsrichterEmail: null,

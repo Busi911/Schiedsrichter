@@ -27,6 +27,12 @@ export type RundenspielEreignis = {
   // Typ-Badges in Kalenderansichten die korrekte Bezeichnung zeigen können
   // (siehe bildeUid oben zur selben Spielnummer-basierten Unterscheidung).
   pflichtspiel: boolean;
+  // Nur bei pflichtspiel = false gesetzt, WENN sich eindeutig entscheiden
+  // lässt, um welche der beiden Arten es sich handelt (siehe
+  // istFreundschaftsstaffel bzw. findeRundenturnierTage unten) — sonst
+  // null, damit die Anzeige auf den unspezifischen Fallback
+  // "Freundschaftsspiel/Turnier" zurückfällt statt zu raten.
+  freundschaftsTyp: "freundschaftsspiel" | "turnier" | null;
 };
 
 export type RundenspielParseFehler = { index: number; grund: string };
@@ -156,6 +162,7 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
     kategorie: string | null;
     gameNumberRoh: string | undefined;
     istPflichtspiel: boolean;
+    istFreundschaftsstaffel: boolean;
     zusatz: string | undefined;
   };
   const rohEreignisse: RohEreignis[] = [];
@@ -240,6 +247,7 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
         kategorie,
         gameNumberRoh,
         istPflichtspiel,
+        istFreundschaftsstaffel,
         zusatz,
       });
     }
@@ -251,10 +259,27 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
   const rundenturnierUids = findeRundenturnierTage(rohEreignisse);
 
   const ereignisse: RundenspielEreignis[] = rohEreignisse.map((r) => {
-    const pflichtspiel = r.istPflichtspiel && !rundenturnierUids.has(r.uid);
+    const istTurnierTag = rundenturnierUids.has(r.uid);
+    const pflichtspiel = r.istPflichtspiel && !istTurnierTag;
+    // Reihenfolge der Prüfung ist bewusst: das Rundenturnier-Spielplan-
+    // Muster ist ein stärkeres, spezifischeres Signal als der generische
+    // "F "-Rohtext-Präfix (der auch bei einzelnen Freundschaftsspielen
+    // ohne Turnier-Charakter auftritt) — ein als Rundenturnier erkannter
+    // Tag gewinnt daher gegen istFreundschaftsstaffel.
+    const freundschaftsTyp: RundenspielEreignis["freundschaftsTyp"] = pflichtspiel
+      ? null
+      : istTurnierTag
+        ? "turnier"
+        : r.istFreundschaftsstaffel
+          ? "freundschaftsspiel"
+          : null;
     const spielArt = pflichtspiel
       ? `Ligaspiel Nr. ${r.gameNumberRoh}`
-      : "Freundschaftsspiel/Turnier";
+      : freundschaftsTyp === "turnier"
+        ? "Turnier"
+        : freundschaftsTyp === "freundschaftsspiel"
+          ? "Freundschaftsspiel"
+          : "Freundschaftsspiel/Turnier";
     const beschreibung = [r.titel, r.kategorie, spielArt, r.zusatz]
       .filter(Boolean)
       .join(" · ");
@@ -268,6 +293,7 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       auswaertsMannschaft: r.auswaertsMannschaft,
       kategorie: r.kategorie,
       pflichtspiel,
+      freundschaftsTyp,
     };
   });
 

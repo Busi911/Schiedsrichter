@@ -41,9 +41,10 @@ describe("parseRundenspielJson", () => {
     expect(ereignisse[0]).toMatchObject({
       ort: "Sporthalle Heuchelheim",
       beschreibung:
-        "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1 · Mä/männl. · Freundschaftsspiel/Turnier",
+        "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1 · Mä/männl. · Freundschaftsspiel",
       heimMannschaft: "TSF Heuchelheim 1",
       auswaertsMannschaft: "HSG Lumdatal e.V. 1",
+      freundschaftsTyp: "freundschaftsspiel",
     });
     expect(ereignisse[0].start.toISOString()).toBe(
       new Date("2026-08-02T15:00:00+02:00").toISOString()
@@ -98,7 +99,8 @@ describe("parseRundenspielJson", () => {
       })
     );
     expect(ereignisse[0].pflichtspiel).toBe(false);
-    expect(ereignisse[0].beschreibung).toContain("Freundschaftsspiel/Turnier");
+    expect(ereignisse[0].freundschaftsTyp).toBe("freundschaftsspiel");
+    expect(ereignisse[0].beschreibung).toContain("Freundschaftsspiel");
     expect(ereignisse[0].beschreibung).not.toContain("Ligaspiel");
   });
 
@@ -142,7 +144,9 @@ describe("parseRundenspielJson", () => {
     expect(ereignisse).toHaveLength(6);
     for (const e of ereignisse) {
       expect(e.pflichtspiel).toBe(false);
-      expect(e.beschreibung).toContain("Freundschaftsspiel/Turnier");
+      expect(e.freundschaftsTyp).toBe("turnier");
+      expect(e.beschreibung).toContain("Turnier");
+      expect(e.beschreibung).not.toContain("Ligaspiel");
     }
   });
 
@@ -193,6 +197,7 @@ describe("parseRundenspielJson", () => {
     expect(ereignisse).toHaveLength(3);
     for (const e of ereignisse) {
       expect(e.pflichtspiel).toBe(true);
+      expect(e.freundschaftsTyp).toBeNull();
       expect(e.beschreibung).toContain("Ligaspiel");
     }
   });

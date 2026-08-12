@@ -6,10 +6,22 @@ describe("rundenspielTypLabel", () => {
     expect(rundenspielTypLabel(true)).toBe("Ligaspiel");
   });
 
-  it("zeigt Freundschaftsspiel/Turnier für Nicht-Pflichtspiele und unbekannt", () => {
+  it("zeigt Freundschaftsspiel/Turnier für Nicht-Pflichtspiele ohne eindeutigen freundschaftsTyp", () => {
     expect(rundenspielTypLabel(false)).toBe("Freundschaftsspiel/Turnier");
     expect(rundenspielTypLabel(null)).toBe("Freundschaftsspiel/Turnier");
     expect(rundenspielTypLabel(undefined)).toBe("Freundschaftsspiel/Turnier");
+    expect(rundenspielTypLabel(false, null)).toBe("Freundschaftsspiel/Turnier");
+  });
+
+  it("zeigt die spezifische Bezeichnung, wenn freundschaftsTyp eindeutig ist", () => {
+    expect(rundenspielTypLabel(false, "freundschaftsspiel")).toBe(
+      "Freundschaftsspiel"
+    );
+    expect(rundenspielTypLabel(false, "turnier")).toBe("Turnier");
+  });
+
+  it("Ligaspiel gewinnt gegen einen (eigentlich nicht zutreffenden) freundschaftsTyp", () => {
+    expect(rundenspielTypLabel(true, "turnier")).toBe("Ligaspiel");
   });
 });
 
