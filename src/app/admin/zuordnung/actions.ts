@@ -80,6 +80,18 @@ export async function zuordnen(formData: FormData) {
   const rolle = typ as (typeof ZUORDENBARE_TYPEN)[number];
 
   const benachrichtigung = await withTenant(vereinId, async (tx) => {
+    // userId kommt roh aus dem Formular (Dropdown zeigt zwar nur Personen
+    // des eigenen Vereins, siehe holeZuordenbareFunktionstraeger, aber ein
+    // manipulierter Request könnte eine beliebige userId schicken). "user"
+    // hat bewusst KEIN RLS (siehe 0001_enable_rls_multi_tenant.sql) —
+    // Mandantentrennung muss hier deshalb explizit geprüft werden, sonst
+    // ließe sich eine Person eines fremden Vereins zuordnen (inkl.
+    // Benachrichtigungs-Mail an sie).
+    const person = await tx.query.users.findFirst({
+      where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
+    });
+    if (!person) throw new Error("Person nicht gefunden.");
+
     const vorhanden = await tx.query.terminZuordnungen.findFirst({
       where: and(
         eq(terminZuordnungen.terminId, terminId),
@@ -101,10 +113,7 @@ export async function zuordnen(formData: FormData) {
     const termin = await tx.query.termine.findFirst({
       where: eq(termine.id, terminId),
     });
-    const person = await tx.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
-    if (!termin || !person) return null;
+    if (!termin) return null;
 
     return { termin, email: person.email };
   });
