@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, or } from "drizzle-orm";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
@@ -75,12 +75,42 @@ export default async function ProfilPage() {
     const profil = await tx.query.schiedsrichterProfile.findFirst({
       where: eq(schiedsrichterProfile.userId, userId),
     });
-    const eigeneTermine = await tx.query.termine.findMany({
-      where: and(
-        eq(termine.icsSchiedsrichterId, userId),
-        eq(termine.vereinId, vereinId)
-      ),
+
+    // "Meine Termine" gilt für alle Funktionsträger-Rollen, nicht nur
+    // Schiedsrichter: eigene termin_zuordnung-Einträge (Zeitnehmer/
+    // Sekretär/Ordner/Kioskdienst) sowie — für Trainer — alle Termine der
+    // eigenen Mannschaft, zusätzlich zu den ICS-Feed-Einsätzen der
+    // Schiedsrichter.
+    const mannschaftIds = rollen
+      .filter((r) => r.typ === "trainer" && r.mannschaftId)
+      .map((r) => r.mannschaftId!);
+    const eigeneZuordnungen = await tx.query.terminZuordnungen.findMany({
+      where: eq(terminZuordnungen.userId, userId),
+    });
+    const zugeordneteTerminIds = eigeneZuordnungen.map((z) => z.terminId);
+
+    const terminBedingungen = [eq(termine.icsSchiedsrichterId, userId)];
+    if (zugeordneteTerminIds.length) {
+      terminBedingungen.push(inArray(termine.id, zugeordneteTerminIds));
+    }
+    if (mannschaftIds.length) {
+      terminBedingungen.push(inArray(termine.mannschaftId, mannschaftIds));
+    }
+
+    const eigeneTermineRoh = await tx.query.termine.findMany({
+      where: and(eq(termine.vereinId, vereinId), or(...terminBedingungen)),
       orderBy: (t, { asc }) => [asc(t.start)],
+    });
+    const eigeneTermine = eigeneTermineRoh.map((t) => {
+      const meineRollen = new Set<string>();
+      if (t.icsSchiedsrichterId === userId) meineRollen.add("schiedsrichter");
+      for (const z of eigeneZuordnungen) {
+        if (z.terminId === t.id) meineRollen.add(z.funktionstraegerTyp);
+      }
+      if (t.mannschaftId && mannschaftIds.includes(t.mannschaftId)) {
+        meineRollen.add("trainer");
+      }
+      return { ...t, meineRollen: [...meineRollen] };
     });
 
     const eigeneTypen = rollen
@@ -466,6 +496,15 @@ export default async function ProfilPage() {
                       {formatDateTime(t.start)}
                       {t.ort ? ` · ${t.ort}` : ""}
                       {t.beschreibung ? ` · ${t.beschreibung}` : ""}
+                      {t.meineRollen.length > 0 && (
+                        <span className="ml-2 inline-flex flex-wrap gap-1 align-middle">
+                          {t.meineRollen.map((r) => (
+                            <Badge key={r} variant="outline" className="text-xs">
+                              {TYP_LABEL[r] ?? r}
+                            </Badge>
+                          ))}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
