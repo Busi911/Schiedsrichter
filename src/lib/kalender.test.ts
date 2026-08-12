@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { monatKey, monatsBereich, monatsGitter, parseMonatParam, tagKey } from "./kalender";
+import {
+  gruppiereProTag,
+  monatKey,
+  monatsBereich,
+  monatsGitter,
+  parseMonatParam,
+  tagKey,
+} from "./kalender";
 
 describe("tagKey", () => {
   it("formatiert als YYYY-MM-DD", () => {
@@ -11,6 +18,34 @@ describe("tagKey", () => {
     // würden auf einem UTC-Server (Vercel) diesen Zeitpunkt noch dem 25.
     // zuordnen, obwohl er in Berlin (Sommerzeit) bereits am 26. liegt.
     expect(tagKey(new Date("2026-08-25T23:30:00Z"))).toBe("2026-08-26");
+  });
+});
+
+describe("gruppiereProTag", () => {
+  it("gruppiert Einträge nach Kalendertag, Reihenfolge nach erstem Auftreten", () => {
+    const items = [
+      { id: "a", start: new Date("2026-09-05T08:00:00Z") },
+      { id: "b", start: new Date("2026-09-05T10:00:00Z") },
+      { id: "c", start: new Date("2026-09-06T08:00:00Z") },
+    ];
+    const gruppen = gruppiereProTag(items);
+    expect(gruppen).toHaveLength(2);
+    expect(gruppen[0].tag).toBe("2026-09-05");
+    expect(gruppen[0].items.map((i) => i.id)).toEqual(["a", "b"]);
+    expect(gruppen[1].tag).toBe("2026-09-06");
+    expect(gruppen[1].items.map((i) => i.id)).toEqual(["c"]);
+  });
+
+  it("liefert eine einzelne Gruppe bei eintägigen Spielplänen", () => {
+    const items = [
+      { id: "a", start: new Date("2026-09-05T08:00:00Z") },
+      { id: "b", start: new Date("2026-09-05T10:00:00Z") },
+    ];
+    expect(gruppiereProTag(items)).toHaveLength(1);
+  });
+
+  it("liefert eine leere Liste für eine leere Eingabe", () => {
+    expect(gruppiereProTag([])).toEqual([]);
   });
 });
 

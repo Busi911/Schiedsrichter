@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { termine, terminZuordnungen, users } from "@/db/schema";
@@ -7,7 +7,7 @@ import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { MonatsKalender, type KalenderEintrag } from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatZeit } from "@/lib/format";
-import { rundenspielTypLabel } from "@/lib/termin-label";
+import { formatErgebnis, rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -59,6 +59,8 @@ export default async function AdminKalenderPage({
         beschreibung: termine.beschreibung,
         turnierId: termine.turnierId,
         pflichtspiel: termine.pflichtspiel,
+        ergebnisHeim: termine.ergebnisHeim,
+        ergebnisAuswaerts: termine.ergebnisAuswaerts,
         schiedsrichterName: users.name,
         schiedsrichterEmail: users.email,
       })
@@ -66,7 +68,8 @@ export default async function AdminKalenderPage({
       .leftJoin(users, eq(termine.icsSchiedsrichterId, users.id))
       .where(
         and(eq(termine.vereinId, vereinId), gte(termine.start, von), lte(termine.start, bis))
-      );
+      )
+      .orderBy(asc(termine.start));
 
     const terminIds = termineDesMonats.map((t) => t.id);
     const zuordnungen = terminIds.length
@@ -132,6 +135,7 @@ export default async function AdminKalenderPage({
       besetzung,
       ort: t.ort,
       besetzungsDetails,
+      ergebnis: formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts),
       bearbeitenHref: BEARBEITBARE_TYPEN.includes(t.typ)
         ? `/admin/termine/${t.typ === "turnier_spiel" ? t.turnierId : t.id}`
         : undefined,

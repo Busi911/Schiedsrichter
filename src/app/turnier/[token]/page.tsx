@@ -2,10 +2,14 @@ import { eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { adminDb } from "@/db/admin";
 import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
+import { gruppiereProTag } from "@/lib/kalender";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Logo } from "@/components/logo";
-import { formatDatumZeit as formatDateTime } from "@/lib/format";
+import {
+  formatDatumZeit as formatDateTime,
+  formatWochentagDatum,
+} from "@/lib/format";
 
 const ROLLE_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -56,8 +60,55 @@ export default async function OeffentlicheTurnierseite({
         .where(inArray(terminZuordnungen.terminId, spielIds))
     : [];
 
+  const tage = gruppiereProTag(spiele);
+  // Mehrspaltig (bis zu 3 nebeneinander auf großen Bildschirmen, mobil
+  // untereinander) nur bei mehrtägigen Turnieren — bei eintägigen wäre eine
+  // einzelne Spalte in einem breiten Grid nur unnötig gestreckt.
+  const mehrtaegig = tage.length > 1;
+
+  function spielZeile(s: (typeof spiele)[number]) {
+    const besetzung = alleZuordnungen.filter((z) => z.terminId === s.id);
+    return (
+      <div key={s.id} className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+          <span className="font-medium">{formatDateTime(s.start)}</span>
+          <span className="text-sm text-muted-foreground">{s.ort ?? "—"}</span>
+        </div>
+        <p className="text-sm">
+          {s.beschreibung ?? "—"}
+          {s.ergebnisHeim !== null && s.ergebnisAuswaerts !== null && (
+            <span className="ml-2 font-medium">
+              {s.ergebnisHeim}:{s.ergebnisAuswaerts}
+            </span>
+          )}
+        </p>
+        {besetzung.length === 0 ? (
+          <span className="text-xs text-muted-foreground">
+            Besetzung noch offen
+          </span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {besetzung.map((z) => (
+              <Badge
+                key={`${z.terminId}-${z.funktionstraegerTyp}-${z.email ?? z.externerName}`}
+                variant="secondary"
+              >
+                {ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}:{" "}
+                {z.name ?? z.externerName ?? z.email}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-6">
+    <main
+      className={`mx-auto flex min-h-screen flex-col gap-6 p-6 ${
+        mehrtaegig ? "max-w-5xl" : "max-w-3xl"
+      }`}
+    >
       <div className="flex items-center gap-3">
         <Logo className="size-8 shrink-0 text-primary" />
         <div>
@@ -93,57 +144,46 @@ export default async function OeffentlicheTurnierseite({
         </CardContent>
       </Card>
 
-      <Card className="min-w-0">
-        <CardHeader>
-          <CardTitle className="text-base">Spielplan</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {spiele.length === 0 ? (
+      {spiele.length === 0 ? (
+        <Card className="min-w-0">
+          <CardHeader>
+            <CardTitle className="text-base">Spielplan</CardTitle>
+          </CardHeader>
+          <CardContent>
             <p className="text-sm text-muted-foreground">
               Der Spielplan steht noch nicht fest.
             </p>
-          ) : (
+          </CardContent>
+        </Card>
+      ) : mehrtaegig ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {tage.map((tag) => (
+            <Card key={tag.tag} className="min-w-0">
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {formatWochentagDatum(tag.items[0].start)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col divide-y">
+                  {tag.items.map((s) => spielZeile(s))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card className="min-w-0">
+          <CardHeader>
+            <CardTitle className="text-base">Spielplan</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="flex flex-col divide-y">
-              {spiele.map((s) => {
-                const besetzung = alleZuordnungen.filter(
-                  (z) => z.terminId === s.id
-                );
-                return (
-                  <div key={s.id} className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                      <span className="font-medium">
-                        {formatDateTime(s.start)}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {s.ort ?? "—"}
-                      </span>
-                    </div>
-                    <p className="text-sm">{s.beschreibung ?? "—"}</p>
-                    {besetzung.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">
-                        Besetzung noch offen
-                      </span>
-                    ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {besetzung.map((z) => (
-                          <Badge
-                            key={`${z.terminId}-${z.funktionstraegerTyp}-${z.email ?? z.externerName}`}
-                            variant="secondary"
-                          >
-                            {ROLLE_LABEL[z.funktionstraegerTyp] ??
-                              z.funktionstraegerTyp}
-                            : {z.name ?? z.externerName ?? z.email}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {spiele.map((s) => spielZeile(s))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <p className="text-center text-xs text-muted-foreground">
         Rein lesende Ansicht — Handballpate

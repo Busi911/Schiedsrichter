@@ -21,11 +21,16 @@ export type KalenderEintrag = {
   zeit: string;
   label: string;
   typLabel: string;
-  // undefined = für diesen Termin-Typ nicht zutreffend (z.B. Turnier-Container)
+  // undefined = für diesen Termin-Typ nicht zutreffend (z.B. Turnier-Container).
+  // Wird bei vorhandenem ergebnis ignoriert (siehe unten) — ein bereits
+  // abgepfiffenes Spiel braucht keinen Besetzungs-Hinweis mehr.
   besetzung?: "vollstaendig" | "offen";
   ort?: string | null;
   besetzungsDetails?: string[];
   bearbeitenHref?: string;
+  // "24:20"-Format, nur gesetzt wenn beide Werte erfasst sind (siehe
+  // ergebnisHeim/ergebnisAuswaerts in db/schema.ts).
+  ergebnis?: string | null;
 };
 
 export function MonatsKalender({
@@ -121,7 +126,10 @@ export function MonatsKalender({
                           />
                         }
                       >
-                        {e.besetzung && (
+                        {/* Ein bereits abgepfiffenes Spiel (Ergebnis erfasst) braucht
+                            keinen Besetzungs-Hinweis mehr — der ist dann ohnehin
+                            hinfällig. */}
+                        {e.besetzung && !e.ergebnis && (
                           <span
                             className={`inline-block size-1.5 shrink-0 rounded-full ${
                               e.besetzung === "vollstaendig"
@@ -132,6 +140,11 @@ export function MonatsKalender({
                         )}
                         {e.zeit && <span className="font-medium">{e.zeit} </span>}
                         <span className="truncate">{e.label}</span>
+                        {e.ergebnis && (
+                          <span className="ml-auto shrink-0 font-medium">
+                            {e.ergebnis}
+                          </span>
+                        )}
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
@@ -143,18 +156,24 @@ export function MonatsKalender({
                           </DialogDescription>
                         </DialogHeader>
                         <div className="flex flex-col gap-2 text-sm">
-                          {e.besetzung && (
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                variant={
-                                  e.besetzung === "vollstaendig" ? "secondary" : "outline"
-                                }
-                              >
-                                {e.besetzung === "vollstaendig"
-                                  ? "Besetzung vollständig"
-                                  : "Besetzung offen"}
-                              </Badge>
-                            </div>
+                          {e.ergebnis ? (
+                            <Badge variant="secondary" className="w-fit">
+                              Endstand {e.ergebnis}
+                            </Badge>
+                          ) : (
+                            e.besetzung && (
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant={
+                                    e.besetzung === "vollstaendig" ? "secondary" : "outline"
+                                  }
+                                >
+                                  {e.besetzung === "vollstaendig"
+                                    ? "Besetzung vollständig"
+                                    : "Besetzung offen"}
+                                </Badge>
+                              </div>
+                            )
                           )}
                           {e.besetzungsDetails && e.besetzungsDetails.length > 0 && (
                             <ul className="flex flex-col gap-1 text-muted-foreground">

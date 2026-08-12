@@ -276,6 +276,20 @@ export const termine = pgTable("termin", {
   // Bezeichnung zeigen können, statt widersprüchlich immer "Rundenspiel" zu
   // sagen, obwohl die Beschreibung "Freundschaftsspiel/Turnier" ausweist.
   pflichtspiel: boolean("pflichtspiel"),
+  // Nur beim Turnier-Container (typ = 'turnier') gesetzt: optionaler Trainer,
+  // der für dieses eine Turnier zusätzlich zum Admin den Spielplan pflegen
+  // und Ergebnisse eintragen darf (siehe requireTurnierZugriff in
+  // admin/actions.ts) — bewusst kein pauschales Recht für alle Trainer,
+  // sondern explizit pro Turnier vom Admin vergeben.
+  turnierVerantwortlicherId: text("turnier_verantwortlicher_id").references(
+    () => users.id,
+    { onDelete: "set null" }
+  ),
+  // Nur bei typ = 'turnier_spiel' gesetzt, beide zusammen oder keins —
+  // getrennte Heim-/Auswärts-Spalten statt Freitext, damit z.B. eine
+  // Tabellenberechnung später ohne Textparsing möglich wäre.
+  ergebnisHeim: integer("ergebnis_heim"),
+  ergebnisAuswaerts: integer("ergebnis_auswaerts"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 

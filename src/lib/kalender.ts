@@ -26,6 +26,24 @@ export function tagKey(d: Date): string {
   return `${teil("year")}-${teil("month")}-${teil("day")}`;
 }
 
+// Gruppiert bereits nach Startzeit sortierte Einträge nach Kalendertag
+// (Europe/Berlin) — z.B. für mehrtägige Turnier-Spielpläne, deren Spiele pro
+// Tag mit einer Wochentag/Datum-Überschrift übersichtlicher sind als eine
+// einzige lange Liste. Reihenfolge der Gruppen ergibt sich automatisch aus
+// der Reihenfolge der Einträge (Map behält Einfügereihenfolge bei).
+export function gruppiereProTag<T extends { start: Date }>(
+  items: T[]
+): { tag: string; items: T[] }[] {
+  const gruppen = new Map<string, T[]>();
+  for (const item of items) {
+    const key = tagKey(item.start);
+    const liste = gruppen.get(key) ?? [];
+    liste.push(item);
+    gruppen.set(key, liste);
+  }
+  return [...gruppen.entries()].map(([tag, items]) => ({ tag, items }));
+}
+
 export function monatKey(jahr: number, monatNull: number): string {
   return `${jahr}-${String(monatNull + 1).padStart(2, "0")}`;
 }

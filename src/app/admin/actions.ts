@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq, isNull } from "drizzle-orm";
-import { requireAdmin } from "@/lib/session";
+import { requireAdmin, requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
@@ -14,11 +14,11 @@ import {
   zuschuesse,
 } from "@/db/schema";
 import { parseFunktionstraegerExcel } from "@/lib/funktionstraeger-import";
-import { normalisiereMannschaftsname, parseRundenspielJson } from "@/lib/rundenspiel-import";
-import { importiereRundenspielEreignisse } from "@/lib/rundenspiel-sync";
+import { normalisiereMannschaftsname } from "@/lib/rundenspiel-import";
 import { sendMail } from "@/lib/mailer";
 import { appUrl } from "@/lib/app-url";
 import { parseBerlinDatumZeit } from "@/lib/format";
+import { istTurnierBerechtigt } from "@/lib/turnier-zugriff";
 
 function willkommensText(vereinName: string, email: string) {
   return [
@@ -524,6 +524,7 @@ export async function updateTermin(formData: FormData) {
   const ort = formData.get("ort");
   const beschreibung = formData.get("beschreibung");
   const mannschaftId = formData.get("mannschaftId");
+  const turnierVerantwortlicherId = formData.get("turnierVerantwortlicherId");
 
   if (typeof terminId !== "string" || !terminId) {
     throw new Error("Termin fehlt.");
@@ -546,6 +547,29 @@ export async function updateTermin(formData: FormData) {
       throw new Error("Termin nicht gefunden oder nicht bearbeitbar.");
     }
 
+    // turnierVerantwortlicherId kommt roh aus dem Formular (Dropdown zeigt
+    // zwar nur aktive Trainer, ein manipulierter Request könnte aber eine
+    // beliebige userId schicken). "user" hat bewusst KEIN RLS (siehe
+    // 0001_enable_rls_multi_tenant.sql) — die Prüfung läuft daher über
+    // funktionstraeger_rolle, das per RLS ohnehin nur Zeilen des eigenen
+    // Vereins zeigt: kein Treffer heißt automatisch "fremder Verein oder
+    // kein aktiver Trainer", beides soll verworfen statt gespeichert werden.
+    let geprueftesVerantwortlicherId: string | null = null;
+    if (
+      typ === "turnier" &&
+      typeof turnierVerantwortlicherId === "string" &&
+      turnierVerantwortlicherId
+    ) {
+      const istAktiverTrainer = await tx.query.funktionstraegerRollen.findFirst({
+        where: and(
+          eq(funktionstraegerRollen.userId, turnierVerantwortlicherId),
+          eq(funktionstraegerRollen.typ, "trainer"),
+          eq(funktionstraegerRollen.aktiv, true)
+        ),
+      });
+      if (istAktiverTrainer) geprueftesVerantwortlicherId = turnierVerantwortlicherId;
+    }
+
     await tx
       .update(termine)
       .set({
@@ -561,6 +585,11 @@ export async function updateTermin(formData: FormData) {
           typeof mannschaftId === "string" && mannschaftId
             ? mannschaftId
             : null,
+        // Nur beim Turnier-Container relevant — bei einer Typänderung weg
+        // vom Turnier (z.B. zurück zu Freundschaftsspiel) wird es mit
+        // zurückgesetzt, damit kein "verwaister" Verantwortlicher übrig
+        // bleibt, der dann nichts mehr zu verwalten hätte.
+        turnierVerantwortlicherId: geprueftesVerantwortlicherId,
       })
       .where(eq(termine.id, terminId));
   });
@@ -681,10 +710,14 @@ export async function testspielDuplikatVerknuepfen(formData: FormData) {
 // jeweils eigene Schiri-/Zeitnehmer-/Sekretär-Zuordnung.
 // ---------------------------------------------------------------------------
 
+// Zugriff auf einen Turnier-Container: Vereinsadmin ODER der für GENAU
+// dieses Turnier benannte Turnierverantwortliche (siehe istTurnierBerechtigt/
+// requireSession statt requireAdmin in den untenstehenden Aktionen).
 async function ladeTurnierContainer(
   tx: Parameters<Parameters<typeof withTenant>[1]>[0],
   turnierId: string,
-  vereinId: string
+  vereinId: string,
+  session: { user: { id: string; istAdmin: boolean } }
 ) {
   const turnier = await tx.query.termine.findFirst({
     where: and(
@@ -694,11 +727,20 @@ async function ladeTurnierContainer(
     ),
   });
   if (!turnier) throw new Error("Turnier nicht gefunden.");
+  if (!istTurnierBerechtigt(turnier, session)) {
+    throw new Error("Keine Berechtigung für dieses Turnier.");
+  }
   return turnier;
 }
 
+function parseErgebnisWert(wert: FormDataEntryValue | null): number | null {
+  if (typeof wert !== "string" || !wert.trim()) return null;
+  const zahl = Number.parseInt(wert, 10);
+  return Number.isFinite(zahl) ? zahl : null;
+}
+
 export async function createTurnierSpiel(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireSession();
   const vereinId = session.user.vereinId!;
 
   const turnierId = formData.get("turnierId");
@@ -715,7 +757,7 @@ export async function createTurnierSpiel(formData: FormData) {
   }
 
   await withTenant(vereinId, async (tx) => {
-    await ladeTurnierContainer(tx, turnierId, vereinId);
+    await ladeTurnierContainer(tx, turnierId, vereinId, session);
 
     await tx.insert(termine).values({
       vereinId,
@@ -737,7 +779,7 @@ export async function createTurnierSpiel(formData: FormData) {
 }
 
 export async function updateTurnierSpiel(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireSession();
   const vereinId = session.user.vereinId!;
 
   const terminId = formData.get("terminId");
@@ -746,6 +788,8 @@ export async function updateTurnierSpiel(formData: FormData) {
   const ende = formData.get("ende");
   const ort = formData.get("ort");
   const beschreibung = formData.get("beschreibung");
+  const ergebnisHeim = formData.get("ergebnisHeim");
+  const ergebnisAuswaerts = formData.get("ergebnisAuswaerts");
 
   if (typeof terminId !== "string" || !terminId) {
     throw new Error("Spiel fehlt.");
@@ -758,6 +802,8 @@ export async function updateTurnierSpiel(formData: FormData) {
   }
 
   await withTenant(vereinId, async (tx) => {
+    await ladeTurnierContainer(tx, turnierId, vereinId, session);
+
     const bestehend = await tx.query.termine.findFirst({
       where: and(
         eq(termine.id, terminId),
@@ -778,15 +824,18 @@ export async function updateTurnierSpiel(formData: FormData) {
           typeof beschreibung === "string" && beschreibung.trim()
             ? beschreibung.trim()
             : null,
+        ergebnisHeim: parseErgebnisWert(ergebnisHeim),
+        ergebnisAuswaerts: parseErgebnisWert(ergebnisAuswaerts),
       })
       .where(eq(termine.id, terminId));
   });
 
   revalidatePath(`/admin/termine/${turnierId}`);
+  revalidatePath(`/profil/turnier/${turnierId}`);
 }
 
 export async function deleteTurnierSpiel(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireSession();
   const vereinId = session.user.vereinId!;
 
   const terminId = formData.get("terminId");
@@ -799,6 +848,8 @@ export async function deleteTurnierSpiel(formData: FormData) {
   }
 
   await withTenant(vereinId, async (tx) => {
+    await ladeTurnierContainer(tx, turnierId, vereinId, session);
+
     await tx
       .delete(termine)
       .where(
@@ -812,6 +863,7 @@ export async function deleteTurnierSpiel(formData: FormData) {
   });
 
   revalidatePath(`/admin/termine/${turnierId}`);
+  revalidatePath(`/profil/turnier/${turnierId}`);
 }
 
 export async function turnierLinkErneuern(formData: FormData) {
@@ -824,7 +876,7 @@ export async function turnierLinkErneuern(formData: FormData) {
   }
 
   await withTenant(vereinId, async (tx) => {
-    await ladeTurnierContainer(tx, turnierId, vereinId);
+    await ladeTurnierContainer(tx, turnierId, vereinId, session);
     await tx
       .update(termine)
       .set({ freigabeToken: crypto.randomUUID() })
@@ -832,35 +884,6 @@ export async function turnierLinkErneuern(formData: FormData) {
   });
 
   revalidatePath(`/admin/termine/${turnierId}`);
-}
-
-export async function rundenspieleImportieren(formData: FormData) {
-  const session = await requireAdmin();
-  const vereinId = session.user.vereinId!;
-
-  const datei = formData.get("datei");
-  if (!(datei instanceof File) || datei.size === 0) {
-    throw new Error("Bitte eine JSON-Datei auswählen.");
-  }
-
-  const text = await datei.text();
-  const { ereignisse, fehler } = parseRundenspielJson(text);
-  const fehlerListe = fehler.map((f) => `Eintrag ${f.index}: ${f.grund}`);
-
-  const { neu, aktualisiert } = await importiereRundenspielEreignisse(
-    vereinId,
-    ereignisse
-  );
-
-  revalidatePath("/admin/rundenspiele");
-  revalidatePath("/admin/kalender");
-  revalidatePath("/admin");
-
-  const params = new URLSearchParams();
-  params.set("importNeu", String(neu));
-  params.set("importAktualisiert", String(aktualisiert));
-  if (fehlerListe.length) params.set("importFehler", fehlerListe.join(" | "));
-  redirect(`/admin/rundenspiele?${params.toString()}`);
 }
 
 export async function mannschaftAusRundenspielAnlegen(formData: FormData) {

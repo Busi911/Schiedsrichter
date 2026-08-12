@@ -7,3 +7,13 @@
 export function rundenspielTypLabel(pflichtspiel: boolean | null | undefined): string {
   return pflichtspiel ? "Ligaspiel" : "Freundschaftsspiel/Turnier";
 }
+
+// "24:20"-Format, nur wenn BEIDE Werte erfasst sind (siehe ergebnisHeim/
+// ergebnisAuswaerts in db/schema.ts) — ein einzelner erfasster Wert reicht
+// nicht als Endstand.
+export function formatErgebnis(
+  heim: number | null | undefined,
+  auswaerts: number | null | undefined
+): string | null {
+  return heim != null && auswaerts != null ? `${heim}:${auswaerts}` : null;
+}

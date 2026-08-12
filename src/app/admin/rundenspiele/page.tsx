@@ -4,12 +4,10 @@ import { withTenant } from "@/db";
 import { mannschaften, termine } from "@/db/schema";
 import {
   mannschaftAusRundenspielAnlegen,
-  rundenspieleImportieren,
   testspielDuplikatVerknuepfen,
 } from "../actions";
 import { gruppiereUnbekannteMannschaften } from "@/lib/rundenspiel-import";
 import { findeTestspielDuplikate } from "@/lib/duplikat-erkennung";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,21 +16,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 
-export default async function RundenspielePage({
-  searchParams,
-}: {
-  searchParams: Promise<{
-    importNeu?: string;
-    importAktualisiert?: string;
-    importFehler?: string;
-  }>;
-}) {
+export default async function RundenspielePage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
-  const importErgebnis = await searchParams;
 
   const liste = await withTenant(vereinId, (tx) =>
     tx
@@ -62,63 +50,11 @@ export default async function RundenspielePage({
         <h1 className="font-heading text-2xl font-semibold">Hallenspielplan</h1>
         <p className="text-sm text-muted-foreground">
           Alle Spiele an der eigenen Halle — Liga-Pflichtspiele ebenso wie
-          Freundschaftsspiele/Turniere, importiert aus nuLiga oder per
-          JSON-Export pro Halle. Inklusive Spiele fremder Mannschaften an der
+          Freundschaftsspiele/Turniere, automatisch aus nuLiga synchronisiert
+          (siehe Einstellungen). Inklusive Spiele fremder Mannschaften an der
           eigenen Halle (relevant für Ordner-/Kioskdienst).
         </p>
       </div>
-
-      {importErgebnis.importNeu !== undefined && (
-        <Alert
-          variant={importErgebnis.importFehler ? "destructive" : "default"}
-          className="max-w-2xl"
-        >
-          <AlertTitle>
-            Import: {importErgebnis.importNeu} neu,{" "}
-            {importErgebnis.importAktualisiert ?? 0} aktualisiert
-          </AlertTitle>
-          {importErgebnis.importFehler && (
-            <AlertDescription>
-              {importErgebnis.importFehler.split(" | ").map((f) => (
-                <p key={f}>{f}</p>
-              ))}
-            </AlertDescription>
-          )}
-        </Alert>
-      )}
-
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Spielplan importieren</CardTitle>
-          <CardDescription>
-            JSON-Export aus nuLiga (pro Halle). Enthält euer Verein mehrere
-            Hallen, könnt ihr entweder mehrere Exporte nacheinander hochladen
-            oder einen Export mit mehreren Hallen-Blöcken verwenden — beides
-            wird unterstützt. Ein erneuter Import desselben Spielplans
-            aktualisiert bestehende Spiele (z.B. bei Terminverlegung) statt
-            sie zu duplizieren.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            action={rundenspieleImportieren}
-            className="flex flex-wrap items-end gap-3"
-          >
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="datei">JSON-Datei</Label>
-              <input
-                id="datei"
-                name="datei"
-                type="file"
-                accept=".json,application/json"
-                required
-                className="text-sm"
-              />
-            </div>
-            <Button type="submit">Importieren</Button>
-          </form>
-        </CardContent>
-      </Card>
 
       {unbekannteMannschaften.length > 0 && (
         <Card className="max-w-2xl">

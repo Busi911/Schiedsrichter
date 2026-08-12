@@ -26,6 +26,15 @@ export function formatDatumZeitLang(d: Date): string {
   }).format(d);
 }
 
+// Für Tages-Überschriften in mehrtägigen Spielplänen (z.B. Turniere) — ohne
+// Uhrzeit, da die einzelnen Spiele darunter ihre eigene Zeit zeigen.
+export function formatWochentagDatum(d: Date): string {
+  return new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "full",
+    timeZone: ZEITZONE,
+  }).format(d);
+}
+
 export function formatDatum(d: Date): string {
   return new Intl.DateTimeFormat("de-DE", {
     dateStyle: "medium",

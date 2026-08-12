@@ -127,12 +127,22 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       // ("Mä/männl.", "Fr/weibl.") — an den Titel angehängt, da die exakten
       // Kürzel je Landesverband variieren und hier nicht übersetzt werden.
       const kategorie = typeof e.category === "string" ? e.category : null;
-      // gameNumber "0"/fehlend = kein echtes Pflichtspiel mit vom Verband
-      // vergebener Spielnummer (siehe bildeUid oben) — zuverlässigeres
-      // Unterscheidungsmerkmal Freundschaftsspiel/Turnier vs. Ligaspiel als
-      // der uneinheitlich formatierte "league"-Rohtext aus dem Export.
+      // gameNumber "0"/fehlend ist EIN Signal für "kein echtes Pflichtspiel",
+      // aber nicht ausreichend: der HHV vergibt innerhalb seiner eigenen
+      // Sammelstaffel für Freundschaftsspiele/Turniere ("Gießen
+      // Freundschaftsspiele u. Turniere", siehe league-Beispiel unten)
+      // ebenfalls fortlaufende, von 0 verschiedene Nummern — ein Spiel mit
+      // gameNumber "1" kann also trotzdem ein Freundschaftsspiel sein.
+      // Beobachtet im echten Export: Staffel-Rohtext beginnt bei dieser
+      // Sammelstaffel zuverlässig mit "F " (Kürzel für Freundschaftsspiel),
+      // z.B. "F FrSp (M) HSG Dutenhofen/Münchholzhausen2 - MT Melsungen2"
+      // oder "F 2026-08-09 (MJC) HSG Dutenhofen/Münchholzhausen- SG
+      // Wehrheim" — echte Ligen (Kreisliga, Bezirksliga, ...) tun das nicht.
       const gameNumberRoh = typeof e.gameNumber === "string" ? e.gameNumber : undefined;
-      const istPflichtspiel = !!gameNumberRoh && gameNumberRoh !== "0";
+      const leagueRoh = typeof e.league === "string" ? e.league : undefined;
+      const istFreundschaftsstaffel = !!leagueRoh && /^F\s/.test(leagueRoh.trim());
+      const istPflichtspiel =
+        !!gameNumberRoh && gameNumberRoh !== "0" && !istFreundschaftsstaffel;
       const spielArt = istPflichtspiel
         ? `Ligaspiel Nr. ${gameNumberRoh}`
         : "Freundschaftsspiel/Turnier";

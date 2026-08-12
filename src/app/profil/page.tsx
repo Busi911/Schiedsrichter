@@ -61,6 +61,7 @@ export default async function ProfilPage() {
     zuordnungenFuerVerfuegbare,
     vereinEinstellungen,
     verein,
+    meineTurniere,
   } = await withTenant(vereinId, async (tx) => {
     const verein = await tx.query.vereine.findFirst({
       where: eq(vereine.id, vereinId),
@@ -147,6 +148,20 @@ export default async function ProfilPage() {
       ? await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
       : undefined;
 
+    // Turniere, für die dieser Nutzer als Turnierverantwortlicher benannt
+    // wurde (siehe turnierVerantwortlicherId in db/schema.ts) — bewusst
+    // unabhängig von den obigen Funktionsträger-Rollen, da das eine
+    // pro-Turnier vom Admin vergebene Zusatzberechtigung ist, keine feste
+    // Rolle.
+    const meineTurniere = await tx.query.termine.findMany({
+      where: and(
+        eq(termine.vereinId, vereinId),
+        eq(termine.typ, "turnier"),
+        eq(termine.turnierVerantwortlicherId, userId)
+      ),
+      orderBy: (t, { asc }) => [asc(t.start)],
+    });
+
     return {
       eigeneStammdaten,
       rollen,
@@ -156,6 +171,7 @@ export default async function ProfilPage() {
       zuordnungenFuerVerfuegbare,
       vereinEinstellungen,
       verein,
+      meineTurniere,
     };
   });
 
@@ -294,6 +310,30 @@ export default async function ProfilPage() {
             <PushAnmelden />
           </CardContent>
         </Card>
+
+        {meineTurniere.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Meine Turniere</CardTitle>
+              <CardDescription>
+                Du wurdest als Turnierverantwortlicher benannt und kannst
+                Spielplan und Ergebnisse pflegen.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {meineTurniere.map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/profil/turnier/${t.id}`}
+                  className="rounded-lg border p-3 text-sm underline"
+                >
+                  {t.beschreibung ?? "Turnier"} · {formatDateTime(t.start)}
+                  {t.ort ? ` · ${t.ort}` : ""}
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {istSchiedsrichter && (
           <Card>

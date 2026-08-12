@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lte, or } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte, or } from "drizzle-orm";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
@@ -8,7 +8,7 @@ import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { MonatsKalender, type KalenderEintrag } from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatZeit } from "@/lib/format";
-import { rundenspielTypLabel } from "@/lib/termin-label";
+import { formatErgebnis, rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -73,6 +73,8 @@ export default async function ProfilKalenderPage({
         beschreibung: termine.beschreibung,
         pflichtspiel: termine.pflichtspiel,
         hatIcsSchiedsrichter: termine.icsSchiedsrichterId,
+        ergebnisHeim: termine.ergebnisHeim,
+        ergebnisAuswaerts: termine.ergebnisAuswaerts,
       })
       .from(termine)
       .where(
@@ -82,7 +84,8 @@ export default async function ProfilKalenderPage({
           lte(termine.start, bis),
           or(...bedingungen)
         )
-      );
+      )
+      .orderBy(asc(termine.start));
 
     const terminIds = termineDesMonats.map((t) => t.id);
     const alleZuordnungen = terminIds.length
@@ -131,6 +134,7 @@ export default async function ProfilKalenderPage({
       besetzung,
       ort: t.ort,
       besetzungsDetails,
+      ergebnis: formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts),
     });
     eintraegeProTag.set(key, liste);
   }

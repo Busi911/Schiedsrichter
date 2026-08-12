@@ -20,14 +20,14 @@ import {
 const PRIMARY_ITEMS = [
   { href: "/admin", label: "Übersicht", exact: true },
   { href: "/admin/kalender", label: "Kalender" },
-  { href: "/admin/rundenspiele", label: "Hallenspielplan" },
+  { href: "/admin/termine", label: "Termine" },
   { href: "/admin/zuordnung", label: "Zuordnung" },
 ];
 
 const VERWALTUNG_ITEMS = [
   { href: "/admin/mannschaften", label: "Mannschaften" },
   { href: "/admin/funktionstraeger", label: "Funktionsträger" },
-  { href: "/admin/termine", label: "Termine" },
+  { href: "/admin/rundenspiele", label: "Hallenspielplan" },
   { href: "/admin/auswertung", label: "Auswertung" },
   { href: "/admin/zuschuesse", label: "Zuschüsse" },
   { href: "/admin/einstellungen", label: "Einstellungen" },

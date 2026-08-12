@@ -156,7 +156,7 @@ export default async function TerminePage() {
                   placeholder="—"
                   options={mannschaftsListe.map((m) => ({
                     value: m.id,
-                    label: m.name,
+                    label: m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name,
                   }))}
                 />
               </div>

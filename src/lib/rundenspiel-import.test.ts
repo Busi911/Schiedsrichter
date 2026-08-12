@@ -71,6 +71,37 @@ describe("parseRundenspielJson", () => {
     expect(ereignisse[0].beschreibung).toContain("Ligaspiel Nr. 42");
   });
 
+  it("kennzeichnet Freundschaftsspiele aus der HHV-Sammelstaffel korrekt, auch wenn gameNumber != 0 ist", () => {
+    // Regression: beobachtet im echten Export der Sporthalle Dutenhofen
+    // (August 2026) — der HHV vergibt innerhalb seiner Sammelstaffel
+    // "Gießen Freundschaftsspiele u. Turniere" ebenfalls fortlaufende
+    // gameNumber, sodass gameNumber allein ein Freundschaftsspiel
+    // fälschlich als "Ligaspiel Nr. 1" auswies.
+    const { ereignisse } = parseRundenspielJson(
+      beispielJson({
+        events: [
+          {
+            date: "2026-08-08",
+            time: "14:00",
+            start: "2026-08-08T14:00:00+02:00",
+            title: "HSG Dutenhofen/Münchholzhausen2 - MT Melsungen2",
+            gameNumber: "1",
+            category: "Mä/männl.",
+            league:
+              "F FrSp (M) HSG Dutenhofen/Münchholzhausen2 - MT Melsungen2",
+            home: "HSG Dutenhofen/Münchholzhausen 2",
+            away: "MT Melsungen II",
+            location: "Sporthalle Dutenhofen",
+            locationId: 14180,
+          },
+        ],
+      })
+    );
+    expect(ereignisse[0].pflichtspiel).toBe(false);
+    expect(ereignisse[0].beschreibung).toContain("Freundschaftsspiel/Turnier");
+    expect(ereignisse[0].beschreibung).not.toContain("Ligaspiel");
+  });
+
   it("bildet dieselbe UID bei erneutem Parsen desselben Spiels (Re-Import-Erkennung)", () => {
     const erster = parseRundenspielJson(beispielJson());
     const zweiter = parseRundenspielJson(beispielJson());
