@@ -5,65 +5,13 @@ import { and, eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
-import { ZUORDENBARE_TYPEN } from "@/lib/zuordnung";
-import { SCHIRI_GESPANN_MAX, berechneBesetzung } from "@/lib/besetzung";
+import {
+  pruefeBesetzungsgrenze,
+  ZUORDENBARE_TYPEN,
+  zuordnungsMailInhalt,
+} from "@/lib/zuordnung";
 import { sendMail } from "@/lib/mailer";
-import { formatDatumZeitLang } from "@/lib/format";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
-
-const TYP_LABEL: Record<string, string> = {
-  schiedsrichter: "Schiedsrichter",
-  zeitnehmer: "Zeitnehmer",
-  sekretaer: "Sekretär",
-};
-
-function zuordnungsMailInhalt(
-  rolle: string,
-  termin: { start: Date; ort: string | null; beschreibung: string | null }
-) {
-  const zeitpunkt = formatDatumZeitLang(termin.start);
-  const zeilen: string[] = [`Termin: ${zeitpunkt}`];
-  if (termin.ort) zeilen.push(`Ort: ${termin.ort}`);
-  if (termin.beschreibung) zeilen.push(termin.beschreibung);
-  return {
-    ueberschrift: `Du wurdest als ${TYP_LABEL[rolle] ?? rolle} eingeteilt.`,
-    zeilen,
-  };
-}
-
-// Prüft die Gespann-/Zweierbesetzung-Obergrenze, BEVOR eine weitere Person
-// eingetragen wird — schiedsrichter max. 2 (Gespann), zeitnehmer+sekretaer
-// zusammen max. vereine.zeitnehmerSekretaerMax (konfigurierbar, siehe
-// /admin/einstellungen). Wirft, wenn die Grenze für `rolle` bereits erreicht
-// ist.
-async function pruefeBesetzungsgrenze(
-  tx: Parameters<Parameters<typeof withTenant>[1]>[0],
-  vereinId: string,
-  terminId: string,
-  rolle: (typeof ZUORDENBARE_TYPEN)[number]
-) {
-  const [bestehende, verein] = await Promise.all([
-    tx.query.terminZuordnungen.findMany({
-      where: eq(terminZuordnungen.terminId, terminId),
-    }),
-    tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) }),
-  ]);
-  const zeitnehmerSekretaerMax = verein?.zeitnehmerSekretaerMax;
-  const status = berechneBesetzung(bestehende, false, undefined, zeitnehmerSekretaerMax);
-  if (rolle === "schiedsrichter" && status.schiriVoll) {
-    throw new Error(
-      `Es sind bereits ${SCHIRI_GESPANN_MAX} Schiedsrichter (Gespann-Maximum) zugeordnet.`
-    );
-  }
-  if (
-    (rolle === "zeitnehmer" || rolle === "sekretaer") &&
-    status.zeitnehmerSekretaerVoll
-  ) {
-    throw new Error(
-      `Es sind bereits ${zeitnehmerSekretaerMax} Zeitnehmer/Sekretäre zugeordnet.`
-    );
-  }
-}
 
 export async function zuordnen(formData: FormData) {
   const session = await requireAdmin();

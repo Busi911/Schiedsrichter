@@ -43,6 +43,7 @@ const TYP_LABEL: Record<string, string> = {
   trainer: "Trainer",
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
+  schiedsrichterwart: "Schiedsrichterwart",
 };
 
 const SELBST_ANMELDBARE_TYPEN = ["ordner", "kioskdienst"] as const;
@@ -177,6 +178,12 @@ export default async function ProfilPage() {
 
   const istSchiedsrichter = rollen.some(
     (r) => r.typ === "schiedsrichter" && r.aktiv
+  );
+  // Eigene Rolle, unabhängig von istSchiedsrichter/istAdmin — eine Person
+  // kann gleichzeitig Schiedsrichter, Schiedsrichterwart und/oder
+  // (System-)Admin sein (siehe src/lib/schiedsrichterwart.ts).
+  const istSchiedsrichterwart = rollen.some(
+    (r) => r.typ === "schiedsrichterwart" && r.aktiv
   );
   const eigeneTypen = rollen
     .filter((r) => r.aktiv)
@@ -331,6 +338,26 @@ export default async function ProfilPage() {
                   {t.ort ? ` · ${t.ort}` : ""}
                 </Link>
               ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {istSchiedsrichterwart && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Schiedsrichterwart</CardTitle>
+              <CardDescription>
+                Übersicht über alle Schiedsrichter im Verein, ihre Einsätze
+                und offene Termine.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/profil/schiedsrichterwart"
+                className="rounded-lg border p-3 text-sm underline"
+              >
+                Zur Schiedsrichterwart-Übersicht
+              </Link>
             </CardContent>
           </Card>
         )}

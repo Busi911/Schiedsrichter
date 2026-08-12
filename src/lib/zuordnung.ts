@@ -6,8 +6,10 @@ import {
   termine,
   terminZuordnungen,
   users,
+  vereine,
 } from "@/db/schema";
 import { formatDatumZeitLang } from "@/lib/format";
+import { SCHIRI_GESPANN_MAX, berechneBesetzung } from "@/lib/besetzung";
 
 // Rollen, die einem Termin über termin_zuordnung zugeordnet werden können.
 // 'trainer' hängt an der Mannschaft (nicht am einzelnen Termin), 'ordner'
@@ -41,6 +43,43 @@ export function zuordnungsMailInhalt(
     ueberschrift: `Du wurdest als ${ZUORDNUNGS_ROLLE_LABEL[rolle] ?? rolle} eingeteilt.`,
     zeilen,
   };
+}
+
+// Prüft die Gespann-/Zweierbesetzung-Obergrenze, BEVOR eine weitere Person
+// eingetragen wird — schiedsrichter max. SCHIRI_GESPANN_MAX (fest 2),
+// zeitnehmer+sekretaer zusammen max. vereine.zeitnehmerSekretaerMax
+// (konfigurierbar, siehe /admin/einstellungen). Wirft, wenn die Grenze für
+// `rolle` bereits erreicht ist. Gemeinsam genutzt von /admin/zuordnung und
+// /profil/schiedsrichterwart — liegt hier statt in einer der beiden "use
+// server"-Action-Dateien, da deren Exporte ausschließlich async Server
+// Actions mit serialisierbaren Parametern sein dürfen (tx ist das nicht).
+export async function pruefeBesetzungsgrenze(
+  tx: Parameters<Parameters<typeof withTenant>[1]>[0],
+  vereinId: string,
+  terminId: string,
+  rolle: (typeof ZUORDENBARE_TYPEN)[number]
+) {
+  const [bestehende, verein] = await Promise.all([
+    tx.query.terminZuordnungen.findMany({
+      where: eq(terminZuordnungen.terminId, terminId),
+    }),
+    tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) }),
+  ]);
+  const zeitnehmerSekretaerMax = verein?.zeitnehmerSekretaerMax;
+  const status = berechneBesetzung(bestehende, false, undefined, zeitnehmerSekretaerMax);
+  if (rolle === "schiedsrichter" && status.schiriVoll) {
+    throw new Error(
+      `Es sind bereits ${SCHIRI_GESPANN_MAX} Schiedsrichter (Gespann-Maximum) zugeordnet.`
+    );
+  }
+  if (
+    (rolle === "zeitnehmer" || rolle === "sekretaer") &&
+    status.zeitnehmerSekretaerVoll
+  ) {
+    throw new Error(
+      `Es sind bereits ${zeitnehmerSekretaerMax} Zeitnehmer/Sekretäre zugeordnet.`
+    );
+  }
 }
 
 export async function holeTermineMitZuordnungen(vereinId: string) {
