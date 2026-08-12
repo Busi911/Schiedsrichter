@@ -264,7 +264,7 @@ duplizieren):
   `nuliga-scraper.ts` — andere Landesverbände brauchen eine weitere
   Domain-Konstante) für ein rollierendes 10-Monats-Fenster ab dem
   aktuellen Monat, statt eines fest einzutragenden Start-/Endmonats, der mit
-  der Zeit veralten würde. Läuft montags + donnerstags per Vercel Cron
+  der Zeit veralten würde. Läuft täglich per Vercel Cron
   (`/api/cron/rundenspiel-sync`) für alle Vereine mit aktiviertem
   Auto-Import; nach dem Speichern der Hallen-IDs läuft zusätzlich sofort ein
   erster Sync, statt auf den nächsten Cron-Termin zu warten.
