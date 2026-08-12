@@ -42,6 +42,25 @@ function formatMannschaft(t: {
   return t.kategorie;
 }
 
+// Bei rundenspiel-Terminen ist beschreibung = [titel, kategorie, spielArt,
+// zusatz].join(" · ") (siehe rundenspiel-import.ts) — titel (Heim –
+// Auswärts) und kategorie zeigt die Mannschaft-Spalte hier schon per
+// formatMannschaft an, daher als Untertitel nur den Rest (Spielart inkl.
+// Spielnummer, plus Zusatz wie z.B. das nuLiga-Schiedsrichter-Kürzel), damit
+// die Zeile nicht doppelt Mannschaft/Kategorie ausweist.
+function kuerzeBeschreibung(t: {
+  typ: string;
+  beschreibung: string | null;
+  kategorie: string | null;
+}): string | null {
+  if (t.typ !== "rundenspiel" || !t.beschreibung) return t.beschreibung;
+  const rest = t.beschreibung
+    .split(" · ")
+    .slice(1)
+    .filter((teil) => teil !== t.kategorie);
+  return rest.length ? rest.join(" · ") : null;
+}
+
 export default async function AdminDashboardPage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
@@ -126,9 +145,9 @@ export default async function AdminDashboardPage() {
                     <TableRow key={t.id}>
                       <TableCell className="font-medium">
                         {formatDateTime(t.start)}
-                        {t.beschreibung && (
+                        {kuerzeBeschreibung(t) && (
                           <span className="block text-xs font-normal text-muted-foreground">
-                            {t.beschreibung}
+                            {kuerzeBeschreibung(t)}
                           </span>
                         )}
                       </TableCell>
