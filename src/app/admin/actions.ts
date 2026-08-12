@@ -14,16 +14,34 @@ import {
 } from "@/db/schema";
 import { parseFunktionstraegerExcel } from "@/lib/funktionstraeger-import";
 import { normalisiereMannschaftsname } from "@/lib/rundenspiel-import";
+import { vergebeEinmalPasswortFallsNoetig } from "@/lib/passwort";
 import { sendMail } from "@/lib/mailer";
 import { appUrl } from "@/lib/app-url";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { istTurnierBerechtigt } from "@/lib/turnier-zugriff";
 
-function willkommensText(vereinName: string, email: string) {
-  return [
+// einmalPasswort ist nur bei einer neu vergebenen Einmal-Passwort-Zeile
+// gesetzt (siehe vergebeEinmalPasswortFallsNoetig) — hat die Person schon
+// eins (oder loggt sich per Magic-Link ein), bleibt es null.
+function willkommensText(
+  vereinName: string,
+  email: string,
+  einmalPasswort: string | null
+) {
+  const zeilen = [
     `Für dich wurde ein Zugang im HandballerPate von ${vereinName} angelegt.`,
-    `Melde dich mit deiner E-Mail-Adresse (${email}) unter ${appUrl()}/login an — du bekommst dort einen Login-Link per E-Mail zugeschickt, ein Passwort ist nicht nötig.`,
-  ].join("\n\n");
+  ];
+  if (einmalPasswort) {
+    zeilen.push(
+      `Melde dich mit deiner E-Mail-Adresse (${email}) und diesem Einmal-Passwort unter ${appUrl()}/login an: ${einmalPasswort}`,
+      `Direkt nach dem ersten Login musst du ein eigenes Passwort vergeben. Alternativ kannst du dich dort auch jederzeit ohne Passwort per Login-Link einloggen.`
+    );
+  } else {
+    zeilen.push(
+      `Melde dich mit deiner E-Mail-Adresse (${email}) unter ${appUrl()}/login an — du bekommst dort einen Login-Link per E-Mail zugeschickt.`
+    );
+  }
+  return zeilen.join("\n\n");
 }
 
 export async function createMannschaft(formData: FormData) {
@@ -153,7 +171,7 @@ export async function createFunktionstraeger(formData: FormData) {
   const ausgewaehlteTypen = typen as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
   const normalizedEmail = email.trim().toLowerCase();
 
-  const vereinName = await withTenant(vereinId, async (tx) => {
+  const { vereinName, einmalPasswort } = await withTenant(vereinId, async (tx) => {
     let user = await tx.query.users.findFirst({
       where: eq(users.email, normalizedEmail),
     });
@@ -164,6 +182,7 @@ export async function createFunktionstraeger(formData: FormData) {
       );
     }
 
+    let einmalPasswort: string | null = null;
     if (!user) {
       [user] = await tx
         .insert(users)
@@ -174,6 +193,16 @@ export async function createFunktionstraeger(formData: FormData) {
           istAdmin: alsAdmin,
         })
         .returning();
+      // Nur bei sofortAktiv gleich vergeben, da nur dann auch sofort die
+      // Willkommens-Mail mit dem Einmal-Passwort rausgeht (siehe unten) —
+      // sonst bekäme die Person ein Passwort, das nirgends auftaucht.
+      if (sofortAktiv) {
+        einmalPasswort = await vergebeEinmalPasswortFallsNoetig(
+          tx,
+          user.id,
+          user.passwordHash
+        );
+      }
     } else if (alsAdmin && !user.istAdmin) {
       // Nur BEFÖRDERN, nie hier degradieren — dieses Formular dient auch
       // dazu, einer bestehenden Person eine weitere Rolle zu ergänzen, ohne
@@ -211,7 +240,7 @@ export async function createFunktionstraeger(formData: FormData) {
       where: (v, { eq }) => eq(v.id, vereinId),
     });
 
-    return vereinRow?.name ?? "deinem Verein";
+    return { vereinName: vereinRow?.name ?? "deinem Verein", einmalPasswort };
   });
 
   // Die Willkommens-Mail ist an "aktiv" gekoppelt, nicht an "neu angelegt":
@@ -222,7 +251,7 @@ export async function createFunktionstraeger(formData: FormData) {
       await sendMail(
         normalizedEmail,
         "Zugang für HandballerPate",
-        willkommensText(vereinName, normalizedEmail)
+        willkommensText(vereinName, normalizedEmail, einmalPasswort)
       );
     } catch (err) {
       console.error("Willkommens-Mail konnte nicht gesendet werden:", err);
@@ -249,7 +278,9 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
       .select({
         id: funktionstraegerRollen.id,
         aktiv: funktionstraegerRollen.aktiv,
+        userId: funktionstraegerRollen.userId,
         email: users.email,
+        passwordHash: users.passwordHash,
       })
       .from(funktionstraegerRollen)
       .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
@@ -267,10 +298,19 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
 
     if (!neuAktiv) return null;
 
+    const einmalPasswort = await vergebeEinmalPasswortFallsNoetig(
+      tx,
+      rolle.userId,
+      rolle.passwordHash
+    );
     const vereinRow = await tx.query.vereine.findFirst({
       where: (v, { eq }) => eq(v.id, vereinId),
     });
-    return { email: rolle.email, vereinName: vereinRow?.name ?? "deinem Verein" };
+    return {
+      email: rolle.email,
+      vereinName: vereinRow?.name ?? "deinem Verein",
+      einmalPasswort,
+    };
   });
 
   // Beim (Wieder-)Aktivieren geht die Willkommens-Mail raus — für Personen,
@@ -282,7 +322,11 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
       await sendMail(
         aktivierung.email,
         "Zugang für HandballerPate",
-        willkommensText(aktivierung.vereinName, aktivierung.email)
+        willkommensText(
+          aktivierung.vereinName,
+          aktivierung.email,
+          aktivierung.einmalPasswort
+        )
       );
     } catch (err) {
       console.error("Willkommens-Mail konnte nicht gesendet werden:", err);
@@ -436,7 +480,7 @@ export async function funktionstraegerImportieren(formData: FormData) {
 
   let angelegt = 0;
   let uebersprungen = 0;
-  const neueNutzer: { email: string }[] = [];
+  const neueNutzer: { email: string; einmalPasswort: string | null }[] = [];
 
   const vereinName = await withTenant(vereinId, async (tx) => {
     const mannschaftsListe = await tx.query.mannschaften.findMany({
@@ -458,7 +502,14 @@ export async function funktionstraegerImportieren(formData: FormData) {
           .insert(users)
           .values({ email: zeile.email, name: zeile.name, vereinId })
           .returning();
-        if (sofortAktiv) neueNutzer.push({ email: user.email });
+        if (sofortAktiv) {
+          const einmalPasswort = await vergebeEinmalPasswortFallsNoetig(
+            tx,
+            user.id,
+            user.passwordHash
+          );
+          neueNutzer.push({ email: user.email, einmalPasswort });
+        }
       }
 
       let mannschaftId: string | null = null;
@@ -506,7 +557,7 @@ export async function funktionstraegerImportieren(formData: FormData) {
       await sendMail(
         nutzer.email,
         "Zugang für HandballerPate",
-        willkommensText(vereinName, nutzer.email)
+        willkommensText(vereinName, nutzer.email, nutzer.einmalPasswort)
       );
     } catch (err) {
       console.error("Willkommens-Mail konnte nicht gesendet werden:", err);

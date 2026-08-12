@@ -302,6 +302,12 @@ export default async function ProfilPage() {
               </p>
               <Button type="submit">Speichern</Button>
             </form>
+            <Link
+              href="/profil/passwort-aendern"
+              className="mt-3 inline-block text-sm text-muted-foreground underline"
+            >
+              Passwort ändern
+            </Link>
           </CardContent>
         </Card>
 
