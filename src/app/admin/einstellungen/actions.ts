@@ -8,10 +8,10 @@ import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
 
-function parseAnzahl(formData: FormData, feld: string): number {
+function parseAnzahl(formData: FormData, feld: string, min = 0): number {
   const roh = formData.get(feld);
   const zahl = typeof roh === "string" ? Number(roh) : NaN;
-  if (!Number.isInteger(zahl) || zahl < 0) {
+  if (!Number.isInteger(zahl) || zahl < min) {
     throw new Error(`Ungültiger Wert für ${feld}.`);
   }
   return zahl;
@@ -39,6 +39,24 @@ export async function dienstBedarfSpeichern(formData: FormData) {
     formData,
     "rundenspielKioskdienstBedarf"
   );
+  const testspielZeitnehmerBedarf = parseAnzahl(
+    formData,
+    "testspielZeitnehmerBedarf"
+  );
+  const turnierZeitnehmerBedarf = parseAnzahl(
+    formData,
+    "turnierZeitnehmerBedarf"
+  );
+  const rundenspielZeitnehmerBedarf = parseAnzahl(
+    formData,
+    "rundenspielZeitnehmerBedarf"
+  );
+  // Mindestens 1: eine Obergrenze von 0 würde JEDE Zuordnung blockieren.
+  const zeitnehmerSekretaerMax = parseAnzahl(
+    formData,
+    "zeitnehmerSekretaerMax",
+    1
+  );
 
   await withTenant(vereinId, (tx) =>
     tx
@@ -50,6 +68,10 @@ export async function dienstBedarfSpeichern(formData: FormData) {
         turnierKioskdienstBedarf,
         rundenspielOrdnerBedarf,
         rundenspielKioskdienstBedarf,
+        testspielZeitnehmerBedarf,
+        turnierZeitnehmerBedarf,
+        rundenspielZeitnehmerBedarf,
+        zeitnehmerSekretaerMax,
       })
       .where(eq(vereine.id, vereinId))
   );

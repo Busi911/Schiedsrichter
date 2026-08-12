@@ -8,6 +8,9 @@ const verein = {
   turnierKioskdienstBedarf: 3,
   rundenspielOrdnerBedarf: 5,
   rundenspielKioskdienstBedarf: 6,
+  testspielZeitnehmerBedarf: 7,
+  turnierZeitnehmerBedarf: 8,
+  rundenspielZeitnehmerBedarf: 9,
 };
 
 describe("bedarfFuer", () => {
@@ -63,5 +66,22 @@ describe("bedarfFuer", () => {
   it("liefert den Testspiel-Bedarf als Fallback, wenn freundschaftsTyp bei pflichtspiel = false nicht eindeutig ist", () => {
     expect(bedarfFuer(verein, "rundenspiel", "ordner", false, null)).toBe(2);
     expect(bedarfFuer(verein, "rundenspiel", "ordner", false)).toBe(2);
+  });
+
+  it("liefert den Zeitnehmer-Bedarf für Testspiele/Turniere/echte Ligaspiele", () => {
+    expect(bedarfFuer(verein, "testspiel", "zeitnehmer")).toBe(7);
+    expect(bedarfFuer(verein, "turnier", "zeitnehmer")).toBe(8);
+    expect(bedarfFuer(verein, "rundenspiel", "zeitnehmer", true)).toBe(9);
+  });
+
+  it("liefert den Zeitnehmer-Bedarf für Freundschaftsspiel/Turnier im Liga-Spielplan passend zum freundschaftsTyp", () => {
+    expect(
+      bedarfFuer(verein, "rundenspiel", "zeitnehmer", false, "freundschaftsspiel")
+    ).toBe(7);
+    expect(bedarfFuer(verein, "rundenspiel", "zeitnehmer", false, "turnier")).toBe(8);
+  });
+
+  it("liefert für spiel_ics einen festen Zeitnehmer-Standardbedarf (nicht konfigurierbar, persönlicher Einsatz)", () => {
+    expect(bedarfFuer(verein, "spiel_ics", "zeitnehmer")).toBe(1);
   });
 });

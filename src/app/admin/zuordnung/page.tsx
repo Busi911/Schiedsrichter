@@ -1,10 +1,14 @@
+import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
+import { withTenant } from "@/db";
+import { vereine } from "@/db/schema";
 import {
   holeTermineMitZuordnungen,
   holeZuordenbareFunktionstraeger,
   ZUORDENBARE_TYPEN,
 } from "@/lib/zuordnung";
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
+import { bedarfFuer } from "@/lib/dienste";
 import { externeZuordnung, zuordnen, zuordnungEntfernen } from "./actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,9 +43,12 @@ export default async function ZuordnungPage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
 
-  const [termine, personen] = await Promise.all([
+  const [termine, personen, verein] = await Promise.all([
     holeTermineMitZuordnungen(vereinId),
     holeZuordenbareFunktionstraeger(vereinId),
+    withTenant(vereinId, (tx) =>
+      tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
+    ),
   ]);
 
   return (
@@ -52,8 +59,11 @@ export default async function ZuordnungPage() {
           Schiedsrichter aus dem ICS-Feed sind bereits automatisch zugeordnet.
           Hier zusätzlich Zeitnehmer, Sekretäre (oder weitere Schiedsrichter,
           z.B. für Freundschaftsspiele/Turniere) zu anstehenden Terminen zuordnen.
-          Pflicht: mind. 1 Schiedsrichter (max. 2 als Gespann) und mind. 1
-          Zeitnehmer oder Sekretär (max. 2).
+          Pflicht: mind. 1 Schiedsrichter (max. 2 als Gespann) sowie die unter{" "}
+          <a href="/admin/einstellungen" className="underline">
+            Einstellungen
+          </a>{" "}
+          festgelegte Mindestanzahl Zeitnehmer/Sekretär.
         </p>
       </div>
 
@@ -64,9 +74,20 @@ export default async function ZuordnungPage() {
           </p>
         )}
         {termine.map((termin) => {
+          const zeitnehmerBedarf = verein
+            ? bedarfFuer(
+                verein,
+                termin.typ,
+                "zeitnehmer",
+                termin.pflichtspiel,
+                termin.freundschaftsTyp
+              )
+            : undefined;
           const besetzung = berechneBesetzung(
             termin.zuordnungen,
-            !!termin.icsSchiedsrichter
+            !!termin.icsSchiedsrichter,
+            zeitnehmerBedarf,
+            verein?.zeitnehmerSekretaerMax
           );
           const vollstaendig = istBesetzungVollstaendig(
             besetzung,
@@ -98,11 +119,12 @@ export default async function ZuordnungPage() {
                 <CardDescription>
                   {!schiriKommtVomVerband && (
                     <>
-                      Schiedsrichter {besetzung.schiriAnzahl}/2
+                      Schiedsrichter {besetzung.schiriAnzahl}/1
                       {besetzung.schiriErfuellt ? "" : " · fehlt"} ·{" "}
                     </>
                   )}
-                  Zeitnehmer/Sekretär {besetzung.zeitnehmerSekretaerAnzahl}/2
+                  Zeitnehmer/Sekretär {besetzung.zeitnehmerSekretaerAnzahl}/
+                  {zeitnehmerBedarf ?? 1}
                   {besetzung.zeitnehmerSekretaerErfuellt ? "" : " · fehlt"}
                   {schiriKommtVomVerband &&
                     " (Schiedsrichter kommt vom Verband, nicht hier zugeordnet)"}

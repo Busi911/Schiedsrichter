@@ -45,11 +45,11 @@ export default async function EinstellungenPage({
         <CardHeader>
           <CardTitle>Dienste-Bedarf pro Termin</CardTitle>
           <CardDescription>
-            Wie viele Ordner und Kioskdienst-Kräfte pro Freundschaftsspiel, Turnier
-            bzw. Rundenspiel benötigt werden. Sobald diese Anzahl erreicht
-            ist, können sich weitere Interessenten nicht mehr anmelden. Gilt
-            nicht für Termine aus dem ICS-Feed (das sind die persönlichen
-            Einsätze der Schiedsrichter).
+            Wie viele Ordner-, Kioskdienst- und Zeitnehmer/Sekretär-Kräfte pro
+            Freundschaftsspiel, Turnier bzw. Rundenspiel benötigt werden.
+            Sobald diese Anzahl erreicht ist, können sich weitere
+            Interessenten nicht mehr anmelden. Gilt nicht für Termine aus dem
+            ICS-Feed (das sind die persönlichen Einsätze der Schiedsrichter).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -84,6 +84,23 @@ export default async function EinstellungenPage({
                   min="0"
                   step="1"
                   defaultValue={verein?.testspielKioskdienstBedarf ?? 0}
+                  className="w-20"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label
+                  htmlFor="testspielZeitnehmerBedarf"
+                  className="font-normal"
+                >
+                  Zeitnehmer/Sekretär
+                </Label>
+                <Input
+                  id="testspielZeitnehmerBedarf"
+                  type="number"
+                  name="testspielZeitnehmerBedarf"
+                  min="0"
+                  step="1"
+                  defaultValue={verein?.testspielZeitnehmerBedarf ?? 1}
                   className="w-20"
                 />
               </div>
@@ -122,6 +139,23 @@ export default async function EinstellungenPage({
                   className="w-20"
                 />
               </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label
+                  htmlFor="turnierZeitnehmerBedarf"
+                  className="font-normal"
+                >
+                  Zeitnehmer/Sekretär
+                </Label>
+                <Input
+                  id="turnierZeitnehmerBedarf"
+                  type="number"
+                  name="turnierZeitnehmerBedarf"
+                  min="0"
+                  step="1"
+                  defaultValue={verein?.turnierZeitnehmerBedarf ?? 1}
+                  className="w-20"
+                />
+              </div>
             </fieldset>
 
             <fieldset className="flex flex-col gap-2">
@@ -154,6 +188,46 @@ export default async function EinstellungenPage({
                   min="0"
                   step="1"
                   defaultValue={verein?.rundenspielKioskdienstBedarf ?? 0}
+                  className="w-20"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label
+                  htmlFor="rundenspielZeitnehmerBedarf"
+                  className="font-normal"
+                >
+                  Zeitnehmer/Sekretär
+                </Label>
+                <Input
+                  id="rundenspielZeitnehmerBedarf"
+                  type="number"
+                  name="rundenspielZeitnehmerBedarf"
+                  min="0"
+                  step="1"
+                  defaultValue={verein?.rundenspielZeitnehmerBedarf ?? 1}
+                  className="w-20"
+                />
+              </div>
+            </fieldset>
+
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-1 text-sm font-medium">
+                Obergrenze Zeitnehmer/Sekretär
+              </legend>
+              <div className="flex items-center justify-between gap-3">
+                <Label
+                  htmlFor="zeitnehmerSekretaerMax"
+                  className="font-normal"
+                >
+                  Max. gleichzeitig zugeordnet (zusammen)
+                </Label>
+                <Input
+                  id="zeitnehmerSekretaerMax"
+                  type="number"
+                  name="zeitnehmerSekretaerMax"
+                  min="1"
+                  step="1"
+                  defaultValue={verein?.zeitnehmerSekretaerMax ?? 2}
                   className="w-20"
                 />
               </div>

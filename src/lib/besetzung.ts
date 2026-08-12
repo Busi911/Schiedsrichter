@@ -1,10 +1,16 @@
 // Pflichtbesetzung eines Spiels: mindestens 1 Schiedsrichter (max. 2 als
-// Gespann), sowie mindestens 1 Zeitnehmer ODER Sekretär (max. 2 zusammen).
-// Rein berechnet aus bereits vorhandenen Zuordnungen — kein DB-Zugriff,
-// daher ohne Testdatenbank testbar (siehe besetzung.test.ts).
+// Gespann), sowie eine konfigurierbare Mindestanzahl Zeitnehmer/Sekretär
+// (Obergrenze ebenfalls konfigurierbar, siehe vereine.zeitnehmerSekretaerMax
+// und testspiel-/turnier-/rundenspielZeitnehmerBedarf in db/schema.ts sowie
+// bedarfFuer in dienste.ts). Rein berechnet aus bereits vorhandenen
+// Zuordnungen — kein DB-Zugriff, daher ohne Testdatenbank testbar (siehe
+// besetzung.test.ts).
 
 export const SCHIRI_GESPANN_MAX = 2;
-export const ZEITNEHMER_SEKRETAER_MAX = 2;
+// Fallback-Werte, falls kein Verein/keine Einstellung übergeben wird (z.B.
+// in bestehenden Tests) — entsprechen dem bisherigen festen Verhalten.
+export const ZEITNEHMER_SEKRETAER_BEDARF_STANDARD = 1;
+export const ZEITNEHMER_SEKRETAER_MAX_STANDARD = 2;
 
 export type Besetzungsstatus = {
   schiriAnzahl: number;
@@ -18,7 +24,9 @@ export type Besetzungsstatus = {
 
 export function berechneBesetzung(
   zuordnungen: { funktionstraegerTyp: string }[],
-  hatIcsSchiedsrichter = false
+  hatIcsSchiedsrichter = false,
+  zeitnehmerSekretaerBedarf = ZEITNEHMER_SEKRETAER_BEDARF_STANDARD,
+  zeitnehmerSekretaerMax = ZEITNEHMER_SEKRETAER_MAX_STANDARD
 ): Besetzungsstatus {
   const schiriAnzahl =
     zuordnungen.filter((z) => z.funktionstraegerTyp === "schiedsrichter")
@@ -30,7 +38,8 @@ export function berechneBesetzung(
   ).length;
 
   const schiriErfuellt = schiriAnzahl >= 1;
-  const zeitnehmerSekretaerErfuellt = zeitnehmerSekretaerAnzahl >= 1;
+  const zeitnehmerSekretaerErfuellt =
+    zeitnehmerSekretaerAnzahl >= zeitnehmerSekretaerBedarf;
 
   return {
     schiriAnzahl,
@@ -38,7 +47,7 @@ export function berechneBesetzung(
     schiriVoll: schiriAnzahl >= SCHIRI_GESPANN_MAX,
     zeitnehmerSekretaerAnzahl,
     zeitnehmerSekretaerErfuellt,
-    zeitnehmerSekretaerVoll: zeitnehmerSekretaerAnzahl >= ZEITNEHMER_SEKRETAER_MAX,
+    zeitnehmerSekretaerVoll: zeitnehmerSekretaerAnzahl >= zeitnehmerSekretaerMax,
     vollstaendig: schiriErfuellt && zeitnehmerSekretaerErfuellt,
   };
 }

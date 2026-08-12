@@ -2,9 +2,16 @@ import { and, asc, eq, gte, inArray, lte, or } from "drizzle-orm";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
-import { funktionstraegerRollen, termine, terminZuordnungen, users } from "@/db/schema";
+import {
+  funktionstraegerRollen,
+  termine,
+  terminZuordnungen,
+  users,
+  vereine,
+} from "@/db/schema";
 import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
+import { bedarfFuer } from "@/lib/dienste";
 import { MonatsKalender, type KalenderEintrag } from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatZeit } from "@/lib/format";
@@ -43,7 +50,7 @@ export default async function ProfilKalenderPage({
   const { jahr, monatNull } = parseMonatParam(monat);
   const { von, bis } = monatsBereich(jahr, monatNull);
 
-  const [termineDesMonats, alleZuordnungen] = await withTenant(vereinId, async (tx) => {
+  const [termineDesMonats, alleZuordnungen, verein] = await withTenant(vereinId, async (tx) => {
     const eigeneRollen = await tx.query.funktionstraegerRollen.findMany({
       where: eq(funktionstraegerRollen.userId, userId),
     });
@@ -103,7 +110,11 @@ export default async function ProfilKalenderPage({
           .where(inArray(terminZuordnungen.terminId, terminIds))
       : [];
 
-    return [termineDesMonats, alleZuordnungen];
+    const verein = await tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+    });
+
+    return [termineDesMonats, alleZuordnungen, verein];
   });
 
   const eintraegeProTag = new Map<string, KalenderEintrag[]>();
@@ -111,9 +122,14 @@ export default async function ProfilKalenderPage({
     const key = tagKey(t.start);
     const liste = eintraegeProTag.get(key) ?? [];
     const eigeneZuordnungen = alleZuordnungen.filter((z) => z.terminId === t.id);
-    const besetzung = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ)
+    const besetzung = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ) && verein
       ? istBesetzungVollstaendig(
-          berechneBesetzung(eigeneZuordnungen, !!t.hatIcsSchiedsrichter),
+          berechneBesetzung(
+            eigeneZuordnungen,
+            !!t.hatIcsSchiedsrichter,
+            bedarfFuer(verein, t.typ, "zeitnehmer", t.pflichtspiel, t.freundschaftsTyp),
+            verein.zeitnehmerSekretaerMax
+          ),
           t.typ,
           t.pflichtspiel
         )

@@ -61,6 +61,40 @@ describe("berechneBesetzung", () => {
     expect(status.schiriAnzahl).toBe(0);
     expect(status.zeitnehmerSekretaerAnzahl).toBe(0);
   });
+
+  it("respektiert eine konfigurierte Zeitnehmer/Sekretär-Mindestanzahl statt fest 1", () => {
+    const einer = berechneBesetzung(
+      [{ funktionstraegerTyp: "zeitnehmer" }],
+      false,
+      2
+    );
+    expect(einer.zeitnehmerSekretaerErfuellt).toBe(false);
+
+    const zwei = berechneBesetzung(
+      [
+        { funktionstraegerTyp: "zeitnehmer" },
+        { funktionstraegerTyp: "sekretaer" },
+      ],
+      false,
+      2
+    );
+    expect(zwei.zeitnehmerSekretaerErfuellt).toBe(true);
+  });
+
+  it("respektiert eine konfigurierte Zeitnehmer/Sekretär-Obergrenze statt fest 2", () => {
+    const drei = berechneBesetzung(
+      [
+        { funktionstraegerTyp: "zeitnehmer" },
+        { funktionstraegerTyp: "zeitnehmer" },
+        { funktionstraegerTyp: "sekretaer" },
+      ],
+      false,
+      1,
+      4
+    );
+    expect(drei.zeitnehmerSekretaerAnzahl).toBe(3);
+    expect(drei.zeitnehmerSekretaerVoll).toBe(false);
+  });
 });
 
 describe("istBesetzungVollstaendig", () => {

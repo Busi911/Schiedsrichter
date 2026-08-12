@@ -6,11 +6,7 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { ZUORDENBARE_TYPEN } from "@/lib/zuordnung";
-import {
-  SCHIRI_GESPANN_MAX,
-  ZEITNEHMER_SEKRETAER_MAX,
-  berechneBesetzung,
-} from "@/lib/besetzung";
+import { SCHIRI_GESPANN_MAX, berechneBesetzung } from "@/lib/besetzung";
 import { sendMail } from "@/lib/mailer";
 import { formatDatumZeitLang } from "@/lib/format";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
@@ -37,16 +33,23 @@ function zuordnungsMailInhalt(
 
 // Prüft die Gespann-/Zweierbesetzung-Obergrenze, BEVOR eine weitere Person
 // eingetragen wird — schiedsrichter max. 2 (Gespann), zeitnehmer+sekretaer
-// zusammen max. 2. Wirft, wenn die Grenze für `rolle` bereits erreicht ist.
+// zusammen max. vereine.zeitnehmerSekretaerMax (konfigurierbar, siehe
+// /admin/einstellungen). Wirft, wenn die Grenze für `rolle` bereits erreicht
+// ist.
 async function pruefeBesetzungsgrenze(
   tx: Parameters<Parameters<typeof withTenant>[1]>[0],
+  vereinId: string,
   terminId: string,
   rolle: (typeof ZUORDENBARE_TYPEN)[number]
 ) {
-  const bestehende = await tx.query.terminZuordnungen.findMany({
-    where: eq(terminZuordnungen.terminId, terminId),
-  });
-  const status = berechneBesetzung(bestehende);
+  const [bestehende, verein] = await Promise.all([
+    tx.query.terminZuordnungen.findMany({
+      where: eq(terminZuordnungen.terminId, terminId),
+    }),
+    tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) }),
+  ]);
+  const zeitnehmerSekretaerMax = verein?.zeitnehmerSekretaerMax;
+  const status = berechneBesetzung(bestehende, false, undefined, zeitnehmerSekretaerMax);
   if (rolle === "schiedsrichter" && status.schiriVoll) {
     throw new Error(
       `Es sind bereits ${SCHIRI_GESPANN_MAX} Schiedsrichter (Gespann-Maximum) zugeordnet.`
@@ -57,7 +60,7 @@ async function pruefeBesetzungsgrenze(
     status.zeitnehmerSekretaerVoll
   ) {
     throw new Error(
-      `Es sind bereits ${ZEITNEHMER_SEKRETAER_MAX} Zeitnehmer/Sekretäre zugeordnet.`
+      `Es sind bereits ${zeitnehmerSekretaerMax} Zeitnehmer/Sekretäre zugeordnet.`
     );
   }
 }
@@ -103,7 +106,7 @@ export async function zuordnen(formData: FormData) {
     });
     if (vorhanden) return null;
 
-    await pruefeBesetzungsgrenze(tx, terminId, rolle);
+    await pruefeBesetzungsgrenze(tx, vereinId, terminId, rolle);
 
     await tx.insert(terminZuordnungen).values({
       terminId,
@@ -174,6 +177,7 @@ export async function externeZuordnung(formData: FormData) {
   await withTenant(vereinId, async (tx) => {
     await pruefeBesetzungsgrenze(
       tx,
+      vereinId,
       terminId,
       rolle as (typeof ZUORDENBARE_TYPEN)[number]
     );

@@ -8,6 +8,9 @@ const verein = {
   turnierKioskdienstBedarf: 0,
   rundenspielOrdnerBedarf: 0,
   rundenspielKioskdienstBedarf: 0,
+  testspielZeitnehmerBedarf: 1,
+  turnierZeitnehmerBedarf: 1,
+  rundenspielZeitnehmerBedarf: 1,
 };
 
 describe("berechneOffenePosten", () => {

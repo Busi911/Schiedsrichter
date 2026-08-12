@@ -94,12 +94,19 @@ export function berechneOffenePosten(
     }
 
     if (ZEITNEHMER_RELEVANTE_TYPEN.includes(termin.typ)) {
+      const bedarf = bedarfFuer(
+        verein,
+        termin.typ,
+        "zeitnehmer",
+        termin.pflichtspiel,
+        termin.freundschaftsTyp
+      );
       const vorhanden = zuordnungen.filter(
         (z) =>
           z.terminId === termin.id &&
           (z.funktionstraegerTyp === "zeitnehmer" || z.funktionstraegerTyp === "sekretaer")
       ).length;
-      if (vorhanden < 1) luecken.push({ rolle: "zeitnehmer", vorhanden, bedarf: 1 });
+      if (vorhanden < bedarf) luecken.push({ rolle: "zeitnehmer", vorhanden, bedarf });
     }
 
     if (luecken.length > 0) {

@@ -1,9 +1,17 @@
 import { and, asc, eq, gte, inArray, isNotNull, lte, or } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
-import { funktionstraegerRollen, mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
+import {
+  funktionstraegerRollen,
+  mannschaften,
+  termine,
+  terminZuordnungen,
+  users,
+  vereine,
+} from "@/db/schema";
 import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
+import { bedarfFuer } from "@/lib/dienste";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
   MonatsKalender,
@@ -54,7 +62,7 @@ export default async function AdminKalenderPage({
   const { jahr, monatNull } = parseMonatParam(monat);
   const { von, bis } = monatsBereich(jahr, monatNull);
 
-  const [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe] =
+  const [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe, verein] =
     await withTenant(vereinId, async (tx) => {
       const termineDesMonats = await tx
         .select({
@@ -132,7 +140,11 @@ export default async function AdminKalenderPage({
         )
         .orderBy(users.name);
 
-      return [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe];
+      const verein = await tx.query.vereine.findFirst({
+        where: eq(vereine.id, vereinId),
+      });
+
+      return [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe, verein];
     });
 
   const zuordenbarePersonen = await holeZuordenbareFunktionstraeger(vereinId);
@@ -174,11 +186,13 @@ export default async function AdminKalenderPage({
 
     const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
     const zuordenbar = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ);
-    const besetzung = zuordenbar
+    const besetzung = zuordenbar && verein
       ? istBesetzungVollstaendig(
           berechneBesetzung(
             eigeneZuordnungen,
-            t.typ === "spiel_ics" && !!t.schiedsrichterEmail
+            t.typ === "spiel_ics" && !!t.schiedsrichterEmail,
+            bedarfFuer(verein, t.typ, "zeitnehmer", t.pflichtspiel, t.freundschaftsTyp),
+            verein.zeitnehmerSekretaerMax
           ),
           t.typ,
           t.pflichtspiel

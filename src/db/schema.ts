@@ -23,6 +23,12 @@ export const funktionstraegerTypEnum = pgEnum("funktionstraeger_typ", [
   "trainer",
   "ordner",
   "kioskdienst",
+  // Übersicht über alle Schiedsrichter/Einsätze im Verein (Ressourcenplanung,
+  // offene Stellen, Statistik) sowie Zuordnen/Entfernen beschränkt auf die
+  // Rolle "schiedsrichter" — siehe /profil/schiedsrichterwart. Wie jede
+  // andere Funktionsträger-Rolle mehrfach vergebbar und unabhängig von
+  // istAdmin bzw. einer eigenen "schiedsrichter"-Rolle derselben Person.
+  "schiedsrichterwart",
 ]);
 
 export const terminTypEnum = pgEnum("termin_typ", [
@@ -100,6 +106,27 @@ export const vereine = pgTable("verein", {
   rundenspielKioskdienstBedarf: integer("rundenspiel_kioskdienst_bedarf")
     .notNull()
     .default(0),
+  // Mindestanzahl Zeitnehmer/Sekretär pro Termin-Typ (bisher hart 1 in
+  // src/lib/besetzung.ts) — analog zum Ordner-/Kioskdienst-Bedarf oben,
+  // ebenfalls nicht für spiel_ics (persönliche Einsätze des
+  // Schiedsrichters, siehe bedarfFuer in src/lib/dienste.ts). Default 1
+  // entspricht dem bisherigen festen Verhalten.
+  testspielZeitnehmerBedarf: integer("testspiel_zeitnehmer_bedarf")
+    .notNull()
+    .default(1),
+  turnierZeitnehmerBedarf: integer("turnier_zeitnehmer_bedarf")
+    .notNull()
+    .default(1),
+  rundenspielZeitnehmerBedarf: integer("rundenspiel_zeitnehmer_bedarf")
+    .notNull()
+    .default(1),
+  // Obergrenze für gleichzeitig zugeordnete Zeitnehmer+Sekretär zusammen
+  // (bisher hart ZEITNEHMER_SEKRETAER_MAX = 2 in src/lib/besetzung.ts) —
+  // EIN Wert für alle Termin-Typen, da es sich um eine praktische
+  // Kapazitätsgrenze am Tisch handelt, nicht um einen typabhängigen Bedarf.
+  zeitnehmerSekretaerMax: integer("zeitnehmer_sekretaer_max")
+    .notNull()
+    .default(2),
   // Zuschüsse sind ein Opt-in: erst wenn der Admin sie aktiviert UND
   // mindestens eine Zuschussart gepflegt hat, taucht auf /admin/zuschuesse
   // überhaupt etwas auf.
