@@ -342,6 +342,22 @@ describe("gruppiereUnbekannteMannschaften", () => {
     expect(vorschlaege[0].anzeigeName).toBe("Häufig");
   });
 
+  it("hält gleichnamige Mannschaften mit unterschiedlicher Kategorie auseinander", () => {
+    // nuLiga liefert nicht immer einen unterscheidenden Nummern-Suffix im
+    // Namen — Herren und eine Jugendmannschaft desselben Vereins könnten
+    // sonst fälschlich als eine Mannschaft vorgeschlagen werden.
+    const vorschlaege = gruppiereUnbekannteMannschaften([
+      { heimMannschaftName: "HSG Musterstadt", mannschaftId: null, kategorie: "Mä/männl." },
+      { heimMannschaftName: "HSG Musterstadt", mannschaftId: null, kategorie: "mJC" },
+      { heimMannschaftName: "HSG Musterstadt", mannschaftId: null, kategorie: "Mä/männl." },
+    ]);
+    expect(vorschlaege).toHaveLength(2);
+    const herren = vorschlaege.find((v) => v.kategorie === "Mä/männl.");
+    const jugend = vorschlaege.find((v) => v.kategorie === "mJC");
+    expect(herren?.anzahlSpiele).toBe(2);
+    expect(jugend?.anzahlSpiele).toBe(1);
+  });
+
   it("ignoriert Auswärtsnamen (immer ein fremder Verein, nicht relevant für eigene Mannschaften)", () => {
     // Die Funktion nimmt bewusst nur heimMannschaftName entgegen — ein
     // Auswärtsname kann hier gar nicht mehr übergeben werden, das ist Teil

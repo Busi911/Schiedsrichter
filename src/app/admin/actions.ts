@@ -814,16 +814,29 @@ export async function mannschaftAusRundenspielAnlegen(formData: FormData) {
   if (typeof name !== "string" || !name.trim()) {
     throw new Error("Name fehlt.");
   }
+  const kategorieRoh = formData.get("kategorie");
+  // "" statt null, wenn das Formularfeld leer war (kein Unterschied zu
+  // "kein Kategorie-Feld vorhanden") — beides bedeutet "keine Kategorie".
+  const kategorieZiel =
+    typeof kategorieRoh === "string" && kategorieRoh ? kategorieRoh : null;
   const normZiel = normalisiereMannschaftsname(name);
 
   await withTenant(vereinId, async (tx) => {
     const [mannschaft] = await tx
       .insert(mannschaften)
-      .values({ vereinId, name: name.trim() })
+      .values({
+        vereinId,
+        name: name.trim(),
+        // Aus dem nuLiga-Import vorbefüllt (z.B. "Mä/männl." oder eine
+        // Jugendklasse) — spart manuelles Nachtragen, bleibt aber änderbar.
+        altersklasse: kategorieZiel,
+      })
       .returning();
 
     // Bestehende, noch nicht verknüpfte Rundenspiele rückwirkend mit der
     // neu angelegten Mannschaft verknüpfen (nicht nur künftige Importe).
+    // Kategorie muss ebenfalls übereinstimmen, sonst würden z.B. eine
+    // Herren- und eine gleichnamige Jugendmannschaft vermischt.
     const offeneRundenspiele = await tx.query.termine.findMany({
       where: and(
         eq(termine.vereinId, vereinId),
@@ -832,6 +845,7 @@ export async function mannschaftAusRundenspielAnlegen(formData: FormData) {
       ),
     });
     for (const r of offeneRundenspiele) {
+      if ((r.kategorie ?? null) !== kategorieZiel) continue;
       const heimNorm = r.heimMannschaftName
         ? normalisiereMannschaftsname(r.heimMannschaftName)
         : null;

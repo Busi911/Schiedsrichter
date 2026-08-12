@@ -92,6 +92,13 @@
       "when": 1786472882008,
       "tag": "0012_even_tarot",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1786509832572,
+      "tag": "0013_closed_silver_centurion",
+      "breakpoints": true
     }
   ]
 }
