@@ -51,3 +51,32 @@ export function formatZeitKurz(d: Date): string {
     timeZone: ZEITZONE,
   });
 }
+
+// Deutschland wechselt zwischen MESZ (+02:00, Ende März bis Ende Oktober)
+// und MEZ (+01:00, Rest des Jahres). Noon UTC liegt an jedem Kalendertag
+// sicher auf derselben Seite der (jeweils um 01:00 UTC stattfindenden)
+// EU-Zeitumstellung, daher als Ankerzeitpunkt zur Offset-Bestimmung
+// geeignet — unabhängig von der tatsächlichen Uhrzeit.
+export function berlinOffset(datumIso: string): string {
+  const anker = new Date(`${datumIso}T12:00:00Z`);
+  const teile = new Intl.DateTimeFormat("en-US", {
+    timeZone: ZEITZONE,
+    timeZoneName: "shortOffset",
+  }).formatToParts(anker);
+  const tzTeil = teile.find((t) => t.type === "timeZoneName")?.value ?? "GMT+1";
+  const stunden = Number(tzTeil.replace("GMT", "")) || 1;
+  return `${stunden >= 0 ? "+" : "-"}${String(Math.abs(stunden)).padStart(2, "0")}:00`;
+}
+
+// Wandelt den Wert eines <input type="datetime-local"> (naive lokale Zeit
+// ohne Zeitzone, z.B. "2026-08-26T19:45") als Europe/Berlin-Zeit in ein
+// Date um. new Date(wert) ohne diese Behandlung interpretiert den String
+// als lokale Zeit der LAUFZEITUMGEBUNG — auf Vercel (Serverless, Standard
+// UTC) landet eine dort eingetragene 19:45 Uhr sonst als 19:45 UTC, also
+// 2h (Sommerzeit) bzw. 1h (Winterzeit) zu spät gespeichert.
+export function parseBerlinDatumZeit(wert: string): Date {
+  const datumTeil = wert.slice(0, 10);
+  const zeitTeil = wert.length > 10 ? wert.slice(11) : "00:00";
+  const mitSekunden = zeitTeil.length === 5 ? `${zeitTeil}:00` : zeitTeil;
+  return new Date(`${datumTeil}T${mitSekunden}${berlinOffset(datumTeil)}`);
+}
