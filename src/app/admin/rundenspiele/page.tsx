@@ -194,10 +194,20 @@ export default async function RundenspielePage({
                       {formatDateTime(d.testspielStart)}
                       {d.testspielBeschreibung ? ` · ${d.testspielBeschreibung}` : ""}
                     </p>
+                    {d.testspielBesetzung.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {d.testspielBesetzung.join(" · ")}
+                      </p>
+                    )}
                     <p className="text-muted-foreground">
                       <strong>Hallenspielplan:</strong> {formatDateTime(d.rundenspielStart)}
                       {d.rundenspielBeschreibung ? ` · ${d.rundenspielBeschreibung}` : ""}
                     </p>
+                    {d.rundenspielBesetzung.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {d.rundenspielBesetzung.join(" · ")}
+                      </p>
+                    )}
                   </div>
                   <form action={testspielDuplikatVerknuepfen}>
                     <input type="hidden" name="testspielId" value={d.testspielId} />
