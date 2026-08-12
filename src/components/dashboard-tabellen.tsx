@@ -16,9 +16,9 @@ export type NaechsterTerminZeile = {
   mannschaft: string | null;
 };
 
-// Zeigt ALLE Zeilen (kein Load-More) — die Karte darf dafür ruhig hoch
-// werden, damit auf einen Blick alles sichtbar ist, statt sich durch
-// mehrere "Mehr laden"-Klicks arbeiten zu müssen.
+// Zeigt die vom Aufrufer übergebenen Zeilen ohne eigenes Load-More/
+// Pagination — die Begrenzung (aktuell 10) erfolgt beim Abruf in
+// admin/page.tsx, der Link "Alle Termine" führt zur vollen Liste.
 export function NaechsteTermineTabelle({
   termine,
 }: {
