@@ -68,8 +68,17 @@ export default async function ZuordnungPage() {
             termin.zuordnungen,
             !!termin.icsSchiedsrichter
           );
-          const vollstaendig = istBesetzungVollstaendig(besetzung, termin.typ);
+          const vollstaendig = istBesetzungVollstaendig(
+            besetzung,
+            termin.typ,
+            termin.pflichtspiel
+          );
           const istRundenspiel = termin.typ === "rundenspiel";
+          // Nur ECHTE Ligaspiele bekommen ihren Schiedsrichter automatisch
+          // vom Verband — Freundschaftsspiele/Turniere im Liga-Spielplan
+          // (pflichtspiel = false) braucht der Verein wie jedes andere Spiel
+          // selbst zugeordnet (siehe istBesetzungVollstaendig).
+          const schiriKommtVomVerband = istRundenspiel && termin.pflichtspiel === true;
           const typLabel = istRundenspiel
             ? rundenspielTypLabel(termin.pflichtspiel)
             : TYP_LABEL[termin.typ] ?? termin.typ;
@@ -87,7 +96,7 @@ export default async function ZuordnungPage() {
                   <CardDescription>{termin.beschreibung}</CardDescription>
                 )}
                 <CardDescription>
-                  {!istRundenspiel && (
+                  {!schiriKommtVomVerband && (
                     <>
                       Schiedsrichter {besetzung.schiriAnzahl}/2
                       {besetzung.schiriErfuellt ? "" : " · fehlt"} ·{" "}
@@ -95,7 +104,7 @@ export default async function ZuordnungPage() {
                   )}
                   Zeitnehmer/Sekretär {besetzung.zeitnehmerSekretaerAnzahl}/2
                   {besetzung.zeitnehmerSekretaerErfuellt ? "" : " · fehlt"}
-                  {istRundenspiel &&
+                  {schiriKommtVomVerband &&
                     " (Schiedsrichter kommt vom Verband, nicht hier zugeordnet)"}
                 </CardDescription>
               </CardHeader>

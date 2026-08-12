@@ -144,7 +144,8 @@ export default async function AdminKalenderPage({
             eigeneZuordnungen,
             t.typ === "spiel_ics" && !!t.schiedsrichterEmail
           ),
-          t.typ
+          t.typ,
+          t.pflichtspiel
         )
         ? ("vollstaendig" as const)
         : ("offen" as const)
