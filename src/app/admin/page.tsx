@@ -1,23 +1,15 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
-import {
-  holeLetzteErgebnisse,
-  holeNaechsteTermine,
-  holeOffenePosten,
-} from "@/lib/dashboard";
+import { holeLetzteErgebnisse, holeNaechsteTermine } from "@/lib/dashboard";
 import { holeZuschussEinstellungen, holeOffeneEinsaetze } from "@/lib/zuschuss";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  NaechsteTermineTabelle,
-  UnbesetzteDiensteTabelle,
-} from "@/components/dashboard-tabellen";
+import { NaechsteTermineTabelle } from "@/components/dashboard-tabellen";
 import {
   Table,
   TableBody,
@@ -37,12 +29,6 @@ const TYP_LABEL: Record<string, string> = {
   rundenspiel: "Rundenspiel",
 };
 
-const ROLLE_LABEL: Record<string, string> = {
-  ordner: "Ordner",
-  kioskdienst: "Kioskdienst",
-  zeitnehmer: "Zeitnehmer/Sekretär",
-};
-
 export default async function AdminDashboardPage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
@@ -50,14 +36,13 @@ export default async function AdminDashboardPage() {
   const verein = await holeZuschussEinstellungen(vereinId);
   const zuschuesseAktiviert = verein?.zuschuesseAktiviert ?? false;
 
-  const [naechsteTermine, offenePosten, letzteErgebnisse, offeneEinsaetze] =
+  const [naechsteTermine, letzteErgebnisse, offeneEinsaetze] =
     await Promise.all([
       // Hohes Limit statt fest 5/50 — die Übersicht soll auf einen Blick
       // wirklich alle anstehenden Termine zeigen (keine Pagination mehr),
       // 500 ist eine großzügige Sicherheitsgrenze gegen eine unbegrenzte
       // Abfrage, nicht als realistische Kappung gedacht.
       holeNaechsteTermine(vereinId, 500),
-      holeOffenePosten(vereinId),
       holeLetzteErgebnisse(vereinId, 10),
       zuschuesseAktiviert ? holeOffeneEinsaetze(vereinId) : Promise.resolve([]),
     ]);
@@ -72,16 +57,6 @@ export default async function AdminDashboardPage() {
     ort: t.ort,
   }));
 
-  const offenePostenZeilen = offenePosten.map((p) => ({
-    terminId: p.terminId,
-    zeit: formatDateTime(p.start),
-    luecken: p.luecken.map((l) => ({
-      rolle: ROLLE_LABEL[l.rolle],
-      vorhanden: l.vorhanden,
-      bedarf: l.bedarf,
-    })),
-  }));
-
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -91,7 +66,7 @@ export default async function AdminDashboardPage() {
         </p>
       </div>
 
-      <div className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Nächste Termine</CardTitle>
@@ -115,36 +90,14 @@ export default async function AdminDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Unbesetzte Dienste</CardTitle>
-            <CardDescription>
-              Offener Ordner-/Kioskdienst-Bedarf sowie fehlende Zeitnehmer/
-              Sekretär — ein Termin mit mehreren offenen Rollen zählt hier nur
-              einmal.
-            </CardDescription>
+            <CardTitle className="text-base">Letzte Ergebnisse</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {offenePostenZeilen.length === 0 ? (
+            {letzteErgebnisse.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Alle Dienste sind besetzt.
+                Noch keine Ergebnisse erfasst.
               </p>
             ) : (
-              <UnbesetzteDiensteTabelle posten={offenePostenZeilen} />
-            )}
-            <Link
-              href="/admin/einstellungen"
-              className="mt-1 text-xs text-muted-foreground underline"
-            >
-              Dienste-Bedarf einstellen
-            </Link>
-          </CardContent>
-        </Card>
-
-        {letzteErgebnisse.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Letzte Ergebnisse</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -178,9 +131,9 @@ export default async function AdminDashboardPage() {
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Bewusst kein eigenes Grid-Card mehr — bei deaktivierten Zuschüssen

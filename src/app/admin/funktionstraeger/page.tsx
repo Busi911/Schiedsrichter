@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mannschaften, users } from "@/db/schema";
@@ -41,50 +41,72 @@ export default async function FunktionstraegerPage({
   const vereinId = session.user.vereinId!;
   const importErgebnis = await searchParams;
 
-  const [rollen, mannschaftsListe] = await withTenant(vereinId, async (tx) => {
-    const rollen = await tx
-      .select({
-        rolleId: funktionstraegerRollen.id,
-        userId: funktionstraegerRollen.userId,
-        typ: funktionstraegerRollen.typ,
-        aktiv: funktionstraegerRollen.aktiv,
-        name: users.name,
-        email: users.email,
-        mannschaftName: mannschaften.name,
-      })
-      .from(funktionstraegerRollen)
-      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
-      .leftJoin(
-        mannschaften,
-        eq(funktionstraegerRollen.mannschaftId, mannschaften.id)
-      )
-      .where(eq(users.vereinId, vereinId));
+  const [rollen, mannschaftsListe, alleAdmins] = await withTenant(
+    vereinId,
+    async (tx) => {
+      const rollen = await tx
+        .select({
+          rolleId: funktionstraegerRollen.id,
+          userId: funktionstraegerRollen.userId,
+          typ: funktionstraegerRollen.typ,
+          aktiv: funktionstraegerRollen.aktiv,
+          name: users.name,
+          email: users.email,
+          mannschaftName: mannschaften.name,
+        })
+        .from(funktionstraegerRollen)
+        .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+        .leftJoin(
+          mannschaften,
+          eq(funktionstraegerRollen.mannschaftId, mannschaften.id)
+        )
+        .where(eq(users.vereinId, vereinId));
 
-    const mannschaftsListe = await tx.query.mannschaften.findMany({
-      where: eq(mannschaften.vereinId, vereinId),
-      orderBy: (m, { asc }) => [asc(m.name)],
-    });
+      const mannschaftsListe = await tx.query.mannschaften.findMany({
+        where: eq(mannschaften.vereinId, vereinId),
+        orderBy: (m, { asc }) => [asc(m.name)],
+      });
 
-    return [rollen, mannschaftsListe];
-  });
+      // Admins tauchen nicht zwingend in funktionstraeger_rolle auf (eine
+      // Person kann NUR Admin sein, ohne eigenen Funktionsträger-Typ) —
+      // deshalb separat geladen und unten in die Personen-Liste eingemischt.
+      const alleAdmins = await tx
+        .select({ userId: users.id, name: users.name, email: users.email })
+        .from(users)
+        .where(and(eq(users.vereinId, vereinId), eq(users.istAdmin, true)));
+
+      return [rollen, mannschaftsListe, alleAdmins];
+    }
+  );
 
   // Eine Person kann mehrere Rollen haben — in der Übersicht bekommt sie
   // eine Zeile mit allen Rollen als Chips statt einer Zeile pro Rolle.
-  const personen = Array.from(
-    rollen
-      .reduce((map, r) => {
-        const eintrag = map.get(r.userId) ?? {
-          userId: r.userId,
-          name: r.name,
-          email: r.email,
-          rollen: [] as typeof rollen,
-        };
-        eintrag.rollen.push(r);
-        map.set(r.userId, eintrag);
-        return map;
-      }, new Map<string, { userId: string; name: string | null; email: string; rollen: typeof rollen }>())
-      .values()
-  );
+  const personenMap = rollen.reduce((map, r) => {
+    const eintrag = map.get(r.userId) ?? {
+      userId: r.userId,
+      name: r.name,
+      email: r.email,
+      istAdmin: false,
+      rollen: [] as typeof rollen,
+    };
+    eintrag.rollen.push(r);
+    map.set(r.userId, eintrag);
+    return map;
+  }, new Map<string, { userId: string; name: string | null; email: string; istAdmin: boolean; rollen: typeof rollen }>());
+
+  for (const admin of alleAdmins) {
+    const eintrag = personenMap.get(admin.userId) ?? {
+      userId: admin.userId,
+      name: admin.name,
+      email: admin.email,
+      istAdmin: false,
+      rollen: [] as typeof rollen,
+    };
+    eintrag.istAdmin = true;
+    personenMap.set(admin.userId, eintrag);
+  }
+
+  const personen = Array.from(personenMap.values());
 
   return (
     <div className="flex flex-col gap-6">
@@ -123,7 +145,10 @@ export default async function FunktionstraegerPage({
             <CardTitle>Alle Funktionsträger</CardTitle>
           </CardHeader>
           <CardContent>
-            <FunktionstraegerTabelle personen={personen} />
+            <FunktionstraegerTabelle
+              personen={personen}
+              eigeneUserId={session.user.id}
+            />
           </CardContent>
         </Card>
 
@@ -167,6 +192,15 @@ export default async function FunktionstraegerPage({
                   ))}
                 </div>
               </div>
+
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="istAdmin"
+                  className="size-4"
+                />
+                Admin (voller Zugriff auf den Vereinsbereich)
+              </label>
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor="mannschaftId">Mannschaft (nur bei Trainer)</Label>

@@ -4,6 +4,8 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, vereine } from "@/db/schema";
 import { signOut } from "@/auth";
+import { holeOffenePosten } from "@/lib/dashboard";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminNav } from "@/components/admin-nav";
 import { Logo } from "@/components/logo";
@@ -15,18 +17,25 @@ export default async function AdminLayout({
 }) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
-  const { verein, hatEigeneRollen } = await withTenant(vereinId, async (tx) => {
-    const verein = await tx.query.vereine.findFirst({
-      where: eq(vereine.id, vereinId),
-    });
-    // Ein Admin kann zusätzlich eigene Funktionsträger-Rollen haben (z.B.
-    // selbst Schiedsrichter sein) — dafür braucht es einen Weg zu /profil,
-    // da die Startseite Admins immer direkt zu /admin schickt.
-    const eigeneRolle = await tx.query.funktionstraegerRollen.findFirst({
-      where: eq(funktionstraegerRollen.userId, session.user.id),
-    });
-    return { verein, hatEigeneRollen: !!eigeneRolle };
-  });
+  const { verein, hatEigeneRollen } = await withTenant(
+    vereinId,
+    async (tx) => {
+      const verein = await tx.query.vereine.findFirst({
+        where: eq(vereine.id, vereinId),
+      });
+      // Ein Admin kann zusätzlich eigene Funktionsträger-Rollen haben (z.B.
+      // selbst Schiedsrichter sein) — dafür braucht es einen Weg zu /profil,
+      // da die Startseite Admins immer direkt zu /admin schickt.
+      const eigeneRolle = await tx.query.funktionstraegerRollen.findFirst({
+        where: eq(funktionstraegerRollen.userId, session.user.id),
+      });
+      return { verein, hatEigeneRollen: !!eigeneRolle };
+    }
+  );
+  // Auf jeder Admin-Seite sichtbar (nicht nur auf der Übersicht) — der Admin
+  // soll die Besetzung nur noch überwachen, die eigentliche Zuordnung
+  // übernehmen die jeweiligen Wart-Rollen (siehe /admin/dienste).
+  const offeneDiensteAnzahl = (await holeOffenePosten(vereinId)).length;
 
   return (
     <div className="min-h-screen">
@@ -45,6 +54,13 @@ export default async function AdminLayout({
           </div>
           <AdminNav />
           <div className="flex items-center gap-2">
+            {offeneDiensteAnzahl > 0 && (
+              <Link href="/admin/dienste">
+                <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400">
+                  {offeneDiensteAnzahl} Dienste offen
+                </Badge>
+              </Link>
+            )}
             {hatEigeneRollen && (
               <Button
                 variant="outline"

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  adminRechteToggeln,
   funktionstraegerAktivToggeln,
   updateFunktionstraeger,
 } from "@/app/admin/actions";
@@ -36,13 +37,25 @@ type Rolle = {
   aktiv: boolean;
   mannschaftName: string | null;
 };
-type Person = { userId: string; name: string | null; email: string; rollen: Rolle[] };
+type Person = {
+  userId: string;
+  name: string | null;
+  email: string;
+  istAdmin: boolean;
+  rollen: Rolle[];
+};
 
 // Übersicht ohne direkt sichtbare Edit-Formulare (bei vielen Funktionsträgern
 // wurde die Liste sonst unübersichtlich) — Bearbeiten pro Zeile über natives
 // <details> ein-/ausklappbar, plus Client-seitige Filter (Suche/Rolle/Status;
 // Datensatz pro Verein klein genug, kein Server-Roundtrip nötig).
-export function FunktionstraegerTabelle({ personen }: { personen: Person[] }) {
+export function FunktionstraegerTabelle({
+  personen,
+  eigeneUserId,
+}: {
+  personen: Person[];
+  eigeneUserId: string;
+}) {
   const [suche, setSuche] = useState("");
   const [rolleFilter, setRolleFilter] = useState("alle");
   const [statusFilter, setStatusFilter] = useState<"alle" | "aktiv" | "inaktiv">(
@@ -59,6 +72,10 @@ export function FunktionstraegerTabelle({ personen }: { personen: Person[] }) {
       ) {
         return false;
       }
+      // Ohne aktiven Rollen-/Status-Filter auch Personen zeigen, die NUR
+      // Admin sind (kein eigener Funktionsträger-Typ, also leeres rollen[])
+      // — sonst würden sie durch die .some()-Prüfung unten unsichtbar.
+      if (rolleFilter === "alle" && statusFilter === "alle") return true;
       return p.rollen.some((r) => {
         if (rolleFilter !== "alle" && r.typ !== rolleFilter) return false;
         if (statusFilter === "aktiv" && !r.aktiv) return false;
@@ -125,6 +142,7 @@ export function FunktionstraegerTabelle({ personen }: { personen: Person[] }) {
                 <TableCell className="text-muted-foreground">{p.email}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
+                    {p.istAdmin && <Badge variant="default">Admin</Badge>}
                     {p.rollen.map((r) => (
                       <Badge
                         key={r.rolleId}
@@ -170,6 +188,38 @@ export function FunktionstraegerTabelle({ personen }: { personen: Person[] }) {
                           Speichern
                         </Button>
                       </form>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs ${
+                            p.istAdmin ? "border-border" : "border-dashed text-muted-foreground"
+                          }`}
+                        >
+                          <span className="font-medium">
+                            {p.istAdmin ? "Admin" : "Kein Admin"}
+                          </span>
+                          {p.userId === eigeneUserId ? (
+                            <span className="text-muted-foreground">
+                              (du selbst)
+                            </span>
+                          ) : (
+                            <form action={adminRechteToggeln}>
+                              <input
+                                type="hidden"
+                                name="userId"
+                                value={p.userId}
+                              />
+                              <button
+                                type="submit"
+                                className="text-muted-foreground underline"
+                              >
+                                {p.istAdmin
+                                  ? "Admin-Rechte entziehen"
+                                  : "Zum Admin machen"}
+                              </button>
+                            </form>
+                          )}
+                        </span>
+                      </div>
                       <div className="flex flex-wrap gap-1.5">
                         {p.rollen.map((r) => (
                           <span

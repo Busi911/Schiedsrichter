@@ -126,6 +126,7 @@ export async function createFunktionstraeger(formData: FormData) {
   const mannschaftId = formData.get("mannschaftId");
   // Checkbox: ist sie nicht angehakt, fehlt der Formularwert komplett.
   const sofortAktiv = formData.get("sofortAktiv") === "on";
+  const alsAdmin = formData.get("istAdmin") === "on";
 
   if (typeof email !== "string" || !email.trim()) {
     throw new Error("E-Mail ist erforderlich.");
@@ -134,14 +135,19 @@ export async function createFunktionstraeger(formData: FormData) {
     throw new Error("Name ist erforderlich.");
   }
   if (
-    typen.length === 0 ||
     !typen.every(
       (t): t is (typeof FUNKTIONSTRAEGER_TYPEN)[number] =>
         typeof t === "string" &&
         (FUNKTIONSTRAEGER_TYPEN as readonly string[]).includes(t)
     )
   ) {
-    throw new Error("Bitte mindestens eine gültige Rolle auswählen.");
+    throw new Error("Ungültige Rolle ausgewählt.");
+  }
+  // Admin zählt als eigenständige "Rolle" für die Mindestanforderung — eine
+  // Person kann bewusst NUR Admin sein, ohne aktiven Funktionsträger-Typ
+  // (z.B. ein Vorstandsmitglied ohne eigenen Dienst).
+  if (typen.length === 0 && !alsAdmin) {
+    throw new Error("Bitte mindestens eine Rolle auswählen (oder Admin).");
   }
   const ausgewaehlteTypen = typen as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
   const normalizedEmail = email.trim().toLowerCase();
@@ -160,8 +166,24 @@ export async function createFunktionstraeger(formData: FormData) {
     if (!user) {
       [user] = await tx
         .insert(users)
-        .values({ email: normalizedEmail, name: name.trim(), vereinId })
+        .values({
+          email: normalizedEmail,
+          name: name.trim(),
+          vereinId,
+          istAdmin: alsAdmin,
+        })
         .returning();
+    } else if (alsAdmin && !user.istAdmin) {
+      // Nur BEFÖRDERN, nie hier degradieren — dieses Formular dient auch
+      // dazu, einer bestehenden Person eine weitere Rolle zu ergänzen, ohne
+      // versehentlich ihre Admin-Rechte zu entziehen, wenn die Checkbox beim
+      // erneuten Absenden nicht angehakt ist (siehe adminRechteToggeln für
+      // die bewusste Degradierung).
+      await tx
+        .update(users)
+        .set({ istAdmin: true })
+        .where(eq(users.id, user.id));
+      user = { ...user, istAdmin: true };
     }
 
     for (const typ of ausgewaehlteTypen) {
@@ -355,6 +377,43 @@ export async function updateFunktionstraeger(formData: FormData) {
       console.error("Info-Mail an alte Adresse fehlgeschlagen:", err);
     }
   }
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
+// Admin-Rechte für eine bestehende Person umschalten. "users" hat bewusst
+// KEIN RLS (siehe 0001_enable_rls_multi_tenant.sql) — die Zugehörigkeit zum
+// eigenen Verein muss deshalb hier explizit geprüft werden, sonst ließe
+// sich über eine manipulierte userId einer Person eines FREMDEN Vereins
+// Admin-Rechte erteilen. Selbst-Degradierung ist bewusst gesperrt: sonst
+// könnte sich ein Admin (z.B. versehentlich) aus dem eigenen Admin-Bereich
+// aussperren, ohne dass ein anderer Admin/Systemadmin eingreifen kann,
+// falls es der einzige Admin des Vereins war.
+export async function adminRechteToggeln(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const userId = formData.get("userId");
+  if (typeof userId !== "string" || !userId) {
+    throw new Error("Person fehlt.");
+  }
+  if (userId === session.user.id) {
+    throw new Error(
+      "Du kannst dir hier nicht selbst die Admin-Rechte entziehen — das muss ein anderer Admin für dich tun."
+    );
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    const person = await tx.query.users.findFirst({
+      where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
+    });
+    if (!person) throw new Error("Person nicht gefunden.");
+
+    await tx
+      .update(users)
+      .set({ istAdmin: !person.istAdmin })
+      .where(eq(users.id, userId));
+  });
 
   revalidatePath("/admin/funktionstraeger");
 }
