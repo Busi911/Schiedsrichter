@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
 import { mannschaften, termine, vereine } from "@/db/schema";
@@ -24,8 +24,13 @@ export async function importiereRundenspielEreignisse(
   let aktualisiert = 0;
 
   await withTenant(vereinId, async (tx) => {
+    // Explizite Sortierung, damit findeMannschaft bei mehreren Treffern
+    // (siehe dort) deterministisch dasselbe Ergebnis liefert — ohne
+    // orderBy garantiert Postgres keine stabile Zeilenreihenfolge über
+    // wiederholte Abfragen hinweg.
     const mannschaftsListe = await tx.query.mannschaften.findMany({
       where: eq(mannschaften.vereinId, vereinId),
+      orderBy: (m) => [asc(m.name)],
     });
 
     for (const ereignis of ereignisse) {

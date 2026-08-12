@@ -1,7 +1,9 @@
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
+import { withTenant } from "@/db";
+import { vereine } from "@/db/schema";
 import { holeLetzteErgebnisse, holeNaechsteTermine } from "@/lib/dashboard";
-import { holeZuschussEinstellungen, holeOffeneEinsaetze } from "@/lib/zuschuss";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -65,19 +67,18 @@ export default async function AdminDashboardPage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
 
-  const verein = await holeZuschussEinstellungen(vereinId);
-  const zuschuesseAktiviert = verein?.zuschuesseAktiviert ?? false;
+  const verein = await withTenant(vereinId, (tx) =>
+    tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
+  );
 
-  const [naechsteTermine, letzteErgebnisse, offeneEinsaetze] =
-    await Promise.all([
-      // Hohes Limit statt fest 5/50 — die Übersicht soll auf einen Blick
-      // wirklich alle anstehenden Termine zeigen (keine Pagination mehr),
-      // 500 ist eine großzügige Sicherheitsgrenze gegen eine unbegrenzte
-      // Abfrage, nicht als realistische Kappung gedacht.
-      holeNaechsteTermine(vereinId, 500),
-      holeLetzteErgebnisse(vereinId, 10),
-      zuschuesseAktiviert ? holeOffeneEinsaetze(vereinId) : Promise.resolve([]),
-    ]);
+  const [naechsteTermine, letzteErgebnisse] = await Promise.all([
+    // Hohes Limit statt fest 5/50 — die Übersicht soll auf einen Blick
+    // wirklich alle anstehenden Termine zeigen (keine Pagination mehr),
+    // 500 ist eine großzügige Sicherheitsgrenze gegen eine unbegrenzte
+    // Abfrage, nicht als realistische Kappung gedacht.
+    holeNaechsteTermine(vereinId, 500),
+    holeLetzteErgebnisse(vereinId, 10),
+  ]);
 
   const naechsteTermineZeilen = naechsteTermine.map((t) => ({
     id: t.id,
@@ -172,20 +173,6 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Bewusst kein eigenes Grid-Card mehr — bei deaktivierten Zuschüssen
-          oder ohne offene Einsätze gibt es hier nichts zu tun, ein leerer/
-          negativer Hinweis wäre nur Lärm auf der Übersicht. */}
-      {zuschuesseAktiviert && offeneEinsaetze.length > 0 && (
-        <Link
-          href="/admin/zuschuesse"
-          className="text-sm text-muted-foreground underline"
-        >
-          {offeneEinsaetze.length}{" "}
-          {offeneEinsaetze.length === 1 ? "Einsatz" : "Einsätze"} ohne
-          Zuschuss
-        </Link>
-      )}
     </div>
   );
 }

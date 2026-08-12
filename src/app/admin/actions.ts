@@ -11,7 +11,6 @@ import {
   termine,
   terminZuordnungen,
   users,
-  zuschuesse,
 } from "@/db/schema";
 import { parseFunktionstraegerExcel } from "@/lib/funktionstraeger-import";
 import { normalisiereMannschaftsname } from "@/lib/rundenspiel-import";
@@ -233,8 +232,8 @@ export async function createFunktionstraeger(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
-// Statt Löschen: eine Rolle wird deaktiviert (bleibt in Zuordnungs-/
-// Zuschuss-Historie erhalten), taucht aber nicht mehr in Zuordnung/
+// Statt Löschen: eine Rolle wird deaktiviert (bleibt in der
+// Zuordnungs-Historie erhalten), taucht aber nicht mehr in Zuordnung/
 // Selbst-Anmeldung auf.
 export async function funktionstraegerAktivToggeln(formData: FormData) {
   const session = await requireAdmin();
@@ -713,11 +712,11 @@ export async function deleteTermin(formData: FormData) {
 // dem später offiziell über den Hallenspielplan importierten Rundenspiel,
 // das sich als Duplikat herausgestellt hat (siehe findeTestspielDuplikate).
 // Statt das Freundschaftsspiel einfach zu löschen (und damit bereits
-// erfasste Zuordnungen wie Schiedsrichter/Zeitnehmer/Sekretär sowie
-// gebuchte Zuschüsse zu verlieren, die per ON DELETE CASCADE an termin_id
-// hängen), werden diese zuerst auf das Rundenspiel übertragen. Bereits am
-// Rundenspiel vorhandene, inhaltlich identische Zuordnungen (gleiche Rolle
-// + gleiche Person) werden dabei verworfen statt dupliziert.
+// erfasste Zuordnungen wie Schiedsrichter/Zeitnehmer/Sekretär zu verlieren,
+// die per ON DELETE CASCADE an termin_id hängen), werden diese zuerst auf
+// das Rundenspiel übertragen. Bereits am Rundenspiel vorhandene, inhaltlich
+// identische Zuordnungen (gleiche Rolle + gleiche Person) werden dabei
+// verworfen statt dupliziert.
 export async function testspielDuplikatVerknuepfen(formData: FormData) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
@@ -777,11 +776,6 @@ export async function testspielDuplikatVerknuepfen(formData: FormData) {
           .where(eq(terminZuordnungen.id, z.id));
       }
     }
-
-    await tx
-      .update(zuschuesse)
-      .set({ terminId: rundenspielId })
-      .where(eq(zuschuesse.terminId, testspielId));
 
     await tx.delete(termine).where(eq(termine.id, testspielId));
   });

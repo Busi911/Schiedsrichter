@@ -48,7 +48,11 @@ export type KalenderEintrag = {
   ort?: string | null;
   // id = terminZuordnungen-Id (für "Entfernen"), bei nicht entfernbaren
   // Einträgen (z.B. ICS-Schiedsrichter) ein synthetischer Platzhalter.
-  besetzungsDetails?: { id: string; label: string }[];
+  // hinweis = optionaler nuLiga-Abgleichs-Hinweis (siehe
+  // schiedsrichterKuerzelPasstZu), als eigene Zeile unter dem Namen statt
+  // inline angehängt, damit lange Gespann-Kürzel nicht mit dem Namen
+  // zusammenlaufen.
+  besetzungsDetails?: { id: string; label: string; hinweis?: string }[];
   bearbeitenHref?: string;
   // "24:20"-Format, nur gesetzt wenn beide Werte erfasst sind (siehe
   // ergebnisHeim/ergebnisAuswaerts in db/schema.ts).
@@ -394,9 +398,14 @@ export function MonatsKalender({
                                   {e.besetzungsDetails.map((d) => (
                                     <li
                                       key={d.id}
-                                      className="flex items-center justify-between gap-2 text-muted-foreground"
+                                      className="flex items-start justify-between gap-2 text-muted-foreground"
                                     >
-                                      <span>{d.label}</span>
+                                      <span className="flex flex-col">
+                                        <span>{d.label}</span>
+                                        {d.hinweis && (
+                                          <span className="text-xs">{d.hinweis}</span>
+                                        )}
+                                      </span>
                                       {e.zuordenbar && !d.id.startsWith("ics-") && (
                                         <form action={zuordnungEntfernen}>
                                           <input

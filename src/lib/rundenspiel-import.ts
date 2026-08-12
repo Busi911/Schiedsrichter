@@ -135,6 +135,14 @@ function extrahiereErgebnis(zusatz: string | undefined): {
 // zugeordnete Person anzuzeigen (siehe schiedsrichterKuerzelPasstZu), NICHT
 // um automatisch jemanden zuzuordnen.
 const KUERZEL_MUSTER = /^[A-ZÄÖÜ][a-zäöüß]{1,14}\.$/;
+// Bei Gespann-Besetzung (zwei Schiedsrichter) setzt nuLiga beide Kürzel
+// durch "/" getrennt in dieselbe Zelle (beobachtet: "Eike/Fisc." für
+// Schiedsrichter "Eike" und "Fischer") — der kurze Nachname bleibt dabei
+// offenbar unabgekürzt (kein Punkt), nur der längere wird wie gewohnt
+// gekürzt+Punkt. Deshalb links optional, rechts Punkt Pflicht (sonst
+// bräuchte es kein Kürzel-Signal mehr, um es vom Rest zu unterscheiden).
+const GESPANN_KUERZEL_MUSTER =
+  /^[A-ZÄÖÜ][a-zäöüß]{1,14}\.?\/[A-ZÄÖÜ][a-zäöüß]{1,14}\.$/;
 
 function extrahiereSchiedsrichterKuerzel(zusatz: string | undefined): {
   kuerzel: string | null;
@@ -146,7 +154,10 @@ function extrahiereSchiedsrichterKuerzel(zusatz: string | undefined): {
   let kuerzel: string | null = null;
   for (const teil of teile) {
     const getrimmt = teil.trim();
-    if (kuerzel === null && KUERZEL_MUSTER.test(getrimmt)) {
+    if (
+      kuerzel === null &&
+      (KUERZEL_MUSTER.test(getrimmt) || GESPANN_KUERZEL_MUSTER.test(getrimmt))
+    ) {
       kuerzel = getrimmt;
     } else {
       rest.push(teil);
@@ -163,16 +174,21 @@ function extrahiereSchiedsrichterKuerzel(zusatz: string | undefined): {
 // Groß-/Kleinschreibung ignoriert). "Nachname" = letztes Wort von `name`,
 // da hier keine getrennten Vor-/Nachname-Felder existieren — funktioniert
 // nicht bei mehrteiligen Nachnamen, ist aber als reiner Bestätigungs-
-// Hinweis gedacht, kein hartes Kriterium.
+// Hinweis gedacht, kein hartes Kriterium. Bei einem Gespann-Kürzel
+// ("Eike/Fisc.", siehe GESPANN_KUERZEL_MUSTER) reicht ein Treffer auf
+// EINE der beiden Kürzel-Hälften — welche der beiden zugeordneten Personen
+// zu welcher Hälfte gehört, wird bewusst nicht geprüft (reiner Hinweis).
 export function schiedsrichterKuerzelPasstZu(
   kuerzel: string,
   name: string | null | undefined
 ): boolean {
   if (!name) return false;
   const woerter = name.trim().split(/\s+/);
-  const nachname = woerter[woerter.length - 1];
-  const kuerzelOhnePunkt = kuerzel.replace(/\.$/, "").toLowerCase();
-  return nachname.toLowerCase().startsWith(kuerzelOhnePunkt);
+  const nachname = woerter[woerter.length - 1].toLowerCase();
+  return kuerzel
+    .split("/")
+    .map((teil) => teil.replace(/\.$/, "").toLowerCase())
+    .some((teilOhnePunkt) => nachname.startsWith(teilOhnePunkt));
 }
 
 type RundenturnierKandidat = {
