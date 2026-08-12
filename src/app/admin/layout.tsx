@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
@@ -9,6 +10,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminNav } from "@/components/admin-nav";
 import { Logo } from "@/components/logo";
+
+// Eigenes PWA-Icon/App-Name für den Admin-Bereich, damit "Zum Home-Bildschirm
+// hinzufügen" hier eine eigene Identität liefert statt der generischen
+// HandballerPate-App aus dem Root-Layout (siehe src/app/layout.tsx).
+export const metadata: Metadata = {
+  title: "HandballerPate Admin",
+  manifest: "/manifest-admin.json",
+  icons: {
+    apple: "/icons/admin-apple.png",
+  },
+};
 
 export default async function AdminLayout({
   children,

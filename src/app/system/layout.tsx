@@ -1,8 +1,19 @@
+import type { Metadata } from "next";
 import { requireSystemAdmin } from "@/lib/session";
 import { signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { SystemNav } from "@/components/system-nav";
 import { Logo } from "@/components/logo";
+
+// Eigenes PWA-Icon/App-Name für den Systemadmin-Bereich, siehe Kommentar bei
+// gleichnamigem metadata-Export in src/app/admin/layout.tsx.
+export const metadata: Metadata = {
+  title: "HandballerPate Systemadmin",
+  manifest: "/manifest-system.json",
+  icons: {
+    apple: "/icons/system-apple.png",
+  },
+};
 
 export default async function SystemLayout({
   children,
