@@ -8,7 +8,10 @@ export default auth((req) => {
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
     pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/api/cron/");
+    pathname.startsWith("/api/cron/") ||
+    // Öffentliche, login-freie Lese-Ansicht (Kenntnis des Tokens ist die
+    // Berechtigung) — siehe src/app/turnier/[token]/page.tsx.
+    pathname.startsWith("/turnier/");
 
   if (!isLoggedIn && !isPublicRoute) {
     return Response.redirect(new URL("/login", req.nextUrl));
