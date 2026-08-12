@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
+import { rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -162,7 +163,9 @@ export default async function AuswertungPage({
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">
-                        {TYP_LABEL[t.typ] ?? t.typ}
+                        {t.typ === "rundenspiel"
+                          ? rundenspielTypLabel(t.pflichtspiel)
+                          : TYP_LABEL[t.typ] ?? t.typ}
                       </Badge>
                     </TableCell>
                     <TableCell>{t.ort ?? "—"}</TableCell>

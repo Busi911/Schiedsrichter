@@ -7,6 +7,7 @@ import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { MonatsKalender, type KalenderEintrag } from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatZeit } from "@/lib/format";
+import { rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -57,6 +58,7 @@ export default async function AdminKalenderPage({
         ort: termine.ort,
         beschreibung: termine.beschreibung,
         turnierId: termine.turnierId,
+        pflichtspiel: termine.pflichtspiel,
         schiedsrichterName: users.name,
         schiedsrichterEmail: users.email,
       })
@@ -88,10 +90,12 @@ export default async function AdminKalenderPage({
   for (const t of termineDesMonats) {
     const key = tagKey(t.start);
     const liste = eintraegeProTag.get(key) ?? [];
+    const typLabel =
+      t.typ === "rundenspiel" ? rundenspielTypLabel(t.pflichtspiel) : TYP_LABEL[t.typ] ?? t.typ;
     const label =
       t.beschreibung ??
       t.ort ??
-      (t.typ === "spiel_ics" ? t.schiedsrichterName ?? t.schiedsrichterEmail ?? "Spiel" : TYP_LABEL[t.typ]);
+      (t.typ === "spiel_ics" ? t.schiedsrichterName ?? t.schiedsrichterEmail ?? "Spiel" : typLabel);
 
     const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
     const besetzung = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ)
@@ -124,7 +128,7 @@ export default async function AdminKalenderPage({
       id: t.id,
       zeit: formatZeit(t.start),
       label,
-      typLabel: TYP_LABEL[t.typ] ?? t.typ,
+      typLabel,
       besetzung,
       ort: t.ort,
       besetzungsDetails,

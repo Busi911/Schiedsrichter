@@ -8,6 +8,7 @@ import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { MonatsKalender, type KalenderEintrag } from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatZeit } from "@/lib/format";
+import { rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -70,6 +71,7 @@ export default async function ProfilKalenderPage({
         start: termine.start,
         ort: termine.ort,
         beschreibung: termine.beschreibung,
+        pflichtspiel: termine.pflichtspiel,
         hatIcsSchiedsrichter: termine.icsSchiedsrichterId,
       })
       .from(termine)
@@ -119,11 +121,13 @@ export default async function ProfilKalenderPage({
           z.name ?? z.externerName ?? z.email
         }${z.externerName && !z.email ? " (ohne Login)" : ""}`
     );
+    const typLabel =
+      t.typ === "rundenspiel" ? rundenspielTypLabel(t.pflichtspiel) : TYP_LABEL[t.typ] ?? t.typ;
     liste.push({
       id: t.id,
       zeit: formatZeit(t.start),
-      label: t.beschreibung ?? t.ort ?? TYP_LABEL[t.typ] ?? t.typ,
-      typLabel: TYP_LABEL[t.typ] ?? t.typ,
+      label: t.beschreibung ?? t.ort ?? typLabel,
+      typLabel,
       besetzung,
       ort: t.ort,
       besetzungsDetails,

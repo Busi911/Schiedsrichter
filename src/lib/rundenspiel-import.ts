@@ -20,6 +20,11 @@ export type RundenspielEreignis = {
   // gleichnamige Vereine mit mehreren Mannschaften auseinanderhalten kann
   // (siehe gruppiereUnbekannteMannschaften unten).
   kategorie: string | null;
+  // true = echtes Ligaspiel (Spielnummer vom Verband vergeben), false =
+  // Freundschaftsspiel/Turnier — separat von beschreibung gehalten, damit
+  // Typ-Badges in Kalenderansichten die korrekte Bezeichnung zeigen können
+  // (siehe bildeUid oben zur selben Spielnummer-basierten Unterscheidung).
+  pflichtspiel: boolean;
 };
 
 export type RundenspielParseFehler = { index: number; grund: string };
@@ -148,6 +153,7 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
         heimMannschaft,
         auswaertsMannschaft,
         kategorie,
+        pflichtspiel: istPflichtspiel,
       });
     }
   }
