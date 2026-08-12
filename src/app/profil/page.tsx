@@ -387,7 +387,14 @@ export default async function ProfilPage() {
               )}
               {verfuegbareTermine.map((termin) => {
                 const rollenMitBedarf = eigeneTypen.filter(
-                  (typ) => bedarfFuer(vereinEinstellungen, termin.typ, typ) > 0
+                  (typ) =>
+                    bedarfFuer(
+                      vereinEinstellungen,
+                      termin.typ,
+                      typ,
+                      termin.pflichtspiel,
+                      termin.freundschaftsTyp
+                    ) > 0
                 );
                 if (rollenMitBedarf.length === 0) return null;
 
@@ -403,7 +410,9 @@ export default async function ProfilPage() {
                         const bedarf = bedarfFuer(
                           vereinEinstellungen,
                           termin.typ,
-                          typ
+                          typ,
+                          termin.pflichtspiel,
+                          termin.freundschaftsTyp
                         );
                         const angemeldet = zuordnungenFuerVerfuegbare.filter(
                           (d) =>

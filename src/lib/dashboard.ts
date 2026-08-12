@@ -32,6 +32,8 @@ type AnstehenderTermin = {
   start: Date;
   typ: string;
   ort: string | null;
+  pflichtspiel?: boolean | null;
+  freundschaftsTyp?: "freundschaftsspiel" | "turnier" | null;
 };
 type Zuordnung = { terminId: string; funktionstraegerTyp: string };
 
@@ -57,7 +59,13 @@ export function berechneOffenePosten(
     const luecken: OffenePosten["luecken"] = [];
 
     for (const rolle of ["ordner", "kioskdienst"] as const) {
-      const bedarf = bedarfFuer(verein, termin.typ, rolle);
+      const bedarf = bedarfFuer(
+        verein,
+        termin.typ,
+        rolle,
+        termin.pflichtspiel,
+        termin.freundschaftsTyp
+      );
       if (bedarf <= 0) continue;
       const vorhanden = zuordnungen.filter(
         (z) => z.terminId === termin.id && z.funktionstraegerTyp === rolle

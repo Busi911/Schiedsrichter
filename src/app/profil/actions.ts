@@ -121,7 +121,13 @@ export async function selbstAnmelden(formData: FormData) {
     });
     if (!verein) throw new Error("Verein nicht gefunden.");
 
-    const bedarf = bedarfFuer(verein, termin.typ, rolle);
+    const bedarf = bedarfFuer(
+      verein,
+      termin.typ,
+      rolle,
+      termin.pflichtspiel,
+      termin.freundschaftsTyp
+    );
     const bestehende = await tx.query.terminZuordnungen.findMany({
       where: and(
         eq(terminZuordnungen.terminId, terminId),
