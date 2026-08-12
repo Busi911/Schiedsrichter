@@ -102,6 +102,101 @@ describe("parseRundenspielJson", () => {
     expect(ereignisse[0].beschreibung).not.toContain("Ligaspiel");
   });
 
+  it("erkennt ein Rundenturnier (4 Mannschaften, alle Paarungen an einem Tag/einer Halle) auch ohne 'F '-Präfix im league-Feld", () => {
+    // Regression: beobachtet an der Sporthalle Münchholzhausen (August 2026)
+    // — 4 Mannschaften spielen an einem Nachmittag alle 6 möglichen
+    // Paarungen gegeneinander (klassisches Rundenturnier), aber gameNumber
+    // ist fortlaufend 1-6 und das league-Feld folgt nicht der bekannten
+    // HHV-Sammelstaffel-Konvention ("F "-Präfix) — die App zeigte dadurch
+    // fälschlich "Ligaspiel Nr. 1" bis "Ligaspiel Nr. 6" an.
+    const teams = [
+      "HSG Dutenhofen/Münchholzhausen 1",
+      "TSG Münster 1",
+      "TuS Dotzheim 1",
+      "TV Hüttenberg 1",
+    ];
+    const paarungen: [string, string][] = [
+      [teams[0], teams[2]],
+      [teams[1], teams[3]],
+      [teams[0], teams[1]],
+      [teams[2], teams[3]],
+      [teams[0], teams[3]],
+      [teams[2], teams[1]],
+    ];
+    const events = paarungen.map(([home, away], i) => ({
+      date: "2026-08-23",
+      time: `${11 + Math.floor(i / 2)}:${i % 2 === 0 ? "00" : "30"}`,
+      start: `2026-08-23T${11 + Math.floor(i / 2)}:${i % 2 === 0 ? "00" : "30"}:00+02:00`,
+      title: `${home} – ${away}`,
+      gameNumber: String(i + 1),
+      category: "Mä/männl.",
+      league: "HHV Kreisliga A",
+      home,
+      away,
+      location: "Sporthalle Münchholzhausen",
+      locationId: 99001,
+    }));
+
+    const { ereignisse } = parseRundenspielJson(beispielJson({ events }));
+
+    expect(ereignisse).toHaveLength(6);
+    for (const e of ereignisse) {
+      expect(e.pflichtspiel).toBe(false);
+      expect(e.beschreibung).toContain("Freundschaftsspiel/Turnier");
+    }
+  });
+
+  it("erkennt KEIN Rundenturnier bei einem normalen Spieltag mit mehreren unabhängigen Ligaspielen an derselben Halle", () => {
+    // Der Export enthält ALLE Spiele an der eigenen Halle, auch die anderer
+    // Mannschaften/Altersklassen (siehe Kommentar oben) — mehrere echte
+    // Ligaspiele am selben Tag an derselben Halle sind daher normal und
+    // dürfen nicht fälschlich als Turnier erkannt werden, solange sie KEINE
+    // vollständige Rundenturnier-Paarung bilden.
+    const events = [
+      {
+        date: "2026-08-23",
+        time: "11:00",
+        start: "2026-08-23T11:00:00+02:00",
+        title: "Team A – Team B",
+        gameNumber: "10",
+        home: "Team A",
+        away: "Team B",
+        location: "Sporthalle Münchholzhausen",
+        locationId: 99001,
+      },
+      {
+        date: "2026-08-23",
+        time: "13:00",
+        start: "2026-08-23T13:00:00+02:00",
+        title: "Team C – Team D",
+        gameNumber: "11",
+        home: "Team C",
+        away: "Team D",
+        location: "Sporthalle Münchholzhausen",
+        locationId: 99001,
+      },
+      {
+        date: "2026-08-23",
+        time: "15:00",
+        start: "2026-08-23T15:00:00+02:00",
+        title: "Team A – Team C",
+        gameNumber: "12",
+        home: "Team A",
+        away: "Team C",
+        location: "Sporthalle Münchholzhausen",
+        locationId: 99001,
+      },
+    ];
+
+    const { ereignisse } = parseRundenspielJson(beispielJson({ events }));
+
+    expect(ereignisse).toHaveLength(3);
+    for (const e of ereignisse) {
+      expect(e.pflichtspiel).toBe(true);
+      expect(e.beschreibung).toContain("Ligaspiel");
+    }
+  });
+
   it("bildet dieselbe UID bei erneutem Parsen desselben Spiels (Re-Import-Erkennung)", () => {
     const erster = parseRundenspielJson(beispielJson());
     const zweiter = parseRundenspielJson(beispielJson());

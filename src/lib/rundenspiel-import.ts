@@ -8,6 +8,8 @@
 // Reine Parsing-/Normalisierungslogik ohne DB-Zugriff, damit sie ohne
 // Testdatenbank getestet werden kann (siehe rundenspiel-import.test.ts).
 
+import { tagKey } from "./kalender";
+
 export type RundenspielEreignis = {
   uid: string;
   start: Date;
@@ -61,6 +63,72 @@ function bildeUid(locationId: number | string, event: unknown): string | null {
   return `rundenspiel:${locationId}:${e.date}:${e.time}:${e.home}:${e.away}`;
 }
 
+type RundenturnierKandidat = {
+  uid: string;
+  start: Date;
+  ort: string;
+  heimMannschaft: string;
+  auswaertsMannschaft: string;
+  istPflichtspiel: boolean;
+};
+
+// Erkennt einen vollständigen Rundenturnier-Tag anhand des Spielplan-Musters
+// statt anhand von Verbands-Rohtext (siehe istFreundschaftsstaffel oben) —
+// fängt Turniere ab, deren league-Feld nicht dem bekannten "F "-Präfix
+// folgt (z.B. andere Landesverbände/Formulierungen, eigene Turnier-Staffel
+// ohne Sammelstaffel-Konvention). Kriterium: an derselben Halle, am selben
+// Kalendertag, spielen mindestens 3 Mannschaften JEDE Paarung genau einmal
+// gegeneinander (klassisches Rundenturnier). Echte Ligaspieltage bilden das
+// praktisch nie ab — die Gegner einer Mannschaft wechseln über die Saison,
+// nicht alle an einem Nachmittag an derselben Halle. Bewusst konservativ:
+// erkennt NUR vollständige Rundenturniere; Turniere mit Gruppenphase+K.o.,
+// Freilosen oder abgesagten Einzelspielen werden nicht erkannt (dafür fehlt
+// ohne echte Beispieldaten eine belastbare Grundlage, siehe Kommentar bei
+// istFreundschaftsstaffel). Ebenfalls eine bekannte Lücke: fällt an
+// derselben Halle/demselben Tag noch ein unabhängiges echtes Ligaspiel mit
+// fremden Mannschaften an, wird die gesamte Tagesgruppe NICHT als Turnier
+// erkannt (die Paarungsprüfung läuft über die ganze Gruppe, nicht über
+// zusammenhängende Teilmengen) — im Zweifel lieber nichts erkennen als ein
+// echtes Ligaspiel fälschlich zum Freundschaftsspiel/Turnier machen.
+function findeRundenturnierTage(kandidaten: RundenturnierKandidat[]): Set<string> {
+  const gruppen = new Map<string, RundenturnierKandidat[]>();
+  for (const k of kandidaten) {
+    if (!k.istPflichtspiel) continue;
+    const key = `${k.ort}::${tagKey(k.start)}`;
+    const liste = gruppen.get(key) ?? [];
+    liste.push(k);
+    gruppen.set(key, liste);
+  }
+
+  const turnierUids = new Set<string>();
+  for (const gruppe of gruppen.values()) {
+    if (gruppe.length < 3) continue;
+
+    const paare = new Set<string>();
+    const mannschaften = new Set<string>();
+    let jedePaarungEinmalig = true;
+    for (const k of gruppe) {
+      const paar = [k.heimMannschaft, k.auswaertsMannschaft].sort().join(" vs ");
+      if (paare.has(paar)) {
+        jedePaarungEinmalig = false;
+        break;
+      }
+      paare.add(paar);
+      mannschaften.add(k.heimMannschaft);
+      mannschaften.add(k.auswaertsMannschaft);
+    }
+    if (!jedePaarungEinmalig) continue;
+
+    const n = mannschaften.size;
+    const vollstaendigeRunde = (n * (n - 1)) / 2;
+    if (n >= 3 && gruppe.length === vollstaendigeRunde) {
+      for (const k of gruppe) turnierUids.add(k.uid);
+    }
+  }
+
+  return turnierUids;
+}
+
 export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
   let daten: unknown;
   try {
@@ -75,9 +143,22 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
     );
   }
 
-  const ereignisse: RundenspielEreignis[] = [];
   const fehler: RundenspielParseFehler[] = [];
   let laufenderIndex = 0;
+
+  type RohEreignis = {
+    uid: string;
+    start: Date;
+    ort: string;
+    titel: string;
+    heimMannschaft: string;
+    auswaertsMannschaft: string;
+    kategorie: string | null;
+    gameNumberRoh: string | undefined;
+    istPflichtspiel: boolean;
+    zusatz: string | undefined;
+  };
+  const rohEreignisse: RohEreignis[] = [];
 
   for (const block of daten) {
     if (typeof block !== "object" || block === null) {
@@ -143,30 +224,52 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       const istFreundschaftsstaffel = !!leagueRoh && /^F\s/.test(leagueRoh.trim());
       const istPflichtspiel =
         !!gameNumberRoh && gameNumberRoh !== "0" && !istFreundschaftsstaffel;
-      const spielArt = istPflichtspiel
-        ? `Ligaspiel Nr. ${gameNumberRoh}`
-        : "Freundschaftsspiel/Turnier";
       // Zellen nach Heim/Auswärts im nuLiga-Export (z.B. Schiedsrichter-
       // Kürzel) — Format/Vorhandensein je Landesverband unbestätigt, daher
       // roh angehängt statt geraten interpretiert (siehe Kommentar in
       // nuliga-scraper.ts).
       const zusatz = typeof e.zusatz === "string" ? e.zusatz : undefined;
-      const beschreibung = [titel, kategorie, spielArt, zusatz]
-        .filter(Boolean)
-        .join(" · ");
 
-      ereignisse.push({
+      rohEreignisse.push({
         uid,
         start,
         ort,
-        beschreibung,
+        titel,
         heimMannschaft,
         auswaertsMannschaft,
         kategorie,
-        pflichtspiel: istPflichtspiel,
+        gameNumberRoh,
+        istPflichtspiel,
+        zusatz,
       });
     }
   }
+
+  // Zweiter Durchgang über ALLE Rohdaten: Rundenturnier-Erkennung braucht die
+  // vollständige Tagesübersicht pro Halle, die erst nach der Schleife
+  // feststeht (siehe findeRundenturnierTage oben).
+  const rundenturnierUids = findeRundenturnierTage(rohEreignisse);
+
+  const ereignisse: RundenspielEreignis[] = rohEreignisse.map((r) => {
+    const pflichtspiel = r.istPflichtspiel && !rundenturnierUids.has(r.uid);
+    const spielArt = pflichtspiel
+      ? `Ligaspiel Nr. ${r.gameNumberRoh}`
+      : "Freundschaftsspiel/Turnier";
+    const beschreibung = [r.titel, r.kategorie, spielArt, r.zusatz]
+      .filter(Boolean)
+      .join(" · ");
+
+    return {
+      uid: r.uid,
+      start: r.start,
+      ort: r.ort,
+      beschreibung,
+      heimMannschaft: r.heimMannschaft,
+      auswaertsMannschaft: r.auswaertsMannschaft,
+      kategorie: r.kategorie,
+      pflichtspiel,
+    };
+  });
 
   return { ereignisse, fehler };
 }
