@@ -203,7 +203,7 @@ export default async function AdminKalenderPage({
         : ("offen" as const)
       : undefined;
 
-    const besetzungsDetails: { id: string; label: string }[] = [];
+    const besetzungsDetails: { id: string; label: string; hinweis?: string }[] = [];
     if (t.typ === "spiel_ics" && t.schiedsrichterEmail) {
       besetzungsDetails.push({
         id: `ics-${t.id}`,
@@ -211,15 +211,16 @@ export default async function AdminKalenderPage({
       });
     }
     for (const z of eigeneZuordnungen) {
-      let label = `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
+      const label = `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
         z.name ?? z.externerName ?? z.email
       }${z.externerName && !z.email ? " (ohne Login)" : ""}`;
+      let hinweis: string | undefined;
       if (z.funktionstraegerTyp === "schiedsrichter" && t.nuligaSchiedsrichterKuerzel) {
-        label += schiedsrichterKuerzelPasstZu(t.nuligaSchiedsrichterKuerzel, z.name)
-          ? ` (✓ passt zu nuLiga: ${t.nuligaSchiedsrichterKuerzel})`
-          : ` (⚠ nuLiga nennt: ${t.nuligaSchiedsrichterKuerzel})`;
+        hinweis = schiedsrichterKuerzelPasstZu(t.nuligaSchiedsrichterKuerzel, z.name)
+          ? `✓ passt zu nuLiga: ${t.nuligaSchiedsrichterKuerzel}`
+          : `⚠ nuLiga nennt: ${t.nuligaSchiedsrichterKuerzel}`;
       }
-      besetzungsDetails.push({ id: z.id, label });
+      besetzungsDetails.push({ id: z.id, label, hinweis });
     }
     if (
       t.nuligaSchiedsrichterKuerzel &&

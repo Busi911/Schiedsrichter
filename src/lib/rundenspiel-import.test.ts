@@ -199,6 +199,33 @@ describe("parseRundenspielJson", () => {
     expect(ereignisse[0].schiedsrichterKuerzel).toBeNull();
   });
 
+  it("extrahiert ein Gespann-Kürzel (zwei Schiedsrichter, durch \"/\" getrennt)", () => {
+    const { ereignisse } = parseRundenspielJson(
+      beispielJson({
+        events: [
+          {
+            date: "2026-08-02",
+            time: "15:00",
+            start: "2026-08-02T15:00:00+02:00",
+            title: "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1",
+            gameNumber: "0",
+            category: "Mä/männl.",
+            league: "F 2026-08-02 M TSF Heuchelheim (BOL) gg HSG Lumdatal (LL)",
+            home: "TSF Heuchelheim 1",
+            away: "HSG Lumdatal e.V. 1",
+            location: "Sporthalle Heuchelheim",
+            locationId: 30402,
+            zusatz: "Eike/Fisc.",
+          },
+        ],
+      })
+    );
+    expect(ereignisse[0].schiedsrichterKuerzel).toBe("Eike/Fisc.");
+    expect(ereignisse[0].beschreibung).toBe(
+      "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1 · Mä/männl. · Freundschaftsspiel"
+    );
+  });
+
   it("kennzeichnet echte Pflichtspiele (Spielnummer != 0) als Ligaspiel statt Freundschaftsspiel/Turnier", () => {
     const { ereignisse } = parseRundenspielJson(
       beispielJson({
@@ -665,5 +692,16 @@ describe("schiedsrichterKuerzelPasstZu", () => {
   it("gibt false zurück, wenn kein Name vorhanden ist", () => {
     expect(schiedsrichterKuerzelPasstZu("Geru.", null)).toBe(false);
     expect(schiedsrichterKuerzelPasstZu("Geru.", undefined)).toBe(false);
+  });
+
+  it("erkennt bei einem Gespann-Kürzel den Treffer auf beide Hälften", () => {
+    expect(schiedsrichterKuerzelPasstZu("Eike/Fisc.", "Yannick Eike")).toBe(true);
+    expect(schiedsrichterKuerzelPasstZu("Eike/Fisc.", "Nicki Fischer")).toBe(true);
+  });
+
+  it("lehnt bei einem Gespann-Kürzel ab, wenn keine Hälfte passt", () => {
+    expect(schiedsrichterKuerzelPasstZu("Eike/Fisc.", "Sabrina Gerullis")).toBe(
+      false
+    );
   });
 });
