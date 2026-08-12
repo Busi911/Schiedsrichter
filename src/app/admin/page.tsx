@@ -52,10 +52,11 @@ export default async function AdminDashboardPage() {
 
   const [naechsteTermine, offenePosten, letzteErgebnisse, offeneEinsaetze] =
     await Promise.all([
-      // Höheres Limit als früher (statt fest 5) — die Load-More-Tabelle
-      // zeigt anfangs ohnehin nur 10, blendet aber bei Bedarf mehr aus den
-      // bereits geladenen Daten ein, ohne dafür erneut den Server zu fragen.
-      holeNaechsteTermine(vereinId, 50),
+      // Hohes Limit statt fest 5/50 — die Übersicht soll auf einen Blick
+      // wirklich alle anstehenden Termine zeigen (keine Pagination mehr),
+      // 500 ist eine großzügige Sicherheitsgrenze gegen eine unbegrenzte
+      // Abfrage, nicht als realistische Kappung gedacht.
+      holeNaechsteTermine(vereinId, 500),
       holeOffenePosten(vereinId),
       holeLetzteErgebnisse(vereinId, 10),
       zuschuesseAktiviert ? holeOffeneEinsaetze(vereinId) : Promise.resolve([]),
@@ -90,7 +91,7 @@ export default async function AdminDashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Nächste Termine</CardTitle>

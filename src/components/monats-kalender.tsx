@@ -416,30 +416,60 @@ export function MonatsKalender({
                                   ))}
                                 </ul>
                               )}
-                              {e.zuordenbar && zuordenbarePersonen.length > 0 && (
-                                <form
-                                  action={zuordnen}
-                                  className="flex items-center gap-2 border-t pt-2"
-                                >
-                                  <input type="hidden" name="terminId" value={e.id} />
-                                  <div className="flex-1">
-                                    <LabeledSelect
-                                      name="personTyp"
-                                      placeholder="Person wählen…"
-                                      required
-                                      options={zuordenbarePersonen.map((p) => ({
-                                        value: `${p.userId}|${p.typ}`,
-                                        label: `${p.name ?? p.email} (${
-                                          ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ
-                                        })`,
-                                      }))}
-                                    />
-                                  </div>
-                                  <Button type="submit" variant="outline" size="sm">
-                                    Zuordnen
-                                  </Button>
-                                </form>
-                              )}
+                              {e.zuordenbar &&
+                                zuordenbarePersonen.length > 0 &&
+                                (() => {
+                                  const zuordnenForm = (
+                                    <form
+                                      action={zuordnen}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <input
+                                        type="hidden"
+                                        name="terminId"
+                                        value={e.id}
+                                      />
+                                      <div className="flex-1">
+                                        <LabeledSelect
+                                          name="personTyp"
+                                          placeholder="Person wählen…"
+                                          required
+                                          options={zuordenbarePersonen.map((p) => ({
+                                            value: `${p.userId}|${p.typ}`,
+                                            label: `${p.name ?? p.email} (${
+                                              ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ
+                                            })`,
+                                          }))}
+                                        />
+                                      </div>
+                                      <Button type="submit" variant="outline" size="sm">
+                                        Zuordnen
+                                      </Button>
+                                    </form>
+                                  );
+                                  // Ein bereits abgepfiffenes Spiel braucht keine
+                                  // Zuordnung mehr im Vordergrund — nachträglich
+                                  // jemanden einzutragen bleibt möglich, aber
+                                  // hinter einem Toggle statt automatisch offen.
+                                  if (e.ergebnis) {
+                                    return (
+                                      <details className="group border-t pt-2">
+                                        <summary className="cursor-pointer list-none text-xs text-muted-foreground underline [&::-webkit-details-marker]:hidden">
+                                          <span className="group-open:hidden">
+                                            Nachträglich zuordnen (optional)
+                                          </span>
+                                          <span className="hidden group-open:inline">
+                                            Schließen
+                                          </span>
+                                        </summary>
+                                        <div className="mt-2">{zuordnenForm}</div>
+                                      </details>
+                                    );
+                                  }
+                                  return (
+                                    <div className="border-t pt-2">{zuordnenForm}</div>
+                                  );
+                                })()}
                               {e.bearbeitenHref && (
                                 <Button
                                   size="sm"

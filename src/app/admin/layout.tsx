@@ -31,7 +31,7 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen">
       <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4">
           <div className="flex items-center gap-3">
             <Logo className="size-8 shrink-0 text-primary" />
             <div>
@@ -68,7 +68,7 @@ export default async function AdminLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl p-6">{children}</main>
+      <main className="mx-auto max-w-screen-2xl p-6">{children}</main>
     </div>
   );
 }
