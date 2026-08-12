@@ -13,6 +13,7 @@ export type NaechsterTerminZeile = {
   zeit: string;
   typLabel: string;
   ort: string | null;
+  mannschaft: string | null;
 };
 
 // Zeigt ALLE Zeilen (kein Load-More) — die Karte darf dafür ruhig hoch
@@ -29,6 +30,7 @@ export function NaechsteTermineTabelle({
         <TableRow>
           <TableHead>Termin</TableHead>
           <TableHead>Typ</TableHead>
+          <TableHead>Mannschaft</TableHead>
           <TableHead>Ort</TableHead>
         </TableRow>
       </TableHeader>
@@ -38,6 +40,9 @@ export function NaechsteTermineTabelle({
             <TableCell className="font-medium">{t.zeit}</TableCell>
             <TableCell>
               <Badge variant="secondary">{t.typLabel}</Badge>
+            </TableCell>
+            <TableCell className="text-muted-foreground">
+              {t.mannschaft ?? "—"}
             </TableCell>
             <TableCell className="text-muted-foreground">
               {t.ort ?? "—"}

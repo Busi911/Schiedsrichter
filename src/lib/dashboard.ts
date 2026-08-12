@@ -1,16 +1,43 @@
 import "server-only";
-import { and, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { termine, terminZuordnungen, vereine } from "@/db/schema";
+import { mannschaften, termine, terminZuordnungen, vereine } from "@/db/schema";
 import { bedarfFuer } from "./dienste";
+
+// Termine-Spalten + Mannschaftsname/-altersklasse (Jugend/Männer/Frauen) in
+// einem Rutsch, statt der reinen termine.findMany() — ohne definierte
+// drizzle-Relationen (siehe db/schema.ts) liefert findMany() keine
+// verknüpften Tabellen, daher expliziter LEFT JOIN.
+function terminMitMannschaft() {
+  return {
+    id: termine.id,
+    typ: termine.typ,
+    start: termine.start,
+    ort: termine.ort,
+    beschreibung: termine.beschreibung,
+    pflichtspiel: termine.pflichtspiel,
+    freundschaftsTyp: termine.freundschaftsTyp,
+    ergebnisHeim: termine.ergebnisHeim,
+    ergebnisAuswaerts: termine.ergebnisAuswaerts,
+    mannschaftName: mannschaften.name,
+    mannschaftAltersklasse: mannschaften.altersklasse,
+    // Fallback, wenn kein mannschaftId-Match möglich war (siehe
+    // findeMannschaft in rundenspiel-import.ts) — bei rundenspiel-Terminen
+    // aus dem nuLiga-Import trägt kategorie z.B. "mJC" oder "Mä/männl.",
+    // besser als gar keine Angabe.
+    kategorie: termine.kategorie,
+  };
+}
 
 export async function holeNaechsteTermine(vereinId: string, limit = 5) {
   return withTenant(vereinId, (tx) =>
-    tx.query.termine.findMany({
-      where: and(eq(termine.vereinId, vereinId), gte(termine.start, new Date())),
-      orderBy: (t, { asc }) => [asc(t.start)],
-      limit,
-    })
+    tx
+      .select(terminMitMannschaft())
+      .from(termine)
+      .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
+      .where(and(eq(termine.vereinId, vereinId), gte(termine.start, new Date())))
+      .orderBy(asc(termine.start))
+      .limit(limit)
   );
 }
 
@@ -21,16 +48,20 @@ export async function holeNaechsteTermine(vereinId: string, limit = 5) {
 // bevorstehendes Spiel auftaucht.
 export async function holeLetzteErgebnisse(vereinId: string, limit = 20) {
   return withTenant(vereinId, (tx) =>
-    tx.query.termine.findMany({
-      where: and(
-        eq(termine.vereinId, vereinId),
-        lt(termine.start, new Date()),
-        isNotNull(termine.ergebnisHeim),
-        isNotNull(termine.ergebnisAuswaerts)
-      ),
-      orderBy: (t, { desc }) => [desc(t.start)],
-      limit,
-    })
+    tx
+      .select(terminMitMannschaft())
+      .from(termine)
+      .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
+      .where(
+        and(
+          eq(termine.vereinId, vereinId),
+          lt(termine.start, new Date()),
+          isNotNull(termine.ergebnisHeim),
+          isNotNull(termine.ergebnisAuswaerts)
+        )
+      )
+      .orderBy(desc(termine.start))
+      .limit(limit)
   );
 }
 

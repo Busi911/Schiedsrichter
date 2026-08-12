@@ -29,6 +29,19 @@ const TYP_LABEL: Record<string, string> = {
   rundenspiel: "Rundenspiel",
 };
 
+function formatMannschaft(t: {
+  mannschaftName: string | null;
+  mannschaftAltersklasse: string | null;
+  kategorie: string | null;
+}): string | null {
+  if (t.mannschaftName) {
+    return t.mannschaftAltersklasse
+      ? `${t.mannschaftName} (${t.mannschaftAltersklasse})`
+      : t.mannschaftName;
+  }
+  return t.kategorie;
+}
+
 export default async function AdminDashboardPage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
@@ -55,6 +68,7 @@ export default async function AdminDashboardPage() {
         ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
         : (TYP_LABEL[t.typ] ?? t.typ),
     ort: t.ort,
+    mannschaft: formatMannschaft(t),
   }));
 
   return (
@@ -103,6 +117,7 @@ export default async function AdminDashboardPage() {
                   <TableRow>
                     <TableHead>Termin</TableHead>
                     <TableHead>Typ</TableHead>
+                    <TableHead>Mannschaft</TableHead>
                     <TableHead>Ergebnis</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -123,6 +138,9 @@ export default async function AdminDashboardPage() {
                             ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
                             : (TYP_LABEL[t.typ] ?? t.typ)}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatMannschaft(t) ?? "—"}
                       </TableCell>
                       <TableCell className="font-medium">
                         {formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts)}
