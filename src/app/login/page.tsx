@@ -1,5 +1,4 @@
 import { signIn } from "@/auth";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
+import { SubmitButton } from "@/components/submit-button";
 
 export default function LoginPage() {
   return (
@@ -43,9 +43,9 @@ export default function LoginPage() {
                 placeholder="name@verein.de"
               />
             </div>
-            <Button type="submit" className="w-full">
+            <SubmitButton className="w-full" pendingText="Wird gesendet…">
               Login-Link senden
-            </Button>
+            </SubmitButton>
           </form>
         </CardContent>
       </Card>
