@@ -29,7 +29,6 @@ const VERWALTUNG_ITEMS = [
   { href: "/admin/dienste", label: "Unbesetzte Dienste" },
   { href: "/admin/rundenspiele", label: "Hallenspielplan" },
   { href: "/admin/auswertung", label: "Auswertung" },
-  { href: "/admin/zuschuesse", label: "Zuschüsse" },
   { href: "/admin/einstellungen", label: "Einstellungen" },
 ];
 

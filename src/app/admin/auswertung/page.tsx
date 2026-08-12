@@ -67,8 +67,8 @@ export default async function AuswertungPage({
           Terminauswertung
         </h1>
         <p className="text-sm text-muted-foreground">
-          Basis für die spätere Zuschussberechnung — filterbar und
-          exportierbar.
+          Rohdaten für Auswertung/Abrechnung außerhalb der App — filterbar
+          und exportierbar.
         </p>
       </div>
 

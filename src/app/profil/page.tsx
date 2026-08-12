@@ -12,7 +12,6 @@ import {
 } from "@/db/schema";
 import { signOut } from "@/auth";
 import { bedarfFuer } from "@/lib/dienste";
-import { holeEigeneZuschuesse } from "@/lib/zuschuss";
 import {
   selbstAbmelden,
   selbstAnmelden,
@@ -199,13 +198,6 @@ export default async function ProfilPage() {
     .filter((t): t is (typeof SELBST_ANMELDBARE_TYPEN)[number] =>
       (SELBST_ANMELDBARE_TYPEN as readonly string[]).includes(t)
     );
-
-  // Eigene Aufruf-Transaktion (statt in der obigen withTenant() verschachtelt),
-  // da holeEigeneZuschuesse selbst withTenant nutzt.
-  const eigeneZuschuesse =
-    istSchiedsrichter && verein?.zuschuesseAktiviert
-      ? await holeEigeneZuschuesse(vereinId, userId)
-      : [];
 
   return (
     <div className="min-h-screen">
@@ -541,46 +533,6 @@ export default async function ProfilPage() {
                   </div>
                 );
               })}
-            </CardContent>
-          </Card>
-        )}
-
-        {istSchiedsrichter && verein?.zuschuesseAktiviert && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Meine Zuschüsse</CardTitle>
-              <CardDescription>
-                Status deiner Schiedsrichter-Einsätze: &quot;offen&quot;
-                (noch nicht exportiert) oder &quot;exportiert&quot; (bereits
-                in der Abrechnung des Vereins).
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {eigeneZuschuesse.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Noch keine Zuschüsse erfasst.
-                </p>
-              ) : (
-                <div className="flex flex-col divide-y">
-                  {eigeneZuschuesse.map((z) => (
-                    <div
-                      key={z.id}
-                      className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm first:pt-0 last:pb-0"
-                    >
-                      <span>
-                        {formatDateTime(z.terminStart)}
-                        {z.terminBeschreibung ? ` · ${z.terminBeschreibung}` : ""}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <span>{z.berechneterBetrag} €</span>
-                        <Badge variant={z.status === "offen" ? "secondary" : "outline"}>
-                          {z.status === "offen" ? "offen" : "exportiert"}
-                        </Badge>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </Card>
         )}

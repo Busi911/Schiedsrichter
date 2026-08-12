@@ -2,7 +2,6 @@ import {
   type AnyPgColumn,
   boolean,
   integer,
-  numeric,
   pgEnum,
   pgTable,
   primaryKey,
@@ -66,11 +65,6 @@ export const terminQuelleEnum = pgEnum("termin_quelle", [
 export const zuordnungQuelleEnum = pgEnum("zuordnung_quelle", [
   "zugeordnet_durch_admin",
   "selbst_angemeldet",
-]);
-
-export const zuschussStatusEnum = pgEnum("zuschuss_status", [
-  "offen",
-  "exportiert",
 ]);
 
 export const syncStatusEnum = pgEnum("sync_status", [
@@ -138,10 +132,6 @@ export const vereine = pgTable("verein", {
   zeitnehmerSekretaerMax: integer("zeitnehmer_sekretaer_max")
     .notNull()
     .default(2),
-  // Zuschüsse sind ein Opt-in: erst wenn der Admin sie aktiviert UND
-  // mindestens eine Zuschussart gepflegt hat, taucht auf /admin/zuschuesse
-  // überhaupt etwas auf.
-  zuschuesseAktiviert: boolean("zuschuesse_aktiviert").notNull().default(false),
   // Automatischer nuLiga-Rundenspiel-Import (siehe src/lib/nuliga-scraper.ts):
   // bis zu drei Hallen-IDs (dieselben Angaben wie im bisherigen manuellen
   // Export-Workflow), Import läuft nur, wenn aktiviert UND mindestens eine
@@ -249,8 +239,8 @@ export const funktionstraegerRollen = pgTable("funktionstraeger_rolle", {
     onDelete: "set null",
   }),
   // Statt Löschen: wer den Verein verlässt, wird deaktiviert (bleibt aber in
-  // der Historie von Zuordnungen/Zuschüssen erhalten). Inaktive Rollen
-  // tauchen nicht mehr in Zuordnung/Selbst-Anmeldung auf.
+  // der Historie von Zuordnungen erhalten). Inaktive Rollen tauchen nicht
+  // mehr in Zuordnung/Selbst-Anmeldung auf.
   aktiv: boolean("aktiv").notNull().default(true),
 });
 
@@ -368,39 +358,6 @@ export const terminZuordnungen = pgTable("termin_zuordnung", {
   externerName: text("externer_name"),
   funktionstraegerTyp: funktionstraegerTypEnum("funktionstraeger_typ").notNull(),
   quelle: zuordnungQuelleEnum("quelle").notNull(),
-});
-
-// Einfache Zuschussberechnung pro geleitetem Spiel — bewusst schlank, da die
-// eigentliche Abrechnung/Rechnungsstellung in einem externen System läuft.
-// Vom Admin gepflegter Katalog möglicher Zuschüsse (z.B. "Schiedsrichter-
-// Aufwandsentschädigung", 25,00 €), damit beim Anlegen eines Zuschusses kein
-// freier Betrag getippt wird, sondern eine gepflegte Art gewählt wird.
-export const zuschussarten = pgTable("zuschussart", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  vereinId: uuid("verein_id")
-    .notNull()
-    .references(() => vereine.id, { onDelete: "cascade" }),
-  bezeichnung: text("bezeichnung").notNull(),
-  satz: numeric("satz", { precision: 10, scale: 2 }).notNull(),
-});
-
-export const zuschuesse = pgTable("zuschuss", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  terminId: uuid("termin_id")
-    .notNull()
-    .references(() => termine.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  zuschussartId: uuid("zuschussart_id").references(() => zuschussarten.id, {
-    onDelete: "set null",
-  }),
-  satz: numeric("satz", { precision: 10, scale: 2 }).notNull(),
-  berechneterBetrag: numeric("berechneter_betrag", {
-    precision: 10,
-    scale: 2,
-  }).notNull(),
-  status: zuschussStatusEnum("status").notNull().default("offen"),
 });
 
 export const icsSyncLog = pgTable("ics_sync_log", {

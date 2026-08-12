@@ -112,9 +112,9 @@ export default async function RundenspielePage() {
               Freundschaftsspiel, siehe Beschreibung unten) — dieselbe
               Begegnung taucht sonst doppelt im Kalender auf. Beim
               Verknüpfen werden bereits erfasste Zuordnungen (Schiedsrichter/
-              Zeitnehmer/Sekretär) und Zuschüsse auf den Hallenspielplan-
-              Eintrag übertragen, das doppelte Freundschaftsspiel wird
-              anschließend entfernt.
+              Zeitnehmer/Sekretär) auf den Hallenspielplan-Eintrag
+              übertragen, das doppelte Freundschaftsspiel wird anschließend
+              entfernt.
             </CardDescription>
           </CardHeader>
           <CardContent>
