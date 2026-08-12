@@ -72,11 +72,9 @@ export default async function AdminDashboardPage() {
   );
 
   const [naechsteTermine, letzteErgebnisse] = await Promise.all([
-    // Hohes Limit statt fest 5/50 — die Übersicht soll auf einen Blick
-    // wirklich alle anstehenden Termine zeigen (keine Pagination mehr),
-    // 500 ist eine großzügige Sicherheitsgrenze gegen eine unbegrenzte
-    // Abfrage, nicht als realistische Kappung gedacht.
-    holeNaechsteTermine(vereinId, 500),
+    // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
+    // den Link "Alle Termine" unten.
+    holeNaechsteTermine(vereinId, 10),
     holeLetzteErgebnisse(vereinId, 10),
   ]);
 

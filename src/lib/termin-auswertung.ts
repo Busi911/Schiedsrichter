@@ -1,7 +1,7 @@
 import "server-only";
-import { and, asc, eq, gte, lte, type SQL } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte, type SQL } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { mannschaften, termine, users } from "@/db/schema";
+import { mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
 import { formatDatumKurz, formatZeitKurz } from "./format";
 
 export type AuswertungFilter = {
@@ -19,11 +19,89 @@ const TERMIN_TYPEN = [
   "rundenspiel",
 ] as const;
 
+export type AuswertungsBasisZeile = {
+  id: string;
+  typ: string;
+  start: Date;
+  ende: Date | null;
+  ort: string | null;
+  beschreibung: string | null;
+  pflichtspiel: boolean | null;
+  freundschaftsTyp: "freundschaftsspiel" | "turnier" | null;
+  mannschaftName: string | null;
+  icsSchiedsrichterId: string | null;
+  icsSchiedsrichterName: string | null;
+  icsSchiedsrichterEmail: string | null;
+};
+
+export type ManuelleSchiedsrichterZuordnung = {
+  terminId: string;
+  userId: string | null;
+  name: string | null;
+  email: string | null;
+};
+
+// Reine Zusammenführung (ohne DB-Zugriff), damit sie ohne Testdatenbank
+// getestet werden kann — siehe termin-auswertung.test.ts. icsSchiedsrichter*
+// deckt nur die (ältere) Selbst-Abo-Zuordnung über den persönlichen
+// ICS-Feed ab — die heute übliche Zuordnung über den Admin-Kalender bzw.
+// die Wart-Rollen läuft über termin_zuordnung (siehe zuordnung.ts) und
+// wurde hier bisher gar nicht berücksichtigt, weshalb zugeordnete
+// Schiedsrichter in der Auswertung als "—" erschienen. Beide Quellen
+// werden pro Termin zu EINER Schiedsrichter-Spalte kombiniert (" / "
+// getrennt bei Gespann-Besetzung, siehe SCHIRI_GESPANN_MAX in
+// besetzung.ts) — manuelle Zuordnung hat Vorrang, falls (unüblich) beides
+// für denselben Termin vorhanden wäre.
+export function kombiniereSchiedsrichterZuordnungen(
+  basisListe: AuswertungsBasisZeile[],
+  manuelleZuordnungen: ManuelleSchiedsrichterZuordnung[],
+  schiedsrichterIdFilter?: string
+) {
+  const zuordnungenProTermin = new Map<string, ManuelleSchiedsrichterZuordnung[]>();
+  for (const z of manuelleZuordnungen) {
+    const liste = zuordnungenProTermin.get(z.terminId) ?? [];
+    liste.push(z);
+    zuordnungenProTermin.set(z.terminId, liste);
+  }
+
+  const ergebnis = basisListe.map((t) => {
+    const manuell = zuordnungenProTermin.get(t.id) ?? [];
+    const schiedsrichterIds = [
+      ...manuell.map((m) => m.userId),
+      t.icsSchiedsrichterId,
+    ].filter((id): id is string => id !== null);
+
+    return {
+      id: t.id,
+      typ: t.typ,
+      start: t.start,
+      ende: t.ende,
+      ort: t.ort,
+      beschreibung: t.beschreibung,
+      pflichtspiel: t.pflichtspiel,
+      freundschaftsTyp: t.freundschaftsTyp,
+      mannschaftName: t.mannschaftName,
+      schiedsrichterName: manuell.length
+        ? manuell.map((m) => m.name ?? m.email ?? "").join(" / ")
+        : t.icsSchiedsrichterName,
+      schiedsrichterEmail: manuell.length
+        ? manuell.map((m) => m.email).filter((e) => e).join(" / ") || null
+        : t.icsSchiedsrichterEmail,
+      schiedsrichterIds,
+    };
+  });
+
+  const gefiltert = schiedsrichterIdFilter
+    ? ergebnis.filter((t) => t.schiedsrichterIds.includes(schiedsrichterIdFilter))
+    : ergebnis;
+  return gefiltert.map(({ schiedsrichterIds, ...rest }) => rest);
+}
+
 export async function holeTermineFuerAuswertung(
   vereinId: string,
   filter: AuswertungFilter
 ) {
-  return withTenant(vereinId, (tx) => {
+  return withTenant(vereinId, async (tx) => {
     const bedingungen: SQL[] = [eq(termine.vereinId, vereinId)];
 
     if (filter.von) bedingungen.push(gte(termine.start, new Date(filter.von)));
@@ -36,11 +114,8 @@ export async function holeTermineFuerAuswertung(
         eq(termine.typ, filter.typ as (typeof TERMIN_TYPEN)[number])
       );
     }
-    if (filter.schiedsrichterId) {
-      bedingungen.push(eq(termine.icsSchiedsrichterId, filter.schiedsrichterId));
-    }
 
-    return tx
+    const basisListe = await tx
       .select({
         id: termine.id,
         typ: termine.typ,
@@ -51,14 +126,50 @@ export async function holeTermineFuerAuswertung(
         pflichtspiel: termine.pflichtspiel,
         freundschaftsTyp: termine.freundschaftsTyp,
         mannschaftName: mannschaften.name,
-        schiedsrichterName: users.name,
-        schiedsrichterEmail: users.email,
+        icsSchiedsrichterId: termine.icsSchiedsrichterId,
+        icsSchiedsrichterName: users.name,
+        icsSchiedsrichterEmail: users.email,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
       .leftJoin(users, eq(termine.icsSchiedsrichterId, users.id))
       .where(and(...bedingungen))
       .orderBy(asc(termine.start));
+
+    // Separate Abfrage statt JOIN, da ein Termin bei Gespann-Besetzung ZWEI
+    // Schiedsrichter-Zuordnungen haben kann und ein direkter JOIN die
+    // Termin-Zeile sonst verdoppeln würde (siehe
+    // kombiniereSchiedsrichterZuordnungen oben).
+    const terminIds = basisListe.map((t) => t.id);
+    const manuelleZuordnungen = terminIds.length
+      ? await tx
+          .select({
+            terminId: terminZuordnungen.terminId,
+            userId: terminZuordnungen.userId,
+            externerName: terminZuordnungen.externerName,
+            name: users.name,
+            email: users.email,
+          })
+          .from(terminZuordnungen)
+          .leftJoin(users, eq(terminZuordnungen.userId, users.id))
+          .where(
+            and(
+              inArray(terminZuordnungen.terminId, terminIds),
+              eq(terminZuordnungen.funktionstraegerTyp, "schiedsrichter")
+            )
+          )
+      : [];
+
+    return kombiniereSchiedsrichterZuordnungen(
+      basisListe,
+      manuelleZuordnungen.map((z) => ({
+        terminId: z.terminId,
+        userId: z.userId,
+        name: z.name ?? z.externerName,
+        email: z.email,
+      })),
+      filter.schiedsrichterId
+    );
   });
 }
 
