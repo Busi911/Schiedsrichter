@@ -33,6 +33,11 @@ export type RundenspielEreignis = {
   // null, damit die Anzeige auf den unspezifischen Fallback
   // "Freundschaftsspiel/Turnier" zurückfällt statt zu raten.
   freundschaftsTyp: "freundschaftsspiel" | "turnier" | null;
+  // Aus der Zusatz-Zelle extrahiert (siehe extrahiereErgebnis unten), falls
+  // das Spiel bereits ausgetragen wurde und nuLiga den Endstand einträgt —
+  // beide zusammen oder keins, wie bei turnier_spiel (siehe schema.ts).
+  ergebnisHeim: number | null;
+  ergebnisAuswaerts: number | null;
 };
 
 export type RundenspielParseFehler = { index: number; grund: string };
@@ -67,6 +72,49 @@ function bildeUid(locationId: number | string, event: unknown): string | null {
     return `rundenspiel:${locationId}:${e.home}:${e.away}:${gameNumber}`;
   }
   return `rundenspiel:${locationId}:${e.date}:${e.time}:${e.home}:${e.away}`;
+}
+
+// nuLiga trägt bei bereits ausgetragenen Spielen den Endstand nachträglich
+// als zusätzliche Zelle nach Heim/Auswärts ein — landet über den
+// "zusatz"-Kanal (siehe nuliga-scraper.ts) genau dort, wo sonst z.B. ein
+// Schiedsrichter-Kürzel steht. Erkennt NUR ein eigenständiges "Zahl:Zahl"-
+// Segment (getrennt durch " · ", siehe zusatz-Aufbau im Scraper) als
+// Ergebnis, damit ein echtes Kürzel wie "SR: M. Mueller" nicht fälschlich
+// als Ergebnis interpretiert wird. Gibt das erkannte Ergebnis getrennt vom
+// verbleibenden Zusatz-Rest zurück, damit es NICHT mehr in beschreibung
+// landet, sondern in ergebnisHeim/ergebnisAuswaerts (siehe
+// RundenspielEreignis) — die Kalenderansichten blenden "Besetzung offen"
+// bei vorhandenem Ergebnis ohnehin automatisch aus (siehe
+// monats-kalender.tsx).
+const ERGEBNIS_MUSTER = /^(\d{1,3}):(\d{1,3})$/;
+
+function extrahiereErgebnis(zusatz: string | undefined): {
+  ergebnisHeim: number | null;
+  ergebnisAuswaerts: number | null;
+  zusatzOhneErgebnis: string | undefined;
+} {
+  if (!zusatz) {
+    return { ergebnisHeim: null, ergebnisAuswaerts: null, zusatzOhneErgebnis: zusatz };
+  }
+  const teile = zusatz.split(" · ");
+  const rest: string[] = [];
+  let ergebnisHeim: number | null = null;
+  let ergebnisAuswaerts: number | null = null;
+  for (const teil of teile) {
+    const match: RegExpMatchArray | null =
+      ergebnisHeim === null ? teil.trim().match(ERGEBNIS_MUSTER) : null;
+    if (match) {
+      ergebnisHeim = Number(match[1]);
+      ergebnisAuswaerts = Number(match[2]);
+    } else {
+      rest.push(teil);
+    }
+  }
+  return {
+    ergebnisHeim,
+    ergebnisAuswaerts,
+    zusatzOhneErgebnis: rest.length ? rest.join(" · ") : undefined,
+  };
 }
 
 type RundenturnierKandidat = {
@@ -164,6 +212,8 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
     istPflichtspiel: boolean;
     istFreundschaftsstaffel: boolean;
     zusatz: string | undefined;
+    ergebnisHeim: number | null;
+    ergebnisAuswaerts: number | null;
   };
   const rohEreignisse: RohEreignis[] = [];
 
@@ -232,10 +282,14 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       const istPflichtspiel =
         !!gameNumberRoh && gameNumberRoh !== "0" && !istFreundschaftsstaffel;
       // Zellen nach Heim/Auswärts im nuLiga-Export (z.B. Schiedsrichter-
-      // Kürzel) — Format/Vorhandensein je Landesverband unbestätigt, daher
-      // roh angehängt statt geraten interpretiert (siehe Kommentar in
-      // nuliga-scraper.ts).
-      const zusatz = typeof e.zusatz === "string" ? e.zusatz : undefined;
+      // Kürzel, aber bei bereits ausgetragenen Spielen auch der Endstand) —
+      // Format/Vorhandensein je Landesverband unbestätigt, daher roh
+      // angehängt statt geraten interpretiert (siehe Kommentar in
+      // nuliga-scraper.ts). Ein enthaltenes Ergebnis wird herausgelöst
+      // (siehe extrahiereErgebnis oben), der Rest bleibt wie bisher roh.
+      const zusatzRoh = typeof e.zusatz === "string" ? e.zusatz : undefined;
+      const { ergebnisHeim, ergebnisAuswaerts, zusatzOhneErgebnis: zusatz } =
+        extrahiereErgebnis(zusatzRoh);
 
       rohEreignisse.push({
         uid,
@@ -249,6 +303,8 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
         istPflichtspiel,
         istFreundschaftsstaffel,
         zusatz,
+        ergebnisHeim,
+        ergebnisAuswaerts,
       });
     }
   }
@@ -294,6 +350,8 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       kategorie: r.kategorie,
       pflichtspiel,
       freundschaftsTyp,
+      ergebnisHeim: r.ergebnisHeim,
+      ergebnisAuswaerts: r.ergebnisAuswaerts,
     };
   });
 
