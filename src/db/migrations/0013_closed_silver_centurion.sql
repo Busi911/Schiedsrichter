@@ -1,0 +1,1 @@
+ALTER TABLE "termin" ADD COLUMN "kategorie" text;

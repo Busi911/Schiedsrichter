@@ -47,6 +47,7 @@ export async function importiereRundenspielEreignisse(
             mannschaftId,
             heimMannschaftName: ereignis.heimMannschaft,
             auswaertsMannschaftName: ereignis.auswaertsMannschaft,
+            kategorie: ereignis.kategorie,
           })
           .where(eq(termine.id, bestehend.id));
         aktualisiert++;
@@ -62,6 +63,7 @@ export async function importiereRundenspielEreignisse(
           icsUid: ereignis.uid,
           heimMannschaftName: ereignis.heimMannschaft,
           auswaertsMannschaftName: ereignis.auswaertsMannschaft,
+          kategorie: ereignis.kategorie,
         });
         neu++;
       }

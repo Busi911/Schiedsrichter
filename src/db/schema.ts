@@ -261,6 +261,13 @@ export const termine = pgTable("termin", {
   // vorzuschlagen (siehe src/lib/rundenspiel-import.ts).
   heimMannschaftName: text("heim_mannschaft_name"),
   auswaertsMannschaftName: text("auswaerts_mannschaft_name"),
+  // Nur bei typ = 'rundenspiel' gesetzt: Jugendklasse (z.B. "mJC") bzw.
+  // Männer/Frauen ("Mä/männl.", "Fr/weibl.") aus dem nuLiga-Import — nötig,
+  // um bei "Unbekannte Mannschaften" (rundenspiel-import.ts) gleichnamige
+  // Vereine mit mehreren Mannschaften in unterschiedlichen Altersklassen/
+  // Geschlechtern auseinanderzuhalten (nuLiga liefert nicht immer einen
+  // unterscheidenden Nummern-Suffix wie "1"/"2").
+  kategorie: text("kategorie"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 

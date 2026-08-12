@@ -15,6 +15,11 @@ export type RundenspielEreignis = {
   beschreibung: string;
   heimMannschaft: string;
   auswaertsMannschaft: string;
+  // Jugendklasse (z.B. "mJC") bzw. Männer/Frauen ("Mä/männl.", "Fr/weibl.")
+  // — separat von beschreibung gehalten, damit "Unbekannte Mannschaften"
+  // gleichnamige Vereine mit mehreren Mannschaften auseinanderhalten kann
+  // (siehe gruppiereUnbekannteMannschaften unten).
+  kategorie: string | null;
 };
 
 export type RundenspielParseFehler = { index: number; grund: string };
@@ -116,7 +121,7 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       // category = Jugendklasse (z.B. "MJC", "WJB") bzw. Männer/Frauen
       // ("Mä/männl.", "Fr/weibl.") — an den Titel angehängt, da die exakten
       // Kürzel je Landesverband variieren und hier nicht übersetzt werden.
-      const kategorie = typeof e.category === "string" ? e.category : undefined;
+      const kategorie = typeof e.category === "string" ? e.category : null;
       // gameNumber "0"/fehlend = kein echtes Pflichtspiel mit vom Verband
       // vergebener Spielnummer (siehe bildeUid oben) — zuverlässigeres
       // Unterscheidungsmerkmal Freundschaftsspiel/Turnier vs. Ligaspiel als
@@ -142,6 +147,7 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
         beschreibung,
         heimMannschaft,
         auswaertsMannschaft,
+        kategorie,
       });
     }
   }
@@ -197,20 +203,25 @@ export function findeMannschaft(
 export type UnbekannteMannschaft = {
   normalisiert: string;
   anzeigeName: string;
+  kategorie: string | null;
   anzahlSpiele: number;
 };
 
 // Fasst Heimnamen aus noch nicht verknüpften Rundenspielen zu Vorschlägen
 // zusammen, die der Admin per Klick als Mannschaft anlegen kann (siehe
-// /admin/rundenspiele) — nach normalisiertem Namen gruppiert, damit
-// "Herren I" und "Herren 1" nicht als zwei Vorschläge auftauchen. Bewusst
-// nur Heimnamen: der Export enthält alle Spiele an der EIGENEN Halle, die
-// eigenen Mannschaften stehen dort also immer als Heimmannschaft — der
-// Auswärtsname ist immer ein fremder Verein und wird deshalb ignoriert.
+// /admin/rundenspiele) — nach normalisiertem Namen UND Kategorie gruppiert,
+// damit "Herren I" und "Herren 1" nicht als zwei Vorschläge auftauchen,
+// aber z.B. die Herren- und eine Jugendmannschaft desselben Vereins (die
+// nuLiga oft ohne unterscheidenden Nummern-Suffix im Namen führt) getrennt
+// bleiben. Bewusst nur Heimnamen: der Export enthält alle Spiele an der
+// EIGENEN Halle, die eigenen Mannschaften stehen dort also immer als
+// Heimmannschaft — der Auswärtsname ist immer ein fremder Verein und wird
+// deshalb ignoriert.
 export function gruppiereUnbekannteMannschaften(
   eintraege: {
     heimMannschaftName: string | null;
     mannschaftId: string | null;
+    kategorie?: string | null;
   }[]
 ): UnbekannteMannschaft[] {
   const gruppen = new Map<string, UnbekannteMannschaft>();
@@ -218,10 +229,17 @@ export function gruppiereUnbekannteMannschaften(
     if (e.mannschaftId) continue;
     const roh = e.heimMannschaftName;
     if (roh) {
-      const key = normalisiereMannschaftsname(roh);
+      const kategorie = e.kategorie ?? null;
+      const key = `${normalisiereMannschaftsname(roh)}::${kategorie ?? ""}`;
       const bestehend = gruppen.get(key);
       if (bestehend) bestehend.anzahlSpiele++;
-      else gruppen.set(key, { normalisiert: key, anzeigeName: roh, anzahlSpiele: 1 });
+      else
+        gruppen.set(key, {
+          normalisiert: normalisiereMannschaftsname(roh),
+          anzeigeName: roh,
+          kategorie,
+          anzahlSpiele: 1,
+        });
     }
   }
   return [...gruppen.values()].sort((a, b) => b.anzahlSpiele - a.anzahlSpiele);

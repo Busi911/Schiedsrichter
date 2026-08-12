@@ -45,6 +45,7 @@ export default async function RundenspielePage({
         mannschaftName: mannschaften.name,
         heimMannschaftName: termine.heimMannschaftName,
         auswaertsMannschaftName: termine.auswaertsMannschaftName,
+        kategorie: termine.kategorie,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
@@ -138,13 +139,17 @@ export default async function RundenspielePage({
             <div className="flex flex-col divide-y">
               {unbekannteMannschaften.map((m) => (
                 <form
-                  key={m.normalisiert}
+                  key={`${m.normalisiert}::${m.kategorie ?? ""}`}
                   action={mannschaftAusRundenspielAnlegen}
                   className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
                 >
                   <input type="hidden" name="name" value={m.anzeigeName} />
+                  <input type="hidden" name="kategorie" value={m.kategorie ?? ""} />
                   <span className="text-sm">
-                    {m.anzeigeName}{" "}
+                    {m.anzeigeName}
+                    {m.kategorie && (
+                      <span className="text-muted-foreground"> ({m.kategorie})</span>
+                    )}{" "}
                     <span className="text-xs text-muted-foreground">
                       ({m.anzahlSpiele} {m.anzahlSpiele === 1 ? "Spiel" : "Spiele"})
                     </span>
