@@ -49,6 +49,7 @@ export async function holeTermineFuerAuswertung(
         ort: termine.ort,
         beschreibung: termine.beschreibung,
         pflichtspiel: termine.pflichtspiel,
+        freundschaftsTyp: termine.freundschaftsTyp,
         mannschaftName: mannschaften.name,
         schiedsrichterName: users.name,
         schiedsrichterEmail: users.email,

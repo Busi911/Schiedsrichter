@@ -64,6 +64,7 @@ export default async function AdminKalenderPage({
         beschreibung: termine.beschreibung,
         turnierId: termine.turnierId,
         pflichtspiel: termine.pflichtspiel,
+        freundschaftsTyp: termine.freundschaftsTyp,
         ergebnisHeim: termine.ergebnisHeim,
         ergebnisAuswaerts: termine.ergebnisAuswaerts,
         schiedsrichterName: users.name,
@@ -131,7 +132,9 @@ export default async function AdminKalenderPage({
     const key = tagKey(t.start);
     const liste = eintraegeProTag.get(key) ?? [];
     const typLabel =
-      t.typ === "rundenspiel" ? rundenspielTypLabel(t.pflichtspiel) : TYP_LABEL[t.typ] ?? t.typ;
+      t.typ === "rundenspiel"
+        ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
+        : TYP_LABEL[t.typ] ?? t.typ;
     const label =
       t.beschreibung ??
       t.ort ??

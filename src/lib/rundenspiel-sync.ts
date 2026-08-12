@@ -50,7 +50,8 @@ export async function importiereRundenspielEreignisse(
           bestehend.heimMannschaftName !== ereignis.heimMannschaft ||
           bestehend.auswaertsMannschaftName !== ereignis.auswaertsMannschaft ||
           bestehend.kategorie !== ereignis.kategorie ||
-          bestehend.pflichtspiel !== ereignis.pflichtspiel;
+          bestehend.pflichtspiel !== ereignis.pflichtspiel ||
+          bestehend.freundschaftsTyp !== ereignis.freundschaftsTyp;
 
         if (geaendert) {
           await tx
@@ -64,6 +65,7 @@ export async function importiereRundenspielEreignisse(
               auswaertsMannschaftName: ereignis.auswaertsMannschaft,
               kategorie: ereignis.kategorie,
               pflichtspiel: ereignis.pflichtspiel,
+              freundschaftsTyp: ereignis.freundschaftsTyp,
             })
             .where(eq(termine.id, bestehend.id));
           aktualisiert++;
@@ -82,6 +84,7 @@ export async function importiereRundenspielEreignisse(
           auswaertsMannschaftName: ereignis.auswaertsMannschaft,
           kategorie: ereignis.kategorie,
           pflichtspiel: ereignis.pflichtspiel,
+          freundschaftsTyp: ereignis.freundschaftsTyp,
         });
         neu++;
       }

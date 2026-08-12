@@ -62,6 +62,17 @@ export const syncStatusEnum = pgEnum("sync_status", [
   "fehler",
 ]);
 
+// Feinere Unterscheidung innerhalb "kein Pflichtspiel" (pflichtspiel = false,
+// siehe termine.pflichtspiel) — welche der beiden nuLiga-Rundenspiel-Import
+// erkennt anhand unterschiedlicher Signale (Rohtext-Präfix bzw. Rundenturnier-
+// Spielplan-Muster, siehe rundenspiel-import.ts). null = nicht zutreffend
+// (Pflichtspiel oder ein anderer Termin-Typ) ODER erkennbar nicht eindeutig
+// (Fallback-Anzeige "Freundschaftsspiel/Turnier").
+export const freundschaftsTypEnum = pgEnum("freundschafts_typ", [
+  "freundschaftsspiel",
+  "turnier",
+]);
+
 // ---------------------------------------------------------------------------
 // Mandant / Vereinsstruktur
 // ---------------------------------------------------------------------------
@@ -276,6 +287,12 @@ export const termine = pgTable("termin", {
   // Bezeichnung zeigen können, statt widersprüchlich immer "Rundenspiel" zu
   // sagen, obwohl die Beschreibung "Freundschaftsspiel/Turnier" ausweist.
   pflichtspiel: boolean("pflichtspiel"),
+  // Nur bei typ = 'rundenspiel' UND pflichtspiel = false gesetzt: ob es sich
+  // laut Hallenplan konkret um ein Freundschaftsspiel oder ein Turnier
+  // handelt (siehe freundschaftsTypEnum oben) — null lässt die Anzeige auf
+  // den bisherigen, unspezifischen Fallback "Freundschaftsspiel/Turnier"
+  // zurückfallen.
+  freundschaftsTyp: freundschaftsTypEnum("freundschafts_typ"),
   // Nur beim Turnier-Container (typ = 'turnier') gesetzt: optionaler Trainer,
   // der für dieses eine Turnier zusätzlich zum Admin den Spielplan pflegen
   // und Ergebnisse eintragen darf (siehe requireTurnierZugriff in

@@ -80,7 +80,7 @@ export default async function ZuordnungPage() {
           // selbst zugeordnet (siehe istBesetzungVollstaendig).
           const schiriKommtVomVerband = istRundenspiel && termin.pflichtspiel === true;
           const typLabel = istRundenspiel
-            ? rundenspielTypLabel(termin.pflichtspiel)
+            ? rundenspielTypLabel(termin.pflichtspiel, termin.freundschaftsTyp)
             : TYP_LABEL[termin.typ] ?? termin.typ;
           return (
             <Card key={termin.id} className="max-w-2xl">

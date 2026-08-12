@@ -164,7 +164,7 @@ export default async function AuswertungPage({
                     <TableCell>
                       <Badge variant="secondary">
                         {t.typ === "rundenspiel"
-                          ? rundenspielTypLabel(t.pflichtspiel)
+                          ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
                           : TYP_LABEL[t.typ] ?? t.typ}
                       </Badge>
                     </TableCell>
