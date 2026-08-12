@@ -125,7 +125,7 @@ export default async function EinstellungenPage({
             </fieldset>
 
             <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1 text-sm font-medium">Rundenspiele</legend>
+              <legend className="mb-1 text-sm font-medium">Hallenspielplan</legend>
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="rundenspielOrdnerBedarf" className="font-normal">
                   Ordner
@@ -197,7 +197,7 @@ export default async function EinstellungenPage({
             Bis zu drei Hallen-IDs eintragen (leere Felder werden
             übersprungen) — dieselben Angaben wie im bisherigen manuellen
             Export-Workflow. Bei aktiviertem Import lädt der Verein montags
-            und donnerstags automatisch neue Rundenspiele; nach dem
+            und donnerstags automatisch neue Spiele in den Hallenspielplan; nach dem
             Speichern läuft sofort ein erster Sync.
           </CardDescription>
         </CardHeader>

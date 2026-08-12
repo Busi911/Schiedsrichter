@@ -59,11 +59,12 @@ export default async function RundenspielePage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold">Rundenspiele</h1>
+        <h1 className="font-heading text-2xl font-semibold">Hallenspielplan</h1>
         <p className="text-sm text-muted-foreground">
-          Pflichtspiele aus dem Liga-Spielplan, importiert aus einem
-          nuLiga-JSON-Export pro Halle — inklusive Spiele fremder Mannschaften
-          an der eigenen Halle (relevant für Ordner-/Kioskdienst).
+          Alle Spiele an der eigenen Halle — Liga-Pflichtspiele ebenso wie
+          Freundschaftsspiele/Turniere, importiert aus nuLiga oder per
+          JSON-Export pro Halle. Inklusive Spiele fremder Mannschaften an der
+          eigenen Halle (relevant für Ordner-/Kioskdienst).
         </p>
       </div>
 
@@ -126,7 +127,7 @@ export default async function RundenspielePage({
             <CardDescription>
               Heim-/Auswärtsnamen aus dem Import, die noch keiner Mannschaft
               zugeordnet sind — sortiert nach Häufigkeit. Bereits importierte
-              Rundenspiele werden beim Anlegen rückwirkend verknüpft.
+              Spiele werden beim Anlegen rückwirkend verknüpft.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -170,10 +171,11 @@ export default async function RundenspielePage({
             <CardTitle>Mögliche Duplikate</CardTitle>
             <CardDescription>
               Manuell angelegte Testspiele (z.B. weil noch kein
-              Schiedsrichter feststand), die inzwischen auch offiziell als
-              Rundenspiel importiert wurden — dieselbe Begegnung taucht
-              sonst doppelt im Kalender auf. Prüft die Zuordnung, bevor ihr
-              das Testspiel löscht.
+              Schiedsrichter feststand), die inzwischen auch über den
+              Hallenspielplan importiert wurden (als Liga- oder
+              Freundschaftsspiel, siehe Beschreibung unten) — dieselbe
+              Begegnung taucht sonst doppelt im Kalender auf. Prüft die
+              Zuordnung, bevor ihr das Testspiel löscht.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -189,7 +191,7 @@ export default async function RundenspielePage({
                       {d.testspielBeschreibung ? ` · ${d.testspielBeschreibung}` : ""}
                     </p>
                     <p className="text-muted-foreground">
-                      <strong>Rundenspiel:</strong> {formatDateTime(d.rundenspielStart)}
+                      <strong>Hallenspielplan:</strong> {formatDateTime(d.rundenspielStart)}
                       {d.rundenspielBeschreibung ? ` · ${d.rundenspielBeschreibung}` : ""}
                     </p>
                   </div>
@@ -208,12 +210,12 @@ export default async function RundenspielePage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Alle importierten Rundenspiele</CardTitle>
+          <CardTitle>Alle importierten Spiele</CardTitle>
         </CardHeader>
         <CardContent>
           {liste.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Noch keine Rundenspiele importiert.
+              Noch keine Spiele importiert.
             </p>
           ) : (
             <div className="flex flex-col divide-y">
