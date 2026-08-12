@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
-import { holeNaechsteTermine, holeOffenePosten } from "@/lib/dashboard";
+import {
+  holeLetzteErgebnisse,
+  holeNaechsteTermine,
+  holeOffenePosten,
+} from "@/lib/dashboard";
 import { holeZuschussEinstellungen, holeOffeneEinsaetze } from "@/lib/zuschuss";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,6 +15,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  NaechsteTermineTabelle,
+  UnbesetzteDiensteTabelle,
+} from "@/components/dashboard-tabellen";
+import {
   Table,
   TableBody,
   TableCell,
@@ -19,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
-import { rundenspielTypLabel } from "@/lib/termin-label";
+import { formatErgebnis, rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -42,12 +50,36 @@ export default async function AdminDashboardPage() {
   const verein = await holeZuschussEinstellungen(vereinId);
   const zuschuesseAktiviert = verein?.zuschuesseAktiviert ?? false;
 
-  const [naechsteTermine, offenePosten, offeneEinsaetze] =
+  const [naechsteTermine, offenePosten, letzteErgebnisse, offeneEinsaetze] =
     await Promise.all([
-      holeNaechsteTermine(vereinId),
+      // Höheres Limit als früher (statt fest 5) — die Load-More-Tabelle
+      // zeigt anfangs ohnehin nur 10, blendet aber bei Bedarf mehr aus den
+      // bereits geladenen Daten ein, ohne dafür erneut den Server zu fragen.
+      holeNaechsteTermine(vereinId, 50),
       holeOffenePosten(vereinId),
+      holeLetzteErgebnisse(vereinId, 10),
       zuschuesseAktiviert ? holeOffeneEinsaetze(vereinId) : Promise.resolve([]),
     ]);
+
+  const naechsteTermineZeilen = naechsteTermine.map((t) => ({
+    id: t.id,
+    zeit: formatDateTime(t.start),
+    typLabel:
+      t.typ === "rundenspiel"
+        ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
+        : (TYP_LABEL[t.typ] ?? t.typ),
+    ort: t.ort,
+  }));
+
+  const offenePostenZeilen = offenePosten.map((p) => ({
+    terminId: p.terminId,
+    zeit: formatDateTime(p.start),
+    luecken: p.luecken.map((l) => ({
+      rolle: ROLLE_LABEL[l.rolle],
+      vorhanden: l.vorhanden,
+      bedarf: l.bedarf,
+    })),
+  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,39 +96,12 @@ export default async function AdminDashboardPage() {
             <CardTitle className="text-base">Nächste Termine</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {naechsteTermine.length === 0 ? (
+            {naechsteTermineZeilen.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Keine anstehenden Termine.
               </p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Termin</TableHead>
-                    <TableHead>Typ</TableHead>
-                    <TableHead>Ort</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {naechsteTermine.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-medium">
-                        {formatDateTime(t.start)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {t.typ === "rundenspiel"
-                            ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
-                            : TYP_LABEL[t.typ] ?? t.typ}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {t.ort ?? "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <NaechsteTermineTabelle termine={naechsteTermineZeilen} />
             )}
             <Link
               href="/admin/termine"
@@ -117,32 +122,12 @@ export default async function AdminDashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {offenePosten.length === 0 ? (
+            {offenePostenZeilen.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Alle Dienste sind besetzt.
               </p>
             ) : (
-              <Table>
-                <TableBody>
-                  {offenePosten.flatMap((p) =>
-                    p.luecken.map((l, i) => (
-                      <TableRow key={`${p.terminId}-${l.rolle}`}>
-                        {i === 0 && (
-                          <TableCell
-                            rowSpan={p.luecken.length}
-                            className="w-0 align-top text-sm font-medium whitespace-normal"
-                          >
-                            {formatDateTime(p.start)}
-                          </TableCell>
-                        )}
-                        <TableCell className="text-sm whitespace-normal text-muted-foreground">
-                          {ROLLE_LABEL[l.rolle]}: {l.vorhanden}/{l.bedarf}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+              <UnbesetzteDiensteTabelle posten={offenePostenZeilen} />
             )}
             <Link
               href="/admin/einstellungen"
@@ -153,6 +138,48 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
 
+        {letzteErgebnisse.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Letzte Ergebnisse</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Termin</TableHead>
+                    <TableHead>Typ</TableHead>
+                    <TableHead>Ergebnis</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {letzteErgebnisse.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="font-medium">
+                        {formatDateTime(t.start)}
+                        {t.beschreibung && (
+                          <span className="block text-xs font-normal text-muted-foreground">
+                            {t.beschreibung}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {t.typ === "rundenspiel"
+                            ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
+                            : (TYP_LABEL[t.typ] ?? t.typ)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Bewusst kein eigenes Grid-Card mehr — bei deaktivierten Zuschüssen

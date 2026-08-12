@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, gte, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { termine, terminZuordnungen, vereine } from "@/db/schema";
 import { bedarfFuer } from "./dienste";
@@ -9,6 +9,26 @@ export async function holeNaechsteTermine(vereinId: string, limit = 5) {
     tx.query.termine.findMany({
       where: and(eq(termine.vereinId, vereinId), gte(termine.start, new Date())),
       orderBy: (t, { asc }) => [asc(t.start)],
+      limit,
+    })
+  );
+}
+
+// Nur Termine mit eingetragenem Ergebnis (beide Felder gesetzt) — aktuell
+// turnier_spiel (manuell) sowie rundenspiel (nuLiga-Import, siehe
+// rundenspiel-import.ts) — und in der Vergangenheit, damit hier nicht
+// versehentlich ein manuell vorab eingetragenes Ergebnis für ein noch
+// bevorstehendes Spiel auftaucht.
+export async function holeLetzteErgebnisse(vereinId: string, limit = 20) {
+  return withTenant(vereinId, (tx) =>
+    tx.query.termine.findMany({
+      where: and(
+        eq(termine.vereinId, vereinId),
+        lt(termine.start, new Date()),
+        isNotNull(termine.ergebnisHeim),
+        isNotNull(termine.ergebnisAuswaerts)
+      ),
+      orderBy: (t, { desc }) => [desc(t.start)],
       limit,
     })
   );
