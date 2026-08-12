@@ -1,8 +1,14 @@
 import "server-only";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { termine } from "@/db/schema";
+import { termine, terminZuordnungen, users } from "@/db/schema";
 import { normalisiereMannschaftsname } from "./rundenspiel-import";
+
+const ROLLE_LABEL: Record<string, string> = {
+  schiedsrichter: "Schiedsrichter",
+  zeitnehmer: "Zeitnehmer",
+  sekretaer: "Sekretär",
+};
 
 // Admins legen Freundschaftsspiele oft manuell an, bevor der Verband/nuLiga das
 // Spiel offiziell führt (z.B. weil noch kein Schiedsrichter feststeht) —
@@ -21,9 +27,11 @@ export type MoeglichesDuplikat = {
   testspielId: string;
   testspielStart: Date;
   testspielBeschreibung: string | null;
+  testspielBesetzung: string[];
   rundenspielId: string;
   rundenspielStart: Date;
   rundenspielBeschreibung: string | null;
+  rundenspielBesetzung: string[];
 };
 
 export async function findeTestspielDuplikate(
@@ -42,6 +50,35 @@ export async function findeTestspielDuplikate(
     const rundenspiele = await tx.query.termine.findMany({
       where: and(eq(termine.vereinId, vereinId), eq(termine.typ, "rundenspiel")),
     });
+
+    const alleTerminIds = [
+      ...testspiele.map((t) => t.id),
+      ...rundenspiele.map((r) => r.id),
+    ];
+    const zuordnungen = alleTerminIds.length
+      ? await tx
+          .select({
+            terminId: terminZuordnungen.terminId,
+            funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+            name: users.name,
+            email: users.email,
+            externerName: terminZuordnungen.externerName,
+          })
+          .from(terminZuordnungen)
+          .leftJoin(users, eq(terminZuordnungen.userId, users.id))
+          .where(inArray(terminZuordnungen.terminId, alleTerminIds))
+      : [];
+
+    function besetzungFuer(terminId: string): string[] {
+      return zuordnungen
+        .filter((z) => z.terminId === terminId)
+        .map(
+          (z) =>
+            `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
+              z.name ?? z.externerName ?? z.email
+            }`
+        );
+    }
 
     const treffer: MoeglichesDuplikat[] = [];
     for (const t of testspiele) {
@@ -68,9 +105,11 @@ export async function findeTestspielDuplikate(
             testspielId: t.id,
             testspielStart: t.start,
             testspielBeschreibung: t.beschreibung,
+            testspielBesetzung: besetzungFuer(t.id),
             rundenspielId: r.id,
             rundenspielStart: r.start,
             rundenspielBeschreibung: r.beschreibung,
+            rundenspielBesetzung: besetzungFuer(r.id),
           });
         }
       }
