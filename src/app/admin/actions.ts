@@ -16,6 +16,7 @@ import { normalisiereMannschaftsname, parseRundenspielJson } from "@/lib/rundens
 import { importiereRundenspielEreignisse } from "@/lib/rundenspiel-sync";
 import { sendMail } from "@/lib/mailer";
 import { appUrl } from "@/lib/app-url";
+import { parseBerlinDatumZeit } from "@/lib/format";
 
 function willkommensText(vereinName: string, email: string) {
   return [
@@ -485,8 +486,8 @@ export async function createTermin(formData: FormData) {
     tx.insert(termine).values({
       vereinId,
       typ: typ as (typeof TERMIN_TYPEN)[number],
-      start: new Date(start),
-      ende: typeof ende === "string" && ende ? new Date(ende) : null,
+      start: parseBerlinDatumZeit(start),
+      ende: typeof ende === "string" && ende ? parseBerlinDatumZeit(ende) : null,
       ort: typeof ort === "string" && ort.trim() ? ort.trim() : null,
       beschreibung:
         typeof beschreibung === "string" && beschreibung.trim()
@@ -547,8 +548,8 @@ export async function updateTermin(formData: FormData) {
       .update(termine)
       .set({
         typ: typ as (typeof TERMIN_TYPEN)[number],
-        start: new Date(start),
-        ende: typeof ende === "string" && ende ? new Date(ende) : null,
+        start: parseBerlinDatumZeit(start),
+        ende: typeof ende === "string" && ende ? parseBerlinDatumZeit(ende) : null,
         ort: typeof ort === "string" && ort.trim() ? ort.trim() : null,
         beschreibung:
           typeof beschreibung === "string" && beschreibung.trim()
@@ -664,8 +665,8 @@ export async function createTurnierSpiel(formData: FormData) {
       vereinId,
       typ: "turnier_spiel",
       turnierId,
-      start: new Date(start),
-      ende: typeof ende === "string" && ende ? new Date(ende) : null,
+      start: parseBerlinDatumZeit(start),
+      ende: typeof ende === "string" && ende ? parseBerlinDatumZeit(ende) : null,
       ort: typeof ort === "string" && ort.trim() ? ort.trim() : null,
       beschreibung:
         typeof beschreibung === "string" && beschreibung.trim()
@@ -714,8 +715,8 @@ export async function updateTurnierSpiel(formData: FormData) {
     await tx
       .update(termine)
       .set({
-        start: new Date(start),
-        ende: typeof ende === "string" && ende ? new Date(ende) : null,
+        start: parseBerlinDatumZeit(start),
+        ende: typeof ende === "string" && ende ? parseBerlinDatumZeit(ende) : null,
         ort: typeof ort === "string" && ort.trim() ? ort.trim() : null,
         beschreibung:
           typeof beschreibung === "string" && beschreibung.trim()
