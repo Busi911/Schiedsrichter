@@ -15,7 +15,7 @@ import { rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
-  testspiel: "Testspiel",
+  testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
   rundenspiel: "Rundenspiel",
@@ -87,7 +87,7 @@ export default async function AdminDashboardPage() {
           <CardHeader>
             <CardTitle className="text-base">Unbesetzte Dienste</CardTitle>
             <CardDescription>
-              Testspiele/Turniere mit offenem Ordner-/Kioskdienst-Bedarf
+              Freundschaftsspiele/Turniere mit offenem Ordner-/Kioskdienst-Bedarf
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">

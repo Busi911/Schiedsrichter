@@ -11,7 +11,7 @@ import { rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
-  testspiel: "Testspiel",
+  testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
   rundenspiel: "Rundenspiel",
@@ -144,7 +144,7 @@ export default async function AdminKalenderPage({
       <div>
         <h1 className="font-heading text-2xl font-semibold">Kalender</h1>
         <p className="text-sm text-muted-foreground">
-          Alle Termine des Vereins — Spiele aus dem ICS-Feed sowie Testspiele/Turniere. Zum
+          Alle Termine des Vereins — Spiele aus dem ICS-Feed sowie Freundschaftsspiele/Turniere. Zum
           Anschauen der Details auf einen Termin klicken.
           <span className="ml-2 inline-flex items-center gap-1">
             <span className="inline-block size-2 rounded-full bg-emerald-500" /> Besetzung

@@ -22,7 +22,7 @@ import {
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 
 const TYP_LABEL: Record<string, string> = {
-  testspiel: "Testspiel",
+  testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
 };
 
@@ -49,7 +49,7 @@ export default async function TerminePage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-heading text-2xl font-semibold">
-          Testspiele &amp; Turniere
+          Freundschaftsspiele &amp; Turniere
         </h1>
         <p className="text-sm text-muted-foreground">
           Vom Verein selbst veranstaltete Termine (unabhängig vom
@@ -107,7 +107,7 @@ export default async function TerminePage() {
           </CardContent>
         </Card>
 
-        <CollapsibleCard title="Neuer Termin" description="Testspiel oder Turnier anlegen">
+        <CollapsibleCard title="Neuer Termin" description="Freundschaftsspiel oder Turnier anlegen">
           <form action={createTermin} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="typ">Typ</Label>
@@ -117,7 +117,7 @@ export default async function TerminePage() {
                   defaultValue="testspiel"
                   required
                   options={[
-                    { value: "testspiel", label: "Testspiel" },
+                    { value: "testspiel", label: "Freundschaftsspiel" },
                     { value: "turnier", label: "Turnier" },
                   ]}
                 />

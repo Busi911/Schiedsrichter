@@ -22,7 +22,7 @@ import { rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
-  testspiel: "Testspiel",
+  testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
   rundenspiel: "Rundenspiel",
@@ -51,7 +51,7 @@ export default async function ZuordnungPage() {
         <p className="max-w-2xl text-sm text-muted-foreground">
           Schiedsrichter aus dem ICS-Feed sind bereits automatisch zugeordnet.
           Hier zusätzlich Zeitnehmer, Sekretäre (oder weitere Schiedsrichter,
-          z.B. für Testspiele/Turniere) zu anstehenden Terminen zuordnen.
+          z.B. für Freundschaftsspiele/Turniere) zu anstehenden Terminen zuordnen.
           Pflicht: mind. 1 Schiedsrichter (max. 2 als Gespann) und mind. 1
           Zeitnehmer oder Sekretär (max. 2).
         </p>

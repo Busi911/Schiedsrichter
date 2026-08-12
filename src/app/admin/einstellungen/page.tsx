@@ -45,7 +45,7 @@ export default async function EinstellungenPage({
         <CardHeader>
           <CardTitle>Dienste-Bedarf pro Termin</CardTitle>
           <CardDescription>
-            Wie viele Ordner und Kioskdienst-Kräfte pro Testspiel, Turnier
+            Wie viele Ordner und Kioskdienst-Kräfte pro Freundschaftsspiel, Turnier
             bzw. Rundenspiel benötigt werden. Sobald diese Anzahl erreicht
             ist, können sich weitere Interessenten nicht mehr anmelden. Gilt
             nicht für Termine aus dem ICS-Feed (das sind die persönlichen
@@ -55,7 +55,7 @@ export default async function EinstellungenPage({
         <CardContent>
           <form action={dienstBedarfSpeichern} className="flex flex-col gap-5">
             <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1 text-sm font-medium">Testspiele</legend>
+              <legend className="mb-1 text-sm font-medium">Freundschaftsspiele</legend>
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="testspielOrdnerBedarf" className="font-normal">
                   Ordner

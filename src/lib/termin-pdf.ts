@@ -7,7 +7,7 @@ type Zeile = Awaited<ReturnType<typeof holeTermineFuerAuswertung>>[number];
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
-  testspiel: "Testspiel",
+  testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
   rundenspiel: "Rundenspiel",
