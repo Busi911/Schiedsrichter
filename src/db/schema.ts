@@ -268,6 +268,14 @@ export const termine = pgTable("termin", {
   // Geschlechtern auseinanderzuhalten (nuLiga liefert nicht immer einen
   // unterscheidenden Nummern-Suffix wie "1"/"2").
   kategorie: text("kategorie"),
+  // Nur bei typ = 'rundenspiel' gesetzt: true = echtes Ligaspiel (vom
+  // Verband vergebene Spielnummer, siehe bildeUid in rundenspiel-import.ts),
+  // false = Freundschaftsspiel/Turnier ohne feste Spielnummer, null = nicht
+  // zutreffend (andere Termin-Typen). Eigene Spalte statt Text-Parsing aus
+  // beschreibung, damit z.B. Typ-Badges in Kalenderansichten die korrekte
+  // Bezeichnung zeigen können, statt widersprüchlich immer "Rundenspiel" zu
+  // sagen, obwohl die Beschreibung "Freundschaftsspiel/Turnier" ausweist.
+  pflichtspiel: boolean("pflichtspiel"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 

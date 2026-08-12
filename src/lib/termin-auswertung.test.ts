@@ -8,6 +8,7 @@ const basisZeile = {
   ende: null,
   ort: "Sporthalle",
   beschreibung: "gegen TuS Musterstadt",
+  pflichtspiel: null,
   mannschaftName: "Herren 1",
   schiedsrichterName: null,
   schiedsrichterEmail: null,

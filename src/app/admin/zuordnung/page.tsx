@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
+import { rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -69,12 +70,14 @@ export default async function ZuordnungPage() {
           );
           const vollstaendig = istBesetzungVollstaendig(besetzung, termin.typ);
           const istRundenspiel = termin.typ === "rundenspiel";
+          const typLabel = istRundenspiel
+            ? rundenspielTypLabel(termin.pflichtspiel)
+            : TYP_LABEL[termin.typ] ?? termin.typ;
           return (
             <Card key={termin.id} className="max-w-2xl">
               <CardHeader>
                 <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-                  {formatDateTime(termin.start)} ·{" "}
-                  {TYP_LABEL[termin.typ] ?? termin.typ}
+                  {formatDateTime(termin.start)} · {typLabel}
                   {termin.ort ? ` · ${termin.ort}` : ""}
                   <Badge variant={vollstaendig ? "secondary" : "outline"}>
                     {vollstaendig ? "Pflicht erfüllt" : "Besetzung offen"}

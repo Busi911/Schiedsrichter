@@ -48,6 +48,7 @@ export async function importiereRundenspielEreignisse(
             heimMannschaftName: ereignis.heimMannschaft,
             auswaertsMannschaftName: ereignis.auswaertsMannschaft,
             kategorie: ereignis.kategorie,
+            pflichtspiel: ereignis.pflichtspiel,
           })
           .where(eq(termine.id, bestehend.id));
         aktualisiert++;
@@ -64,6 +65,7 @@ export async function importiereRundenspielEreignisse(
           heimMannschaftName: ereignis.heimMannschaft,
           auswaertsMannschaftName: ereignis.auswaertsMannschaft,
           kategorie: ereignis.kategorie,
+          pflichtspiel: ereignis.pflichtspiel,
         });
         neu++;
       }

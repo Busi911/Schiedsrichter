@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
+import { rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -63,7 +64,9 @@ export default async function AdminDashboardPage() {
                 <div key={t.id} className="text-sm">
                   <span className="font-medium">{formatDateTime(t.start)}</span>{" "}
                   <Badge variant="secondary" className="ml-1">
-                    {TYP_LABEL[t.typ] ?? t.typ}
+                    {t.typ === "rundenspiel"
+                      ? rundenspielTypLabel(t.pflichtspiel)
+                      : TYP_LABEL[t.typ] ?? t.typ}
                   </Badge>
                   {t.ort && (
                     <span className="text-muted-foreground"> · {t.ort}</span>
