@@ -32,6 +32,8 @@ const ROLLE_OPTIONEN = [
   { value: "sekretaer", label: "Sekretär" },
 ];
 
+const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
+
 // Öffentliche, login-freie Selbsteintragung für Zeitnehmer/Sekretär (siehe
 // vereine.zeitnehmerSelbstanmeldungToken, vom Zeitnehmerwart aktivierbar) —
 // analog zur öffentlichen Turnier-Ansicht (/turnier/[token]), aber mit
@@ -81,7 +83,16 @@ export default async function ZeitnehmerEintragenPage({
             })
             .from(terminZuordnungen)
             .leftJoin(users, eq(terminZuordnungen.userId, users.id))
-            .where(inArray(terminZuordnungen.terminId, terminIds))
+            .where(
+              and(
+                inArray(terminZuordnungen.terminId, terminIds),
+                // Nur Zeitnehmer/Sekretär anzeigen — sonst würden z.B.
+                // Schiedsrichter-Zuordnungen desselben Termins hier
+                // mitgeladen und fälschlich als "Sekretär" gelabelt (das
+                // Label unten kennt nur diese beiden Rollen).
+                inArray(terminZuordnungen.funktionstraegerTyp, ZEITNEHMER_ROLLEN)
+              )
+            )
         : [];
 
       const relevanteTermine = relevante.map((t) => {
@@ -109,13 +120,8 @@ export default async function ZeitnehmerEintragenPage({
     }
   );
 
-  // Termine ohne Mannschafts-Bezug (z.B. Freundschaftsspiele ohne erkannte
-  // Mannschaft) bleiben auch bei aktivem Filter sichtbar — sonst könnten sie
-  // beim Filtern unsichtbar werden, obwohl sie durchaus relevant sein können.
   const gefilterteTermine = mannschaftFilter
-    ? relevanteTermine.filter(
-        (t) => !t.mannschaftId || t.mannschaftId === mannschaftFilter
-      )
+    ? relevanteTermine.filter((t) => t.mannschaftId === mannschaftFilter)
     : relevanteTermine;
 
   return (
