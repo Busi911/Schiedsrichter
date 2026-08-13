@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { adminDb } from "@/db/admin";
@@ -98,6 +99,7 @@ export default async function OeffentlicheTurnierseite({
   }
 
   function spielTabelle(items: typeof spiele, mitOrtSpalte: boolean) {
+    const spalten = mitOrtSpalte ? 3 : 2;
     return (
       <Table>
         <TableHeader>
@@ -105,50 +107,62 @@ export default async function OeffentlicheTurnierseite({
             <TableHead>Zeit</TableHead>
             {mitOrtSpalte && <TableHead>Ort</TableHead>}
             <TableHead>Begegnung</TableHead>
-            <TableHead>Besetzung</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.map((s) => {
             const besetzung = alleZuordnungen.filter((z) => z.terminId === s.id);
             return (
-              <TableRow key={s.id}>
-                <TableCell className="font-medium">{formatZeit(s.start)}</TableCell>
-                {mitOrtSpalte && (
-                  <TableCell className="text-muted-foreground">
-                    {s.ort ?? turnierOrt ?? "—"}
+              // Besetzung als eigene, volle Zeile statt eigener Spalte: die
+              // Rollen-Badges können nicht innerhalb sich selbst umbrechen
+              // (whitespace-nowrap), in einer dritten Tabellenspalte hätten
+              // sie in den mehrspaltigen Turnier-Karten (bis zu 3 pro Zeile,
+              // also wenig Breite) die Tabelle zum horizontalen Scrollen
+              // gezwungen. Über die volle Kartenbreite können die Badges
+              // stattdessen per flex-wrap umbrechen.
+              <Fragment key={s.id}>
+                <TableRow className="border-b-0">
+                  <TableCell className="align-top font-medium">
+                    {formatZeit(s.start)}
                   </TableCell>
-                )}
-                <TableCell className="whitespace-normal">
-                  {s.beschreibung ?? "—"}
-                  {s.ergebnisHeim !== null && s.ergebnisAuswaerts !== null && (
-                    <span className="ml-2 font-medium">
-                      {s.ergebnisHeim}:{s.ergebnisAuswaerts}
-                    </span>
+                  {mitOrtSpalte && (
+                    <TableCell className="align-top text-muted-foreground">
+                      {s.ort ?? turnierOrt ?? "—"}
+                    </TableCell>
                   )}
-                </TableCell>
-                <TableCell className="whitespace-normal">
-                  {besetzung.length === 0 ? (
-                    // Badge statt reinem Fließtext, wie bei "Besetzung offen"
-                    // überall sonst in der App (z.B. Schiedsrichterwart-Seite).
-                    <Badge variant="outline" className="w-fit">
-                      Besetzung noch offen
-                    </Badge>
-                  ) : (
-                    <div className="flex flex-wrap gap-1">
-                      {besetzung.map((z) => (
-                        <Badge
-                          key={`${z.terminId}-${z.funktionstraegerTyp}-${z.email ?? z.externerName}`}
-                          variant="secondary"
-                        >
-                          {ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}:{" "}
-                          {z.name ?? z.externerName ?? z.email}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </TableCell>
-              </TableRow>
+                  <TableCell className="align-top whitespace-normal">
+                    {s.beschreibung ?? "—"}
+                    {s.ergebnisHeim !== null && s.ergebnisAuswaerts !== null && (
+                      <span className="ml-2 font-medium">
+                        {s.ergebnisHeim}:{s.ergebnisAuswaerts}
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell colSpan={spalten} className="pt-0 whitespace-normal">
+                    {besetzung.length === 0 ? (
+                      // Badge statt reinem Fließtext, wie bei "Besetzung offen"
+                      // überall sonst in der App (z.B. Schiedsrichterwart-Seite).
+                      <Badge variant="outline" className="w-fit">
+                        Besetzung noch offen
+                      </Badge>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {besetzung.map((z) => (
+                          <Badge
+                            key={`${z.terminId}-${z.funktionstraegerTyp}-${z.email ?? z.externerName}`}
+                            variant="secondary"
+                          >
+                            {ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}:{" "}
+                            {z.name ?? z.externerName ?? z.email}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              </Fragment>
             );
           })}
         </TableBody>
