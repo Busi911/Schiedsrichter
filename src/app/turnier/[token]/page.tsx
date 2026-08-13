@@ -87,9 +87,13 @@ export default async function OeffentlicheTurnierseite({
           )}
         </p>
         {besetzung.length === 0 ? (
-          <span className="text-xs text-muted-foreground">
+          // Badge statt reinem Fließtext, wie bei "Besetzung offen" überall
+          // sonst in der App (z.B. Schiedsrichterwart-Seite) — als
+          // unauffälliger text-xs-Satz ging der offene Status zu leicht
+          // unter, gerade neben den Badges für bereits zugeordnete Personen.
+          <Badge variant="outline" className="w-fit">
             Besetzung noch offen
-          </span>
+          </Badge>
         ) : (
           <div className="flex flex-wrap gap-1">
             {besetzung.map((z) => (
