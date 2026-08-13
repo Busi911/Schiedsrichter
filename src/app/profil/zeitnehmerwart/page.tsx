@@ -12,9 +12,14 @@ import { holeTermineMitZuordnungen } from "@/lib/zuordnung";
 import { berechneBesetzung } from "@/lib/besetzung";
 import { bedarfFuer } from "@/lib/dienste";
 import {
+  zeitnehmerOhneLoginZuordnen,
+  zeitnehmerSelbstanmeldungDeaktivieren,
+  zeitnehmerSelbstanmeldungLinkErneuern,
+  zeitnehmerVorschlagBestaetigen,
   zeitnehmerZuordnen,
   zeitnehmerZuordnungEntfernen,
 } from "./actions";
+import { appUrl } from "@/lib/app-url";
 import {
   Card,
   CardContent,
@@ -33,6 +38,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
 import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
@@ -55,6 +61,11 @@ const TYP_LABEL: Record<string, string> = {
 };
 
 const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
+
+const ROLLE_OPTIONEN = [
+  { value: "zeitnehmer", label: "Zeitnehmer" },
+  { value: "sekretaer", label: "Sekretär" },
+];
 
 // Deckungsgleich mit ZEITNEHMER_RELEVANTE_TYPEN in dashboard.ts — anders als
 // beim Schiedsrichter braucht hier auch spiel_ics (persönlicher ICS-Einsatz)
@@ -139,6 +150,17 @@ export default async function ZeitnehmerwartPage() {
     (t) => !t.besetzung.zeitnehmerSekretaerErfuellt
   ).length;
 
+  // Über die öffentliche Selbsteintragung erfasste Personen, die noch
+  // keiner echten Person zugeordnet wurden (siehe
+  // zeitnehmerSelbstEintragenOeffentlich in
+  // zeitnehmer-eintragen/[token]/actions.ts) — zur Bestätigung/Korrektur
+  // durch den Wart (siehe zeitnehmerVorschlagBestaetigen).
+  const unbestaetigteSelbsteintragungen = termineMitZuordnungen.flatMap((t) =>
+    t.zuordnungen
+      .filter((z) => z.quelle === "selbst_eingetragen_oeffentlich" && !z.userId)
+      .map((z) => ({ ...z, termin: t }))
+  );
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
       <div>
@@ -155,6 +177,111 @@ export default async function ZeitnehmerwartPage() {
           (Umbesetzung).
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Öffentliche Selbsteintragung</CardTitle>
+          <CardDescription>
+            Login-freier Link, über den sich Personen (z.B. Eltern eines
+            Kaders) selbst als Zeitnehmer/Sekretär eintragen können —
+            gefiltert nach Mannschaft. Namen werden dabei automatisch mit
+            bereits angelegten Funktionsträgern abgeglichen; bei Unsicherheit
+            landet der Eintrag unten zur Bestätigung.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {verein?.zeitnehmerSelbstanmeldungToken ? (
+            <p className="break-all rounded-lg border bg-muted/40 p-3 text-sm">
+              {appUrl()}/zeitnehmer-eintragen/
+              {verein.zeitnehmerSelbstanmeldungToken}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Noch nicht aktiviert.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <form action={zeitnehmerSelbstanmeldungLinkErneuern}>
+              <Button type="submit" variant="outline" size="sm">
+                {verein?.zeitnehmerSelbstanmeldungToken
+                  ? "Link neu generieren (alter Link wird ungültig)"
+                  : "Aktivieren"}
+              </Button>
+            </form>
+            {verein?.zeitnehmerSelbstanmeldungToken && (
+              <form action={zeitnehmerSelbstanmeldungDeaktivieren}>
+                <ConfirmSubmitButton
+                  confirmText="Selbsteintragung deaktivieren? Der bisherige Link funktioniert danach nicht mehr."
+                  variant="ghost"
+                  size="sm"
+                >
+                  Deaktivieren
+                </ConfirmSubmitButton>
+              </form>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {unbestaetigteSelbsteintragungen.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Selbsteintragungen zum Bestätigen (
+              {unbestaetigteSelbsteintragungen.length})
+            </CardTitle>
+            <CardDescription>
+              Über die öffentliche Selbsteintragung erfasst, noch keiner
+              angelegten Person zugeordnet. Vorausgewählt ist der beste
+              automatische Namens-Vorschlag, falls vorhanden — bei Bedarf
+              vor dem Bestätigen korrigieren.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {unbestaetigteSelbsteintragungen.map((z) => {
+              const kandidaten = zeitnehmerListe
+                .filter((s) => s.rollen.includes(z.funktionstraegerTyp as (typeof ZEITNEHMER_ROLLEN)[number]))
+                .map((s) => ({ value: s.userId, label: s.name ?? s.email }));
+              return (
+                <div key={z.id} className="rounded-lg border p-3 text-sm">
+                  <p>
+                    <span className="font-medium">{z.externerName}</span> als{" "}
+                    {z.funktionstraegerTyp === "zeitnehmer"
+                      ? "Zeitnehmer"
+                      : "Sekretär"}{" "}
+                    · {formatDateTime(z.termin.start)}
+                    {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
+                  </p>
+                  {kandidaten.length === 0 ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Keine passende Person im Verein angelegt.
+                    </p>
+                  ) : (
+                    <form
+                      action={zeitnehmerVorschlagBestaetigen}
+                      className="mt-2 flex flex-wrap items-center gap-2"
+                    >
+                      <input type="hidden" name="zuordnungId" value={z.id} />
+                      <div className="min-w-56">
+                        <LabeledSelect
+                          name="userId"
+                          placeholder="Person wählen…"
+                          defaultValue={z.matchVorschlagUserId ?? undefined}
+                          options={kandidaten}
+                          required
+                        />
+                      </div>
+                      <Button type="submit" size="sm">
+                        Bestätigen
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -341,58 +468,104 @@ export default async function ZeitnehmerwartPage() {
                       ))}
                     </ul>
                   )}
-                  {!t.besetzung.zeitnehmerSekretaerVoll &&
-                    (personOptionen.length === 0 ? (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Keine Person zu diesem Zeitpunkt verfügbar.
-                      </p>
-                    ) : bestehende.length === 0 ? (
-                      <form
-                        action={zeitnehmerZuordnen}
-                        className="mt-2 flex flex-wrap items-center gap-2"
-                      >
-                        <input type="hidden" name="terminId" value={t.id} />
-                        <div className="min-w-56">
-                          <LabeledSelect
-                            name="personRolle"
-                            placeholder="Person wählen…"
-                            options={personOptionen}
-                            required
-                          />
-                        </div>
-                        <Button type="submit" size="sm">
-                          Zuordnen
-                        </Button>
-                      </form>
-                    ) : (
-                      <details className="group mt-2">
+                  {!t.besetzung.zeitnehmerSekretaerVoll && (
+                    <div className="mt-2 flex flex-col gap-2">
+                      {personOptionen.length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Keine Person zu diesem Zeitpunkt verfügbar.
+                        </p>
+                      )}
+                      {personOptionen.length > 0 &&
+                        (bestehende.length === 0 ? (
+                          <form
+                            action={zeitnehmerZuordnen}
+                            className="flex flex-wrap items-center gap-2"
+                          >
+                            <input type="hidden" name="terminId" value={t.id} />
+                            <div className="min-w-56">
+                              <LabeledSelect
+                                name="personRolle"
+                                placeholder="Person wählen…"
+                                options={personOptionen}
+                                required
+                              />
+                            </div>
+                            <Button type="submit" size="sm">
+                              Zuordnen
+                            </Button>
+                          </form>
+                        ) : (
+                          <details className="group">
+                            <summary className={DISCLOSURE_KLASSE}>
+                              <span className="group-open:hidden">
+                                Weitere Person hinzufügen
+                              </span>
+                              <span className="hidden group-open:inline">
+                                Schließen
+                              </span>
+                            </summary>
+                            <form
+                              action={zeitnehmerZuordnen}
+                              className="mt-2 flex flex-wrap items-center gap-2"
+                            >
+                              <input
+                                type="hidden"
+                                name="terminId"
+                                value={t.id}
+                              />
+                              <div className="min-w-56">
+                                <LabeledSelect
+                                  name="personRolle"
+                                  placeholder="Person wählen…"
+                                  options={personOptionen}
+                                  required
+                                />
+                              </div>
+                              <Button type="submit" size="sm">
+                                Weitere zuordnen
+                              </Button>
+                            </form>
+                          </details>
+                        ))}
+                      {/* Ohne Login immer anbieten, unabhängig von
+                          personOptionen — siehe Pendant in
+                          schiedsrichterwart/page.tsx. Standardmäßig
+                          eingeklappt: nur ein Fallback. */}
+                      <details className="group">
                         <summary className={DISCLOSURE_KLASSE}>
                           <span className="group-open:hidden">
-                            Weitere Person hinzufügen
+                            Ohne Login zuordnen (Fallback)
                           </span>
                           <span className="hidden group-open:inline">
                             Schließen
                           </span>
                         </summary>
                         <form
-                          action={zeitnehmerZuordnen}
+                          action={zeitnehmerOhneLoginZuordnen}
                           className="mt-2 flex flex-wrap items-center gap-2"
                         >
                           <input type="hidden" name="terminId" value={t.id} />
-                          <div className="min-w-56">
+                          <Input
+                            name="name"
+                            placeholder="Name ohne Login (z.B. Gast-Zeitnehmer)"
+                            required
+                            className="h-8 min-w-56 flex-1"
+                          />
+                          <div className="w-36">
                             <LabeledSelect
-                              name="personRolle"
-                              placeholder="Person wählen…"
-                              options={personOptionen}
+                              name="rolle"
+                              placeholder="Rolle…"
+                              options={ROLLE_OPTIONEN}
                               required
                             />
                           </div>
-                          <Button type="submit" size="sm">
-                            Weitere zuordnen
+                          <Button type="submit" size="xs" variant="ghost">
+                            Zuordnen
                           </Button>
                         </form>
                       </details>
-                    ))}
+                    </div>
+                  )}
                 </div>
               );
             })

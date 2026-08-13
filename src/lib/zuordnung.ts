@@ -113,6 +113,7 @@ export async function holeTermineMitZuordnungen(vereinId: string) {
             name: users.name,
             email: users.email,
             externerName: terminZuordnungen.externerName,
+            matchVorschlagUserId: terminZuordnungen.matchVorschlagUserId,
           })
           .from(terminZuordnungen)
           .leftJoin(users, eq(terminZuordnungen.userId, users.id))

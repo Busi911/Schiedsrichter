@@ -65,6 +65,11 @@ export const terminQuelleEnum = pgEnum("termin_quelle", [
 export const zuordnungQuelleEnum = pgEnum("zuordnung_quelle", [
   "zugeordnet_durch_admin",
   "selbst_angemeldet",
+  // Über die öffentliche, login-freie Selbsteintragung (siehe
+  // vereine.zeitnehmerSelbstanmeldungToken und
+  // /zeitnehmer-eintragen/[token]) — anders als "selbst_angemeldet" ohne
+  // Session, daher eigener Wert für Nachvollziehbarkeit.
+  "selbst_eingetragen_oeffentlich",
 ]);
 
 export const syncStatusEnum = pgEnum("sync_status", [
@@ -142,6 +147,13 @@ export const vereine = pgTable("verein", {
   nuligaAutoImportAktiviert: boolean("nuliga_auto_import_aktiviert")
     .notNull()
     .default(false),
+  // Öffentlicher, login-freier Link für Zeitnehmer/Sekretär-
+  // Selbsteintragung (siehe /zeitnehmer-eintragen/[token]) — vom
+  // Zeitnehmerwart aktivierbar. null = (noch) nicht aktiviert. Analog zu
+  // termine.freigabeToken: Kenntnis des Links ist die Berechtigung.
+  zeitnehmerSelbstanmeldungToken: text(
+    "zeitnehmer_selbstanmeldung_token"
+  ).unique(),
 });
 
 export const mannschaften = pgTable("mannschaft", {
@@ -365,6 +377,16 @@ export const terminZuordnungen = pgTable("termin_zuordnung", {
   // gibt, an die versendet werden könnte.
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
   externerName: text("externer_name"),
+  // Nur gesetzt, während externerName (noch) nicht vom Zeitnehmerwart
+  // bestätigt wurde (siehe zeitnehmerVorschlagBestaetigen in
+  // profil/zeitnehmerwart/actions.ts): bester automatischer Namens-Vorschlag
+  // aus der öffentlichen Selbsteintragung (siehe findeNamensVorschlag in
+  // lib/namens-abgleich.ts), zur Bestätigung/Korrektur durch den Wart. Kein
+  // hartes Matching-Ergebnis, nur ein Vorschlag.
+  matchVorschlagUserId: text("match_vorschlag_user_id").references(
+    () => users.id,
+    { onDelete: "set null" }
+  ),
   funktionstraegerTyp: funktionstraegerTypEnum("funktionstraeger_typ").notNull(),
   quelle: zuordnungQuelleEnum("quelle").notNull(),
 });

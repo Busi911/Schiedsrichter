@@ -18,7 +18,11 @@ export default auth((req) => {
     pathname.startsWith("/api/cron/") ||
     // Öffentliche, login-freie Lese-Ansicht (Kenntnis des Tokens ist die
     // Berechtigung) — siehe src/app/turnier/[token]/page.tsx.
-    pathname.startsWith("/turnier/");
+    pathname.startsWith("/turnier/") ||
+    // Öffentliche, login-freie Selbsteintragung für Zeitnehmer/Sekretär
+    // (Kenntnis des Tokens ist die Berechtigung) — siehe
+    // src/app/zeitnehmer-eintragen/[token]/page.tsx.
+    pathname.startsWith("/zeitnehmer-eintragen/");
 
   if (!isLoggedIn && !isPublicRoute) {
     return Response.redirect(new URL("/login", req.nextUrl));

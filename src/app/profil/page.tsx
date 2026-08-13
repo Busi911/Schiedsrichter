@@ -225,6 +225,36 @@ export default async function ProfilPage() {
                 Zum Admin-Bereich
               </Button>
             )}
+            {istSchiedsrichterwart && (
+              <Button
+                variant="outline"
+                size="sm"
+                render={<Link href="/profil/schiedsrichterwart" />}
+                nativeButton={false}
+              >
+                Schiedsrichterwart
+              </Button>
+            )}
+            {istZeitnehmerwart && (
+              <Button
+                variant="outline"
+                size="sm"
+                render={<Link href="/profil/zeitnehmerwart" />}
+                nativeButton={false}
+              >
+                Zeitnehmerwart
+              </Button>
+            )}
+            {istOrdnerwart && (
+              <Button
+                variant="outline"
+                size="sm"
+                render={<Link href="/profil/ordnerwart" />}
+                nativeButton={false}
+              >
+                Ordnerwart
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -344,66 +374,6 @@ export default async function ProfilPage() {
                   {t.ort ? ` · ${t.ort}` : ""}
                 </Link>
               ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {istSchiedsrichterwart && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Schiedsrichterwart</CardTitle>
-              <CardDescription>
-                Übersicht über alle Schiedsrichter im Verein, ihre Einsätze
-                und offene Termine.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link
-                href="/profil/schiedsrichterwart"
-                className="rounded-lg border p-3 text-sm underline"
-              >
-                Zur Schiedsrichterwart-Übersicht
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-
-        {istZeitnehmerwart && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Zeitnehmer-/Sekretärwart</CardTitle>
-              <CardDescription>
-                Übersicht über alle Zeitnehmer/Sekretäre im Verein, ihre
-                Einsätze und offene Termine.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link
-                href="/profil/zeitnehmerwart"
-                className="rounded-lg border p-3 text-sm underline"
-              >
-                Zur Zeitnehmerwart-Übersicht
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-
-        {istOrdnerwart && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Ordner-/Kioskdienstwart</CardTitle>
-              <CardDescription>
-                Übersicht über alle Ordner/Kioskdienst-Helfer im Verein,
-                ihre Einsätze und offene Termine.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link
-                href="/profil/ordnerwart"
-                className="rounded-lg border p-3 text-sm underline"
-              >
-                Zur Ordnerwart-Übersicht
-              </Link>
             </CardContent>
           </Card>
         )}
