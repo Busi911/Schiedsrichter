@@ -65,6 +65,8 @@ export type KalenderEintrag = {
   // inline angehängt, damit lange Gespann-Kürzel nicht mit dem Namen
   // zusammenlaufen.
   besetzungsDetails?: { id: string; label: string; hinweis?: string }[];
+  // "Herren 1 (MJC)" o.ä. — siehe formatMannschaft in lib/dashboard.ts.
+  mannschaftLabel?: string | null;
   bearbeitenHref?: string;
   // "24:20"-Format, nur gesetzt wenn beide Werte erfasst sind (siehe
   // ergebnisHeim/ergebnisAuswaerts in db/schema.ts).
@@ -397,6 +399,7 @@ export function MonatsKalender({
                                 {e.typLabel}
                                 {e.zeit ? ` · ${e.zeit} Uhr` : ""}
                                 {e.ort ? ` · ${e.ort}` : ""}
+                                {e.mannschaftLabel ? ` · ${e.mannschaftLabel}` : ""}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="flex flex-col gap-2 text-sm">

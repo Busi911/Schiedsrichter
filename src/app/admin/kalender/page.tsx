@@ -10,6 +10,7 @@ import {
   vereine,
 } from "@/db/schema";
 import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
+import { formatMannschaft } from "@/lib/dashboard";
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { bedarfFuer } from "@/lib/dienste";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
@@ -80,12 +81,16 @@ export default async function AdminKalenderPage({
           ergebnisAuswaerts: termine.ergebnisAuswaerts,
           nuligaSchiedsrichterKuerzel: termine.nuligaSchiedsrichterKuerzel,
           mannschaftId: termine.mannschaftId,
+          mannschaftName: mannschaften.name,
+          mannschaftAltersklasse: mannschaften.altersklasse,
+          kategorie: termine.kategorie,
           turnierVerantwortlicherId: termine.turnierVerantwortlicherId,
           schiedsrichterName: users.name,
           schiedsrichterEmail: users.email,
         })
         .from(termine)
         .leftJoin(users, eq(termine.icsSchiedsrichterId, users.id))
+        .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
         .where(
           and(
             eq(termine.vereinId, vereinId),
@@ -248,6 +253,7 @@ export default async function AdminKalenderPage({
       zuordenbar,
       ort: t.ort,
       besetzungsDetails,
+      mannschaftLabel: formatMannschaft(t),
       ergebnis: formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts),
       bearbeitenHref: BEARBEITBARE_TYPEN.includes(t.typ)
         ? `/admin/termine/${t.typ === "turnier_spiel" ? t.turnierId : t.id}`

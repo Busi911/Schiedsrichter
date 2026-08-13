@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
+  mannschaften,
   termine,
   terminZuordnungen,
   users,
@@ -12,6 +13,7 @@ import {
 import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { bedarfFuer } from "@/lib/dienste";
+import { formatMannschaft } from "@/lib/dashboard";
 import { MonatsKalender, type KalenderEintrag } from "@/components/monats-kalender";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatZeit } from "@/lib/format";
@@ -83,8 +85,12 @@ export default async function ProfilKalenderPage({
         hatIcsSchiedsrichter: termine.icsSchiedsrichterId,
         ergebnisHeim: termine.ergebnisHeim,
         ergebnisAuswaerts: termine.ergebnisAuswaerts,
+        mannschaftName: mannschaften.name,
+        mannschaftAltersklasse: mannschaften.altersklasse,
+        kategorie: termine.kategorie,
       })
       .from(termine)
+      .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
       .where(
         and(
           eq(termine.vereinId, vereinId),
@@ -157,6 +163,7 @@ export default async function ProfilKalenderPage({
       besetzung,
       ort: t.ort,
       besetzungsDetails,
+      mannschaftLabel: formatMannschaft(t),
       ergebnis: formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts),
     });
     eintraegeProTag.set(key, liste);

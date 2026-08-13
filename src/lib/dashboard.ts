@@ -29,6 +29,22 @@ function terminMitMannschaft() {
   };
 }
 
+// Gemeinsame Anzeige-Logik für Mannschaft+Altersklasse, z.B. "Herren 1 (MJC)"
+// — Fallback auf termine.kategorie (nuLiga-Rohwert), falls kein mannschaftId-
+// Match möglich war (siehe findeMannschaft in rundenspiel-import.ts).
+export function formatMannschaft(t: {
+  mannschaftName?: string | null;
+  mannschaftAltersklasse?: string | null;
+  kategorie?: string | null;
+}): string | null {
+  if (t.mannschaftName) {
+    return t.mannschaftAltersklasse
+      ? `${t.mannschaftName} (${t.mannschaftAltersklasse})`
+      : t.mannschaftName;
+  }
+  return t.kategorie ?? null;
+}
+
 export async function holeNaechsteTermine(vereinId: string, limit = 5) {
   return withTenant(vereinId, (tx) =>
     tx
@@ -70,6 +86,7 @@ export type OffenePosten = {
   start: Date;
   typ: string;
   ort: string | null;
+  mannschaftLabel: string | null;
   luecken: {
     rolle: "ordner" | "kioskdienst" | "zeitnehmer";
     vorhanden: number;
@@ -85,6 +102,9 @@ type AnstehenderTermin = {
   ort: string | null;
   pflichtspiel?: boolean | null;
   freundschaftsTyp?: "freundschaftsspiel" | "turnier" | null;
+  mannschaftName?: string | null;
+  mannschaftAltersklasse?: string | null;
+  kategorie?: string | null;
 };
 type Zuordnung = { terminId: string; funktionstraegerTyp: string };
 
@@ -146,6 +166,7 @@ export function berechneOffenePosten(
         start: termin.start,
         typ: termin.typ,
         ort: termin.ort,
+        mannschaftLabel: formatMannschaft(termin),
         luecken,
       });
     }
@@ -161,20 +182,34 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
     });
     if (!verein) return [];
 
-    const anstehende = await tx.query.termine.findMany({
-      where: and(
-        eq(termine.vereinId, vereinId),
-        gte(termine.start, new Date()),
-        inArray(termine.typ, [
-          "spiel_ics",
-          "testspiel",
-          "turnier",
-          "turnier_spiel",
-          "rundenspiel",
-        ])
-      ),
-      orderBy: (t, { asc }) => [asc(t.start)],
-    });
+    const anstehende = await tx
+      .select({
+        id: termine.id,
+        start: termine.start,
+        typ: termine.typ,
+        ort: termine.ort,
+        pflichtspiel: termine.pflichtspiel,
+        freundschaftsTyp: termine.freundschaftsTyp,
+        mannschaftName: mannschaften.name,
+        mannschaftAltersklasse: mannschaften.altersklasse,
+        kategorie: termine.kategorie,
+      })
+      .from(termine)
+      .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
+      .where(
+        and(
+          eq(termine.vereinId, vereinId),
+          gte(termine.start, new Date()),
+          inArray(termine.typ, [
+            "spiel_ics",
+            "testspiel",
+            "turnier",
+            "turnier_spiel",
+            "rundenspiel",
+          ])
+        )
+      )
+      .orderBy(asc(termine.start));
     if (anstehende.length === 0) return [];
 
     const terminIds = anstehende.map((t) => t.id);
