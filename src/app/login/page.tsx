@@ -74,16 +74,23 @@ export default async function LoginPage({
               <PasswordInput
                 id="password"
                 name="password"
-                required
                 autoComplete="current-password"
               />
             </div>
             <SubmitButton className="w-full" pendingText="Wird geprüft…">
               Einloggen
             </SubmitButton>
+            {/* Kein formNoValidate hier: das E-Mail-Feld oben bleibt required
+                und soll das auch für diesen Button bleiben (sonst lässt sich
+                mit leerem E-Mail-Feld klicken, ohne dass sichtbar etwas
+                passiert — die Server-Funktion tut dann still nichts). Das
+                Passwort-Feld ist bewusst NICHT required, sonst würde die
+                Browser-Validierung auch diesen Button blockieren, obwohl er
+                gar kein Passwort braucht. Ein leeres Passwort führt beim
+                normalen Login serverseitig ohnehin nur zu "falsches
+                Passwort" (siehe authorize() in auth.ts), kein Absturz. */}
             <button
               type="submit"
-              formNoValidate
               formAction={async (formData) => {
                 "use server";
                 const email = formData.get("email");
