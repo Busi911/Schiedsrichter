@@ -12,6 +12,8 @@ import {
 } from "@/db/schema";
 import { signOut } from "@/auth";
 import { bedarfFuer } from "@/lib/dienste";
+import { monatsBereich, parseMonatParam } from "@/lib/kalender";
+import { holeEigeneKalenderEintraege } from "@/lib/eigener-kalender";
 import {
   selbstAbmelden,
   selbstAnmelden,
@@ -31,6 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
+import { MonatsKalender } from "@/components/monats-kalender";
 import { PushAnmelden } from "@/components/push-anmelden";
 import { saisonLabel, saisonSortKey } from "@/lib/saison";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
@@ -49,122 +52,20 @@ const TYP_LABEL: Record<string, string> = {
 
 const SELBST_ANMELDBARE_TYPEN = ["ordner", "kioskdienst"] as const;
 
-export default async function ProfilPage() {
+export default async function ProfilPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ monat?: string }>;
+}) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
   const userId = session.user.id;
+  const { monat } = await searchParams;
+  const { jahr, monatNull } = parseMonatParam(monat);
+  const { von, bis } = monatsBereich(jahr, monatNull);
 
-  const {
-    eigeneStammdaten,
-    rollen,
-    profil,
-    eigeneTermine,
-    verfuegbareTermine,
-    zuordnungenFuerVerfuegbare,
-    vereinEinstellungen,
-    verein,
-    meineTurniere,
-  } = await withTenant(vereinId, async (tx) => {
-    const verein = await tx.query.vereine.findFirst({
-      where: eq(vereine.id, vereinId),
-    });
-    const eigeneStammdaten = await tx.query.users.findFirst({
-      where: eq(users.id, userId),
-      columns: { name: true, email: true, telefonnummer: true },
-    });
-    const rollen = await tx.query.funktionstraegerRollen.findMany({
-      where: eq(funktionstraegerRollen.userId, userId),
-    });
-    const profil = await tx.query.schiedsrichterProfile.findFirst({
-      where: eq(schiedsrichterProfile.userId, userId),
-    });
-
-    // "Meine Termine" gilt für alle Funktionsträger-Rollen, nicht nur
-    // Schiedsrichter: eigene termin_zuordnung-Einträge (Zeitnehmer/
-    // Sekretär/Ordner/Kioskdienst) sowie — für Trainer — alle Termine der
-    // eigenen Mannschaft, zusätzlich zu den ICS-Feed-Einsätzen der
-    // Schiedsrichter.
-    const mannschaftIds = rollen
-      .filter((r) => r.typ === "trainer" && r.mannschaftId)
-      .map((r) => r.mannschaftId!);
-    const eigeneZuordnungen = await tx.query.terminZuordnungen.findMany({
-      where: eq(terminZuordnungen.userId, userId),
-    });
-    const zugeordneteTerminIds = eigeneZuordnungen.map((z) => z.terminId);
-
-    const terminBedingungen = [eq(termine.icsSchiedsrichterId, userId)];
-    if (zugeordneteTerminIds.length) {
-      terminBedingungen.push(inArray(termine.id, zugeordneteTerminIds));
-    }
-    if (mannschaftIds.length) {
-      terminBedingungen.push(inArray(termine.mannschaftId, mannschaftIds));
-    }
-
-    const eigeneTermineRoh = await tx.query.termine.findMany({
-      where: and(eq(termine.vereinId, vereinId), or(...terminBedingungen)),
-      orderBy: (t, { asc }) => [asc(t.start)],
-    });
-    const eigeneTermine = eigeneTermineRoh.map((t) => {
-      const meineRollen = new Set<string>();
-      if (t.icsSchiedsrichterId === userId) meineRollen.add("schiedsrichter");
-      for (const z of eigeneZuordnungen) {
-        if (z.terminId === t.id) meineRollen.add(z.funktionstraegerTyp);
-      }
-      if (t.mannschaftId && mannschaftIds.includes(t.mannschaftId)) {
-        meineRollen.add("trainer");
-      }
-      return { ...t, meineRollen: [...meineRollen] };
-    });
-
-    const eigeneTypen = rollen
-      .filter((r) => r.aktiv)
-      .map((r) => r.typ)
-      .filter((t): t is (typeof SELBST_ANMELDBARE_TYPEN)[number] =>
-        (SELBST_ANMELDBARE_TYPEN as readonly string[]).includes(t)
-      );
-
-    // Dienste gelten bewusst nur für testspiel/turnier/rundenspiel, nicht
-    // für spiel_ics (persönliche Einsätze des Schiedsrichters, oft bei
-    // fremden Vereinen).
-    const verfuegbareTermine = eigeneTypen.length
-      ? await tx.query.termine.findMany({
-          where: and(
-            eq(termine.vereinId, vereinId),
-            gte(termine.start, new Date()),
-            inArray(termine.typ, ["testspiel", "turnier", "rundenspiel"])
-          ),
-          orderBy: (t, { asc }) => [asc(t.start)],
-        })
-      : [];
-
-    const zuordnungenFuerVerfuegbare = verfuegbareTermine.length
-      ? await tx.query.terminZuordnungen.findMany({
-          where: inArray(
-            terminZuordnungen.terminId,
-            verfuegbareTermine.map((t) => t.id)
-          ),
-        })
-      : [];
-
-    const vereinEinstellungen = eigeneTypen.length
-      ? await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
-      : undefined;
-
-    // Turniere, für die dieser Nutzer als Turnierverantwortlicher benannt
-    // wurde (siehe turnierVerantwortlicherId in db/schema.ts) — bewusst
-    // unabhängig von den obigen Funktionsträger-Rollen, da das eine
-    // pro-Turnier vom Admin vergebene Zusatzberechtigung ist, keine feste
-    // Rolle.
-    const meineTurniere = await tx.query.termine.findMany({
-      where: and(
-        eq(termine.vereinId, vereinId),
-        eq(termine.typ, "turnier"),
-        eq(termine.turnierVerantwortlicherId, userId)
-      ),
-      orderBy: (t, { asc }) => [asc(t.start)],
-    });
-
-    return {
+  const [
+    {
       eigeneStammdaten,
       rollen,
       profil,
@@ -174,8 +75,123 @@ export default async function ProfilPage() {
       vereinEinstellungen,
       verein,
       meineTurniere,
-    };
-  });
+    },
+    eintraegeProTag,
+  ] = await Promise.all([
+    withTenant(vereinId, async (tx) => {
+      const verein = await tx.query.vereine.findFirst({
+        where: eq(vereine.id, vereinId),
+      });
+      const eigeneStammdaten = await tx.query.users.findFirst({
+        where: eq(users.id, userId),
+        columns: { name: true, email: true, telefonnummer: true },
+      });
+      const rollen = await tx.query.funktionstraegerRollen.findMany({
+        where: eq(funktionstraegerRollen.userId, userId),
+      });
+      const profil = await tx.query.schiedsrichterProfile.findFirst({
+        where: eq(schiedsrichterProfile.userId, userId),
+      });
+
+      // "Meine Termine" gilt für alle Funktionsträger-Rollen, nicht nur
+      // Schiedsrichter: eigene termin_zuordnung-Einträge (Zeitnehmer/
+      // Sekretär/Ordner/Kioskdienst) sowie — für Trainer — alle Termine der
+      // eigenen Mannschaft, zusätzlich zu den ICS-Feed-Einsätzen der
+      // Schiedsrichter.
+      const mannschaftIds = rollen
+        .filter((r) => r.typ === "trainer" && r.mannschaftId)
+        .map((r) => r.mannschaftId!);
+      const eigeneZuordnungen = await tx.query.terminZuordnungen.findMany({
+        where: eq(terminZuordnungen.userId, userId),
+      });
+      const zugeordneteTerminIds = eigeneZuordnungen.map((z) => z.terminId);
+
+      const terminBedingungen = [eq(termine.icsSchiedsrichterId, userId)];
+      if (zugeordneteTerminIds.length) {
+        terminBedingungen.push(inArray(termine.id, zugeordneteTerminIds));
+      }
+      if (mannschaftIds.length) {
+        terminBedingungen.push(inArray(termine.mannschaftId, mannschaftIds));
+      }
+
+      const eigeneTermineRoh = await tx.query.termine.findMany({
+        where: and(eq(termine.vereinId, vereinId), or(...terminBedingungen)),
+        orderBy: (t, { asc }) => [asc(t.start)],
+      });
+      const eigeneTermine = eigeneTermineRoh.map((t) => {
+        const meineRollen = new Set<string>();
+        if (t.icsSchiedsrichterId === userId) meineRollen.add("schiedsrichter");
+        for (const z of eigeneZuordnungen) {
+          if (z.terminId === t.id) meineRollen.add(z.funktionstraegerTyp);
+        }
+        if (t.mannschaftId && mannschaftIds.includes(t.mannschaftId)) {
+          meineRollen.add("trainer");
+        }
+        return { ...t, meineRollen: [...meineRollen] };
+      });
+
+      const eigeneTypen = rollen
+        .filter((r) => r.aktiv)
+        .map((r) => r.typ)
+        .filter((t): t is (typeof SELBST_ANMELDBARE_TYPEN)[number] =>
+          (SELBST_ANMELDBARE_TYPEN as readonly string[]).includes(t)
+        );
+
+      // Dienste gelten bewusst nur für testspiel/turnier/rundenspiel, nicht
+      // für spiel_ics (persönliche Einsätze des Schiedsrichters, oft bei
+      // fremden Vereinen).
+      const verfuegbareTermine = eigeneTypen.length
+        ? await tx.query.termine.findMany({
+            where: and(
+              eq(termine.vereinId, vereinId),
+              gte(termine.start, new Date()),
+              inArray(termine.typ, ["testspiel", "turnier", "rundenspiel"])
+            ),
+            orderBy: (t, { asc }) => [asc(t.start)],
+          })
+        : [];
+
+      const zuordnungenFuerVerfuegbare = verfuegbareTermine.length
+        ? await tx.query.terminZuordnungen.findMany({
+            where: inArray(
+              terminZuordnungen.terminId,
+              verfuegbareTermine.map((t) => t.id)
+            ),
+          })
+        : [];
+
+      const vereinEinstellungen = eigeneTypen.length
+        ? await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
+        : undefined;
+
+      // Turniere, für die dieser Nutzer als Turnierverantwortlicher benannt
+      // wurde (siehe turnierVerantwortlicherId in db/schema.ts) — bewusst
+      // unabhängig von den obigen Funktionsträger-Rollen, da das eine
+      // pro-Turnier vom Admin vergebene Zusatzberechtigung ist, keine feste
+      // Rolle.
+      const meineTurniere = await tx.query.termine.findMany({
+        where: and(
+          eq(termine.vereinId, vereinId),
+          eq(termine.typ, "turnier"),
+          eq(termine.turnierVerantwortlicherId, userId)
+        ),
+        orderBy: (t, { asc }) => [asc(t.start)],
+      });
+
+      return {
+        eigeneStammdaten,
+        rollen,
+        profil,
+        eigeneTermine,
+        verfuegbareTermine,
+        zuordnungenFuerVerfuegbare,
+        vereinEinstellungen,
+        verein,
+        meineTurniere,
+      };
+    }),
+    holeEigeneKalenderEintraege(vereinId, userId, von, bis),
+  ]);
 
   const istSchiedsrichter = rollen.some(
     (r) => r.typ === "schiedsrichter" && r.aktiv
@@ -255,14 +271,6 @@ export default async function ProfilPage() {
                 Ordnerwart
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              render={<Link href="/profil/kalender" />}
-              nativeButton={false}
-            >
-              Kalender
-            </Button>
             <form
               action={async () => {
                 "use server";
@@ -278,6 +286,24 @@ export default async function ProfilPage() {
       </header>
 
       <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Mein Kalender</CardTitle>
+            <CardDescription>
+              Alle Termine, bei denen du als Schiedsrichter, Zeitnehmer,
+              Sekretär, Ordner, Kioskdienst oder Trainer beteiligt bist.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MonatsKalender
+              jahr={jahr}
+              monatNull={monatNull}
+              eintraegeProTag={eintraegeProTag}
+              basisPfad="/profil"
+            />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Meine Rollen</CardTitle>
