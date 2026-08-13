@@ -4,11 +4,26 @@ import { adminDb } from "@/db/admin";
 import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { gruppiereProTag } from "@/lib/kalender";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Logo } from "@/components/logo";
 import {
   formatDatumZeit as formatDateTime,
   formatWochentagDatum,
+  formatZeit,
 } from "@/lib/format";
 
 const ROLLE_LABEL: Record<string, string> = {
@@ -65,49 +80,79 @@ export default async function OeffentlicheTurnierseite({
   // untereinander) nur bei mehrtägigen Turnieren — bei eintägigen wäre eine
   // einzelne Spalte in einem breiten Grid nur unnötig gestreckt.
   const mehrtaegig = tage.length > 1;
+  // In eine eigene Konstante gezogen, damit TS die notFound()-Narrowing von
+  // `turnier` nicht beim Zugriff aus den unten definierten verschachtelten
+  // Funktionen verliert.
+  const turnierOrt = turnier.ort;
 
-  function spielZeile(s: (typeof spiele)[number]) {
-    const besetzung = alleZuordnungen.filter((z) => z.terminId === s.id);
+  // Ort steht an einem Turniertag praktisch immer für alle Spiele fest
+  // (eine Halle) — dann gehört er einmal in den Tages-Header statt sich in
+  // jeder Zeile zu wiederholen. Nur wenn an einem Tag tatsächlich
+  // unterschiedliche Orte vorkommen (mehrere Hallen/Felder gleichzeitig),
+  // braucht es die Ort-Spalte in der Tabelle zurück.
+  function gemeinsamerOrt(items: typeof spiele): string | null {
+    const orte = new Set(items.map((s) => s.ort).filter((o): o is string => !!o));
+    if (orte.size === 1) return [...orte][0];
+    if (orte.size === 0) return turnierOrt ?? null;
+    return null;
+  }
+
+  function spielTabelle(items: typeof spiele, mitOrtSpalte: boolean) {
     return (
-      <div key={s.id} className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
-        {/* Datum, Ort und Mannschaft/Beschreibung IMMER als drei feste
-            Zeilen — vorher teilten sich Datum und Ort eine Flex-Zeile mit
-            justify-between/flex-wrap, wodurch der Ort abhängig von der
-            zufälligen Textbreite mal daneben, mal in eine eigene Zeile
-            umbrach: optisch uneinheitlich zwischen sonst gleichartigen
-            Einträgen. */}
-        <span className="font-medium">{formatDateTime(s.start)}</span>
-        <span className="text-sm text-muted-foreground">{s.ort ?? "—"}</span>
-        <p className="text-sm">
-          {s.beschreibung ?? "—"}
-          {s.ergebnisHeim !== null && s.ergebnisAuswaerts !== null && (
-            <span className="ml-2 font-medium">
-              {s.ergebnisHeim}:{s.ergebnisAuswaerts}
-            </span>
-          )}
-        </p>
-        {besetzung.length === 0 ? (
-          // Badge statt reinem Fließtext, wie bei "Besetzung offen" überall
-          // sonst in der App (z.B. Schiedsrichterwart-Seite) — als
-          // unauffälliger text-xs-Satz ging der offene Status zu leicht
-          // unter, gerade neben den Badges für bereits zugeordnete Personen.
-          <Badge variant="outline" className="w-fit">
-            Besetzung noch offen
-          </Badge>
-        ) : (
-          <div className="flex flex-wrap gap-1">
-            {besetzung.map((z) => (
-              <Badge
-                key={`${z.terminId}-${z.funktionstraegerTyp}-${z.email ?? z.externerName}`}
-                variant="secondary"
-              >
-                {ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}:{" "}
-                {z.name ?? z.externerName ?? z.email}
-              </Badge>
-            ))}
-          </div>
-        )}
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Zeit</TableHead>
+            {mitOrtSpalte && <TableHead>Ort</TableHead>}
+            <TableHead>Begegnung</TableHead>
+            <TableHead>Besetzung</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((s) => {
+            const besetzung = alleZuordnungen.filter((z) => z.terminId === s.id);
+            return (
+              <TableRow key={s.id}>
+                <TableCell className="font-medium">{formatZeit(s.start)}</TableCell>
+                {mitOrtSpalte && (
+                  <TableCell className="text-muted-foreground">
+                    {s.ort ?? turnierOrt ?? "—"}
+                  </TableCell>
+                )}
+                <TableCell className="whitespace-normal">
+                  {s.beschreibung ?? "—"}
+                  {s.ergebnisHeim !== null && s.ergebnisAuswaerts !== null && (
+                    <span className="ml-2 font-medium">
+                      {s.ergebnisHeim}:{s.ergebnisAuswaerts}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell className="whitespace-normal">
+                  {besetzung.length === 0 ? (
+                    // Badge statt reinem Fließtext, wie bei "Besetzung offen"
+                    // überall sonst in der App (z.B. Schiedsrichterwart-Seite).
+                    <Badge variant="outline" className="w-fit">
+                      Besetzung noch offen
+                    </Badge>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {besetzung.map((z) => (
+                        <Badge
+                          key={`${z.terminId}-${z.funktionstraegerTyp}-${z.email ?? z.externerName}`}
+                          variant="secondary"
+                        >
+                          {ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}:{" "}
+                          {z.name ?? z.externerName ?? z.email}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     );
   }
 
@@ -165,30 +210,31 @@ export default async function OeffentlicheTurnierseite({
         </Card>
       ) : mehrtaegig ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {tage.map((tag) => (
-            <Card key={tag.tag} className="min-w-0">
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {formatWochentagDatum(tag.items[0].start)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col divide-y">
-                  {tag.items.map((s) => spielZeile(s))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {tage.map((tag) => {
+            const ort = gemeinsamerOrt(tag.items);
+            return (
+              <Card key={tag.tag} className="min-w-0">
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    {formatWochentagDatum(tag.items[0].start)}
+                  </CardTitle>
+                  {ort && <CardDescription>{ort}</CardDescription>}
+                </CardHeader>
+                <CardContent>{spielTabelle(tag.items, !ort)}</CardContent>
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <Card className="min-w-0">
           <CardHeader>
             <CardTitle className="text-base">Spielplan</CardTitle>
+            {gemeinsamerOrt(spiele) && (
+              <CardDescription>{gemeinsamerOrt(spiele)}</CardDescription>
+            )}
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col divide-y">
-              {spiele.map((s) => spielZeile(s))}
-            </div>
+            {spielTabelle(spiele, !gemeinsamerOrt(spiele))}
           </CardContent>
         </Card>
       )}

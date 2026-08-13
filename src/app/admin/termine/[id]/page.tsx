@@ -242,7 +242,11 @@ export default async function TerminBearbeitenPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TurnierSpielplan spiele={spiele} turnierId={termin.id} />
+              <TurnierSpielplan
+                spiele={spiele}
+                turnierId={termin.id}
+                turnierOrt={termin.ort}
+              />
             </CardContent>
           </Card>
         </>
