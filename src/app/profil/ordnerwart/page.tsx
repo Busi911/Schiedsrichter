@@ -27,10 +27,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { LabeledSelect } from "@/components/labeled-select";
+import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
+
+// Siehe DISCLOSURE_KLASSE in profil/schiedsrichterwart/page.tsx.
+const DISCLOSURE_KLASSE = cn(
+  buttonVariants({ variant: "outline", size: "xs" }),
+  "cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+);
 
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
@@ -262,7 +270,7 @@ export default async function OrdnerwartPage() {
                             <div className="flex items-center gap-3">
                               {personOptionen.length > 0 && (
                                 <details className="group">
-                                  <summary className="cursor-pointer list-none text-xs text-muted-foreground underline [&::-webkit-details-marker]:hidden">
+                                  <summary className={DISCLOSURE_KLASSE}>
                                     <span className="group-open:hidden">
                                       Ersetzen
                                     </span>
@@ -292,7 +300,7 @@ export default async function OrdnerwartPage() {
                                         required
                                       />
                                     </div>
-                                    <Button type="submit" size="sm" variant="outline">
+                                    <Button type="submit" size="xs" variant="outline">
                                       Ersetzen
                                     </Button>
                                   </form>
@@ -304,14 +312,13 @@ export default async function OrdnerwartPage() {
                                   name="zuordnungId"
                                   value={z.id}
                                 />
-                                <Button
-                                  type="submit"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-auto p-0 text-xs text-muted-foreground underline"
+                                <ConfirmSubmitButton
+                                  confirmText={`${z.name ?? z.externerName ?? z.email} entfernen?`}
+                                  variant="destructive"
+                                  size="xs"
                                 >
                                   Entfernen
-                                </Button>
+                                </ConfirmSubmitButton>
                               </form>
                             </div>
                           </div>
@@ -345,7 +352,7 @@ export default async function OrdnerwartPage() {
                     </form>
                   ) : (
                     <details className="group mt-2">
-                      <summary className="cursor-pointer list-none text-xs text-muted-foreground underline [&::-webkit-details-marker]:hidden">
+                      <summary className={DISCLOSURE_KLASSE}>
                         <span className="group-open:hidden">
                           Weitere Person hinzufügen
                         </span>

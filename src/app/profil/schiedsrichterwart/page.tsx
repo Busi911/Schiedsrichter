@@ -9,6 +9,7 @@ import { holeTermineMitZuordnungen } from "@/lib/zuordnung";
 import { berechneBesetzung } from "@/lib/besetzung";
 import { schiedsrichterKuerzelPasstZu } from "@/lib/rundenspiel-import";
 import {
+  schiedsrichterOhneLoginZuordnen,
   schiedsrichterZuordnen,
   schiedsrichterZuordnungEntfernen,
 } from "./actions";
@@ -28,10 +29,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
+import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
+
+// Einheitlicher Button-Look für <summary>-Aufklapptoggles (Ersetzen/Weiteren
+// hinzufügen/Schließen) — echte <Button>-Komponenten können hier nicht
+// stehen (die native Aufklapp-Mechanik braucht ein <summary>-Element),
+// aber dieselbe buttonVariants-Funktion liefert exakt dieselben Klassen wie
+// überall sonst, statt einem eigenen Ad-hoc-Textlink-Stil.
+const DISCLOSURE_KLASSE = cn(
+  buttonVariants({ variant: "outline", size: "xs" }),
+  "cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+);
 
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
@@ -51,7 +65,11 @@ function brauchtSchiedsrichterVomVerein(termin: {
   return termin.typ === "testspiel" || termin.typ === "turnier_spiel";
 }
 
-export default async function SchiedsrichterwartPage() {
+export default async function SchiedsrichterwartPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
   const userId = session.user.id;
@@ -60,10 +78,19 @@ export default async function SchiedsrichterwartPage() {
     notFound();
   }
 
-  const [schiedsrichterListe, termineMitZuordnungen] = await Promise.all([
+  const { filter } = await searchParams;
+  const nurOffene = filter === "offen";
+
+  const [schiedsrichterListeRoh, termineMitZuordnungen] = await Promise.all([
     holeSchiedsrichterEinsatzZahlen(vereinId),
     holeTermineMitZuordnungen(vereinId),
   ]);
+  // Aufsteigend nach Einsätzen — wer am wenigsten gepfiffen hat, steht oben.
+  // Für die faire Verteilung (die eigentliche Aufgabe des Warts) ist das die
+  // naheliegendere Reihenfolge als alphabetisch nach Name.
+  const schiedsrichterListe = [...schiedsrichterListeRoh].sort(
+    (a, b) => a.anzahlEinsaetze - b.anzahlEinsaetze
+  );
 
   // Wer ist an einem bestimmten Zeitpunkt schon anderweitig als
   // Schiedsrichter gebunden (an einem ANDEREN Termin zur exakt gleichen
@@ -88,8 +115,11 @@ export default async function SchiedsrichterwartPage() {
 
   // Bewusst ALLE relevanten Termine, nicht nur unbesetzte — sonst ließe sich
   // eine bereits erfolgte (ggf. falsche) Zuordnung über diese Seite nicht
-  // mehr korrigieren, sobald der Schiedsrichter-Bedarf erfüllt ist.
-  const relevanteTermine = termineMitZuordnungen
+  // mehr korrigieren, sobald der Schiedsrichter-Bedarf erfüllt ist. Der
+  // "Nur offene"-Filter unten blendet sie bei Bedarf trotzdem aus (z.B. bei
+  // vielen Rundenspielen über die Saison, um nicht durch bereits erledigte
+  // Termine scrollen zu müssen).
+  const alleRelevantenTermine = termineMitZuordnungen
     .filter(brauchtSchiedsrichterVomVerein)
     .map((termin) => {
       const belegteAmZeitpunkt =
@@ -98,18 +128,28 @@ export default async function SchiedsrichterwartPage() {
         const belegtBeiTerminId = belegteAmZeitpunkt.get(s.userId);
         return !belegtBeiTerminId || belegtBeiTerminId === termin.id;
       });
+      // Wer fehlt in freiePersonen, weil zu genau diesem Zeitpunkt bereits
+      // ein ANDERER Termin zugeordnet ist — Grundlage für den Hinweis unten,
+      // warum eine erwartete Person in der Auswahl nicht auftaucht.
+      const belegtAnderweitig = schiedsrichterListe.filter(
+        (s) => !freiePersonen.some((f) => f.userId === s.userId)
+      );
       return {
         ...termin,
         besetzung: berechneBesetzung(termin.zuordnungen),
         freiePersonen,
+        belegtAnderweitig,
       };
     })
     .sort(
       (a, b) => Number(a.besetzung.schiriErfuellt) - Number(b.besetzung.schiriErfuellt)
     );
-  const offeneAnzahl = relevanteTermine.filter(
+  const offeneAnzahl = alleRelevantenTermine.filter(
     (t) => !t.besetzung.schiriErfuellt
   ).length;
+  const relevanteTermine = nurOffene
+    ? alleRelevantenTermine.filter((t) => !t.besetzung.schiriErfuellt)
+    : alleRelevantenTermine;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
@@ -132,7 +172,8 @@ export default async function SchiedsrichterwartPage() {
           <CardTitle className="text-base">Schiedsrichter im Verein</CardTitle>
           <CardDescription>
             Anzahl bereits absolvierter Einsätze (ICS-Feed sowie selbst
-            zugeordnete Freundschaftsspiele/Turniere/Rundenspiele).
+            zugeordnete Freundschaftsspiele/Turniere/Rundenspiele), aufsteigend
+            sortiert — wer oben steht, hat am wenigsten gepfiffen.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -159,7 +200,11 @@ export default async function SchiedsrichterwartPage() {
                       {s.email}
                     </TableCell>
                     <TableCell className="text-right">
-                      {s.anzahlEinsaetze}
+                      {s.anzahlEinsaetze === 0 ? (
+                        <Badge variant="warning">noch keiner</Badge>
+                      ) : (
+                        s.anzahlEinsaetze
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -171,9 +216,17 @@ export default async function SchiedsrichterwartPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            Termine ({offeneAnzahl} offen von {relevanteTermine.length})
-          </CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">
+              Termine ({offeneAnzahl} offen von {alleRelevantenTermine.length})
+            </CardTitle>
+            <Link
+              href={nurOffene ? "/profil/schiedsrichterwart" : "?filter=offen"}
+              className="text-xs text-muted-foreground underline"
+            >
+              {nurOffene ? "Alle anzeigen" : "Nur offene anzeigen"}
+            </Link>
+          </div>
           <CardDescription>
             Freundschaftsspiele, Turnierspiele und Rundenspiele ohne
             Verbands-Schiri. Die Auswahl zeigt nur Schiedsrichter, die zu
@@ -184,7 +237,9 @@ export default async function SchiedsrichterwartPage() {
         <CardContent className="flex flex-col gap-3">
           {relevanteTermine.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Keine anstehenden Termine mit Schiedsrichter-Bedarf.
+              {nurOffene
+                ? "Keine offenen Termine — alles besetzt."
+                : "Keine anstehenden Termine mit Schiedsrichter-Bedarf."}
             </p>
           ) : (
             relevanteTermine.map((t) => {
@@ -252,7 +307,7 @@ export default async function SchiedsrichterwartPage() {
                                 </Badge>
                               )}
                               {passt === false && (
-                                <Badge variant="outline" className="ml-2 border-amber-500/50 text-amber-600 dark:text-amber-400">
+                                <Badge variant="warning" className="ml-2">
                                   ⚠ nuLiga nennt {kuerzel}
                                 </Badge>
                               )}
@@ -260,7 +315,7 @@ export default async function SchiedsrichterwartPage() {
                             <div className="flex items-center gap-3">
                               {personOptionen.length > 0 && (
                                 <details className="group">
-                                  <summary className="cursor-pointer list-none text-xs text-muted-foreground underline [&::-webkit-details-marker]:hidden">
+                                  <summary className={DISCLOSURE_KLASSE}>
                                     <span className="group-open:hidden">
                                       Ersetzen
                                     </span>
@@ -294,7 +349,7 @@ export default async function SchiedsrichterwartPage() {
                                         required
                                       />
                                     </div>
-                                    <Button type="submit" size="sm" variant="outline">
+                                    <Button type="submit" size="xs" variant="outline">
                                       Ersetzen
                                     </Button>
                                   </form>
@@ -306,14 +361,13 @@ export default async function SchiedsrichterwartPage() {
                                   name="zuordnungId"
                                   value={z.id}
                                 />
-                                <Button
-                                  type="submit"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-auto p-0 text-xs text-muted-foreground underline"
+                                <ConfirmSubmitButton
+                                  confirmText={`${z.name ?? z.externerName ?? z.email} als Schiedsrichter entfernen?`}
+                                  variant="destructive"
+                                  size="xs"
                                 >
                                   Entfernen
-                                </Button>
+                                </ConfirmSubmitButton>
                               </form>
                             </div>
                           </div>
@@ -322,61 +376,95 @@ export default async function SchiedsrichterwartPage() {
                       })}
                     </ul>
                   )}
-                  {!t.besetzung.schiriVoll &&
-                    (personOptionen.length === 0 ? (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Kein Schiedsrichter zu diesem Zeitpunkt verfügbar.
-                      </p>
-                    ) : bestehendeSchiedsrichter.length === 0 ? (
-                      // Noch niemand zugeordnet: das ist die einzige Aktion
-                      // für diesen Termin, deshalb direkt sichtbar statt
-                      // hinter einem Toggle versteckt.
+                  {!t.besetzung.schiriVoll && (
+                    <div className="mt-2 flex flex-col gap-2">
+                      {personOptionen.length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Kein Schiedsrichter zu diesem Zeitpunkt verfügbar.
+                        </p>
+                      )}
+                      {personOptionen.length > 0 &&
+                        (bestehendeSchiedsrichter.length === 0 ? (
+                          // Noch niemand zugeordnet: das ist die einzige
+                          // Aktion für diesen Termin, deshalb direkt sichtbar
+                          // statt hinter einem Toggle versteckt.
+                          <form
+                            action={schiedsrichterZuordnen}
+                            className="flex flex-wrap items-center gap-2"
+                          >
+                            <input type="hidden" name="terminId" value={t.id} />
+                            <div className="min-w-48">
+                              <LabeledSelect
+                                name="userId"
+                                placeholder="Schiedsrichter wählen…"
+                                options={personOptionen}
+                                required
+                              />
+                            </div>
+                            <Button type="submit" size="sm">
+                              Zuordnen
+                            </Button>
+                          </form>
+                        ) : (
+                          <details className="group">
+                            <summary className={DISCLOSURE_KLASSE}>
+                              <span className="group-open:hidden">
+                                Weiteren Schiedsrichter hinzufügen
+                              </span>
+                              <span className="hidden group-open:inline">
+                                Schließen
+                              </span>
+                            </summary>
+                            <form
+                              action={schiedsrichterZuordnen}
+                              className="mt-2 flex flex-wrap items-center gap-2"
+                            >
+                              <input type="hidden" name="terminId" value={t.id} />
+                              <div className="min-w-48">
+                                <LabeledSelect
+                                  name="userId"
+                                  placeholder="Schiedsrichter wählen…"
+                                  options={personOptionen}
+                                  required
+                                />
+                              </div>
+                              <Button type="submit" size="sm">
+                                Weiteren zuordnen
+                              </Button>
+                            </form>
+                          </details>
+                        ))}
+                      {/* Ohne Login immer anbieten, unabhängig von
+                          personOptionen — gerade wenn niemand Bekanntes
+                          verfügbar ist (Gast-Schiri), ist das die einzige
+                          Möglichkeit. Kein eigener Account, daher auch keine
+                          Benachrichtigungs-Mail (siehe actions.ts). */}
                       <form
-                        action={schiedsrichterZuordnen}
-                        className="mt-2 flex flex-wrap items-center gap-2"
+                        action={schiedsrichterOhneLoginZuordnen}
+                        className="flex flex-wrap items-center gap-2"
                       >
                         <input type="hidden" name="terminId" value={t.id} />
-                        <div className="min-w-48">
-                          <LabeledSelect
-                            name="userId"
-                            placeholder="Schiedsrichter wählen…"
-                            options={personOptionen}
-                            required
-                          />
-                        </div>
-                        <Button type="submit" size="sm">
-                          Zuordnen
+                        <Input
+                          name="name"
+                          placeholder="Name ohne Login (z.B. Gast-Schiri)"
+                          required
+                          className="h-8 w-56"
+                        />
+                        <Button type="submit" size="xs" variant="ghost">
+                          Ohne Login zuordnen
                         </Button>
                       </form>
-                    ) : (
-                      <details className="group mt-2">
-                        <summary className="cursor-pointer list-none text-xs text-muted-foreground underline [&::-webkit-details-marker]:hidden">
-                          <span className="group-open:hidden">
-                            Weiteren Schiedsrichter hinzufügen
-                          </span>
-                          <span className="hidden group-open:inline">
-                            Schließen
-                          </span>
-                        </summary>
-                        <form
-                          action={schiedsrichterZuordnen}
-                          className="mt-2 flex flex-wrap items-center gap-2"
-                        >
-                          <input type="hidden" name="terminId" value={t.id} />
-                          <div className="min-w-48">
-                            <LabeledSelect
-                              name="userId"
-                              placeholder="Schiedsrichter wählen…"
-                              options={personOptionen}
-                              required
-                            />
-                          </div>
-                          <Button type="submit" size="sm">
-                            Weiteren zuordnen
-                          </Button>
-                        </form>
-                      </details>
-                    ))}
+                      {t.belegtAnderweitig.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Nicht in der Auswahl, da zu dieser Zeit bereits
+                          anderweitig eingeteilt:{" "}
+                          {t.belegtAnderweitig
+                            .map((s) => s.name ?? s.email)
+                            .join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })

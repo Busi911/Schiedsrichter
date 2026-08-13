@@ -68,9 +68,7 @@ export default async function AdminLayout({
           <div className="flex items-center gap-2">
             {offeneDiensteAnzahl > 0 && (
               <Link href="/admin/dienste">
-                <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400">
-                  {offeneDiensteAnzahl} Dienste offen
-                </Badge>
+                <Badge variant="warning">{offeneDiensteAnzahl} Dienste offen</Badge>
               </Link>
             )}
             {hatEigeneRollen && (

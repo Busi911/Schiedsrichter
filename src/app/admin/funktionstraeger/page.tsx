@@ -150,6 +150,7 @@ export default async function FunktionstraegerPage({
             <FunktionstraegerTabelle
               personen={personen}
               eigeneUserId={session.user.id}
+              mannschaftsListe={mannschaftsListe}
             />
           </CardContent>
         </Card>

@@ -4,11 +4,13 @@ import { useMemo, useState } from "react";
 import {
   adminRechteToggeln,
   funktionstraegerAktivToggeln,
+  rolleHinzufuegen,
   updateFunktionstraeger,
 } from "@/app/admin/actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LabeledSelect } from "@/components/labeled-select";
 import {
   Table,
   TableBody,
@@ -17,6 +19,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+
+// Siehe DISCLOSURE_KLASSE in profil/schiedsrichterwart/page.tsx.
+const DISCLOSURE_KLASSE = cn(
+  buttonVariants({ variant: "outline", size: "xs" }),
+  "cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+);
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -54,9 +63,11 @@ type Person = {
 export function FunktionstraegerTabelle({
   personen,
   eigeneUserId,
+  mannschaftsListe = [],
 }: {
   personen: Person[];
   eigeneUserId: string;
+  mannschaftsListe?: { id: string; name: string; altersklasse?: string | null }[];
 }) {
   const [suche, setSuche] = useState("");
   const [rolleFilter, setRolleFilter] = useState("alle");
@@ -159,9 +170,7 @@ export function FunktionstraegerTabelle({
                 </TableCell>
                 <TableCell className="text-right">
                   <details className="text-left">
-                    <summary className="cursor-pointer list-none text-xs text-muted-foreground underline [&::-webkit-details-marker]:hidden">
-                      Bearbeiten
-                    </summary>
+                    <summary className={DISCLOSURE_KLASSE}>Bearbeiten</summary>
                     <div className="mt-2 flex flex-col gap-3 rounded-lg border p-3">
                       <form
                         action={updateFunktionstraeger}
@@ -210,14 +219,11 @@ export function FunktionstraegerTabelle({
                                 name="userId"
                                 value={p.userId}
                               />
-                              <button
-                                type="submit"
-                                className="text-muted-foreground underline"
-                              >
+                              <Button type="submit" variant="ghost" size="xs">
                                 {p.istAdmin
                                   ? "Admin-Rechte entziehen"
                                   : "Zum Admin machen"}
-                              </button>
+                              </Button>
                             </form>
                           )}
                         </span>
@@ -243,16 +249,56 @@ export function FunktionstraegerTabelle({
                                 name="rolleId"
                                 value={r.rolleId}
                               />
-                              <button
-                                type="submit"
-                                className="text-muted-foreground underline"
-                              >
+                              <Button type="submit" variant="ghost" size="xs">
                                 {r.aktiv ? "Deaktivieren" : "Aktivieren"}
-                              </button>
+                              </Button>
                             </form>
                           </span>
                         ))}
                       </div>
+                      {(() => {
+                        const vorhandeneTypen = new Set(p.rollen.map((r) => r.typ));
+                        const verfuegbareRollen = Object.entries(TYP_LABEL).filter(
+                          ([typ]) => !vorhandeneTypen.has(typ)
+                        );
+                        if (verfuegbareRollen.length === 0) return null;
+                        return (
+                          <form
+                            action={rolleHinzufuegen}
+                            className="flex flex-wrap items-center gap-2 border-t pt-3"
+                          >
+                            <input type="hidden" name="userId" value={p.userId} />
+                            <div className="w-44">
+                              <LabeledSelect
+                                name="typ"
+                                placeholder="Rolle hinzufügen…"
+                                options={verfuegbareRollen.map(([value, label]) => ({
+                                  value,
+                                  label,
+                                }))}
+                                required
+                              />
+                            </div>
+                            {mannschaftsListe.length > 0 && (
+                              <div className="w-40">
+                                <LabeledSelect
+                                  name="mannschaftId"
+                                  placeholder="Mannschaft (nur Trainer)"
+                                  options={mannschaftsListe.map((m) => ({
+                                    value: m.id,
+                                    label: m.altersklasse
+                                      ? `${m.name} (${m.altersklasse})`
+                                      : m.name,
+                                  }))}
+                                />
+                              </div>
+                            )}
+                            <Button type="submit" variant="outline" size="xs">
+                              Hinzufügen
+                            </Button>
+                          </form>
+                        );
+                      })()}
                     </div>
                   </details>
                 </TableCell>

@@ -9,7 +9,11 @@ import {
   type TurnierBalken,
 } from "@/lib/kalender";
 import { updateTerminInline } from "@/app/admin/actions";
-import { zuordnen, zuordnungEntfernen } from "@/app/admin/zuordnung/actions";
+import {
+  externeZuordnung,
+  zuordnen,
+  zuordnungEntfernen,
+} from "@/app/admin/zuordnung/actions";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
@@ -148,7 +153,12 @@ export function MonatsKalender({
         </Link>
       </div>
 
-      <div className="overflow-hidden rounded-lg border bg-border text-xs">
+      {/* overflow-x-auto + min-width statt die Zellen auf schmalen Screens
+          weiter zusammenzudrücken (Text war bei 0.7rem/truncate schon am
+          unteren Rand) — auf dem Handy scrollt man die Woche lieber
+          horizontal, als Inhalte nicht mehr lesen zu können. */}
+      <div className="overflow-x-auto">
+      <div className="min-w-[640px] overflow-hidden rounded-lg border bg-border text-xs">
         <div className="grid grid-cols-7 gap-px bg-border">
           {WOCHENTAGE.map((w) => (
             <div
@@ -171,7 +181,16 @@ export function MonatsKalender({
                 key={wocheIdx}
                 className="grid grid-cols-7 gap-px bg-border"
                 style={{
-                  gridTemplateRows: `auto repeat(${maxLanesGesamt}, 1.1rem) 1fr`,
+                  // Fixe Höhe statt "auto" für die Datumszeile: die
+                  // Tageszelle (Hintergrund-Div) spannt "1 / -1" über ALLE
+                  // Zeilen dieser Woche — bei einem CSS-Grid-Item, das über
+                  // mehrere Zeilen spannt, zählt sein Platzbedarf für die
+                  // Größe der einzelnen "auto"-Zeile NICHT verlässlich mit,
+                  // sobald die übrigen Zeilen (Turnier-Balken-Lanes + 1fr)
+                  // den Gesamtbedarf schon allein decken. Ergebnis: sobald
+                  // ein Turnier-Balken läuft, kollabiert die Datumszeile auf
+                  // ~0 Höhe und die Tageszahl verschwindet hinter dem Balken.
+                  gridTemplateRows: `1.4rem repeat(${maxLanesGesamt}, 1.1rem) 1fr`,
                 }}
               >
                 {woche.map((tag, tagIdx) => {
@@ -407,18 +426,19 @@ export function MonatsKalender({
                                         )}
                                       </span>
                                       {e.zuordenbar && !d.id.startsWith("ics-") && (
-                                        <form action={zuordnungEntfernen}>
+                                        <form action={zuordnungEntfernen} className="shrink-0">
                                           <input
                                             type="hidden"
                                             name="zuordnungId"
                                             value={d.id}
                                           />
-                                          <button
-                                            type="submit"
-                                            className="shrink-0 underline"
+                                          <ConfirmSubmitButton
+                                            confirmText={`${d.label} entfernen?`}
+                                            variant="destructive"
+                                            size="xs"
                                           >
                                             Entfernen
-                                          </button>
+                                          </ConfirmSubmitButton>
                                         </form>
                                       )}
                                     </li>
@@ -426,34 +446,71 @@ export function MonatsKalender({
                                 </ul>
                               )}
                               {e.zuordenbar &&
-                                zuordenbarePersonen.length > 0 &&
                                 (() => {
                                   const zuordnenForm = (
-                                    <form
-                                      action={zuordnen}
-                                      className="flex items-center gap-2"
-                                    >
-                                      <input
-                                        type="hidden"
-                                        name="terminId"
-                                        value={e.id}
-                                      />
-                                      <div className="flex-1">
-                                        <LabeledSelect
-                                          name="personTyp"
-                                          placeholder="Person wählen…"
-                                          required
-                                          options={zuordenbarePersonen.map((p) => ({
-                                            value: `${p.userId}|${p.typ}`,
-                                            label: ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ,
-                                            group: p.name ?? p.email,
-                                          }))}
+                                    <div className="flex flex-col gap-2">
+                                      {zuordenbarePersonen.length > 0 && (
+                                        <form
+                                          action={zuordnen}
+                                          className="flex items-center gap-2"
+                                        >
+                                          <input
+                                            type="hidden"
+                                            name="terminId"
+                                            value={e.id}
+                                          />
+                                          <div className="flex-1">
+                                            <LabeledSelect
+                                              name="personTyp"
+                                              placeholder="Person wählen…"
+                                              required
+                                              options={zuordenbarePersonen.map((p) => ({
+                                                value: `${p.userId}|${p.typ}`,
+                                                label: ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ,
+                                                group: p.name ?? p.email,
+                                              }))}
+                                            />
+                                          </div>
+                                          <Button type="submit" variant="outline" size="sm">
+                                            Zuordnen
+                                          </Button>
+                                        </form>
+                                      )}
+                                      {/* Ohne Login (z.B. Gast-Schiri eines
+                                          anderen Vereins) — unabhängig von
+                                          zuordenbarePersonen immer verfügbar,
+                                          siehe externeZuordnung in
+                                          admin/zuordnung/actions.ts. */}
+                                      <form
+                                        action={externeZuordnung}
+                                        className="flex flex-wrap items-center gap-2"
+                                      >
+                                        <input
+                                          type="hidden"
+                                          name="terminId"
+                                          value={e.id}
                                         />
-                                      </div>
-                                      <Button type="submit" variant="outline" size="sm">
-                                        Zuordnen
-                                      </Button>
-                                    </form>
+                                        <Input
+                                          name="name"
+                                          placeholder="Name ohne Login…"
+                                          required
+                                          className="h-8 flex-1"
+                                        />
+                                        <div className="w-36">
+                                          <LabeledSelect
+                                            name="rolle"
+                                            placeholder="Rolle…"
+                                            required
+                                            options={Object.entries(
+                                              ZUORDENBARE_TYP_LABEL
+                                            ).map(([value, label]) => ({ value, label }))}
+                                          />
+                                        </div>
+                                        <Button type="submit" variant="ghost" size="xs">
+                                          Ohne Login zuordnen
+                                        </Button>
+                                      </form>
+                                    </div>
                                   );
                                   // Ein bereits abgepfiffenes Spiel braucht keine
                                   // Zuordnung mehr im Vordergrund — nachträglich
@@ -499,6 +556,7 @@ export function MonatsKalender({
             );
           })}
         </div>
+      </div>
       </div>
     </div>
   );

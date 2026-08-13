@@ -267,6 +267,62 @@ export async function createFunktionstraeger(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
+// Einer BEREITS bestehenden Person eine zusätzliche Rolle zuweisen — bisher
+// ging das nur über das "Neuer Funktionsträger"-Formular (per Name+E-Mail,
+// die dann auf die vorhandene Person matcht), was im Bearbeiten-Panel jeder
+// Zeile (FunktionstraegerTabelle) nicht ersichtlich/erreichbar war. Direkt
+// per userId statt per E-Mail, da die Person hier schon eindeutig feststeht.
+export async function rolleHinzufuegen(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const userId = formData.get("userId");
+  const typ = formData.get("typ");
+  const mannschaftId = formData.get("mannschaftId");
+
+  if (typeof userId !== "string" || !userId) {
+    throw new Error("Person fehlt.");
+  }
+  if (
+    typeof typ !== "string" ||
+    !(FUNKTIONSTRAEGER_TYPEN as readonly string[]).includes(typ)
+  ) {
+    throw new Error("Ungültige Rolle.");
+  }
+
+  const typedTyp = typ as (typeof FUNKTIONSTRAEGER_TYPEN)[number];
+
+  await withTenant(vereinId, async (tx) => {
+    const person = await tx.query.users.findFirst({
+      where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
+    });
+    if (!person) throw new Error("Person nicht gefunden.");
+
+    const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
+      where: and(
+        eq(funktionstraegerRollen.userId, userId),
+        eq(funktionstraegerRollen.typ, typedTyp)
+      ),
+    });
+    if (vorhandeneRolle) return;
+
+    await tx.insert(funktionstraegerRollen).values({
+      userId,
+      typ: typedTyp,
+      mannschaftId:
+        typ === "trainer" && typeof mannschaftId === "string" && mannschaftId
+          ? mannschaftId
+          : null,
+      // Direkt aktiv: die Person ist bereits bekannt/eingeloggt, es geht nur
+      // um eine zusätzliche Rolle — kein separater Onboarding-Schritt wie
+      // bei createFunktionstraeger nötig.
+      aktiv: true,
+    });
+  });
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
 // Statt Löschen: eine Rolle wird deaktiviert (bleibt in der
 // Zuordnungs-Historie erhalten), taucht aber nicht mehr in Zuordnung/
 // Selbst-Anmeldung auf.
