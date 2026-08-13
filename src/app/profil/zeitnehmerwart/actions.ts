@@ -138,6 +138,47 @@ export async function zeitnehmerZuordnen(formData: FormData) {
   revalidatePath("/admin/kalender");
 }
 
+// Zuordnung einer Person OHNE Zugang im System — siehe
+// schiedsrichterOhneLoginZuordnen in schiedsrichterwart/actions.ts. Hier
+// zusätzlich mit Rollenauswahl (zeitnehmer/sekretaer), da die
+// Schiedsrichter-Variante nur eine einzige Rolle kennt.
+export async function zeitnehmerOhneLoginZuordnen(formData: FormData) {
+  const { vereinId } = await requireZeitnehmerwartZugriff();
+
+  const terminId = formData.get("terminId");
+  const name = formData.get("name");
+  const rolleRoh = formData.get("rolle");
+
+  if (typeof terminId !== "string" || !terminId) {
+    throw new Error("Termin ist erforderlich.");
+  }
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Name ist erforderlich.");
+  }
+  if (
+    typeof rolleRoh !== "string" ||
+    !(ZEITNEHMER_ROLLEN as readonly string[]).includes(rolleRoh)
+  ) {
+    throw new Error("Bitte eine Rolle auswählen.");
+  }
+  const rolle = rolleRoh as ZeitnehmerRolle;
+
+  await withTenant(vereinId, async (tx) => {
+    await pruefeBesetzungsgrenze(tx, vereinId, terminId, rolle);
+
+    await tx.insert(terminZuordnungen).values({
+      terminId,
+      userId: null,
+      externerName: name.trim(),
+      funktionstraegerTyp: rolle,
+      quelle: "zugeordnet_durch_admin",
+    });
+  });
+
+  revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath("/admin/kalender");
+}
+
 export async function zeitnehmerZuordnungEntfernen(formData: FormData) {
   const { vereinId } = await requireZeitnehmerwartZugriff();
 
@@ -164,6 +205,136 @@ export async function zeitnehmerZuordnungEntfernen(formData: FormData) {
       .delete(terminZuordnungen)
       .where(eq(terminZuordnungen.id, zuordnungId));
   });
+
+  revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath("/admin/kalender");
+}
+
+// Aktiviert die öffentliche Selbsteintragung (siehe
+// /zeitnehmer-eintragen/[token]) bzw. generiert einen neuen Link — dieselbe
+// Funktion für "erstmals aktivieren" und "Link neu generieren" (der alte
+// Link wird dabei ungültig), analog zu turnierLinkErneuern in
+// admin/actions.ts.
+export async function zeitnehmerSelbstanmeldungLinkErneuern() {
+  const { vereinId } = await requireZeitnehmerwartZugriff();
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .update(vereine)
+      .set({ zeitnehmerSelbstanmeldungToken: crypto.randomUUID() })
+      .where(eq(vereine.id, vereinId))
+  );
+
+  revalidatePath("/profil/zeitnehmerwart");
+}
+
+export async function zeitnehmerSelbstanmeldungDeaktivieren() {
+  const { vereinId } = await requireZeitnehmerwartZugriff();
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .update(vereine)
+      .set({ zeitnehmerSelbstanmeldungToken: null })
+      .where(eq(vereine.id, vereinId))
+  );
+
+  revalidatePath("/profil/zeitnehmerwart");
+}
+
+// Bestätigt (oder korrigiert) den Namensabgleich einer öffentlichen
+// Selbsteintragung (siehe findeNamensVorschlag in lib/namens-abgleich.ts):
+// verknüpft die bisher nur per externerName erfasste Zuordnung mit einer
+// echten Person. userId kommt aus dem Formular — vorausgewählt mit dem
+// automatischen Vorschlag (defaultValue in page.tsx), vom Wart aber frei
+// änderbar, falls der Vorschlag falsch lag.
+export async function zeitnehmerVorschlagBestaetigen(formData: FormData) {
+  const { vereinId } = await requireZeitnehmerwartZugriff();
+
+  const zuordnungId = formData.get("zuordnungId");
+  const userId = formData.get("userId");
+  if (typeof zuordnungId !== "string" || !zuordnungId) {
+    throw new Error("Zuordnung fehlt.");
+  }
+  if (typeof userId !== "string" || !userId) {
+    throw new Error("Bitte eine Person auswählen.");
+  }
+
+  const benachrichtigung = await withTenant(vereinId, async (tx) => {
+    const zuordnung = await tx.query.terminZuordnungen.findFirst({
+      where: eq(terminZuordnungen.id, zuordnungId),
+    });
+    if (
+      !zuordnung ||
+      !(ZEITNEHMER_ROLLEN as readonly string[]).includes(
+        zuordnung.funktionstraegerTyp
+      ) ||
+      zuordnung.userId
+    ) {
+      throw new Error(
+        "Zuordnung nicht gefunden, keine Zeitnehmer-/Sekretär-Rolle, oder bereits bestätigt."
+      );
+    }
+
+    const person = await tx.query.users.findFirst({
+      where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
+    });
+    if (!person) throw new Error("Person nicht gefunden.");
+
+    const vorhanden = await tx.query.terminZuordnungen.findFirst({
+      where: and(
+        eq(terminZuordnungen.terminId, zuordnung.terminId),
+        eq(terminZuordnungen.userId, userId),
+        eq(terminZuordnungen.funktionstraegerTyp, zuordnung.funktionstraegerTyp)
+      ),
+    });
+    if (vorhanden) {
+      // Person ist für diese Rolle an diesem Termin bereits (anderweitig)
+      // zugeordnet — die self-eingetragene Dublette entfernen statt einen
+      // zweiten Eintrag für dieselbe Person/Rolle zu behalten.
+      await tx
+        .delete(terminZuordnungen)
+        .where(eq(terminZuordnungen.id, zuordnungId));
+      return null;
+    }
+
+    await tx
+      .update(terminZuordnungen)
+      .set({ userId, externerName: null, matchVorschlagUserId: null })
+      .where(eq(terminZuordnungen.id, zuordnungId));
+
+    const termin = await tx.query.termine.findFirst({
+      where: eq(termine.id, zuordnung.terminId),
+    });
+    if (!termin) return null;
+
+    const verein = await tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+    });
+
+    return {
+      termin,
+      email: person.email,
+      vereinName: verein?.name ?? "HandballerPate",
+      rolle: zuordnung.funktionstraegerTyp as ZeitnehmerRolle,
+    };
+  });
+
+  if (benachrichtigung) {
+    const mailParams = {
+      vereinName: benachrichtigung.vereinName,
+      ...zuordnungsMailInhalt(benachrichtigung.rolle, benachrichtigung.termin),
+    };
+    try {
+      await sendMail(
+        benachrichtigung.email,
+        "Neue Termin-Zuordnung",
+        terminMailText(mailParams),
+        terminMailHtml(mailParams)
+      );
+    } catch (err) {
+      console.error("Zuordnungs-Mail konnte nicht gesendet werden:", err);
+    }
+  }
 
   revalidatePath("/profil/zeitnehmerwart");
   revalidatePath("/admin/kalender");
