@@ -33,9 +33,12 @@ type Spiel = {
 export function TurnierSpielplan({
   spiele,
   turnierId,
+  turnierOrt,
 }: {
   spiele: Spiel[];
   turnierId: string;
+  // Ort des Turniers selbst — Fallback für Spiele ohne eigenen Ort, s.u.
+  turnierOrt?: string | null;
 }) {
   const gruppen = gruppiereProTag(spiele);
   // Tages-Überschriften nur bei mehrtägigen Turnieren — bei eintägigen wäre
@@ -77,7 +80,7 @@ export function TurnierSpielplan({
                                 {formatDateTime(s.start)}
                               </span>
                               <span className="text-muted-foreground">
-                                {s.ort ?? "—"}
+                                {s.ort ?? turnierOrt ?? "—"}
                               </span>
                               <span>{s.beschreibung ?? "—"}</span>
                               {s.ergebnisHeim !== null &&
@@ -116,7 +119,9 @@ export function TurnierSpielplan({
                             <Input
                               name="ort"
                               defaultValue={s.ort ?? ""}
-                              placeholder="Ort"
+                              placeholder={
+                                turnierOrt ? `wie Turnier (${turnierOrt})` : "Ort"
+                              }
                               className="h-8 w-28"
                             />
                             <Input
@@ -183,7 +188,12 @@ export function TurnierSpielplan({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="spielOrt">Ort</Label>
-          <Input id="spielOrt" name="ort" className="h-8 w-28" />
+          <Input
+            id="spielOrt"
+            name="ort"
+            placeholder={turnierOrt ? `wie Turnier (${turnierOrt})` : "Ort"}
+            className="h-8 w-28"
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="spielBeschreibung">Begegnung</Label>

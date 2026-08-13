@@ -77,7 +77,11 @@ export default async function MeinTurnierPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TurnierSpielplan spiele={spiele} turnierId={turnier.id} />
+          <TurnierSpielplan
+            spiele={spiele}
+            turnierId={turnier.id}
+            turnierOrt={turnier.ort}
+          />
         </CardContent>
       </Card>
     </div>
