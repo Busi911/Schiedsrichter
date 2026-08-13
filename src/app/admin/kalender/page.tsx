@@ -216,7 +216,14 @@ export default async function AdminKalenderPage({
       }${z.externerName && !z.email ? " (ohne Login)" : ""}`;
       let hinweis: string | undefined;
       if (z.funktionstraegerTyp === "schiedsrichter" && t.nuligaSchiedsrichterKuerzel) {
-        hinweis = schiedsrichterKuerzelPasstZu(t.nuligaSchiedsrichterKuerzel, z.name)
+        // z.name ist bei "ohne Login"-Zuordnungen (kein Account) immer
+        // null — ohne den Fallback auf externerName würde der Abgleich für
+        // diese Personen grundsätzlich ins Leere laufen und fälschlich vor
+        // einer Abweichung warnen, selbst wenn der Name eigentlich passt.
+        hinweis = schiedsrichterKuerzelPasstZu(
+          t.nuligaSchiedsrichterKuerzel,
+          z.name ?? z.externerName
+        )
           ? `✓ passt zu nuLiga: ${t.nuligaSchiedsrichterKuerzel}`
           : `⚠ nuLiga nennt: ${t.nuligaSchiedsrichterKuerzel}`;
       }

@@ -288,9 +288,16 @@ export default async function SchiedsrichterwartPage({
                     <ul className="mt-2 flex flex-col gap-1">
                       {bestehendeSchiedsrichter.map((z) => {
                         const kuerzel = t.nuligaSchiedsrichterKuerzel;
+                        // z.name ist bei "ohne Login"-Zuordnungen immer null
+                        // — Fallback auf externerName, sonst würde der
+                        // Abgleich für diese Personen immer als Abweichung
+                        // gewertet, selbst wenn der Name passt.
                         const passt =
                           kuerzel != null
-                            ? schiedsrichterKuerzelPasstZu(kuerzel, z.name)
+                            ? schiedsrichterKuerzelPasstZu(
+                                kuerzel,
+                                z.name ?? z.externerName
+                              )
                             : null;
                         return (
                         <li key={z.id}>
@@ -438,22 +445,34 @@ export default async function SchiedsrichterwartPage({
                           personOptionen — gerade wenn niemand Bekanntes
                           verfügbar ist (Gast-Schiri), ist das die einzige
                           Möglichkeit. Kein eigener Account, daher auch keine
-                          Benachrichtigungs-Mail (siehe actions.ts). */}
-                      <form
-                        action={schiedsrichterOhneLoginZuordnen}
-                        className="flex flex-wrap items-center gap-2"
-                      >
-                        <input type="hidden" name="terminId" value={t.id} />
-                        <Input
-                          name="name"
-                          placeholder="Name ohne Login (z.B. Gast-Schiri)"
-                          required
-                          className="h-8 w-56"
-                        />
-                        <Button type="submit" size="xs" variant="ghost">
-                          Ohne Login zuordnen
-                        </Button>
-                      </form>
+                          Benachrichtigungs-Mail (siehe actions.ts). Standardmäßig
+                          eingeklappt: nur ein Fallback, richtig angelegte
+                          Personen sollen der naheliegendere Weg bleiben. */}
+                      <details className="group">
+                        <summary className={DISCLOSURE_KLASSE}>
+                          <span className="group-open:hidden">
+                            Ohne Login zuordnen (Fallback)
+                          </span>
+                          <span className="hidden group-open:inline">
+                            Schließen
+                          </span>
+                        </summary>
+                        <form
+                          action={schiedsrichterOhneLoginZuordnen}
+                          className="mt-2 flex flex-wrap items-center gap-2"
+                        >
+                          <input type="hidden" name="terminId" value={t.id} />
+                          <Input
+                            name="name"
+                            placeholder="Name ohne Login (z.B. Gast-Schiri)"
+                            required
+                            className="h-8 min-w-64 flex-1"
+                          />
+                          <Button type="submit" size="xs" variant="ghost">
+                            Zuordnen
+                          </Button>
+                        </form>
+                      </details>
                       {t.belegtAnderweitig.length > 0 && (
                         <p className="text-xs text-muted-foreground">
                           Nicht in der Auswahl, da zu dieser Zeit bereits
