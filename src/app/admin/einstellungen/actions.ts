@@ -89,8 +89,9 @@ function parseHalleId(formData: FormData, feld: string): string | null {
 }
 
 // Speichert die Hallen-IDs + Aktivierung und stößt sofort einen ersten
-// Sync an (statt erst auf den nächsten Mo/Do-Cron zu warten) — direkt nach
-// dem Eintragen der IDs will man i.d.R. sofort sehen, dass es funktioniert.
+// Sync an (statt erst auf den nächsten täglichen Cron zu warten) — direkt
+// nach dem Eintragen der IDs will man i.d.R. sofort sehen, dass es
+// funktioniert.
 export async function nuligaEinstellungenSpeichern(formData: FormData) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;

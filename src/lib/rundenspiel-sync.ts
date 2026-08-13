@@ -121,7 +121,7 @@ export type NuligaSyncErgebnis = {
 // vom Cron (/api/cron/rundenspiel-sync, alle Vereine mit aktiviertem
 // Auto-Import) als auch direkt nach dem Speichern der Hallen-IDs in
 // /admin/einstellungen aufgerufen (sofortiger erster Import statt Warten auf
-// den nächsten Mo/Do-Lauf).
+// den nächsten täglichen Cron-Lauf).
 export async function synchronisiereNuligaHallen(
   vereinId: string,
   hallenIds: string[]

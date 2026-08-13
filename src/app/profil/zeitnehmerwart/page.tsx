@@ -77,7 +77,11 @@ const ZEITNEHMER_RELEVANTE_TYPEN = [
   "rundenspiel",
 ];
 
-export default async function ZeitnehmerwartPage() {
+export default async function ZeitnehmerwartPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
   const userId = session.user.id;
@@ -85,6 +89,9 @@ export default async function ZeitnehmerwartPage() {
   if (!(await istZeitnehmerwart(vereinId, userId))) {
     notFound();
   }
+
+  const { filter } = await searchParams;
+  const nurOffene = filter === "offen";
 
   const [zeitnehmerListe, termineMitZuordnungen, verein] = await Promise.all([
     holeZeitnehmerEinsatzZahlen(vereinId),
@@ -112,7 +119,11 @@ export default async function ZeitnehmerwartPage() {
     belegtProZeitpunktUndTermin.set(zeitpunkt, map);
   }
 
-  const relevanteTermine = termineMitZuordnungen
+  // Bewusst ALLE relevanten Termine, nicht nur unbesetzte — sonst ließe sich
+  // eine bereits erfolgte Zuordnung über diese Seite nicht mehr korrigieren
+  // (siehe gleiches Prinzip in schiedsrichterwart/page.tsx). Der
+  // "Nur offene"-Filter unten blendet sie bei Bedarf trotzdem aus.
+  const alleRelevantenTermine = termineMitZuordnungen
     .filter((t) => ZEITNEHMER_RELEVANTE_TYPEN.includes(t.typ))
     .map((termin) => {
       const belegteAmZeitpunkt =
@@ -146,9 +157,12 @@ export default async function ZeitnehmerwartPage() {
         Number(a.besetzung.zeitnehmerSekretaerErfuellt) -
         Number(b.besetzung.zeitnehmerSekretaerErfuellt)
     );
-  const offeneAnzahl = relevanteTermine.filter(
+  const offeneAnzahl = alleRelevantenTermine.filter(
     (t) => !t.besetzung.zeitnehmerSekretaerErfuellt
   ).length;
+  const relevanteTermine = nurOffene
+    ? alleRelevantenTermine.filter((t) => !t.besetzung.zeitnehmerSekretaerErfuellt)
+    : alleRelevantenTermine;
 
   // Über die öffentliche Selbsteintragung erfasste Personen, die noch
   // keiner echten Person zugeordnet wurden (siehe
@@ -329,9 +343,17 @@ export default async function ZeitnehmerwartPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            Termine ({offeneAnzahl} offen von {relevanteTermine.length})
-          </CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">
+              Termine ({offeneAnzahl} offen von {alleRelevantenTermine.length})
+            </CardTitle>
+            <Link
+              href={nurOffene ? "/profil/zeitnehmerwart" : "?filter=offen"}
+              className="text-xs text-muted-foreground underline"
+            >
+              {nurOffene ? "Alle anzeigen" : "Nur offene anzeigen"}
+            </Link>
+          </div>
           <CardDescription>
             ICS-Spiele, Freundschaftsspiele, Turnierspiele und Rundenspiele.
             Die Auswahl zeigt nur Personen, die zu diesem Zeitpunkt nicht

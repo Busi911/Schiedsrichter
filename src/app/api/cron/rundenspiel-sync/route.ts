@@ -1,6 +1,6 @@
 import { synchronisiereAlleAktivenNuligaVereine } from "@/lib/rundenspiel-sync";
 
-// Läuft montags + donnerstags per Vercel Cron (siehe vercel.json).
+// Läuft täglich per Vercel Cron (siehe vercel.json).
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (

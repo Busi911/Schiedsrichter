@@ -51,7 +51,11 @@ const ROLLE_LABEL: Record<string, string> = {
   kioskdienst: "Kioskdienst",
 };
 
-export default async function OrdnerwartPage() {
+export default async function OrdnerwartPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
   const userId = session.user.id;
@@ -59,6 +63,9 @@ export default async function OrdnerwartPage() {
   if (!(await istOrdnerwart(vereinId, userId))) {
     notFound();
   }
+
+  const { filter } = await searchParams;
+  const nurOffene = filter === "offen";
 
   const [personenListe, termineRoh, verein] = await Promise.all([
     holeOrdnerEinsatzZahlen(vereinId),
@@ -85,7 +92,11 @@ export default async function OrdnerwartPage() {
     belegtProZeitpunktUndTermin.set(zeitpunkt, map);
   }
 
-  const relevanteTermine = termineRoh
+  // Bewusst ALLE relevanten Termine, nicht nur unbesetzte — sonst ließe sich
+  // eine bereits erfolgte Zuordnung über diese Seite nicht mehr korrigieren
+  // (siehe gleiches Prinzip in schiedsrichterwart/page.tsx). Der
+  // "Nur offene"-Filter unten blendet sie bei Bedarf trotzdem aus.
+  const alleRelevantenTermine = termineRoh
     .map((termin) => {
       const luecken = (["ordner", "kioskdienst"] as const)
         .map((rolle) => {
@@ -121,7 +132,10 @@ export default async function OrdnerwartPage() {
     })
     .filter((t) => t.luecken.length > 0)
     .sort((a, b) => Number(a.vollstaendig) - Number(b.vollstaendig));
-  const offeneAnzahl = relevanteTermine.filter((t) => !t.vollstaendig).length;
+  const offeneAnzahl = alleRelevantenTermine.filter((t) => !t.vollstaendig).length;
+  const relevanteTermine = nurOffene
+    ? alleRelevantenTermine.filter((t) => !t.vollstaendig)
+    : alleRelevantenTermine;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
@@ -186,9 +200,17 @@ export default async function OrdnerwartPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            Termine ({offeneAnzahl} offen von {relevanteTermine.length})
-          </CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">
+              Termine ({offeneAnzahl} offen von {alleRelevantenTermine.length})
+            </CardTitle>
+            <Link
+              href={nurOffene ? "/profil/ordnerwart" : "?filter=offen"}
+              className="text-xs text-muted-foreground underline"
+            >
+              {nurOffene ? "Alle anzeigen" : "Nur offene anzeigen"}
+            </Link>
+          </div>
           <CardDescription>
             Freundschaftsspiele, Turniere und Rundenspiele mit konfiguriertem
             Ordner-/Kioskdienst-Bedarf. Die Auswahl zeigt nur Personen, die
