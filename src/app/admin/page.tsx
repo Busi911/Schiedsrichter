@@ -111,8 +111,12 @@ export default async function AdminDashboardPage() {
             ) : (
               <NaechsteTermineTabelle termine={naechsteTermineZeilen} />
             )}
+            {/* /admin/termine zeigt bewusst nur manuell angelegte
+                Freundschaftsspiele/Turniere (siehe dortiger Typ-Filter),
+                keine importierten Rundenspiele — für "wirklich alle" geht
+                es deshalb zum vollständigen Kalender statt dorthin. */}
             <Link
-              href="/admin/termine"
+              href="/admin/kalender"
               className="mt-1 text-xs text-muted-foreground underline"
             >
               Alle Termine

@@ -1,6 +1,13 @@
 import { auth } from "@/auth";
 
-const publicRoutes = ["/", "/login", "/login/verify", "/setup"];
+const publicRoutes = [
+  "/",
+  "/login",
+  "/login/verify",
+  "/setup",
+  "/datenschutz",
+  "/impressum",
+];
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;

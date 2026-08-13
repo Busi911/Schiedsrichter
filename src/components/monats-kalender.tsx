@@ -445,9 +445,8 @@ export function MonatsKalender({
                                           required
                                           options={zuordenbarePersonen.map((p) => ({
                                             value: `${p.userId}|${p.typ}`,
-                                            label: `${p.name ?? p.email} (${
-                                              ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ
-                                            })`,
+                                            label: ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ,
+                                            group: p.name ?? p.email,
                                           }))}
                                         />
                                       </div>

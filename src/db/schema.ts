@@ -178,6 +178,15 @@ export const users = pgTable("user", {
   // E-Mail-Änderung, die bleibt Admin-Aufgabe (login-kritisch, siehe
   // updateFunktionstraeger in admin/actions.ts).
   telefonnummer: text("telefonnummer"),
+  // Passwort-Login als Alternative zum Magic-Link (siehe src/lib/passwort.ts)
+  // — "salt:hash"-Format (scrypt), null = kein Passwort gesetzt, dann geht
+  // nur Magic-Link. Bei Neuanlage vergibt der Admin ein Einmal-Passwort
+  // (siehe vergebeEinmalPasswortFallsNoetig in admin/actions.ts).
+  passwordHash: text("password_hash"),
+  // true direkt nach Vergabe eines Einmal-Passworts — erzwingt auf
+  // /profil/passwort-aendern die Vergabe eines eigenen Passworts, bevor der
+  // Rest der App zugänglich ist (siehe requireSession in lib/session.ts).
+  mussPasswortAendern: boolean("muss_passwort_aendern").notNull().default(false),
 });
 
 export const accounts = pgTable(
