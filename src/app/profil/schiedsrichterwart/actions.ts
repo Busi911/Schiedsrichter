@@ -129,6 +129,41 @@ export async function schiedsrichterZuordnen(formData: FormData) {
   revalidatePath("/admin/kalender");
 }
 
+// Zuordnung einer Person OHNE Zugang im System (z.B. Gast-Schiri eines
+// anderen Vereins) — nur Name, kein Account, keine Benachrichtigung
+// möglich. War früher über die inzwischen entfernte allgemeine
+// /admin/zuordnung-Seite abgedeckt (siehe externeZuordnung in
+// admin/zuordnung/actions.ts); dort gibt es aber keine UI mehr dafür, daher
+// hier als eigene, auf "schiedsrichter" begrenzte Variante.
+export async function schiedsrichterOhneLoginZuordnen(formData: FormData) {
+  const { vereinId } = await requireSchiedsrichterwartZugriff();
+
+  const terminId = formData.get("terminId");
+  const name = formData.get("name");
+
+  if (typeof terminId !== "string" || !terminId) {
+    throw new Error("Termin ist erforderlich.");
+  }
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Name ist erforderlich.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    await pruefeBesetzungsgrenze(tx, vereinId, terminId, "schiedsrichter");
+
+    await tx.insert(terminZuordnungen).values({
+      terminId,
+      userId: null,
+      externerName: name.trim(),
+      funktionstraegerTyp: "schiedsrichter",
+      quelle: "zugeordnet_durch_admin",
+    });
+  });
+
+  revalidatePath("/profil/schiedsrichterwart");
+  revalidatePath("/admin/kalender");
+}
+
 export async function schiedsrichterZuordnungEntfernen(formData: FormData) {
   const { vereinId } = await requireSchiedsrichterwartZugriff();
 
