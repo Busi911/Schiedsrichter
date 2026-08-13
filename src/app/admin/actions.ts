@@ -566,6 +566,38 @@ export async function adminRechteToggeln(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
+// Mehrfachauswahl-Löschen (siehe FunktionstraegerTabelle) — echtes Löschen
+// der Person inkl. Login, Rollen und kompletter Einsatz-Historie/Zuordnungen
+// (Cascade-Delete, siehe schema.ts), z.B. um Karteileichen/Dubletten
+// aufzuräumen. "users" hat bewusst KEIN RLS (siehe
+// 0001_enable_rls_multi_tenant.sql) — die Zugehörigkeit zum eigenen Verein
+// wird deshalb hier explizit geprüft. Die eigene userId wird aus der Auswahl
+// gefiltert statt die ganze Aktion abzubrechen, da die UI sie ohnehin nicht
+// zur Auswahl anbietet (Selbstlöschung wäre sonst möglich, falls die
+// Formulardaten manipuliert werden).
+export async function deleteFunktionstraeger(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const userIds = formData
+    .getAll("userId")
+    .filter(
+      (id): id is string =>
+        typeof id === "string" && !!id && id !== session.user.id
+    );
+  if (userIds.length === 0) {
+    throw new Error("Keine Person ausgewählt.");
+  }
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .delete(users)
+      .where(and(inArray(users.id, userIds), eq(users.vereinId, vereinId)))
+  );
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
 export async function funktionstraegerImportieren(formData: FormData) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;

@@ -3,12 +3,14 @@
 import { useMemo, useState } from "react";
 import {
   adminRechteToggeln,
+  deleteFunktionstraeger,
   funktionstraegerAktivToggeln,
   rolleHinzufuegen,
   updateFunktionstraeger,
 } from "@/app/admin/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
 import {
@@ -74,6 +76,8 @@ export function FunktionstraegerTabelle({
   const [statusFilter, setStatusFilter] = useState<"alle" | "aktiv" | "inaktiv">(
     "alle"
   );
+  const [ausgewaehlt, setAusgewaehlt] = useState<Set<string>>(new Set());
+  const [mehrfachauswahl, setMehrfachauswahl] = useState(false);
 
   const gefiltert = useMemo(() => {
     const q = suche.trim().toLowerCase();
@@ -98,9 +102,38 @@ export function FunktionstraegerTabelle({
     });
   }, [personen, suche, rolleFilter, statusFilter]);
 
+  // Man selbst darf nicht in der Mehrfachauswahl landen (keine
+  // Selbstlöschung über diesen Weg, siehe deleteFunktionstraeger).
+  const auswaehlbar = useMemo(
+    () => gefiltert.filter((p) => p.userId !== eigeneUserId),
+    [gefiltert, eigeneUserId]
+  );
+  const alleSichtbarenAusgewaehlt =
+    auswaehlbar.length > 0 && auswaehlbar.every((p) => ausgewaehlt.has(p.userId));
+
+  function toggleEins(userId: string) {
+    setAusgewaehlt((bisherige) => {
+      const naechste = new Set(bisherige);
+      if (naechste.has(userId)) naechste.delete(userId);
+      else naechste.add(userId);
+      return naechste;
+    });
+  }
+
+  function toggleAlleSichtbaren() {
+    setAusgewaehlt((bisherige) => {
+      if (alleSichtbarenAusgewaehlt) {
+        const naechste = new Set(bisherige);
+        for (const p of auswaehlbar) naechste.delete(p.userId);
+        return naechste;
+      }
+      return new Set([...bisherige, ...auswaehlbar.map((p) => p.userId)]);
+    });
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Input
           placeholder="Suche nach Name oder E-Mail…"
           value={suche}
@@ -130,6 +163,34 @@ export function FunktionstraegerTabelle({
           <option value="aktiv">Nur aktive Rollen</option>
           <option value="inaktiv">Nur inaktive Rollen</option>
         </select>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setMehrfachauswahl((an) => !an);
+            setAusgewaehlt(new Set());
+          }}
+        >
+          {mehrfachauswahl ? "Mehrfachauswahl beenden" : "Mehrfachauswahl"}
+        </Button>
+        {mehrfachauswahl && ausgewaehlt.size > 0 && (
+          <form
+            action={deleteFunktionstraeger}
+            className="flex items-center gap-2"
+          >
+            {[...ausgewaehlt].map((id) => (
+              <input key={id} type="hidden" name="userId" value={id} />
+            ))}
+            <ConfirmSubmitButton
+              confirmText={`${ausgewaehlt.size} Person${ausgewaehlt.size === 1 ? "" : "en"} wirklich löschen? Login, Rollen und die komplette Einsatz-Historie gehen dabei unwiderruflich verloren.`}
+              variant="destructive"
+              size="sm"
+            >
+              {ausgewaehlt.size} Person{ausgewaehlt.size === 1 ? "" : "en"} löschen
+            </ConfirmSubmitButton>
+          </form>
+        )}
       </div>
 
       {gefiltert.length === 0 ? (
@@ -142,6 +203,16 @@ export function FunktionstraegerTabelle({
         <Table>
           <TableHeader>
             <TableRow>
+              {mehrfachauswahl && (
+                <TableHead className="w-8">
+                  <input
+                    type="checkbox"
+                    aria-label="Alle sichtbaren auswählen"
+                    checked={alleSichtbarenAusgewaehlt}
+                    onChange={toggleAlleSichtbaren}
+                  />
+                </TableHead>
+              )}
               <TableHead>Name</TableHead>
               <TableHead>E-Mail</TableHead>
               <TableHead>Rollen</TableHead>
@@ -151,6 +222,18 @@ export function FunktionstraegerTabelle({
           <TableBody>
             {gefiltert.map((p) => (
               <TableRow key={p.userId}>
+                {mehrfachauswahl && (
+                  <TableCell>
+                    {p.userId !== eigeneUserId && (
+                      <input
+                        type="checkbox"
+                        aria-label={`${p.name ?? p.email} auswählen`}
+                        checked={ausgewaehlt.has(p.userId)}
+                        onChange={() => toggleEins(p.userId)}
+                      />
+                    )}
+                  </TableCell>
+                )}
                 <TableCell className="font-medium">{p.name}</TableCell>
                 <TableCell className="text-muted-foreground">{p.email}</TableCell>
                 <TableCell>
