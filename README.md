@@ -166,6 +166,27 @@ nicht als fehlgeschlagen. Lokal manuell auslösen:
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/terminerinnerungen
 ```
 
+Derselbe Cron-Lauf verschickt außerdem eine Erinnerung an alle Admins eines
+Vereins, wenn in den nächsten 3 Tagen noch Ordner-/Kioskdienst- oder
+Zeitnehmer-/Sekretär-Bedarf offen ist (`src/lib/dienste-erinnerung.ts`,
+Digest über alle betroffenen Termine statt einer Mail pro Termin) — ergänzt
+die rein passive Anzeige auf `/admin/dienste` um eine aktive Erinnerung.
+Bewusst kein Dedup wie oben: eine offene Lücke soll täglich in Erinnerung
+bleiben, solange sie besteht (maximal 3 Mails pro Termin, da nur innerhalb
+des 3-Tage-Fensters versendet wird).
+
+## Wochen-Digest (Vercel Cron)
+
+`vercel.json` registriert `GET /api/cron/wochen-digest`, wöchentlich
+montags. Schickt jeder Person mit mindestens einem Einsatz in den nächsten 7
+Tagen eine Übersichts-Mail (`src/lib/wochen-digest.ts`, nutzt dieselbe
+Kalender-Logik wie `/profil`) — wer nichts eingetragen hat, bekommt keine
+Mail. Lokal manuell auslösen:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/wochen-digest
+```
+
 ## Push-Benachrichtigungen
 
 Zusätzlich zur E-Mail können Nutzer auf `/profil` Push-Benachrichtigungen für
