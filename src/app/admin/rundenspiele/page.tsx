@@ -9,6 +9,7 @@ import {
 import { gruppiereUnbekannteMannschaften } from "@/lib/rundenspiel-import";
 import { findeTestspielDuplikate } from "@/lib/duplikat-erkennung";
 import { Button } from "@/components/ui/button";
+import { RundenspieleListe } from "@/components/rundenspiele-liste";
 import {
   Card,
   CardContent,
@@ -164,32 +165,7 @@ export default async function RundenspielePage() {
           <CardTitle>Alle importierten Spiele</CardTitle>
         </CardHeader>
         <CardContent>
-          {liste.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Noch keine Spiele importiert.
-            </p>
-          ) : (
-            <div className="flex flex-col divide-y">
-              {liste.map((t) => (
-                <div key={t.id} className="flex flex-col gap-0.5 py-3 first:pt-0 last:pb-0">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                    <span className="text-sm font-medium">
-                      {formatDateTime(t.start)}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {t.ort ?? "—"}
-                    </span>
-                  </div>
-                  <p className="text-sm">{t.beschreibung ?? "—"}</p>
-                  {t.mannschaftName && (
-                    <p className="text-xs text-muted-foreground">
-                      Eigene Mannschaft: {t.mannschaftName}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <RundenspieleListe liste={liste} />
         </CardContent>
       </Card>
     </div>
