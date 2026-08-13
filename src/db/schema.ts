@@ -302,9 +302,13 @@ export const termine = pgTable("termin", {
   // Für ICS-Feed-Termine: UID (+ ggf. RECURRENCE-ID) aus dem ICS-Standard,
   // um bei jedem Sync Änderungen sauber abzugleichen statt zu duplizieren.
   icsUid: text("ics_uid"),
+  // set null statt cascade: wird die Person gelöscht, soll der Termin (das
+  // Spiel) erhalten bleiben, nur ohne zugeordneten Schiedsrichter — analog
+  // zu mannschaftId/erstelltVon oben (siehe auch deleteMannschaft-Kommentar
+  // in admin/actions.ts, gleiches Prinzip).
   icsSchiedsrichterId: text("ics_schiedsrichter_id").references(
     () => users.id,
-    { onDelete: "cascade" }
+    { onDelete: "set null" }
   ),
   // Nur bei typ = 'turnier_spiel' gesetzt: verweist auf den Turnier-
   // Container (typ = 'turnier'), zu dem dieses Einzelspiel gehört.
