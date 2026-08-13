@@ -23,14 +23,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
+import { cn } from "@/lib/utils";
 import { formatMonatJahr, toDatetimeLocalWert } from "@/lib/format";
 
 const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+// Siehe DISCLOSURE_KLASSE in profil/schiedsrichterwart/page.tsx.
+const DISCLOSURE_KLASSE = cn(
+  buttonVariants({ variant: "outline", size: "xs" }),
+  "cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+);
 
 const ZUORDENBARE_TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -480,36 +487,54 @@ export function MonatsKalender({
                                           anderen Vereins) — unabhängig von
                                           zuordenbarePersonen immer verfügbar,
                                           siehe externeZuordnung in
-                                          admin/zuordnung/actions.ts. */}
-                                      <form
-                                        action={externeZuordnung}
-                                        className="flex flex-wrap items-center gap-2"
-                                      >
-                                        <input
-                                          type="hidden"
-                                          name="terminId"
-                                          value={e.id}
-                                        />
-                                        <Input
-                                          name="name"
-                                          placeholder="Name ohne Login…"
-                                          required
-                                          className="h-8 flex-1"
-                                        />
-                                        <div className="w-36">
-                                          <LabeledSelect
-                                            name="rolle"
-                                            placeholder="Rolle…"
-                                            required
-                                            options={Object.entries(
-                                              ZUORDENBARE_TYP_LABEL
-                                            ).map(([value, label]) => ({ value, label }))}
+                                          admin/zuordnung/actions.ts. Standardmäßig
+                                          eingeklappt: nur ein Fallback, richtig
+                                          angelegte Personen sollen der
+                                          naheliegendere Weg bleiben. */}
+                                      <details className="group">
+                                        <summary className={DISCLOSURE_KLASSE}>
+                                          <span className="group-open:hidden">
+                                            Ohne Login zuordnen (Fallback)
+                                          </span>
+                                          <span className="hidden group-open:inline">
+                                            Schließen
+                                          </span>
+                                        </summary>
+                                        <form
+                                          action={externeZuordnung}
+                                          className="mt-2 flex flex-col gap-2"
+                                        >
+                                          <input
+                                            type="hidden"
+                                            name="terminId"
+                                            value={e.id}
                                           />
-                                        </div>
-                                        <Button type="submit" variant="ghost" size="xs">
-                                          Ohne Login zuordnen
-                                        </Button>
-                                      </form>
+                                          <Input
+                                            name="name"
+                                            placeholder="Name ohne Login…"
+                                            required
+                                            className="h-8 w-full"
+                                          />
+                                          <div className="flex items-center gap-2">
+                                            <div className="flex-1">
+                                              <LabeledSelect
+                                                name="rolle"
+                                                placeholder="Rolle…"
+                                                required
+                                                options={Object.entries(
+                                                  ZUORDENBARE_TYP_LABEL
+                                                ).map(([value, label]) => ({
+                                                  value,
+                                                  label,
+                                                }))}
+                                              />
+                                            </div>
+                                            <Button type="submit" variant="ghost" size="xs">
+                                              Zuordnen
+                                            </Button>
+                                          </div>
+                                        </form>
+                                      </details>
                                     </div>
                                   );
                                   // Ein bereits abgepfiffenes Spiel braucht keine
