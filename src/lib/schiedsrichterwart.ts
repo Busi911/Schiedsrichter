@@ -2,6 +2,7 @@ import "server-only";
 import { and, count, eq, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, termine, terminZuordnungen, users } from "@/db/schema";
+import { summiereZweiZaehlungen } from "./einsatz-zahlen";
 
 // Eigene Funktionsträger-Rolle, unabhängig von istAdmin und einer eigenen
 // "schiedsrichter"-Rolle derselben Person — eine Person kann gleichzeitig
@@ -80,11 +81,6 @@ export async function holeSchiedsrichterEinsatzZahlen(
       )
       .groupBy(terminZuordnungen.userId);
 
-    return schiedsrichterListe.map((s) => {
-      const ics = icsZaehlung.find((z) => z.userId === s.userId)?.anzahl ?? 0;
-      const zugeordnet =
-        zuordnungZaehlung.find((z) => z.userId === s.userId)?.anzahl ?? 0;
-      return { ...s, anzahlEinsaetze: Number(ics) + Number(zugeordnet) };
-    });
+    return summiereZweiZaehlungen(schiedsrichterListe, icsZaehlung, zuordnungZaehlung);
   });
 }

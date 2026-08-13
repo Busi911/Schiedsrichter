@@ -21,7 +21,7 @@ const ERINNERUNG_TYP = "erinnerung_24h";
 // benachrichtigung-Tabelle erkannt und nicht doppelt versendet.
 const FENSTER_STUNDEN = 36;
 
-type Termin = typeof termine.$inferSelect;
+export type Termin = typeof termine.$inferSelect;
 
 async function ermittleEmpfaenger(termin: Termin) {
   const empfaenger = new Map<string, { id: string; email: string }>();
@@ -74,7 +74,9 @@ async function ermittleEmpfaenger(termin: Termin) {
   return [...empfaenger.values()];
 }
 
-function erinnerungsMailInhalt(termin: Termin) {
+type ErinnerungsTermin = Pick<Termin, "start" | "ort" | "beschreibung">;
+
+export function erinnerungsMailInhalt(termin: ErinnerungsTermin) {
   const zeitpunkt = formatDatumZeitLang(termin.start);
   const zeilen: string[] = [`Termin: ${zeitpunkt}`];
   if (termin.ort) zeilen.push(`Ort: ${termin.ort}`);
@@ -82,7 +84,7 @@ function erinnerungsMailInhalt(termin: Termin) {
   return { ueberschrift: "Erinnerung an deinen anstehenden Termin.", zeilen };
 }
 
-function erinnerungsPushText(termin: Termin) {
+export function erinnerungsPushText(termin: ErinnerungsTermin) {
   const zeitpunkt = formatDatumZeitLang(termin.start);
   const zeilen = [`Erinnerung an deinen Termin am ${zeitpunkt}.`];
   if (termin.ort) zeilen.push(`Ort: ${termin.ort}`);
