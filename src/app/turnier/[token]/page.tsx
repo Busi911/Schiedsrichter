@@ -70,10 +70,14 @@ export default async function OeffentlicheTurnierseite({
     const besetzung = alleZuordnungen.filter((z) => z.terminId === s.id);
     return (
       <div key={s.id} className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-          <span className="font-medium">{formatDateTime(s.start)}</span>
-          <span className="text-sm text-muted-foreground">{s.ort ?? "—"}</span>
-        </div>
+        {/* Datum, Ort und Mannschaft/Beschreibung IMMER als drei feste
+            Zeilen — vorher teilten sich Datum und Ort eine Flex-Zeile mit
+            justify-between/flex-wrap, wodurch der Ort abhängig von der
+            zufälligen Textbreite mal daneben, mal in eine eigene Zeile
+            umbrach: optisch uneinheitlich zwischen sonst gleichartigen
+            Einträgen. */}
+        <span className="font-medium">{formatDateTime(s.start)}</span>
+        <span className="text-sm text-muted-foreground">{s.ort ?? "—"}</span>
         <p className="text-sm">
           {s.beschreibung ?? "—"}
           {s.ergebnisHeim !== null && s.ergebnisAuswaerts !== null && (
@@ -83,9 +87,13 @@ export default async function OeffentlicheTurnierseite({
           )}
         </p>
         {besetzung.length === 0 ? (
-          <span className="text-xs text-muted-foreground">
+          // Badge statt reinem Fließtext, wie bei "Besetzung offen" überall
+          // sonst in der App (z.B. Schiedsrichterwart-Seite) — als
+          // unauffälliger text-xs-Satz ging der offene Status zu leicht
+          // unter, gerade neben den Badges für bereits zugeordnete Personen.
+          <Badge variant="outline" className="w-fit">
             Besetzung noch offen
-          </span>
+          </Badge>
         ) : (
           <div className="flex flex-wrap gap-1">
             {besetzung.map((z) => (
