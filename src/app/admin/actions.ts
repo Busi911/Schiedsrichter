@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { requireAdmin, requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
@@ -121,6 +121,34 @@ export async function deleteMannschaft(formData: FormData) {
       .delete(mannschaften)
       .where(
         and(eq(mannschaften.id, mannschaftId), eq(mannschaften.vereinId, vereinId))
+      )
+  );
+
+  revalidatePath("/admin/mannschaften");
+}
+
+// Mehrfachauswahl-Löschen (siehe MannschaftenTabelle) — z.B. um Dubletten aus
+// unsauberem manuellem Anlegen in einem Schritt aufzuräumen, statt jede
+// einzeln über deleteMannschaft entfernen zu müssen.
+export async function deleteMannschaften(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const mannschaftIds = formData
+    .getAll("mannschaftId")
+    .filter((id): id is string => typeof id === "string" && !!id);
+  if (mannschaftIds.length === 0) {
+    throw new Error("Keine Mannschaft ausgewählt.");
+  }
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .delete(mannschaften)
+      .where(
+        and(
+          inArray(mannschaften.id, mannschaftIds),
+          eq(mannschaften.vereinId, vereinId)
+        )
       )
   );
 
