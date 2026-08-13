@@ -9,7 +9,7 @@ import { istSaisonAbgeschlossen } from "./saison";
 // genutzt) geben Abo-Links mit dem "webcal://"-Schema aus. Das ist nur eine
 // Konvention für "im Kalenderprogramm öffnen" — inhaltlich identisch zu
 // https://. fetch() kennt das Schema nicht, daher hier normalisieren.
-function normalisiereFeedUrl(url: string): string {
+export function normalisiereFeedUrl(url: string): string {
   if (url.startsWith("webcal://")) {
     return "https://" + url.slice("webcal://".length);
   }
@@ -19,7 +19,7 @@ function normalisiereFeedUrl(url: string): string {
   return url;
 }
 
-function textValue(v: unknown): string | null {
+export function textValue(v: unknown): string | null {
   if (v == null) return null;
   if (typeof v === "string") return v;
   if (typeof v === "object" && "val" in (v as Record<string, unknown>)) {

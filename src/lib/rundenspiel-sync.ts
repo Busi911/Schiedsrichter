@@ -16,6 +16,45 @@ import { holeNuligaJson, type NuligaDiagnose } from "./nuliga-scraper";
 // nuLiga-Sync unten, damit beide Wege exakt dasselbe Update-/Dedup-
 // Verhalten haben (Match über termin.ics_uid, siehe bildeUid in
 // rundenspiel-import.ts).
+// Reiner Vergleich (ohne DB-Zugriff), damit er ohne Testdatenbank getestet
+// werden kann — siehe rundenspiel-sync.test.ts. Entscheidet, ob ein bereits
+// importiertes Rundenspiel ein UPDATE braucht: nur wenn sich tatsächlich
+// etwas geändert hat, sonst würde jeder Sync-Lauf (per Cron täglich) jedes
+// unveränderte Spiel erneut als "aktualisiert" ausweisen.
+export function terminBenoetigtUpdate(
+  bestehend: {
+    start: Date;
+    ort: string | null;
+    beschreibung: string | null;
+    mannschaftId: string | null;
+    heimMannschaftName: string | null;
+    auswaertsMannschaftName: string | null;
+    kategorie: string | null;
+    pflichtspiel: boolean | null;
+    freundschaftsTyp: string | null;
+    ergebnisHeim: number | null;
+    ergebnisAuswaerts: number | null;
+    nuligaSchiedsrichterKuerzel: string | null;
+  },
+  ereignis: RundenspielEreignis,
+  mannschaftId: string | null
+): boolean {
+  return (
+    bestehend.start.getTime() !== ereignis.start.getTime() ||
+    bestehend.ort !== ereignis.ort ||
+    bestehend.beschreibung !== ereignis.beschreibung ||
+    bestehend.mannschaftId !== mannschaftId ||
+    bestehend.heimMannschaftName !== ereignis.heimMannschaft ||
+    bestehend.auswaertsMannschaftName !== ereignis.auswaertsMannschaft ||
+    bestehend.kategorie !== ereignis.kategorie ||
+    bestehend.pflichtspiel !== ereignis.pflichtspiel ||
+    bestehend.freundschaftsTyp !== ereignis.freundschaftsTyp ||
+    bestehend.ergebnisHeim !== ereignis.ergebnisHeim ||
+    bestehend.ergebnisAuswaerts !== ereignis.ergebnisAuswaerts ||
+    bestehend.nuligaSchiedsrichterKuerzel !== ereignis.schiedsrichterKuerzel
+  );
+}
+
 export async function importiereRundenspielEreignisse(
   vereinId: string,
   ereignisse: RundenspielEreignis[]
@@ -43,25 +82,7 @@ export async function importiereRundenspielEreignisse(
       });
 
       if (bestehend) {
-        // Nur EINE Zeile schreiben und als "aktualisiert" zählen, wenn sich
-        // tatsächlich etwas geändert hat — sonst würde jeder Sync-Lauf (per
-        // Cron mehrmals wöchentlich) jedes unveränderte Spiel erneut als
-        // "aktualisiert" ausweisen, obwohl nichts passiert ist.
-        const geaendert =
-          bestehend.start.getTime() !== ereignis.start.getTime() ||
-          bestehend.ort !== ereignis.ort ||
-          bestehend.beschreibung !== ereignis.beschreibung ||
-          bestehend.mannschaftId !== mannschaftId ||
-          bestehend.heimMannschaftName !== ereignis.heimMannschaft ||
-          bestehend.auswaertsMannschaftName !== ereignis.auswaertsMannschaft ||
-          bestehend.kategorie !== ereignis.kategorie ||
-          bestehend.pflichtspiel !== ereignis.pflichtspiel ||
-          bestehend.freundschaftsTyp !== ereignis.freundschaftsTyp ||
-          bestehend.ergebnisHeim !== ereignis.ergebnisHeim ||
-          bestehend.ergebnisAuswaerts !== ereignis.ergebnisAuswaerts ||
-          bestehend.nuligaSchiedsrichterKuerzel !== ereignis.schiedsrichterKuerzel;
-
-        if (geaendert) {
+        if (terminBenoetigtUpdate(bestehend, ereignis, mannschaftId)) {
           await tx
             .update(termine)
             .set({

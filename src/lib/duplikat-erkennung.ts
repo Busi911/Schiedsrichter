@@ -34,6 +34,63 @@ export type MoeglichesDuplikat = {
   rundenspielBesetzung: string[];
 };
 
+type DuplikatKandidat = {
+  id: string;
+  start: Date;
+  beschreibung: string | null;
+  besetzung: string[];
+};
+type RundenspielKandidat = DuplikatKandidat & {
+  heimMannschaftName: string | null;
+  auswaertsMannschaftName: string | null;
+};
+
+// Reine Matching-Logik (ohne DB-Zugriff), damit sie ohne Testdatenbank
+// getestet werden kann — siehe duplikat-erkennung.test.ts. Ein Testspiel und
+// ein Rundenspiel gelten als mögliches Duplikat, wenn sie am selben Tag
+// (Berlin-Ortszeit) liegen UND entweder der Team-Name im Testspiel-Text
+// vorkommt ODER die Startzeiten innerhalb von ZEITFENSTER_MS liegen.
+export function findeDuplikatPaare(
+  testspiele: DuplikatKandidat[],
+  rundenspiele: RundenspielKandidat[]
+): MoeglichesDuplikat[] {
+  const treffer: MoeglichesDuplikat[] = [];
+  for (const t of testspiele) {
+    const tTag = berlinTag(t.start);
+    const tBeschreibung = normalisiereMannschaftsname(t.beschreibung ?? "");
+
+    for (const r of rundenspiele) {
+      if (berlinTag(r.start) !== tTag) continue;
+
+      const heim = r.heimMannschaftName
+        ? normalisiereMannschaftsname(r.heimMannschaftName)
+        : "";
+      const auswaerts = r.auswaertsMannschaftName
+        ? normalisiereMannschaftsname(r.auswaertsMannschaftName)
+        : "";
+      const nameTreffer =
+        (heim && tBeschreibung.includes(heim)) ||
+        (auswaerts && tBeschreibung.includes(auswaerts));
+      const zeitTreffer =
+        Math.abs(t.start.getTime() - r.start.getTime()) <= ZEITFENSTER_MS;
+
+      if (nameTreffer || zeitTreffer) {
+        treffer.push({
+          testspielId: t.id,
+          testspielStart: t.start,
+          testspielBeschreibung: t.beschreibung,
+          testspielBesetzung: t.besetzung,
+          rundenspielId: r.id,
+          rundenspielStart: r.start,
+          rundenspielBeschreibung: r.beschreibung,
+          rundenspielBesetzung: r.besetzung,
+        });
+      }
+    }
+  }
+  return treffer;
+}
+
 export async function findeTestspielDuplikate(
   vereinId: string
 ): Promise<MoeglichesDuplikat[]> {
@@ -80,41 +137,9 @@ export async function findeTestspielDuplikate(
         );
     }
 
-    const treffer: MoeglichesDuplikat[] = [];
-    for (const t of testspiele) {
-      const tTag = berlinTag(t.start);
-      const tBeschreibung = normalisiereMannschaftsname(t.beschreibung ?? "");
-
-      for (const r of rundenspiele) {
-        if (berlinTag(r.start) !== tTag) continue;
-
-        const heim = r.heimMannschaftName
-          ? normalisiereMannschaftsname(r.heimMannschaftName)
-          : "";
-        const auswaerts = r.auswaertsMannschaftName
-          ? normalisiereMannschaftsname(r.auswaertsMannschaftName)
-          : "";
-        const nameTreffer =
-          (heim && tBeschreibung.includes(heim)) ||
-          (auswaerts && tBeschreibung.includes(auswaerts));
-        const zeitTreffer =
-          Math.abs(t.start.getTime() - r.start.getTime()) <= ZEITFENSTER_MS;
-
-        if (nameTreffer || zeitTreffer) {
-          treffer.push({
-            testspielId: t.id,
-            testspielStart: t.start,
-            testspielBeschreibung: t.beschreibung,
-            testspielBesetzung: besetzungFuer(t.id),
-            rundenspielId: r.id,
-            rundenspielStart: r.start,
-            rundenspielBeschreibung: r.beschreibung,
-            rundenspielBesetzung: besetzungFuer(r.id),
-          });
-        }
-      }
-    }
-
-    return treffer;
+    return findeDuplikatPaare(
+      testspiele.map((t) => ({ ...t, besetzung: besetzungFuer(t.id) })),
+      rundenspiele.map((r) => ({ ...r, besetzung: besetzungFuer(r.id) }))
+    );
   });
 }

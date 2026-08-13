@@ -2,6 +2,7 @@ import "server-only";
 import { and, count, eq, gte, inArray, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, termine, terminZuordnungen, users } from "@/db/schema";
+import { mergeRollenZaehlungen } from "./einsatz-zahlen";
 
 export const ORDNER_ROLLEN = ["ordner", "kioskdienst"] as const;
 
@@ -114,20 +115,10 @@ export async function holeOrdnerEinsatzZahlen(
       )
       .groupBy(terminZuordnungen.userId);
 
-    const personenMap = new Map<string, OrdnerEinsatzZahl>();
-    for (const r of rollenZeilen) {
-      const eintrag = personenMap.get(r.userId) ?? {
-        userId: r.userId,
-        name: r.name,
-        email: r.email,
-        anzahlEinsaetze: Number(
-          zuordnungZaehlung.find((z) => z.userId === r.userId)?.anzahl ?? 0
-        ),
-        rollen: [],
-      };
-      eintrag.rollen.push(r.typ as (typeof ORDNER_ROLLEN)[number]);
-      personenMap.set(r.userId, eintrag);
-    }
-    return Array.from(personenMap.values());
+    const rollenZeilenGetypt = rollenZeilen.map((r) => ({
+      ...r,
+      typ: r.typ as (typeof ORDNER_ROLLEN)[number],
+    }));
+    return mergeRollenZaehlungen(rollenZeilenGetypt, zuordnungZaehlung);
   });
 }
