@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { signIn } from "@/auth";
 import {
   Card,
@@ -150,16 +149,6 @@ export default async function LoginPage({
           </form>
         </CardContent>
       </Card>
-
-      <p className="text-center text-xs text-muted-foreground">
-        <Link href="/datenschutz" className="underline">
-          Datenschutz
-        </Link>
-        {" · "}
-        <Link href="/impressum" className="underline">
-          Impressum
-        </Link>
-      </p>
     </main>
   );
 }
