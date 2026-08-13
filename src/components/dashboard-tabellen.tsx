@@ -57,6 +57,7 @@ export function NaechsteTermineTabelle({
 export type OffenerPostenZeile = {
   terminId: string;
   zeit: string;
+  mannschaft: string | null;
   luecken: { rolle: string; vorhanden: number; bedarf: number }[];
 };
 
@@ -74,9 +75,14 @@ export function UnbesetzteDiensteTabelle({
               {i === 0 && (
                 <TableCell
                   rowSpan={p.luecken.length}
-                  className="w-0 align-top text-sm font-medium whitespace-normal"
+                  className="w-0 align-top text-sm whitespace-normal"
                 >
-                  {p.zeit}
+                  <div className="font-medium">{p.zeit}</div>
+                  {p.mannschaft && (
+                    <div className="text-xs text-muted-foreground">
+                      {p.mannschaft}
+                    </div>
+                  )}
                 </TableCell>
               )}
               <TableCell className="text-sm whitespace-normal text-muted-foreground">

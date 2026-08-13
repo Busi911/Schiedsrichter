@@ -3,7 +3,11 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
-import { holeLetzteErgebnisse, holeNaechsteTermine } from "@/lib/dashboard";
+import {
+  formatMannschaft,
+  holeLetzteErgebnisse,
+  holeNaechsteTermine,
+} from "@/lib/dashboard";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -30,19 +34,6 @@ const TYP_LABEL: Record<string, string> = {
   turnier_spiel: "Turnierspiel",
   rundenspiel: "Rundenspiel",
 };
-
-function formatMannschaft(t: {
-  mannschaftName: string | null;
-  mannschaftAltersklasse: string | null;
-  kategorie: string | null;
-}): string | null {
-  if (t.mannschaftName) {
-    return t.mannschaftAltersklasse
-      ? `${t.mannschaftName} (${t.mannschaftAltersklasse})`
-      : t.mannschaftName;
-  }
-  return t.kategorie;
-}
 
 // Bei rundenspiel-Terminen ist beschreibung = [titel, kategorie, spielArt,
 // zusatz].join(" · ") (siehe rundenspiel-import.ts) — titel (Heim –

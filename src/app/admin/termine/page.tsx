@@ -1,9 +1,10 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mannschaften, termine } from "@/db/schema";
 import { createTermin } from "../actions";
+import { formatMannschaft } from "@/lib/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,13 +32,26 @@ export default async function TerminePage() {
   const vereinId = session.user.vereinId!;
 
   const [liste, mannschaftsListe] = await withTenant(vereinId, async (tx) => {
-    const liste = await tx.query.termine.findMany({
-      where: and(
-        eq(termine.vereinId, vereinId),
-        inArray(termine.typ, ["testspiel", "turnier"])
-      ),
-      orderBy: (t, { asc }) => [asc(t.start)],
-    });
+    const liste = await tx
+      .select({
+        id: termine.id,
+        typ: termine.typ,
+        start: termine.start,
+        ort: termine.ort,
+        beschreibung: termine.beschreibung,
+        mannschaftName: mannschaften.name,
+        mannschaftAltersklasse: mannschaften.altersklasse,
+        kategorie: termine.kategorie,
+      })
+      .from(termine)
+      .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
+      .where(
+        and(
+          eq(termine.vereinId, vereinId),
+          inArray(termine.typ, ["testspiel", "turnier"])
+        )
+      )
+      .orderBy(asc(termine.start));
     const mannschaftsListe = await tx.query.mannschaften.findMany({
       where: eq(mannschaften.vereinId, vereinId),
       orderBy: (m, { asc }) => [asc(m.name)],
@@ -73,6 +87,7 @@ export default async function TerminePage() {
                   <TableRow>
                     <TableHead>Datum</TableHead>
                     <TableHead>Typ</TableHead>
+                    <TableHead>Mannschaft</TableHead>
                     <TableHead>Ort</TableHead>
                     <TableHead>Beschreibung</TableHead>
                     <TableHead />
@@ -88,6 +103,9 @@ export default async function TerminePage() {
                         <Badge variant="secondary">
                           {TYP_LABEL[t.typ] ?? t.typ}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatMannschaft(t) ?? "—"}
                       </TableCell>
                       <TableCell>{t.ort ?? "—"}</TableCell>
                       <TableCell>{t.beschreibung ?? "—"}</TableCell>
