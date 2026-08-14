@@ -3,6 +3,7 @@ import { and, asc, desc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, vereine } from "@/db/schema";
 import { bedarfFuer } from "./dienste";
+import { brauchtSchiedsrichterVomVerein } from "./besetzung";
 
 // Termine-Spalten + Mannschaftsname/-altersklasse (Jugend/Männer/Frauen) in
 // einem Rutsch, statt der reinen termine.findMany() — ohne definierte
@@ -222,5 +223,53 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
       .where(inArray(terminZuordnungen.terminId, terminIds));
 
     return berechneOffenePosten(verein, anstehende, zuordnungen);
+  });
+}
+
+type AnstehenderSchiriTermin = { id: string; typ: string; pflichtspiel?: boolean | null };
+
+// Reine Berechnung (ohne DB-Zugriff, siehe dashboard.test.ts). Getrennt von
+// berechneOffenePosten/holeOffenePosten (Ordner/Kioskdienst/Zeitnehmer, siehe
+// /admin/dienste): Schiedsrichter-Zuordnung läuft über die eigene
+// Schiedsrichterwart-Rolle, nicht über /admin/dienste — deshalb ein eigener
+// Zähler statt eines weiteren luecken-Eintrags in OffenePosten.
+export function berechneOffeneSchiedsrichterAnzahl(
+  anstehende: AnstehenderSchiriTermin[],
+  zuordnungen: { terminId: string; funktionstraegerTyp: string }[]
+): number {
+  return anstehende
+    .filter(brauchtSchiedsrichterVomVerein)
+    .filter(
+      (t) =>
+        !zuordnungen.some(
+          (z) => z.terminId === t.id && z.funktionstraegerTyp === "schiedsrichter"
+        )
+    ).length;
+}
+
+export async function holeOffeneSchiedsrichterAnzahl(vereinId: string): Promise<number> {
+  return withTenant(vereinId, async (tx) => {
+    const anstehende = await tx
+      .select({ id: termine.id, typ: termine.typ, pflichtspiel: termine.pflichtspiel })
+      .from(termine)
+      .where(
+        and(
+          eq(termine.vereinId, vereinId),
+          gte(termine.start, new Date()),
+          inArray(termine.typ, ["testspiel", "turnier_spiel", "rundenspiel"])
+        )
+      );
+    if (anstehende.length === 0) return 0;
+
+    const terminIds = anstehende.map((t) => t.id);
+    const zuordnungen = await tx
+      .select({
+        terminId: terminZuordnungen.terminId,
+        funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+      })
+      .from(terminZuordnungen)
+      .where(inArray(terminZuordnungen.terminId, terminIds));
+
+    return berechneOffeneSchiedsrichterAnzahl(anstehende, zuordnungen);
   });
 }

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { berechneBesetzung, istBesetzungVollstaendig } from "./besetzung";
+import {
+  berechneBesetzung,
+  brauchtSchiedsrichterVomVerein,
+  istBesetzungVollstaendig,
+} from "./besetzung";
 
 describe("berechneBesetzung", () => {
   it("ist unvollständig ohne jede Zuordnung", () => {
@@ -150,5 +154,28 @@ describe("istBesetzungVollstaendig", () => {
       { funktionstraegerTyp: "zeitnehmer" },
     ]);
     expect(istBesetzungVollstaendig(beides, "testspiel")).toBe(true);
+  });
+});
+
+describe("brauchtSchiedsrichterVomVerein", () => {
+  it("verlangt einen vereinseigenen Schiedsrichter bei Freundschaftsspiel und Turnierspiel", () => {
+    expect(brauchtSchiedsrichterVomVerein({ typ: "testspiel" })).toBe(true);
+    expect(brauchtSchiedsrichterVomVerein({ typ: "turnier_spiel" })).toBe(true);
+  });
+
+  it("verlangt einen vereinseigenen Schiedsrichter bei Rundenspielen ohne Pflichtspiel-Status", () => {
+    expect(
+      brauchtSchiedsrichterVomVerein({ typ: "rundenspiel", pflichtspiel: false })
+    ).toBe(true);
+  });
+
+  it("verlangt KEINEN vereinseigenen Schiedsrichter bei echten Ligaspielen (Verband stellt ihn)", () => {
+    expect(
+      brauchtSchiedsrichterVomVerein({ typ: "rundenspiel", pflichtspiel: true })
+    ).toBe(false);
+  });
+
+  it("verlangt KEINEN vereinseigenen Schiedsrichter bei ICS-Feed-Terminen (Person IST der Schiedsrichter)", () => {
+    expect(brauchtSchiedsrichterVomVerein({ typ: "spiel_ics" })).toBe(false);
   });
 });

@@ -6,7 +6,7 @@ import {
   istSchiedsrichterwart,
 } from "@/lib/schiedsrichterwart";
 import { holeTermineMitZuordnungen } from "@/lib/zuordnung";
-import { berechneBesetzung } from "@/lib/besetzung";
+import { berechneBesetzung, brauchtSchiedsrichterVomVerein } from "@/lib/besetzung";
 import { schiedsrichterKuerzelPasstZu } from "@/lib/rundenspiel-import";
 import {
   schiedsrichterOhneLoginZuordnen,
@@ -53,17 +53,6 @@ const TYP_LABEL: Record<string, string> = {
   rundenspiel: "Rundenspiel",
 };
 
-// Nur diese Typen: der Verein ordnet hier selbst einen Schiedsrichter zu.
-// spiel_ics (persönliche ICS-Feed-Einsätze) und echte Ligaspiele
-// (rundenspiel mit pflichtspiel = true, Schiri kommt vom Verband) bleiben
-// bewusst außen vor — siehe Kommentar in besetzung.ts.
-function brauchtSchiedsrichterVomVerein(termin: {
-  typ: string;
-  pflichtspiel: boolean | null;
-}): boolean {
-  if (termin.typ === "rundenspiel") return termin.pflichtspiel !== true;
-  return termin.typ === "testspiel" || termin.typ === "turnier_spiel";
-}
 
 export default async function SchiedsrichterwartPage({
   searchParams,

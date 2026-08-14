@@ -70,3 +70,16 @@ export function istBesetzungVollstaendig(
   }
   return status.vollstaendig;
 }
+
+// Nur diese Typen: der Verein ordnet hier selbst einen Schiedsrichter zu.
+// spiel_ics (persönliche ICS-Feed-Einsätze, siehe termine.icsSchiedsrichterId)
+// bleibt bewusst außen vor — dort IST die Person bereits der Schiedsrichter,
+// es gibt nichts zuzuordnen. Echte Ligaspiele (rundenspiel mit
+// pflichtspiel = true) stellt der Verband, siehe istBesetzungVollstaendig oben.
+export function brauchtSchiedsrichterVomVerein(termin: {
+  typ: string;
+  pflichtspiel?: boolean | null;
+}): boolean {
+  if (termin.typ === "rundenspiel") return termin.pflichtspiel !== true;
+  return termin.typ === "testspiel" || termin.typ === "turnier_spiel";
+}
