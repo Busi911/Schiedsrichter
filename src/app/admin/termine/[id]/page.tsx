@@ -4,15 +4,9 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mannschaften, termine, users } from "@/db/schema";
-import {
-  deleteTermin,
-  turnierLinkErneuern,
-  updateTermin,
-} from "../../actions";
+import { turnierLinkErneuern } from "../../actions";
 import { appUrl } from "@/lib/app-url";
-import { toDatetimeLocalWert } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import {
   Card,
   CardContent,
@@ -20,9 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LabeledSelect } from "@/components/labeled-select";
+import { TerminBearbeitenDialog } from "@/components/termin-bearbeiten-dialog";
 import { TurnierSpielplan } from "@/components/turnier-spielplan";
 
 export default async function TerminBearbeitenPage({
@@ -81,138 +73,25 @@ export default async function TerminBearbeitenPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Link
-          href="/admin/termine"
-          className="text-sm text-muted-foreground underline"
-        >
-          ← Zurück zu Termine
-        </Link>
-        <h1 className="font-heading text-2xl font-semibold">
-          {istTurnier ? "Turnier bearbeiten" : "Termin bearbeiten"}
-        </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <Link
+            href="/admin/termine"
+            className="text-sm text-muted-foreground underline"
+          >
+            ← Zurück zu Termine
+          </Link>
+          <h1 className="font-heading text-2xl font-semibold">
+            {termin.beschreibung || (istTurnier ? "Turnier" : "Termin")}
+          </h1>
+        </div>
+        <TerminBearbeitenDialog
+          termin={termin}
+          mannschaftsListe={mannschaftsListe}
+          trainerListe={trainerListe}
+          istTurnier={istTurnier}
+        />
       </div>
-
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle>Details</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <form action={updateTermin} className="flex flex-col gap-4">
-            <input type="hidden" name="terminId" value={termin.id} />
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="typ">Typ</Label>
-              <LabeledSelect
-                id="typ"
-                name="typ"
-                defaultValue={termin.typ}
-                required
-                options={[
-                  { value: "testspiel", label: "Freundschaftsspiel" },
-                  { value: "turnier", label: "Turnier" },
-                ]}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="start">
-                {istTurnier ? "Beginn" : "Start"}
-              </Label>
-              <Input
-                id="start"
-                name="start"
-                type="datetime-local"
-                defaultValue={toDatetimeLocalWert(termin.start)}
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="ende">
-                {istTurnier ? "Ende (optional)" : "Ende (optional)"}
-              </Label>
-              <Input
-                id="ende"
-                name="ende"
-                type="datetime-local"
-                defaultValue={termin.ende ? toDatetimeLocalWert(termin.ende) : ""}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="ort">Ort</Label>
-              <Input id="ort" name="ort" defaultValue={termin.ort ?? ""} />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="beschreibung">
-                {istTurnier ? "Titel" : "Beschreibung / Gegner"}
-              </Label>
-              <Input
-                id="beschreibung"
-                name="beschreibung"
-                defaultValue={termin.beschreibung ?? ""}
-                placeholder={istTurnier ? "z.B. Sommerturnier 2026" : undefined}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="mannschaftId">Mannschaft (optional)</Label>
-              <LabeledSelect
-                id="mannschaftId"
-                name="mannschaftId"
-                placeholder="—"
-                defaultValue={termin.mannschaftId ?? undefined}
-                options={mannschaftsListe.map((m) => ({
-                  value: m.id,
-                  label: m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name,
-                }))}
-              />
-            </div>
-
-            {istTurnier && (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="turnierVerantwortlicherId">
-                  Turnierverantwortlicher (optional)
-                </Label>
-                <LabeledSelect
-                  id="turnierVerantwortlicherId"
-                  name="turnierVerantwortlicherId"
-                  placeholder="— (nur Admin verwaltet)"
-                  defaultValue={termin.turnierVerantwortlicherId ?? undefined}
-                  options={trainerListe.map((t) => ({
-                    value: t.userId,
-                    label: t.name ?? t.email,
-                  }))}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Darf zusätzlich zum Admin diesen Spielplan pflegen und
-                  Ergebnisse eintragen (unter &quot;Meine Termine&quot;).
-                </p>
-              </div>
-            )}
-
-            <Button type="submit" className="w-full">
-              Speichern
-            </Button>
-          </form>
-
-          <div className="flex justify-end border-t pt-4">
-            <form action={deleteTermin}>
-              <input type="hidden" name="terminId" value={termin.id} />
-              <ConfirmSubmitButton
-                confirmText={`${istTurnier ? "Turnier" : "Termin"} wirklich unwiderruflich löschen?`}
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-              >
-                {istTurnier ? "Turnier löschen" : "Termin löschen"}
-              </ConfirmSubmitButton>
-            </form>
-          </div>
-        </CardContent>
-      </Card>
 
       {istTurnier && (
         <>
