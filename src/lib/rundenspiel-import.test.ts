@@ -606,6 +606,55 @@ describe("findeMannschaft", () => {
     );
     expect(findeMannschaft(ereignisse[0], roemisch)).toBe("1");
   });
+
+  it("disambiguiert gleichnamige Mannschaften (z.B. Männer/Frauen) über altersklasse vs. kategorie", () => {
+    const gleichnamig = [
+      { id: "1", name: "TSF Heuchelheim", altersklasse: "F" },
+      { id: "2", name: "TSF Heuchelheim", altersklasse: "M" },
+    ];
+    const { ereignisse } = parseRundenspielJson(
+      beispielJson({
+        events: [
+          {
+            date: "2026-08-02",
+            time: "15:00",
+            start: "2026-08-02T15:00:00+02:00",
+            title: "x",
+            category: "M",
+            home: "TSF Heuchelheim",
+            away: "Gastverein 1",
+            location: "Halle",
+            locationId: 1,
+          },
+        ],
+      })
+    );
+    expect(findeMannschaft(ereignisse[0], gleichnamig)).toBe("2");
+  });
+
+  it("liefert null bei gleichnamigen Mannschaften ohne passende/eindeutige altersklasse statt zu raten", () => {
+    const gleichnamig = [
+      { id: "1", name: "TSF Heuchelheim", altersklasse: "F" },
+      { id: "2", name: "TSF Heuchelheim", altersklasse: "M" },
+    ];
+    const { ereignisse: ohneKategorie } = parseRundenspielJson(
+      beispielJson({
+        events: [
+          {
+            date: "2026-08-02",
+            time: "15:00",
+            start: "2026-08-02T15:00:00+02:00",
+            title: "x",
+            home: "TSF Heuchelheim",
+            away: "Gastverein 1",
+            location: "Halle",
+            locationId: 1,
+          },
+        ],
+      })
+    );
+    expect(findeMannschaft(ohneKategorie[0], gleichnamig)).toBeNull();
+  });
 });
 
 describe("normalisiereMannschaftsname", () => {

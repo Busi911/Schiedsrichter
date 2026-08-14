@@ -463,18 +463,39 @@ export function normalisiereMannschaftsname(name: string): string {
 // Auswärtsnamen enthalten (z.B. Mannschaft "Herren 1" in Heimname
 // "TSF Heuchelheim Herren 1"). Liefert null, wenn nichts eindeutig passt —
 // das Spiel wird trotzdem importiert, nur ohne Mannschaftsverknüpfung.
+//
+// Mehrere Mannschaften können denselben Vereinsnamen tragen (z.B. eine
+// Männer- und eine Frauen-Mannschaft desselben Vereins, die nuLiga oft ohne
+// unterscheidenden Namens-Suffix führt). In dem Fall zusätzlich über
+// altersklasse vs. ereignis.kategorie disambiguieren (beide stammen aus
+// demselben nuLiga-Rohtext, siehe mannschaftAusRundenspielAnlegen in
+// admin/actions.ts) — ohne diesen Abgleich würde sonst willkürlich eine der
+// gleichnamigen Mannschaften gewählt und künftige Spiele des jeweils
+// anderen Geschlechts/der anderen Jugendklasse fälschlich an sie verlinkt.
 export function findeMannschaft(
   ereignis: RundenspielEreignis,
-  mannschaften: { id: string; name: string }[]
+  mannschaften: { id: string; name: string; altersklasse?: string | null }[]
 ): string | null {
   const heimNorm = normalisiereMannschaftsname(ereignis.heimMannschaft);
   const auswaertsNorm = normalisiereMannschaftsname(ereignis.auswaertsMannschaft);
 
-  const exakt = mannschaften.find((m) => {
+  const namensTreffer = mannschaften.filter((m) => {
     const mNorm = normalisiereMannschaftsname(m.name);
     return mNorm === heimNorm || mNorm === auswaertsNorm;
   });
-  if (exakt) return exakt.id;
+  if (namensTreffer.length === 1) return namensTreffer[0].id;
+  if (namensTreffer.length > 1) {
+    if (ereignis.kategorie) {
+      const kategorieNorm = normalisiereMannschaftsname(ereignis.kategorie);
+      const mitKategorie = namensTreffer.filter(
+        (m) =>
+          m.altersklasse &&
+          normalisiereMannschaftsname(m.altersklasse) === kategorieNorm
+      );
+      if (mitKategorie.length === 1) return mitKategorie[0].id;
+    }
+    return null;
+  }
 
   const kandidatText = `${heimNorm} ${auswaertsNorm}`;
   const treffer = mannschaften.filter((m) =>
