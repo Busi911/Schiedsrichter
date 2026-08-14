@@ -1102,6 +1102,61 @@ export async function updateTurnierSpiel(formData: FormData) {
   revalidatePath(`/profil/turnier/${turnierId}`);
 }
 
+// Für Drag & Drop im Spielplan (siehe TurnierSpielplan): vertauscht den
+// Zeitslot (Start + Ort) zweier Einzelspiele, damit man die Reihenfolge
+// ändern kann, ohne beide Startzeiten manuell nachzurechnen. Begegnung und
+// Ergebnis bleiben an der jeweiligen Zeile hängen — es wandert also die
+// Begegnung an eine andere Uhrzeit/Bahn, nicht umgekehrt.
+export async function turnierSpieleVertauschen(formData: FormData) {
+  const session = await requireSession();
+  const vereinId = session.user.vereinId!;
+
+  const turnierId = formData.get("turnierId");
+  const spielIdA = formData.get("spielIdA");
+  const spielIdB = formData.get("spielIdB");
+  if (typeof turnierId !== "string" || !turnierId) {
+    throw new Error("Turnier fehlt.");
+  }
+  if (
+    typeof spielIdA !== "string" ||
+    !spielIdA ||
+    typeof spielIdB !== "string" ||
+    !spielIdB
+  ) {
+    throw new Error("Spiele fehlen.");
+  }
+  if (spielIdA === spielIdB) return;
+
+  await withTenant(vereinId, async (tx) => {
+    await ladeTurnierContainer(tx, turnierId, vereinId, session);
+
+    const spielWhere = (terminId: string) =>
+      and(
+        eq(termine.id, terminId),
+        eq(termine.vereinId, vereinId),
+        eq(termine.typ, "turnier_spiel"),
+        eq(termine.turnierId, turnierId)
+      );
+    const [a, b] = await Promise.all([
+      tx.query.termine.findFirst({ where: spielWhere(spielIdA) }),
+      tx.query.termine.findFirst({ where: spielWhere(spielIdB) }),
+    ]);
+    if (!a || !b) throw new Error("Spiel nicht gefunden.");
+
+    await tx
+      .update(termine)
+      .set({ start: b.start, ort: b.ort })
+      .where(eq(termine.id, a.id));
+    await tx
+      .update(termine)
+      .set({ start: a.start, ort: a.ort })
+      .where(eq(termine.id, b.id));
+  });
+
+  revalidatePath(`/admin/termine/${turnierId}`);
+  revalidatePath(`/profil/turnier/${turnierId}`);
+}
+
 export async function deleteTurnierSpiel(formData: FormData) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;

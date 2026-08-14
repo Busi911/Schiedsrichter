@@ -12,6 +12,7 @@ import {
 import { appUrl } from "@/lib/app-url";
 import { toDatetimeLocalWert } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import {
   Card,
   CardContent,
@@ -197,12 +198,19 @@ export default async function TerminBearbeitenPage({
             </Button>
           </form>
 
-          <form action={deleteTermin}>
-            <input type="hidden" name="terminId" value={termin.id} />
-            <Button type="submit" variant="destructive" className="w-full">
-              {istTurnier ? "Turnier löschen" : "Termin löschen"}
-            </Button>
-          </form>
+          <div className="flex justify-end border-t pt-4">
+            <form action={deleteTermin}>
+              <input type="hidden" name="terminId" value={termin.id} />
+              <ConfirmSubmitButton
+                confirmText={`${istTurnier ? "Turnier" : "Termin"} wirklich unwiderruflich löschen?`}
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+              >
+                {istTurnier ? "Turnier löschen" : "Termin löschen"}
+              </ConfirmSubmitButton>
+            </form>
+          </div>
         </CardContent>
       </Card>
 
