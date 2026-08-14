@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { berechneOffenePosten } from "./dashboard";
+import { berechneOffeneSchiedsrichterAnzahl, berechneOffenePosten } from "./dashboard";
 
 const verein = {
   testspielOrdnerBedarf: 2,
@@ -76,5 +76,47 @@ describe("berechneOffenePosten", () => {
     const frueher = { id: "t1", start: new Date("2026-09-01T10:00:00Z"), typ: "testspiel", ort: null };
     const posten = berechneOffenePosten(verein, [spaeter, frueher], []);
     expect(posten[0].terminId).toBe("t1");
+  });
+});
+
+describe("berechneOffeneSchiedsrichterAnzahl", () => {
+  it("zählt ein Freundschaftsspiel ohne zugeordneten Schiedsrichter", () => {
+    const anzahl = berechneOffeneSchiedsrichterAnzahl(
+      [{ id: "t1", typ: "testspiel" }],
+      []
+    );
+    expect(anzahl).toBe(1);
+  });
+
+  it("zählt ein Freundschaftsspiel mit bereits zugeordnetem Schiedsrichter nicht mit", () => {
+    const anzahl = berechneOffeneSchiedsrichterAnzahl(
+      [{ id: "t1", typ: "testspiel" }],
+      [{ terminId: "t1", funktionstraegerTyp: "schiedsrichter" }]
+    );
+    expect(anzahl).toBe(0);
+  });
+
+  it("ignoriert echte Ligaspiele (pflichtspiel = true) — der Verband stellt den Schiedsrichter", () => {
+    const anzahl = berechneOffeneSchiedsrichterAnzahl(
+      [{ id: "t1", typ: "rundenspiel", pflichtspiel: true }],
+      []
+    );
+    expect(anzahl).toBe(0);
+  });
+
+  it("zählt Rundenspiele ohne Pflichtspiel-Status mit", () => {
+    const anzahl = berechneOffeneSchiedsrichterAnzahl(
+      [{ id: "t1", typ: "rundenspiel", pflichtspiel: false }],
+      []
+    );
+    expect(anzahl).toBe(1);
+  });
+
+  it("ignoriert ICS-Feed-Termine (die Person selbst ist der Schiedsrichter)", () => {
+    const anzahl = berechneOffeneSchiedsrichterAnzahl(
+      [{ id: "t1", typ: "spiel_ics" }],
+      []
+    );
+    expect(anzahl).toBe(0);
   });
 });

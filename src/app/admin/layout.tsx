@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, vereine } from "@/db/schema";
 import { signOut } from "@/auth";
-import { holeOffenePosten } from "@/lib/dashboard";
+import { holeOffenePosten, holeOffeneSchiedsrichterAnzahl } from "@/lib/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminNav } from "@/components/admin-nav";
@@ -47,7 +47,10 @@ export default async function AdminLayout({
   // Auf jeder Admin-Seite sichtbar (nicht nur auf der Übersicht) — der Admin
   // soll die Besetzung nur noch überwachen, die eigentliche Zuordnung
   // übernehmen die jeweiligen Wart-Rollen (siehe /admin/dienste).
-  const offeneDiensteAnzahl = (await holeOffenePosten(vereinId)).length;
+  const [offeneDiensteAnzahl, offeneSchiedsrichterAnzahl] = await Promise.all([
+    holeOffenePosten(vereinId).then((p) => p.length),
+    holeOffeneSchiedsrichterAnzahl(vereinId),
+  ]);
 
   return (
     <div className="min-h-screen">
@@ -69,6 +72,13 @@ export default async function AdminLayout({
             {offeneDiensteAnzahl > 0 && (
               <Link href="/admin/dienste">
                 <Badge variant="warning">{offeneDiensteAnzahl} Dienste offen</Badge>
+              </Link>
+            )}
+            {offeneSchiedsrichterAnzahl > 0 && (
+              <Link href="/admin/kalender">
+                <Badge variant="warning">
+                  {offeneSchiedsrichterAnzahl} Schiris offen
+                </Badge>
               </Link>
             )}
             {hatEigeneRollen && (
