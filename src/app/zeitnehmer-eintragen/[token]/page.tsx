@@ -163,7 +163,7 @@ export default async function ZeitnehmerEintragenPage({
               render={<Link href={`?mannschaft=${m.id}`} />}
               nativeButton={false}
             >
-              {m.name}
+              {m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name}
             </Button>
           ))}
         </div>
