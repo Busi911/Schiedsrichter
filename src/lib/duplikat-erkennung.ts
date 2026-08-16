@@ -18,7 +18,16 @@ const ROLLE_LABEL: Record<string, string> = {
 // zum manuellen Aufräumen (kein Auto-Löschen): weder Team-Name-Substring-
 // Match noch Zeitnähe sind zuverlässig genug, um blind einen Termin zu
 // löschen.
-const ZEITFENSTER_MS = 4 * 60 * 60 * 1000;
+//
+// Bewusst eng (statt z.B. 4h): an einem vollen Turniertag laufen an
+// derselben Halle viele fremde Spiele im Stundentakt — ein großzügiges
+// Zeitfenster würde dort praktisch jedes Turnier-Einzelspiel mit jedem
+// Hallenspielplan-Eintrag des Tages "matchen", nicht nur die tatsächlich
+// identische Begegnung. 30 Minuten deckt weiterhin die übliche Ungenauigkeit
+// ab (Admin trägt die Uhrzeit beim manuellen Anlegen nur überschlägig ein),
+// verlässt sich bei größerer Abweichung aber auf den Namens-Treffer statt
+// auf Zeitnähe allein.
+const ZEITFENSTER_MS = 30 * 60 * 1000;
 
 function berlinTag(d: Date): string {
   return d.toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" });

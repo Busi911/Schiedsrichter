@@ -31,7 +31,7 @@ describe("findeDuplikatPaare", () => {
     expect(treffer[0].quellBesetzung).toEqual(["Schiedsrichter: Max Muster"]);
   });
 
-  it("findet ein Duplikat bei Zeitnähe, auch ohne Namensübereinstimmung", () => {
+  it("findet ein Duplikat bei Zeitnähe (bis 30 Minuten), auch ohne Namensübereinstimmung", () => {
     const treffer = findeDuplikatPaare(
       [
         {
@@ -46,7 +46,7 @@ describe("findeDuplikatPaare", () => {
       [
         {
           id: "r1",
-          start: new Date("2026-09-01T19:30:00+02:00"),
+          start: new Date("2026-09-01T18:20:00+02:00"),
           beschreibung: null,
           besetzung: [],
           heimMannschaftName: "Anderer Verein",
@@ -56,6 +56,33 @@ describe("findeDuplikatPaare", () => {
     );
 
     expect(treffer).toHaveLength(1);
+  });
+
+  it("meldet KEIN Duplikat mehr bei über 30 Minuten Abstand ohne Namenstreffer (z.B. dicht getakteter Turniertag)", () => {
+    const treffer = findeDuplikatPaare(
+      [
+        {
+          id: "ts1",
+          typ: "turnier_spiel",
+          start: new Date("2026-08-22T13:30:00+02:00"),
+          beschreibung: "MJC",
+          besetzung: [],
+          turnierId: "turnier-1",
+        },
+      ],
+      [
+        {
+          id: "r1",
+          start: new Date("2026-08-22T11:30:00+02:00"),
+          beschreibung: "Freundschaftsspiel",
+          besetzung: [],
+          heimMannschaftName: "KSG Bieber 1",
+          auswaertsMannschaftName: "HSG Fernwald 1",
+        },
+      ]
+    );
+
+    expect(treffer).toHaveLength(0);
   });
 
   it("meldet kein Duplikat an unterschiedlichen Tagen, selbst bei Namenstreffer", () => {
