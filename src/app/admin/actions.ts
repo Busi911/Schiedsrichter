@@ -7,6 +7,7 @@ import { requireAdmin, requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
+  ignorierteMannschaften,
   mannschaften,
   termine,
   terminZuordnungen,
@@ -1266,4 +1267,34 @@ export async function mannschaftAusRundenspielAnlegen(formData: FormData) {
 
   revalidatePath("/admin/rundenspiele");
   revalidatePath("/admin/mannschaften");
+}
+
+// Gegenstück zu mannschaftAusRundenspielAnlegen: der Vorschlag betrifft meist
+// eine fremde Mannschaft (siehe Hinweis auf /admin/rundenspiele) und soll bei
+// künftigen Imports nicht wieder auftauchen — siehe ignorierteMannschaften in
+// schema.ts.
+export async function unbekannteMannschaftAblehnen(formData: FormData) {
+  const session = await requireAdmin();
+  const vereinId = session.user.vereinId!;
+
+  const name = formData.get("name");
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Name fehlt.");
+  }
+  const kategorieRoh = formData.get("kategorie");
+  const kategorie =
+    typeof kategorieRoh === "string" && kategorieRoh ? kategorieRoh : null;
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .insert(ignorierteMannschaften)
+      .values({
+        vereinId,
+        normalisierterName: normalisiereMannschaftsname(name),
+        kategorie,
+      })
+      .onConflictDoNothing()
+  );
+
+  revalidatePath("/admin/rundenspiele");
 }

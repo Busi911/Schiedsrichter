@@ -1,10 +1,11 @@
 import { and, asc, eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
-import { mannschaften, termine } from "@/db/schema";
+import { ignorierteMannschaften, mannschaften, termine } from "@/db/schema";
 import {
   mannschaftAusRundenspielAnlegen,
   testspielDuplikatVerknuepfen,
+  unbekannteMannschaftAblehnen,
 } from "../actions";
 import { gruppiereUnbekannteMannschaften } from "@/lib/rundenspiel-import";
 import { findeTestspielDuplikate } from "@/lib/duplikat-erkennung";
@@ -42,7 +43,17 @@ export default async function RundenspielePage() {
       .orderBy(asc(termine.start))
   );
 
-  const unbekannteMannschaften = gruppiereUnbekannteMannschaften(liste);
+  const ignoriert = await withTenant(vereinId, (tx) =>
+    tx.query.ignorierteMannschaften.findMany({
+      where: eq(ignorierteMannschaften.vereinId, vereinId),
+    })
+  );
+  const ignoriertSet = new Set(
+    ignoriert.map((i) => `${i.normalisierterName}::${i.kategorie ?? ""}`)
+  );
+  const unbekannteMannschaften = gruppiereUnbekannteMannschaften(liste).filter(
+    (m) => !ignoriertSet.has(`${m.normalisiert}::${m.kategorie ?? ""}`)
+  );
   const moeglicheDuplikate = await findeTestspielDuplikate(vereinId);
 
   return (
@@ -72,7 +83,9 @@ export default async function RundenspielePage() {
               <strong>Nur eure eigenen Mannschaften anlegen.</strong> Die
               Halle wird auch von anderen Vereinen bespielt — deren
               Mannschaften tauchen hier zwangsläufig mit auf und sollten
-              &uuml;bersprungen werden.
+              per &bdquo;Ablehnen&ldquo; entfernt werden, statt sie zu
+              &uuml;berspringen (sonst erscheinen sie bei jedem weiteren
+              Import erneut).
             </div>
             <div className="flex flex-col divide-y">
               {unbekannteMannschaften.map((m) => (
@@ -92,9 +105,19 @@ export default async function RundenspielePage() {
                       ({m.anzahlSpiele} {m.anzahlSpiele === 1 ? "Spiel" : "Spiele"})
                     </span>
                   </span>
-                  <Button type="submit" variant="outline" size="sm">
-                    Als Mannschaft anlegen
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="submit"
+                      formAction={unbekannteMannschaftAblehnen}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      Ablehnen
+                    </Button>
+                    <Button type="submit" variant="outline" size="sm">
+                      Als Mannschaft anlegen
+                    </Button>
+                  </div>
                 </form>
               ))}
             </div>
