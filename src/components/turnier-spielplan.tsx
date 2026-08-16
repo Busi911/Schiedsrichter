@@ -13,6 +13,7 @@ import {
   formatWochentagDatum,
   toDatetimeLocalWert,
 } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,14 @@ import { cn } from "@/lib/utils";
 
 type Spiel = {
   id: string;
+  // Meist "turnier_spiel" (hier frei bearbeitbar). Ein anderer Typ (aktuell
+  // nur "rundenspiel") kommt vor, wenn ein Turnier-Einzelspiel nachträglich
+  // mit einem Hallenspielplan-Import verknüpft wurde (siehe
+  // spielDuplikatVerknuepfen in admin/actions.ts) — dessen Daten kommen von
+  // nuLiga und sind hier bewusst nur lesbar, nicht über die
+  // Turnier-Spielplan-Aktionen bearbeitbar/löschbar (die filtern hart auf
+  // typ = "turnier_spiel").
+  typ: string;
   start: Date;
   ort: string | null;
   beschreibung: string | null;
@@ -102,54 +111,150 @@ export function TurnierSpielplan({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {gruppe.items.map((s) => (
-                    <TableRow
-                      key={s.id}
-                      draggable={!isPending}
-                      onDragStart={(e) => {
-                        // Firefox startet den Drag sonst gar nicht erst —
-                        // der eigentliche Zustand läuft aber über React
-                        // State (draggedId), die Daten hier sind nur die
-                        // von Firefox verlangte Mindestangabe.
-                        e.dataTransfer.setData("text/plain", s.id);
-                        e.dataTransfer.effectAllowed = "move";
-                        setDraggedId(s.id);
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        if (dragOverId !== s.id) setDragOverId(s.id);
-                      }}
-                      onDragLeave={() =>
-                        setDragOverId((id) => (id === s.id ? null : id))
-                      }
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        if (draggedId) vertauschen(draggedId, s.id);
-                        setDraggedId(null);
-                        setDragOverId(null);
-                      }}
-                      onDragEnd={() => {
-                        setDraggedId(null);
-                        setDragOverId(null);
-                      }}
-                      className={cn(
-                        dragOverId === s.id &&
-                          draggedId &&
-                          draggedId !== s.id &&
-                          "bg-accent"
-                      )}
-                    >
-                      <TableCell
-                        className="cursor-grab text-muted-foreground select-none active:cursor-grabbing"
-                        title="Ziehen zum Tauschen des Zeitslots"
+                  {gruppe.items.map((s) => {
+                    // Nur echte turnier_spiel-Einträge lassen sich hier
+                    // verschieben/bearbeiten/löschen (siehe Spiel-Typ oben) —
+                    // die zugehörigen Server Actions filtern ebenfalls hart
+                    // darauf, ein Drag&Drop oder Speichern/Löschen auf einem
+                    // verknüpften Rundenspiel liefe sonst ins Leere.
+                    const bearbeitbar = s.typ === "turnier_spiel";
+                    return (
+                      <TableRow
+                        key={s.id}
+                        draggable={!isPending && bearbeitbar}
+                        onDragStart={(e) => {
+                          // Firefox startet den Drag sonst gar nicht erst —
+                          // der eigentliche Zustand läuft aber über React
+                          // State (draggedId), die Daten hier sind nur die
+                          // von Firefox verlangte Mindestangabe.
+                          e.dataTransfer.setData("text/plain", s.id);
+                          e.dataTransfer.effectAllowed = "move";
+                          setDraggedId(s.id);
+                        }}
+                        onDragOver={(e) => {
+                          if (!bearbeitbar) return;
+                          e.preventDefault();
+                          if (dragOverId !== s.id) setDragOverId(s.id);
+                        }}
+                        onDragLeave={() =>
+                          setDragOverId((id) => (id === s.id ? null : id))
+                        }
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedId && bearbeitbar) vertauschen(draggedId, s.id);
+                          setDraggedId(null);
+                          setDragOverId(null);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedId(null);
+                          setDragOverId(null);
+                        }}
+                        className={cn(
+                          dragOverId === s.id &&
+                            draggedId &&
+                            draggedId !== s.id &&
+                            "bg-accent"
+                        )}
                       >
-                        ⠿
-                      </TableCell>
-                      <TableCell colSpan={4} className="p-0">
-                        <div className="flex items-start justify-between gap-2 p-3">
-                          <details className="group min-w-0 flex-1">
-                            <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                              <span className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm">
+                        <TableCell
+                          className={cn(
+                            "text-muted-foreground select-none",
+                            bearbeitbar
+                              ? "cursor-grab active:cursor-grabbing"
+                              : "opacity-30"
+                          )}
+                          title={
+                            bearbeitbar
+                              ? "Ziehen zum Tauschen des Zeitslots"
+                              : undefined
+                          }
+                        >
+                          ⠿
+                        </TableCell>
+                        <TableCell colSpan={4} className="p-0">
+                          <div className="flex items-start justify-between gap-2 p-3">
+                            {bearbeitbar ? (
+                              <details className="group min-w-0 flex-1">
+                                <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                                  <span className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm">
+                                    <span className="font-medium">
+                                      {formatDateTime(s.start)}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      {s.ort ?? turnierOrt ?? "—"}
+                                    </span>
+                                    <span>{s.beschreibung ?? "—"}</span>
+                                    {s.ergebnisHeim !== null &&
+                                      s.ergebnisAuswaerts !== null && (
+                                        <span className="font-medium">
+                                          {s.ergebnisHeim}:{s.ergebnisAuswaerts}
+                                        </span>
+                                      )}
+                                    <span className="text-xs text-muted-foreground underline">
+                                      <span className="group-open:hidden">
+                                        Bearbeiten
+                                      </span>
+                                      <span className="hidden group-open:inline">
+                                        Schließen
+                                      </span>
+                                    </span>
+                                  </span>
+                                </summary>
+                                <form
+                                  action={updateTurnierSpiel}
+                                  className="mt-2 flex flex-wrap items-center gap-2"
+                                >
+                                  <input type="hidden" name="terminId" value={s.id} />
+                                  <input
+                                    type="hidden"
+                                    name="turnierId"
+                                    value={turnierId}
+                                  />
+                                  <Input
+                                    name="start"
+                                    type="datetime-local"
+                                    defaultValue={toDatetimeLocalWert(s.start)}
+                                    required
+                                    className="h-8 w-48"
+                                  />
+                                  <Input
+                                    name="ort"
+                                    defaultValue={s.ort ?? ""}
+                                    placeholder={
+                                      turnierOrt
+                                        ? `wie Turnier (${turnierOrt})`
+                                        : "Ort"
+                                    }
+                                    className="h-8 w-28"
+                                  />
+                                  <Input
+                                    name="beschreibung"
+                                    defaultValue={s.beschreibung ?? ""}
+                                    placeholder="z.B. TSV A – TSV B"
+                                    className="h-8 w-48"
+                                  />
+                                  <Input
+                                    name="ergebnisHeim"
+                                    type="number"
+                                    defaultValue={s.ergebnisHeim ?? ""}
+                                    placeholder="Heim"
+                                    className="h-8 w-16"
+                                  />
+                                  <span className="text-muted-foreground">:</span>
+                                  <Input
+                                    name="ergebnisAuswaerts"
+                                    type="number"
+                                    defaultValue={s.ergebnisAuswaerts ?? ""}
+                                    placeholder="Ausw."
+                                    className="h-8 w-16"
+                                  />
+                                  <Button type="submit" variant="outline" size="sm">
+                                    Speichern
+                                  </Button>
+                                </form>
+                              </details>
+                            ) : (
+                              <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm">
                                 <span className="font-medium">
                                   {formatDateTime(s.start)}
                                 </span>
@@ -163,82 +268,29 @@ export function TurnierSpielplan({
                                       {s.ergebnisHeim}:{s.ergebnisAuswaerts}
                                     </span>
                                   )}
-                                <span className="text-xs text-muted-foreground underline">
-                                  <span className="group-open:hidden">
-                                    Bearbeiten
-                                  </span>
-                                  <span className="hidden group-open:inline">
-                                    Schließen
-                                  </span>
-                                </span>
+                                <Badge variant="outline" className="text-xs">
+                                  Aus Hallenspielplan verknüpft
+                                </Badge>
                               </span>
-                            </summary>
-                            <form
-                              action={updateTurnierSpiel}
-                              className="mt-2 flex flex-wrap items-center gap-2"
-                            >
-                              <input type="hidden" name="terminId" value={s.id} />
-                              <input
-                                type="hidden"
-                                name="turnierId"
-                                value={turnierId}
-                              />
-                              <Input
-                                name="start"
-                                type="datetime-local"
-                                defaultValue={toDatetimeLocalWert(s.start)}
-                                required
-                                className="h-8 w-48"
-                              />
-                              <Input
-                                name="ort"
-                                defaultValue={s.ort ?? ""}
-                                placeholder={
-                                  turnierOrt ? `wie Turnier (${turnierOrt})` : "Ort"
-                                }
-                                className="h-8 w-28"
-                              />
-                              <Input
-                                name="beschreibung"
-                                defaultValue={s.beschreibung ?? ""}
-                                placeholder="z.B. TSV A – TSV B"
-                                className="h-8 w-48"
-                              />
-                              <Input
-                                name="ergebnisHeim"
-                                type="number"
-                                defaultValue={s.ergebnisHeim ?? ""}
-                                placeholder="Heim"
-                                className="h-8 w-16"
-                              />
-                              <span className="text-muted-foreground">:</span>
-                              <Input
-                                name="ergebnisAuswaerts"
-                                type="number"
-                                defaultValue={s.ergebnisAuswaerts ?? ""}
-                                placeholder="Ausw."
-                                className="h-8 w-16"
-                              />
-                              <Button type="submit" variant="outline" size="sm">
-                                Speichern
-                              </Button>
-                            </form>
-                          </details>
-                          <form action={deleteTurnierSpiel}>
-                            <input type="hidden" name="terminId" value={s.id} />
-                            <input
-                              type="hidden"
-                              name="turnierId"
-                              value={turnierId}
-                            />
-                            <Button type="submit" variant="ghost" size="sm">
-                              Löschen
-                            </Button>
-                          </form>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            )}
+                            {bearbeitbar && (
+                              <form action={deleteTurnierSpiel}>
+                                <input type="hidden" name="terminId" value={s.id} />
+                                <input
+                                  type="hidden"
+                                  name="turnierId"
+                                  value={turnierId}
+                                />
+                                <Button type="submit" variant="ghost" size="sm">
+                                  Löschen
+                                </Button>
+                              </form>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

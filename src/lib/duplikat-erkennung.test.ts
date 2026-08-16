@@ -2,14 +2,16 @@ import { describe, expect, it } from "vitest";
 import { findeDuplikatPaare } from "./duplikat-erkennung";
 
 describe("findeDuplikatPaare", () => {
-  it("findet ein Duplikat, wenn der Team-Name im Testspiel-Text vorkommt (auch bei abweichender Uhrzeit)", () => {
+  it("findet ein Duplikat, wenn der Team-Name im Text vorkommt (auch bei abweichender Uhrzeit)", () => {
     const treffer = findeDuplikatPaare(
       [
         {
           id: "t1",
+          typ: "testspiel",
           start: new Date("2026-09-01T10:00:00+02:00"),
           beschreibung: "TV Musterstadt gegen Gastverein",
           besetzung: ["Schiedsrichter: Max Muster"],
+          turnierId: null,
         },
       ],
       [
@@ -25,8 +27,8 @@ describe("findeDuplikatPaare", () => {
     );
 
     expect(treffer).toHaveLength(1);
-    expect(treffer[0]).toMatchObject({ testspielId: "t1", rundenspielId: "r1" });
-    expect(treffer[0].testspielBesetzung).toEqual(["Schiedsrichter: Max Muster"]);
+    expect(treffer[0]).toMatchObject({ quellId: "t1", rundenspielId: "r1" });
+    expect(treffer[0].quellBesetzung).toEqual(["Schiedsrichter: Max Muster"]);
   });
 
   it("findet ein Duplikat bei Zeitnähe, auch ohne Namensübereinstimmung", () => {
@@ -34,9 +36,11 @@ describe("findeDuplikatPaare", () => {
       [
         {
           id: "t1",
+          typ: "testspiel",
           start: new Date("2026-09-01T18:00:00+02:00"),
           beschreibung: "Freundschaftsspiel",
           besetzung: [],
+          turnierId: null,
         },
       ],
       [
@@ -59,9 +63,11 @@ describe("findeDuplikatPaare", () => {
       [
         {
           id: "t1",
+          typ: "testspiel",
           start: new Date("2026-09-01T10:00:00+02:00"),
           beschreibung: "TV Musterstadt",
           besetzung: [],
+          turnierId: null,
         },
       ],
       [
@@ -84,9 +90,11 @@ describe("findeDuplikatPaare", () => {
       [
         {
           id: "t1",
+          typ: "testspiel",
           start: new Date("2026-09-01T10:00:00+02:00"),
           beschreibung: "Unbeteiligter Verein",
           besetzung: [],
+          turnierId: null,
         },
       ],
       [
@@ -102,5 +110,38 @@ describe("findeDuplikatPaare", () => {
     );
 
     expect(treffer).toHaveLength(0);
+  });
+
+  it("findet ein Duplikat auch für ein Turnier-Einzelspiel und trägt dessen Turnier-Zugehörigkeit weiter", () => {
+    const treffer = findeDuplikatPaare(
+      [
+        {
+          id: "ts1",
+          typ: "turnier_spiel",
+          start: new Date("2026-08-22T11:30:00+02:00"),
+          beschreibung: "TSF Heuchelheim – KSG Bieber",
+          besetzung: [],
+          turnierId: "turnier-1",
+        },
+      ],
+      [
+        {
+          id: "r1",
+          start: new Date("2026-08-22T11:30:00+02:00"),
+          beschreibung: "Jugendspiel Nr. 42",
+          besetzung: [],
+          heimMannschaftName: "TSF Heuchelheim 1",
+          auswaertsMannschaftName: "KSG Bieber 1",
+        },
+      ]
+    );
+
+    expect(treffer).toHaveLength(1);
+    expect(treffer[0]).toMatchObject({
+      quellId: "ts1",
+      quellTyp: "turnier_spiel",
+      quellTurnierId: "turnier-1",
+      rundenspielId: "r1",
+    });
   });
 });

@@ -7,6 +7,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
@@ -174,6 +175,35 @@ export const mannschaften = pgTable("mannschaft", {
   name: text("name").notNull(),
   altersklasse: text("altersklasse"),
 });
+
+// Vom Admin bewusst übersprungene Vorschläge aus "Unbekannte Mannschaften"
+// (siehe gruppiereUnbekannteMannschaften in rundenspiel-import.ts) — meist
+// Mannschaften anderer Vereine, die an der eigenen Halle spielen und nie
+// als eigene Mannschaft angelegt werden sollen (siehe Hinweis auf
+// /admin/rundenspiele). Ohne diese Tabelle würde derselbe Vorschlag bei
+// jedem weiteren Import wieder auftauchen.
+export const ignorierteMannschaften = pgTable(
+  "ignorierte_mannschaft",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references(() => vereine.id, { onDelete: "cascade" }),
+    // Normalisierter Name (siehe normalisiereMannschaftsname) statt
+    // Rohtext, damit z.B. "Herren I" und "Herren 1" nicht als zwei
+    // getrennte Ablehnungen behandelt werden.
+    normalisierterName: text("normalisierter_name").notNull(),
+    kategorie: text("kategorie"),
+    erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("ignorierte_mannschaft_verein_name_kategorie_idx").on(
+      t.vereinId,
+      t.normalisierterName,
+      t.kategorie
+    ),
+  ]
+);
 
 // ---------------------------------------------------------------------------
 // Auth.js (Drizzle-Adapter) — erweitert um verein_id/ist_admin für Mandanten
