@@ -67,7 +67,8 @@ export async function sendeOffeneSchiedsrichterErinnerungen() {
           and(
             eq(funktionstraegerRollen.typ, "schiedsrichterwart"),
             eq(funktionstraegerRollen.aktiv, true),
-            eq(users.vereinId, verein.id)
+            eq(users.vereinId, verein.id),
+            eq(users.offeneSchiedsrichterErinnerungAktiviert, true)
           )
         );
       if (schiedsrichterwarte.length === 0) continue;

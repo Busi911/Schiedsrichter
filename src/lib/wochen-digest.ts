@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { users } from "@/db/schema";
 import { holeEigeneKalenderEintraege } from "./eigener-kalender";
@@ -50,7 +50,9 @@ export function digestInhalt(
 
 // Wöchentlicher Digest an alle Personen mit mindestens einem Einsatz in den
 // nächsten TAGE_VORAUS Tagen — wer nichts eingetragen hat, bekommt auch
-// keine Mail (kein Digest mit "Du hast diese Woche nichts zu tun").
+// keine Mail (kein Digest mit "Du hast diese Woche nichts zu tun"). Wer den
+// Digest auf /profil deaktiviert hat (users.wochenDigestAktiviert), wird
+// schon in der Query ausgeschlossen.
 export async function sendeWochenDigests() {
   const jetzt = new Date();
   const bis = new Date(jetzt.getTime() + TAGE_VORAUS * 24 * 60 * 60 * 1000);
@@ -63,7 +65,7 @@ export async function sendeWochenDigests() {
     const vereinsUsers = await adminDb
       .select({ id: users.id, email: users.email })
       .from(users)
-      .where(eq(users.vereinId, verein.id));
+      .where(and(eq(users.vereinId, verein.id), eq(users.wochenDigestAktiviert, true)));
 
     for (const user of vereinsUsers) {
       try {

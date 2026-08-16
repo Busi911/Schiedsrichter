@@ -18,6 +18,7 @@ import {
   selbstAbmelden,
   selbstAnmelden,
   syncJetzt,
+  updateBenachrichtigungen,
   updateIcsFeedUrl,
   updateStammdaten,
 } from "./actions";
@@ -32,9 +33,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Logo } from "@/components/logo";
 import { MonatsKalender } from "@/components/monats-kalender";
 import { PushAnmelden } from "@/components/push-anmelden";
+import { SubmitButton } from "@/components/submit-button";
 import { saisonLabel, saisonSortKey } from "@/lib/saison";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 
@@ -84,7 +87,14 @@ export default async function ProfilPage({
       });
       const eigeneStammdaten = await tx.query.users.findFirst({
         where: eq(users.id, userId),
-        columns: { name: true, email: true, telefonnummer: true },
+        columns: {
+          name: true,
+          email: true,
+          telefonnummer: true,
+          wochenDigestAktiviert: true,
+          terminErinnerungAktiviert: true,
+          offeneSchiedsrichterErinnerungAktiviert: true,
+        },
       });
       const rollen = await tx.query.funktionstraegerRollen.findMany({
         where: eq(funktionstraegerRollen.userId, userId),
@@ -377,6 +387,68 @@ export default async function ProfilPage({
           </CardHeader>
           <CardContent>
             <PushAnmelden />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>E-Mail-Benachrichtigungen</CardTitle>
+            <CardDescription>
+              Welche automatischen Erinnerungs-Mails du bekommen möchtest.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              action={updateBenachrichtigungen}
+              className="flex flex-col gap-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="wochenDigestAktiviert" className="font-normal">
+                  Wöchentliches Update über anstehende Termine
+                </Label>
+                <Switch
+                  key={String(eigeneStammdaten?.wochenDigestAktiviert ?? true)}
+                  id="wochenDigestAktiviert"
+                  name="wochenDigestAktiviert"
+                  defaultChecked={eigeneStammdaten?.wochenDigestAktiviert ?? true}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label
+                  htmlFor="terminErinnerungAktiviert"
+                  className="font-normal"
+                >
+                  Erinnerung 24 Stunden vor einem Termin
+                </Label>
+                <Switch
+                  key={String(eigeneStammdaten?.terminErinnerungAktiviert ?? true)}
+                  id="terminErinnerungAktiviert"
+                  name="terminErinnerungAktiviert"
+                  defaultChecked={eigeneStammdaten?.terminErinnerungAktiviert ?? true}
+                />
+              </div>
+              {istSchiedsrichterwart && (
+                <div className="flex items-center justify-between gap-3">
+                  <Label
+                    htmlFor="offeneSchiedsrichterErinnerungAktiviert"
+                    className="font-normal"
+                  >
+                    Als Schiedsrichterwart: Erinnerung an unbesetzte Spiele
+                  </Label>
+                  <Switch
+                    key={String(
+                      eigeneStammdaten?.offeneSchiedsrichterErinnerungAktiviert ?? true
+                    )}
+                    id="offeneSchiedsrichterErinnerungAktiviert"
+                    name="offeneSchiedsrichterErinnerungAktiviert"
+                    defaultChecked={
+                      eigeneStammdaten?.offeneSchiedsrichterErinnerungAktiviert ?? true
+                    }
+                  />
+                </div>
+              )}
+              <SubmitButton className="w-full">Speichern</SubmitButton>
+            </form>
           </CardContent>
         </Card>
 

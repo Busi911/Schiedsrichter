@@ -209,6 +209,20 @@ export const users = pgTable("user", {
   // /profil/passwort-aendern die Vergabe eines eigenen Passworts, bevor der
   // Rest der App zugänglich ist (siehe requireSession in lib/session.ts).
   mussPasswortAendern: boolean("muss_passwort_aendern").notNull().default(false),
+  // Opt-out für die drei automatischen Erinnerungs-Mails, die bisher
+  // unconditional an jeden Funktionsträger bzw. Wart gingen (siehe
+  // wochen-digest.ts, terminerinnerungen.ts, schiedsrichterwart-
+  // erinnerung.ts) — einstellbar auf /profil. Default true: wer nichts
+  // ändert, bekommt weiterhin genau das bisherige Verhalten.
+  wochenDigestAktiviert: boolean("wochen_digest_aktiviert").notNull().default(true),
+  terminErinnerungAktiviert: boolean("termin_erinnerung_aktiviert")
+    .notNull()
+    .default(true),
+  offeneSchiedsrichterErinnerungAktiviert: boolean(
+    "offene_schiedsrichter_erinnerung_aktiviert"
+  )
+    .notNull()
+    .default(true),
 });
 
 export const accounts = pgTable(

@@ -23,12 +23,17 @@ const FENSTER_STUNDEN = 36;
 
 export type Termin = typeof termine.$inferSelect;
 
+// Bewusst hier gefiltert (nicht erst am Ende über alle Kandidaten), damit
+// jede der drei Teil-Queries unten dieselbe Bedingung trägt statt eines
+// zusätzlichen Nachbearbeitungsschritts, der leicht vergessen werden könnte.
+const AKTIVIERT = eq(users.terminErinnerungAktiviert, true);
+
 async function ermittleEmpfaenger(termin: Termin) {
   const empfaenger = new Map<string, { id: string; email: string }>();
 
   if (termin.icsSchiedsrichterId) {
     const schiedsrichter = await adminDb.query.users.findFirst({
-      where: eq(users.id, termin.icsSchiedsrichterId),
+      where: and(eq(users.id, termin.icsSchiedsrichterId), AKTIVIERT),
     });
     if (schiedsrichter) {
       empfaenger.set(schiedsrichter.id, {
@@ -46,7 +51,8 @@ async function ermittleEmpfaenger(termin: Termin) {
       .where(
         and(
           eq(funktionstraegerRollen.typ, "trainer"),
-          eq(funktionstraegerRollen.mannschaftId, termin.mannschaftId)
+          eq(funktionstraegerRollen.mannschaftId, termin.mannschaftId),
+          AKTIVIERT
         )
       );
     for (const t of trainer) empfaenger.set(t.id, t);
@@ -66,7 +72,8 @@ async function ermittleEmpfaenger(termin: Termin) {
     .where(
       and(
         eq(terminZuordnungen.terminId, termin.id),
-        isNotNull(terminZuordnungen.userId)
+        isNotNull(terminZuordnungen.userId),
+        AKTIVIERT
       )
     );
   for (const z of zugeordnete) empfaenger.set(z.id, z);
