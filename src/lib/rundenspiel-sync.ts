@@ -9,6 +9,7 @@ import {
   type RundenspielEreignis,
 } from "./rundenspiel-import";
 import { holeNuligaJson, type NuligaDiagnose } from "./nuliga-scraper";
+import { sendeRundenspielAenderungenBenachrichtigung } from "./rundenspiel-benachrichtigung";
 
 // DB-Import-Logik für bereits geparste Rundenspiel-Ereignisse — geteilt
 // zwischen dem manuellen JSON-Upload (/admin/rundenspiele, siehe
@@ -55,12 +56,48 @@ export function terminBenoetigtUpdate(
   );
 }
 
+// Ein bereits importiertes Rundenspiel, das sich beim Sync geändert hat UND
+// für den Admin relevant ist (siehe Vereinsadmin-Opt-in in
+// rundenspiel-benachrichtigung.ts) — bewusst nur die beiden vom Nutzer
+// genannten Fälle "Spiel verlegt" (Zeit/Ort) und "Ergebnis neu eingetragen",
+// nicht JEDE Änderung aus terminBenoetigtUpdate (z.B. eine korrigierte
+// Mannschaftszuordnung wäre für eine Benachrichtigung zu viel Rauschen).
+export type RundenspielAenderung = {
+  terminId: string;
+  start: Date;
+  ort: string | null;
+  heimMannschaft: string;
+  auswaertsMannschaft: string;
+  verlegt: boolean;
+  ergebnisNeu: boolean;
+};
+
+// Reiner Vergleich (ohne DB-Zugriff, siehe rundenspiel-sync.test.ts) —
+// separat von terminBenoetigtUpdate, da hier nur die zwei
+// benachrichtigungsrelevanten Änderungsarten interessieren, nicht JEDES
+// geänderte Feld. null = keine der beiden Änderungsarten liegt vor (z.B.
+// nur ein korrigierter Vereinsname), dann lohnt kein Eintrag in
+// RundenspielAenderung.
+export function ermittleRundenspielAenderung(
+  bestehend: { start: Date; ort: string | null; ergebnisHeim: number | null; ergebnisAuswaerts: number | null },
+  ereignis: RundenspielEreignis
+): { verlegt: boolean; ergebnisNeu: boolean } | null {
+  const verlegt =
+    bestehend.start.getTime() !== ereignis.start.getTime() || bestehend.ort !== ereignis.ort;
+  const ergebnisNeu =
+    (bestehend.ergebnisHeim === null || bestehend.ergebnisAuswaerts === null) &&
+    ereignis.ergebnisHeim !== null &&
+    ereignis.ergebnisAuswaerts !== null;
+  return verlegt || ergebnisNeu ? { verlegt, ergebnisNeu } : null;
+}
+
 export async function importiereRundenspielEreignisse(
   vereinId: string,
   ereignisse: RundenspielEreignis[]
 ) {
   let neu = 0;
   let aktualisiert = 0;
+  const aenderungen: RundenspielAenderung[] = [];
 
   await withTenant(vereinId, async (tx) => {
     // Explizite Sortierung, damit findeMannschaft bei mehreren Treffern
@@ -83,6 +120,17 @@ export async function importiereRundenspielEreignisse(
 
       if (bestehend) {
         if (terminBenoetigtUpdate(bestehend, ereignis, mannschaftId)) {
+          const aenderung = ermittleRundenspielAenderung(bestehend, ereignis);
+          if (aenderung) {
+            aenderungen.push({
+              terminId: bestehend.id,
+              start: ereignis.start,
+              ort: ereignis.ort,
+              heimMannschaft: ereignis.heimMannschaft,
+              auswaertsMannschaft: ereignis.auswaertsMannschaft,
+              ...aenderung,
+            });
+          }
           await tx
             .update(termine)
             .set({
@@ -126,12 +174,13 @@ export async function importiereRundenspielEreignisse(
     }
   });
 
-  return { neu, aktualisiert };
+  return { neu, aktualisiert, aenderungen };
 }
 
 export type NuligaSyncErgebnis = {
   neu: number;
   aktualisiert: number;
+  aenderungen: RundenspielAenderung[];
   parseFehler: { index: number; grund: string }[];
   abrufFehler: { locationId: string; requestedMonth: string; grund: string }[];
   diagnose: NuligaDiagnose[];
@@ -148,17 +197,24 @@ export async function synchronisiereNuligaHallen(
   hallenIds: string[]
 ): Promise<NuligaSyncErgebnis> {
   if (hallenIds.length === 0) {
-    return { neu: 0, aktualisiert: 0, parseFehler: [], abrufFehler: [], diagnose: [] };
+    return {
+      neu: 0,
+      aktualisiert: 0,
+      aenderungen: [],
+      parseFehler: [],
+      abrufFehler: [],
+      diagnose: [],
+    };
   }
 
   const { json, fehler: abrufFehler, diagnose } = await holeNuligaJson(hallenIds);
   const { ereignisse, fehler: parseFehler } = parseRundenspielJson(json);
-  const { neu, aktualisiert } = await importiereRundenspielEreignisse(
+  const { neu, aktualisiert, aenderungen } = await importiereRundenspielEreignisse(
     vereinId,
     ereignisse
   );
 
-  return { neu, aktualisiert, parseFehler, abrufFehler, diagnose };
+  return { neu, aktualisiert, aenderungen, parseFehler, abrufFehler, diagnose };
 }
 
 // Für alle Vereine mit aktiviertem Auto-Import (siehe /api/cron/rundenspiel-sync).
@@ -179,6 +235,15 @@ export async function synchronisiereAlleAktivenNuligaVereine() {
     try {
       const ergebnis = await synchronisiereNuligaHallen(verein.id, hallenIds);
       ergebnisse.push({ vereinId: verein.id, status: "ok", ...ergebnis });
+
+      // Best effort: ein Fehler beim Mailversand soll den bereits
+      // erfolgreichen Sync nicht als "fehler" ausweisen (analog zum
+      // Push-Kommentar in terminerinnerungen.ts).
+      try {
+        await sendeRundenspielAenderungenBenachrichtigung(verein, ergebnis.aenderungen);
+      } catch {
+        // ignoriert — der Sync selbst war bereits erfolgreich.
+      }
     } catch (err) {
       ergebnisse.push({
         vereinId: verein.id,

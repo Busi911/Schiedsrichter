@@ -344,6 +344,24 @@ export default async function EinstellungenPage({
                 defaultChecked={verein?.nuligaAutoImportAktiviert ?? false}
               />
             </div>
+            <div className="flex items-center justify-between gap-3">
+              <Label
+                htmlFor="rundenspielAenderungenBenachrichtigungAktiviert"
+                className="font-normal"
+              >
+                Benachrichtigung bei verlegten Spielen/neuen Ergebnissen
+              </Label>
+              <Switch
+                key={String(
+                  verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false
+                )}
+                id="rundenspielAenderungenBenachrichtigungAktiviert"
+                name="rundenspielAenderungenBenachrichtigungAktiviert"
+                defaultChecked={
+                  verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false
+                }
+              />
+            </div>
             <SubmitButton
               className="w-full"
               pendingText="Synchronisiert…"

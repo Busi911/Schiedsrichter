@@ -147,6 +147,16 @@ export const vereine = pgTable("verein", {
   nuligaAutoImportAktiviert: boolean("nuliga_auto_import_aktiviert")
     .notNull()
     .default(false),
+  // Opt-in für den Vereinsadmin: E-Mail bei geänderten Spielen (Zeit/Ort
+  // verlegt) bzw. neu eingetragenen Ergebnissen im Hallenspielplan, siehe
+  // rundenspiel-benachrichtigung.ts. Default false, da nicht jeder Verein
+  // diesen zusätzlichen Kanal will (die Änderungen sind auf
+  // /admin/rundenspiele ohnehin jederzeit passiv einsehbar).
+  rundenspielAenderungenBenachrichtigungAktiviert: boolean(
+    "rundenspiel_aenderungen_benachrichtigung_aktiviert"
+  )
+    .notNull()
+    .default(false),
   // Öffentlicher, login-freier Link für Zeitnehmer/Sekretär-
   // Selbsteintragung (siehe /zeitnehmer-eintragen/[token]) — vom
   // Zeitnehmerwart aktivierbar. null = (noch) nicht aktiviert. Analog zu

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { terminBenoetigtUpdate } from "./rundenspiel-sync";
+import { ermittleRundenspielAenderung, terminBenoetigtUpdate } from "./rundenspiel-sync";
 import type { RundenspielEreignis } from "./rundenspiel-import";
 
 const ereignis: RundenspielEreignis = {
@@ -54,5 +54,45 @@ describe("terminBenoetigtUpdate", () => {
   it("meldet ein Update, wenn sich das nuLiga-Schiedsrichter-Kürzel geändert hat", () => {
     const geaendert = { ...ereignis, schiedsrichterKuerzel: "Mü." };
     expect(terminBenoetigtUpdate(bestehend, geaendert, "m1")).toBe(true);
+  });
+});
+
+describe("ermittleRundenspielAenderung", () => {
+  it("liefert null, wenn sich weder Zeit/Ort noch Ergebnis geändert haben", () => {
+    const geaendert = { ...ereignis, schiedsrichterKuerzel: "Mü." };
+    expect(ermittleRundenspielAenderung(bestehend, geaendert)).toBeNull();
+  });
+
+  it("erkennt eine Verlegung bei geänderter Startzeit", () => {
+    const geaendert = { ...ereignis, start: new Date("2026-09-02T18:00:00+02:00") };
+    expect(ermittleRundenspielAenderung(bestehend, geaendert)).toEqual({
+      verlegt: true,
+      ergebnisNeu: false,
+    });
+  });
+
+  it("erkennt eine Verlegung bei geändertem Ort", () => {
+    const geaendert = { ...ereignis, ort: "Halle 2" };
+    expect(ermittleRundenspielAenderung(bestehend, geaendert)).toEqual({
+      verlegt: true,
+      ergebnisNeu: false,
+    });
+  });
+
+  it("erkennt ein neu eingetragenes Ergebnis", () => {
+    const geaendert = { ...ereignis, ergebnisHeim: 25, ergebnisAuswaerts: 20 };
+    expect(ermittleRundenspielAenderung(bestehend, geaendert)).toEqual({
+      verlegt: false,
+      ergebnisNeu: true,
+    });
+  });
+
+  it("meldet kein neues Ergebnis, wenn bereits eins vorlag (z.B. Korrektur)", () => {
+    const bestehendMitErgebnis = { ...bestehend, ergebnisHeim: 25, ergebnisAuswaerts: 20 };
+    const geaendert = { ...ereignis, ergebnisHeim: 26, ergebnisAuswaerts: 20 };
+    // Eine Ergebnis-KORREKTUR ist kein "neues" Ergebnis — terminBenoetigtUpdate
+    // erkennt die Änderung trotzdem (siehe oben), nur eben nicht als
+    // ergebnisNeu für die Benachrichtigung.
+    expect(ermittleRundenspielAenderung(bestehendMitErgebnis, geaendert)).toBeNull();
   });
 });
