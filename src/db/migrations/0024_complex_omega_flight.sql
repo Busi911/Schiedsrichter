@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ADD COLUMN "rundenspiel_aenderungen_benachrichtigung_aktiviert" boolean DEFAULT false NOT NULL;

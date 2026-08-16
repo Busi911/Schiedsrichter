@@ -273,3 +273,85 @@ export async function holeOffeneSchiedsrichterAnzahl(vereinId: string): Promise<
     return berechneOffeneSchiedsrichterAnzahl(anstehende, zuordnungen);
   });
 }
+
+export type OffenerSchiedsrichterTermin = {
+  terminId: string;
+  start: Date;
+  typ: string;
+  ort: string | null;
+  mannschaftLabel: string | null;
+};
+
+type AnstehenderSchiriTerminMitDetails = AnstehenderSchiriTermin & {
+  start: Date;
+  ort: string | null;
+  mannschaftName?: string | null;
+  mannschaftAltersklasse?: string | null;
+  kategorie?: string | null;
+};
+
+// List-Variante von berechneOffeneSchiedsrichterAnzahl (siehe dort) — statt
+// nur der Anzahl liefert diese hier je offenem Termin genug Details für eine
+// Erinnerungs-Mail an den Schiedsrichterwart (siehe
+// schiedsrichterwart-erinnerung.ts). Reine Berechnung ohne DB-Zugriff, siehe
+// dashboard.test.ts.
+export function berechneOffeneSchiedsrichterTermine(
+  anstehende: AnstehenderSchiriTerminMitDetails[],
+  zuordnungen: { terminId: string; funktionstraegerTyp: string }[]
+): OffenerSchiedsrichterTermin[] {
+  return anstehende
+    .filter(brauchtSchiedsrichterVomVerein)
+    .filter(
+      (t) =>
+        !zuordnungen.some(
+          (z) => z.terminId === t.id && z.funktionstraegerTyp === "schiedsrichter"
+        )
+    )
+    .map((t) => ({
+      terminId: t.id,
+      start: t.start,
+      typ: t.typ,
+      ort: t.ort,
+      mannschaftLabel: formatMannschaft(t),
+    }))
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+}
+
+export async function holeOffeneSchiedsrichterTermine(
+  vereinId: string
+): Promise<OffenerSchiedsrichterTermin[]> {
+  return withTenant(vereinId, async (tx) => {
+    const anstehende = await tx
+      .select({
+        id: termine.id,
+        typ: termine.typ,
+        pflichtspiel: termine.pflichtspiel,
+        start: termine.start,
+        ort: termine.ort,
+        mannschaftName: mannschaften.name,
+        mannschaftAltersklasse: mannschaften.altersklasse,
+        kategorie: termine.kategorie,
+      })
+      .from(termine)
+      .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
+      .where(
+        and(
+          eq(termine.vereinId, vereinId),
+          gte(termine.start, new Date()),
+          inArray(termine.typ, ["testspiel", "turnier_spiel", "rundenspiel"])
+        )
+      );
+    if (anstehende.length === 0) return [];
+
+    const terminIds = anstehende.map((t) => t.id);
+    const zuordnungen = await tx
+      .select({
+        terminId: terminZuordnungen.terminId,
+        funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+      })
+      .from(terminZuordnungen)
+      .where(inArray(terminZuordnungen.terminId, terminIds));
+
+    return berechneOffeneSchiedsrichterTermine(anstehende, zuordnungen);
+  });
+}

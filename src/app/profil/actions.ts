@@ -15,6 +15,7 @@ import {
 } from "@/db/schema";
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
 import { bedarfFuer } from "@/lib/dienste";
+import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 
 const SELBST_ANMELDBARE_TYPEN = ["ordner", "kioskdienst"] as const;
 
@@ -44,6 +45,46 @@ export async function updateStammdaten(formData: FormData) {
             : null,
       })
       .where(eq(users.id, userId))
+  );
+
+  revalidatePath("/profil");
+}
+
+// Selbstverwaltung der drei Erinnerungs-Mails (siehe wochen-digest.ts,
+// terminerinnerungen.ts, schiedsrichterwart-erinnerung.ts) — Checkboxen
+// senden bei "aus" gar kein Feld, daher jeweils "on"-Vergleich statt eines
+// booleschen Werts.
+export async function updateBenachrichtigungen(formData: FormData) {
+  const session = await requireSession();
+  const vereinId = session.user.vereinId!;
+  const userId = session.user.id;
+
+  const wochenDigestAktiviert = formData.get("wochenDigestAktiviert") === "on";
+  const terminErinnerungAktiviert = formData.get("terminErinnerungAktiviert") === "on";
+
+  // Der Schiedsrichterwart-Schalter erscheint im Formular nur, wenn die
+  // Person aktuell Schiedsrichterwart ist (siehe profil/page.tsx) — ohne
+  // diese Prüfung würde ein Absenden des Formulars ohne diesen Schalter
+  // (z.B. von jemandem ohne diese Rolle) das Feld stumm auf false
+  // zurücksetzen, statt es einfach unverändert zu lassen. Vor withTenant
+  // aufgerufen, damit istSchiedsrichterwart nicht in einer verschachtelten
+  // Transaktion läuft (es öffnet selbst eine eigene withTenant-Transaktion).
+  const darfSchiedsrichterwartFeldAendern = await istSchiedsrichterwart(
+    vereinId,
+    userId
+  );
+
+  const werteZumSpeichern: Partial<typeof users.$inferInsert> = {
+    wochenDigestAktiviert,
+    terminErinnerungAktiviert,
+  };
+  if (darfSchiedsrichterwartFeldAendern) {
+    werteZumSpeichern.offeneSchiedsrichterErinnerungAktiviert =
+      formData.get("offeneSchiedsrichterErinnerungAktiviert") === "on";
+  }
+
+  await withTenant(vereinId, (tx) =>
+    tx.update(users).set(werteZumSpeichern).where(eq(users.id, userId))
   );
 
   revalidatePath("/profil");

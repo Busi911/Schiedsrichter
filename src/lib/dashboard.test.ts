@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { berechneOffeneSchiedsrichterAnzahl, berechneOffenePosten } from "./dashboard";
+import {
+  berechneOffeneSchiedsrichterAnzahl,
+  berechneOffeneSchiedsrichterTermine,
+  berechneOffenePosten,
+} from "./dashboard";
 
 const verein = {
   testspielOrdnerBedarf: 2,
@@ -118,5 +122,70 @@ describe("berechneOffeneSchiedsrichterAnzahl", () => {
       []
     );
     expect(anzahl).toBe(0);
+  });
+});
+
+describe("berechneOffeneSchiedsrichterTermine", () => {
+  it("liefert Zeitpunkt, Ort und Mannschaft für ein offenes Spiel", () => {
+    const termine = berechneOffeneSchiedsrichterTermine(
+      [
+        {
+          id: "t1",
+          typ: "testspiel",
+          start: new Date("2026-09-01T10:00:00Z"),
+          ort: "Halle 1",
+          mannschaftName: "Herren 1",
+          mannschaftAltersklasse: null,
+        },
+      ],
+      []
+    );
+    expect(termine).toHaveLength(1);
+    expect(termine[0]).toMatchObject({
+      terminId: "t1",
+      ort: "Halle 1",
+      mannschaftLabel: "Herren 1",
+    });
+  });
+
+  it("lässt bereits zugeordnete Spiele aus", () => {
+    const termine = berechneOffeneSchiedsrichterTermine(
+      [{ id: "t1", typ: "testspiel", start: new Date("2026-09-01T10:00:00Z"), ort: null }],
+      [{ terminId: "t1", funktionstraegerTyp: "schiedsrichter" }]
+    );
+    expect(termine).toHaveLength(0);
+  });
+
+  it("ignoriert echte Ligaspiele (pflichtspiel = true) — der Verband stellt den Schiedsrichter", () => {
+    const termine = berechneOffeneSchiedsrichterTermine(
+      [
+        {
+          id: "t1",
+          typ: "rundenspiel",
+          pflichtspiel: true,
+          start: new Date("2026-09-01T10:00:00Z"),
+          ort: null,
+        },
+      ],
+      []
+    );
+    expect(termine).toHaveLength(0);
+  });
+
+  it("sortiert nach Startzeit", () => {
+    const spaeter = {
+      id: "t2",
+      typ: "testspiel",
+      start: new Date("2026-09-05T10:00:00Z"),
+      ort: null,
+    };
+    const frueher = {
+      id: "t1",
+      typ: "testspiel",
+      start: new Date("2026-09-01T10:00:00Z"),
+      ort: null,
+    };
+    const termine = berechneOffeneSchiedsrichterTermine([spaeter, frueher], []);
+    expect(termine.map((t) => t.terminId)).toEqual(["t1", "t2"]);
   });
 });
