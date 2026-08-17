@@ -1,0 +1,1 @@
+ALTER TABLE "termin" ADD COLUMN "zeitnehmer_bedarf_override" integer;

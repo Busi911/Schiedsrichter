@@ -210,6 +210,40 @@ export async function zeitnehmerZuordnungEntfernen(formData: FormData) {
   revalidatePath("/admin/kalender");
 }
 
+// Überschreibt den (aus den Vereinseinstellungen, siehe /admin/einstellungen,
+// abgeleiteten) Zeitnehmer-/Sekretär-Bedarf für GENAU diesen Termin — z.B.
+// wenn für ein bestimmtes Freundschaftsspiel ausnahmsweise doch keiner (oder
+// mehr als sonst) gebraucht wird. Leeres Feld setzt den Override zurück auf
+// "Standard" (null), siehe zeitnehmerBedarfOverride in db/schema.ts.
+export async function zeitnehmerBedarfUeberschreiben(formData: FormData) {
+  const { vereinId } = await requireZeitnehmerwartZugriff();
+
+  const terminId = formData.get("terminId");
+  const bedarfRoh = formData.get("bedarf");
+  if (typeof terminId !== "string" || !terminId) {
+    throw new Error("Termin fehlt.");
+  }
+
+  let bedarf: number | null = null;
+  if (typeof bedarfRoh === "string" && bedarfRoh.trim()) {
+    bedarf = Number.parseInt(bedarfRoh, 10);
+    if (!Number.isFinite(bedarf) || bedarf < 0) {
+      throw new Error("Bedarf muss eine Zahl ≥ 0 sein.");
+    }
+  }
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .update(termine)
+      .set({ zeitnehmerBedarfOverride: bedarf })
+      .where(and(eq(termine.id, terminId), eq(termine.vereinId, vereinId)))
+  );
+
+  revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath("/admin/kalender");
+  revalidatePath("/admin/dienste");
+}
+
 // Aktiviert die öffentliche Selbsteintragung (siehe
 // /zeitnehmer-eintragen/[token]) bzw. generiert einen neuen Link — dieselbe
 // Funktion für "erstmals aktivieren" und "Link neu generieren" (der alte

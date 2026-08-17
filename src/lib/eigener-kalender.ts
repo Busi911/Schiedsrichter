@@ -86,6 +86,7 @@ export async function holeEigeneKalenderEintraege(
           mannschaftName: mannschaften.name,
           mannschaftAltersklasse: mannschaften.altersklasse,
           kategorie: termine.kategorie,
+          zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
         })
         .from(termine)
         .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
@@ -133,7 +134,14 @@ export async function holeEigeneKalenderEintraege(
             berechneBesetzung(
               eigeneZuordnungen,
               !!t.hatIcsSchiedsrichter,
-              bedarfFuer(verein, t.typ, "zeitnehmer", t.pflichtspiel, t.freundschaftsTyp),
+              bedarfFuer(
+                verein,
+                t.typ,
+                "zeitnehmer",
+                t.pflichtspiel,
+                t.freundschaftsTyp,
+                t.zeitnehmerBedarfOverride
+              ),
               verein.zeitnehmerSekretaerMax
             ),
             t.typ,

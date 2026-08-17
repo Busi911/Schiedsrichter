@@ -5,11 +5,16 @@ import { and, eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { withTenant } from "@/db";
 import { termine, terminZuordnungen, vereine } from "@/db/schema";
-import { pruefeBesetzungsgrenze, zuordnungsMailInhalt } from "@/lib/zuordnung";
+import {
+  mehrfachZuordnungsMailInhalt,
+  pruefeBesetzungsgrenze,
+  zuordnungsMailInhalt,
+} from "@/lib/zuordnung";
 import { holeZeitnehmerEinsatzZahlen } from "@/lib/zeitnehmerwart";
 import { findeNamensVorschlag } from "@/lib/namens-abgleich";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
+import { formatDatumZeit } from "@/lib/format";
 
 const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
 type ZeitnehmerRolle = (typeof ZEITNEHMER_ROLLEN)[number];
@@ -128,4 +133,151 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
   revalidatePath(`/zeitnehmer-eintragen/${token}`);
   revalidatePath("/profil/zeitnehmerwart");
   revalidatePath("/admin/kalender");
+}
+
+// Mehrfach-Variante von zeitnehmerSelbstEintragenOeffentlich oben: derselbe
+// Name/dieselbe Rolle wird auf einmal für mehrere ausgewählte Termine
+// eingetragen (siehe ZeitnehmerMehrfachAuswahl in mehrfachauswahl.tsx) —
+// praktisch, wenn sich jemand z.B. für ein ganzes Turnierwochenende
+// einträgt, statt jeden Termin einzeln abzuschicken. Namensabgleich läuft
+// EINMAL für alle Termine (identischer Name/Rolle), jeder Termin bekommt
+// aber eine EIGENE Transaktion, damit ein bereits voll besetzter Termin
+// nicht die anderen, noch erfolgreichen Eintragungen verhindert.
+export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
+  formData: FormData
+) {
+  const token = formData.get("token");
+  const terminIds = formData
+    .getAll("terminIds")
+    .filter((v): v is string => typeof v === "string" && !!v);
+  const name = formData.get("name");
+  const rolleRoh = formData.get("rolle");
+
+  if (typeof token !== "string" || !token) {
+    throw new Error("Ungültiger Link.");
+  }
+  if (terminIds.length === 0) {
+    throw new Error("Bitte mindestens einen Termin auswählen.");
+  }
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Name ist erforderlich.");
+  }
+  if (
+    typeof rolleRoh !== "string" ||
+    !(ZEITNEHMER_ROLLEN as readonly string[]).includes(rolleRoh)
+  ) {
+    throw new Error("Bitte eine Rolle auswählen.");
+  }
+  const rolle = rolleRoh as ZeitnehmerRolle;
+  const eingegebenerName = name.trim();
+
+  const verein = await adminDb.query.vereine.findFirst({
+    where: eq(vereine.zeitnehmerSelbstanmeldungToken, token),
+  });
+  if (!verein) {
+    throw new Error("Ungültiger oder nicht mehr aktiver Link.");
+  }
+
+  const kandidaten = (await holeZeitnehmerEinsatzZahlen(verein.id)).filter((k) =>
+    k.rollen.includes(rolle)
+  );
+  const { exakt, vorschlag } = findeNamensVorschlag(eingegebenerName, kandidaten);
+
+  const eingetrageneTermine: {
+    start: Date;
+    ort: string | null;
+    beschreibung: string | null;
+  }[] = [];
+  const fehler: string[] = [];
+
+  for (const terminId of terminIds) {
+    try {
+      const termin = await withTenant(verein.id, async (tx) => {
+        const termin = await tx.query.termine.findFirst({
+          where: and(eq(termine.id, terminId), eq(termine.vereinId, verein.id)),
+        });
+        if (!termin) throw new Error("Termin nicht gefunden.");
+
+        try {
+          await pruefeBesetzungsgrenze(tx, verein.id, terminId, rolle);
+        } catch (err) {
+          throw new Error(
+            `${formatDatumZeit(termin.start)}: ${
+              err instanceof Error ? err.message : "Bereits voll besetzt."
+            }`
+          );
+        }
+
+        if (exakt) {
+          const vorhanden = await tx.query.terminZuordnungen.findFirst({
+            where: and(
+              eq(terminZuordnungen.terminId, terminId),
+              eq(terminZuordnungen.userId, exakt.userId),
+              eq(terminZuordnungen.funktionstraegerTyp, rolle)
+            ),
+          });
+          if (vorhanden) return null;
+
+          await tx.insert(terminZuordnungen).values({
+            terminId,
+            userId: exakt.userId,
+            funktionstraegerTyp: rolle,
+            quelle: "selbst_eingetragen_oeffentlich",
+          });
+          return termin;
+        }
+
+        await tx.insert(terminZuordnungen).values({
+          terminId,
+          userId: null,
+          externerName: eingegebenerName,
+          matchVorschlagUserId: vorschlag?.userId ?? null,
+          funktionstraegerTyp: rolle,
+          quelle: "selbst_eingetragen_oeffentlich",
+        });
+        return termin;
+      });
+
+      if (termin) eingetrageneTermine.push(termin);
+    } catch (err) {
+      fehler.push(err instanceof Error ? err.message : "Unbekannter Fehler.");
+    }
+  }
+
+  // Anders als bei der eingeloggten Selbstanmeldung hat hier möglicherweise
+  // eine ANDERE Person den Namen eingetragen — wie bei jeder Fremdzuordnung
+  // also eine Benachrichtigung, hier gebündelt in EINER Mail für alle neu
+  // zugeordneten Termine statt einer Mail je Termin.
+  if (exakt && eingetrageneTermine.length > 0) {
+    const kandidatMitMail = kandidaten.find((k) => k.userId === exakt.userId);
+    if (kandidatMitMail) {
+      const mailParams = {
+        vereinName: verein.name,
+        ...mehrfachZuordnungsMailInhalt(rolle, eingetrageneTermine),
+      };
+      try {
+        await sendMail(
+          kandidatMitMail.email,
+          "Neue Termin-Zuordnungen",
+          terminMailText(mailParams),
+          terminMailHtml(mailParams)
+        );
+      } catch (err) {
+        console.error("Zuordnungs-Mail konnte nicht gesendet werden:", err);
+      }
+    }
+  }
+
+  revalidatePath(`/zeitnehmer-eintragen/${token}`);
+  revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath("/admin/kalender");
+
+  if (fehler.length > 0) {
+    throw new Error(
+      `${eingetrageneTermine.length} von ${terminIds.length} Terminen eingetragen. ` +
+        `Bei ${fehler.length} ${
+          fehler.length === 1 ? "Termin gab es ein Problem" : "Terminen gab es Probleme"
+        }: ${fehler.join("; ")}`
+    );
+  }
 }

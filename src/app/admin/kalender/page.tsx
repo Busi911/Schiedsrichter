@@ -87,6 +87,7 @@ export default async function AdminKalenderPage({
           turnierVerantwortlicherId: termine.turnierVerantwortlicherId,
           schiedsrichterName: users.name,
           schiedsrichterEmail: users.email,
+          zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
         })
         .from(termine)
         .leftJoin(users, eq(termine.icsSchiedsrichterId, users.id))
@@ -198,7 +199,14 @@ export default async function AdminKalenderPage({
           berechneBesetzung(
             eigeneZuordnungen,
             t.typ === "spiel_ics" && !!t.schiedsrichterEmail,
-            bedarfFuer(verein, t.typ, "zeitnehmer", t.pflichtspiel, t.freundschaftsTyp),
+            bedarfFuer(
+              verein,
+              t.typ,
+              "zeitnehmer",
+              t.pflichtspiel,
+              t.freundschaftsTyp,
+              t.zeitnehmerBedarfOverride
+            ),
             verein.zeitnehmerSekretaerMax
           ),
           t.typ,

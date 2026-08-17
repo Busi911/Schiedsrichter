@@ -12,6 +12,7 @@ import { holeTermineMitZuordnungen } from "@/lib/zuordnung";
 import { berechneBesetzung } from "@/lib/besetzung";
 import { bedarfFuer } from "@/lib/dienste";
 import {
+  zeitnehmerBedarfUeberschreiben,
   zeitnehmerOhneLoginZuordnen,
   zeitnehmerSelbstanmeldungDeaktivieren,
   zeitnehmerSelbstanmeldungLinkErneuern,
@@ -39,6 +40,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
 import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
@@ -138,11 +140,13 @@ export default async function ZeitnehmerwartPage({
             termin.typ,
             "zeitnehmer",
             termin.pflichtspiel,
-            termin.freundschaftsTyp
+            termin.freundschaftsTyp,
+            termin.zeitnehmerBedarfOverride
           )
         : 1;
       return {
         ...termin,
+        zeitnehmerBedarf,
         besetzung: berechneBesetzung(
           termin.zuordnungen,
           false,
@@ -417,6 +421,49 @@ export default async function ZeitnehmerwartPage({
                       {t.beschreibung}
                     </p>
                   )}
+                  <details className="group mt-1">
+                    <summary className={cn(DISCLOSURE_KLASSE, "text-[0.7rem]")}>
+                      <span className="group-open:hidden">
+                        Bedarf: {t.zeitnehmerBedarf}
+                        {t.zeitnehmerBedarfOverride != null && " (angepasst)"}
+                      </span>
+                      <span className="hidden group-open:inline">Schließen</span>
+                    </summary>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <form
+                        action={zeitnehmerBedarfUeberschreiben}
+                        className="flex items-center gap-2"
+                      >
+                        <input type="hidden" name="terminId" value={t.id} />
+                        <Label
+                          htmlFor={`bedarf-${t.id}`}
+                          className="text-xs text-muted-foreground"
+                        >
+                          Bedarf für diesen Termin
+                        </Label>
+                        <Input
+                          id={`bedarf-${t.id}`}
+                          name="bedarf"
+                          type="number"
+                          min={0}
+                          defaultValue={t.zeitnehmerBedarfOverride ?? ""}
+                          placeholder="Standard"
+                          className="h-8 w-20"
+                        />
+                        <Button type="submit" size="xs" variant="outline">
+                          Speichern
+                        </Button>
+                      </form>
+                      {t.zeitnehmerBedarfOverride != null && (
+                        <form action={zeitnehmerBedarfUeberschreiben}>
+                          <input type="hidden" name="terminId" value={t.id} />
+                          <Button type="submit" size="xs" variant="ghost">
+                            Zurücksetzen (Standard)
+                          </Button>
+                        </form>
+                      )}
+                    </div>
+                  </details>
                   {bestehende.length > 0 && (
                     <ul className="mt-2 flex flex-col gap-1">
                       {bestehende.map((z) => (

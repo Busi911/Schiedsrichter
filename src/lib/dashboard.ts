@@ -106,6 +106,7 @@ type AnstehenderTermin = {
   mannschaftName?: string | null;
   mannschaftAltersklasse?: string | null;
   kategorie?: string | null;
+  zeitnehmerBedarfOverride?: number | null;
 };
 type Zuordnung = { terminId: string; funktionstraegerTyp: string };
 
@@ -151,7 +152,8 @@ export function berechneOffenePosten(
         termin.typ,
         "zeitnehmer",
         termin.pflichtspiel,
-        termin.freundschaftsTyp
+        termin.freundschaftsTyp,
+        termin.zeitnehmerBedarfOverride
       );
       const vorhanden = zuordnungen.filter(
         (z) =>
@@ -194,6 +196,7 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
         mannschaftName: mannschaften.name,
         mannschaftAltersklasse: mannschaften.altersklasse,
         kategorie: termine.kategorie,
+        zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
