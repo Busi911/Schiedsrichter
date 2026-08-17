@@ -123,6 +123,17 @@ export default async function ZeitnehmerEintragenPage({
     }
   );
 
+  // Nur Mannschaften als Filter-Buttons anbieten, die auch mindestens einen
+  // eintragbaren Termin haben — sonst führte ein Klick nur zu "Keine
+  // anstehenden Termine" (z.B. wenn die Saison einer Mannschaft schon vorbei
+  // ist oder gerade Pause ist).
+  const mannschaftenMitTerminen = new Set(
+    relevanteTermine.map((t) => t.mannschaftId).filter((id): id is string => !!id)
+  );
+  const anzeigbareMannschaften = alleMannschaften.filter((m) =>
+    mannschaftenMitTerminen.has(m.id)
+  );
+
   const gefilterteTermine = mannschaftFilter
     ? relevanteTermine.filter((t) => t.mannschaftId === mannschaftFilter)
     : relevanteTermine;
@@ -165,7 +176,7 @@ export default async function ZeitnehmerEintragenPage({
         das der Zeitnehmerwart nach.
       </p>
 
-      {alleMannschaften.length > 0 && (
+      {anzeigbareMannschaften.length > 0 && (
         <div className="flex flex-wrap gap-2">
           <Button
             variant={!mannschaftFilter ? "default" : "outline"}
@@ -175,7 +186,7 @@ export default async function ZeitnehmerEintragenPage({
           >
             Alle
           </Button>
-          {alleMannschaften.map((m) => (
+          {anzeigbareMannschaften.map((m) => (
             <Button
               key={m.id}
               variant={mannschaftFilter === m.id ? "default" : "outline"}
