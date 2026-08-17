@@ -114,7 +114,12 @@ type Zuordnung = { terminId: string; funktionstraegerTyp: string };
 // mit BESETZUNGSRELEVANTE_TYPEN in den Kalenderansichten (siehe
 // src/app/admin/kalender/page.tsx). Der Turnier-Container selbst wird pro
 // Einzelspiel (turnier_spiel) besetzt.
-const ZEITNEHMER_RELEVANTE_TYPEN = ["spiel_ics", "testspiel", "turnier_spiel", "rundenspiel"];
+const ZEITNEHMER_RELEVANTE_TYPEN = [
+  "spiel_ics",
+  "testspiel",
+  "turnier_spiel",
+  "rundenspiel",
+] as const;
 
 // Reine Berechnung (ohne DB-Zugriff), damit sie ohne Testdatenbank getestet
 // werden kann — siehe src/lib/dashboard.test.ts. Bündelt alle offenen Rollen
@@ -146,7 +151,7 @@ export function berechneOffenePosten(
       if (vorhanden < bedarf) luecken.push({ rolle, vorhanden, bedarf });
     }
 
-    if (ZEITNEHMER_RELEVANTE_TYPEN.includes(termin.typ)) {
+    if ((ZEITNEHMER_RELEVANTE_TYPEN as readonly string[]).includes(termin.typ)) {
       const bedarf = bedarfFuer(
         verein,
         termin.typ,
@@ -356,5 +361,110 @@ export async function holeOffeneSchiedsrichterTermine(
       .where(inArray(terminZuordnungen.terminId, terminIds));
 
     return berechneOffeneSchiedsrichterTermine(anstehende, zuordnungen);
+  });
+}
+
+export type OffenerZeitnehmerTermin = {
+  terminId: string;
+  start: Date;
+  typ: string;
+  ort: string | null;
+  mannschaftLabel: string | null;
+  vorhanden: number;
+  bedarf: number;
+};
+
+// List-Variante analog zu berechneOffeneSchiedsrichterTermine, aber für den
+// Zeitnehmer-/Sekretär-Bedarf (siehe zeitnehmerwart-erinnerung.ts). Bewusst
+// getrennt von berechneOffenePosten/holeOffenePosten (das bündelt Ordner/
+// Kioskdienst UND Zeitnehmer in einem Eintrag für /admin/dienste, Empfänger
+// dort: alle Admins) — diese Liste geht gezielt an die Zeitnehmerwart-Rolle,
+// analog zum Schiedsrichter-Pendant oben. Reine Berechnung ohne DB-Zugriff,
+// siehe dashboard.test.ts.
+export function berechneOffeneZeitnehmerTermine(
+  verein: VereinBedarf,
+  anstehende: AnstehenderTermin[],
+  zuordnungen: Zuordnung[]
+): OffenerZeitnehmerTermin[] {
+  const posten: OffenerZeitnehmerTermin[] = [];
+
+  for (const termin of anstehende) {
+    if (!(ZEITNEHMER_RELEVANTE_TYPEN as readonly string[]).includes(termin.typ)) continue;
+
+    const bedarf = bedarfFuer(
+      verein,
+      termin.typ,
+      "zeitnehmer",
+      termin.pflichtspiel,
+      termin.freundschaftsTyp,
+      termin.zeitnehmerBedarfOverride
+    );
+    if (bedarf <= 0) continue;
+
+    const vorhanden = zuordnungen.filter(
+      (z) =>
+        z.terminId === termin.id &&
+        (z.funktionstraegerTyp === "zeitnehmer" || z.funktionstraegerTyp === "sekretaer")
+    ).length;
+    if (vorhanden >= bedarf) continue;
+
+    posten.push({
+      terminId: termin.id,
+      start: termin.start,
+      typ: termin.typ,
+      ort: termin.ort,
+      mannschaftLabel: formatMannschaft(termin),
+      vorhanden,
+      bedarf,
+    });
+  }
+
+  return posten.sort((a, b) => a.start.getTime() - b.start.getTime());
+}
+
+export async function holeOffeneZeitnehmerTermine(
+  vereinId: string
+): Promise<OffenerZeitnehmerTermin[]> {
+  return withTenant(vereinId, async (tx) => {
+    const verein = await tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+    });
+    if (!verein) return [];
+
+    const anstehende = await tx
+      .select({
+        id: termine.id,
+        start: termine.start,
+        typ: termine.typ,
+        ort: termine.ort,
+        pflichtspiel: termine.pflichtspiel,
+        freundschaftsTyp: termine.freundschaftsTyp,
+        mannschaftName: mannschaften.name,
+        mannschaftAltersklasse: mannschaften.altersklasse,
+        kategorie: termine.kategorie,
+        zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+      })
+      .from(termine)
+      .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
+      .where(
+        and(
+          eq(termine.vereinId, vereinId),
+          gte(termine.start, new Date()),
+          inArray(termine.typ, ZEITNEHMER_RELEVANTE_TYPEN)
+        )
+      )
+      .orderBy(asc(termine.start));
+    if (anstehende.length === 0) return [];
+
+    const terminIds = anstehende.map((t) => t.id);
+    const zuordnungen = await tx
+      .select({
+        terminId: terminZuordnungen.terminId,
+        funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+      })
+      .from(terminZuordnungen)
+      .where(inArray(terminZuordnungen.terminId, terminIds));
+
+    return berechneOffeneZeitnehmerTermine(verein, anstehende, zuordnungen);
   });
 }

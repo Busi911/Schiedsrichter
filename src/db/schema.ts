@@ -253,6 +253,18 @@ export const users = pgTable("user", {
   )
     .notNull()
     .default(true),
+  // Analog zu offeneSchiedsrichterErinnerungAktiviert oben, aber für die
+  // Zeitnehmerwart-Rolle (siehe zeitnehmerwart-erinnerung.ts).
+  offeneZeitnehmerErinnerungAktiviert: boolean(
+    "offene_zeitnehmer_erinnerung_aktiviert"
+  )
+    .notNull()
+    .default(true),
+  // Persönlicher Kalender-Abo-Link (ICS-Feed, siehe lib/kalender-ics.ts) —
+  // analog zu vereine.zeitnehmerSelbstanmeldungToken, aber pro Person statt
+  // pro Verein. null = noch nicht aktiviert; Kenntnis des Tokens ist die
+  // Berechtigung (login-freier Abruf durch Kalender-Apps).
+  kalenderToken: text("kalender_token").unique(),
 });
 
 export const accounts = pgTable(

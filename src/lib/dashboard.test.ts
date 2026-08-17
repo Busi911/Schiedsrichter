@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   berechneOffeneSchiedsrichterAnzahl,
   berechneOffeneSchiedsrichterTermine,
+  berechneOffeneZeitnehmerTermine,
   berechneOffenePosten,
 } from "./dashboard";
 
@@ -186,6 +187,73 @@ describe("berechneOffeneSchiedsrichterTermine", () => {
       ort: null,
     };
     const termine = berechneOffeneSchiedsrichterTermine([spaeter, frueher], []);
+    expect(termine.map((t) => t.terminId)).toEqual(["t1", "t2"]);
+  });
+});
+
+describe("berechneOffeneZeitnehmerTermine", () => {
+  it("meldet einen Termin mit noch offenem Zeitnehmer-/Sekretär-Bedarf", () => {
+    const termin = {
+      id: "t1",
+      typ: "rundenspiel",
+      start: new Date("2026-09-01T10:00:00Z"),
+      ort: "Halle 1",
+    };
+    const termine = berechneOffeneZeitnehmerTermine(verein, [termin], []);
+    expect(termine).toHaveLength(1);
+    expect(termine[0]).toMatchObject({ terminId: "t1", vorhanden: 0, bedarf: 1 });
+  });
+
+  it("zählt Zeitnehmer und Sekretär gemeinsam gegen den Bedarf", () => {
+    const termin = {
+      id: "t1",
+      typ: "rundenspiel",
+      start: new Date("2026-09-01T10:00:00Z"),
+      ort: null,
+    };
+    const termine = berechneOffeneZeitnehmerTermine(verein, [termin], [
+      { terminId: "t1", funktionstraegerTyp: "sekretaer" },
+    ]);
+    expect(termine).toHaveLength(0);
+  });
+
+  it("ignoriert Termin-Typen ohne Zeitnehmer-Relevanz", () => {
+    const termin = {
+      id: "t1",
+      typ: "turnier",
+      start: new Date("2026-09-01T10:00:00Z"),
+      ort: null,
+    };
+    const termine = berechneOffeneZeitnehmerTermine(verein, [termin], []);
+    expect(termine).toHaveLength(0);
+  });
+
+  it("ignoriert Termine ohne konfigurierten Bedarf (0)", () => {
+    const ohneBedarf = { ...verein, rundenspielZeitnehmerBedarf: 0 };
+    const termin = {
+      id: "t1",
+      typ: "rundenspiel",
+      start: new Date("2026-09-01T10:00:00Z"),
+      ort: null,
+    };
+    const termine = berechneOffeneZeitnehmerTermine(ohneBedarf, [termin], []);
+    expect(termine).toHaveLength(0);
+  });
+
+  it("sortiert nach Startzeit", () => {
+    const spaeter = {
+      id: "t2",
+      typ: "rundenspiel",
+      start: new Date("2026-09-05T10:00:00Z"),
+      ort: null,
+    };
+    const frueher = {
+      id: "t1",
+      typ: "rundenspiel",
+      start: new Date("2026-09-01T10:00:00Z"),
+      ort: null,
+    };
+    const termine = berechneOffeneZeitnehmerTermine(verein, [spaeter, frueher], []);
     expect(termine.map((t) => t.terminId)).toEqual(["t1", "t2"]);
   });
 });

@@ -15,6 +15,8 @@ import { bedarfFuer } from "@/lib/dienste";
 import { monatsBereich, parseMonatParam } from "@/lib/kalender";
 import { holeEigeneKalenderEintraege } from "@/lib/eigener-kalender";
 import {
+  kalenderLinkDeaktivieren,
+  kalenderLinkErneuern,
   selbstAbmelden,
   selbstAnmelden,
   syncJetzt,
@@ -31,15 +33,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Logo } from "@/components/logo";
 import { MonatsKalender } from "@/components/monats-kalender";
-import { PushAnmelden } from "@/components/push-anmelden";
 import { SubmitButton } from "@/components/submit-button";
 import { saisonLabel, saisonSortKey } from "@/lib/saison";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
+import { appUrl } from "@/lib/app-url";
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -94,6 +97,8 @@ export default async function ProfilPage({
           wochenDigestAktiviert: true,
           terminErinnerungAktiviert: true,
           offeneSchiedsrichterErinnerungAktiviert: true,
+          offeneZeitnehmerErinnerungAktiviert: true,
+          kalenderToken: true,
         },
       });
       const rollen = await tx.query.funktionstraegerRollen.findMany({
@@ -316,6 +321,48 @@ export default async function ProfilPage({
 
         <Card>
           <CardHeader>
+            <CardTitle>Kalender abonnieren</CardTitle>
+            <CardDescription>
+              Abo-Link für Apple/Google/Outlook Kalender & Co. — dieselben
+              Termine wie oben, automatisch aktuell gehalten, ohne dass du
+              hier vorbeischauen musst.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {eigeneStammdaten?.kalenderToken ? (
+              <p className="break-all rounded-lg border bg-muted/40 p-3 text-sm">
+                {appUrl()}/kalender/{eigeneStammdaten.kalenderToken}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Noch nicht aktiviert.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <form action={kalenderLinkErneuern}>
+                <Button type="submit" variant="outline" size="sm">
+                  {eigeneStammdaten?.kalenderToken
+                    ? "Link neu generieren (alter Link wird ungültig)"
+                    : "Aktivieren"}
+                </Button>
+              </form>
+              {eigeneStammdaten?.kalenderToken && (
+                <form action={kalenderLinkDeaktivieren}>
+                  <ConfirmSubmitButton
+                    confirmText="Kalender-Abo deaktivieren? Der bisherige Link funktioniert danach nicht mehr."
+                    variant="ghost"
+                    size="sm"
+                  >
+                    Deaktivieren
+                  </ConfirmSubmitButton>
+                </form>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Meine Rollen</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
@@ -379,19 +426,6 @@ export default async function ProfilPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Push-Benachrichtigungen</CardTitle>
-            <CardDescription>
-              Erinnerungen zusätzlich zur E-Mail direkt aufs Gerät — nützlich,
-              wenn E-Mails im Alltag leicht untergehen.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PushAnmelden />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>E-Mail-Benachrichtigungen</CardTitle>
             <CardDescription>
               Welche automatischen Erinnerungs-Mails du bekommen möchtest.
@@ -443,6 +477,27 @@ export default async function ProfilPage({
                     name="offeneSchiedsrichterErinnerungAktiviert"
                     defaultChecked={
                       eigeneStammdaten?.offeneSchiedsrichterErinnerungAktiviert ?? true
+                    }
+                  />
+                </div>
+              )}
+              {istZeitnehmerwart && (
+                <div className="flex items-center justify-between gap-3">
+                  <Label
+                    htmlFor="offeneZeitnehmerErinnerungAktiviert"
+                    className="font-normal"
+                  >
+                    Als Zeitnehmerwart: Erinnerung an unbesetzte Zeitnehmer-/
+                    Sekretär-Posten
+                  </Label>
+                  <Switch
+                    key={String(
+                      eigeneStammdaten?.offeneZeitnehmerErinnerungAktiviert ?? true
+                    )}
+                    id="offeneZeitnehmerErinnerungAktiviert"
+                    name="offeneZeitnehmerErinnerungAktiviert"
+                    defaultChecked={
+                      eigeneStammdaten?.offeneZeitnehmerErinnerungAktiviert ?? true
                     }
                   />
                 </div>
