@@ -420,6 +420,13 @@ export const termine = pgTable("termin", {
   // Abgleichs-Hinweis gegen die im Verein zugeordnete Person (siehe
   // schiedsrichterKuerzelPasstZu), nicht als automatische Zuordnung.
   nuligaSchiedsrichterKuerzel: text("nuliga_schiedsrichter_kuerzel"),
+  // Vom Zeitnehmerwart pro Einzeltermin gesetzter Bedarf, der den globalen
+  // Bedarf aus den Vereinseinstellungen für GENAU diesen Termin übersteuert
+  // (siehe bedarfFuer in lib/dienste.ts) — null = Standardverhalten (globale
+  // Einstellung gilt), ein Wert (auch 0) übersteuert sie, z.B. wenn für ein
+  // bestimmtes Spiel ausnahmsweise doch kein Zeitnehmer/Sekretär gebraucht
+  // wird (oder mehr als sonst).
+  zeitnehmerBedarfOverride: integer("zeitnehmer_bedarf_override"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 

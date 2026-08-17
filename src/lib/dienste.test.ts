@@ -84,4 +84,19 @@ describe("bedarfFuer", () => {
   it("liefert für spiel_ics einen festen Zeitnehmer-Standardbedarf (nicht konfigurierbar, persönlicher Einsatz)", () => {
     expect(bedarfFuer(verein, "spiel_ics", "zeitnehmer")).toBe(1);
   });
+
+  it("Zeitnehmer-Override (Zeitnehmerwart) übersteuert den globalen Bedarf für einen einzelnen Termin, inklusive 0", () => {
+    expect(bedarfFuer(verein, "testspiel", "zeitnehmer", null, null, 0)).toBe(0);
+    expect(bedarfFuer(verein, "testspiel", "zeitnehmer", null, null, 3)).toBe(3);
+    expect(bedarfFuer(verein, "spiel_ics", "zeitnehmer", null, null, 2)).toBe(2);
+  });
+
+  it("Zeitnehmer-Override gilt nicht für Ordner/Kioskdienst", () => {
+    expect(bedarfFuer(verein, "testspiel", "ordner", null, null, 0)).toBe(2);
+  });
+
+  it("ohne gesetzten Override (null/undefined) gilt weiterhin der globale Bedarf", () => {
+    expect(bedarfFuer(verein, "testspiel", "zeitnehmer", null, null, null)).toBe(7);
+    expect(bedarfFuer(verein, "testspiel", "zeitnehmer", null, null, undefined)).toBe(7);
+  });
 });

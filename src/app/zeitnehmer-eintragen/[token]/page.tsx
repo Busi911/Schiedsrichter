@@ -103,7 +103,8 @@ export default async function ZeitnehmerEintragenPage({
             t.typ,
             "zeitnehmer",
             t.pflichtspiel,
-            t.freundschaftsTyp
+            t.freundschaftsTyp,
+            t.zeitnehmerBedarfOverride
           );
           return {
             ...t,

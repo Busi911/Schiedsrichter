@@ -36,8 +36,16 @@ export function bedarfFuer(
   typ: string,
   rolle: Rolle,
   pflichtspiel?: boolean | null,
-  freundschaftsTyp?: "freundschaftsspiel" | "turnier" | null
+  freundschaftsTyp?: "freundschaftsspiel" | "turnier" | null,
+  // Vom Zeitnehmerwart pro Einzeltermin gesetzter Override (siehe
+  // termine.zeitnehmerBedarfOverride in db/schema.ts) — nur für rolle
+  // "zeitnehmer" relevant, geht bei gesetztem Wert (auch 0) allen anderen
+  // Regeln unten vor, inklusive dem spiel_ics-Standardwert.
+  zeitnehmerBedarfOverride?: number | null
 ): number {
+  if (rolle === "zeitnehmer" && zeitnehmerBedarfOverride != null) {
+    return zeitnehmerBedarfOverride;
+  }
   if (rolle === "zeitnehmer" && typ === "spiel_ics") {
     return ZEITNEHMER_SEKRETAER_BEDARF_STANDARD;
   }
