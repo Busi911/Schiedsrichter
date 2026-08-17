@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
-import { requireAdmin } from "@/lib/session";
+import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
 import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import {
@@ -14,7 +14,7 @@ import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
 
 export async function zuordnen(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const terminId = formData.get("terminId");
@@ -101,7 +101,7 @@ export async function zuordnen(formData: FormData) {
 // `zuordnen`, damit im Formular klar zwischen "bekannte Person auswählen"
 // und "Name ohne Login eintragen" unterschieden wird.
 export async function externeZuordnung(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const terminId = formData.get("terminId");
@@ -142,7 +142,7 @@ export async function externeZuordnung(formData: FormData) {
 }
 
 export async function zuordnungEntfernen(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const zuordnungId = formData.get("zuordnungId");

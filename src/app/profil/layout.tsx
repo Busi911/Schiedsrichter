@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const session = await auth();
   if (!session?.user?.vereinId) return {};
 
-  if (session.user.istAdmin) {
+  if (session.user.istAdmin || session.user.istAdminLesend) {
     return {
       title: "HandballerPate Admin",
       manifest: "/manifest-admin.json",

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import { requireAdmin, requireSession } from "@/lib/session";
+import { requireAdminSchreibzugriff, requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
@@ -50,7 +50,7 @@ function willkommensInhalt(
 }
 
 export async function createMannschaft(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const name = formData.get("name");
@@ -74,7 +74,7 @@ export async function createMannschaft(formData: FormData) {
 }
 
 export async function updateMannschaft(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const mannschaftId = formData.get("mannschaftId");
@@ -106,7 +106,7 @@ export async function updateMannschaft(formData: FormData) {
 }
 
 export async function deleteMannschaft(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const mannschaftId = formData.get("mannschaftId");
@@ -132,7 +132,7 @@ export async function deleteMannschaft(formData: FormData) {
 // unsauberem manuellem Anlegen in einem Schritt aufzuräumen, statt jede
 // einzeln über deleteMannschaft entfernen zu müssen.
 export async function deleteMannschaften(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const mannschaftIds = formData
@@ -169,7 +169,7 @@ const FUNKTIONSTRAEGER_TYPEN = [
 ] as const;
 
 export async function createFunktionstraeger(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const email = formData.get("email");
@@ -179,6 +179,7 @@ export async function createFunktionstraeger(formData: FormData) {
   // Checkbox: ist sie nicht angehakt, fehlt der Formularwert komplett.
   const sofortAktiv = formData.get("sofortAktiv") === "on";
   const alsAdmin = formData.get("istAdmin") === "on";
+  const alsAdminLesend = formData.get("istAdminLesend") === "on";
 
   if (typeof email !== "string" || !email.trim()) {
     throw new Error("E-Mail ist erforderlich.");
@@ -195,10 +196,11 @@ export async function createFunktionstraeger(formData: FormData) {
   ) {
     throw new Error("Ungültige Rolle ausgewählt.");
   }
-  // Admin zählt als eigenständige "Rolle" für die Mindestanforderung — eine
-  // Person kann bewusst NUR Admin sein, ohne aktiven Funktionsträger-Typ
-  // (z.B. ein Vorstandsmitglied ohne eigenen Dienst).
-  if (typen.length === 0 && !alsAdmin) {
+  // Admin (voll oder nur lesend) zählt als eigenständige "Rolle" für die
+  // Mindestanforderung — eine Person kann bewusst NUR Admin sein, ohne
+  // aktiven Funktionsträger-Typ (z.B. ein Vorstandsmitglied ohne eigenen
+  // Dienst).
+  if (typen.length === 0 && !alsAdmin && !alsAdminLesend) {
     throw new Error("Bitte mindestens eine Rolle auswählen (oder Admin).");
   }
   const ausgewaehlteTypen = typen as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
@@ -224,6 +226,7 @@ export async function createFunktionstraeger(formData: FormData) {
           name: name.trim(),
           vereinId,
           istAdmin: alsAdmin,
+          istAdminLesend: alsAdminLesend,
         })
         .returning();
       // Nur bei sofortAktiv gleich vergeben, da nur dann auch sofort die
@@ -236,17 +239,20 @@ export async function createFunktionstraeger(formData: FormData) {
           user.passwordHash
         );
       }
-    } else if (alsAdmin && !user.istAdmin) {
+    } else {
       // Nur BEFÖRDERN, nie hier degradieren — dieses Formular dient auch
       // dazu, einer bestehenden Person eine weitere Rolle zu ergänzen, ohne
-      // versehentlich ihre Admin-Rechte zu entziehen, wenn die Checkbox beim
-      // erneuten Absenden nicht angehakt ist (siehe adminRechteToggeln für
-      // die bewusste Degradierung).
-      await tx
-        .update(users)
-        .set({ istAdmin: true })
-        .where(eq(users.id, user.id));
-      user = { ...user, istAdmin: true };
+      // versehentlich ihre Admin-Rechte zu entziehen, wenn eine der
+      // Checkboxen beim erneuten Absenden nicht angehakt ist (siehe
+      // adminRechteToggeln/adminLesendRechteToggeln für die bewusste
+      // Degradierung).
+      const aenderungen: Partial<typeof users.$inferInsert> = {};
+      if (alsAdmin && !user.istAdmin) aenderungen.istAdmin = true;
+      if (alsAdminLesend && !user.istAdminLesend) aenderungen.istAdminLesend = true;
+      if (Object.keys(aenderungen).length > 0) {
+        await tx.update(users).set(aenderungen).where(eq(users.id, user.id));
+        user = { ...user, ...aenderungen };
+      }
     }
 
     for (const typ of ausgewaehlteTypen) {
@@ -302,7 +308,7 @@ export async function createFunktionstraeger(formData: FormData) {
 // Zeile (FunktionstraegerTabelle) nicht ersichtlich/erreichbar war. Direkt
 // per userId statt per E-Mail, da die Person hier schon eindeutig feststeht.
 export async function rolleHinzufuegen(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const userId = formData.get("userId");
@@ -356,7 +362,7 @@ export async function rolleHinzufuegen(formData: FormData) {
 // Zuordnungs-Historie erhalten), taucht aber nicht mehr in Zuordnung/
 // Selbst-Anmeldung auf.
 export async function funktionstraegerAktivToggeln(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const rolleId = formData.get("rolleId");
@@ -453,7 +459,7 @@ function emailGeaendertInhalt(
 // eine Info sowohl an die neue als auch an die alte Adresse raus, damit ein
 // versehentlicher/unbefugter Wechsel auffällt.
 export async function updateFunktionstraeger(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const userId = formData.get("userId");
@@ -539,7 +545,7 @@ export async function updateFunktionstraeger(formData: FormData) {
 // aussperren, ohne dass ein anderer Admin/Systemadmin eingreifen kann,
 // falls es der einzige Admin des Vereins war.
 export async function adminRechteToggeln(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const userId = formData.get("userId");
@@ -567,6 +573,40 @@ export async function adminRechteToggeln(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
+// Analog zu adminRechteToggeln oben, aber für die "nur lesend"-Variante
+// (istAdminLesend) — eigene Rolle statt eines dritten Werts auf istAdmin,
+// damit beide unabhängig voneinander vergeben/entzogen werden können (auch
+// wenn "voll + nur lesend gleichzeitig" praktisch bedeutungslos ist, da
+// requireAdminSchreibzugriff() ohnehin nur istAdmin prüft).
+export async function adminLesendRechteToggeln(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const userId = formData.get("userId");
+  if (typeof userId !== "string" || !userId) {
+    throw new Error("Person fehlt.");
+  }
+  if (userId === session.user.id) {
+    throw new Error(
+      "Du kannst dir hier nicht selbst die Admin-Rechte entziehen — das muss ein anderer Admin für dich tun."
+    );
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    const person = await tx.query.users.findFirst({
+      where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
+    });
+    if (!person) throw new Error("Person nicht gefunden.");
+
+    await tx
+      .update(users)
+      .set({ istAdminLesend: !person.istAdminLesend })
+      .where(eq(users.id, userId));
+  });
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
 // Mehrfachauswahl-Löschen (siehe FunktionstraegerTabelle) — echtes Löschen
 // der Person inkl. Login, Rollen und kompletter Einsatz-Historie/Zuordnungen
 // (Cascade-Delete, siehe schema.ts), z.B. um Karteileichen/Dubletten
@@ -577,7 +617,7 @@ export async function adminRechteToggeln(formData: FormData) {
 // zur Auswahl anbietet (Selbstlöschung wäre sonst möglich, falls die
 // Formulardaten manipuliert werden).
 export async function deleteFunktionstraeger(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const userIds = formData
@@ -600,7 +640,7 @@ export async function deleteFunktionstraeger(formData: FormData) {
 }
 
 export async function funktionstraegerImportieren(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const datei = formData.get("datei");
@@ -714,7 +754,7 @@ export async function funktionstraegerImportieren(formData: FormData) {
 const TERMIN_TYPEN = ["testspiel", "turnier"] as const;
 
 export async function createTermin(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const typ = formData.get("typ");
@@ -765,7 +805,7 @@ export async function createTermin(formData: FormData) {
 // direkt im Kalender-Modal, bleibt auf der Kalenderseite) — beide validieren/
 // speichern identisch, unterscheiden sich nur im Verhalten NACH dem Speichern.
 async function aktualisiereTerminFelder(
-  session: Awaited<ReturnType<typeof requireAdmin>>,
+  session: Awaited<ReturnType<typeof requireAdminSchreibzugriff>>,
   formData: FormData
 ) {
   const vereinId = session.user.vereinId!;
@@ -854,7 +894,7 @@ async function aktualisiereTerminFelder(
 // (Testspiele/Turniere) — ICS-Feed-Termine werden vom Sync verwaltet und
 // würden bei manueller Änderung beim nächsten Sync wieder überschrieben.
 export async function updateTermin(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   await aktualisiereTerminFelder(session, formData);
 
   revalidatePath("/admin/termine");
@@ -865,7 +905,7 @@ export async function updateTermin(formData: FormData) {
 // — bewusst OHNE redirect, damit der Admin auf der Kalenderseite bleibt
 // statt zur Termine-Liste zu springen.
 export async function updateTerminInline(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   await aktualisiereTerminFelder(session, formData);
 
   revalidatePath("/admin/kalender");
@@ -873,7 +913,7 @@ export async function updateTerminInline(formData: FormData) {
 }
 
 export async function deleteTermin(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const terminId = formData.get("terminId");
@@ -912,7 +952,7 @@ export async function deleteTermin(formData: FormData) {
 // weiterhin im Turnier-Spielplan (siehe turnier-spielplan.tsx) bzw. auf der
 // öffentlichen Turnier-Seite (/turnier/[token]) erscheint.
 export async function spielDuplikatVerknuepfen(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const quellId = formData.get("quellId");
@@ -1210,7 +1250,7 @@ export async function deleteTurnierSpiel(formData: FormData) {
 }
 
 export async function turnierLinkErneuern(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const turnierId = formData.get("turnierId");
@@ -1230,7 +1270,7 @@ export async function turnierLinkErneuern(formData: FormData) {
 }
 
 export async function mannschaftAusRundenspielAnlegen(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const name = formData.get("name");
@@ -1293,7 +1333,7 @@ export async function mannschaftAusRundenspielAnlegen(formData: FormData) {
 // künftigen Imports nicht wieder auftauchen — siehe ignorierteMannschaften in
 // schema.ts.
 export async function unbekannteMannschaftAblehnen(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const name = formData.get("name");

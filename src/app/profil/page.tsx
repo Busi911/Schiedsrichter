@@ -246,7 +246,7 @@ export default async function ProfilPage({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {session.user.istAdmin && (
+            {(session.user.istAdmin || session.user.istAdminLesend) && (
               <Button
                 variant="outline"
                 size="sm"
