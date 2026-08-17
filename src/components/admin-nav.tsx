@@ -21,14 +21,15 @@ const PRIMARY_ITEMS = [
   { href: "/admin", label: "Übersicht", exact: true },
   { href: "/admin/kalender", label: "Kalender" },
   { href: "/admin/termine", label: "Termine" },
+  { href: "/admin/rundenspiele", label: "Hallenspielplan" },
 ];
 
+// /admin/auswertung ist erstmal aus der Navigation raus (Seite/Route bleibt
+// bestehen, nur nicht mehr verlinkt).
 const VERWALTUNG_ITEMS = [
   { href: "/admin/mannschaften", label: "Mannschaften" },
   { href: "/admin/funktionstraeger", label: "Funktionsträger" },
   { href: "/admin/dienste", label: "Unbesetzte Dienste" },
-  { href: "/admin/rundenspiele", label: "Hallenspielplan" },
-  { href: "/admin/auswertung", label: "Auswertung" },
   { href: "/admin/einstellungen", label: "Einstellungen" },
 ];
 
