@@ -90,6 +90,14 @@ export function ZeitnehmerMehrfachAuswahl({
           <Button type="submit" size="sm">
             Für alle eintragen
           </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setAusgewaehlt(new Set())}
+          >
+            Auswahl zurücksetzen
+          </Button>
         </form>
       )}
 
