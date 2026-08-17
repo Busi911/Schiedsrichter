@@ -234,23 +234,27 @@ export default async function OrdnerwartPage({
                   z.funktionstraegerTyp as "ordner" | "kioskdienst"
                 )
               );
+              // Bewusst NICHT herausgefiltert, sondern nur ausgegraut
+              // (disabled), wenn die Person für diese Rolle bereits
+              // eingetragen ist — siehe LabeledSelectOption.disabled. Die
+              // vorhanden/bedarf-Prüfung bleibt dagegen ein echter Filter:
+              // eine Rolle ohne freie Kapazität soll gar nicht erst
+              // auftauchen.
               const personOptionen = t.freiePersonen.flatMap((s) =>
                 t.luecken
-                  .filter(
-                    (l) =>
-                      l.vorhanden < l.bedarf &&
-                      s.rollen.includes(l.rolle) &&
-                      !bestehende.some(
-                        (z) =>
-                          z.userId === s.userId &&
-                          z.funktionstraegerTyp === l.rolle
-                      )
-                  )
+                  .filter((l) => l.vorhanden < l.bedarf && s.rollen.includes(l.rolle))
                   .map((l) => ({
                     value: `${s.userId}|${l.rolle}`,
                     label: `${s.name ?? s.email} (${ROLLE_LABEL[l.rolle]})`,
+                    disabled: bestehende.some(
+                      (z) =>
+                        z.userId === s.userId && z.funktionstraegerTyp === l.rolle
+                    ),
                   }))
               );
+              const auswaehlbareOptionen = personOptionen.filter(
+                (o) => !o.disabled
+              ).length;
 
               return (
                 <div key={t.id} className="rounded-lg border p-3 text-sm">
@@ -290,7 +294,7 @@ export default async function OrdnerwartPage({
                                 : ""}
                             </span>
                             <div className="flex items-center gap-3">
-                              {personOptionen.length > 0 && (
+                              {auswaehlbareOptionen > 0 && (
                                 <details className="group">
                                   <summary className={DISCLOSURE_KLASSE}>
                                     <span className="group-open:hidden">
@@ -348,7 +352,7 @@ export default async function OrdnerwartPage({
                       ))}
                     </ul>
                   )}
-                  {personOptionen.length === 0 ? (
+                  {auswaehlbareOptionen === 0 ? (
                     !t.vollstaendig && (
                       <p className="mt-2 text-xs text-muted-foreground">
                         Keine Person zu diesem Zeitpunkt verfügbar.

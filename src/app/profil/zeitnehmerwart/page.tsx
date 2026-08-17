@@ -380,19 +380,23 @@ export default async function ZeitnehmerwartPage({
                   z.funktionstraegerTyp
                 )
               );
+              // Bewusst NICHT herausgefiltert, sondern nur ausgegraut (disabled):
+              // eine bereits für diesen Termin/diese Rolle eingetragene Person
+              // still aus der Liste verschwinden zu lassen, sah eher wie ein
+              // Fehler aus als wie eine bewusste Einschränkung — siehe auch
+              // LabeledSelectOption.disabled.
               const personOptionen = t.freiePersonen.flatMap((s) =>
-                s.rollen
-                  .filter(
-                    (rolle) =>
-                      !bestehende.some(
-                        (z) => z.userId === s.userId && z.funktionstraegerTyp === rolle
-                      )
-                  )
-                  .map((rolle) => ({
-                    value: `${s.userId}|${rolle}`,
-                    label: `${s.name ?? s.email} (${rolle === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"})`,
-                  }))
+                s.rollen.map((rolle) => ({
+                  value: `${s.userId}|${rolle}`,
+                  label: `${s.name ?? s.email} (${rolle === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"})`,
+                  disabled: bestehende.some(
+                    (z) => z.userId === s.userId && z.funktionstraegerTyp === rolle
+                  ),
+                }))
               );
+              const auswaehlbareOptionen = personOptionen.filter(
+                (o) => !o.disabled
+              ).length;
 
               return (
                 <div key={t.id} className="rounded-lg border p-3 text-sm">
@@ -479,7 +483,7 @@ export default async function ZeitnehmerwartPage({
                                 : ""}
                             </span>
                             <div className="flex items-center gap-3">
-                              {personOptionen.length > 0 && (
+                              {auswaehlbareOptionen > 0 && (
                                 <details className="group">
                                   <summary className={DISCLOSURE_KLASSE}>
                                     <span className="group-open:hidden">
@@ -539,12 +543,12 @@ export default async function ZeitnehmerwartPage({
                   )}
                   {!t.besetzung.zeitnehmerSekretaerVoll && (
                     <div className="mt-2 flex flex-col gap-2">
-                      {personOptionen.length === 0 && (
+                      {auswaehlbareOptionen === 0 && (
                         <p className="text-xs text-muted-foreground">
                           Keine Person zu diesem Zeitpunkt verfügbar.
                         </p>
                       )}
-                      {personOptionen.length > 0 &&
+                      {auswaehlbareOptionen > 0 &&
                         (bestehende.length === 0 ? (
                           <form
                             action={zeitnehmerZuordnen}

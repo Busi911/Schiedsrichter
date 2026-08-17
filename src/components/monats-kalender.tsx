@@ -202,11 +202,22 @@ export function MonatsKalender({
                   // Zeilen dieser Woche — bei einem CSS-Grid-Item, das über
                   // mehrere Zeilen spannt, zählt sein Platzbedarf für die
                   // Größe der einzelnen "auto"-Zeile NICHT verlässlich mit,
-                  // sobald die übrigen Zeilen (Turnier-Balken-Lanes + 1fr)
-                  // den Gesamtbedarf schon allein decken. Ergebnis: sobald
-                  // ein Turnier-Balken läuft, kollabiert die Datumszeile auf
-                  // ~0 Höhe und die Tageszahl verschwindet hinter dem Balken.
-                  gridTemplateRows: `1.4rem repeat(${maxLanesGesamt}, 1.1rem) 1fr`,
+                  // sobald die übrigen Zeilen (Turnier-Balken-Lanes + Termin-
+                  // Zeile) den Gesamtbedarf schon allein decken. Ergebnis:
+                  // sonst kollabiert die Datumszeile auf ~0 Höhe und die
+                  // Tageszahl verschwindet hinter dem Balken.
+                  //
+                  // Die letzte Zeile (Termine des Tages) dagegen bewusst
+                  // "auto" statt "1fr": deren Inhalt spannt NICHT über
+                  // mehrere Zeilen (anders als die Hintergrund-Zelle oben),
+                  // zählt für die Größenberechnung dieser einen Zeile also
+                  // ganz normal mit. "1fr" hätte hier ohne definierte
+                  // Container-Höhe kaum Platz bekommen — an Tagen mit
+                  // mehreren Terminen liefen die Einträge dadurch übereinander
+                  // statt die Zelle wachsen zu lassen. Höhe ist hier bewusst
+                  // nicht begrenzt, ein langer Tag darf die ganze Woche höher
+                  // machen.
+                  gridTemplateRows: `1.4rem repeat(${maxLanesGesamt}, 1.1rem) auto`,
                 }}
               >
                 {woche.map((tag, tagIdx) => {

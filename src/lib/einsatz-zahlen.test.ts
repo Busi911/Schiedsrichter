@@ -16,6 +16,19 @@ describe("mergeRollenZaehlungen", () => {
     expect(ergebnis[0].anzahlEinsaetze).toBe(3);
   });
 
+  it("führt eine doppelt vorhandene Rollen-Zeile (kein DB-Unique-Constraint) nur einmal auf", () => {
+    const ergebnis = mergeRollenZaehlungen(
+      [
+        { userId: "u1", name: "Anna", email: "anna@test.de", typ: "zeitnehmer" },
+        { userId: "u1", name: "Anna", email: "anna@test.de", typ: "zeitnehmer" },
+        { userId: "u1", name: "Anna", email: "anna@test.de", typ: "sekretaer" },
+      ],
+      []
+    );
+    expect(ergebnis).toHaveLength(1);
+    expect(ergebnis[0].rollen.sort()).toEqual(["sekretaer", "zeitnehmer"]);
+  });
+
   it("hält zwei verschiedene Personen als separate Einträge auseinander", () => {
     const ergebnis = mergeRollenZaehlungen(
       [
