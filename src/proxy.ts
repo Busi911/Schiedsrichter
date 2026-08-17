@@ -22,7 +22,11 @@ export default auth((req) => {
     // Öffentliche, login-freie Selbsteintragung für Zeitnehmer/Sekretär
     // (Kenntnis des Tokens ist die Berechtigung) — siehe
     // src/app/zeitnehmer-eintragen/[token]/page.tsx.
-    pathname.startsWith("/zeitnehmer-eintragen/");
+    pathname.startsWith("/zeitnehmer-eintragen/") ||
+    // Öffentlicher ICS-Kalender-Feed (Kenntnis des Tokens ist die
+    // Berechtigung) — Kalender-Apps rufen das anonym ab, ohne Login-Session,
+    // siehe src/app/kalender/[token]/route.ts.
+    pathname.startsWith("/kalender/");
 
   if (!isLoggedIn && !isPublicRoute) {
     return Response.redirect(new URL("/login", req.nextUrl));
