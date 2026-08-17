@@ -48,6 +48,31 @@ export function zuordnungsMailInhalt(
   };
 }
 
+// Analog zu zuordnungsMailInhalt oben, aber für mehrere Termine auf einmal
+// (siehe zeitnehmerSelbstEintragenMehrfachOeffentlich in
+// zeitnehmer-eintragen/[token]/actions.ts) — EINE Mail mit einer Zeile pro
+// Termin statt einer Einzelmail je Termin, damit jemand, der sich für ein
+// ganzes Turnierwochenende einträgt, nicht mit vielen Mails auf einmal
+// bombardiert wird.
+export function mehrfachZuordnungsMailInhalt(
+  rolle: string,
+  termine: { start: Date; ort: string | null; beschreibung: string | null }[]
+) {
+  const rolleLabel = ZUORDNUNGS_ROLLE_LABEL[rolle] ?? rolle;
+  return {
+    ueberschrift:
+      termine.length === 1
+        ? `Du wurdest als ${rolleLabel} eingeteilt.`
+        : `Du wurdest als ${rolleLabel} für ${termine.length} Termine eingeteilt.`,
+    zeilen: termine.map((t) => {
+      const teile = [formatDatumZeitLang(t.start)];
+      if (t.ort) teile.push(t.ort);
+      if (t.beschreibung) teile.push(t.beschreibung);
+      return teile.join(" · ");
+    }),
+  };
+}
+
 // Prüft die Gespann-/Zweierbesetzung-Obergrenze, BEVOR eine weitere Person
 // eingetragen wird — schiedsrichter max. SCHIRI_GESPANN_MAX (fest 2),
 // zeitnehmer+sekretaer zusammen max. vereine.zeitnehmerSekretaerMax

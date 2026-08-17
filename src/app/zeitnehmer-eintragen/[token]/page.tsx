@@ -8,13 +8,12 @@ import { bedarfFuer } from "@/lib/dienste";
 import { berechneBesetzung } from "@/lib/besetzung";
 import { rundenspielTypLabel } from "@/lib/termin-label";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
-import { zeitnehmerSelbstEintragenOeffentlich } from "./actions";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { LabeledSelect } from "@/components/labeled-select";
 import { Logo } from "@/components/logo";
+import {
+  ZeitnehmerMehrfachAuswahl,
+  type EintragbarerTermin,
+} from "@/components/zeitnehmer-mehrfachauswahl";
 
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
@@ -26,11 +25,6 @@ const TYP_LABEL: Record<string, string> = {
 // keine Mannschafts-/Vereins-Veranstaltung) — anders als auf
 // /profil/zeitnehmerwart, wo der Wart auch dafür manuell zuordnen kann.
 const ZEITNEHMER_RELEVANTE_TYPEN = ["testspiel", "turnier_spiel", "rundenspiel"];
-
-const ROLLE_OPTIONEN = [
-  { value: "zeitnehmer", label: "Zeitnehmer" },
-  { value: "sekretaer", label: "Sekretär" },
-];
 
 const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
 
@@ -133,6 +127,23 @@ export default async function ZeitnehmerEintragenPage({
     ? relevanteTermine.filter((t) => t.mannschaftId === mannschaftFilter)
     : relevanteTermine;
 
+  const eintragbareTermine: EintragbarerTermin[] = gefilterteTermine.map((t) => ({
+    id: t.id,
+    zeit: formatDateTime(t.start),
+    typLabel:
+      t.typ === "rundenspiel"
+        ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
+        : (TYP_LABEL[t.typ] ?? t.typ),
+    ort: t.ort,
+    beschreibung: t.beschreibung,
+    vollstaendig: t.besetzung.zeitnehmerSekretaerErfuellt,
+    eintragbar: !t.besetzung.zeitnehmerSekretaerVoll,
+    zuordnungen: t.zuordnungen.map((z) => ({
+      id: z.id,
+      label: `${z.funktionstraegerTyp === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"}: ${z.name ?? z.externerName ?? "—"}`,
+    })),
+  }));
+
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-6">
       <div className="flex items-center gap-3">
@@ -148,10 +159,10 @@ export default async function ZeitnehmerEintragenPage({
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Kein Login nötig: Termin auswählen, Namen eintragen, Rolle wählen und
-        absenden. Bereits im System angelegte Personen werden dabei
-        automatisch erkannt — bei Unsicherheit prüft das der Zeitnehmerwart
-        nach.
+        Kein Login nötig: einen oder mehrere Termine auswählen, Namen
+        eintragen, Rolle wählen und absenden. Bereits im System angelegte
+        Personen werden dabei automatisch erkannt — bei Unsicherheit prüft
+        das der Zeitnehmerwart nach.
       </p>
 
       {alleMannschaften.length > 0 && (
@@ -178,85 +189,19 @@ export default async function ZeitnehmerEintragenPage({
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
-        {gefilterteTermine.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Keine anstehenden Termine.
+      {gefilterteTermine.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Keine anstehenden Termine.
+        </p>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">
+            {gefilterteTermine.length}{" "}
+            {gefilterteTermine.length === 1 ? "Termin" : "Termine"} angezeigt
           </p>
-        ) : (
-          gefilterteTermine.map((t) => {
-            const typLabel =
-              t.typ === "rundenspiel"
-                ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
-                : (TYP_LABEL[t.typ] ?? t.typ);
-            return (
-              <Card key={t.id} className="min-w-0">
-                <CardContent className="flex flex-col gap-2 text-sm">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{formatDateTime(t.start)}</span>
-                    <Badge variant="outline">{typLabel}</Badge>
-                    <Badge
-                      variant={
-                        t.besetzung.zeitnehmerSekretaerErfuellt
-                          ? "secondary"
-                          : "outline"
-                      }
-                    >
-                      {t.besetzung.zeitnehmerSekretaerErfuellt
-                        ? "Besetzung vollständig"
-                        : "Besetzung offen"}
-                    </Badge>
-                    {t.ort && (
-                      <span className="text-muted-foreground">{t.ort}</span>
-                    )}
-                  </div>
-                  {t.beschreibung && (
-                    <p className="text-muted-foreground">{t.beschreibung}</p>
-                  )}
-                  {t.zuordnungen.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {t.zuordnungen.map((z) => (
-                        <Badge key={z.id} variant="secondary">
-                          {z.funktionstraegerTyp === "zeitnehmer"
-                            ? "Zeitnehmer"
-                            : "Sekretär"}
-                          : {z.name ?? z.externerName ?? "—"}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  {!t.besetzung.zeitnehmerSekretaerVoll && (
-                    <form
-                      action={zeitnehmerSelbstEintragenOeffentlich}
-                      className="mt-1 flex flex-wrap items-center gap-2"
-                    >
-                      <input type="hidden" name="token" value={token} />
-                      <input type="hidden" name="terminId" value={t.id} />
-                      <Input
-                        name="name"
-                        placeholder="Dein Name"
-                        required
-                        className="h-8 min-w-48 flex-1"
-                      />
-                      <div className="w-36">
-                        <LabeledSelect
-                          name="rolle"
-                          placeholder="Rolle…"
-                          options={ROLLE_OPTIONEN}
-                          required
-                        />
-                      </div>
-                      <Button type="submit" size="sm">
-                        Eintragen
-                      </Button>
-                    </form>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
-      </div>
+          <ZeitnehmerMehrfachAuswahl token={token} termine={eintragbareTermine} />
+        </>
+      )}
 
       <p className="text-center text-xs text-muted-foreground">
         Selbsteintragung — HandballerPate
