@@ -10,6 +10,7 @@ import {
 } from "@/db/schema";
 import { formatDatumZeitLang } from "@/lib/format";
 import { SCHIRI_GESPANN_MAX, berechneBesetzung } from "@/lib/besetzung";
+import type { EmailZeile } from "@/lib/email-layout";
 
 // Rollen, die einem Termin über termin_zuordnung zugeordnet werden können.
 // 'trainer' hängt an der Mannschaft (nicht am einzelnen Termin), 'ordner'
@@ -59,17 +60,26 @@ export function mehrfachZuordnungsMailInhalt(
   termine: { start: Date; ort: string | null; beschreibung: string | null }[]
 ) {
   const rolleLabel = ZUORDNUNGS_ROLLE_LABEL[rolle] ?? rolle;
+  // Ein flacher "Datum · Ort · Beschreibung"-Fließtext pro Termin lief bei
+  // mehreren Terminen optisch ineinander (kaum unterscheidbar, siehe
+  // Screenshot-Feedback) — deshalb hier: Datum als fette, eigene Zeile (der
+  // visuelle Anker pro Termin), Ort/Beschreibung darunter, und ab dem
+  // zweiten Termin ein zusätzlicher Abstand nach oben, damit jeder Termin
+  // klar als eigener Block erkennbar ist.
+  const zeilen: EmailZeile[] = termine.flatMap((t, i) => {
+    const eintrag: EmailZeile[] = [
+      { text: formatDatumZeitLang(t.start), stark: true, neueGruppe: i > 0 },
+    ];
+    const details = [t.ort, t.beschreibung].filter(Boolean).join(" · ");
+    if (details) eintrag.push(details);
+    return eintrag;
+  });
   return {
     ueberschrift:
       termine.length === 1
         ? `Du wurdest als ${rolleLabel} eingeteilt.`
         : `Du wurdest als ${rolleLabel} für ${termine.length} Termine eingeteilt.`,
-    zeilen: termine.map((t) => {
-      const teile = [formatDatumZeitLang(t.start)];
-      if (t.ort) teile.push(t.ort);
-      if (t.beschreibung) teile.push(t.beschreibung);
-      return teile.join(" · ");
-    }),
+    zeilen,
   };
 }
 
