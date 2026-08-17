@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { zeitnehmerSelbstEintragenMehrfachOeffentlich } from "@/app/zeitnehmer-eintragen/[token]/actions";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,25 +50,27 @@ export function ZeitnehmerMehrfachAuswahl({
   // gleiches Prinzip in turnier-spielplan.tsx).
   const mehrtaegig = new Set(termine.map((t) => t.tag)).size > 1;
 
-  // Zählt nur die erfolgreichen Aufrufe hoch (useActionState ruft den
-  // Reducer NICHT auf, wenn die Action wirft) — die Auswahl soll also nur
-  // nach einer tatsächlich erfolgreichen Eintragung zurückgesetzt werden,
-  // nicht wenn z.B. ein Termin zwischenzeitlich voll wurde und die Action
-  // deshalb einen Fehler wirft.
-  const [erfolgeSeitStart, submitAction] = useActionState(
-    async (bisher: number, formData: FormData) => {
-      await zeitnehmerSelbstEintragenMehrfachOeffentlich(formData);
-      return bisher + 1;
-    },
-    0
+  const [status, submitAction] = useActionState(
+    (
+      _bisher: Awaited<
+        ReturnType<typeof zeitnehmerSelbstEintragenMehrfachOeffentlich>
+      > | null,
+      formData: FormData
+    ) => zeitnehmerSelbstEintragenMehrfachOeffentlich(formData),
+    null
   );
   // State während des Renderns anpassen statt in einem Effect (siehe
   // https://react.dev/learn/you-might-not-need-an-effect) — vermeidet einen
-  // zusätzlichen Render-Umweg und die zugehörige Lint-Warnung.
-  const [verarbeiteteErfolge, setVerarbeiteteErfolge] = useState(erfolgeSeitStart);
-  if (erfolgeSeitStart !== verarbeiteteErfolge) {
-    setVerarbeiteteErfolge(erfolgeSeitStart);
-    setAusgewaehlt(new Set());
+  // zusätzlichen Render-Umweg und die zugehörige Lint-Warnung. Die Auswahl
+  // wird nur zurückgesetzt, wenn mindestens ein Termin tatsächlich
+  // eingetragen wurde, nicht bei einem kompletten Fehlschlag (z.B. alle
+  // ausgewählten Termine bereits voll oder Person bereits eingetragen).
+  const [verarbeiteterStatus, setVerarbeiteterStatus] = useState(status);
+  if (status !== verarbeiteterStatus) {
+    setVerarbeiteterStatus(status);
+    if (status && status.eingetragen > 0) {
+      setAusgewaehlt(new Set());
+    }
   }
 
   function toggle(id: string) {
@@ -81,6 +84,26 @@ export function ZeitnehmerMehrfachAuswahl({
 
   return (
     <div className="flex flex-col gap-3">
+      {// Außerhalb des Formulars, da das Formular nach einem Teilerfolg
+      // (mindestens ein Termin eingetragen) ausgeblendet wird, sobald die
+      // Auswahl zurückgesetzt ist — die Fehlermeldung zu den restlichen,
+      // fehlgeschlagenen Terminen soll trotzdem sichtbar bleiben.
+      status?.fehler && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {status.eingetragen > 0 && (
+              <p>
+                {status.eingetragen} von {status.gesamt}{" "}
+                {status.gesamt === 1 ? "Termin" : "Terminen"} eingetragen.
+              </p>
+            )}
+            {status.fehler.split(" | ").map((f) => (
+              <p key={f}>{f}</p>
+            ))}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {ausgewaehlt.size > 0 && (
         <form
           action={submitAction}
