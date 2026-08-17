@@ -1,10 +1,10 @@
 import "server-only";
-import { emailAlsHtml, emailAlsText } from "./email-layout";
+import { emailAlsHtml, emailAlsText, type EmailZeile } from "./email-layout";
 
 export function terminMailText(params: {
   vereinName: string;
   ueberschrift: string;
-  zeilen: string[];
+  zeilen: EmailZeile[];
 }) {
   return emailAlsText(params);
 }
@@ -12,7 +12,7 @@ export function terminMailText(params: {
 export function terminMailHtml(params: {
   vereinName: string;
   ueberschrift: string;
-  zeilen: string[];
+  zeilen: EmailZeile[];
 }) {
   return emailAlsHtml(params);
 }

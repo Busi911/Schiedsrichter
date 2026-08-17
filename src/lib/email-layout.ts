@@ -9,6 +9,19 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
+// Normalfall ist ein einfacher String (Fließtext-Absatz, wie bisher). Für
+// Mails mit mehreren gleichartigen Einträgen (z.B. mehrere Termine, siehe
+// mehrfachZuordnungsMailInhalt in lib/zuordnung.ts) reicht ein flacher
+// Fließtext nicht — die einzelnen Einträge liefen optisch ununterscheidbar
+// ineinander. Als Objekt kann eine Zeile deshalb zusätzlich stark (fett,
+// z.B. für ein Datum als visueller Anker) und/oder neueGruppe (zusätzlicher
+// Abstand nach oben, markiert den Beginn eines neuen Eintrags) sein.
+export type EmailZeile = string | { text: string; stark?: boolean; neueGruppe?: boolean };
+
+export function zeileText(z: EmailZeile): string {
+  return typeof z === "string" ? z : z.text;
+}
+
 // Gemeinsame Struktur für JEDE transaktionale Mail der App — siehe
 // CLAUDE.md ("E-Mail-Layout") für die Konvention. vereinName weglassen bei
 // Mails ohne Vereins-Kontext (z.B. Login-Link); zeilen sind Fließtext-
@@ -17,7 +30,7 @@ function escapeHtml(text: string): string {
 export type EmailInhalt = {
   vereinName?: string;
   ueberschrift: string;
-  zeilen: string[];
+  zeilen: EmailZeile[];
   cta?: { text: string; url: string };
   kleingedrucktes?: string;
 };
@@ -26,7 +39,10 @@ export function emailAlsText(inhalt: EmailInhalt): string {
   const teile = [
     ...(inhalt.vereinName ? [inhalt.vereinName, ""] : []),
     inhalt.ueberschrift,
-    ...inhalt.zeilen.map((z) => `\n${z}`),
+    ...inhalt.zeilen.map(
+      (z) =>
+        `${typeof z !== "string" && z.neueGruppe ? "\n" : ""}\n${zeileText(z)}`
+    ),
   ];
   if (inhalt.cta) teile.push(`\n${inhalt.cta.text}: ${inhalt.cta.url}`);
   if (inhalt.kleingedrucktes) teile.push(`\n${inhalt.kleingedrucktes}`);
@@ -64,14 +80,16 @@ export function emailAlsHtml(inhalt: EmailInhalt): string {
               </td>
             </tr>
             ${inhalt.zeilen
-              .map(
-                (z) => `
+              .map((z) => {
+                const stark = typeof z !== "string" && !!z.stark;
+                const neueGruppe = typeof z !== "string" && !!z.neueGruppe;
+                return `
             <tr>
-              <td style="padding:0 32px 4px;text-align:${linksbuendig ? "left" : "center"};color:#52525b;font-size:14px;line-height:1.6;">
-                ${escapeHtml(z)}
+              <td style="padding:${neueGruppe ? 16 : 0}px 32px 4px;text-align:${linksbuendig ? "left" : "center"};color:${stark ? "#18181b" : "#52525b"};font-size:14px;font-weight:${stark ? 600 : 400};line-height:1.6;">
+                ${escapeHtml(zeileText(z))}
               </td>
-            </tr>`
-              )
+            </tr>`;
+              })
               .join("")}
             ${
               inhalt.cta

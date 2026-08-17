@@ -8,6 +8,7 @@ import { termine, terminZuordnungen, vereine } from "@/db/schema";
 import {
   mehrfachZuordnungsMailInhalt,
   pruefeBesetzungsgrenze,
+  pruefeKeineDoppelrolle,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
 import { holeZeitnehmerEinsatzZahlen } from "@/lib/zeitnehmerwart";
@@ -72,14 +73,7 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
     await pruefeBesetzungsgrenze(tx, verein.id, terminId, rolle);
 
     if (exakt) {
-      const vorhanden = await tx.query.terminZuordnungen.findFirst({
-        where: and(
-          eq(terminZuordnungen.terminId, terminId),
-          eq(terminZuordnungen.userId, exakt.userId),
-          eq(terminZuordnungen.funktionstraegerTyp, rolle)
-        ),
-      });
-      if (vorhanden) return null;
+      await pruefeKeineDoppelrolle(tx, terminId, { userId: exakt.userId });
 
       await tx.insert(terminZuordnungen).values({
         terminId,
@@ -101,6 +95,8 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
         rolle,
       };
     }
+
+    await pruefeKeineDoppelrolle(tx, terminId, { externerName: eingegebenerName });
 
     await tx.insert(terminZuordnungen).values({
       terminId,
@@ -200,24 +196,20 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
 
         try {
           await pruefeBesetzungsgrenze(tx, verein.id, terminId, rolle);
+          await pruefeKeineDoppelrolle(
+            tx,
+            terminId,
+            exakt ? { userId: exakt.userId } : { externerName: eingegebenerName }
+          );
         } catch (err) {
           throw new Error(
             `${formatDatumZeit(termin.start)}: ${
-              err instanceof Error ? err.message : "Bereits voll besetzt."
+              err instanceof Error ? err.message : "Bereits voll besetzt oder doppelt eingetragen."
             }`
           );
         }
 
         if (exakt) {
-          const vorhanden = await tx.query.terminZuordnungen.findFirst({
-            where: and(
-              eq(terminZuordnungen.terminId, terminId),
-              eq(terminZuordnungen.userId, exakt.userId),
-              eq(terminZuordnungen.funktionstraegerTyp, rolle)
-            ),
-          });
-          if (vorhanden) return null;
-
           await tx.insert(terminZuordnungen).values({
             terminId,
             userId: exakt.userId,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { digestInhalt } from "./wochen-digest";
+import { zeileText } from "./email-layout";
 import type { KalenderEintrag } from "@/components/monats-kalender";
 
 const eintrag: KalenderEintrag = {
@@ -23,9 +24,11 @@ describe("digestInhalt", () => {
     expect(inhalt.ueberschrift).toContain("(3)");
     expect(inhalt.vereinName).toBe("Musterverein");
     // Tages-Überschrift für den 1. September muss vor der für den 3. stehen.
-    const indexErsterTag = inhalt.zeilen.findIndex((z) => z.includes("September"));
+    const indexErsterTag = inhalt.zeilen.findIndex((z) =>
+      zeileText(z).includes("September")
+    );
     expect(indexErsterTag).toBeGreaterThanOrEqual(0);
-    expect(inhalt.zeilen[0]).toContain("1. September");
+    expect(zeileText(inhalt.zeilen[0])).toContain("1. September");
   });
 
   it("enthält Zeit, Typ und Zusatzinfos pro Eintrag", () => {
@@ -33,7 +36,9 @@ describe("digestInhalt", () => {
       ["2026-09-01", [eintrag]],
     ]);
     const inhalt = digestInhalt("Musterverein", eintraegeProTag);
-    const eintragZeile = inhalt.zeilen.find((z) => z.includes("18:00"));
+    const eintragZeile = zeileText(
+      inhalt.zeilen.find((z) => zeileText(z).includes("18:00"))!
+    );
     expect(eintragZeile).toContain("Rundenspiel");
     expect(eintragZeile).toContain("Herren 1");
     expect(eintragZeile).toContain("Halle 1");
