@@ -18,6 +18,12 @@ export type LabeledSelectOption = {
   value: string;
   label: string;
   group?: string;
+  // Sichtbar, aber nicht auswählbar (ausgegraut) — z.B. eine Person, die
+  // für diesen Termin/diese Rolle bereits eingetragen ist. Bewusst
+  // weiterhin in der Liste statt sie herauszufiltern: sonst verschwindet
+  // ein Name kommentarlos, was eher wie ein Fehler aussieht als eine
+  // bewusste Einschränkung.
+  disabled?: boolean;
 };
 
 function gruppiere(options: LabeledSelectOption[]) {
@@ -71,14 +77,14 @@ export function LabeledSelect({
             <SelectGroup key={`${gruppe.name}-${i}`}>
               <SelectLabel>{gruppe.name}</SelectLabel>
               {gruppe.optionen.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
+                <SelectItem key={o.value} value={o.value} disabled={o.disabled}>
                   {o.label}
                 </SelectItem>
               ))}
             </SelectGroup>
           ) : (
             gruppe.optionen.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
+              <SelectItem key={o.value} value={o.value} disabled={o.disabled}>
                 {o.label}
               </SelectItem>
             ))

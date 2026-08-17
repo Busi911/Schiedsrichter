@@ -45,7 +45,14 @@ export function mergeRollenZaehlungen<R extends string>(
       ),
       rollen: [] as R[],
     };
-    eintrag.rollen.push(r.typ);
+    // funktionstraeger_rolle hat keinen Unique-Constraint auf (userId, typ)
+    // — dieselbe Rolle könnte also versehentlich doppelt angelegt worden
+    // sein (z.B. Import zweimal ausgeführt). Ohne diese Prüfung tauchte
+    // "Rolle" dann doppelt in rollen auf und dadurch auch doppelt in jeder
+    // daraus abgeleiteten Auswahl-Liste (Zuordnen/Ersetzen).
+    if (!eintrag.rollen.includes(r.typ)) {
+      eintrag.rollen.push(r.typ);
+    }
     personenMap.set(r.userId, eintrag);
   }
   return Array.from(personenMap.values());

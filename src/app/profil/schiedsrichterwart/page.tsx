@@ -239,11 +239,18 @@ export default async function SchiedsrichterwartPage({
               const bestehendeSchiedsrichter = t.zuordnungen.filter(
                 (z) => z.funktionstraegerTyp === "schiedsrichter"
               );
-              const personOptionen = t.freiePersonen
-                .filter(
-                  (s) => !bestehendeSchiedsrichter.some((z) => z.userId === s.userId)
-                )
-                .map((s) => ({ value: s.userId, label: s.name ?? s.email }));
+              // Bewusst NICHT herausgefiltert, sondern nur ausgegraut
+              // (disabled) — siehe LabeledSelectOption.disabled.
+              const personOptionen = t.freiePersonen.map((s) => ({
+                value: s.userId,
+                label: s.name ?? s.email,
+                disabled: bestehendeSchiedsrichter.some(
+                  (z) => z.userId === s.userId
+                ),
+              }));
+              const auswaehlbareOptionen = personOptionen.filter(
+                (o) => !o.disabled
+              ).length;
 
               return (
                 <div key={t.id} className="rounded-lg border p-3 text-sm">
@@ -309,7 +316,7 @@ export default async function SchiedsrichterwartPage({
                               )}
                             </span>
                             <div className="flex items-center gap-3">
-                              {personOptionen.length > 0 && (
+                              {auswaehlbareOptionen > 0 && (
                                 <details className="group">
                                   <summary className={DISCLOSURE_KLASSE}>
                                     <span className="group-open:hidden">
@@ -374,12 +381,12 @@ export default async function SchiedsrichterwartPage({
                   )}
                   {!t.besetzung.schiriVoll && (
                     <div className="mt-2 flex flex-col gap-2">
-                      {personOptionen.length === 0 && (
+                      {auswaehlbareOptionen === 0 && (
                         <p className="text-xs text-muted-foreground">
                           Kein Schiedsrichter zu diesem Zeitpunkt verfügbar.
                         </p>
                       )}
-                      {personOptionen.length > 0 &&
+                      {auswaehlbareOptionen > 0 &&
                         (bestehendeSchiedsrichter.length === 0 ? (
                           // Noch niemand zugeordnet: das ist die einzige
                           // Aktion für diesen Termin, deshalb direkt sichtbar
