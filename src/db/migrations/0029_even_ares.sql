@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "offene_zeitnehmer_erinnerung_aktiviert" boolean DEFAULT true NOT NULL;

@@ -63,7 +63,10 @@ export default async function AdminLayout({
                 {verein?.name ?? "Verein"}
               </p>
               <p className="text-xs text-muted-foreground">
-                Vereinsadmin · {session.user.name ?? session.user.email}
+                {session.user.istAdmin
+                  ? "Vereinsadmin"
+                  : "Vereinsadmin (nur lesend)"}{" "}
+                · {session.user.name ?? session.user.email}
               </p>
             </div>
           </div>

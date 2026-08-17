@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mannschaften, users } from "@/db/schema";
@@ -69,13 +69,25 @@ export default async function FunktionstraegerPage({
         orderBy: (m, { asc }) => [asc(m.name)],
       });
 
-      // Admins tauchen nicht zwingend in funktionstraeger_rolle auf (eine
-      // Person kann NUR Admin sein, ohne eigenen Funktionsträger-Typ) —
-      // deshalb separat geladen und unten in die Personen-Liste eingemischt.
+      // Admins (voll wie nur lesend) tauchen nicht zwingend in
+      // funktionstraeger_rolle auf (eine Person kann NUR Admin sein, ohne
+      // eigenen Funktionsträger-Typ) — deshalb separat geladen und unten in
+      // die Personen-Liste eingemischt.
       const alleAdmins = await tx
-        .select({ userId: users.id, name: users.name, email: users.email })
+        .select({
+          userId: users.id,
+          name: users.name,
+          email: users.email,
+          istAdmin: users.istAdmin,
+          istAdminLesend: users.istAdminLesend,
+        })
         .from(users)
-        .where(and(eq(users.vereinId, vereinId), eq(users.istAdmin, true)));
+        .where(
+          and(
+            eq(users.vereinId, vereinId),
+            or(eq(users.istAdmin, true), eq(users.istAdminLesend, true))
+          )
+        );
 
       return [rollen, mannschaftsListe, alleAdmins];
     }
@@ -89,12 +101,13 @@ export default async function FunktionstraegerPage({
       name: r.name,
       email: r.email,
       istAdmin: false,
+      istAdminLesend: false,
       rollen: [] as typeof rollen,
     };
     eintrag.rollen.push(r);
     map.set(r.userId, eintrag);
     return map;
-  }, new Map<string, { userId: string; name: string | null; email: string; istAdmin: boolean; rollen: typeof rollen }>());
+  }, new Map<string, { userId: string; name: string | null; email: string; istAdmin: boolean; istAdminLesend: boolean; rollen: typeof rollen }>());
 
   for (const admin of alleAdmins) {
     const eintrag = personenMap.get(admin.userId) ?? {
@@ -102,9 +115,11 @@ export default async function FunktionstraegerPage({
       name: admin.name,
       email: admin.email,
       istAdmin: false,
+      istAdminLesend: false,
       rollen: [] as typeof rollen,
     };
-    eintrag.istAdmin = true;
+    eintrag.istAdmin = admin.istAdmin;
+    eintrag.istAdminLesend = admin.istAdminLesend;
     personenMap.set(admin.userId, eintrag);
   }
 
@@ -203,6 +218,15 @@ export default async function FunktionstraegerPage({
                   className="size-4"
                 />
                 Admin (voller Zugriff auf den Vereinsbereich)
+              </label>
+
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="istAdminLesend"
+                  className="size-4"
+                />
+                Admin, nur lesend (sieht alles, kann nichts ändern)
               </label>
 
               <div className="flex flex-col gap-2">

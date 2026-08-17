@@ -16,6 +16,7 @@ import {
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
 import { bedarfFuer } from "@/lib/dienste";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
+import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
 
 const SELBST_ANMELDBARE_TYPEN = ["ordner", "kioskdienst"] as const;
 
@@ -50,6 +51,38 @@ export async function updateStammdaten(formData: FormData) {
   revalidatePath("/profil");
 }
 
+// Aktiviert (falls noch kein Token vorhanden: /kalender/[token]) bzw.
+// generiert einen neuen persönlichen Kalender-Abo-Link — dieselbe Funktion
+// für "erstmals aktivieren" und "Link neu generieren" (der alte Link wird
+// dabei ungültig), analog zu zeitnehmerSelbstanmeldungLinkErneuern in
+// profil/zeitnehmerwart/actions.ts.
+export async function kalenderLinkErneuern() {
+  const session = await requireSession();
+  const vereinId = session.user.vereinId!;
+  const userId = session.user.id;
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .update(users)
+      .set({ kalenderToken: crypto.randomUUID() })
+      .where(eq(users.id, userId))
+  );
+
+  revalidatePath("/profil");
+}
+
+export async function kalenderLinkDeaktivieren() {
+  const session = await requireSession();
+  const vereinId = session.user.vereinId!;
+  const userId = session.user.id;
+
+  await withTenant(vereinId, (tx) =>
+    tx.update(users).set({ kalenderToken: null }).where(eq(users.id, userId))
+  );
+
+  revalidatePath("/profil");
+}
+
 // Selbstverwaltung der drei Erinnerungs-Mails (siehe wochen-digest.ts,
 // terminerinnerungen.ts, schiedsrichterwart-erinnerung.ts) — Checkboxen
 // senden bei "aus" gar kein Feld, daher jeweils "on"-Vergleich statt eines
@@ -69,10 +102,11 @@ export async function updateBenachrichtigungen(formData: FormData) {
   // zurücksetzen, statt es einfach unverändert zu lassen. Vor withTenant
   // aufgerufen, damit istSchiedsrichterwart nicht in einer verschachtelten
   // Transaktion läuft (es öffnet selbst eine eigene withTenant-Transaktion).
-  const darfSchiedsrichterwartFeldAendern = await istSchiedsrichterwart(
-    vereinId,
-    userId
-  );
+  const [darfSchiedsrichterwartFeldAendern, darfZeitnehmerwartFeldAendern] =
+    await Promise.all([
+      istSchiedsrichterwart(vereinId, userId),
+      istZeitnehmerwart(vereinId, userId),
+    ]);
 
   const werteZumSpeichern: Partial<typeof users.$inferInsert> = {
     wochenDigestAktiviert,
@@ -81,6 +115,10 @@ export async function updateBenachrichtigungen(formData: FormData) {
   if (darfSchiedsrichterwartFeldAendern) {
     werteZumSpeichern.offeneSchiedsrichterErinnerungAktiviert =
       formData.get("offeneSchiedsrichterErinnerungAktiviert") === "on";
+  }
+  if (darfZeitnehmerwartFeldAendern) {
+    werteZumSpeichern.offeneZeitnehmerErinnerungAktiviert =
+      formData.get("offeneZeitnehmerErinnerungAktiviert") === "on";
   }
 
   await withTenant(vereinId, (tx) =>

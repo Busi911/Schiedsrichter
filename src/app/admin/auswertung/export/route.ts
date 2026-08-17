@@ -3,7 +3,10 @@ import { holeTermineFuerAuswertung, terminAlsCsv } from "@/lib/termin-auswertung
 
 export async function GET(request: Request) {
   const session = await auth();
-  if (!session?.user?.vereinId || !session.user.istAdmin) {
+  if (
+    !session?.user?.vereinId ||
+    (!session.user.istAdmin && !session.user.istAdminLesend)
+  ) {
     return new Response("Unauthorized", { status: 401 });
   }
 

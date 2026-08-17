@@ -111,6 +111,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.vereinId = user.vereinId;
         token.istAdmin = user.istAdmin;
+        token.istAdminLesend = user.istAdminLesend;
         token.istSystemAdmin = user.istSystemAdmin;
         token.mussPasswortAendern = user.mussPasswortAendern;
       }
@@ -120,6 +121,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.id = token.id ?? "";
       session.user.vereinId = token.vereinId ?? null;
       session.user.istAdmin = token.istAdmin ?? false;
+      session.user.istAdminLesend = token.istAdminLesend ?? false;
       session.user.istSystemAdmin = token.istSystemAdmin ?? false;
       session.user.mussPasswortAendern = token.mussPasswortAendern ?? false;
       return session;

@@ -40,5 +40,7 @@ export default async function Home() {
   }
 
   if (session.user.istSystemAdmin) redirect("/system");
-  redirect(session.user.istAdmin ? "/admin" : "/profil");
+  redirect(
+    session.user.istAdmin || session.user.istAdminLesend ? "/admin" : "/profil"
+  );
 }

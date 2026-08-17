@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "ist_admin_lesend" boolean DEFAULT false NOT NULL;

@@ -6,6 +6,7 @@ declare module "next-auth" {
       id: string;
       vereinId: string | null;
       istAdmin: boolean;
+      istAdminLesend: boolean;
       istSystemAdmin: boolean;
       mussPasswortAendern: boolean;
     } & DefaultSession["user"];
@@ -16,6 +17,7 @@ declare module "next-auth" {
   interface User {
     vereinId?: string | null;
     istAdmin?: boolean;
+    istAdminLesend?: boolean;
     istSystemAdmin?: boolean;
     mussPasswortAendern?: boolean;
   }
@@ -25,6 +27,7 @@ declare module "next-auth/adapters" {
   interface AdapterUser {
     vereinId: string | null;
     istAdmin: boolean;
+    istAdminLesend: boolean;
     istSystemAdmin: boolean;
     mussPasswortAendern: boolean;
   }
@@ -40,6 +43,7 @@ declare module "@auth/core/jwt" {
     id?: string;
     vereinId?: string | null;
     istAdmin?: boolean;
+    istAdminLesend?: boolean;
     istSystemAdmin?: boolean;
     mussPasswortAendern?: boolean;
   }

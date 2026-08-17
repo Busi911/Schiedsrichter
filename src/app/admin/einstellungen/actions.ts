@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
-import { requireAdmin } from "@/lib/session";
+import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
@@ -18,7 +18,7 @@ function parseAnzahl(formData: FormData, feld: string, min = 0): number {
 }
 
 export async function dienstBedarfSpeichern(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const testspielOrdnerBedarf = parseAnzahl(formData, "testspielOrdnerBedarf");
@@ -93,7 +93,7 @@ function parseHalleId(formData: FormData, feld: string): string | null {
 // nach dem Eintragen der IDs will man i.d.R. sofort sehen, dass es
 // funktioniert.
 export async function nuligaEinstellungenSpeichern(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const nuligaHalle1Id = parseHalleId(formData, "nuligaHalle1Id");

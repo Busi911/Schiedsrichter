@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  adminLesendRechteToggeln,
   adminRechteToggeln,
   deleteFunktionstraeger,
   funktionstraegerAktivToggeln,
@@ -55,6 +56,7 @@ type Person = {
   name: string | null;
   email: string;
   istAdmin: boolean;
+  istAdminLesend: boolean;
   rollen: Rolle[];
 };
 
@@ -239,6 +241,9 @@ export function FunktionstraegerTabelle({
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {p.istAdmin && <Badge variant="default">Admin</Badge>}
+                    {p.istAdminLesend && (
+                      <Badge variant="outline">Admin (nur lesend)</Badge>
+                    )}
                     {p.rollen.map((r) => (
                       <Badge
                         key={r.rolleId}
@@ -306,6 +311,39 @@ export function FunktionstraegerTabelle({
                                 {p.istAdmin
                                   ? "Admin-Rechte entziehen"
                                   : "Zum Admin machen"}
+                              </Button>
+                            </form>
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs ${
+                            p.istAdminLesend
+                              ? "border-border"
+                              : "border-dashed text-muted-foreground"
+                          }`}
+                        >
+                          <span className="font-medium">
+                            {p.istAdminLesend
+                              ? "Admin (nur lesend)"
+                              : "Kein Admin (nur lesend)"}
+                          </span>
+                          {p.userId === eigeneUserId ? (
+                            <span className="text-muted-foreground">
+                              (du selbst)
+                            </span>
+                          ) : (
+                            <form action={adminLesendRechteToggeln}>
+                              <input
+                                type="hidden"
+                                name="userId"
+                                value={p.userId}
+                              />
+                              <Button type="submit" variant="ghost" size="xs">
+                                {p.istAdminLesend
+                                  ? "Lesezugriff entziehen"
+                                  : "Lesezugriff geben"}
                               </Button>
                             </form>
                           )}
