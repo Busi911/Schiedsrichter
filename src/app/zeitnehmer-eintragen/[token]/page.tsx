@@ -6,8 +6,12 @@ import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { bedarfFuer } from "@/lib/dienste";
 import { berechneBesetzung } from "@/lib/besetzung";
+import { tagKey } from "@/lib/kalender";
 import { rundenspielTypLabel } from "@/lib/termin-label";
-import { formatDatumZeit as formatDateTime } from "@/lib/format";
+import {
+  formatDatumZeit as formatDateTime,
+  formatWochentagDatum,
+} from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import {
@@ -141,6 +145,8 @@ export default async function ZeitnehmerEintragenPage({
   const eintragbareTermine: EintragbarerTermin[] = gefilterteTermine.map((t) => ({
     id: t.id,
     zeit: formatDateTime(t.start),
+    tag: tagKey(t.start),
+    tagLabel: formatWochentagDatum(t.start),
     typLabel:
       t.typ === "rundenspiel"
         ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)

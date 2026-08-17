@@ -382,6 +382,26 @@ export function FunktionstraegerTabelle({
                           </form>
                         );
                       })()}
+                      {/* Bisher nur über die Mehrfachauswahl oben löschbar —
+                          für den (weit häufigeren) Fall "genau diese eine
+                          Person löschen" zusätzlich direkt hier, statt erst
+                          umständlich in den Mehrfachauswahl-Modus wechseln
+                          und die Zeile dort erneut suchen zu müssen. */}
+                      {p.userId !== eigeneUserId && (
+                        <form
+                          action={deleteFunktionstraeger}
+                          className="border-t pt-3"
+                        >
+                          <input type="hidden" name="userId" value={p.userId} />
+                          <ConfirmSubmitButton
+                            confirmText={`${p.name ?? p.email} wirklich löschen? Login, Rollen und die komplette Einsatz-Historie gehen dabei unwiderruflich verloren.`}
+                            variant="destructive"
+                            size="xs"
+                          >
+                            Person löschen
+                          </ConfirmSubmitButton>
+                        </form>
+                      )}
                     </div>
                   </details>
                 </TableCell>

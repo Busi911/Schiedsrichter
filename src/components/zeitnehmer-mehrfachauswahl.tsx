@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
+import { cn } from "@/lib/utils";
 
 const ROLLE_OPTIONEN = [
   { value: "zeitnehmer", label: "Zeitnehmer" },
@@ -16,6 +17,10 @@ const ROLLE_OPTIONEN = [
 export type EintragbarerTermin = {
   id: string;
   zeit: string;
+  // Kalendertag (Europe/Berlin, siehe tagKey in lib/kalender.ts) — dient nur
+  // dem Gruppieren hier (Vergleich auf Gleichheit), nicht der Anzeige.
+  tag: string;
+  tagLabel: string;
   typLabel: string;
   ort: string | null;
   beschreibung: string | null;
@@ -38,6 +43,11 @@ export function ZeitnehmerMehrfachAuswahl({
   termine: EintragbarerTermin[];
 }) {
   const [ausgewaehlt, setAusgewaehlt] = useState<Set<string>>(new Set());
+  // Tages-Überschriften nur, wenn die Liste tatsächlich mehrere Kalendertage
+  // umfasst (z.B. bei "Alle" mit vielen Mannschaften) — bei nur einem Tag
+  // wäre eine einzelne, immer gleiche Überschrift nur Rauschen (siehe
+  // gleiches Prinzip in turnier-spielplan.tsx).
+  const mehrtaegig = new Set(termine.map((t) => t.tag)).size > 1;
 
   function toggle(id: string) {
     setAusgewaehlt((bisherige) => {
@@ -83,39 +93,60 @@ export function ZeitnehmerMehrfachAuswahl({
         </form>
       )}
 
-      {termine.map((t) => (
-        <Card key={t.id} className="min-w-0">
-          <CardContent className="flex flex-col gap-2 text-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              {t.eintragbar && (
-                <input
-                  type="checkbox"
-                  aria-label={`${t.zeit} auswählen`}
-                  checked={ausgewaehlt.has(t.id)}
-                  onChange={() => toggle(t.id)}
-                />
-              )}
-              <span className="font-medium">{t.zeit}</span>
-              <Badge variant="outline">{t.typLabel}</Badge>
-              <Badge variant={t.vollstaendig ? "secondary" : "outline"}>
-                {t.vollstaendig ? "Besetzung vollständig" : "Besetzung offen"}
-              </Badge>
-              {t.ort && <span className="text-muted-foreground">{t.ort}</span>}
-            </div>
-            {t.beschreibung && (
-              <p className="text-muted-foreground">{t.beschreibung}</p>
+      {termine.map((t, i) => (
+        <div key={t.id} className="flex flex-col gap-3">
+          {mehrtaegig && (i === 0 || termine[i - 1].tag !== t.tag) && (
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {t.tagLabel}
+            </p>
+          )}
+          <Card
+            className={cn(
+              "min-w-0",
+              // Ganze Karte als Tippfläche statt nur der kleinen Checkbox —
+              // auf dem Handy (Hauptnutzung dieser Seite, z.B. während eines
+              // Turniers) deutlich leichter zu treffen.
+              t.eintragbar && "cursor-pointer select-none"
             )}
-            {t.zuordnungen.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {t.zuordnungen.map((z) => (
-                  <Badge key={z.id} variant="secondary">
-                    {z.label}
-                  </Badge>
-                ))}
+            onClick={t.eintragbar ? () => toggle(t.id) : undefined}
+          >
+            <CardContent className="flex flex-col gap-2 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                {t.eintragbar && (
+                  <input
+                    type="checkbox"
+                    aria-label={`${t.zeit} auswählen`}
+                    checked={ausgewaehlt.has(t.id)}
+                    onChange={() => toggle(t.id)}
+                    // Klick nicht zusätzlich zur Karte durchbubbeln lassen,
+                    // sonst würde ein Klick direkt auf die Checkbox den
+                    // Zustand zweimal umschalten (einmal hier, einmal über
+                    // onClick der Karte).
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
+                <span className="font-medium">{t.zeit}</span>
+                <Badge variant="outline">{t.typLabel}</Badge>
+                <Badge variant={t.vollstaendig ? "secondary" : "outline"}>
+                  {t.vollstaendig ? "Besetzung vollständig" : "Besetzung offen"}
+                </Badge>
+                {t.ort && <span className="text-muted-foreground">{t.ort}</span>}
               </div>
-            )}
-          </CardContent>
-        </Card>
+              {t.beschreibung && (
+                <p className="text-muted-foreground">{t.beschreibung}</p>
+              )}
+              {t.zuordnungen.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {t.zuordnungen.map((z) => (
+                    <Badge key={z.id} variant="secondary">
+                      {z.label}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       ))}
     </div>
   );
