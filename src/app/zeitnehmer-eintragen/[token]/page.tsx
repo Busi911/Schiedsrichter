@@ -95,26 +95,34 @@ export default async function ZeitnehmerEintragenPage({
             )
         : [];
 
-      const relevanteTermine = relevante.map((t) => {
-        const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
-        const zeitnehmerBedarf = bedarfFuer(
-          verein,
-          t.typ,
-          "zeitnehmer",
-          t.pflichtspiel,
-          t.freundschaftsTyp
-        );
-        return {
-          ...t,
-          zuordnungen: eigeneZuordnungen,
-          besetzung: berechneBesetzung(
-            eigeneZuordnungen,
-            false,
+      const relevanteTermine = relevante
+        .map((t) => {
+          const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
+          const zeitnehmerBedarf = bedarfFuer(
+            verein,
+            t.typ,
+            "zeitnehmer",
+            t.pflichtspiel,
+            t.freundschaftsTyp
+          );
+          return {
+            ...t,
             zeitnehmerBedarf,
-            verein.zeitnehmerSekretaerMax
-          ),
-        };
-      });
+            zuordnungen: eigeneZuordnungen,
+            besetzung: berechneBesetzung(
+              eigeneZuordnungen,
+              false,
+              zeitnehmerBedarf,
+              verein.zeitnehmerSekretaerMax
+            ),
+          };
+        })
+        // Ohne diesen Filter blieb ein Termin mit Bedarf 0 (z.B. Freundschafts-
+        // spiele/Turniere, für die der Verein gar keinen Zeitnehmer/Sekretär
+        // braucht, siehe /admin/einstellungen) trotzdem sichtbar UND
+        // eintragbar: "voll" prüfte bisher nur gegen die globale Obergrenze
+        // (zeitnehmerSekretaerMax), nicht gegen den tatsächlichen Bedarf.
+        .filter((t) => t.zeitnehmerBedarf > 0);
 
       return { alleMannschaften, relevanteTermine };
     }
