@@ -161,6 +161,10 @@ export default async function ZeitnehmerEintragenPage({
     })),
   }));
 
+  const offeneAnzahl = gefilterteTermine.filter(
+    (t) => !t.besetzung.zeitnehmerSekretaerErfuellt
+  ).length;
+
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-6">
       <div className="flex items-center gap-3">
@@ -181,6 +185,14 @@ export default async function ZeitnehmerEintragenPage({
         Personen werden dabei automatisch erkannt — bei Unsicherheit prüft
         das der Zeitnehmerwart nach.
       </p>
+
+      {gefilterteTermine.length > 0 && (
+        <p className="text-sm font-medium">
+          {offeneAnzahl} von {gefilterteTermine.length}{" "}
+          {gefilterteTermine.length === 1 ? "Termin" : "Terminen"} noch nicht
+          besetzt
+        </p>
+      )}
 
       {anzeigbareMannschaften.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -211,13 +223,7 @@ export default async function ZeitnehmerEintragenPage({
           Keine anstehenden Termine.
         </p>
       ) : (
-        <>
-          <p className="text-xs text-muted-foreground">
-            {gefilterteTermine.length}{" "}
-            {gefilterteTermine.length === 1 ? "Termin" : "Termine"} angezeigt
-          </p>
-          <ZeitnehmerMehrfachAuswahl token={token} termine={eintragbareTermine} />
-        </>
+        <ZeitnehmerMehrfachAuswahl token={token} termine={eintragbareTermine} />
       )}
 
       <p className="text-center text-xs text-muted-foreground">

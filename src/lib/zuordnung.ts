@@ -111,6 +111,41 @@ export async function pruefeBesetzungsgrenze(
   }
 }
 
+// Verhindert, dass dieselbe Person an einem Termin sowohl als Zeitnehmer ALS
+// AUCH als Sekretär eingeteilt wird (oder zweimal in derselben Rolle) — die
+// öffentliche Selbsteintragung (siehe zeitnehmer-eintragen/[token]/
+// actions.ts) hat sonst keine Sperre gegen versehentliche Doppel-/
+// Mehrfacheintragung. Identifiziert die Person über userId (bekannter
+// Account) oder, mangels stabiler Identität, über exakt gleichen
+// externerName (Person ohne Login) — Groß-/Kleinschreibung und
+// umgebende Leerzeichen werden dabei ignoriert.
+export async function pruefeKeineDoppelrolle(
+  tx: Parameters<Parameters<typeof withTenant>[1]>[0],
+  terminId: string,
+  person: { userId: string } | { externerName: string }
+) {
+  const bestehende = await tx.query.terminZuordnungen.findMany({
+    where: and(
+      eq(terminZuordnungen.terminId, terminId),
+      inArray(terminZuordnungen.funktionstraegerTyp, ["zeitnehmer", "sekretaer"])
+    ),
+  });
+  const doppelt =
+    "userId" in person
+      ? bestehende.some((z) => z.userId === person.userId)
+      : bestehende.some(
+          (z) =>
+            !z.userId &&
+            z.externerName?.trim().toLowerCase() ===
+              person.externerName.trim().toLowerCase()
+        );
+  if (doppelt) {
+    throw new Error(
+      "Diese Person ist für diesen Termin bereits als Zeitnehmer oder Sekretär eingetragen."
+    );
+  }
+}
+
 export async function holeTermineMitZuordnungen(vereinId: string) {
   return withTenant(vereinId, async (tx) => {
     const terminListe = await tx.query.termine.findMany({

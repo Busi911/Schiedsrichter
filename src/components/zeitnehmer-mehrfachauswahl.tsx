@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { zeitnehmerSelbstEintragenMehrfachOeffentlich } from "@/app/zeitnehmer-eintragen/[token]/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,27 @@ export function ZeitnehmerMehrfachAuswahl({
   // gleiches Prinzip in turnier-spielplan.tsx).
   const mehrtaegig = new Set(termine.map((t) => t.tag)).size > 1;
 
+  // Zählt nur die erfolgreichen Aufrufe hoch (useActionState ruft den
+  // Reducer NICHT auf, wenn die Action wirft) — die Auswahl soll also nur
+  // nach einer tatsächlich erfolgreichen Eintragung zurückgesetzt werden,
+  // nicht wenn z.B. ein Termin zwischenzeitlich voll wurde und die Action
+  // deshalb einen Fehler wirft.
+  const [erfolgeSeitStart, submitAction] = useActionState(
+    async (bisher: number, formData: FormData) => {
+      await zeitnehmerSelbstEintragenMehrfachOeffentlich(formData);
+      return bisher + 1;
+    },
+    0
+  );
+  // State während des Renderns anpassen statt in einem Effect (siehe
+  // https://react.dev/learn/you-might-not-need-an-effect) — vermeidet einen
+  // zusätzlichen Render-Umweg und die zugehörige Lint-Warnung.
+  const [verarbeiteteErfolge, setVerarbeiteteErfolge] = useState(erfolgeSeitStart);
+  if (erfolgeSeitStart !== verarbeiteteErfolge) {
+    setVerarbeiteteErfolge(erfolgeSeitStart);
+    setAusgewaehlt(new Set());
+  }
+
   function toggle(id: string) {
     setAusgewaehlt((bisherige) => {
       const naechste = new Set(bisherige);
@@ -62,7 +83,7 @@ export function ZeitnehmerMehrfachAuswahl({
     <div className="flex flex-col gap-3">
       {ausgewaehlt.size > 0 && (
         <form
-          action={zeitnehmerSelbstEintragenMehrfachOeffentlich}
+          action={submitAction}
           className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 p-3"
         >
           <input type="hidden" name="token" value={token} />
