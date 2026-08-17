@@ -190,7 +190,7 @@ export default async function ZeitnehmerEintragenPage({
         <p className="text-sm font-medium">
           {offeneAnzahl} von {gefilterteTermine.length}{" "}
           {gefilterteTermine.length === 1 ? "Termin" : "Terminen"} noch nicht
-          besetzt
+          vollständig besetzt
         </p>
       )}
 
