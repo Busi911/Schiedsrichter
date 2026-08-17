@@ -166,10 +166,12 @@ export default async function FunktionstraegerPage({
               personen={personen}
               eigeneUserId={session.user.id}
               mannschaftsListe={mannschaftsListe}
+              schreibzugriff={session.user.istAdmin}
             />
           </CardContent>
         </Card>
 
+        {session.user.istAdmin && (
         <Card>
           <CardHeader>
             <CardTitle>Neuer Funktionsträger</CardTitle>
@@ -260,8 +262,10 @@ export default async function FunktionstraegerPage({
             </form>
           </CardContent>
         </Card>
+        )}
       </div>
 
+      {session.user.istAdmin && (
       <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle>Aus Excel importieren</CardTitle>
@@ -314,6 +318,7 @@ export default async function FunktionstraegerPage({
           </form>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

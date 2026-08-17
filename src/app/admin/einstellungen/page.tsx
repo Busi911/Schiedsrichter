@@ -54,7 +54,10 @@ export default async function EinstellungenPage({
         </CardHeader>
         <CardContent>
           <form action={dienstBedarfSpeichern} className="flex flex-col gap-5">
-            <fieldset className="flex flex-col gap-2">
+            <fieldset
+              disabled={!session.user.istAdmin}
+              className="flex flex-col gap-2"
+            >
               <legend className="mb-1 text-sm font-medium">Freundschaftsspiele</legend>
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="testspielOrdnerBedarf" className="font-normal">
@@ -106,7 +109,10 @@ export default async function EinstellungenPage({
               </div>
             </fieldset>
 
-            <fieldset className="flex flex-col gap-2">
+            <fieldset
+              disabled={!session.user.istAdmin}
+              className="flex flex-col gap-2"
+            >
               <legend className="mb-1 text-sm font-medium">Turniere</legend>
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="turnierOrdnerBedarf" className="font-normal">
@@ -158,7 +164,10 @@ export default async function EinstellungenPage({
               </div>
             </fieldset>
 
-            <fieldset className="flex flex-col gap-2">
+            <fieldset
+              disabled={!session.user.istAdmin}
+              className="flex flex-col gap-2"
+            >
               <legend className="mb-1 text-sm font-medium">Hallenspielplan</legend>
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="rundenspielOrdnerBedarf" className="font-normal">
@@ -210,7 +219,10 @@ export default async function EinstellungenPage({
               </div>
             </fieldset>
 
-            <fieldset className="flex flex-col gap-2">
+            <fieldset
+              disabled={!session.user.istAdmin}
+              className="flex flex-col gap-2"
+            >
               <legend className="mb-1 text-sm font-medium">
                 Obergrenze Zeitnehmer/Sekretär
               </legend>
@@ -233,9 +245,11 @@ export default async function EinstellungenPage({
               </div>
             </fieldset>
 
-            <Button type="submit" className="w-full">
-              Speichern
-            </Button>
+            {session.user.istAdmin && (
+              <Button type="submit" className="w-full">
+                Speichern
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>
@@ -303,6 +317,10 @@ export default async function EinstellungenPage({
             action={nuligaEinstellungenSpeichern}
             className="flex flex-col gap-4"
           >
+          <fieldset
+            disabled={!session.user.istAdmin}
+            className="contents"
+          >
             <div className="flex flex-col gap-2">
               <Label htmlFor="nuligaHalle1Id">Halle 1</Label>
               <Input
@@ -362,12 +380,15 @@ export default async function EinstellungenPage({
                 }
               />
             </div>
-            <SubmitButton
-              className="w-full"
-              pendingText="Synchronisiert…"
-            >
-              Speichern{verein?.nuligaAutoImportAktiviert ? " & synchronisieren" : ""}
-            </SubmitButton>
+          </fieldset>
+            {session.user.istAdmin && (
+              <SubmitButton
+                className="w-full"
+                pendingText="Synchronisiert…"
+              >
+                Speichern{verein?.nuligaAutoImportAktiviert ? " & synchronisieren" : ""}
+              </SubmitButton>
+            )}
           </form>
         </CardContent>
       </Card>

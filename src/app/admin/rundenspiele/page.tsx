@@ -73,7 +73,7 @@ export default async function RundenspielePage() {
         </p>
       </div>
 
-      {unbekannteMannschaften.length > 0 && (
+      {session.user.istAdmin && unbekannteMannschaften.length > 0 && (
         <Card className="max-w-2xl">
           <CardHeader>
             <CardTitle>Unbekannte Mannschaften</CardTitle>
@@ -130,7 +130,7 @@ export default async function RundenspielePage() {
         </Card>
       )}
 
-      {moeglicheDuplikate.length > 0 && (
+      {session.user.istAdmin && moeglicheDuplikate.length > 0 && (
         <Card className="max-w-2xl">
           <CardHeader>
             <CardTitle>Mögliche Duplikate</CardTitle>

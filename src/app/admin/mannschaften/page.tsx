@@ -36,25 +36,30 @@ export default async function MannschaftenPage() {
             <CardTitle>Alle Mannschaften</CardTitle>
           </CardHeader>
           <CardContent>
-            <MannschaftenTabelle liste={liste} />
+            <MannschaftenTabelle
+              liste={liste}
+              schreibzugriff={session.user.istAdmin}
+            />
           </CardContent>
         </Card>
 
-        <CollapsibleCard title="Neue Mannschaft" description="Team anlegen">
-          <form action={createMannschaft} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" name="name" required />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="altersklasse">Altersklasse (optional)</Label>
-              <Input id="altersklasse" name="altersklasse" />
-            </div>
-            <Button type="submit" className="w-full">
-              Anlegen
-            </Button>
-          </form>
-        </CollapsibleCard>
+        {session.user.istAdmin && (
+          <CollapsibleCard title="Neue Mannschaft" description="Team anlegen">
+            <form action={createMannschaft} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" name="name" required />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="altersklasse">Altersklasse (optional)</Label>
+                <Input id="altersklasse" name="altersklasse" />
+              </div>
+              <Button type="submit" className="w-full">
+                Anlegen
+              </Button>
+            </form>
+          </CollapsibleCard>
+        )}
       </div>
     </div>
   );

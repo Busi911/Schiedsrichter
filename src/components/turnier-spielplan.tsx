@@ -53,11 +53,17 @@ export function TurnierSpielplan({
   spiele,
   turnierId,
   turnierOrt,
+  // Default true: /profil/turnier/[id] (Turnierverantwortlicher) übergibt
+  // das nicht, dessen Zugriff hängt an istTurnierBerechtigt, nicht an
+  // istAdmin — nur /admin/termine/[id] setzt das explizit auf istAdmin
+  // (siehe "Admin, nur lesend" in db/schema.ts).
+  schreibzugriff = true,
 }: {
   spiele: Spiel[];
   turnierId: string;
   // Ort des Turniers selbst — Fallback für Spiele ohne eigenen Ort, s.u.
   turnierOrt?: string | null;
+  schreibzugriff?: boolean;
 }) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -89,10 +95,12 @@ export function TurnierSpielplan({
         </p>
       ) : (
         <>
-          <p className="text-xs text-muted-foreground">
-            Reihenfolge per Drag &amp; Drop ändern — zieh eine Zeile auf eine
-            andere, um deren Zeitslot (Start + Ort) zu tauschen.
-          </p>
+          {schreibzugriff && (
+            <p className="text-xs text-muted-foreground">
+              Reihenfolge per Drag &amp; Drop ändern — zieh eine Zeile auf
+              eine andere, um deren Zeitslot (Start + Ort) zu tauschen.
+            </p>
+          )}
           {gruppen.map((gruppe) => (
             <div key={gruppe.tag} className="flex flex-col gap-2">
               {mehrtaegig && (
@@ -116,8 +124,10 @@ export function TurnierSpielplan({
                     // verschieben/bearbeiten/löschen (siehe Spiel-Typ oben) —
                     // die zugehörigen Server Actions filtern ebenfalls hart
                     // darauf, ein Drag&Drop oder Speichern/Löschen auf einem
-                    // verknüpften Rundenspiel liefe sonst ins Leere.
-                    const bearbeitbar = s.typ === "turnier_spiel";
+                    // verknüpften Rundenspiel liefe sonst ins Leere. Zusätzlich
+                    // nur mit Schreibzugriff (siehe "Admin, nur lesend").
+                    const istVerknuepft = s.typ !== "turnier_spiel";
+                    const bearbeitbar = !istVerknuepft && schreibzugriff;
                     return (
                       <TableRow
                         key={s.id}
@@ -268,9 +278,11 @@ export function TurnierSpielplan({
                                       {s.ergebnisHeim}:{s.ergebnisAuswaerts}
                                     </span>
                                   )}
-                                <Badge variant="outline" className="text-xs">
-                                  Aus Hallenspielplan verknüpft
-                                </Badge>
+                                {istVerknuepft && (
+                                  <Badge variant="outline" className="text-xs">
+                                    Aus Hallenspielplan verknüpft
+                                  </Badge>
+                                )}
                               </span>
                             )}
                             {bearbeitbar && (
@@ -298,6 +310,7 @@ export function TurnierSpielplan({
         </>
       )}
 
+      {schreibzugriff && (
       <form
         action={createTurnierSpiel}
         className="flex flex-wrap items-end gap-2 border-t pt-4"
@@ -335,6 +348,7 @@ export function TurnierSpielplan({
           Spiel hinzufügen
         </Button>
       </form>
+      )}
     </div>
   );
 }
