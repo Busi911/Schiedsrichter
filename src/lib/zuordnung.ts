@@ -10,7 +10,8 @@ import {
 } from "@/db/schema";
 import { formatDatumZeitLang } from "@/lib/format";
 import { SCHIRI_GESPANN_MAX, berechneBesetzung } from "@/lib/besetzung";
-import type { EmailZeile } from "@/lib/email-layout";
+import type { EmailInhalt, EmailZeile } from "@/lib/email-layout";
+import { appUrl } from "@/lib/app-url";
 
 // Rollen, die einem Termin über termin_zuordnung zugeordnet werden können.
 // 'trainer' hängt an der Mannschaft (nicht am einzelnen Termin), 'ordner'
@@ -80,6 +81,32 @@ export function mehrfachZuordnungsMailInhalt(
         ? `Du wurdest als ${rolleLabel} eingeteilt.`
         : `Du wurdest als ${rolleLabel} für ${termine.length} Termine eingeteilt.`,
     zeilen,
+  };
+}
+
+// Benachrichtigt den Zeitnehmerwart, wenn eine öffentliche Selbsteintragung
+// (siehe zeitnehmerSelbstEintragenMehrfachOeffentlich in
+// zeitnehmer-eintragen/[token]/actions.ts) für mindestens einen Termin
+// fehlschlägt (z.B. bereits voll besetzt oder die Person ist für diesen
+// Termin schon eingetragen) — die Person selbst sieht zwar eine
+// Fehlermeldung auf der Seite, meldet sich deswegen aber nicht zwangsläufig
+// beim Wart, und ohne diese Mail bliebe die Lücke sonst unbemerkt.
+export function zuordnungFehlgeschlagenInhalt(
+  name: string,
+  rolle: string,
+  fehler: string[]
+): EmailInhalt {
+  const rolleLabel = ZUORDNUNGS_ROLLE_LABEL[rolle] ?? rolle;
+  return {
+    ueberschrift:
+      fehler.length === 1
+        ? `Selbsteintragung von ${name} als ${rolleLabel} war bei einem Termin nicht möglich.`
+        : `Selbsteintragung von ${name} als ${rolleLabel} war bei ${fehler.length} Terminen nicht möglich.`,
+    zeilen: fehler,
+    cta: {
+      text: "Zur Zeitnehmer-Übersicht",
+      url: `${appUrl()}/profil/zeitnehmerwart`,
+    },
   };
 }
 

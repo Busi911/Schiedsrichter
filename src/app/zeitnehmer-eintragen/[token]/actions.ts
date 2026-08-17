@@ -4,17 +4,25 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { withTenant } from "@/db";
-import { termine, terminZuordnungen, vereine } from "@/db/schema";
+import {
+  funktionstraegerRollen,
+  termine,
+  terminZuordnungen,
+  users,
+  vereine,
+} from "@/db/schema";
 import {
   mehrfachZuordnungsMailInhalt,
   pruefeBesetzungsgrenze,
   pruefeKeineDoppelrolle,
+  zuordnungFehlgeschlagenInhalt,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
 import { holeZeitnehmerEinsatzZahlen } from "@/lib/zeitnehmerwart";
 import { findeNamensVorschlag } from "@/lib/namens-abgleich";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
+import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { formatDatumZeit } from "@/lib/format";
 
 const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
@@ -288,6 +296,47 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
         );
       } catch (err) {
         console.error("Zuordnungs-Mail konnte nicht gesendet werden:", err);
+      }
+    }
+  }
+
+  // Fehlgeschlagene Termine bekommt die eintragende Person zwar direkt als
+  // Fehlermeldung angezeigt (siehe fehler im Rückgabewert unten), meldet
+  // sich deswegen aber nicht zwangsläufig beim Zeitnehmerwart — der bekommt
+  // es sonst gar nicht mit (z.B. wenn der konfigurierte Bedarf zu niedrig
+  // ist oder jemand versehentlich doppelt versucht).
+  if (fehler.length > 0) {
+    const zeitnehmerwarte = await withTenant(verein.id, (tx) =>
+      tx
+        .select({ email: users.email })
+        .from(funktionstraegerRollen)
+        .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+        .where(
+          and(
+            eq(funktionstraegerRollen.typ, "zeitnehmerwart"),
+            eq(funktionstraegerRollen.aktiv, true)
+          )
+        )
+    );
+    if (zeitnehmerwarte.length > 0) {
+      const inhalt = {
+        vereinName: verein.name,
+        ...zuordnungFehlgeschlagenInhalt(eingegebenerName, rolle, fehler),
+      };
+      for (const wart of zeitnehmerwarte) {
+        try {
+          await sendMail(
+            wart.email,
+            "Selbsteintragung fehlgeschlagen",
+            emailAlsText(inhalt),
+            emailAlsHtml(inhalt)
+          );
+        } catch (err) {
+          console.error(
+            "Fehlschlags-Mail an Zeitnehmerwart konnte nicht gesendet werden:",
+            err
+          );
+        }
       }
     }
   }

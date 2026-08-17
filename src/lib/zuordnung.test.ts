@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mehrfachZuordnungsMailInhalt, zuordnungsMailInhalt } from "./zuordnung";
+import {
+  mehrfachZuordnungsMailInhalt,
+  zuordnungFehlgeschlagenInhalt,
+  zuordnungsMailInhalt,
+} from "./zuordnung";
 import { zeileText } from "./email-layout";
 
 describe("zuordnungsMailInhalt", () => {
@@ -68,5 +72,34 @@ describe("mehrfachZuordnungsMailInhalt", () => {
     expect(inhalt.zeilen.map(zeileText)).toContainEqual(
       expect.stringContaining("Halle 2")
     );
+  });
+});
+
+describe("zuordnungFehlgeschlagenInhalt", () => {
+  it("nennt Name und Rolle in der Überschrift, Einzahl bei einem Fehler", () => {
+    const inhalt = zuordnungFehlgeschlagenInhalt("Max Mustermann", "zeitnehmer", [
+      "01.09.2026, 18:00 Uhr: Bereits voll besetzt.",
+    ]);
+    expect(inhalt.ueberschrift).toContain("Max Mustermann");
+    expect(inhalt.ueberschrift).toContain("Zeitnehmer");
+    expect(inhalt.ueberschrift).toContain("einem Termin");
+  });
+
+  it("nennt die Anzahl bei mehreren Fehlern", () => {
+    const inhalt = zuordnungFehlgeschlagenInhalt("Erika Mustermann", "sekretaer", [
+      "01.09.2026, 18:00 Uhr: Bereits voll besetzt.",
+      "08.09.2026, 18:00 Uhr: Bereits eingetragen.",
+    ]);
+    expect(inhalt.ueberschrift).toContain("2 Terminen");
+  });
+
+  it("listet jede Fehlermeldung als eigene Zeile und verlinkt die Zeitnehmer-Übersicht", () => {
+    const inhalt = zuordnungFehlgeschlagenInhalt("Max Mustermann", "zeitnehmer", [
+      "01.09.2026, 18:00 Uhr: Bereits voll besetzt.",
+    ]);
+    expect(inhalt.zeilen).toEqual([
+      "01.09.2026, 18:00 Uhr: Bereits voll besetzt.",
+    ]);
+    expect(inhalt.cta?.url).toContain("/profil/zeitnehmerwart");
   });
 });
