@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
+import { SubmitButton } from "@/components/submit-button";
 import { cn } from "@/lib/utils";
 
 const ROLLE_OPTIONEN = [
@@ -131,9 +132,9 @@ export function ZeitnehmerMehrfachAuswahl({
               required
             />
           </div>
-          <Button type="submit" size="sm">
+          <SubmitButton size="sm" pendingText="Wird eingetragen…">
             Für alle eintragen
-          </Button>
+          </SubmitButton>
           <Button
             type="button"
             variant="ghost"
