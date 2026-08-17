@@ -330,9 +330,30 @@ export default async function ProfilPage({
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {eigeneStammdaten?.kalenderToken ? (
-              <p className="break-all rounded-lg border bg-muted/40 p-3 text-sm">
-                {appUrl()}/kalender/{eigeneStammdaten.kalenderToken}
-              </p>
+              <>
+                <p className="break-all rounded-lg border bg-muted/40 p-3 text-sm">
+                  {appUrl()}/kalender/{eigeneStammdaten.kalenderToken}
+                </p>
+                {/* webcal:// statt https:// — auf iPhone/iPad/Mac öffnet das
+                    antippen direkt den "Abonnement hinzufügen"-Dialog der
+                    Kalender-App, ohne den Link manuell einfügen zu müssen.
+                    Nebeneffekt: vermeidet auch iOS' "Unsichere Verbindung"-
+                    Warnung, die beim manuellen Einfügen eines https-Links
+                    dort erscheint (Apples generischer Hinweis für externe
+                    Feeds, kein echtes Zertifikatsproblem) — "Fortfahren"
+                    funktioniert zwar ebenso, aber webcal:// ist der direktere
+                    Weg. */}
+                <a
+                  href={`webcal://${appUrl().replace(/^https?:\/\//, "")}/kalender/${eigeneStammdaten.kalenderToken}`}
+                  className="text-sm text-primary underline"
+                >
+                  Direkt abonnieren (iPhone/iPad/Mac)
+                </a>
+                <p className="text-xs text-muted-foreground">
+                  Für Google Kalender/Outlook den obigen Link dort manuell
+                  als Abo einfügen.
+                </p>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">
                 Noch nicht aktiviert.
