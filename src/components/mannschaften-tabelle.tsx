@@ -24,7 +24,13 @@ type Mannschaft = { id: string; name: string; altersklasse: string | null };
 // vielen Mannschaften unübersichtlich) — Bearbeiten/Löschen pro Zeile über
 // natives <details> ein-/ausklappbar, plus Client-seitige Suche (Datensatz
 // pro Verein klein genug, kein Server-Roundtrip nötig).
-export function MannschaftenTabelle({ liste }: { liste: Mannschaft[] }) {
+export function MannschaftenTabelle({
+  liste,
+  schreibzugriff = true,
+}: {
+  liste: Mannschaft[];
+  schreibzugriff?: boolean;
+}) {
   const [suche, setSuche] = useState("");
   const [ausgewaehlt, setAusgewaehlt] = useState<Set<string>>(new Set());
   const [mehrfachauswahl, setMehrfachauswahl] = useState(false);
@@ -71,17 +77,19 @@ export function MannschaftenTabelle({ liste }: { liste: Mannschaft[] }) {
           onChange={(e) => setSuche(e.target.value)}
           className="max-w-xs"
         />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setMehrfachauswahl((an) => !an);
-            setAusgewaehlt(new Set());
-          }}
-        >
-          {mehrfachauswahl ? "Mehrfachauswahl beenden" : "Mehrfachauswahl"}
-        </Button>
+        {schreibzugriff && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setMehrfachauswahl((an) => !an);
+              setAusgewaehlt(new Set());
+            }}
+          >
+            {mehrfachauswahl ? "Mehrfachauswahl beenden" : "Mehrfachauswahl"}
+          </Button>
+        )}
         {mehrfachauswahl && ausgewaehlt.size > 0 && (
           <form action={deleteMannschaften} className="flex items-center gap-2">
             {[...ausgewaehlt].map((id) => (
@@ -137,6 +145,7 @@ export function MannschaftenTabelle({ liste }: { liste: Mannschaft[] }) {
                 <TableCell className="font-medium">{m.name}</TableCell>
                 <TableCell>{m.altersklasse ?? "—"}</TableCell>
                 <TableCell className="text-right">
+                  {schreibzugriff && (
                   <details className="group text-left">
                     <summary className="cursor-pointer list-none text-xs text-muted-foreground underline [&::-webkit-details-marker]:hidden">
                       Bearbeiten
@@ -171,6 +180,7 @@ export function MannschaftenTabelle({ liste }: { liste: Mannschaft[] }) {
                       </form>
                     </div>
                   </details>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

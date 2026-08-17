@@ -125,6 +125,7 @@ export default async function TerminePage() {
           </CardContent>
         </Card>
 
+        {session.user.istAdmin && (
         <CollapsibleCard title="Neuer Termin" description="Freundschaftsspiel oder Turnier anlegen">
           <form action={createTermin} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
@@ -184,6 +185,7 @@ export default async function TerminePage() {
               </Button>
             </form>
         </CollapsibleCard>
+        )}
       </div>
     </div>
   );

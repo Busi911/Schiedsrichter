@@ -68,10 +68,12 @@ export function FunktionstraegerTabelle({
   personen,
   eigeneUserId,
   mannschaftsListe = [],
+  schreibzugriff = true,
 }: {
   personen: Person[];
   eigeneUserId: string;
   mannschaftsListe?: { id: string; name: string; altersklasse?: string | null }[];
+  schreibzugriff?: boolean;
 }) {
   const [suche, setSuche] = useState("");
   const [rolleFilter, setRolleFilter] = useState("alle");
@@ -165,17 +167,19 @@ export function FunktionstraegerTabelle({
           <option value="aktiv">Nur aktive Rollen</option>
           <option value="inaktiv">Nur inaktive Rollen</option>
         </select>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setMehrfachauswahl((an) => !an);
-            setAusgewaehlt(new Set());
-          }}
-        >
-          {mehrfachauswahl ? "Mehrfachauswahl beenden" : "Mehrfachauswahl"}
-        </Button>
+        {schreibzugriff && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setMehrfachauswahl((an) => !an);
+              setAusgewaehlt(new Set());
+            }}
+          >
+            {mehrfachauswahl ? "Mehrfachauswahl beenden" : "Mehrfachauswahl"}
+          </Button>
+        )}
         {mehrfachauswahl && ausgewaehlt.size > 0 && (
           <form
             action={deleteFunktionstraeger}
@@ -257,6 +261,7 @@ export function FunktionstraegerTabelle({
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
+                  {schreibzugriff && (
                   <details className="text-left">
                     <summary className={DISCLOSURE_KLASSE}>Bearbeiten</summary>
                     <div className="mt-2 flex flex-col gap-3 rounded-lg border p-3">
@@ -442,6 +447,7 @@ export function FunktionstraegerTabelle({
                       )}
                     </div>
                   </details>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

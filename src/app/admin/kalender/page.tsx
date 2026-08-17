@@ -301,6 +301,7 @@ export default async function AdminKalenderPage({
             trainerListe={trainerListe}
             zuordenbarePersonen={zuordenbarePersonen}
             basisPfad="/admin/kalender"
+            schreibzugriff={session.user.istAdmin}
           />
         </CardContent>
       </Card>

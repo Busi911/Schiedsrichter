@@ -85,12 +85,14 @@ export default async function TerminBearbeitenPage({
             {termin.beschreibung || (istTurnier ? "Turnier" : "Termin")}
           </h1>
         </div>
-        <TerminBearbeitenDialog
-          termin={termin}
-          mannschaftsListe={mannschaftsListe}
-          trainerListe={trainerListe}
-          istTurnier={istTurnier}
-        />
+        {session.user.istAdmin && (
+          <TerminBearbeitenDialog
+            termin={termin}
+            mannschaftsListe={mannschaftsListe}
+            trainerListe={trainerListe}
+            istTurnier={istTurnier}
+          />
+        )}
       </div>
 
       {istTurnier && (
@@ -110,12 +112,14 @@ export default async function TerminBearbeitenPage({
                   ? `${appUrl()}/turnier/${termin.freigabeToken}`
                   : "Kein Link vorhanden."}
               </p>
-              <form action={turnierLinkErneuern}>
-                <input type="hidden" name="turnierId" value={termin.id} />
-                <Button type="submit" variant="outline" size="sm">
-                  Link neu generieren (alter Link wird ungültig)
-                </Button>
-              </form>
+              {session.user.istAdmin && (
+                <form action={turnierLinkErneuern}>
+                  <input type="hidden" name="turnierId" value={termin.id} />
+                  <Button type="submit" variant="outline" size="sm">
+                    Link neu generieren (alter Link wird ungültig)
+                  </Button>
+                </form>
+              )}
             </CardContent>
           </Card>
 
@@ -133,6 +137,7 @@ export default async function TerminBearbeitenPage({
                 spiele={spiele}
                 turnierId={termin.id}
                 turnierOrt={termin.ort}
+                schreibzugriff={session.user.istAdmin}
               />
             </CardContent>
           </Card>

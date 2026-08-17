@@ -107,6 +107,12 @@ export function MonatsKalender({
   trainerListe = [],
   zuordenbarePersonen = [],
   basisPfad,
+  // Default true: die anderen Aufrufstellen (z.B. /profil "Mein Kalender")
+  // übergeben ohnehin keine zuordenbarePersonen/mannschaftsListe, die
+  // schreibenden Formulare bleiben dort also unabhängig davon unsichtbar —
+  // nur /admin/kalender setzt das explizit auf istAdmin (siehe "Admin, nur
+  // lesend" in db/schema.ts).
+  schreibzugriff = true,
 }: {
   jahr: number;
   monatNull: number;
@@ -116,6 +122,7 @@ export function MonatsKalender({
   trainerListe?: { userId: string; name: string | null; email: string }[];
   zuordenbarePersonen?: ZuordenbarePerson[];
   basisPfad: string;
+  schreibzugriff?: boolean;
 }) {
   const wochen = monatsGitter(jahr, monatNull);
   const balkenProWoche = platziereBalken(wochen, mehrtaegigeEintraege);
@@ -250,6 +257,7 @@ export function MonatsKalender({
                         <DialogTitle>{b.label}</DialogTitle>
                         <DialogDescription>Turnier</DialogDescription>
                       </DialogHeader>
+                      {schreibzugriff ? (
                       <form
                         action={updateTerminInline}
                         className="flex flex-col gap-3"
@@ -339,6 +347,17 @@ export function MonatsKalender({
                           Speichern
                         </Button>
                       </form>
+                      ) : (
+                        <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                          <p>
+                            {b.start.toLocaleDateString("de-DE")}
+                            {b.ende
+                              ? ` – ${b.ende.toLocaleDateString("de-DE")}`
+                              : ""}
+                          </p>
+                          {b.ort && <p>{b.ort}</p>}
+                        </div>
+                      )}
                       {b.href && (
                         <Button
                           size="sm"
@@ -435,7 +454,7 @@ export function MonatsKalender({
                                           <span className="text-xs">{d.hinweis}</span>
                                         )}
                                       </span>
-                                      {e.zuordenbar && !d.id.startsWith("ics-") && (
+                                      {schreibzugriff && e.zuordenbar && !d.id.startsWith("ics-") && (
                                         <form action={zuordnungEntfernen} className="shrink-0">
                                           <input
                                             type="hidden"
@@ -455,7 +474,7 @@ export function MonatsKalender({
                                   ))}
                                 </ul>
                               )}
-                              {e.zuordenbar &&
+                              {schreibzugriff && e.zuordenbar &&
                                 (() => {
                                   const zuordnenForm = (
                                     <div className="flex flex-col gap-2">
