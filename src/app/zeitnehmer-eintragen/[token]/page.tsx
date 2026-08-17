@@ -14,6 +14,7 @@ import {
 } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
+import { LinkSpinner } from "@/components/link-spinner";
 import {
   ZeitnehmerMehrfachAuswahl,
   type EintragbarerTermin,
@@ -203,6 +204,7 @@ export default async function ZeitnehmerEintragenPage({
             nativeButton={false}
           >
             Alle
+            <LinkSpinner />
           </Button>
           {anzeigbareMannschaften.map((m) => (
             <Button
@@ -213,6 +215,7 @@ export default async function ZeitnehmerEintragenPage({
               nativeButton={false}
             >
               {m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name}
+              <LinkSpinner />
             </Button>
           ))}
         </div>
