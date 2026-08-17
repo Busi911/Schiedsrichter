@@ -131,6 +131,14 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
   revalidatePath("/admin/kalender");
 }
 
+export type MehrfachEintragErgebnis = {
+  eingetragen: number;
+  gesamt: number;
+  // Mehrere Fehler mit " | " getrennt, analog zu den Import-/nuLiga-
+  // Ergebnissen in admin/funktionstraeger und admin/einstellungen.
+  fehler: string | null;
+};
+
 // Mehrfach-Variante von zeitnehmerSelbstEintragenOeffentlich oben: derselbe
 // Name/dieselbe Rolle wird auf einmal für mehrere ausgewählte Termine
 // eingetragen (siehe ZeitnehmerMehrfachAuswahl in mehrfachauswahl.tsx) —
@@ -139,9 +147,17 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
 // EINMAL für alle Termine (identischer Name/Rolle), jeder Termin bekommt
 // aber eine EIGENE Transaktion, damit ein bereits voll besetzter Termin
 // nicht die anderen, noch erfolgreichen Eintragungen verhindert.
+//
+// Gibt Fehler als Rückgabewert zurück statt zu werfen (siehe React-Doku zu
+// useActionState: "model expected errors as return values, not exceptions")
+// — ein Wurf hier landete beim Aufruf über useActionState (mehrfachauswahl.
+// tsx) NICHT im normalen Server-Action-Fehlerkanal, sondern wurde von
+// Next.js als Fehler beim Rendern der (durch revalidatePath aktualisierten)
+// Server Components behandelt und dabei auf "Minified React error #441"
+// ohne Klartext reduziert.
 export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
   formData: FormData
-) {
+): Promise<MehrfachEintragErgebnis> {
   const token = formData.get("token");
   const terminIds = formData
     .getAll("terminIds")
@@ -150,19 +166,31 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
   const rolleRoh = formData.get("rolle");
 
   if (typeof token !== "string" || !token) {
-    throw new Error("Ungültiger Link.");
+    return { eingetragen: 0, gesamt: 0, fehler: "Ungültiger Link." };
   }
   if (terminIds.length === 0) {
-    throw new Error("Bitte mindestens einen Termin auswählen.");
+    return {
+      eingetragen: 0,
+      gesamt: 0,
+      fehler: "Bitte mindestens einen Termin auswählen.",
+    };
   }
   if (typeof name !== "string" || !name.trim()) {
-    throw new Error("Name ist erforderlich.");
+    return {
+      eingetragen: 0,
+      gesamt: terminIds.length,
+      fehler: "Name ist erforderlich.",
+    };
   }
   if (
     typeof rolleRoh !== "string" ||
     !(ZEITNEHMER_ROLLEN as readonly string[]).includes(rolleRoh)
   ) {
-    throw new Error("Bitte eine Rolle auswählen.");
+    return {
+      eingetragen: 0,
+      gesamt: terminIds.length,
+      fehler: "Bitte eine Rolle auswählen.",
+    };
   }
   const rolle = rolleRoh as ZeitnehmerRolle;
   const eingegebenerName = name.trim();
@@ -171,7 +199,11 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
     where: eq(vereine.zeitnehmerSelbstanmeldungToken, token),
   });
   if (!verein) {
-    throw new Error("Ungültiger oder nicht mehr aktiver Link.");
+    return {
+      eingetragen: 0,
+      gesamt: terminIds.length,
+      fehler: "Ungültiger oder nicht mehr aktiver Link.",
+    };
   }
 
   const kandidaten = (await holeZeitnehmerEinsatzZahlen(verein.id)).filter((k) =>
@@ -264,12 +296,9 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
   revalidatePath("/profil/zeitnehmerwart");
   revalidatePath("/admin/kalender");
 
-  if (fehler.length > 0) {
-    throw new Error(
-      `${eingetrageneTermine.length} von ${terminIds.length} Terminen eingetragen. ` +
-        `Bei ${fehler.length} ${
-          fehler.length === 1 ? "Termin gab es ein Problem" : "Terminen gab es Probleme"
-        }: ${fehler.join("; ")}`
-    );
-  }
+  return {
+    eingetragen: eingetrageneTermine.length,
+    gesamt: terminIds.length,
+    fehler: fehler.length > 0 ? fehler.join(" | ") : null,
+  };
 }
