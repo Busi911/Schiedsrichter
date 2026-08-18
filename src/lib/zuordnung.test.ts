@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   mehrfachZuordnungsMailInhalt,
+  zuordnungEntferntInhalt,
   zuordnungFehlgeschlagenInhalt,
   zuordnungsMailInhalt,
 } from "./zuordnung";
@@ -27,6 +28,28 @@ describe("zuordnungsMailInhalt", () => {
 
   it("enthält Ort und Beschreibung als eigene Zeilen, wenn vorhanden", () => {
     const inhalt = zuordnungsMailInhalt("schiedsrichter", {
+      start: new Date("2026-09-01T18:00:00+02:00"),
+      ort: "Halle 1",
+      beschreibung: "Herren 1 vs. Herren 2",
+    });
+    expect(inhalt.zeilen).toContainEqual(expect.stringContaining("Halle 1"));
+    expect(inhalt.zeilen).toContain("Herren 1 vs. Herren 2");
+  });
+});
+
+describe("zuordnungEntferntInhalt", () => {
+  it("nennt die entfernte Rolle in der Überschrift", () => {
+    const inhalt = zuordnungEntferntInhalt("zeitnehmer", {
+      start: new Date("2026-09-01T18:00:00+02:00"),
+      ort: "Halle 1",
+      beschreibung: null,
+    });
+    expect(inhalt.ueberschrift).toContain("Zeitnehmer");
+    expect(inhalt.ueberschrift).toContain("entfernt");
+  });
+
+  it("enthält Ort und Beschreibung als eigene Zeilen, wenn vorhanden", () => {
+    const inhalt = zuordnungEntferntInhalt("schiedsrichter", {
       start: new Date("2026-09-01T18:00:00+02:00"),
       ort: "Halle 1",
       beschreibung: "Herren 1 vs. Herren 2",

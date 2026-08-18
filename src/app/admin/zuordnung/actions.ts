@@ -8,6 +8,7 @@ import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import {
   pruefeBesetzungsgrenze,
   ZUORDENBARE_TYPEN,
+  zuordnungEntferntInhalt,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
 import { sendMail } from "@/lib/mailer";
@@ -150,9 +151,51 @@ export async function zuordnungEntfernen(formData: FormData) {
     throw new Error("Zuordnung fehlt.");
   }
 
-  await withTenant(vereinId, (tx) =>
-    tx.delete(terminZuordnungen).where(eq(terminZuordnungen.id, zuordnungId))
-  );
+  // Vor dem Löschen laden, um die betroffene Person danach benachrichtigen
+  // zu können (sonst bemerkt sie eine entfernte Zuordnung nur zufällig).
+  const benachrichtigung = await withTenant(vereinId, async (tx) => {
+    const zuordnung = await tx.query.terminZuordnungen.findFirst({
+      where: eq(terminZuordnungen.id, zuordnungId),
+    });
+    if (!zuordnung) return null;
+
+    await tx
+      .delete(terminZuordnungen)
+      .where(eq(terminZuordnungen.id, zuordnungId));
+
+    if (!zuordnung.userId) return null; // ohne Login kein Empfänger
+
+    const [person, termin, verein] = await Promise.all([
+      tx.query.users.findFirst({ where: eq(users.id, zuordnung.userId) }),
+      tx.query.termine.findFirst({ where: eq(termine.id, zuordnung.terminId) }),
+      tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) }),
+    ]);
+    if (!person || !termin) return null;
+
+    return {
+      termin,
+      email: person.email,
+      rolle: zuordnung.funktionstraegerTyp,
+      vereinName: verein?.name ?? "HandballerPate",
+    };
+  });
+
+  if (benachrichtigung) {
+    const mailParams = {
+      vereinName: benachrichtigung.vereinName,
+      ...zuordnungEntferntInhalt(benachrichtigung.rolle, benachrichtigung.termin),
+    };
+    try {
+      await sendMail(
+        benachrichtigung.email,
+        "Termin-Zuordnung entfernt",
+        terminMailText(mailParams),
+        terminMailHtml(mailParams)
+      );
+    } catch (err) {
+      console.error("Entfernungs-Mail konnte nicht gesendet werden:", err);
+    }
+  }
 
   revalidatePath("/admin/kalender");
 }
