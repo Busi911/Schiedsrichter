@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
-import { zuordnungsMailInhalt } from "@/lib/zuordnung";
+import { zuordnungEntferntInhalt, zuordnungsMailInhalt } from "@/lib/zuordnung";
 import { bedarfFuer } from "@/lib/dienste";
 import { istOrdnerwart, ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { sendMail } from "@/lib/mailer";
@@ -48,7 +48,7 @@ export async function ordnerZuordnen(formData: FormData) {
   }
   const rolle = rolleRoh as OrdnerRolle;
 
-  const benachrichtigung = await withTenant(vereinId, async (tx) => {
+  const { neu, entfernt } = await withTenant(vereinId, async (tx) => {
     // userId kommt roh aus dem Formular — "user" hat bewusst KEIN RLS
     // (siehe 0001_enable_rls_multi_tenant.sql), Mandantentrennung muss hier
     // deshalb explizit geprüft werden.
@@ -56,35 +56,6 @@ export async function ordnerZuordnen(formData: FormData) {
       where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
     });
     if (!person) throw new Error("Person nicht gefunden.");
-
-    for (const zuordnungId of ersetzeZuordnungIds) {
-      if (typeof zuordnungId !== "string" || !zuordnungId) continue;
-      const zuordnung = await tx.query.terminZuordnungen.findFirst({
-        where: and(
-          eq(terminZuordnungen.id, zuordnungId),
-          eq(terminZuordnungen.terminId, terminId)
-        ),
-      });
-      if (
-        zuordnung &&
-        (ORDNER_ROLLEN as readonly string[]).includes(
-          zuordnung.funktionstraegerTyp
-        )
-      ) {
-        await tx
-          .delete(terminZuordnungen)
-          .where(eq(terminZuordnungen.id, zuordnungId));
-      }
-    }
-
-    const vorhanden = await tx.query.terminZuordnungen.findFirst({
-      where: and(
-        eq(terminZuordnungen.terminId, terminId),
-        eq(terminZuordnungen.userId, userId),
-        eq(terminZuordnungen.funktionstraegerTyp, rolle)
-      ),
-    });
-    if (vorhanden) return null;
 
     const termin = await tx.query.termine.findFirst({
       where: eq(termine.id, terminId),
@@ -95,6 +66,58 @@ export async function ordnerZuordnen(formData: FormData) {
       where: eq(vereine.id, vereinId),
     });
     if (!verein) throw new Error("Verein nicht gefunden.");
+
+    // Wer beim "Ersetzen" verdrängt wird, bekommt eine eigene Mail — nur
+    // möglich, wenn die Person einen Account hat (ohne Login kein Empfänger).
+    const entfernt: {
+      email: string;
+      rolle: OrdnerRolle;
+      termin: typeof termin;
+      vereinName: string;
+    }[] = [];
+    for (const zuordnungId of ersetzeZuordnungIds) {
+      if (typeof zuordnungId !== "string" || !zuordnungId) continue;
+      const zuordnung = await tx.query.terminZuordnungen.findFirst({
+        where: and(
+          eq(terminZuordnungen.id, zuordnungId),
+          eq(terminZuordnungen.terminId, terminId)
+        ),
+      });
+      if (
+        !zuordnung ||
+        !(ORDNER_ROLLEN as readonly string[]).includes(
+          zuordnung.funktionstraegerTyp
+        )
+      ) {
+        continue;
+      }
+      await tx
+        .delete(terminZuordnungen)
+        .where(eq(terminZuordnungen.id, zuordnungId));
+
+      if (zuordnung.userId) {
+        const entfernteMitAccount = await tx.query.users.findFirst({
+          where: eq(users.id, zuordnung.userId),
+        });
+        if (entfernteMitAccount) {
+          entfernt.push({
+            email: entfernteMitAccount.email,
+            rolle: zuordnung.funktionstraegerTyp as OrdnerRolle,
+            termin,
+            vereinName: verein.name,
+          });
+        }
+      }
+    }
+
+    const vorhanden = await tx.query.terminZuordnungen.findFirst({
+      where: and(
+        eq(terminZuordnungen.terminId, terminId),
+        eq(terminZuordnungen.userId, userId),
+        eq(terminZuordnungen.funktionstraegerTyp, rolle)
+      ),
+    });
+    if (vorhanden) return { neu: null, entfernt };
 
     const bedarf = bedarfFuer(
       verein,
@@ -121,27 +144,41 @@ export async function ordnerZuordnen(formData: FormData) {
     });
 
     return {
-      termin,
-      email: person.email,
-      vereinName: verein.name,
-      rolle,
+      neu: { termin, email: person.email, vereinName: verein.name, rolle },
+      entfernt,
     };
   });
 
-  if (benachrichtigung) {
+  if (neu) {
     const mailParams = {
-      vereinName: benachrichtigung.vereinName,
-      ...zuordnungsMailInhalt(benachrichtigung.rolle, benachrichtigung.termin),
+      vereinName: neu.vereinName,
+      ...zuordnungsMailInhalt(neu.rolle, neu.termin),
     };
     try {
       await sendMail(
-        benachrichtigung.email,
+        neu.email,
         "Neue Termin-Zuordnung",
         terminMailText(mailParams),
         terminMailHtml(mailParams)
       );
     } catch (err) {
       console.error("Zuordnungs-Mail konnte nicht gesendet werden:", err);
+    }
+  }
+  for (const e of entfernt) {
+    const mailParams = {
+      vereinName: e.vereinName,
+      ...zuordnungEntferntInhalt(e.rolle, e.termin),
+    };
+    try {
+      await sendMail(
+        e.email,
+        "Termin-Zuordnung entfernt",
+        terminMailText(mailParams),
+        terminMailHtml(mailParams)
+      );
+    } catch (err) {
+      console.error("Entfernungs-Mail konnte nicht gesendet werden:", err);
     }
   }
 
@@ -157,7 +194,7 @@ export async function ordnerZuordnungEntfernen(formData: FormData) {
     throw new Error("Zuordnung fehlt.");
   }
 
-  await withTenant(vereinId, async (tx) => {
+  const benachrichtigung = await withTenant(vereinId, async (tx) => {
     const zuordnung = await tx.query.terminZuordnungen.findFirst({
       where: eq(terminZuordnungen.id, zuordnungId),
     });
@@ -172,7 +209,40 @@ export async function ordnerZuordnungEntfernen(formData: FormData) {
     await tx
       .delete(terminZuordnungen)
       .where(eq(terminZuordnungen.id, zuordnungId));
+
+    if (!zuordnung.userId) return null; // ohne Login kein Empfänger
+
+    const [person, termin, verein] = await Promise.all([
+      tx.query.users.findFirst({ where: eq(users.id, zuordnung.userId) }),
+      tx.query.termine.findFirst({ where: eq(termine.id, zuordnung.terminId) }),
+      tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) }),
+    ]);
+    if (!person || !termin) return null;
+
+    return {
+      termin,
+      email: person.email,
+      rolle: zuordnung.funktionstraegerTyp as OrdnerRolle,
+      vereinName: verein?.name ?? "HandballerPate",
+    };
   });
+
+  if (benachrichtigung) {
+    const mailParams = {
+      vereinName: benachrichtigung.vereinName,
+      ...zuordnungEntferntInhalt(benachrichtigung.rolle, benachrichtigung.termin),
+    };
+    try {
+      await sendMail(
+        benachrichtigung.email,
+        "Termin-Zuordnung entfernt",
+        terminMailText(mailParams),
+        terminMailHtml(mailParams)
+      );
+    } catch (err) {
+      console.error("Entfernungs-Mail konnte nicht gesendet werden:", err);
+    }
+  }
 
   revalidatePath("/profil/ordnerwart");
   revalidatePath("/admin/kalender");

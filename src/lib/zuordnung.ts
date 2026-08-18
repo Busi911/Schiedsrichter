@@ -50,6 +50,25 @@ export function zuordnungsMailInhalt(
   };
 }
 
+// Gegenstück zu zuordnungsMailInhalt oben — informiert, wenn eine
+// bestehende Zuordnung wieder entfernt wird (z.B. weil ein Wart die Person
+// ausgetragen oder durch jemand anderen ersetzt hat). Ohne diese Mail
+// bemerkte die betroffene Person eine entfernte Zuordnung nur, wenn sie
+// zufällig selbst nochmal nachschaute.
+export function zuordnungEntferntInhalt(
+  rolle: string,
+  termin: { start: Date; ort: string | null; beschreibung: string | null }
+) {
+  const zeitpunkt = formatDatumZeitLang(termin.start);
+  const zeilen: string[] = [`Termin: ${zeitpunkt}`];
+  if (termin.ort) zeilen.push(`Ort: ${termin.ort}`);
+  if (termin.beschreibung) zeilen.push(termin.beschreibung);
+  return {
+    ueberschrift: `Deine Zuordnung als ${ZUORDNUNGS_ROLLE_LABEL[rolle] ?? rolle} wurde entfernt.`,
+    zeilen,
+  };
+}
+
 // Analog zu zuordnungsMailInhalt oben, aber für mehrere Termine auf einmal
 // (siehe zeitnehmerSelbstEintragenMehrfachOeffentlich in
 // zeitnehmer-eintragen/[token]/actions.ts) — EINE Mail mit einer Zeile pro

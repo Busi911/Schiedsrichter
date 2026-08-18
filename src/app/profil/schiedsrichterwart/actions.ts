@@ -5,7 +5,11 @@ import { and, eq } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
-import { pruefeBesetzungsgrenze, zuordnungsMailInhalt } from "@/lib/zuordnung";
+import {
+  pruefeBesetzungsgrenze,
+  zuordnungEntferntInhalt,
+  zuordnungsMailInhalt,
+} from "@/lib/zuordnung";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
@@ -44,7 +48,7 @@ export async function schiedsrichterZuordnen(formData: FormData) {
     throw new Error("Bitte einen Schiedsrichter auswählen.");
   }
 
-  const benachrichtigung = await withTenant(vereinId, async (tx) => {
+  const { neu, entfernt } = await withTenant(vereinId, async (tx) => {
     // userId kommt roh aus dem Formular (Dropdown zeigt zwar nur aktive
     // Schiedsrichter des eigenen Vereins, ein manipulierter Request könnte
     // aber eine beliebige userId schicken). "user" hat bewusst KEIN RLS
@@ -55,6 +59,21 @@ export async function schiedsrichterZuordnen(formData: FormData) {
     });
     if (!person) throw new Error("Person nicht gefunden.");
 
+    const termin = await tx.query.termine.findFirst({
+      where: eq(termine.id, terminId),
+    });
+    if (!termin) throw new Error("Termin nicht gefunden.");
+
+    const verein = await tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+    });
+    const vereinName = verein?.name ?? "HandballerPate";
+
+    // Wer bei der Umbesetzung verdrängt wird, bekommt eine eigene Mail —
+    // nur möglich, wenn die Person einen Account hat (ohne Login kein
+    // Empfänger).
+    const entfernt: { email: string; termin: typeof termin; vereinName: string }[] =
+      [];
     for (const zuordnungId of ersetzeZuordnungIds) {
       if (typeof zuordnungId !== "string" || !zuordnungId) continue;
       // Nur tatsächliche Schiedsrichter-Zuordnungen DIESES Termins löschen —
@@ -67,10 +86,19 @@ export async function schiedsrichterZuordnen(formData: FormData) {
           eq(terminZuordnungen.funktionstraegerTyp, "schiedsrichter")
         ),
       });
-      if (zuordnung) {
-        await tx
-          .delete(terminZuordnungen)
-          .where(eq(terminZuordnungen.id, zuordnungId));
+      if (!zuordnung) continue;
+
+      await tx
+        .delete(terminZuordnungen)
+        .where(eq(terminZuordnungen.id, zuordnungId));
+
+      if (zuordnung.userId) {
+        const entfernteMitAccount = await tx.query.users.findFirst({
+          where: eq(users.id, zuordnung.userId),
+        });
+        if (entfernteMitAccount) {
+          entfernt.push({ email: entfernteMitAccount.email, termin, vereinName });
+        }
       }
     }
 
@@ -81,7 +109,7 @@ export async function schiedsrichterZuordnen(formData: FormData) {
         eq(terminZuordnungen.funktionstraegerTyp, "schiedsrichter")
       ),
     });
-    if (vorhanden) return null;
+    if (vorhanden) return { neu: null, entfernt };
 
     await pruefeBesetzungsgrenze(tx, vereinId, terminId, "schiedsrichter");
 
@@ -92,36 +120,42 @@ export async function schiedsrichterZuordnen(formData: FormData) {
       quelle: "zugeordnet_durch_admin",
     });
 
-    const termin = await tx.query.termine.findFirst({
-      where: eq(termine.id, terminId),
-    });
-    if (!termin) return null;
-
-    const verein = await tx.query.vereine.findFirst({
-      where: eq(vereine.id, vereinId),
-    });
-
     return {
-      termin,
-      email: person.email,
-      vereinName: verein?.name ?? "HandballerPate",
+      neu: { termin, email: person.email, vereinName },
+      entfernt,
     };
   });
 
-  if (benachrichtigung) {
+  if (neu) {
     const mailParams = {
-      vereinName: benachrichtigung.vereinName,
-      ...zuordnungsMailInhalt("schiedsrichter", benachrichtigung.termin),
+      vereinName: neu.vereinName,
+      ...zuordnungsMailInhalt("schiedsrichter", neu.termin),
     };
     try {
       await sendMail(
-        benachrichtigung.email,
+        neu.email,
         "Neue Termin-Zuordnung",
         terminMailText(mailParams),
         terminMailHtml(mailParams)
       );
     } catch (err) {
       console.error("Zuordnungs-Mail konnte nicht gesendet werden:", err);
+    }
+  }
+  for (const e of entfernt) {
+    const mailParams = {
+      vereinName: e.vereinName,
+      ...zuordnungEntferntInhalt("schiedsrichter", e.termin),
+    };
+    try {
+      await sendMail(
+        e.email,
+        "Termin-Zuordnung entfernt",
+        terminMailText(mailParams),
+        terminMailHtml(mailParams)
+      );
+    } catch (err) {
+      console.error("Entfernungs-Mail konnte nicht gesendet werden:", err);
     }
   }
 
@@ -172,7 +206,7 @@ export async function schiedsrichterZuordnungEntfernen(formData: FormData) {
     throw new Error("Zuordnung fehlt.");
   }
 
-  await withTenant(vereinId, async (tx) => {
+  const benachrichtigung = await withTenant(vereinId, async (tx) => {
     // Sicherstellen, dass es sich TATSÄCHLICH um eine Schiedsrichter-
     // Zuordnung handelt, bevor gelöscht wird — der Schiedsrichterwart ist
     // nur für diese Rolle berechtigt, nicht für Ordner/Kioskdienst/
@@ -188,7 +222,39 @@ export async function schiedsrichterZuordnungEntfernen(formData: FormData) {
     await tx
       .delete(terminZuordnungen)
       .where(eq(terminZuordnungen.id, zuordnungId));
+
+    if (!zuordnung.userId) return null; // ohne Login kein Empfänger
+
+    const [person, termin, verein] = await Promise.all([
+      tx.query.users.findFirst({ where: eq(users.id, zuordnung.userId) }),
+      tx.query.termine.findFirst({ where: eq(termine.id, zuordnung.terminId) }),
+      tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) }),
+    ]);
+    if (!person || !termin) return null;
+
+    return {
+      termin,
+      email: person.email,
+      vereinName: verein?.name ?? "HandballerPate",
+    };
   });
+
+  if (benachrichtigung) {
+    const mailParams = {
+      vereinName: benachrichtigung.vereinName,
+      ...zuordnungEntferntInhalt("schiedsrichter", benachrichtigung.termin),
+    };
+    try {
+      await sendMail(
+        benachrichtigung.email,
+        "Termin-Zuordnung entfernt",
+        terminMailText(mailParams),
+        terminMailHtml(mailParams)
+      );
+    } catch (err) {
+      console.error("Entfernungs-Mail konnte nicht gesendet werden:", err);
+    }
+  }
 
   revalidatePath("/profil/schiedsrichterwart");
   revalidatePath("/admin/kalender");
