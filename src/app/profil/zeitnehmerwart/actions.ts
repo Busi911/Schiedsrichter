@@ -13,6 +13,7 @@ import {
 import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
+import { generiereOeffentlichenToken } from "@/lib/token";
 
 const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
 type ZeitnehmerRolle = (typeof ZEITNEHMER_ROLLEN)[number];
@@ -327,12 +328,19 @@ export async function zeitnehmerBedarfUeberschreiben(formData: FormData) {
 export async function zeitnehmerSelbstanmeldungLinkErneuern() {
   const { vereinId } = await requireZeitnehmerwartZugriff();
 
-  await withTenant(vereinId, (tx) =>
-    tx
+  await withTenant(vereinId, async (tx) => {
+    const verein = await tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+    });
+    await tx
       .update(vereine)
-      .set({ zeitnehmerSelbstanmeldungToken: crypto.randomUUID() })
-      .where(eq(vereine.id, vereinId))
-  );
+      .set({
+        zeitnehmerSelbstanmeldungToken: generiereOeffentlichenToken(
+          verein?.name ?? ""
+        ),
+      })
+      .where(eq(vereine.id, vereinId));
+  });
 
   revalidatePath("/profil/zeitnehmerwart");
 }

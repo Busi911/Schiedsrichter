@@ -21,6 +21,7 @@ import { appUrl } from "@/lib/app-url";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { istTurnierBerechtigt } from "@/lib/turnier-zugriff";
+import { generiereOeffentlichenToken } from "@/lib/token";
 
 // einmalPasswort ist nur bei einer neu vergebenen Einmal-Passwort-Zeile
 // gesetzt (siehe vergebeEinmalPasswortFallsNoetig) — hat die Person schon
@@ -774,8 +775,19 @@ export async function createTermin(formData: FormData) {
     throw new Error("Start ist erforderlich.");
   }
 
-  await withTenant(vereinId, (tx) =>
-    tx.insert(termine).values({
+  await withTenant(vereinId, async (tx) => {
+    // Turniere bekommen sofort einen Freigabe-Token für die öffentliche,
+    // login-freie Lese-Ansicht (/turnier/[token]) — mit Vereinsnamen als
+    // lesbarem Präfix (siehe generiereOeffentlichenToken).
+    let freigabeToken: string | null = null;
+    if (typ === "turnier") {
+      const vereinRow = await tx.query.vereine.findFirst({
+        where: (v, { eq }) => eq(v.id, vereinId),
+      });
+      freigabeToken = generiereOeffentlichenToken(vereinRow?.name ?? "");
+    }
+
+    await tx.insert(termine).values({
       vereinId,
       typ: typ as (typeof TERMIN_TYPEN)[number],
       start: parseBerlinDatumZeit(start),
@@ -791,11 +803,9 @@ export async function createTermin(formData: FormData) {
         typeof mannschaftId === "string" && mannschaftId
           ? mannschaftId
           : null,
-      // Turniere bekommen sofort einen Freigabe-Token für die öffentliche,
-      // login-freie Lese-Ansicht (/turnier/[token]).
-      freigabeToken: typ === "turnier" ? crypto.randomUUID() : null,
-    })
-  );
+      freigabeToken,
+    });
+  });
 
   revalidatePath("/admin/termine");
 }
@@ -1260,9 +1270,12 @@ export async function turnierLinkErneuern(formData: FormData) {
 
   await withTenant(vereinId, async (tx) => {
     await ladeTurnierContainer(tx, turnierId, vereinId, session);
+    const vereinRow = await tx.query.vereine.findFirst({
+      where: (v, { eq }) => eq(v.id, vereinId),
+    });
     await tx
       .update(termine)
-      .set({ freigabeToken: crypto.randomUUID() })
+      .set({ freigabeToken: generiereOeffentlichenToken(vereinRow?.name ?? "") })
       .where(eq(termine.id, turnierId));
   });
 
