@@ -56,20 +56,44 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen">
       <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Logo className="size-8 shrink-0 text-primary" />
-            <div>
-              <p className="font-heading text-lg font-semibold">
-                {verein?.name ?? "Verein"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {session.user.istAdmin
-                  ? "Vereinsadmin"
-                  : "Vereinsadmin (nur lesend)"}{" "}
-                · {session.user.name ?? session.user.email}
-              </p>
+        <div className="mx-auto flex max-w-screen-2xl flex-col gap-3 px-6 py-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
+          {/* Oben: Vereinsname + Logout auf gleicher Höhe, wie bei jedem
+              anderen Header oben rechts erwartet — auf Mobile sonst würde
+              der Logout-Button erst nach der (dort mehrzeiligen) Nav/Badges-
+              Zeile auftauchen. Auf Desktop übernimmt stattdessen der zweite
+              Logout-Button unten neben den Badges (gleiche Zeile wie Nav),
+              hier bleibt dann nur der Vereinsname übrig. */}
+          <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-start">
+            <div className="flex items-center gap-3">
+              <Logo className="size-8 shrink-0 text-primary" />
+              <div>
+                <p className="font-heading text-lg font-semibold">
+                  {verein?.name ?? "Verein"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {session.user.istAdmin
+                    ? "Vereinsadmin"
+                    : "Vereinsadmin (nur lesend)"}{" "}
+                  · {session.user.name ?? session.user.email}
+                </p>
+              </div>
             </div>
+            <form
+              action={async () => {
+                "use server";
+                await signOut({ redirectTo: "/login" });
+              }}
+              className="md:hidden"
+            >
+              <Button
+                type="submit"
+                variant="outline"
+                size="icon-sm"
+                aria-label="Logout"
+              >
+                <LogOutIcon />
+              </Button>
+            </form>
           </div>
           <AdminNav />
           <div className="flex flex-wrap items-center gap-2">
@@ -100,6 +124,7 @@ export default async function AdminLayout({
                 "use server";
                 await signOut({ redirectTo: "/login" });
               }}
+              className="hidden md:block"
             >
               <Button
                 type="submit"

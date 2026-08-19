@@ -29,7 +29,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
 import { cn } from "@/lib/utils";
-import { formatMonatJahr, toDatetimeLocalWert } from "@/lib/format";
+import {
+  formatMonatJahr,
+  formatWochentagDatum,
+  toDatetimeLocalWert,
+} from "@/lib/format";
 
 const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
@@ -141,6 +145,340 @@ export function MonatsKalender({
   const istAktuellerMonat =
     jahr === heute.getFullYear() && monatNull === heute.getMonth();
 
+  // Gemeinsamer Modal-Inhalt für einen Turnier-Balken, unabhängig davon, ob
+  // der Auslöser die Grid-Leiste (Desktop) oder die Agenda-Zeile (Mobile,
+  // siehe unten) ist — idPrefix hält die Formular-Feld-IDs eindeutig, falls
+  // derselbe Balken (unsichtbar) in beiden Darstellungen im DOM landet.
+  function balkenDialogInhalt(b: TurnierBalkenBearbeitbar, idPrefix: string) {
+    return (
+      <>
+        <DialogHeader>
+          <DialogTitle>{b.label}</DialogTitle>
+          <DialogDescription>Turnier</DialogDescription>
+        </DialogHeader>
+        {schreibzugriff ? (
+          <form action={updateTerminInline} className="flex flex-col gap-3">
+            <input type="hidden" name="terminId" value={b.id} />
+            <input type="hidden" name="typ" value="turnier" />
+            <div className="flex gap-2">
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label htmlFor={`${idPrefix}-start-${b.id}`} className="text-xs">
+                  Beginn
+                </Label>
+                <Input
+                  id={`${idPrefix}-start-${b.id}`}
+                  name="start"
+                  type="datetime-local"
+                  defaultValue={toDatetimeLocalWert(b.start)}
+                  required
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label htmlFor={`${idPrefix}-ende-${b.id}`} className="text-xs">
+                  Ende
+                </Label>
+                <Input
+                  id={`${idPrefix}-ende-${b.id}`}
+                  name="ende"
+                  type="datetime-local"
+                  defaultValue={b.ende ? toDatetimeLocalWert(b.ende) : ""}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${idPrefix}-titel-${b.id}`} className="text-xs">
+                Titel
+              </Label>
+              <Input
+                id={`${idPrefix}-titel-${b.id}`}
+                name="beschreibung"
+                defaultValue={b.label}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${idPrefix}-ort-${b.id}`} className="text-xs">
+                Ort
+              </Label>
+              <Input
+                id={`${idPrefix}-ort-${b.id}`}
+                name="ort"
+                defaultValue={b.ort ?? ""}
+                className="h-8 text-sm"
+              />
+            </div>
+            {mannschaftsListe.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs">Mannschaft (optional)</Label>
+                <LabeledSelect
+                  name="mannschaftId"
+                  placeholder="—"
+                  defaultValue={b.mannschaftId ?? undefined}
+                  options={mannschaftsListe.map((m) => ({
+                    value: m.id,
+                    label: m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name,
+                  }))}
+                />
+              </div>
+            )}
+            {trainerListe.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs">
+                  Turnierverantwortlicher (optional)
+                </Label>
+                <LabeledSelect
+                  name="turnierVerantwortlicherId"
+                  placeholder="— (nur Admin verwaltet)"
+                  defaultValue={b.turnierVerantwortlicherId ?? undefined}
+                  options={trainerListe.map((t) => ({
+                    value: t.userId,
+                    label: t.name ?? t.email,
+                  }))}
+                />
+              </div>
+            )}
+            <Button type="submit" size="sm" className="mt-1">
+              Speichern
+            </Button>
+          </form>
+        ) : (
+          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+            <p>
+              {b.start.toLocaleDateString("de-DE")}
+              {b.ende ? ` – ${b.ende.toLocaleDateString("de-DE")}` : ""}
+            </p>
+            {b.ort && <p>{b.ort}</p>}
+          </div>
+        )}
+        {b.href && (
+          <Button
+            size="sm"
+            variant="outline"
+            render={<Link href={b.href} />}
+            nativeButton={false}
+          >
+            Spielplan &amp; mehr
+          </Button>
+        )}
+      </>
+    );
+  }
+
+  // Gemeinsamer Modal-Inhalt für einen einzelnen Termin-Eintrag, ebenfalls
+  // sowohl vom Grid- als auch vom Agenda-Auslöser genutzt. Anders als beim
+  // Turnier-Balken gibt es hier keine expliziten Feld-IDs, die kollidieren
+  // könnten (LabeledSelect erzeugt seine IDs intern), daher kein idPrefix
+  // nötig.
+  function eintragDialogInhalt(e: KalenderEintrag) {
+    return (
+      <>
+        <DialogHeader>
+          <DialogTitle>{e.label}</DialogTitle>
+          <DialogDescription>
+            {e.typLabel}
+            {e.zeit ? ` · ${e.zeit} Uhr` : ""}
+            {e.ort ? ` · ${e.ort}` : ""}
+            {e.mannschaftLabel ? ` · ${e.mannschaftLabel}` : ""}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-2 text-sm">
+          {e.ergebnis ? (
+            <Badge variant="secondary" className="w-fit">
+              Endstand {e.ergebnis}
+            </Badge>
+          ) : (
+            e.besetzung && (
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={
+                    e.besetzung === "vollstaendig" ? "secondary" : "outline"
+                  }
+                >
+                  {e.besetzung === "vollstaendig"
+                    ? "Besetzung vollständig"
+                    : "Besetzung offen"}
+                </Badge>
+              </div>
+            )
+          )}
+          {e.besetzungsDetails && e.besetzungsDetails.length > 0 && (
+            <ul className="flex flex-col gap-1">
+              {e.besetzungsDetails.map((d) => (
+                <li
+                  key={d.id}
+                  className="flex items-start justify-between gap-2 text-muted-foreground"
+                >
+                  <span className="flex flex-col">
+                    <span>{d.label}</span>
+                    {d.hinweis && (
+                      <span className="text-xs">{d.hinweis}</span>
+                    )}
+                  </span>
+                  {schreibzugriff && e.zuordenbar && !d.id.startsWith("ics-") && (
+                    <form action={zuordnungEntfernen} className="shrink-0">
+                      <input
+                        type="hidden"
+                        name="zuordnungId"
+                        value={d.id}
+                      />
+                      <ConfirmSubmitButton
+                        confirmText={`${d.label} entfernen?`}
+                        variant="destructive"
+                        size="xs"
+                      >
+                        Entfernen
+                      </ConfirmSubmitButton>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {schreibzugriff && e.zuordenbar &&
+            (() => {
+              const zuordnenForm = (
+                <div className="flex flex-col gap-2">
+                  {zuordenbarePersonen.length > 0 && (
+                    <form
+                      action={zuordnen}
+                      className="flex items-center gap-2"
+                    >
+                      <input
+                        type="hidden"
+                        name="terminId"
+                        value={e.id}
+                      />
+                      <div className="flex-1">
+                        <LabeledSelect
+                          name="personTyp"
+                          placeholder="Person wählen…"
+                          required
+                          options={zuordenbarePersonen.map((p) => ({
+                            value: `${p.userId}|${p.typ}`,
+                            label: ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ,
+                            group: p.name ?? p.email,
+                          }))}
+                        />
+                      </div>
+                      <Button type="submit" variant="outline" size="sm">
+                        Zuordnen
+                      </Button>
+                    </form>
+                  )}
+                  {/* Ohne Login (z.B. Gast-Schiri eines
+                      anderen Vereins) — unabhängig von
+                      zuordenbarePersonen immer verfügbar,
+                      siehe externeZuordnung in
+                      admin/zuordnung/actions.ts. Standardmäßig
+                      eingeklappt: nur ein Fallback, richtig
+                      angelegte Personen sollen der
+                      naheliegendere Weg bleiben. */}
+                  <details className="group">
+                    <summary className={DISCLOSURE_KLASSE}>
+                      <span className="group-open:hidden">
+                        Ohne Login zuordnen (Fallback)
+                      </span>
+                      <span className="hidden group-open:inline">
+                        Schließen
+                      </span>
+                    </summary>
+                    <form
+                      action={externeZuordnung}
+                      className="mt-2 flex flex-col gap-2"
+                    >
+                      <input
+                        type="hidden"
+                        name="terminId"
+                        value={e.id}
+                      />
+                      <Input
+                        name="name"
+                        placeholder="Name ohne Login…"
+                        required
+                        className="h-8 w-full"
+                      />
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <LabeledSelect
+                            name="rolle"
+                            placeholder="Rolle…"
+                            required
+                            options={Object.entries(
+                              ZUORDENBARE_TYP_LABEL
+                            ).map(([value, label]) => ({
+                              value,
+                              label,
+                            }))}
+                          />
+                        </div>
+                        <Button type="submit" variant="ghost" size="xs">
+                          Zuordnen
+                        </Button>
+                      </div>
+                    </form>
+                  </details>
+                </div>
+              );
+              // Ein bereits abgepfiffenes Spiel braucht keine
+              // Zuordnung mehr im Vordergrund — nachträglich
+              // jemanden einzutragen bleibt möglich, aber
+              // hinter einem Toggle statt automatisch offen.
+              if (e.ergebnis) {
+                return (
+                  <details className="group border-t pt-2">
+                    <summary className="cursor-pointer list-none text-xs text-muted-foreground underline [&::-webkit-details-marker]:hidden">
+                      <span className="group-open:hidden">
+                        Nachträglich zuordnen (optional)
+                      </span>
+                      <span className="hidden group-open:inline">
+                        Schließen
+                      </span>
+                    </summary>
+                    <div className="mt-2">{zuordnenForm}</div>
+                  </details>
+                );
+              }
+              return (
+                <div className="border-t pt-2">{zuordnenForm}</div>
+              );
+            })()}
+          {e.bearbeitenHref && (
+            <Button
+              size="sm"
+              className="mt-2"
+              render={<Link href={e.bearbeitenHref} />}
+              nativeButton={false}
+            >
+              Bearbeiten
+            </Button>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  // Agenda-Ansicht für Mobile (siehe unten): jeder Tag des Monats mit
+  // mindestens einem Balken oder Termin, jeweils mit vollbreiten statt
+  // winzig-schmalen Zeilen — kein horizontales Scrollen und deutlich
+  // größere Touch-Targets als im Gitter.
+  const tageMitInhalt = wochen
+    .flat()
+    .filter((tag) => tag.imMonat)
+    .map((tag) => {
+      const key = tagKey(tag.datum);
+      return {
+        tag,
+        key,
+        balkenHeute: mehrtaegigeEintraege.filter(
+          (b) => b.startTag <= key && key <= b.endTag
+        ),
+        eintraege: eintraegeProTag.get(key) ?? [],
+      };
+    })
+    .filter(({ balkenHeute, eintraege }) => balkenHeute.length > 0 || eintraege.length > 0);
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -169,11 +507,11 @@ export function MonatsKalender({
         </Link>
       </div>
 
-      {/* overflow-x-auto + min-width statt die Zellen auf schmalen Screens
-          weiter zusammenzudrücken (Text war bei 0.7rem/truncate schon am
-          unteren Rand) — auf dem Handy scrollt man die Woche lieber
-          horizontal, als Inhalte nicht mehr lesen zu können. */}
-      <div className="overflow-x-auto">
+      {/* Ab md aufwärts das klassische Monatsgitter — auf dem Handy waren die
+          Zellen darin sowohl zum horizontalen Scrollen als auch (bei Text ab
+          0.7rem) kaum noch treffsicher antippbar. Darunter (siehe Agenda
+          weiter unten) stattdessen eine vollbreite Tagesliste. */}
+      <div className="hidden overflow-x-auto md:block">
       <div className="min-w-[640px] overflow-hidden rounded-lg border bg-border text-xs">
         <div className="grid grid-cols-7 gap-px bg-border">
           {WOCHENTAGE.map((w) => (
@@ -263,123 +601,7 @@ export function MonatsKalender({
                     >
                       {b.label}
                     </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>{b.label}</DialogTitle>
-                        <DialogDescription>Turnier</DialogDescription>
-                      </DialogHeader>
-                      {schreibzugriff ? (
-                      <form
-                        action={updateTerminInline}
-                        className="flex flex-col gap-3"
-                      >
-                        <input type="hidden" name="terminId" value={b.id} />
-                        <input type="hidden" name="typ" value="turnier" />
-                        <div className="flex gap-2">
-                          <div className="flex flex-1 flex-col gap-1.5">
-                            <Label htmlFor={`start-${b.id}`} className="text-xs">
-                              Beginn
-                            </Label>
-                            <Input
-                              id={`start-${b.id}`}
-                              name="start"
-                              type="datetime-local"
-                              defaultValue={toDatetimeLocalWert(b.start)}
-                              required
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                          <div className="flex flex-1 flex-col gap-1.5">
-                            <Label htmlFor={`ende-${b.id}`} className="text-xs">
-                              Ende
-                            </Label>
-                            <Input
-                              id={`ende-${b.id}`}
-                              name="ende"
-                              type="datetime-local"
-                              defaultValue={b.ende ? toDatetimeLocalWert(b.ende) : ""}
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor={`titel-${b.id}`} className="text-xs">
-                            Titel
-                          </Label>
-                          <Input
-                            id={`titel-${b.id}`}
-                            name="beschreibung"
-                            defaultValue={b.label}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor={`ort-${b.id}`} className="text-xs">
-                            Ort
-                          </Label>
-                          <Input
-                            id={`ort-${b.id}`}
-                            name="ort"
-                            defaultValue={b.ort ?? ""}
-                            className="h-8 text-sm"
-                          />
-                        </div>
-                        {mannschaftsListe.length > 0 && (
-                          <div className="flex flex-col gap-1.5">
-                            <Label className="text-xs">Mannschaft (optional)</Label>
-                            <LabeledSelect
-                              name="mannschaftId"
-                              placeholder="—"
-                              defaultValue={b.mannschaftId ?? undefined}
-                              options={mannschaftsListe.map((m) => ({
-                                value: m.id,
-                                label: m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name,
-                              }))}
-                            />
-                          </div>
-                        )}
-                        {trainerListe.length > 0 && (
-                          <div className="flex flex-col gap-1.5">
-                            <Label className="text-xs">
-                              Turnierverantwortlicher (optional)
-                            </Label>
-                            <LabeledSelect
-                              name="turnierVerantwortlicherId"
-                              placeholder="— (nur Admin verwaltet)"
-                              defaultValue={b.turnierVerantwortlicherId ?? undefined}
-                              options={trainerListe.map((t) => ({
-                                value: t.userId,
-                                label: t.name ?? t.email,
-                              }))}
-                            />
-                          </div>
-                        )}
-                        <Button type="submit" size="sm" className="mt-1">
-                          Speichern
-                        </Button>
-                      </form>
-                      ) : (
-                        <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                          <p>
-                            {b.start.toLocaleDateString("de-DE")}
-                            {b.ende
-                              ? ` – ${b.ende.toLocaleDateString("de-DE")}`
-                              : ""}
-                          </p>
-                          {b.ort && <p>{b.ort}</p>}
-                        </div>
-                      )}
-                      {b.href && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          render={<Link href={b.href} />}
-                          nativeButton={false}
-                        >
-                          Spielplan &amp; mehr
-                        </Button>
-                      )}
-                    </DialogContent>
+                    <DialogContent>{balkenDialogInhalt(b, "g")}</DialogContent>
                   </Dialog>
                 ))}
 
@@ -422,189 +644,7 @@ export function MonatsKalender({
                               </span>
                             )}
                           </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>{e.label}</DialogTitle>
-                              <DialogDescription>
-                                {e.typLabel}
-                                {e.zeit ? ` · ${e.zeit} Uhr` : ""}
-                                {e.ort ? ` · ${e.ort}` : ""}
-                                {e.mannschaftLabel ? ` · ${e.mannschaftLabel}` : ""}
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="flex flex-col gap-2 text-sm">
-                              {e.ergebnis ? (
-                                <Badge variant="secondary" className="w-fit">
-                                  Endstand {e.ergebnis}
-                                </Badge>
-                              ) : (
-                                e.besetzung && (
-                                  <div className="flex items-center gap-2">
-                                    <Badge
-                                      variant={
-                                        e.besetzung === "vollstaendig" ? "secondary" : "outline"
-                                      }
-                                    >
-                                      {e.besetzung === "vollstaendig"
-                                        ? "Besetzung vollständig"
-                                        : "Besetzung offen"}
-                                    </Badge>
-                                  </div>
-                                )
-                              )}
-                              {e.besetzungsDetails && e.besetzungsDetails.length > 0 && (
-                                <ul className="flex flex-col gap-1">
-                                  {e.besetzungsDetails.map((d) => (
-                                    <li
-                                      key={d.id}
-                                      className="flex items-start justify-between gap-2 text-muted-foreground"
-                                    >
-                                      <span className="flex flex-col">
-                                        <span>{d.label}</span>
-                                        {d.hinweis && (
-                                          <span className="text-xs">{d.hinweis}</span>
-                                        )}
-                                      </span>
-                                      {schreibzugriff && e.zuordenbar && !d.id.startsWith("ics-") && (
-                                        <form action={zuordnungEntfernen} className="shrink-0">
-                                          <input
-                                            type="hidden"
-                                            name="zuordnungId"
-                                            value={d.id}
-                                          />
-                                          <ConfirmSubmitButton
-                                            confirmText={`${d.label} entfernen?`}
-                                            variant="destructive"
-                                            size="xs"
-                                          >
-                                            Entfernen
-                                          </ConfirmSubmitButton>
-                                        </form>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                              {schreibzugriff && e.zuordenbar &&
-                                (() => {
-                                  const zuordnenForm = (
-                                    <div className="flex flex-col gap-2">
-                                      {zuordenbarePersonen.length > 0 && (
-                                        <form
-                                          action={zuordnen}
-                                          className="flex items-center gap-2"
-                                        >
-                                          <input
-                                            type="hidden"
-                                            name="terminId"
-                                            value={e.id}
-                                          />
-                                          <div className="flex-1">
-                                            <LabeledSelect
-                                              name="personTyp"
-                                              placeholder="Person wählen…"
-                                              required
-                                              options={zuordenbarePersonen.map((p) => ({
-                                                value: `${p.userId}|${p.typ}`,
-                                                label: ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ,
-                                                group: p.name ?? p.email,
-                                              }))}
-                                            />
-                                          </div>
-                                          <Button type="submit" variant="outline" size="sm">
-                                            Zuordnen
-                                          </Button>
-                                        </form>
-                                      )}
-                                      {/* Ohne Login (z.B. Gast-Schiri eines
-                                          anderen Vereins) — unabhängig von
-                                          zuordenbarePersonen immer verfügbar,
-                                          siehe externeZuordnung in
-                                          admin/zuordnung/actions.ts. Standardmäßig
-                                          eingeklappt: nur ein Fallback, richtig
-                                          angelegte Personen sollen der
-                                          naheliegendere Weg bleiben. */}
-                                      <details className="group">
-                                        <summary className={DISCLOSURE_KLASSE}>
-                                          <span className="group-open:hidden">
-                                            Ohne Login zuordnen (Fallback)
-                                          </span>
-                                          <span className="hidden group-open:inline">
-                                            Schließen
-                                          </span>
-                                        </summary>
-                                        <form
-                                          action={externeZuordnung}
-                                          className="mt-2 flex flex-col gap-2"
-                                        >
-                                          <input
-                                            type="hidden"
-                                            name="terminId"
-                                            value={e.id}
-                                          />
-                                          <Input
-                                            name="name"
-                                            placeholder="Name ohne Login…"
-                                            required
-                                            className="h-8 w-full"
-                                          />
-                                          <div className="flex items-center gap-2">
-                                            <div className="flex-1">
-                                              <LabeledSelect
-                                                name="rolle"
-                                                placeholder="Rolle…"
-                                                required
-                                                options={Object.entries(
-                                                  ZUORDENBARE_TYP_LABEL
-                                                ).map(([value, label]) => ({
-                                                  value,
-                                                  label,
-                                                }))}
-                                              />
-                                            </div>
-                                            <Button type="submit" variant="ghost" size="xs">
-                                              Zuordnen
-                                            </Button>
-                                          </div>
-                                        </form>
-                                      </details>
-                                    </div>
-                                  );
-                                  // Ein bereits abgepfiffenes Spiel braucht keine
-                                  // Zuordnung mehr im Vordergrund — nachträglich
-                                  // jemanden einzutragen bleibt möglich, aber
-                                  // hinter einem Toggle statt automatisch offen.
-                                  if (e.ergebnis) {
-                                    return (
-                                      <details className="group border-t pt-2">
-                                        <summary className="cursor-pointer list-none text-xs text-muted-foreground underline [&::-webkit-details-marker]:hidden">
-                                          <span className="group-open:hidden">
-                                            Nachträglich zuordnen (optional)
-                                          </span>
-                                          <span className="hidden group-open:inline">
-                                            Schließen
-                                          </span>
-                                        </summary>
-                                        <div className="mt-2">{zuordnenForm}</div>
-                                      </details>
-                                    );
-                                  }
-                                  return (
-                                    <div className="border-t pt-2">{zuordnenForm}</div>
-                                  );
-                                })()}
-                              {e.bearbeitenHref && (
-                                <Button
-                                  size="sm"
-                                  className="mt-2"
-                                  render={<Link href={e.bearbeitenHref} />}
-                                  nativeButton={false}
-                                >
-                                  Bearbeiten
-                                </Button>
-                              )}
-                            </div>
-                          </DialogContent>
+                          <DialogContent>{eintragDialogInhalt(e)}</DialogContent>
                         </Dialog>
                       ))}
                     </div>
@@ -615,6 +655,76 @@ export function MonatsKalender({
           })}
         </div>
       </div>
+      </div>
+
+      {/* Unter md: Agenda statt Gitter, siehe tageMitInhalt oben. */}
+      <div className="flex flex-col gap-4 md:hidden">
+        {tageMitInhalt.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Keine Termine in diesem Monat.
+          </p>
+        )}
+        {tageMitInhalt.map(({ tag, key, balkenHeute, eintraege }) => (
+          <div key={key} className="flex flex-col gap-1.5">
+            <p
+              className={`flex items-center gap-2 text-sm font-medium capitalize ${
+                tag.heute ? "text-primary" : ""
+              }`}
+            >
+              {formatWochentagDatum(tag.datum)}
+              {tag.heute && (
+                <span className="rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] font-normal text-primary-foreground">
+                  Heute
+                </span>
+              )}
+            </p>
+            <div className="flex flex-col gap-1.5 rounded-lg border bg-background p-1.5">
+              {balkenHeute.map((b) => (
+                <Dialog key={b.id}>
+                  <DialogTrigger
+                    render={
+                      <button
+                        type="button"
+                        className="w-full truncate rounded-md bg-primary px-3 py-2.5 text-left text-sm font-medium text-primary-foreground active:bg-primary/90"
+                      />
+                    }
+                  >
+                    {b.label}
+                  </DialogTrigger>
+                  <DialogContent>{balkenDialogInhalt(b, "m")}</DialogContent>
+                </Dialog>
+              ))}
+              {eintraege.map((e) => (
+                <Dialog key={e.id}>
+                  <DialogTrigger
+                    render={
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-md bg-secondary px-3 py-2.5 text-left text-sm text-secondary-foreground active:bg-secondary/70"
+                      />
+                    }
+                  >
+                    {e.besetzung && !e.ergebnis && (
+                      <span
+                        className={`inline-block size-2 shrink-0 rounded-full ${
+                          e.besetzung === "vollstaendig"
+                            ? "bg-emerald-500"
+                            : "bg-destructive"
+                        }`}
+                      />
+                    )}
+                    {e.zeit && <span className="shrink-0 font-medium">{e.zeit}</span>}
+                    <span className="min-w-0 flex-1 truncate">{e.label}</span>
+                    {e.ergebnis && (
+                      <span className="shrink-0 font-medium">{e.ergebnis}</span>
+                    )}
+                  </DialogTrigger>
+                  <DialogContent>{eintragDialogInhalt(e)}</DialogContent>
+                </Dialog>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

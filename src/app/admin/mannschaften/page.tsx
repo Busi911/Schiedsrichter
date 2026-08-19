@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mannschaften } from "@/db/schema";
+import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { createMannschaft } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,12 +15,16 @@ export default async function MannschaftenPage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
 
-  const liste = await withTenant(vereinId, (tx) =>
+  const rohListe = await withTenant(vereinId, (tx) =>
     tx.query.mannschaften.findMany({
       where: eq(mannschaften.vereinId, vereinId),
       orderBy: (m, { asc }) => [asc(m.name)],
     })
   );
+  // Alphabetisch (DB-orderBy oben) würde z.B. "A-Jugend" vor "Herren 1"
+  // einsortieren — die Vereins-übliche Reihenfolge (Männer, Frauen, Jugend
+  // A-E, Mini/Maxi) kommt aus dem Namen selbst, siehe mannschaft-sortierung.ts.
+  const liste = sortiereMannschaften(rohListe);
 
   return (
     <div className="flex flex-col gap-6">

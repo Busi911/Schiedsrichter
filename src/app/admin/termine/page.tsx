@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mannschaften, termine } from "@/db/schema";
+import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { createTermin } from "../actions";
 import { formatMannschaft } from "@/lib/dashboard";
 import { Badge } from "@/components/ui/badge";
@@ -52,10 +53,11 @@ export default async function TerminePage() {
         )
       )
       .orderBy(asc(termine.start));
-    const mannschaftsListe = await tx.query.mannschaften.findMany({
-      where: eq(mannschaften.vereinId, vereinId),
-      orderBy: (m, { asc }) => [asc(m.name)],
-    });
+    const mannschaftsListe = sortiereMannschaften(
+      await tx.query.mannschaften.findMany({
+        where: eq(mannschaften.vereinId, vereinId),
+      })
+    );
     return [liste, mannschaftsListe];
   });
 

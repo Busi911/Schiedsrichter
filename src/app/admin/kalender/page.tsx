@@ -10,6 +10,7 @@ import {
   vereine,
 } from "@/db/schema";
 import { monatsBereich, parseMonatParam, tagKey } from "@/lib/kalender";
+import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { formatMannschaft } from "@/lib/dashboard";
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { bedarfFuer } from "@/lib/dienste";
@@ -128,10 +129,11 @@ export default async function AdminKalenderPage({
             .where(inArray(terminZuordnungen.terminId, terminIds))
         : [];
 
-      const mannschaftsListe = await tx.query.mannschaften.findMany({
-        where: eq(mannschaften.vereinId, vereinId),
-        orderBy: (m, { asc }) => [asc(m.name)],
-      });
+      const mannschaftsListe = sortiereMannschaften(
+        await tx.query.mannschaften.findMany({
+          where: eq(mannschaften.vereinId, vereinId),
+        })
+      );
 
       // Kandidaten für "Turnierverantwortlicher" — funktionstraeger_rolle ist
       // per RLS ohnehin auf den eigenen Verein beschränkt (siehe

@@ -2,6 +2,7 @@ import { and, eq, or } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mannschaften, users } from "@/db/schema";
+import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { createFunktionstraeger, funktionstraegerImportieren } from "../actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -64,10 +65,11 @@ export default async function FunktionstraegerPage({
         )
         .where(eq(users.vereinId, vereinId));
 
-      const mannschaftsListe = await tx.query.mannschaften.findMany({
-        where: eq(mannschaften.vereinId, vereinId),
-        orderBy: (m, { asc }) => [asc(m.name)],
-      });
+      const mannschaftsListe = sortiereMannschaften(
+        await tx.query.mannschaften.findMany({
+          where: eq(mannschaften.vereinId, vereinId),
+        })
+      );
 
       // Admins (voll wie nur lesend) tauchen nicht zwingend in
       // funktionstraeger_rolle auf (eine Person kann NUR Admin sein, ohne
