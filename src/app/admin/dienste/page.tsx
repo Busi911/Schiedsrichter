@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { holeOffenePosten } from "@/lib/dashboard";
 import {
+  berechneGesamtbilanz,
   holeAnzahlAktiverDienstleistender,
   holeMannschaftsBilanzen,
   holeTopDienstmenschen,
@@ -40,9 +41,7 @@ export default async function DienstePage() {
       holeAnzahlAktiverDienstleistender(vereinId),
     ]);
 
-  const gesamtSpiele = mannschaftsBilanzen.reduce((sum, b) => sum + b.spiele, 0);
-  const gesamtSiege = mannschaftsBilanzen.reduce((sum, b) => sum + b.siege, 0);
-  const siegquote = gesamtSpiele > 0 ? Math.round((gesamtSiege / gesamtSpiele) * 100) : null;
+  const { spiele: gesamtSpiele, siegquote } = berechneGesamtbilanz(mannschaftsBilanzen);
   // Top 8 nach Siegquote sortiert anzeigen (mindestens 1 Spiel) — bei
   // Gleichstand zählt bereits berechneMannschaftsBilanzen die Spielanzahl als
   // Tie-Breaker, hier nur noch auf die Anzeige begrenzt.
