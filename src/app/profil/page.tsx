@@ -245,7 +245,7 @@ export default async function ProfilPage({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {(session.user.istAdmin || session.user.istAdminLesend) && (
               <Button
                 variant="outline"
