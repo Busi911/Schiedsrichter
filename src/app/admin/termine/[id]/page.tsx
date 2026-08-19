@@ -4,6 +4,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mannschaften, termine, users } from "@/db/schema";
+import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { turnierLinkErneuern } from "../../actions";
 import { appUrl } from "@/lib/app-url";
 import { Button } from "@/components/ui/button";
@@ -32,10 +33,11 @@ export default async function TerminBearbeitenPage({
       const termin = await tx.query.termine.findFirst({
         where: and(eq(termine.id, id), eq(termine.vereinId, vereinId)),
       });
-      const mannschaftsListe = await tx.query.mannschaften.findMany({
-        where: eq(mannschaften.vereinId, vereinId),
-        orderBy: (m, { asc }) => [asc(m.name)],
-      });
+      const mannschaftsListe = sortiereMannschaften(
+        await tx.query.mannschaften.findMany({
+          where: eq(mannschaften.vereinId, vereinId),
+        })
+      );
       const spiele =
         termin?.typ === "turnier"
           ? await tx.query.termine.findMany({

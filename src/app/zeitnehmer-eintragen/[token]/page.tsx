@@ -5,6 +5,7 @@ import { adminDb } from "@/db/admin";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { bedarfFuer } from "@/lib/dienste";
+import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { berechneBesetzung } from "@/lib/besetzung";
 import { tagKey } from "@/lib/kalender";
 import { rundenspielTypLabel } from "@/lib/termin-label";
@@ -57,10 +58,11 @@ export default async function ZeitnehmerEintragenPage({
   const { alleMannschaften, relevanteTermine } = await withTenant(
     verein.id,
     async (tx) => {
-      const alleMannschaften = await tx.query.mannschaften.findMany({
-        where: eq(mannschaften.vereinId, verein.id),
-        orderBy: (m, { asc }) => [asc(m.name)],
-      });
+      const alleMannschaften = sortiereMannschaften(
+        await tx.query.mannschaften.findMany({
+          where: eq(mannschaften.vereinId, verein.id),
+        })
+      );
 
       const terminListe = await tx.query.termine.findMany({
         where: and(eq(termine.vereinId, verein.id), gte(termine.start, new Date())),
