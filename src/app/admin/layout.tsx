@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
+import { LogOutIcon } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, vereine } from "@/db/schema";
@@ -100,8 +101,13 @@ export default async function AdminLayout({
                 await signOut({ redirectTo: "/login" });
               }}
             >
-              <Button type="submit" variant="outline" size="sm">
-                Logout
+              <Button
+                type="submit"
+                variant="outline"
+                size="icon-sm"
+                aria-label="Logout"
+              >
+                <LogOutIcon />
               </Button>
             </form>
           </div>

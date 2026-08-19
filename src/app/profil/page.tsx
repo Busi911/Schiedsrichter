@@ -1,5 +1,6 @@
 import { and, eq, gte, inArray, or } from "drizzle-orm";
 import Link from "next/link";
+import { LogOutIcon } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
@@ -292,8 +293,13 @@ export default async function ProfilPage({
                 await signOut({ redirectTo: "/login" });
               }}
             >
-              <Button type="submit" variant="outline" size="sm">
-                Logout
+              <Button
+                type="submit"
+                variant="outline"
+                size="icon-sm"
+                aria-label="Logout"
+              >
+                <LogOutIcon />
               </Button>
             </form>
           </div>
