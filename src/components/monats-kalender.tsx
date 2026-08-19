@@ -410,7 +410,7 @@ export function MonatsKalender({
                                 className={`inline-block size-1.5 shrink-0 rounded-full ${
                                   e.besetzung === "vollstaendig"
                                     ? "bg-emerald-500"
-                                    : "bg-amber-500"
+                                    : "bg-destructive"
                                 }`}
                               />
                             )}
