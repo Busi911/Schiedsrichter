@@ -282,7 +282,7 @@ export default async function AdminKalenderPage({
             vollständig
           </span>
           <span className="ml-3 inline-flex items-center gap-1">
-            <span className="inline-block size-2 rounded-full bg-amber-500" /> Besetzung offen
+            <span className="inline-block size-2 rounded-full bg-destructive" /> Besetzung offen
           </span>
         </p>
       </div>
