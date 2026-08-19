@@ -12,7 +12,7 @@ import { holeNuligaJson, type NuligaDiagnose } from "./nuliga-scraper";
 import { sendeRundenspielAenderungenBenachrichtigung } from "./rundenspiel-benachrichtigung";
 
 // DB-Import-Logik für bereits geparste Rundenspiel-Ereignisse — geteilt
-// zwischen dem manuellen JSON-Upload (/admin/rundenspiele, siehe
+// zwischen dem manuellen JSON-Upload (/admin/termine (Hallenspielplan-Tab), siehe
 // rundenspieleImportieren in admin/actions.ts) und dem automatischen
 // nuLiga-Sync unten, damit beide Wege exakt dasselbe Update-/Dedup-
 // Verhalten haben (Match über termin.ics_uid, siehe bildeUid in

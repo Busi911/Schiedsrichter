@@ -28,7 +28,10 @@ export function rundenspielAenderungenInhalt(
     vereinName,
     ueberschrift: `${aenderungen.length} Änderung${aenderungen.length === 1 ? "" : "en"} im Hallenspielplan.`,
     zeilen: aenderungen.map(rundenspielAenderungZeile),
-    cta: { text: "Zum Hallenspielplan", url: `${appUrl()}/admin/rundenspiele` },
+    cta: {
+      text: "Zum Hallenspielplan",
+      url: `${appUrl()}/admin/termine?tab=rundenspiele`,
+    },
   };
 }
 

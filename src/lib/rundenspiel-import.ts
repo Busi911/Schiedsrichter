@@ -513,7 +513,7 @@ export type UnbekannteMannschaft = {
 
 // Fasst Heimnamen aus noch nicht verknüpften Rundenspielen zu Vorschlägen
 // zusammen, die der Admin per Klick als Mannschaft anlegen kann (siehe
-// /admin/rundenspiele) — nach normalisiertem Namen UND Kategorie gruppiert,
+// /admin/termine (Hallenspielplan-Tab)) — nach normalisiertem Namen UND Kategorie gruppiert,
 // damit "Herren I" und "Herren 1" nicht als zwei Vorschläge auftauchen,
 // aber z.B. die Herren- und eine Jugendmannschaft desselben Vereins (die
 // nuLiga oft ohne unterscheidenden Nummern-Suffix im Namen führt) getrennt

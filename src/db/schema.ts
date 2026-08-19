@@ -151,8 +151,9 @@ export const vereine = pgTable("verein", {
   // Opt-in für den Vereinsadmin: E-Mail bei geänderten Spielen (Zeit/Ort
   // verlegt) bzw. neu eingetragenen Ergebnissen im Hallenspielplan, siehe
   // rundenspiel-benachrichtigung.ts. Default false, da nicht jeder Verein
-  // diesen zusätzlichen Kanal will (die Änderungen sind auf
-  // /admin/rundenspiele ohnehin jederzeit passiv einsehbar).
+  // diesen zusätzlichen Kanal will (die Änderungen sind im
+  // Hallenspielplan-Tab von /admin/termine ohnehin jederzeit passiv
+  // einsehbar).
   rundenspielAenderungenBenachrichtigungAktiviert: boolean(
     "rundenspiel_aenderungen_benachrichtigung_aktiviert"
   )
@@ -179,9 +180,9 @@ export const mannschaften = pgTable("mannschaft", {
 // Vom Admin bewusst übersprungene Vorschläge aus "Unbekannte Mannschaften"
 // (siehe gruppiereUnbekannteMannschaften in rundenspiel-import.ts) — meist
 // Mannschaften anderer Vereine, die an der eigenen Halle spielen und nie
-// als eigene Mannschaft angelegt werden sollen (siehe Hinweis auf
-// /admin/rundenspiele). Ohne diese Tabelle würde derselbe Vorschlag bei
-// jedem weiteren Import wieder auftauchen.
+// als eigene Mannschaft angelegt werden sollen (siehe Hinweis im
+// Hallenspielplan-Tab von /admin/termine). Ohne diese Tabelle würde
+// derselbe Vorschlag bei jedem weiteren Import wieder auftauchen.
 export const ignorierteMannschaften = pgTable(
   "ignorierte_mannschaft",
   {
