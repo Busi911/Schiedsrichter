@@ -104,6 +104,23 @@ export function berechneMannschaftsBilanzen(
   );
 }
 
+export type Gesamtbilanz = {
+  spiele: number;
+  siegquote: number | null;
+};
+
+// Über alle Mannschaften aggregiert — für die KPI-Kacheln auf /admin und
+// /admin/dienste, die nicht pro Mannschaft aufschlüsseln, sondern nur "wie
+// laufen wir insgesamt" zeigen wollen.
+export function berechneGesamtbilanz(bilanzen: MannschaftsBilanz[]): Gesamtbilanz {
+  const spiele = bilanzen.reduce((sum, b) => sum + b.spiele, 0);
+  const siege = bilanzen.reduce((sum, b) => sum + b.siege, 0);
+  return {
+    spiele,
+    siegquote: spiele > 0 ? Math.round((siege / spiele) * 100) : null,
+  };
+}
+
 export async function holeMannschaftsBilanzen(
   vereinId: string
 ): Promise<MannschaftsBilanz[]> {

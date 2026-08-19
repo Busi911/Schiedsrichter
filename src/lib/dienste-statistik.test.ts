@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { berechneMannschaftsBilanzen } from "./dienste-statistik";
+import { berechneGesamtbilanz, berechneMannschaftsBilanzen } from "./dienste-statistik";
 
 describe("berechneMannschaftsBilanzen", () => {
   it("zählt einen Sieg, wenn die eigene Mannschaft (heim) mehr Tore erzielt", () => {
@@ -125,5 +125,19 @@ describe("berechneMannschaftsBilanzen", () => {
       },
     ]);
     expect(bilanzen.map((b) => b.mannschaftId)).toEqual(["viele-siege", "wenig-siege"]);
+  });
+});
+
+describe("berechneGesamtbilanz", () => {
+  it("summiert Spiele/Siege über alle Mannschaften und rundet die Siegquote", () => {
+    const gesamt = berechneGesamtbilanz([
+      { mannschaftId: "a", label: "A", siege: 2, unentschieden: 0, niederlagen: 1, spiele: 3 },
+      { mannschaftId: "b", label: "B", siege: 1, unentschieden: 1, niederlagen: 0, spiele: 2 },
+    ]);
+    expect(gesamt).toEqual({ spiele: 5, siegquote: 60 });
+  });
+
+  it("liefert null als Siegquote ohne Spiele", () => {
+    expect(berechneGesamtbilanz([])).toEqual({ spiele: 0, siegquote: null });
   });
 });

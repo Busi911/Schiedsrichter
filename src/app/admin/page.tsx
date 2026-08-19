@@ -8,10 +8,12 @@ import {
   holeLetzteErgebnisse,
   holeNaechsteTermine,
 } from "@/lib/dashboard";
+import { berechneGesamtbilanz, holeMannschaftsBilanzen } from "@/lib/dienste-statistik";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -62,12 +64,17 @@ export default async function AdminDashboardPage() {
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
   );
 
-  const [naechsteTermine, letzteErgebnisse] = await Promise.all([
+  const [naechsteTermine, letzteErgebnisse, mannschaftsBilanzen] = await Promise.all([
     // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
     // den Link "Alle Termine" unten.
     holeNaechsteTermine(vereinId, 10),
     holeLetzteErgebnisse(vereinId, 10),
+    // Ungekappt (anders als letzteErgebnisse oben) — die Saison-KPIs unten
+    // sollen die echte Gesamtbilanz zeigen, nicht nur die der letzten 10
+    // angezeigten Ergebnisse.
+    holeMannschaftsBilanzen(vereinId),
   ]);
+  const { spiele: gesamtSpiele, siegquote } = berechneGesamtbilanz(mannschaftsBilanzen);
 
   const naechsteTermineZeilen = naechsteTermine.map((t) => ({
     id: t.id,
@@ -87,6 +94,23 @@ export default async function AdminDashboardPage() {
         <p className="text-sm text-muted-foreground">
           {verein?.name ?? "Verein"}
         </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardDescription>Rundenspiele mit Ergebnis</CardDescription>
+            <CardTitle className="text-3xl">{gesamtSpiele}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardDescription>Siegquote (alle Mannschaften)</CardDescription>
+            <CardTitle className="text-3xl">
+              {siegquote !== null ? `${siegquote}%` : "—"}
+            </CardTitle>
+          </CardHeader>
+        </Card>
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
