@@ -463,6 +463,7 @@ export function MonatsKalender({
   // mindestens einem Balken oder Termin, jeweils mit vollbreiten statt
   // winzig-schmalen Zeilen — kein horizontales Scrollen und deutlich
   // größere Touch-Targets als im Gitter.
+  const heuteKey = tagKey(heute);
   const tageMitInhalt = wochen
     .flat()
     .filter((tag) => tag.imMonat)
@@ -471,6 +472,11 @@ export function MonatsKalender({
       return {
         tag,
         key,
+        // Tageweise statt uhrzeitgenau (Termine tragen in der Agenda keine
+        // rohe Uhrzeit als Date, nur den formatierten String) — reicht als
+        // "Minimum"-Abgrenzung völlig aus und behandelt einen bereits
+        // gelaufenen Termin von heute bewusst noch nicht als vergangen.
+        istVergangen: key < heuteKey,
         balkenHeute: mehrtaegigeEintraege.filter(
           (b) => b.startTag <= key && key <= b.endTag
         ),
@@ -664,8 +670,11 @@ export function MonatsKalender({
             Keine Termine in diesem Monat.
           </p>
         )}
-        {tageMitInhalt.map(({ tag, key, balkenHeute, eintraege }) => (
-          <div key={key} className="flex flex-col gap-1.5">
+        {tageMitInhalt.map(({ tag, key, istVergangen, balkenHeute, eintraege }) => (
+          <div
+            key={key}
+            className={`flex flex-col gap-1.5 ${istVergangen ? "opacity-50" : ""}`}
+          >
             <p
               className={`flex items-center gap-2 text-sm font-medium capitalize ${
                 tag.heute ? "text-primary" : ""
