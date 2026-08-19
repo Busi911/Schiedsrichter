@@ -6,6 +6,7 @@ const posten: OffenePosten = {
   terminId: "t1",
   start: new Date("2026-09-01T10:00:00Z"),
   typ: "testspiel",
+  typLabel: "Freundschaftsspiel",
   ort: "Halle 1",
   mannschaftLabel: "Herren 1",
   luecken: [{ rolle: "zeitnehmer", vorhanden: 0, bedarf: 1 }],

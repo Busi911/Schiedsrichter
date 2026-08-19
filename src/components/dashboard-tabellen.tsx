@@ -57,6 +57,7 @@ export function NaechsteTermineTabelle({
 export type OffenerPostenZeile = {
   terminId: string;
   zeit: string;
+  typLabel: string;
   mannschaft: string | null;
   luecken: { rolle: string; vorhanden: number; bedarf: number }[];
 };
@@ -78,6 +79,9 @@ export function UnbesetzteDiensteTabelle({
                   className="w-0 align-top text-sm whitespace-normal"
                 >
                   <div className="font-medium">{p.zeit}</div>
+                  <div className="mt-0.5">
+                    <Badge variant="outline">{p.typLabel}</Badge>
+                  </div>
                   {p.mannschaft && (
                     <div className="text-xs text-muted-foreground">
                       {p.mannschaft}

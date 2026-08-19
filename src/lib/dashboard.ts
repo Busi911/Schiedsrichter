@@ -4,6 +4,14 @@ import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, vereine } from "@/db/schema";
 import { bedarfFuer } from "./dienste";
 import { brauchtSchiedsrichterVomVerein } from "./besetzung";
+import { rundenspielTypLabel } from "./termin-label";
+
+const OFFENE_POSTEN_TYP_LABEL: Record<string, string> = {
+  spiel_ics: "Spiel (ICS)",
+  testspiel: "Freundschaftsspiel",
+  turnier: "Turnier",
+  turnier_spiel: "Turnierspiel",
+};
 
 // Termine-Spalten + Mannschaftsname/-altersklasse (Jugend/Männer/Frauen) in
 // einem Rutsch, statt der reinen termine.findMany() — ohne definierte
@@ -86,6 +94,7 @@ export type OffenePosten = {
   terminId: string;
   start: Date;
   typ: string;
+  typLabel: string;
   ort: string | null;
   mannschaftLabel: string | null;
   luecken: {
@@ -173,6 +182,10 @@ export function berechneOffenePosten(
         terminId: termin.id,
         start: termin.start,
         typ: termin.typ,
+        typLabel:
+          termin.typ === "rundenspiel"
+            ? rundenspielTypLabel(termin.pflichtspiel, termin.freundschaftsTyp)
+            : (OFFENE_POSTEN_TYP_LABEL[termin.typ] ?? termin.typ),
         ort: termin.ort,
         mannschaftLabel: formatMannschaft(termin),
         luecken,

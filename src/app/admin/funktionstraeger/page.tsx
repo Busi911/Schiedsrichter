@@ -55,6 +55,7 @@ export default async function FunktionstraegerPage({
           aktiv: funktionstraegerRollen.aktiv,
           name: users.name,
           email: users.email,
+          letzterLoginAm: users.letzterLoginAm,
           mannschaftName: mannschaften.name,
         })
         .from(funktionstraegerRollen)
@@ -82,6 +83,7 @@ export default async function FunktionstraegerPage({
           email: users.email,
           istAdmin: users.istAdmin,
           istAdminLesend: users.istAdminLesend,
+          letzterLoginAm: users.letzterLoginAm,
         })
         .from(users)
         .where(
@@ -104,12 +106,13 @@ export default async function FunktionstraegerPage({
       email: r.email,
       istAdmin: false,
       istAdminLesend: false,
+      letzterLoginAm: r.letzterLoginAm,
       rollen: [] as typeof rollen,
     };
     eintrag.rollen.push(r);
     map.set(r.userId, eintrag);
     return map;
-  }, new Map<string, { userId: string; name: string | null; email: string; istAdmin: boolean; istAdminLesend: boolean; rollen: typeof rollen }>());
+  }, new Map<string, { userId: string; name: string | null; email: string; istAdmin: boolean; istAdminLesend: boolean; letzterLoginAm: Date | null; rollen: typeof rollen }>());
 
   for (const admin of alleAdmins) {
     const eintrag = personenMap.get(admin.userId) ?? {
@@ -118,6 +121,7 @@ export default async function FunktionstraegerPage({
       email: admin.email,
       istAdmin: false,
       istAdminLesend: false,
+      letzterLoginAm: admin.letzterLoginAm,
       rollen: [] as typeof rollen,
     };
     eintrag.istAdmin = admin.istAdmin;
