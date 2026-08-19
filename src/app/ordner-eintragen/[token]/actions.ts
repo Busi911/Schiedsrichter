@@ -13,29 +13,31 @@ import {
 } from "@/db/schema";
 import {
   mehrfachZuordnungsMailInhalt,
-  pruefeBesetzungsgrenze,
-  pruefeKeineDoppelrolle,
   zuordnungFehlgeschlagenInhalt,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
-import { holeZeitnehmerEinsatzZahlen } from "@/lib/zeitnehmerwart";
+import {
+  holeOrdnerEinsatzZahlen,
+  ORDNER_ROLLEN,
+  pruefeKeineOrdnerDoppelrolle,
+  pruefeOrdnerBesetzungsgrenze,
+} from "@/lib/ordnerwart";
 import { findeNamensVorschlag } from "@/lib/namens-abgleich";
-import type { MehrfachEintragErgebnis } from "@/components/mehrfachauswahl";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { appUrl } from "@/lib/app-url";
 import { formatDatumZeit } from "@/lib/format";
+import type { MehrfachEintragErgebnis } from "@/components/mehrfachauswahl";
 
-const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
-type ZeitnehmerRolle = (typeof ZEITNEHMER_ROLLEN)[number];
+type OrdnerRolle = (typeof ORDNER_ROLLEN)[number];
 
-// Öffentliche, login-freie Selbsteintragung — Kenntnis des Tokens ist die
-// Berechtigung (wie bei /turnier/[token]). Bewusst adminDb für den
-// Token-Lookup (keine Session/vereinId vorhanden), danach ausschließlich
-// withTenant(verein.id, ...) für alles Weitere — echte Mandantentrennung
-// über RLS statt Bypass.
-export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
+// Öffentliche, login-freie Selbsteintragung für Ordner/Kioskdienst — analog
+// zu zeitnehmerSelbstEintragenOeffentlich in
+// zeitnehmer-eintragen/[token]/actions.ts, siehe dortige Kommentare für die
+// Grundprinzipien (Token statt Session, adminDb nur für den Token-Lookup,
+// danach ausschließlich withTenant).
+export async function ordnerSelbstEintragenOeffentlich(formData: FormData) {
   const token = formData.get("token");
   const terminId = formData.get("terminId");
   const name = formData.get("name");
@@ -52,24 +54,21 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
   }
   if (
     typeof rolleRoh !== "string" ||
-    !(ZEITNEHMER_ROLLEN as readonly string[]).includes(rolleRoh)
+    !(ORDNER_ROLLEN as readonly string[]).includes(rolleRoh)
   ) {
     throw new Error("Bitte eine Rolle auswählen.");
   }
-  const rolle = rolleRoh as ZeitnehmerRolle;
+  const rolle = rolleRoh as OrdnerRolle;
   const eingegebenerName = name.trim();
 
   const verein = await adminDb.query.vereine.findFirst({
-    where: eq(vereine.zeitnehmerSelbstanmeldungToken, token),
+    where: eq(vereine.ordnerSelbstanmeldungToken, token),
   });
   if (!verein) {
     throw new Error("Ungültiger oder nicht mehr aktiver Link.");
   }
 
-  // Kandidaten für den Namensabgleich AUSSERHALB der Transaktion geladen,
-  // da holeZeitnehmerEinsatzZahlen selbst schon withTenant nutzt (keine
-  // verschachtelten Transaktionen).
-  const kandidaten = (await holeZeitnehmerEinsatzZahlen(verein.id)).filter((k) =>
+  const kandidaten = (await holeOrdnerEinsatzZahlen(verein.id)).filter((k) =>
     k.rollen.includes(rolle)
   );
   const { exakt, vorschlag } = findeNamensVorschlag(eingegebenerName, kandidaten);
@@ -80,10 +79,10 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
     });
     if (!termin) throw new Error("Termin nicht gefunden.");
 
-    await pruefeBesetzungsgrenze(tx, verein.id, terminId, rolle);
+    await pruefeOrdnerBesetzungsgrenze(tx, verein.id, terminId, termin, rolle);
 
     if (exakt) {
-      await pruefeKeineDoppelrolle(tx, terminId, { userId: exakt.userId });
+      await pruefeKeineOrdnerDoppelrolle(tx, terminId, { userId: exakt.userId });
 
       await tx.insert(terminZuordnungen).values({
         terminId,
@@ -92,10 +91,6 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
         quelle: "selbst_eingetragen_oeffentlich",
       });
 
-      // Anders als bei der eingeloggten Selbstanmeldung (selbstAnmelden in
-      // profil/actions.ts) hat hier möglicherweise eine ANDERE Person den
-      // Namen eingetragen — die zugeordnete Person weiß davon noch nichts,
-      // daher wie bei jeder Fremdzuordnung eine Benachrichtigung.
       const kandidatMitMail = kandidaten.find((k) => k.userId === exakt.userId);
       if (!kandidatMitMail) return null;
       return {
@@ -106,7 +101,7 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
       };
     }
 
-    await pruefeKeineDoppelrolle(tx, terminId, { externerName: eingegebenerName });
+    await pruefeKeineOrdnerDoppelrolle(tx, terminId, { externerName: eingegebenerName });
 
     await tx.insert(terminZuordnungen).values({
       terminId,
@@ -136,28 +131,16 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
     }
   }
 
-  revalidatePath(`/zeitnehmer-eintragen/${token}`);
-  revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath(`/ordner-eintragen/${token}`);
+  revalidatePath("/profil/ordnerwart");
   revalidatePath("/admin/kalender");
 }
 
-// Mehrfach-Variante von zeitnehmerSelbstEintragenOeffentlich oben: derselbe
-// Name/dieselbe Rolle wird auf einmal für mehrere ausgewählte Termine
-// eingetragen (siehe TerminMehrfachAuswahl in mehrfachauswahl.tsx) —
-// praktisch, wenn sich jemand z.B. für ein ganzes Turnierwochenende
-// einträgt, statt jeden Termin einzeln abzuschicken. Namensabgleich läuft
-// EINMAL für alle Termine (identischer Name/Rolle), jeder Termin bekommt
-// aber eine EIGENE Transaktion, damit ein bereits voll besetzter Termin
-// nicht die anderen, noch erfolgreichen Eintragungen verhindert.
-//
-// Gibt Fehler als Rückgabewert zurück statt zu werfen (siehe React-Doku zu
-// useActionState: "model expected errors as return values, not exceptions")
-// — ein Wurf hier landete beim Aufruf über useActionState (mehrfachauswahl.
-// tsx) NICHT im normalen Server-Action-Fehlerkanal, sondern wurde von
-// Next.js als Fehler beim Rendern der (durch revalidatePath aktualisierten)
-// Server Components behandelt und dabei auf "Minified React error #441"
-// ohne Klartext reduziert.
-export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
+// Mehrfach-Variante von ordnerSelbstEintragenOeffentlich oben — siehe
+// zeitnehmerSelbstEintragenMehrfachOeffentlich für die ausführliche
+// Begründung des Musters (eigene Transaktion je Termin, Fehler als
+// Rückgabewert statt Wurf).
+export async function ordnerSelbstEintragenMehrfachOeffentlich(
   formData: FormData
 ): Promise<MehrfachEintragErgebnis> {
   const token = formData.get("token");
@@ -186,7 +169,7 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
   }
   if (
     typeof rolleRoh !== "string" ||
-    !(ZEITNEHMER_ROLLEN as readonly string[]).includes(rolleRoh)
+    !(ORDNER_ROLLEN as readonly string[]).includes(rolleRoh)
   ) {
     return {
       eingetragen: 0,
@@ -194,11 +177,11 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
       fehler: "Bitte eine Rolle auswählen.",
     };
   }
-  const rolle = rolleRoh as ZeitnehmerRolle;
+  const rolle = rolleRoh as OrdnerRolle;
   const eingegebenerName = name.trim();
 
   const verein = await adminDb.query.vereine.findFirst({
-    where: eq(vereine.zeitnehmerSelbstanmeldungToken, token),
+    where: eq(vereine.ordnerSelbstanmeldungToken, token),
   });
   if (!verein) {
     return {
@@ -208,7 +191,7 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
     };
   }
 
-  const kandidaten = (await holeZeitnehmerEinsatzZahlen(verein.id)).filter((k) =>
+  const kandidaten = (await holeOrdnerEinsatzZahlen(verein.id)).filter((k) =>
     k.rollen.includes(rolle)
   );
   const { exakt, vorschlag } = findeNamensVorschlag(eingegebenerName, kandidaten);
@@ -229,8 +212,8 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
         if (!termin) throw new Error("Termin nicht gefunden.");
 
         try {
-          await pruefeBesetzungsgrenze(tx, verein.id, terminId, rolle);
-          await pruefeKeineDoppelrolle(
+          await pruefeOrdnerBesetzungsgrenze(tx, verein.id, terminId, termin, rolle);
+          await pruefeKeineOrdnerDoppelrolle(
             tx,
             terminId,
             exakt ? { userId: exakt.userId } : { externerName: eingegebenerName }
@@ -270,10 +253,6 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
     }
   }
 
-  // Anders als bei der eingeloggten Selbstanmeldung hat hier möglicherweise
-  // eine ANDERE Person den Namen eingetragen — wie bei jeder Fremdzuordnung
-  // also eine Benachrichtigung, hier gebündelt in EINER Mail für alle neu
-  // zugeordneten Termine statt einer Mail je Termin.
   if (exakt && eingetrageneTermine.length > 0) {
     const kandidatMitMail = kandidaten.find((k) => k.userId === exakt.userId);
     if (kandidatMitMail) {
@@ -294,33 +273,28 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
     }
   }
 
-  // Fehlgeschlagene Termine bekommt die eintragende Person zwar direkt als
-  // Fehlermeldung angezeigt (siehe fehler im Rückgabewert unten), meldet
-  // sich deswegen aber nicht zwangsläufig beim Zeitnehmerwart — der bekommt
-  // es sonst gar nicht mit (z.B. wenn der konfigurierte Bedarf zu niedrig
-  // ist oder jemand versehentlich doppelt versucht).
   if (fehler.length > 0) {
-    const zeitnehmerwarte = await withTenant(verein.id, (tx) =>
+    const ordnerwarte = await withTenant(verein.id, (tx) =>
       tx
         .select({ email: users.email })
         .from(funktionstraegerRollen)
         .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
         .where(
           and(
-            eq(funktionstraegerRollen.typ, "zeitnehmerwart"),
+            eq(funktionstraegerRollen.typ, "ordnerwart"),
             eq(funktionstraegerRollen.aktiv, true)
           )
         )
     );
-    if (zeitnehmerwarte.length > 0) {
+    if (ordnerwarte.length > 0) {
       const inhalt = {
         vereinName: verein.name,
         ...zuordnungFehlgeschlagenInhalt(eingegebenerName, rolle, fehler, {
-          text: "Zur Zeitnehmer-Übersicht",
-          url: `${appUrl()}/profil/zeitnehmerwart`,
+          text: "Zur Ordner-/Kioskdienst-Übersicht",
+          url: `${appUrl()}/profil/ordnerwart`,
         }),
       };
-      for (const wart of zeitnehmerwarte) {
+      for (const wart of ordnerwarte) {
         try {
           await sendMail(
             wart.email,
@@ -330,7 +304,7 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
           );
         } catch (err) {
           console.error(
-            "Fehlschlags-Mail an Zeitnehmerwart konnte nicht gesendet werden:",
+            "Fehlschlags-Mail an Ordnerwart konnte nicht gesendet werden:",
             err
           );
         }
@@ -338,8 +312,8 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
     }
   }
 
-  revalidatePath(`/zeitnehmer-eintragen/${token}`);
-  revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath(`/ordner-eintragen/${token}`);
+  revalidatePath("/profil/ordnerwart");
   revalidatePath("/admin/kalender");
 
   return {

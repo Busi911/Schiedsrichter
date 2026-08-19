@@ -166,6 +166,10 @@ export const vereine = pgTable("verein", {
   zeitnehmerSelbstanmeldungToken: text(
     "zeitnehmer_selbstanmeldung_token"
   ).unique(),
+  // Analog zu zeitnehmerSelbstanmeldungToken oben, aber für Ordner/
+  // Kioskdienst (siehe /ordner-eintragen/[token]) — vom Ordnerwart
+  // aktivierbar.
+  ordnerSelbstanmeldungToken: text("ordner_selbstanmeldung_token").unique(),
 });
 
 export const mannschaften = pgTable("mannschaft", {

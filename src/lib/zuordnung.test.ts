@@ -99,30 +99,53 @@ describe("mehrfachZuordnungsMailInhalt", () => {
 });
 
 describe("zuordnungFehlgeschlagenInhalt", () => {
+  const zeitnehmerCta = { text: "Zur Zeitnehmer-Übersicht", url: "https://example.org/profil/zeitnehmerwart" };
+
   it("nennt Name und Rolle in der Überschrift, Einzahl bei einem Fehler", () => {
-    const inhalt = zuordnungFehlgeschlagenInhalt("Max Mustermann", "zeitnehmer", [
-      "01.09.2026, 18:00 Uhr: Bereits voll besetzt.",
-    ]);
+    const inhalt = zuordnungFehlgeschlagenInhalt(
+      "Max Mustermann",
+      "zeitnehmer",
+      ["01.09.2026, 18:00 Uhr: Bereits voll besetzt."],
+      zeitnehmerCta
+    );
     expect(inhalt.ueberschrift).toContain("Max Mustermann");
     expect(inhalt.ueberschrift).toContain("Zeitnehmer");
     expect(inhalt.ueberschrift).toContain("einem Termin");
   });
 
   it("nennt die Anzahl bei mehreren Fehlern", () => {
-    const inhalt = zuordnungFehlgeschlagenInhalt("Erika Mustermann", "sekretaer", [
-      "01.09.2026, 18:00 Uhr: Bereits voll besetzt.",
-      "08.09.2026, 18:00 Uhr: Bereits eingetragen.",
-    ]);
+    const inhalt = zuordnungFehlgeschlagenInhalt(
+      "Erika Mustermann",
+      "sekretaer",
+      [
+        "01.09.2026, 18:00 Uhr: Bereits voll besetzt.",
+        "08.09.2026, 18:00 Uhr: Bereits eingetragen.",
+      ],
+      zeitnehmerCta
+    );
     expect(inhalt.ueberschrift).toContain("2 Terminen");
   });
 
-  it("listet jede Fehlermeldung als eigene Zeile und verlinkt die Zeitnehmer-Übersicht", () => {
-    const inhalt = zuordnungFehlgeschlagenInhalt("Max Mustermann", "zeitnehmer", [
-      "01.09.2026, 18:00 Uhr: Bereits voll besetzt.",
-    ]);
+  it("listet jede Fehlermeldung als eigene Zeile und übernimmt die übergebene CTA", () => {
+    const inhalt = zuordnungFehlgeschlagenInhalt(
+      "Max Mustermann",
+      "zeitnehmer",
+      ["01.09.2026, 18:00 Uhr: Bereits voll besetzt."],
+      zeitnehmerCta
+    );
     expect(inhalt.zeilen).toEqual([
       "01.09.2026, 18:00 Uhr: Bereits voll besetzt.",
     ]);
     expect(inhalt.cta?.url).toContain("/profil/zeitnehmerwart");
+  });
+
+  it("übernimmt eine andere CTA für z.B. den Ordnerwart", () => {
+    const inhalt = zuordnungFehlgeschlagenInhalt(
+      "Max Mustermann",
+      "ordner",
+      ["01.09.2026, 18:00 Uhr: Bereits voll besetzt."],
+      { text: "Zur Ordner-/Kioskdienst-Übersicht", url: "https://example.org/profil/ordnerwart" }
+    );
+    expect(inhalt.cta?.url).toContain("/profil/ordnerwart");
   });
 });

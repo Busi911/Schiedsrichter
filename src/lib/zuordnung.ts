@@ -11,7 +11,6 @@ import {
 import { formatDatumZeitLang } from "@/lib/format";
 import { SCHIRI_GESPANN_MAX, berechneBesetzung } from "@/lib/besetzung";
 import type { EmailInhalt, EmailZeile } from "@/lib/email-layout";
-import { appUrl } from "@/lib/app-url";
 
 // Rollen, die einem Termin über termin_zuordnung zugeordnet werden können.
 // 'trainer' hängt an der Mannschaft (nicht am einzelnen Termin), 'ordner'
@@ -113,7 +112,8 @@ export function mehrfachZuordnungsMailInhalt(
 export function zuordnungFehlgeschlagenInhalt(
   name: string,
   rolle: string,
-  fehler: string[]
+  fehler: string[],
+  cta: { text: string; url: string }
 ): EmailInhalt {
   const rolleLabel = ZUORDNUNGS_ROLLE_LABEL[rolle] ?? rolle;
   return {
@@ -122,10 +122,7 @@ export function zuordnungFehlgeschlagenInhalt(
         ? `Selbsteintragung von ${name} als ${rolleLabel} war bei einem Termin nicht möglich.`
         : `Selbsteintragung von ${name} als ${rolleLabel} war bei ${fehler.length} Terminen nicht möglich.`,
     zeilen: fehler,
-    cta: {
-      text: "Zur Zeitnehmer-Übersicht",
-      url: `${appUrl()}/profil/zeitnehmerwart`,
-    },
+    cta,
   };
 }
 

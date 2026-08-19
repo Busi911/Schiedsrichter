@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { zeitnehmerSelbstEintragenMehrfachOeffentlich } from "@/app/zeitnehmer-eintragen/[token]/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,11 +9,6 @@ import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
 import { SubmitButton } from "@/components/submit-button";
 import { cn } from "@/lib/utils";
-
-const ROLLE_OPTIONEN = [
-  { value: "zeitnehmer", label: "Zeitnehmer" },
-  { value: "sekretaer", label: "Sekretär" },
-];
 
 export type EintragbarerTermin = {
   id: string;
@@ -31,18 +25,32 @@ export type EintragbarerTermin = {
   zuordnungen: { id: string; label: string }[];
 };
 
+export type MehrfachEintragErgebnis = {
+  eingetragen: number;
+  gesamt: number;
+  // Mehrere Fehler mit " | " getrennt, analog zu den Import-/nuLiga-
+  // Ergebnissen in admin/funktionstraeger und admin/einstellungen.
+  fehler: string | null;
+};
+
 // Ersetzt die frühere Einzel-Eintragung (ein Formular je Termin) — Checkbox
 // pro noch offenem Termin, EIN gemeinsames Formular für Name/Rolle trägt
-// sich dann für alle ausgewählten Termine auf einmal ein (siehe
-// zeitnehmerSelbstEintragenMehrfachOeffentlich). Selektionszustand braucht
-// Client-State, daher hier statt direkt in page.tsx (Server Component) —
-// gleiches Mehrfachauswahl-Muster wie in mannschaften-tabelle.tsx.
-export function ZeitnehmerMehrfachAuswahl({
+// sich dann für alle ausgewählten Termine auf einmal ein. Rollenneutral
+// (rolleOptionen/submitAction als Props) — genutzt sowohl von
+// /zeitnehmer-eintragen (Zeitnehmer/Sekretär) als auch /ordner-eintragen
+// (Ordner/Kioskdienst), gleiches Mehrfachauswahl-Muster wie in
+// mannschaften-tabelle.tsx. Selektionszustand braucht Client-State, daher
+// hier statt direkt in der jeweiligen (Server Component) page.tsx.
+export function TerminMehrfachAuswahl({
   token,
   termine,
+  rolleOptionen,
+  submitAction,
 }: {
   token: string;
   termine: EintragbarerTermin[];
+  rolleOptionen: { value: string; label: string }[];
+  submitAction: (formData: FormData) => Promise<MehrfachEintragErgebnis>;
 }) {
   const [ausgewaehlt, setAusgewaehlt] = useState<Set<string>>(new Set());
   // Tages-Überschriften nur, wenn die Liste tatsächlich mehrere Kalendertage
@@ -51,13 +59,9 @@ export function ZeitnehmerMehrfachAuswahl({
   // gleiches Prinzip in turnier-spielplan.tsx).
   const mehrtaegig = new Set(termine.map((t) => t.tag)).size > 1;
 
-  const [status, submitAction] = useActionState(
-    (
-      _bisher: Awaited<
-        ReturnType<typeof zeitnehmerSelbstEintragenMehrfachOeffentlich>
-      > | null,
-      formData: FormData
-    ) => zeitnehmerSelbstEintragenMehrfachOeffentlich(formData),
+  const [status, submitActionState] = useActionState(
+    (_bisher: MehrfachEintragErgebnis | null, formData: FormData) =>
+      submitAction(formData),
     null
   );
   // State während des Renderns anpassen statt in einem Effect (siehe
@@ -107,7 +111,7 @@ export function ZeitnehmerMehrfachAuswahl({
 
       {ausgewaehlt.size > 0 && (
         <form
-          action={submitAction}
+          action={submitActionState}
           className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 p-3"
         >
           <input type="hidden" name="token" value={token} />
@@ -128,7 +132,7 @@ export function ZeitnehmerMehrfachAuswahl({
             <LabeledSelect
               name="rolle"
               placeholder="Rolle…"
-              options={ROLLE_OPTIONEN}
+              options={rolleOptionen}
               required
             />
           </div>

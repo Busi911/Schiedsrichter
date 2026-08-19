@@ -8,9 +8,17 @@ import {
   holeOrdnerEinsatzZahlen,
   holeOrdnerRelevanteTermine,
   istOrdnerwart,
+  ORDNER_ROLLEN,
 } from "@/lib/ordnerwart";
 import { bedarfFuer } from "@/lib/dienste";
-import { ordnerZuordnen, ordnerZuordnungEntfernen } from "./actions";
+import {
+  ordnerSelbstanmeldungDeaktivieren,
+  ordnerSelbstanmeldungLinkErneuern,
+  ordnerVorschlagBestaetigen,
+  ordnerZuordnen,
+  ordnerZuordnungEntfernen,
+} from "./actions";
+import { appUrl } from "@/lib/app-url";
 import {
   Card,
   CardContent,
@@ -137,6 +145,25 @@ export default async function OrdnerwartPage({
     ? alleRelevantenTermine.filter((t) => !t.vollstaendig)
     : alleRelevantenTermine;
 
+  // Über die öffentliche Selbsteintragung erfasste Personen, die noch
+  // keiner echten Person zugeordnet wurden (siehe
+  // ordnerSelbstEintragenOeffentlich in ordner-eintragen/[token]/actions.ts)
+  // — zur Bestätigung/Korrektur durch den Wart (siehe
+  // ordnerVorschlagBestaetigen). Explizit auf ORDNER_ROLLEN gefiltert, da
+  // "selbst_eingetragen_oeffentlich" dieselbe quelle auch für Zeitnehmer/
+  // Sekretär-Zuordnungen ist (siehe analoger Filter in
+  // profil/zeitnehmerwart/page.tsx).
+  const unbestaetigteSelbsteintragungen = termineRoh.flatMap((t) =>
+    t.zuordnungen
+      .filter(
+        (z) =>
+          z.quelle === "selbst_eingetragen_oeffentlich" &&
+          !z.userId &&
+          (ORDNER_ROLLEN as readonly string[]).includes(z.funktionstraegerTyp)
+      )
+      .map((z) => ({ ...z, termin: t }))
+  );
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
       <div>
@@ -149,10 +176,118 @@ export default async function OrdnerwartPage({
         <p className="text-sm text-muted-foreground">
           Übersicht über alle Ordner/Kioskdienst-Helfer im Verein und ihre
           Einsätze, sowie Termine mit Ordner-/Kioskdienst-Bedarf. Ordner/
-          Kioskdienst melden sich normalerweise selbst an — hier lässt sich
+          Kioskdienst melden sich normalerweise selbst an (eingeloggt über
+          /profil oder login-frei über den Link unten) — hier lässt sich
           zusätzlich manuell zuordnen, entfernen oder ersetzen.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Öffentliche Selbsteintragung</CardTitle>
+          <CardDescription>
+            Login-freier Link, über den sich Personen (z.B. Eltern eines
+            Kaders) selbst als Ordner/Kioskdienst eintragen können —
+            gefiltert nach Mannschaft. Namen werden dabei automatisch mit
+            bereits angelegten Funktionsträgern abgeglichen; bei Unsicherheit
+            landet der Eintrag unten zur Bestätigung.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {verein?.ordnerSelbstanmeldungToken ? (
+            <p className="break-all rounded-lg border bg-muted/40 p-3 text-sm">
+              {appUrl()}/ordner-eintragen/
+              {verein.ordnerSelbstanmeldungToken}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Noch nicht aktiviert.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <form action={ordnerSelbstanmeldungLinkErneuern}>
+              <Button type="submit" variant="outline" size="sm">
+                {verein?.ordnerSelbstanmeldungToken
+                  ? "Link neu generieren (alter Link wird ungültig)"
+                  : "Aktivieren"}
+              </Button>
+            </form>
+            {verein?.ordnerSelbstanmeldungToken && (
+              <form action={ordnerSelbstanmeldungDeaktivieren}>
+                <ConfirmSubmitButton
+                  confirmText="Selbsteintragung deaktivieren? Der bisherige Link funktioniert danach nicht mehr."
+                  variant="ghost"
+                  size="sm"
+                >
+                  Deaktivieren
+                </ConfirmSubmitButton>
+              </form>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {unbestaetigteSelbsteintragungen.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Selbsteintragungen zum Bestätigen (
+              {unbestaetigteSelbsteintragungen.length})
+            </CardTitle>
+            <CardDescription>
+              Über die öffentliche Selbsteintragung erfasst, noch keiner
+              angelegten Person zugeordnet. Vorausgewählt ist der beste
+              automatische Namens-Vorschlag, falls vorhanden — bei Bedarf
+              vor dem Bestätigen korrigieren.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {unbestaetigteSelbsteintragungen.map((z) => {
+              const kandidaten = personenListe
+                .filter((s) =>
+                  s.rollen.includes(
+                    z.funktionstraegerTyp as (typeof ORDNER_ROLLEN)[number]
+                  )
+                )
+                .map((s) => ({ value: s.userId, label: s.name ?? s.email }));
+              return (
+                <div key={z.id} className="rounded-lg border p-3 text-sm">
+                  <p>
+                    <span className="font-medium">{z.externerName}</span> als{" "}
+                    {ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}{" "}
+                    · {formatDateTime(z.termin.start)}
+                    {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
+                  </p>
+                  {kandidaten.length === 0 ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Keine passende Person im Verein angelegt.
+                    </p>
+                  ) : (
+                    <form
+                      action={ordnerVorschlagBestaetigen}
+                      className="mt-2 flex flex-wrap items-center gap-2"
+                    >
+                      <input type="hidden" name="zuordnungId" value={z.id} />
+                      <div className="min-w-56">
+                        <LabeledSelect
+                          name="userId"
+                          placeholder="Person wählen…"
+                          defaultValue={z.matchVorschlagUserId ?? undefined}
+                          options={kandidaten}
+                          required
+                        />
+                      </div>
+                      <Button type="submit" size="sm">
+                        Bestätigen
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
