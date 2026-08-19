@@ -50,6 +50,7 @@ export default async function DienstePage() {
   const offenePostenZeilen = offenePosten.map((p) => ({
     terminId: p.terminId,
     zeit: formatDateTime(p.start),
+    typLabel: p.typLabel,
     mannschaft: p.mannschaftLabel,
     luecken: p.luecken.map((l) => ({
       rolle: ROLLE_LABEL[l.rolle],

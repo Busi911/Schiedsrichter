@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { formatDatumZeit } from "@/lib/format";
 
 // Siehe DISCLOSURE_KLASSE in profil/schiedsrichterwart/page.tsx.
 const DISCLOSURE_KLASSE = cn(
@@ -57,6 +58,7 @@ type Person = {
   email: string;
   istAdmin: boolean;
   istAdminLesend: boolean;
+  letzterLoginAm: Date | null;
   rollen: Rolle[];
 };
 
@@ -222,6 +224,7 @@ export function FunktionstraegerTabelle({
               <TableHead>Name</TableHead>
               <TableHead>E-Mail</TableHead>
               <TableHead>Rollen</TableHead>
+              <TableHead>Zuletzt eingeloggt</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -259,6 +262,9 @@ export function FunktionstraegerTabelle({
                       </Badge>
                     ))}
                   </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {p.letzterLoginAm ? formatDatumZeit(p.letzterLoginAm) : "Nie"}
                 </TableCell>
                 <TableCell className="text-right">
                   {schreibzugriff && (

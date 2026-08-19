@@ -114,6 +114,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.istAdminLesend = user.istAdminLesend;
         token.istSystemAdmin = user.istSystemAdmin;
         token.mussPasswortAendern = user.mussPasswortAendern;
+
+        // Best-effort — ein Fehler hier (z.B. kurzer DB-Hänger) darf den
+        // Login selbst nicht verhindern, daher nicht awaited/geworfen,
+        // sondern nur protokolliert. Für /admin/funktionstraeger, siehe
+        // Kommentar bei users.letzterLoginAm in db/schema.ts.
+        const userId = user.id;
+        if (userId) {
+          mitColdStartRetry(() =>
+            db
+              .update(users)
+              .set({ letzterLoginAm: new Date() })
+              .where(eq(users.id, userId))
+          ).catch((err) => {
+            console.error("letzterLoginAm konnte nicht aktualisiert werden:", err);
+          });
+        }
       }
       return token;
     },

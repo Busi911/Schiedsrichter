@@ -277,6 +277,13 @@ export const users = pgTable("user", {
   // pro Verein. null = noch nicht aktiviert; Kenntnis des Tokens ist die
   // Berechtigung (login-freier Abruf durch Kalender-Apps).
   kalenderToken: text("kalender_token").unique(),
+  // Zeitpunkt des letzten erfolgreichen Logins (Magic-Link oder Passwort) —
+  // gesetzt im jwt-Callback in auth.ts, NUR bei frischem Login (nicht bei
+  // jedem Request, siehe Kommentar dort). null = noch nie eingeloggt (z.B.
+  // gerade erst als Funktionsträger angelegt). Für /admin/funktionstraeger,
+  // damit Admins erkennen, welche Personen ihren Zugang noch nie genutzt
+  // haben.
+  letzterLoginAm: timestamp("letzter_login_am", { mode: "date" }),
 });
 
 export const accounts = pgTable(

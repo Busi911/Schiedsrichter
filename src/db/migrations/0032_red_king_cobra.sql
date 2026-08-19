@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "letzter_login_am" timestamp;
