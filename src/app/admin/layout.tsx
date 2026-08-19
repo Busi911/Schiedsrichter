@@ -71,7 +71,7 @@ export default async function AdminLayout({
             </div>
           </div>
           <AdminNav />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {offeneDiensteAnzahl > 0 && (
               <Link href="/admin/dienste">
                 <Badge variant="warning">{offeneDiensteAnzahl} Dienste offen</Badge>
