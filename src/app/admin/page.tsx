@@ -9,6 +9,9 @@ import {
   holeNaechsteTermine,
 } from "@/lib/dashboard";
 import { berechneGesamtbilanz, holeMannschaftsBilanzen } from "@/lib/dienste-statistik";
+import { parseMonatParam } from "@/lib/kalender";
+import { holeAdminKalenderDaten } from "@/lib/admin-kalender";
+import { MonatsKalender } from "@/components/monats-kalender";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -56,24 +59,35 @@ function kuerzeBeschreibung(t: {
   return rest.length ? rest.join(" · ") : null;
 }
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ monat?: string }>;
+}) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
+  const { monat } = await searchParams;
+  const { jahr, monatNull } = parseMonatParam(monat);
 
   const verein = await withTenant(vereinId, (tx) =>
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
   );
 
-  const [naechsteTermine, letzteErgebnisse, mannschaftsBilanzen] = await Promise.all([
-    // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
-    // den Link "Alle Termine" unten.
-    holeNaechsteTermine(vereinId, 10),
-    holeLetzteErgebnisse(vereinId, 10),
-    // Ungekappt (anders als letzteErgebnisse oben) — die Saison-KPIs unten
-    // sollen die echte Gesamtbilanz zeigen, nicht nur die der letzten 10
-    // angezeigten Ergebnisse.
-    holeMannschaftsBilanzen(vereinId),
-  ]);
+  const [naechsteTermine, letzteErgebnisse, mannschaftsBilanzen, kalenderDaten] =
+    await Promise.all([
+      // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
+      // den Link "Alle Termine" unten.
+      holeNaechsteTermine(vereinId, 10),
+      holeLetzteErgebnisse(vereinId, 10),
+      // Ungekappt (anders als letzteErgebnisse oben) — die Saison-KPIs unten
+      // sollen die echte Gesamtbilanz zeigen, nicht nur die der letzten 10
+      // angezeigten Ergebnisse.
+      holeMannschaftsBilanzen(vereinId),
+      // Derselbe Monatskalender wie auf /admin/kalender, hier direkt unter
+      // den KPI-Kacheln eingebettet — "alles Wichtige auf einen Blick" statt
+      // extra dorthin navigieren zu müssen.
+      holeAdminKalenderDaten(vereinId, jahr, monatNull),
+    ]);
   const { spiele: gesamtSpiele, siegquote } = berechneGesamtbilanz(mannschaftsBilanzen);
 
   const naechsteTermineZeilen = naechsteTermine.map((t) => ({
@@ -112,6 +126,25 @@ export default async function AdminDashboardPage() {
           </CardHeader>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Kalender</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MonatsKalender
+            jahr={jahr}
+            monatNull={monatNull}
+            eintraegeProTag={kalenderDaten.eintraegeProTag}
+            mehrtaegigeEintraege={kalenderDaten.mehrtaegigeEintraege}
+            mannschaftsListe={kalenderDaten.mannschaftsListe}
+            trainerListe={kalenderDaten.trainerListe}
+            zuordenbarePersonen={kalenderDaten.zuordenbarePersonen}
+            basisPfad="/admin"
+            schreibzugriff={session.user.istAdmin}
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card>
