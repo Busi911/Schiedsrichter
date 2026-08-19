@@ -47,7 +47,7 @@ describe("rundenspielAenderungenInhalt", () => {
     expect(inhalt.ueberschrift).toContain("1 Änderung ");
     expect(inhalt.zeilen).toHaveLength(1);
     expect(inhalt.vereinName).toBe("Musterverein");
-    expect(inhalt.cta?.url).toContain("/admin/rundenspiele");
+    expect(inhalt.cta?.url).toContain("/admin/termine?tab=rundenspiele");
   });
 
   it("verwendet Plural bei mehreren Änderungen", () => {

@@ -951,7 +951,7 @@ export async function deleteTermin(formData: FormData) {
 // Einzelspiel (typ "testspiel"/"turnier_spiel") mit dem später offiziell
 // über den Hallenspielplan importierten Rundenspiel, das sich als Duplikat
 // herausgestellt hat — automatisch vorgeschlagen (siehe
-// findeSpielDuplikate) oder manuell ausgewählt (siehe /admin/rundenspiele).
+// findeSpielDuplikate) oder manuell ausgewählt (siehe /admin/termine (Hallenspielplan-Tab)).
 // Statt den doppelten Termin einfach zu löschen (und damit bereits erfasste
 // Zuordnungen wie Schiedsrichter/Zeitnehmer/Sekretär zu verlieren, die per
 // ON DELETE CASCADE an termin_id hängen), werden diese zuerst auf das
@@ -1034,7 +1034,7 @@ export async function spielDuplikatVerknuepfen(formData: FormData) {
     await tx.delete(termine).where(eq(termine.id, quellId));
   });
 
-  revalidatePath("/admin/rundenspiele");
+  revalidatePath("/admin/termine");
   if (quellTurnierId) {
     revalidatePath(`/admin/termine/${quellTurnierId}`);
     revalidatePath(`/profil/turnier/${quellTurnierId}`);
@@ -1337,12 +1337,12 @@ export async function mannschaftAusRundenspielAnlegen(formData: FormData) {
     }
   });
 
-  revalidatePath("/admin/rundenspiele");
+  revalidatePath("/admin/termine");
   revalidatePath("/admin/mannschaften");
 }
 
 // Gegenstück zu mannschaftAusRundenspielAnlegen: der Vorschlag betrifft meist
-// eine fremde Mannschaft (siehe Hinweis auf /admin/rundenspiele) und soll bei
+// eine fremde Mannschaft (siehe Hinweis auf /admin/termine (Hallenspielplan-Tab)) und soll bei
 // künftigen Imports nicht wieder auftauchen — siehe ignorierteMannschaften in
 // schema.ts.
 export async function unbekannteMannschaftAblehnen(formData: FormData) {
@@ -1368,5 +1368,5 @@ export async function unbekannteMannschaftAblehnen(formData: FormData) {
       .onConflictDoNothing()
   );
 
-  revalidatePath("/admin/rundenspiele");
+  revalidatePath("/admin/termine");
 }

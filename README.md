@@ -265,7 +265,8 @@ den letzten Platz beanspruchen).
 
 ## Rundenspiele: manueller Import & automatischer nuLiga-Sync
 
-`/admin/rundenspiele` importiert Pflichtspiele aus dem Liga-Spielplan —
+Der Hallenspielplan-Tab auf `/admin/termine` importiert Pflichtspiele aus dem
+Liga-Spielplan —
 enthält bewusst **alle** Spiele an der eigenen Halle (nicht nur die eigenen
 Mannschaften), da die Halle für jedes dort stattfindende Spiel
 Ordner-/Kioskdienst braucht. Zwei Wege dorthin, beide über dieselbe
@@ -301,8 +302,8 @@ unbestätigt, daher roh statt interpretiert angehängt).
 Testspiele oft manuell an, bevor ein Spiel offiziell im Verbandssystem
 geführt wird (z.B. weil noch kein Schiedsrichter feststeht). Erscheint
 dieselbe Begegnung später über den nuLiga-Sync als Rundenspiel, existieren
-beide Termine parallel und doppeln sich im Kalender. `/admin/rundenspiele`
-zeigt solche Fälle (gleicher Kalendertag + Team-Name-Match oder zeitliche
+beide Termine parallel und doppeln sich im Kalender. Der Hallenspielplan-Tab
+auf `/admin/termine` zeigt solche Fälle (gleicher Kalendertag + Team-Name-Match oder zeitliche
 Nähe) als Vorschlagsliste zum manuellen Aufräumen — bewusst kein
 automatisches Löschen, da beide Signale nicht zuverlässig genug für eine
 automatische Entscheidung sind.
