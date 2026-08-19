@@ -231,6 +231,27 @@ da die App durchgehend serverseitig (Server Actions, RLS-Session) rendert.
   Rolle `ordner` oder `kioskdienst` sehen anstehende Termine des Vereins und
   können sich selbst ein-/austragen (`quelle = selbst_angemeldet`). Erscheint
   bei `/admin/zuordnung` entsprechend gekennzeichnet.
+- **Öffentliche, login-freie Selbsteintragung** gibt es zusätzlich für zwei
+  Rollen-Paare, je über einen Token-Link (Kenntnis des Tokens ist die
+  Berechtigung, analog zu `/turnier/[token]`), vom jeweiligen Wart auf seiner
+  Profilseite aktivierbar/deaktivierbar:
+  - **Zeitnehmer/Sekretär**: `/zeitnehmer-eintragen/[token]`
+    (`vereine.zeitnehmer_selbstanmeldung_token`, aktivierbar auf
+    `/profil/zeitnehmerwart`).
+  - **Ordner/Kioskdienst**: `/ordner-eintragen/[token]`
+    (`vereine.ordner_selbstanmeldung_token`, aktivierbar auf
+    `/profil/ordnerwart`).
+
+  Beide teilen sich dieselbe Mehrfachauswahl-UI (`TerminMehrfachAuswahl` in
+  `src/components/mehrfachauswahl.tsx`, rollenneutral über Props) und
+  denselben Namensabgleich (`findeNamensVorschlag` in
+  `src/lib/namens-abgleich.ts`): ein exakter Namenstreffer trägt die
+  gefundene Person direkt ein, sonst landet die Zuordnung mit `externerName`
+  und optionalem `matchVorschlagUserId`-Vorschlag beim jeweiligen Wart zur
+  Bestätigung. `quelle = selbst_eingetragen_oeffentlich` ist für beide
+  Rollen-Paare identisch — Auswertungen, die danach filtern, müssen
+  zusätzlich nach `funktionstraeger_typ` unterscheiden (siehe
+  `unbestaetigteSelbsteintragungen` in den jeweiligen Wart-Seiten).
 - **`/admin/zuschuesse`** (`src/lib/zuschuss.ts`): Zuschüsse sind ein
   **Opt-in** pro Verein (`verein.zuschuesse_aktiviert`, Schalter oben auf der
   Seite) und gelten bewusst **nur für Schiedsrichter** (nicht

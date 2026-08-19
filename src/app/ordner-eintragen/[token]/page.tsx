@@ -1,18 +1,14 @@
-import { and, eq, gte, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { and, eq, gte, inArray } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { bedarfFuer } from "@/lib/dienste";
+import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
-import { berechneBesetzung } from "@/lib/besetzung";
 import { tagKey } from "@/lib/kalender";
 import { rundenspielTypLabel } from "@/lib/termin-label";
-import {
-  formatDatumZeit as formatDateTime,
-  formatWochentagDatum,
-} from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { LinkSpinner } from "@/components/link-spinner";
@@ -20,31 +16,36 @@ import {
   TerminMehrfachAuswahl,
   type EintragbarerTermin,
 } from "@/components/mehrfachauswahl";
-import { zeitnehmerSelbstEintragenMehrfachOeffentlich } from "./actions";
-
-const ZEITNEHMER_ROLLE_OPTIONEN = [
-  { value: "zeitnehmer", label: "Zeitnehmer" },
-  { value: "sekretaer", label: "Sekretär" },
-];
+import { ordnerSelbstEintragenMehrfachOeffentlich } from "./actions";
+import { formatDatumZeit as formatDateTime, formatWochentagDatum } from "@/lib/format";
 
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
-  turnier_spiel: "Turnierspiel",
+  turnier: "Turnier",
   rundenspiel: "Rundenspiel",
 };
 
-// Bewusst ohne spiel_ics (persönlicher ICS-Einsatz des Schiedsrichters,
-// keine Mannschafts-/Vereins-Veranstaltung) — anders als auf
-// /profil/zeitnehmerwart, wo der Wart auch dafür manuell zuordnen kann.
-const ZEITNEHMER_RELEVANTE_TYPEN = ["testspiel", "turnier_spiel", "rundenspiel"];
+const ORDNER_ROLLE_LABEL: Record<string, string> = {
+  ordner: "Ordner",
+  kioskdienst: "Kioskdienst",
+};
 
-const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
+const ORDNER_ROLLE_OPTIONEN = [
+  { value: "ordner", label: "Ordner" },
+  { value: "kioskdienst", label: "Kioskdienst" },
+];
 
-// Öffentliche, login-freie Selbsteintragung für Zeitnehmer/Sekretär (siehe
-// vereine.zeitnehmerSelbstanmeldungToken, vom Zeitnehmerwart aktivierbar) —
-// analog zur öffentlichen Turnier-Ansicht (/turnier/[token]), aber mit
-// Schreibzugriff statt nur Lesen.
-export default async function ZeitnehmerEintragenPage({
+// Ordner-/Kioskdienst-Bedarf gilt für den Turnier-CONTAINER selbst (typ =
+// turnier), nicht für dessen Einzelspiele — siehe Kommentar in
+// lib/ordnerwart.ts. Anders als bei Zeitnehmer/Sekretär deshalb "turnier"
+// statt "turnier_spiel" in dieser Liste.
+const ORDNER_RELEVANTE_TYPEN = ["testspiel", "turnier", "rundenspiel"];
+
+// Öffentliche, login-freie Selbsteintragung für Ordner/Kioskdienst (siehe
+// vereine.ordnerSelbstanmeldungToken, vom Ordnerwart aktivierbar) — analog
+// zu /zeitnehmer-eintragen/[token], siehe dortige Kommentare für die
+// Grundprinzipien.
+export default async function OrdnerEintragenPage({
   params,
   searchParams,
 }: {
@@ -55,7 +56,7 @@ export default async function ZeitnehmerEintragenPage({
   const { mannschaft: mannschaftFilter } = await searchParams;
 
   const verein = await adminDb.query.vereine.findFirst({
-    where: eq(vereine.zeitnehmerSelbstanmeldungToken, token),
+    where: eq(vereine.ordnerSelbstanmeldungToken, token),
   });
   if (!verein) {
     notFound();
@@ -75,7 +76,7 @@ export default async function ZeitnehmerEintragenPage({
         orderBy: (t, { asc }) => [asc(t.start)],
       });
       const relevante = terminListe.filter((t) =>
-        ZEITNEHMER_RELEVANTE_TYPEN.includes(t.typ)
+        ORDNER_RELEVANTE_TYPEN.includes(t.typ)
       );
 
       const terminIds = relevante.map((t) => t.id);
@@ -93,11 +94,11 @@ export default async function ZeitnehmerEintragenPage({
             .where(
               and(
                 inArray(terminZuordnungen.terminId, terminIds),
-                // Nur Zeitnehmer/Sekretär anzeigen — sonst würden z.B.
+                // Nur Ordner/Kioskdienst anzeigen — sonst würden z.B.
                 // Schiedsrichter-Zuordnungen desselben Termins hier
-                // mitgeladen und fälschlich als "Sekretär" gelabelt (das
-                // Label unten kennt nur diese beiden Rollen).
-                inArray(terminZuordnungen.funktionstraegerTyp, ZEITNEHMER_ROLLEN)
+                // mitgeladen und fälschlich gelabelt (das Label unten kennt
+                // nur diese beiden Rollen).
+                inArray(terminZuordnungen.funktionstraegerTyp, ORDNER_ROLLEN)
               )
             )
         : [];
@@ -105,41 +106,28 @@ export default async function ZeitnehmerEintragenPage({
       const relevanteTermine = relevante
         .map((t) => {
           const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
-          const zeitnehmerBedarf = bedarfFuer(
-            verein,
-            t.typ,
-            "zeitnehmer",
-            t.pflichtspiel,
-            t.freundschaftsTyp,
-            t.zeitnehmerBedarfOverride
-          );
+          const luecken = ORDNER_ROLLEN.map((rolle) => ({
+            rolle,
+            bedarf: bedarfFuer(verein, t.typ, rolle, t.pflichtspiel, t.freundschaftsTyp),
+            vorhanden: eigeneZuordnungen.filter((z) => z.funktionstraegerTyp === rolle)
+              .length,
+          })).filter((l) => l.bedarf > 0);
           return {
             ...t,
-            zeitnehmerBedarf,
             zuordnungen: eigeneZuordnungen,
-            besetzung: berechneBesetzung(
-              eigeneZuordnungen,
-              false,
-              zeitnehmerBedarf,
-              verein.zeitnehmerSekretaerMax
-            ),
+            luecken,
+            vollstaendig: luecken.every((l) => l.vorhanden >= l.bedarf),
           };
         })
-        // Ohne diesen Filter blieb ein Termin mit Bedarf 0 (z.B. Freundschafts-
-        // spiele/Turniere, für die der Verein gar keinen Zeitnehmer/Sekretär
-        // braucht, siehe /admin/einstellungen) trotzdem sichtbar UND
-        // eintragbar: "voll" prüfte bisher nur gegen die globale Obergrenze
-        // (zeitnehmerSekretaerMax), nicht gegen den tatsächlichen Bedarf.
-        .filter((t) => t.zeitnehmerBedarf > 0);
+        // Ohne diesen Filter blieben Termine ohne jeden Ordner-/Kioskdienst-
+        // Bedarf (luecken leer) trotzdem sichtbar UND fälschlich als "voll"
+        // markiert (every() auf leerem Array ist true).
+        .filter((t) => t.luecken.length > 0);
 
       return { alleMannschaften, relevanteTermine };
     }
   );
 
-  // Nur Mannschaften als Filter-Buttons anbieten, die auch mindestens einen
-  // eintragbaren Termin haben — sonst führte ein Klick nur zu "Keine
-  // anstehenden Termine" (z.B. wenn die Saison einer Mannschaft schon vorbei
-  // ist oder gerade Pause ist).
   const mannschaftenMitTerminen = new Set(
     relevanteTermine.map((t) => t.mannschaftId).filter((id): id is string => !!id)
   );
@@ -162,17 +150,15 @@ export default async function ZeitnehmerEintragenPage({
         : (TYP_LABEL[t.typ] ?? t.typ),
     ort: t.ort,
     beschreibung: t.beschreibung,
-    vollstaendig: t.besetzung.zeitnehmerSekretaerErfuellt,
-    eintragbar: !t.besetzung.zeitnehmerSekretaerVoll,
+    vollstaendig: t.vollstaendig,
+    eintragbar: !t.vollstaendig,
     zuordnungen: t.zuordnungen.map((z) => ({
       id: z.id,
-      label: `${z.funktionstraegerTyp === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"}: ${z.name ?? z.externerName ?? "—"}`,
+      label: `${ORDNER_ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${z.name ?? z.externerName ?? "—"}`,
     })),
   }));
 
-  const offeneAnzahl = gefilterteTermine.filter(
-    (t) => !t.besetzung.zeitnehmerSekretaerErfuellt
-  ).length;
+  const offeneAnzahl = gefilterteTermine.filter((t) => !t.vollstaendig).length;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-6">
@@ -183,7 +169,7 @@ export default async function ZeitnehmerEintragenPage({
             {verein.name}
           </p>
           <h1 className="font-heading text-xl font-semibold">
-            Als Zeitnehmer/Sekretär eintragen
+            Als Ordner/Kioskdienst eintragen
           </h1>
         </div>
       </div>
@@ -192,7 +178,7 @@ export default async function ZeitnehmerEintragenPage({
         Kein Login nötig: einen oder mehrere Termine auswählen, Namen
         eintragen, Rolle wählen und absenden. Bereits im System angelegte
         Personen werden dabei automatisch erkannt — bei Unsicherheit prüft
-        das der Zeitnehmerwart nach.
+        das der Ordnerwart nach.
       </p>
 
       {gefilterteTermine.length > 0 && (
@@ -237,8 +223,8 @@ export default async function ZeitnehmerEintragenPage({
         <TerminMehrfachAuswahl
           token={token}
           termine={eintragbareTermine}
-          rolleOptionen={ZEITNEHMER_ROLLE_OPTIONEN}
-          submitAction={zeitnehmerSelbstEintragenMehrfachOeffentlich}
+          rolleOptionen={ORDNER_ROLLE_OPTIONEN}
+          submitAction={ordnerSelbstEintragenMehrfachOeffentlich}
         />
       )}
 

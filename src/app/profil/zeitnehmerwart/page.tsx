@@ -172,10 +172,18 @@ export default async function ZeitnehmerwartPage({
   // keiner echten Person zugeordnet wurden (siehe
   // zeitnehmerSelbstEintragenOeffentlich in
   // zeitnehmer-eintragen/[token]/actions.ts) — zur Bestätigung/Korrektur
-  // durch den Wart (siehe zeitnehmerVorschlagBestaetigen).
+  // durch den Wart (siehe zeitnehmerVorschlagBestaetigen). Explizit auf
+  // ZEITNEHMER_ROLLEN gefiltert, da "selbst_eingetragen_oeffentlich" seit
+  // /ordner-eintragen dieselbe quelle auch für Ordner/Kioskdienst-
+  // Zuordnungen ist — ohne den Filter tauchten die hier fälschlich mit auf.
   const unbestaetigteSelbsteintragungen = termineMitZuordnungen.flatMap((t) =>
     t.zuordnungen
-      .filter((z) => z.quelle === "selbst_eingetragen_oeffentlich" && !z.userId)
+      .filter(
+        (z) =>
+          z.quelle === "selbst_eingetragen_oeffentlich" &&
+          !z.userId &&
+          (ZEITNEHMER_ROLLEN as readonly string[]).includes(z.funktionstraegerTyp)
+      )
       .map((z) => ({ ...z, termin: t }))
   );
 
