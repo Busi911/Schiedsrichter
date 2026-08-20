@@ -3,7 +3,11 @@ import { and, asc, desc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, vereine } from "@/db/schema";
 import { bedarfFuer } from "./dienste";
-import { brauchtSchiedsrichterVomVerein } from "./besetzung";
+import {
+  berechneBesetzung,
+  brauchtSchiedsrichterVomVerein,
+  istBesetzungVollstaendig,
+} from "./besetzung";
 import { rundenspielTypLabel } from "./termin-label";
 
 const OFFENE_POSTEN_TYP_LABEL: Record<string, string> = {
@@ -52,18 +56,6 @@ export function formatMannschaft(t: {
       : t.mannschaftName;
   }
   return t.kategorie ?? null;
-}
-
-export async function holeNaechsteTermine(vereinId: string, limit = 5) {
-  return withTenant(vereinId, (tx) =>
-    tx
-      .select(terminMitMannschaft())
-      .from(termine)
-      .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
-      .where(and(eq(termine.vereinId, vereinId), gte(termine.start, new Date())))
-      .orderBy(asc(termine.start))
-      .limit(limit)
-  );
 }
 
 // Nur Termine mit eingetragenem Ergebnis (beide Felder gesetzt) — aktuell
@@ -129,6 +121,128 @@ const ZEITNEHMER_RELEVANTE_TYPEN = [
   "turnier_spiel",
   "rundenspiel",
 ] as const;
+
+export type UnbesetzterTermin = {
+  terminId: string;
+  start: Date;
+  typ: string;
+  typLabel: string;
+  ort: string | null;
+  mannschaftLabel: string | null;
+  schiriOffen: boolean;
+  zeitnehmerOffen: boolean;
+};
+
+type VereinBesetzung = VereinBedarf & { zeitnehmerSekretaerMax: number };
+
+// spiel_ics bewusst ausgenommen — rein persönlicher ICS-Feed-Einsatz eines
+// Schiedsrichters (oft bei fremden Vereinen), kein Vereins-Termin. Dieselbe
+// Ausnahme wie im Admin-Kalender, siehe holeAdminKalenderDaten in
+// admin-kalender.ts.
+const UNBESETZTE_TERMINE_TYPEN = ["testspiel", "turnier_spiel", "rundenspiel"] as const;
+
+// Reine Berechnung (ohne DB-Zugriff, siehe dashboard.test.ts) für die
+// "Unbesetzte Termine"-Karte im Dashboard: nutzt dieselbe
+// Besetzungsvollständigkeits-Logik wie der Monatskalender (siehe
+// istBesetzungVollstaendig/berechneBesetzung in besetzung.ts sowie
+// holeAdminKalenderDaten in admin-kalender.ts) — Schiedsrichter UND
+// Zeitnehmer/Sekretär, NICHT Ordner/Kioskdienst (das sind reine
+// Helferdienste, siehe berechneOffenePosten unten für /admin/dienste).
+export function berechneUnbesetzteTermine(
+  verein: VereinBesetzung,
+  anstehende: AnstehenderTermin[],
+  zuordnungen: Zuordnung[]
+): UnbesetzterTermin[] {
+  const ergebnis: UnbesetzterTermin[] = [];
+
+  for (const termin of anstehende) {
+    if (!(UNBESETZTE_TERMINE_TYPEN as readonly string[]).includes(termin.typ)) continue;
+
+    const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === termin.id);
+    const status = berechneBesetzung(
+      eigeneZuordnungen,
+      false,
+      bedarfFuer(
+        verein,
+        termin.typ,
+        "zeitnehmer",
+        termin.pflichtspiel,
+        termin.freundschaftsTyp,
+        termin.zeitnehmerBedarfOverride
+      ),
+      verein.zeitnehmerSekretaerMax
+    );
+    if (istBesetzungVollstaendig(status, termin.typ, termin.pflichtspiel)) continue;
+
+    ergebnis.push({
+      terminId: termin.id,
+      start: termin.start,
+      typ: termin.typ,
+      typLabel:
+        termin.typ === "rundenspiel"
+          ? rundenspielTypLabel(termin.pflichtspiel, termin.freundschaftsTyp)
+          : (OFFENE_POSTEN_TYP_LABEL[termin.typ] ?? termin.typ),
+      ort: termin.ort,
+      mannschaftLabel: formatMannschaft(termin),
+      // Bei echten Ligaspielen (pflichtspiel = true) stellt der Verband den
+      // Schiedsrichter — siehe istBesetzungVollstaendig — daher hier nie als
+      // offen ausgewiesen.
+      schiriOffen: !(termin.typ === "rundenspiel" && termin.pflichtspiel === true)
+        && !status.schiriErfuellt,
+      zeitnehmerOffen: !status.zeitnehmerSekretaerErfuellt,
+    });
+  }
+
+  return ergebnis.sort((a, b) => a.start.getTime() - b.start.getTime());
+}
+
+export async function holeUnbesetzteTermine(
+  vereinId: string,
+  limit = 10
+): Promise<UnbesetzterTermin[]> {
+  return withTenant(vereinId, async (tx) => {
+    const verein = await tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+    });
+    if (!verein) return [];
+
+    const anstehende = await tx
+      .select({
+        id: termine.id,
+        start: termine.start,
+        typ: termine.typ,
+        ort: termine.ort,
+        pflichtspiel: termine.pflichtspiel,
+        freundschaftsTyp: termine.freundschaftsTyp,
+        mannschaftName: mannschaften.name,
+        mannschaftAltersklasse: mannschaften.altersklasse,
+        kategorie: termine.kategorie,
+        zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+      })
+      .from(termine)
+      .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
+      .where(
+        and(
+          eq(termine.vereinId, vereinId),
+          gte(termine.start, new Date()),
+          inArray(termine.typ, UNBESETZTE_TERMINE_TYPEN)
+        )
+      )
+      .orderBy(asc(termine.start));
+    if (anstehende.length === 0) return [];
+
+    const terminIds = anstehende.map((t) => t.id);
+    const zuordnungen = await tx
+      .select({
+        terminId: terminZuordnungen.terminId,
+        funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+      })
+      .from(terminZuordnungen)
+      .where(inArray(terminZuordnungen.terminId, terminIds));
+
+    return berechneUnbesetzteTermine(verein, anstehende, zuordnungen).slice(0, limit);
+  });
+}
 
 // Reine Berechnung (ohne DB-Zugriff), damit sie ohne Testdatenbank getestet
 // werden kann — siehe src/lib/dashboard.test.ts. Bündelt alle offenen Rollen

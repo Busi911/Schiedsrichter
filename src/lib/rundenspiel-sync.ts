@@ -10,6 +10,7 @@ import {
 } from "./rundenspiel-import";
 import { holeNuligaJson, type NuligaDiagnose } from "./nuliga-scraper";
 import { sendeRundenspielAenderungenBenachrichtigung } from "./rundenspiel-benachrichtigung";
+import { sendeDuplikatBenachrichtigungen } from "./duplikat-benachrichtigung";
 
 // DB-Import-Logik für bereits geparste Rundenspiel-Ereignisse — geteilt
 // zwischen dem manuellen JSON-Upload (/admin/termine (Hallenspielplan-Tab), siehe
@@ -241,6 +242,15 @@ export async function synchronisiereAlleAktivenNuligaVereine() {
       // Push-Kommentar in terminerinnerungen.ts).
       try {
         await sendeRundenspielAenderungenBenachrichtigung(verein, ergebnis.aenderungen);
+      } catch {
+        // ignoriert — der Sync selbst war bereits erfolgreich.
+      }
+
+      // Der frische Import kann neue Rundenspiel-Duplikate manuell angelegter
+      // Termine aufdecken (siehe duplikat-erkennung.ts) — direkt danach
+      // prüfen, statt auf den nächsten Aufruf von /admin/termine zu warten.
+      try {
+        await sendeDuplikatBenachrichtigungen(verein.id);
       } catch {
         // ignoriert — der Sync selbst war bereits erfolgreich.
       }

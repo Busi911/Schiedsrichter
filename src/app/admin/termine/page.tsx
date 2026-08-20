@@ -298,7 +298,7 @@ async function RundenspieleTab({
   const unbekannteMannschaften = gruppiereUnbekannteMannschaften(liste).filter(
     (m) => !ignoriertSet.has(`${m.normalisiert}::${m.kategorie ?? ""}`)
   );
-  const moeglicheDuplikate = await findeSpielDuplikate(vereinId);
+  const { rundenspielDuplikate, icsDuplikate } = await findeSpielDuplikate(vereinId);
 
   return (
     <div className="flex flex-col gap-6">
@@ -366,7 +366,7 @@ async function RundenspieleTab({
         </Card>
       )}
 
-      {istAdmin && moeglicheDuplikate.length > 0 && (
+      {istAdmin && rundenspielDuplikate.length > 0 && (
         <Card className="max-w-2xl">
           <CardHeader>
             <CardTitle>Mögliche Duplikate</CardTitle>
@@ -386,7 +386,7 @@ async function RundenspieleTab({
           </CardHeader>
           <CardContent>
             <div className="flex flex-col divide-y">
-              {moeglicheDuplikate.map((d) => (
+              {rundenspielDuplikate.map((d) => (
                 <div
                   key={`${d.quellId}-${d.rundenspielId}`}
                   className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
@@ -419,6 +419,45 @@ async function RundenspieleTab({
                       Verknüpfen
                     </Button>
                   </form>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {istAdmin && icsDuplikate.length > 0 && (
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <CardTitle>Mögliche Duplikate (Schiedsrichter-ICS)</CardTitle>
+            <CardDescription>
+              Manuell angelegte Freundschaftsspiele/Turnier-Einzelspiele, die
+              zeitlich mit dem persönlichen ICS-Feed-Termin eines
+              Schiedsrichters zusammenfallen — vermutlich dieselbe Begegnung.
+              Anders als oben kein automatisches Verknüpfen: der ICS-Termin
+              wird bei jedem Sync anhand der Quelle neu geschrieben, daher
+              hier nur zur Info — bei Bedarf einen der beiden Termine manuell
+              entfernen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col divide-y">
+              {icsDuplikate.map((d) => (
+                <div key={`${d.quellId}-${d.icsId}`} className="py-3 text-sm first:pt-0 last:pb-0">
+                  <p>
+                    <strong>{QUELL_TYP_LABEL[d.quellTyp] ?? d.quellTyp}:</strong>{" "}
+                    {formatDateTime(d.quellStart)}
+                    {d.quellBeschreibung ? ` · ${d.quellBeschreibung}` : ""}
+                  </p>
+                  {d.quellBesetzung.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {d.quellBesetzung.join(" · ")}
+                    </p>
+                  )}
+                  <p className="text-muted-foreground">
+                    <strong>Schiedsrichter-ICS:</strong> {formatDateTime(d.icsStart)}
+                    {d.icsBeschreibung ? ` · ${d.icsBeschreibung}` : ""}
+                  </p>
                 </div>
               ))}
             </div>

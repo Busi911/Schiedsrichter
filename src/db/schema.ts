@@ -458,6 +458,12 @@ export const termine = pgTable("termin", {
   // bestimmtes Spiel ausnahmsweise doch kein Zeitnehmer/Sekretär gebraucht
   // wird (oder mehr als sonst).
   zeitnehmerBedarfOverride: integer("zeitnehmer_bedarf_override"),
+  // Zeitpunkt, zu dem der Ersteller (erstelltVon) zuletzt per Mail über ein
+  // mögliches Duplikat dieses Termins informiert wurde (siehe
+  // duplikat-benachrichtigung.ts) — null = noch nie gemeldet. Verhindert,
+  // dass derselbe noch ungelöste Duplikat-Fund bei jedem täglichen Sync
+  // erneut eine Mail auslöst.
+  duplikatGemeldetAm: timestamp("duplikat_gemeldet_am", { mode: "date" }),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 

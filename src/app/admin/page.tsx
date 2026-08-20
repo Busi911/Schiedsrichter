@@ -6,7 +6,7 @@ import { vereine } from "@/db/schema";
 import {
   formatMannschaft,
   holeLetzteErgebnisse,
-  holeNaechsteTermine,
+  holeUnbesetzteTermine,
 } from "@/lib/dashboard";
 import { berechneGesamtbilanz, holeMannschaftsBilanzen } from "@/lib/dienste-statistik";
 import { parseMonatParam } from "@/lib/kalender";
@@ -20,7 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { NaechsteTermineTabelle } from "@/components/dashboard-tabellen";
+import { UnbesetzteTermineTabelle } from "@/components/dashboard-tabellen";
 import {
   Table,
   TableBody,
@@ -73,11 +73,11 @@ export default async function AdminDashboardPage({
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
   );
 
-  const [naechsteTermine, letzteErgebnisse, mannschaftsBilanzen, kalenderDaten] =
+  const [unbesetzteTermine, letzteErgebnisse, mannschaftsBilanzen, kalenderDaten] =
     await Promise.all([
       // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
       // den Link "Alle Termine" unten.
-      holeNaechsteTermine(vereinId, 10),
+      holeUnbesetzteTermine(vereinId, 10),
       holeLetzteErgebnisse(vereinId, 10),
       // Ungekappt (anders als letzteErgebnisse oben) — die Saison-KPIs unten
       // sollen die echte Gesamtbilanz zeigen, nicht nur die der letzten 10
@@ -90,15 +90,14 @@ export default async function AdminDashboardPage({
     ]);
   const { spiele: gesamtSpiele, siegquote } = berechneGesamtbilanz(mannschaftsBilanzen);
 
-  const naechsteTermineZeilen = naechsteTermine.map((t) => ({
-    id: t.id,
+  const unbesetzteTermineZeilen = unbesetzteTermine.map((t) => ({
+    terminId: t.terminId,
     zeit: formatDateTime(t.start),
-    typLabel:
-      t.typ === "rundenspiel"
-        ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
-        : (TYP_LABEL[t.typ] ?? t.typ),
+    typLabel: t.typLabel,
     ort: t.ort,
-    mannschaft: formatMannschaft(t),
+    mannschaft: t.mannschaftLabel,
+    schiriOffen: t.schiriOffen,
+    zeitnehmerOffen: t.zeitnehmerOffen,
   }));
 
   return (
@@ -149,20 +148,21 @@ export default async function AdminDashboardPage({
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Nächste Termine</CardTitle>
+            <CardTitle className="text-base">Unbesetzte Termine</CardTitle>
+            <CardDescription>
+              Nächste Termine, denen noch Schiedsrichter und/oder Zeitnehmer/
+              Sekretär fehlen — der Kalender oben zeigt bereits alle Termine,
+              hier interessiert nur noch die offene Besetzung.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {naechsteTermineZeilen.length === 0 ? (
+            {unbesetzteTermineZeilen.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Keine anstehenden Termine.
+                Alle anstehenden Termine sind vollständig besetzt.
               </p>
             ) : (
-              <NaechsteTermineTabelle termine={naechsteTermineZeilen} />
+              <UnbesetzteTermineTabelle termine={unbesetzteTermineZeilen} />
             )}
-            {/* /admin/termine zeigt bewusst nur manuell angelegte
-                Freundschaftsspiele/Turniere (siehe dortiger Typ-Filter),
-                keine importierten Rundenspiele — für "wirklich alle" geht
-                es deshalb zum vollständigen Kalender statt dorthin. */}
             <Link
               href="/admin/kalender"
               className="mt-1 text-xs text-muted-foreground underline"

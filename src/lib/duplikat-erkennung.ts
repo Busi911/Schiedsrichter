@@ -44,10 +44,40 @@ export type MoeglichesDuplikat = {
   // (siehe spielDuplikatVerknuepfen in admin/actions.ts), damit es weiterhin
   // im Turnier-Spielplan bzw. auf der öffentlichen Turnier-Seite erscheint.
   quellTurnierId: string | null;
+  // Für die automatische Mail-Benachrichtigung (siehe
+  // duplikat-benachrichtigung.ts) — nicht für die Anzeige auf /admin/termine
+  // gedacht. null = kein Ersteller bekannt (z.B. gelöschter Account), dann
+  // bleibt der Fund nur in dieser Liste sichtbar, ohne Mail.
+  quellErstelltVon: string | null;
+  quellDuplikatGemeldetAm: Date | null;
   rundenspielId: string;
   rundenspielStart: Date;
   rundenspielBeschreibung: string | null;
   rundenspielBesetzung: string[];
+};
+
+// Ein spiel_ics-Termin (persönlicher ICS-Feed-Einsatz eines Schiedsrichters)
+// dubliert sich mit einem manuell angelegten Freundschaftsspiel/Turnier-
+// Einzelspiel, wenn der Schiedsrichter zufällig genau das Spiel des eigenen
+// Vereins offiziell zugewiesen bekommt. Bewusst ein eigener Typ statt
+// Erweiterung von MoeglichesDuplikat: hier gibt es (anders als beim
+// Rundenspiel-Fall oben) keinen "Verknüpfen"-Button — spiel_ics-Zeilen
+// werden bei jedem ICS-Sync anhand der UID neu geschrieben bzw. gelöscht
+// (siehe ics-sync.ts), ein automatischer Merge könnte dadurch später
+// unbemerkt wieder auseinanderfallen. Admins sehen den Fund hier nur zur
+// Info und räumen bei Bedarf manuell auf.
+export type MoeglichesIcsDuplikat = {
+  quellId: string;
+  quellTyp: "testspiel" | "turnier_spiel";
+  quellStart: Date;
+  quellBeschreibung: string | null;
+  quellBesetzung: string[];
+  quellErstelltVon: string | null;
+  quellDuplikatGemeldetAm: Date | null;
+  icsId: string;
+  icsStart: Date;
+  icsBeschreibung: string | null;
+  icsBesetzung: string[];
 };
 
 type DuplikatKandidat = {
@@ -57,6 +87,8 @@ type DuplikatKandidat = {
   beschreibung: string | null;
   besetzung: string[];
   turnierId: string | null;
+  erstelltVon?: string | null;
+  duplikatGemeldetAm?: Date | null;
 };
 type RundenspielKandidat = {
   id: string;
@@ -65,6 +97,12 @@ type RundenspielKandidat = {
   besetzung: string[];
   heimMannschaftName: string | null;
   auswaertsMannschaftName: string | null;
+};
+type IcsKandidat = {
+  id: string;
+  start: Date;
+  beschreibung: string | null;
+  besetzung: string[];
 };
 
 // Reine Matching-Logik (ohne DB-Zugriff), damit sie ohne Testdatenbank
@@ -105,6 +143,8 @@ export function findeDuplikatPaare(
           quellBeschreibung: q.beschreibung,
           quellBesetzung: q.besetzung,
           quellTurnierId: q.turnierId,
+          quellErstelltVon: q.erstelltVon ?? null,
+          quellDuplikatGemeldetAm: q.duplikatGemeldetAm ?? null,
           rundenspielId: r.id,
           rundenspielStart: r.start,
           rundenspielBeschreibung: r.beschreibung,
@@ -116,9 +156,47 @@ export function findeDuplikatPaare(
   return treffer;
 }
 
-export async function findeSpielDuplikate(
-  vereinId: string
-): Promise<MoeglichesDuplikat[]> {
+// Analog zu findeDuplikatPaare, aber gegen spiel_ics-Termine (persönliche
+// ICS-Feed-Einsätze eines Schiedsrichters) statt Rundenspiele. Ohne
+// strukturierte Heim-/Auswärts-Spalten (die hat nur der nuLiga-Import) bleibt
+// hier nur die Zeitnähe als Signal — bewusst weiterhin dasselbe enge
+// ZEITFENSTER_MS wie oben, aus demselben Grund (dicht getaktete Turniertage).
+export function findeIcsDuplikatPaare(
+  quellen: DuplikatKandidat[],
+  icsTermine: IcsKandidat[]
+): MoeglichesIcsDuplikat[] {
+  const treffer: MoeglichesIcsDuplikat[] = [];
+  for (const q of quellen) {
+    const qTag = berlinTag(q.start);
+
+    for (const ics of icsTermine) {
+      if (berlinTag(ics.start) !== qTag) continue;
+      if (Math.abs(q.start.getTime() - ics.start.getTime()) > ZEITFENSTER_MS) continue;
+
+      treffer.push({
+        quellId: q.id,
+        quellTyp: q.typ,
+        quellStart: q.start,
+        quellBeschreibung: q.beschreibung,
+        quellBesetzung: q.besetzung,
+        quellErstelltVon: q.erstelltVon ?? null,
+        quellDuplikatGemeldetAm: q.duplikatGemeldetAm ?? null,
+        icsId: ics.id,
+        icsStart: ics.start,
+        icsBeschreibung: ics.beschreibung,
+        icsBesetzung: ics.besetzung,
+      });
+    }
+  }
+  return treffer;
+}
+
+export type SpielDuplikate = {
+  rundenspielDuplikate: MoeglichesDuplikat[];
+  icsDuplikate: MoeglichesIcsDuplikat[];
+};
+
+export async function findeSpielDuplikate(vereinId: string): Promise<SpielDuplikate> {
   return withTenant(vereinId, async (tx) => {
     const quellen = await tx.query.termine.findMany({
       where: and(
@@ -127,15 +205,21 @@ export async function findeSpielDuplikate(
         eq(termine.quelle, "manuell")
       ),
     });
-    if (quellen.length === 0) return [];
+    if (quellen.length === 0) return { rundenspielDuplikate: [], icsDuplikate: [] };
 
-    const rundenspiele = await tx.query.termine.findMany({
-      where: and(eq(termine.vereinId, vereinId), eq(termine.typ, "rundenspiel")),
-    });
+    const [rundenspiele, icsTermine] = await Promise.all([
+      tx.query.termine.findMany({
+        where: and(eq(termine.vereinId, vereinId), eq(termine.typ, "rundenspiel")),
+      }),
+      tx.query.termine.findMany({
+        where: and(eq(termine.vereinId, vereinId), eq(termine.typ, "spiel_ics")),
+      }),
+    ]);
 
     const alleTerminIds = [
       ...quellen.map((q) => q.id),
       ...rundenspiele.map((r) => r.id),
+      ...icsTermine.map((i) => i.id),
     ];
     const zuordnungen = alleTerminIds.length
       ? await tx
@@ -162,23 +246,38 @@ export async function findeSpielDuplikate(
         );
     }
 
-    return findeDuplikatPaare(
-      quellen.map((q) => ({
-        id: q.id,
-        typ: q.typ as "testspiel" | "turnier_spiel",
-        start: q.start,
-        beschreibung: q.beschreibung,
-        turnierId: q.turnierId,
-        besetzung: besetzungFuer(q.id),
-      })),
-      rundenspiele.map((r) => ({
-        id: r.id,
-        start: r.start,
-        beschreibung: r.beschreibung,
-        heimMannschaftName: r.heimMannschaftName,
-        auswaertsMannschaftName: r.auswaertsMannschaftName,
-        besetzung: besetzungFuer(r.id),
-      }))
-    );
+    const quellKandidaten = quellen.map((q) => ({
+      id: q.id,
+      typ: q.typ as "testspiel" | "turnier_spiel",
+      start: q.start,
+      beschreibung: q.beschreibung,
+      turnierId: q.turnierId,
+      erstelltVon: q.erstelltVon,
+      duplikatGemeldetAm: q.duplikatGemeldetAm,
+      besetzung: besetzungFuer(q.id),
+    }));
+
+    return {
+      rundenspielDuplikate: findeDuplikatPaare(
+        quellKandidaten,
+        rundenspiele.map((r) => ({
+          id: r.id,
+          start: r.start,
+          beschreibung: r.beschreibung,
+          heimMannschaftName: r.heimMannschaftName,
+          auswaertsMannschaftName: r.auswaertsMannschaftName,
+          besetzung: besetzungFuer(r.id),
+        }))
+      ),
+      icsDuplikate: findeIcsDuplikatPaare(
+        quellKandidaten,
+        icsTermine.map((i) => ({
+          id: i.id,
+          start: i.start,
+          beschreibung: i.beschreibung,
+          besetzung: besetzungFuer(i.id),
+        }))
+      ),
+    };
   });
 }
