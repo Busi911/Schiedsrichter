@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, gte, inArray, isNotNull, lte, or } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, lte, ne, or } from "drizzle-orm";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
@@ -21,7 +21,6 @@ import { formatZeit } from "@/lib/format";
 import { formatErgebnis, rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
-  spiel_ics: "Spiel (ICS)",
   testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
@@ -37,13 +36,9 @@ const ROLLE_LABEL: Record<string, string> = {
 // Nur diese Typen brauchen eine Schiri-/Zeitnehmer-/Sekretär-Zuordnung —
 // der Turnier-Container selbst wird pro Einzelspiel besetzt (siehe
 // src/lib/zuordnung.ts). Rundenspiele brauchen nur Zeitnehmer/Sekretär
-// (siehe istBesetzungVollstaendig in src/lib/besetzung.ts).
-const BESETZUNGSRELEVANTE_TYPEN = [
-  "spiel_ics",
-  "testspiel",
-  "turnier_spiel",
-  "rundenspiel",
-];
+// (siehe istBesetzungVollstaendig in src/lib/besetzung.ts). spiel_ics taucht
+// hier gar nicht erst auf (siehe Ausschluss unten in der Termine-Abfrage).
+const BESETZUNGSRELEVANTE_TYPEN = ["testspiel", "turnier_spiel", "rundenspiel"];
 // Nur manuell angelegte Termine (Testspiel/Turnier/Turnierspiel) sind
 // bearbeitbar — ICS-Feed- und Rundenspiel-Import-Termine werden von ihrer
 // jeweiligen Quelle verwaltet.
@@ -82,16 +77,20 @@ export async function holeAdminKalenderDaten(
           mannschaftAltersklasse: mannschaften.altersklasse,
           kategorie: termine.kategorie,
           turnierVerantwortlicherId: termine.turnierVerantwortlicherId,
-          schiedsrichterName: users.name,
-          schiedsrichterEmail: users.email,
           zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
         })
         .from(termine)
-        .leftJoin(users, eq(termine.icsSchiedsrichterId, users.id))
         .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
         .where(
           and(
             eq(termine.vereinId, vereinId),
+            // spiel_ics = persönlicher ICS-Feed-Einsatz eines Schiedsrichters
+            // (oft bei fremden Vereinen, siehe icsSchiedsrichterId) — kein
+            // Vereins-Termin, gehört daher nicht in den Admin-Kalender. Bei
+            // eigenen Heimspielen existiert parallel ohnehin ein
+            // testspiel/turnier_spiel/rundenspiel-Termin (siehe "Mögliche
+            // Duplikate" auf /admin/termine).
+            ne(termine.typ, "spiel_ics"),
             // Normalfall: Termin beginnt im angezeigten Monat. Zusätzlich
             // mehrtägige Turniere, die VOR diesem Monat begonnen haben, aber
             // noch hineinreichen (sonst würde der Balken im zweiten Monat
@@ -185,10 +184,7 @@ export async function holeAdminKalenderDaten(
       t.typ === "rundenspiel"
         ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
         : (TYP_LABEL[t.typ] ?? t.typ);
-    const label =
-      t.beschreibung ??
-      t.ort ??
-      (t.typ === "spiel_ics" ? (t.schiedsrichterName ?? t.schiedsrichterEmail ?? "Spiel") : typLabel);
+    const label = t.beschreibung ?? t.ort ?? typLabel;
 
     const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
     const zuordenbar = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ);
@@ -196,7 +192,7 @@ export async function holeAdminKalenderDaten(
       ? istBesetzungVollstaendig(
           berechneBesetzung(
             eigeneZuordnungen,
-            t.typ === "spiel_ics" && !!t.schiedsrichterEmail,
+            false,
             bedarfFuer(
               verein,
               t.typ,
@@ -215,12 +211,6 @@ export async function holeAdminKalenderDaten(
       : undefined;
 
     const besetzungsDetails: { id: string; label: string; hinweis?: string }[] = [];
-    if (t.typ === "spiel_ics" && t.schiedsrichterEmail) {
-      besetzungsDetails.push({
-        id: `ics-${t.id}`,
-        label: `Schiedsrichter: ${t.schiedsrichterName ?? t.schiedsrichterEmail}`,
-      });
-    }
     for (const z of eigeneZuordnungen) {
       const label = `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
         z.name ?? z.externerName ?? z.email

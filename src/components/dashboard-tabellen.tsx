@@ -8,44 +8,52 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export type NaechsterTerminZeile = {
-  id: string;
+export type UnbesetzterTerminZeile = {
+  terminId: string;
   zeit: string;
   typLabel: string;
   ort: string | null;
   mannschaft: string | null;
+  schiriOffen: boolean;
+  zeitnehmerOffen: boolean;
 };
 
-// Zeigt die vom Aufrufer übergebenen Zeilen ohne eigenes Load-More/
-// Pagination — die Begrenzung (aktuell 10) erfolgt beim Abruf in
-// admin/page.tsx, der Link "Alle Termine" führt zur vollen Liste.
-export function NaechsteTermineTabelle({
+// Ersetzt die frühere "Nächste Termine"-Tabelle auf dem Dashboard — der dort
+// eingebettete Monatskalender (siehe admin/page.tsx) zeigt ohnehin schon ALLE
+// anstehenden Termine, hier interessiert stattdessen nur noch, wo konkret
+// noch Schiedsrichter und/oder Zeitnehmer/Sekretär fehlen.
+export function UnbesetzteTermineTabelle({
   termine,
 }: {
-  termine: NaechsterTerminZeile[];
+  termine: UnbesetzterTerminZeile[];
 }) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Termin</TableHead>
-          <TableHead>Typ</TableHead>
           <TableHead>Mannschaft</TableHead>
-          <TableHead>Ort</TableHead>
+          <TableHead>Fehlt</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {termine.map((t) => (
-          <TableRow key={t.id}>
-            <TableCell className="font-medium">{t.zeit}</TableCell>
-            <TableCell>
-              <Badge variant="secondary">{t.typLabel}</Badge>
+          <TableRow key={t.terminId}>
+            <TableCell className="font-medium">
+              {t.zeit}
+              <span className="mt-0.5 flex flex-wrap items-center gap-1 text-xs font-normal text-muted-foreground">
+                <Badge variant="secondary">{t.typLabel}</Badge>
+                {t.ort}
+              </span>
             </TableCell>
             <TableCell className="text-muted-foreground">
               {t.mannschaft ?? "—"}
             </TableCell>
-            <TableCell className="text-muted-foreground">
-              {t.ort ?? "—"}
+            <TableCell>
+              <div className="flex flex-wrap gap-1">
+                {t.schiriOffen && <Badge variant="warning">Schiedsrichter</Badge>}
+                {t.zeitnehmerOffen && <Badge variant="warning">Zeitnehmer</Badge>}
+              </div>
             </TableCell>
           </TableRow>
         ))}
