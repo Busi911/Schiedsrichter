@@ -2,6 +2,7 @@ import { and, eq, isNotNull, ne } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { schiedsrichterProfile, users } from "@/db/schema";
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
+import { sendeDuplikatBenachrichtigungen } from "@/lib/duplikat-benachrichtigung";
 
 // Läuft täglich per Vercel Cron (siehe vercel.json). Nutzt adminDb NUR zum
 // vereinsübergreifenden Auflisten der Kandidaten — der eigentliche Sync pro
@@ -31,6 +32,7 @@ export async function GET(request: Request) {
     );
 
   const ergebnisse = [];
+  const betroffeneVereinIds = new Set<string>();
   for (const kandidat of kandidaten) {
     if (!kandidat.vereinId) continue;
     try {
@@ -39,12 +41,26 @@ export async function GET(request: Request) {
         kandidat.userId
       );
       ergebnisse.push({ userId: kandidat.userId, status: "ok", ...result });
+      betroffeneVereinIds.add(kandidat.vereinId);
     } catch (err) {
       ergebnisse.push({
         userId: kandidat.userId,
         status: "fehler",
         message: err instanceof Error ? err.message : String(err),
       });
+    }
+  }
+
+  // Der frische Sync kann neue spiel_ics-Duplikate manuell angelegter Termine
+  // aufdecken (siehe duplikat-erkennung.ts) — einmal pro betroffenem Verein
+  // direkt danach prüfen, statt auf den nächsten Aufruf von /admin/termine zu
+  // warten. Best effort: ein Fehler hier soll die bereits erfolgreichen
+  // Syncs oben nicht als "fehler" ausweisen.
+  for (const vereinId of betroffeneVereinIds) {
+    try {
+      await sendeDuplikatBenachrichtigungen(vereinId);
+    } catch {
+      // ignoriert
     }
   }
 
