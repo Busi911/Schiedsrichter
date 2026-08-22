@@ -18,7 +18,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-type Mannschaft = { id: string; name: string; altersklasse: string | null };
+type Mannschaft = {
+  id: string;
+  name: string;
+  altersklasse: string | null;
+  handballNetTeamId: string | null;
+};
 
 // Übersicht ohne direkt sichtbare Edit-Formulare (die machten die Liste bei
 // vielen Mannschaften unübersichtlich) — Bearbeiten/Löschen pro Zeile über
@@ -126,6 +131,7 @@ export function MannschaftenTabelle({
               )}
               <TableHead>Name</TableHead>
               <TableHead>Altersklasse</TableHead>
+              <TableHead>handball.net-Team-ID</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -144,6 +150,7 @@ export function MannschaftenTabelle({
                 )}
                 <TableCell className="font-medium">{m.name}</TableCell>
                 <TableCell>{m.altersklasse ?? "—"}</TableCell>
+                <TableCell>{m.handballNetTeamId ?? "—"}</TableCell>
                 <TableCell className="text-right">
                   {schreibzugriff && (
                   <details className="group text-left">
@@ -167,6 +174,13 @@ export function MannschaftenTabelle({
                           defaultValue={m.altersklasse ?? ""}
                           placeholder="Altersklasse"
                           className="h-8 w-36"
+                        />
+                        <Input
+                          name="handballNetTeamId"
+                          defaultValue={m.handballNetTeamId ?? ""}
+                          placeholder="handball.net-Team-ID"
+                          inputMode="numeric"
+                          className="h-8 w-40"
                         />
                         <Button type="submit" variant="outline" size="sm">
                           Speichern

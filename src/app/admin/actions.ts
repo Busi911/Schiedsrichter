@@ -15,6 +15,7 @@ import {
 } from "@/db/schema";
 import { parseFunktionstraegerExcel } from "@/lib/funktionstraeger-import";
 import { normalisiereMannschaftsname } from "@/lib/rundenspiel-import";
+import { synchronisiereHandballNetMannschaften } from "@/lib/handball-net-sync";
 import { vergebeEinmalPasswortFallsNoetig } from "@/lib/passwort";
 import { sendMail } from "@/lib/mailer";
 import { appUrl } from "@/lib/app-url";
@@ -50,12 +51,25 @@ function willkommensInhalt(
   };
 }
 
+// Nur Ziffern (siehe URL der handball.net-Team-Seite, z.B.
+// handball.net/team/69770 → Team-ID 69770) — dieselbe Validierung wie bei
+// den nuLiga-Hallen-IDs (parseHalleId in admin/einstellungen/actions.ts).
+function parseHandballNetTeamId(formData: FormData): string | null {
+  const roh = formData.get("handballNetTeamId");
+  if (typeof roh !== "string" || !roh.trim()) return null;
+  if (!/^\d+$/.test(roh.trim())) {
+    throw new Error("handball.net-Team-ID: bitte nur Zahlen eingeben.");
+  }
+  return roh.trim();
+}
+
 export async function createMannschaft(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const name = formData.get("name");
   const altersklasse = formData.get("altersklasse");
+  const handballNetTeamId = parseHandballNetTeamId(formData);
   if (typeof name !== "string" || !name.trim()) {
     throw new Error("Name ist erforderlich.");
   }
@@ -68,6 +82,7 @@ export async function createMannschaft(formData: FormData) {
         typeof altersklasse === "string" && altersklasse.trim()
           ? altersklasse.trim()
           : null,
+      handballNetTeamId,
     })
   );
 
@@ -81,6 +96,7 @@ export async function updateMannschaft(formData: FormData) {
   const mannschaftId = formData.get("mannschaftId");
   const name = formData.get("name");
   const altersklasse = formData.get("altersklasse");
+  const handballNetTeamId = parseHandballNetTeamId(formData);
   if (typeof mannschaftId !== "string" || !mannschaftId) {
     throw new Error("Mannschaft fehlt.");
   }
@@ -97,6 +113,7 @@ export async function updateMannschaft(formData: FormData) {
           typeof altersklasse === "string" && altersklasse.trim()
             ? altersklasse.trim()
             : null,
+        handballNetTeamId,
       })
       .where(
         and(eq(mannschaften.id, mannschaftId), eq(mannschaften.vereinId, vereinId))
@@ -104,6 +121,47 @@ export async function updateMannschaft(formData: FormData) {
   );
 
   revalidatePath("/admin/mannschaften");
+}
+
+// Stößt sofort einen Sync für alle Mannschaften mit gepflegter
+// handball.net-Team-ID an (statt auf den nächsten Cron-Lauf zu warten) —
+// analog zum sofortigen ersten nuLiga-Sync beim Speichern der Hallen-IDs
+// (siehe nuligaEinstellungenSpeichern in admin/einstellungen/actions.ts).
+export async function handballNetSynchronisieren() {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const alleMannschaften = await withTenant(vereinId, (tx) =>
+    tx.query.mannschaften.findMany({
+      where: eq(mannschaften.vereinId, vereinId),
+    })
+  );
+  const konfiguriert = alleMannschaften
+    .filter((m): m is typeof m & { handballNetTeamId: string } => !!m.handballNetTeamId)
+    .map((m) => ({ id: m.id, handballNetTeamId: m.handballNetTeamId }));
+
+  const ergebnis = await synchronisiereHandballNetMannschaften(vereinId, konfiguriert);
+
+  const params = new URLSearchParams();
+  params.set("hnNeu", String(ergebnis.neu));
+  params.set("hnAktualisiert", String(ergebnis.aktualisiert));
+  const fehlerListe = [
+    ...ergebnis.abrufFehler.map((f) => `Team ${f.teamId}: ${f.grund}`),
+    ...ergebnis.parseFehler.map((f) => `Eintrag ${f.index}: ${f.grund}`),
+  ];
+  if (fehlerListe.length) params.set("hnFehler", fehlerListe.join(" | "));
+
+  const spieleGesamt = ergebnis.diagnose.reduce((s, d) => s + d.spieleGefunden, 0);
+  const statusCodes = [...new Set(ergebnis.diagnose.map((d) => d.httpStatus))];
+  params.set(
+    "hnDiagnose",
+    `${ergebnis.diagnose.length} Mannschaft(en) abgefragt, HTTP ${
+      statusCodes.join("/") || "—"
+    }, ${spieleGesamt} Spiele gefunden`
+  );
+
+  revalidatePath("/admin/mannschaften");
+  redirect(`/admin/mannschaften?${params.toString()}`);
 }
 
 export async function deleteMannschaft(formData: FormData) {

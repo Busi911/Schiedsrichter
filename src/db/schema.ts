@@ -179,6 +179,14 @@ export const mannschaften = pgTable("mannschaft", {
     .references(() => vereine.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   altersklasse: text("altersklasse"),
+  // Ab der 3. Liga läuft der Spielbetrieb zentral über handball.net statt
+  // über die (Landesverbands-)nuLiga-Instanz (siehe
+  // src/lib/handball-net-scraper.ts) — dort gibt es keine Hallen-, sondern
+  // nur eine Mannschafts-Abfrage, daher die Team-ID hier statt bei den
+  // Verein-weiten nuLiga-Hallen-IDs (siehe nuligaHalle1Id oben). Aus der URL
+  // der Team-Seite ablesbar, z.B. bei handball.net/team/69770 ist die
+  // Team-ID 69770.
+  handballNetTeamId: text("handball_net_team_id"),
 });
 
 // Vom Admin bewusst übersprungene Vorschläge aus "Unbekannte Mannschaften"

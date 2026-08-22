@@ -94,7 +94,18 @@ export function ermittleRundenspielAenderung(
 
 export async function importiereRundenspielEreignisse(
   vereinId: string,
-  ereignisse: RundenspielEreignis[]
+  ereignisse: RundenspielEreignis[],
+  // Default: namensbasierte Heuristik wie bisher (nuLiga-Teamnamen sind kurz
+  // und uneindeutig, z.B. "Herren 1"). Der handball.net-Sync (siehe
+  // handball-net-sync.ts) kennt die Mannschaft dagegen schon exakt über die
+  // vom Admin gepflegte Team-ID und übergibt hier einen präziseren
+  // Resolver — die volle handball.net-Teambezeichnung (kompletter
+  // Vereinsname statt "Herren 1") würde bei findeMannschaft sonst meist gar
+  // nicht matchen.
+  mannschaftIdErmitteln: (
+    ereignis: RundenspielEreignis,
+    mannschaftsListe: { id: string; name: string; altersklasse?: string | null }[]
+  ) => string | null = findeMannschaft
 ) {
   let neu = 0;
   let aktualisiert = 0;
@@ -111,7 +122,7 @@ export async function importiereRundenspielEreignisse(
     });
 
     for (const ereignis of ereignisse) {
-      const mannschaftId = findeMannschaft(ereignis, mannschaftsListe);
+      const mannschaftId = mannschaftIdErmitteln(ereignis, mannschaftsListe);
       const bestehend = await tx.query.termine.findFirst({
         where: and(
           eq(termine.vereinId, vereinId),
