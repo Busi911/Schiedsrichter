@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   monatKey,
@@ -36,6 +37,12 @@ import {
 } from "@/lib/format";
 
 const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+// Ab wie vielen Terminen an einem Tag im Gitter (Desktop) "+N weitere" statt
+// aller Zeilen gezeigt wird — an Spieltagen mit laufendem Turnier (Balken +
+// jedes Einzelspiel als eigener Eintrag, siehe holeAdminKalenderDaten) sonst
+// eine unlesbare Wand aus winzigem Text.
+const MAX_SICHTBARE_EINTRAEGE = 3;
 
 // Siehe DISCLOSURE_KLASSE in profil/schiedsrichterwart/page.tsx.
 const DISCLOSURE_KLASSE = cn(
@@ -128,6 +135,13 @@ export function MonatsKalender({
   basisPfad: string;
   schreibzugriff?: boolean;
 }) {
+  // Welche Tage (tagKey) im Gitter über MAX_SICHTBARE_EINTRAEGE hinaus
+  // ausgeklappt sind — pro Tag statt global, damit "+N weitere" auf einem
+  // Tag nicht versehentlich auch andere Tage aufklappt.
+  const [ausgeklappteTage, setAusgeklappteTage] = useState<Set<string>>(
+    () => new Set()
+  );
+
   const wochen = monatsGitter(jahr, monatNull);
   const balkenProWoche = platziereBalken(wochen, mehrtaegigeEintraege);
   const maxLanesGesamt = Math.max(
@@ -614,13 +628,19 @@ export function MonatsKalender({
                 {woche.map((tag, tagIdx) => {
                   const key = tagKey(tag.datum);
                   const eintraege = eintraegeProTag.get(key) ?? [];
+                  const ausgeklappt = ausgeklappteTage.has(key);
+                  const sichtbareEintraege =
+                    ausgeklappt || eintraege.length <= MAX_SICHTBARE_EINTRAEGE
+                      ? eintraege
+                      : eintraege.slice(0, MAX_SICHTBARE_EINTRAEGE);
+                  const versteckt = eintraege.length - sichtbareEintraege.length;
                   return (
                     <div
                       key={`entries-${key}`}
                       className="flex min-w-0 flex-col gap-0.5 px-1.5 pb-1.5"
                       style={{ gridColumn: tagIdx + 1, gridRow: maxLanesGesamt + 2 }}
                     >
-                      {eintraege.map((e) => (
+                      {sichtbareEintraege.map((e) => (
                         <Dialog key={e.id}>
                           <DialogTrigger
                             render={
@@ -653,6 +673,21 @@ export function MonatsKalender({
                           <DialogContent>{eintragDialogInhalt(e)}</DialogContent>
                         </Dialog>
                       ))}
+                      {versteckt > 0 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setAusgeklappteTage((bisherige) => {
+                              const naechste = new Set(bisherige);
+                              naechste.add(key);
+                              return naechste;
+                            })
+                          }
+                          className="w-full rounded px-1 py-0.5 text-left text-muted-foreground hover:bg-muted hover:underline"
+                        >
+                          +{versteckt} weitere
+                        </button>
+                      )}
                     </div>
                   );
                 })}
