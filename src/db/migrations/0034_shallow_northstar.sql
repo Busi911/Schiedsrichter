@@ -1,0 +1,1 @@
+ALTER TABLE "mannschaft" ADD COLUMN IF NOT EXISTS "handball_net_team_id" text;

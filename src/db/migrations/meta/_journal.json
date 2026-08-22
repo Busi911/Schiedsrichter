@@ -239,6 +239,13 @@
       "when": 1787202680942,
       "tag": "0033_termine_duplikat_gemeldet_am",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1787434184406,
+      "tag": "0034_shallow_northstar",
+      "breakpoints": true
     }
   ]
 }
