@@ -83,6 +83,38 @@ describe("ermittleAutomatischeZuordnungen", () => {
     ]);
   });
 
+  it("bevorzugt bei mehrdeutiger Rolle die Position: erster Name -> zeitnehmer, auch wenn die Person beide Rollen hat", () => {
+    const ergebnis = ermittleAutomatischeZuordnungen(
+      [termin({ handballNetZeitnehmer: "Alex Muster" })],
+      [],
+      [
+        { userId: "u1", name: "Alex Muster", email: "a@example.org", typ: "zeitnehmer" },
+        { userId: "u1", name: "Alex Muster", email: "a@example.org", typ: "sekretaer" },
+      ]
+    );
+    expect(ergebnis).toEqual([
+      { terminId: "t1", userId: "u1", email: "a@example.org", rolle: "zeitnehmer" },
+    ]);
+  });
+
+  it("bevorzugt bei mehrdeutiger Rolle die Position: zweiter Name -> sekretaer, auch wenn die Person beide Rollen hat", () => {
+    const ergebnis = ermittleAutomatischeZuordnungen(
+      [termin({ handballNetZeitnehmer: "Egal Wer, Alex Muster" })],
+      [],
+      [
+        { userId: "u0", name: "Egal Wer", email: "egal@example.org", typ: "zeitnehmer" },
+        { userId: "u1", name: "Alex Muster", email: "a@example.org", typ: "zeitnehmer" },
+        { userId: "u1", name: "Alex Muster", email: "a@example.org", typ: "sekretaer" },
+      ]
+    );
+    expect(ergebnis).toContainEqual({
+      terminId: "t1",
+      userId: "u1",
+      email: "a@example.org",
+      rolle: "sekretaer",
+    });
+  });
+
   it("ordnet beide Zeitnehmer/Sekretär-Namen unabhängig voneinander zu", () => {
     const ergebnis = ermittleAutomatischeZuordnungen(
       [termin({ handballNetZeitnehmer: "Thomas Knop, Kathrin Langenbach" })],

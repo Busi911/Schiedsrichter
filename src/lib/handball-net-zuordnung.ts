@@ -49,13 +49,12 @@ export type AutomatischeZuordnung = {
 };
 
 // Reiner Abgleich (ohne DB-Zugriff, siehe handball-net-zuordnung.test.ts):
-// ermittelt, welche Zuordnungen neu angelegt werden sollen. Verarbeitet
-// Schiedsrichter und Zeitnehmer/Sekretär getrennt, da handball.net beide
-// Rollen bereits in eigenen Feldern liefert (siehe
-// gruppiereSchiedsrichterUndZeitnehmer in handball-net-scraper.ts) — bei
-// Zeitnehmer/Sekretär ist die genaue Rolle je Name aber nicht bekannt (beide
-// landen im selben Feld), daher wird pro Namen zunächst "zeitnehmer", dann
-// "sekretaer" versucht.
+// ermittelt, welche Zuordnungen neu angelegt werden sollen. Schiedsrichter
+// und Zeitnehmer/Sekretär kommen bereits in eigenen Feldern von
+// handball.net (siehe gruppiereSchiedsrichterUndZeitnehmer in
+// handball-net-scraper.ts), Zeitnehmer und Sekretär teilen sich aber ein
+// gemeinsames Feld in fester Reihenfolge (erster Name = Zeitnehmer, zweiter
+// = Sekretär) statt eigener Rollen-Strings — siehe Kommentar weiter unten.
 export function ermittleAutomatischeZuordnungen(
   kandidatenTermine: {
     id: string;
@@ -78,52 +77,74 @@ export function ermittleAutomatischeZuordnungen(
     );
 
     const versucheZuordnen = (
-      namen: string | null,
+      name: string,
       rollenReihenfolge: readonly (typeof ZUORDENBARE_TYPEN)[number][]
     ) => {
-      if (!namen) return;
-      for (const roherName of namen.split(",")) {
-        const name = roherName.trim();
-        if (!name) continue;
+      for (const rolle of rollenReihenfolge) {
+        const kandidatenFuerRolle = funktionstraegerListe.filter((f) => f.typ === rolle);
+        const { exakt } = findeNamensVorschlag(
+          name,
+          kandidatenFuerRolle.map((f) => ({ userId: f.userId, name: f.name }))
+        );
+        if (!exakt) continue;
+        const treffer = kandidatenFuerRolle.find((f) => f.userId === exakt.userId);
+        if (!treffer) continue;
 
-        for (const rolle of rollenReihenfolge) {
-          const kandidatenFuerRolle = funktionstraegerListe.filter((f) => f.typ === rolle);
-          const { exakt } = findeNamensVorschlag(
-            name,
-            kandidatenFuerRolle.map((f) => ({ userId: f.userId, name: f.name }))
-          );
-          if (!exakt) continue;
-          const treffer = kandidatenFuerRolle.find((f) => f.userId === exakt.userId);
-          if (!treffer) continue;
+        const bereitsZugeordnet = zuordnungenDiesesTermins.some(
+          (z) => z.userId === treffer.userId && z.funktionstraegerTyp === rolle
+        );
+        if (bereitsZugeordnet) return; // schon zugeordnet — nichts weiter zu tun für diesen Namen
 
-          const bereitsZugeordnet = zuordnungenDiesesTermins.some(
-            (z) => z.userId === treffer.userId && z.funktionstraegerTyp === rolle
-          );
-          if (bereitsZugeordnet) break; // schon zugeordnet — weiter mit dem nächsten Namen
+        const besetzung = berechneBesetzung(
+          zuordnungenDiesesTermins.map((z) => ({ funktionstraegerTyp: z.funktionstraegerTyp })),
+          false,
+          undefined,
+          zeitnehmerSekretaerMax
+        );
+        const rolleVoll =
+          rolle === "schiedsrichter" ? besetzung.schiriVoll : besetzung.zeitnehmerSekretaerVoll;
+        if (rolleVoll) continue; // diese Rolle ist voll — nächste Rolle für denselben Namen probieren
 
-          const besetzung = berechneBesetzung(
-            zuordnungenDiesesTermins.map((z) => ({ funktionstraegerTyp: z.funktionstraegerTyp })),
-            false,
-            undefined,
-            zeitnehmerSekretaerMax
-          );
-          const rolleVoll =
-            rolle === "schiedsrichter" ? besetzung.schiriVoll : besetzung.zeitnehmerSekretaerVoll;
-          if (rolleVoll) continue; // diese Rolle ist voll — nächste Rolle für denselben Namen probieren
-
-          ergebnis.push({ terminId: termin.id, userId: treffer.userId, email: treffer.email, rolle });
-          zuordnungenDiesesTermins.push({
-            terminId: termin.id,
-            userId: treffer.userId,
-            funktionstraegerTyp: rolle,
-          });
-          break; // Name erfolgreich zugeordnet — weiter mit dem nächsten Namen
-        }
+        ergebnis.push({ terminId: termin.id, userId: treffer.userId, email: treffer.email, rolle });
+        zuordnungenDiesesTermins.push({
+          terminId: termin.id,
+          userId: treffer.userId,
+          funktionstraegerTyp: rolle,
+        });
+        return; // Name erfolgreich zugeordnet
       }
     };
 
-    versucheZuordnen(termin.handballNetSchiedsrichter, ["schiedsrichter"]);
-    versucheZuordnen(termin.handballNetZeitnehmer, ["zeitnehmer", "sekretaer"]);
+    if (termin.handballNetSchiedsrichter) {
+      for (const roherName of termin.handballNetSchiedsrichter.split(",")) {
+        const name = roherName.trim();
+        if (name) versucheZuordnen(name, ["schiedsrichter"]);
+      }
+    }
+
+    if (termin.handballNetZeitnehmer) {
+      const namen = termin.handballNetZeitnehmer
+        .split(",")
+        .map((n) => n.trim())
+        .filter(Boolean);
+      // handball.net meldet Zeitnehmer und Sekretär in fester Reihenfolge im
+      // selben Sammel-Feld (siehe gruppiereSchiedsrichterUndZeitnehmer in
+      // handball-net-scraper.ts, das beide unter einer Rolle zusammenfasst):
+      // der ERSTE Name ist der Zeitnehmer (fast immer eine Person des
+      // eigenen Vereins), der ZWEITE der Sekretär (ab Oberliga vom Verband,
+      // in der Bundesliga vom Bund gestellt — i.d.R. kein Funktionsträger
+      // dieses Vereins, ein fehlender Treffer ist hier also der Normalfall).
+      // Die jeweils andere Rolle bleibt als Fallback zweite Wahl, falls die
+      // Person im System ausnahmsweise nur unter der anderen Rolle
+      // angelegt ist.
+      namen.forEach((name, index) => {
+        const rollenReihenfolge =
+          index === 0
+            ? (["zeitnehmer", "sekretaer"] as const)
+            : (["sekretaer", "zeitnehmer"] as const);
+        versucheZuordnen(name, rollenReihenfolge);
+      });
+    }
   }
 
   return ergebnis;
