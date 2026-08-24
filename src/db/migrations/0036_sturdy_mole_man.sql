@@ -1,0 +1,1 @@
+ALTER TYPE "public"."zuordnung_quelle" ADD VALUE 'handball_net_uebernommen';

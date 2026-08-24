@@ -253,6 +253,13 @@
       "when": 1787547424234,
       "tag": "0035_abnormal_mesmero",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1787549339505,
+      "tag": "0036_sturdy_mole_man",
+      "breakpoints": true
     }
   ]
 }
