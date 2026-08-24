@@ -15,6 +15,8 @@ const ereignis: RundenspielEreignis = {
   ergebnisHeim: null,
   ergebnisAuswaerts: null,
   schiedsrichterKuerzel: null,
+  angesetzterSchiedsrichter: null,
+  angesetzterZeitnehmer: null,
 };
 
 const bestehend = {
@@ -30,6 +32,8 @@ const bestehend = {
   ergebnisHeim: ereignis.ergebnisHeim,
   ergebnisAuswaerts: ereignis.ergebnisAuswaerts,
   nuligaSchiedsrichterKuerzel: ereignis.schiedsrichterKuerzel,
+  handballNetSchiedsrichter: ereignis.angesetzterSchiedsrichter,
+  handballNetZeitnehmer: ereignis.angesetzterZeitnehmer,
 };
 
 describe("terminBenoetigtUpdate", () => {
@@ -53,6 +57,11 @@ describe("terminBenoetigtUpdate", () => {
 
   it("meldet ein Update, wenn sich das nuLiga-Schiedsrichter-Kürzel geändert hat", () => {
     const geaendert = { ...ereignis, schiedsrichterKuerzel: "Mü." };
+    expect(terminBenoetigtUpdate(bestehend, geaendert, "m1")).toBe(true);
+  });
+
+  it("meldet ein Update, wenn sich die handball.net-Ansetzung geändert hat", () => {
+    const geaendert = { ...ereignis, angesetzterZeitnehmer: "Max Mustermann" };
     expect(terminBenoetigtUpdate(bestehend, geaendert, "m1")).toBe(true);
   });
 });

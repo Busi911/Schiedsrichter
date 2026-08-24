@@ -37,6 +37,8 @@ export function terminBenoetigtUpdate(
     ergebnisHeim: number | null;
     ergebnisAuswaerts: number | null;
     nuligaSchiedsrichterKuerzel: string | null;
+    handballNetSchiedsrichter: string | null;
+    handballNetZeitnehmer: string | null;
   },
   ereignis: RundenspielEreignis,
   mannschaftId: string | null
@@ -53,7 +55,9 @@ export function terminBenoetigtUpdate(
     bestehend.freundschaftsTyp !== ereignis.freundschaftsTyp ||
     bestehend.ergebnisHeim !== ereignis.ergebnisHeim ||
     bestehend.ergebnisAuswaerts !== ereignis.ergebnisAuswaerts ||
-    bestehend.nuligaSchiedsrichterKuerzel !== ereignis.schiedsrichterKuerzel
+    bestehend.nuligaSchiedsrichterKuerzel !== ereignis.schiedsrichterKuerzel ||
+    bestehend.handballNetSchiedsrichter !== ereignis.angesetzterSchiedsrichter ||
+    bestehend.handballNetZeitnehmer !== ereignis.angesetzterZeitnehmer
   );
 }
 
@@ -158,6 +162,8 @@ export async function importiereRundenspielEreignisse(
               ergebnisHeim: ereignis.ergebnisHeim,
               ergebnisAuswaerts: ereignis.ergebnisAuswaerts,
               nuligaSchiedsrichterKuerzel: ereignis.schiedsrichterKuerzel,
+              handballNetSchiedsrichter: ereignis.angesetzterSchiedsrichter,
+              handballNetZeitnehmer: ereignis.angesetzterZeitnehmer,
             })
             .where(eq(termine.id, bestehend.id));
           aktualisiert++;
@@ -180,6 +186,8 @@ export async function importiereRundenspielEreignisse(
           ergebnisHeim: ereignis.ergebnisHeim,
           ergebnisAuswaerts: ereignis.ergebnisAuswaerts,
           nuligaSchiedsrichterKuerzel: ereignis.schiedsrichterKuerzel,
+          handballNetSchiedsrichter: ereignis.angesetzterSchiedsrichter,
+          handballNetZeitnehmer: ereignis.angesetzterZeitnehmer,
         });
         neu++;
       }

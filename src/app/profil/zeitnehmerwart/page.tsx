@@ -11,6 +11,7 @@ import {
 import { holeTermineMitZuordnungen } from "@/lib/zuordnung";
 import { berechneBesetzung } from "@/lib/besetzung";
 import { bedarfFuer } from "@/lib/dienste";
+import { angesetzteNamenPassenZu } from "@/lib/rundenspiel-import";
 import {
   zeitnehmerBedarfUeberschreiben,
   zeitnehmerOhneLoginZuordnen,
@@ -433,6 +434,11 @@ export default async function ZeitnehmerwartPage({
                       {t.beschreibung}
                     </p>
                   )}
+                  {t.handballNetZeitnehmer && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      handball.net-Ansetzung: {t.handballNetZeitnehmer}
+                    </p>
+                  )}
                   <details className="group mt-1">
                     <summary className={cn(DISCLOSURE_KLASSE, "text-[0.7rem]")}>
                       <span className="group-open:hidden">
@@ -478,7 +484,18 @@ export default async function ZeitnehmerwartPage({
                   </details>
                   {bestehende.length > 0 && (
                     <ul className="mt-2 flex flex-col gap-1">
-                      {bestehende.map((z) => (
+                      {bestehende.map((z) => {
+                        // z.name ist bei "ohne Login"-Zuordnungen immer null
+                        // — Fallback auf externerName, sonst würde der
+                        // Abgleich für diese Personen immer als Abweichung
+                        // gewertet, selbst wenn der Name passt.
+                        const passt = t.handballNetZeitnehmer
+                          ? angesetzteNamenPassenZu(
+                              t.handballNetZeitnehmer,
+                              z.name ?? z.externerName
+                            )
+                          : null;
+                        return (
                         <li key={z.id}>
                           <div className="flex items-center justify-between gap-2">
                             <span>
@@ -489,6 +506,16 @@ export default async function ZeitnehmerwartPage({
                               {z.externerName && !z.email
                                 ? " (ohne Login)"
                                 : ""}
+                              {passt === true && (
+                                <Badge variant="secondary" className="ml-2">
+                                  ✓ passt zu handball.net ({t.handballNetZeitnehmer})
+                                </Badge>
+                              )}
+                              {passt === false && (
+                                <Badge variant="warning" className="ml-2">
+                                  ⚠ handball.net nennt {t.handballNetZeitnehmer}
+                                </Badge>
+                              )}
                             </span>
                             <div className="flex items-center gap-3">
                               {auswaehlbareOptionen > 0 && (
@@ -546,7 +573,8 @@ export default async function ZeitnehmerwartPage({
                             </div>
                           </div>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   )}
                   {!t.besetzung.zeitnehmerSekretaerVoll && (

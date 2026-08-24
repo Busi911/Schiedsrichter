@@ -7,7 +7,10 @@ import {
 } from "@/lib/schiedsrichterwart";
 import { holeTermineMitZuordnungen } from "@/lib/zuordnung";
 import { berechneBesetzung, brauchtSchiedsrichterVomVerein } from "@/lib/besetzung";
-import { schiedsrichterKuerzelPasstZu } from "@/lib/rundenspiel-import";
+import {
+  angesetzteNamenPassenZu,
+  schiedsrichterKuerzelPasstZu,
+} from "@/lib/rundenspiel-import";
 import {
   schiedsrichterOhneLoginZuordnen,
   schiedsrichterZuordnen,
@@ -275,26 +278,34 @@ export default async function SchiedsrichterwartPage({
                       {t.beschreibung}
                     </p>
                   )}
-                  {t.nuligaSchiedsrichterKuerzel && (
+                  {/* handball.net liefert volle Namen und ist damit
+                      zuverlässiger als der nuLiga-Kürzel-Abgleich — bei
+                      beiden gleichzeitig gesetzt (praktisch ausgeschlossen,
+                      ein Termin stammt aus genau einer Quelle) gewinnt daher
+                      handball.net. */}
+                  {(t.handballNetSchiedsrichter ?? t.nuligaSchiedsrichterKuerzel) && (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      nuLiga-Ansetzung: {t.nuligaSchiedsrichterKuerzel}
+                      {t.handballNetSchiedsrichter ? "handball.net" : "nuLiga"}-Ansetzung:{" "}
+                      {t.handballNetSchiedsrichter ?? t.nuligaSchiedsrichterKuerzel}
                     </p>
                   )}
                   {bestehendeSchiedsrichter.length > 0 && (
                     <ul className="mt-2 flex flex-col gap-1">
                       {bestehendeSchiedsrichter.map((z) => {
+                        const namen = t.handballNetSchiedsrichter;
                         const kuerzel = t.nuligaSchiedsrichterKuerzel;
                         // z.name ist bei "ohne Login"-Zuordnungen immer null
                         // — Fallback auf externerName, sonst würde der
                         // Abgleich für diese Personen immer als Abweichung
                         // gewertet, selbst wenn der Name passt.
-                        const passt =
-                          kuerzel != null
-                            ? schiedsrichterKuerzelPasstZu(
-                                kuerzel,
-                                z.name ?? z.externerName
-                              )
+                        const zugeordneterName = z.name ?? z.externerName;
+                        const passt = namen
+                          ? angesetzteNamenPassenZu(namen, zugeordneterName)
+                          : kuerzel != null
+                            ? schiedsrichterKuerzelPasstZu(kuerzel, zugeordneterName)
                             : null;
+                        const quelle = namen ? "handball.net" : "nuLiga";
+                        const wert = namen ?? kuerzel;
                         return (
                         <li key={z.id}>
                           <div className="flex items-center justify-between gap-2">
@@ -306,12 +317,12 @@ export default async function SchiedsrichterwartPage({
                                 : ""}
                               {passt === true && (
                                 <Badge variant="secondary" className="ml-2">
-                                  ✓ passt zu nuLiga ({kuerzel})
+                                  ✓ passt zu {quelle} ({wert})
                                 </Badge>
                               )}
                               {passt === false && (
                                 <Badge variant="warning" className="ml-2">
-                                  ⚠ nuLiga nennt {kuerzel}
+                                  ⚠ {quelle} nennt {wert}
                                 </Badge>
                               )}
                             </span>

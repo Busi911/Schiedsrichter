@@ -459,6 +459,16 @@ export const termine = pgTable("termin", {
   // Abgleichs-Hinweis gegen die im Verein zugeordnete Person (siehe
   // schiedsrichterKuerzelPasstZu), nicht als automatische Zuordnung.
   nuligaSchiedsrichterKuerzel: text("nuliga_schiedsrichter_kuerzel"),
+  // Nur bei typ = 'rundenspiel' ggf. gesetzt: von handball.net gemeldete
+  // Besetzung (volle Namen statt Kürzel, siehe handball-net-scraper.ts) —
+  // getrennt nach Schiedsrichter-Gespann und Zeitnehmer/Sekretär, da beide
+  // Rollen unterschiedlichen Vereins-Zuordnungen entsprechen (schiedsrichter
+  // vs. zeitnehmer/sekretaer, siehe terminZuordnungen). Wie
+  // nuligaSchiedsrichterKuerzel nur ein Abgleichs-Hinweis (siehe
+  // angesetzteNamenPassenZu in rundenspiel-import.ts), keine automatische
+  // Zuordnung.
+  handballNetSchiedsrichter: text("handball_net_schiedsrichter"),
+  handballNetZeitnehmer: text("handball_net_zeitnehmer"),
   // Vom Zeitnehmerwart pro Einzeltermin gesetzter Bedarf, der den globalen
   // Bedarf aus den Vereinseinstellungen für GENAU diesen Termin übersteuert
   // (siehe bedarfFuer in lib/dienste.ts) — null = Standardverhalten (globale

@@ -75,6 +75,14 @@ export type HandballNetEvent = {
   location: string;
   locationId: string;
   zusatz: string | null;
+  // Volle Namen aus referees, getrennt nach Rolle (siehe
+  // gruppiereSchiedsrichterUndZeitnehmer unten) — anders als der nuLiga-
+  // Kürzel-Abgleich (schiedsrichterKuerzel in RundenspielEreignis) liefert
+  // handball.net vollständige Namen UND unterscheidet Schiedsrichter von
+  // Zeitnehmer/Sekretär, daher zwei eigene Felder statt eines rohen
+  // Textblocks im zusatz-Kanal.
+  schiedsrichter: string | null;
+  zeitnehmer: string | null;
 };
 
 function alsString(wert: unknown): string | undefined {
@@ -124,29 +132,40 @@ type SchiedsrichterRoh = {
 };
 
 // handball.net liefert volle Namen UND die Rolle (Schiedsrichter vs.
-// Zeitnehmer/Sekretär) statt eines abgekürzten Kürzels wie nuLiga — hier
-// bewusst nur roh/lesbar durchgereicht (wie der unbekannte nuLiga-Zusatz-
-// Rest), statt in das nuLiga-Kürzel-Format (KUERZEL_MUSTER in
-// rundenspiel-import.ts) zu pressen. Eine automatische Zuordnung zu
-// zugewiesenen Personen darüber ist ein möglicher nächster Schritt, aber
-// eine bewusste spätere Entscheidung statt eines Nebeneffekts hier.
-function formatiereSchiedsrichter(referees: unknown): string | null {
-  if (!Array.isArray(referees)) return null;
-  const gruppen = new Map<string, string[]>();
+// Zeitnehmer/Sekretär) statt eines abgekürzten Kürzels wie nuLiga — anders
+// als beim rohen nuLiga-Zusatz-Rest lohnt sich das Aufteilen: die Rolle
+// unterscheidet zuverlässig zwei Gruppen, die im Verein unterschiedlichen
+// Zuordnungen entsprechen (schiedsrichter vs. zeitnehmer/sekretaer, siehe
+// terminZuordnungen in db/schema.ts). Beobachtet bislang nur "SCHIEDSRICHTER"
+// als Rollenname (siehe handball-net-scraper.test.ts) — alles andere (auch
+// unbekannte künftige Rollen) landet daher bewusst in der zweiten Gruppe,
+// statt eine zweite exakte Rollenbezeichnung zu raten.
+const SCHIEDSRICHTER_ROLLE_MUSTER = /schiedsrichter/i;
+
+function gruppiereSchiedsrichterUndZeitnehmer(
+  referees: unknown
+): { schiedsrichter: string | null; zeitnehmer: string | null } {
+  if (!Array.isArray(referees)) return { schiedsrichter: null, zeitnehmer: null };
+  const schiedsrichterNamen: string[] = [];
+  const zeitnehmerNamen: string[] = [];
   for (const eintrag of referees) {
     if (typeof eintrag !== "object" || eintrag === null) continue;
     const r = eintrag as SchiedsrichterRoh;
     const vorname = alsString(r.first_name);
     const nachname = alsString(r.last_name);
-    const rolle = alsString(r.role?.name) ?? "Unbekannt";
     if (!nachname) continue;
     const name = vorname ? `${vorname} ${nachname}` : nachname;
-    const liste = gruppen.get(rolle) ?? [];
-    liste.push(name);
-    gruppen.set(rolle, liste);
+    const rolle = alsString(r.role?.name);
+    if (rolle && SCHIEDSRICHTER_ROLLE_MUSTER.test(rolle)) {
+      schiedsrichterNamen.push(name);
+    } else {
+      zeitnehmerNamen.push(name);
+    }
   }
-  if (gruppen.size === 0) return null;
-  return [...gruppen.entries()].map(([rolle, namen]) => `${rolle}: ${namen.join(", ")}`).join(" · ");
+  return {
+    schiedsrichter: schiedsrichterNamen.length ? schiedsrichterNamen.join(", ") : null,
+    zeitnehmer: zeitnehmerNamen.length ? zeitnehmerNamen.join(", ") : null,
+  };
 }
 
 // Ein handball.net-"match"-Objekt (siehe /api/new/matches) in dieselbe
@@ -185,9 +204,7 @@ export function parseHandballNetMatch(
   // auf die interne numerische ID zurück, falls code einmal fehlen sollte.
   const gameNumber = alsString(m.code) ?? alsString(String(m.id ?? ""));
 
-  const zusatzTeile = [formatiereErgebnis(m.result), formatiereSchiedsrichter(m.referees)].filter(
-    (t): t is string => t !== null
-  );
+  const { schiedsrichter, zeitnehmer } = gruppiereSchiedsrichterUndZeitnehmer(m.referees);
 
   return {
     date: datum.date,
@@ -201,7 +218,9 @@ export function parseHandballNetMatch(
     away,
     location: ort,
     locationId: teamId,
-    zusatz: zusatzTeile.length ? zusatzTeile.join(" · ") : null,
+    zusatz: formatiereErgebnis(m.result),
+    schiedsrichter,
+    zeitnehmer,
   };
 }
 
