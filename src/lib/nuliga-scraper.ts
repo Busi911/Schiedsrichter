@@ -164,6 +164,15 @@ export function parseNuligaSeite(
     if (foundDate) currentDate = foundDate;
     if (!currentDate) continue;
 
+    // Exakter Match (^...$) ist hier bewusst strenger als nötig, um nur die
+    // reine Uhrzeit zu erkennen: nuLiga hängt bei generierten Rundenturnier-
+    // Platzhalter-Paarungen, die durch ein individuell angesetztes
+    // Freundschaftsspiel zur selben Zeit ersetzt wurden, ein "x" DIREKT IN
+    // DIESELBE Zelle an (z.B. "10:30 x", kein eigenes <td>, siehe
+    // decodeHtml). Der exakte Match verwirft solche Zeilen daher automatisch
+    // über "timeIndex < 0" weiter unten, statt einen Phantom-Termin für einen
+    // längst ersetzten Platzhalter-Slot anzulegen — kein zusätzlicher
+    // Sonderfall nötig.
     const timeIndex = cells.findIndex((c) => /^\d{2}:\d{2}$/.test(c));
     if (timeIndex < 0) continue;
 

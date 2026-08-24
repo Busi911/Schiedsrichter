@@ -113,6 +113,48 @@ describe("parseNuligaSeite", () => {
     expect(events[0].zusatz).toBe("SR: M. Mueller");
   });
 
+  it('überspringt eine Zeile, deren Zeit-Zelle ein angehängtes "x" trägt (ersetzter Rundenturnier-Platzhalter-Slot)', () => {
+    // Reale nuLiga-Struktur (beobachtet im Hallenspielplan): das "x" landet
+    // NICHT in einer eigenen Zelle, sondern direkt in derselben <td> wie die
+    // Uhrzeit ("10:30&nbsp;x") — bei einer generierten Rundenturnier-
+    // Platzhalter-Paarung, die durch ein individuell angesetztes
+    // Freundschaftsspiel zur selben Zeit ersetzt wurde (hier: "F 2026-08-29
+    // WJC HC Koblenz - TV Großwallstadt" statt der Platzhalter-Paarung "T
+    // WJC TV Engers - TV Großwallstadt").
+    const html = `
+      <h1>Halle (1)</h1>
+      <table>
+        <tr>
+          <td>29.08.2026</td>
+          <td nowrap="nowrap">
+            10:30
+            &nbsp;x
+          &nbsp;</td>
+          <td>0</td>
+          <td>Fr/weibl.</td>
+          <td>T WJC TV Engers - TV Großwallstadt</td>
+          <td>TV Engers 1</td>
+          <td>TV Großwallstadt Junioren 1</td>
+        </tr>
+        <tr>
+          <td class="tabelle-rowspan">&nbsp;</td>
+          <td nowrap="nowrap">10:30&nbsp;</td>
+          <td>0</td>
+          <td>Fr/weibl.</td>
+          <td>F 2026-08-29 WJC HC Koblenz - TV Großwallstadt</td>
+          <td>HC Koblenz 1</td>
+          <td>TV Großwallstadt Junioren 1</td>
+        </tr>
+      </table>
+    `;
+    const { events } = parseNuligaSeite(html, "1");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      home: "HC Koblenz 1",
+      away: "TV Großwallstadt Junioren 1",
+    });
+  });
+
   it("fällt auf einen generischen Namen zurück, wenn keine Überschrift gefunden wird", () => {
     const { locationName } = parseNuligaSeite("<html><body>leer</body></html>", "999");
     expect(locationName).toBe("nuLiga Halle 999");
