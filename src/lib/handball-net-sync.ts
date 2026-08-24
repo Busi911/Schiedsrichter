@@ -15,6 +15,7 @@ import {
 import { holeHandballNetJson, type HandballNetDiagnose } from "./handball-net-scraper";
 import { sendeRundenspielAenderungenBenachrichtigung } from "./rundenspiel-benachrichtigung";
 import { sendeDuplikatBenachrichtigungen } from "./duplikat-benachrichtigung";
+import { ordneHandballNetBesetzungZu } from "./handball-net-zuordnung";
 
 // Ab der 3. Liga läuft der Spielbetrieb über handball.net statt über nuLiga
 // (siehe handball-net-scraper.ts) — Sync-Logik analog zu
@@ -79,7 +80,7 @@ export async function synchronisiereHandballNetMannschaften(
     return bekannt ?? findeMannschaft(ereignis, mannschaftsListe);
   };
 
-  const { neu, aktualisiert, aenderungen } = await importiereRundenspielEreignisse(
+  const { neu, aktualisiert, aenderungen, terminIds } = await importiereRundenspielEreignisse(
     vereinId,
     ereignisse,
     mannschaftIdErmitteln
@@ -89,6 +90,15 @@ export async function synchronisiereHandballNetMannschaften(
     teamIds,
     new Set(ereignisse.map((e) => e.uid))
   );
+
+  // Best effort, analog zu den Benachrichtigungen unten: ein Fehler beim
+  // automatischen Zuordnen soll den bereits erfolgreichen Sync nicht als
+  // fehlgeschlagen ausweisen.
+  try {
+    await ordneHandballNetBesetzungZu(vereinId, terminIds);
+  } catch (err) {
+    console.error("Automatische handball.net-Zuordnung fehlgeschlagen:", err);
+  }
 
   return { neu, aktualisiert, entfernt, aenderungen, parseFehler, abrufFehler, diagnose };
 }

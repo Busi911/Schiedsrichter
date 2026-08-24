@@ -114,6 +114,12 @@ export async function importiereRundenspielEreignisse(
   let neu = 0;
   let aktualisiert = 0;
   const aenderungen: RundenspielAenderung[] = [];
+  // ALLE verarbeiteten Termine (nicht nur neue/aktualisierte) — Basis für
+  // ordneHandballNetBesetzungZu (handball-net-zuordnung.ts), das auch bei
+  // einem unveränderten Termin erneut versuchen soll zu matchen (z.B. wenn
+  // der passende Funktionsträger erst NACH dem letzten Sync angelegt
+  // wurde).
+  const terminIds: string[] = [];
 
   await withTenant(vereinId, async (tx) => {
     // Explizite Sortierung, damit findeMannschaft bei mehreren Treffern
@@ -135,6 +141,7 @@ export async function importiereRundenspielEreignisse(
       });
 
       if (bestehend) {
+        terminIds.push(bestehend.id);
         if (terminBenoetigtUpdate(bestehend, ereignis, mannschaftId)) {
           const aenderung = ermittleRundenspielAenderung(bestehend, ereignis);
           if (aenderung) {
@@ -169,32 +176,36 @@ export async function importiereRundenspielEreignisse(
           aktualisiert++;
         }
       } else {
-        await tx.insert(termine).values({
-          vereinId,
-          typ: "rundenspiel",
-          quelle: "rundenspiel_import",
-          start: ereignis.start,
-          ort: ereignis.ort,
-          beschreibung: ereignis.beschreibung,
-          mannschaftId,
-          icsUid: ereignis.uid,
-          heimMannschaftName: ereignis.heimMannschaft,
-          auswaertsMannschaftName: ereignis.auswaertsMannschaft,
-          kategorie: ereignis.kategorie,
-          pflichtspiel: ereignis.pflichtspiel,
-          freundschaftsTyp: ereignis.freundschaftsTyp,
-          ergebnisHeim: ereignis.ergebnisHeim,
-          ergebnisAuswaerts: ereignis.ergebnisAuswaerts,
-          nuligaSchiedsrichterKuerzel: ereignis.schiedsrichterKuerzel,
-          handballNetSchiedsrichter: ereignis.angesetzterSchiedsrichter,
-          handballNetZeitnehmer: ereignis.angesetzterZeitnehmer,
-        });
+        const [eingefuegt] = await tx
+          .insert(termine)
+          .values({
+            vereinId,
+            typ: "rundenspiel",
+            quelle: "rundenspiel_import",
+            start: ereignis.start,
+            ort: ereignis.ort,
+            beschreibung: ereignis.beschreibung,
+            mannschaftId,
+            icsUid: ereignis.uid,
+            heimMannschaftName: ereignis.heimMannschaft,
+            auswaertsMannschaftName: ereignis.auswaertsMannschaft,
+            kategorie: ereignis.kategorie,
+            pflichtspiel: ereignis.pflichtspiel,
+            freundschaftsTyp: ereignis.freundschaftsTyp,
+            ergebnisHeim: ereignis.ergebnisHeim,
+            ergebnisAuswaerts: ereignis.ergebnisAuswaerts,
+            nuligaSchiedsrichterKuerzel: ereignis.schiedsrichterKuerzel,
+            handballNetSchiedsrichter: ereignis.angesetzterSchiedsrichter,
+            handballNetZeitnehmer: ereignis.angesetzterZeitnehmer,
+          })
+          .returning({ id: termine.id });
+        terminIds.push(eingefuegt.id);
         neu++;
       }
     }
   });
 
-  return { neu, aktualisiert, aenderungen };
+  return { neu, aktualisiert, aenderungen, terminIds };
 }
 
 // locationId steckt als erstes Segment in der UID (siehe bildeUid in

@@ -71,6 +71,12 @@ export const zuordnungQuelleEnum = pgEnum("zuordnung_quelle", [
   // /zeitnehmer-eintragen/[token]) — anders als "selbst_angemeldet" ohne
   // Session, daher eigener Wert für Nachvollziehbarkeit.
   "selbst_eingetragen_oeffentlich",
+  // Automatisch beim handball.net-Sync übernommen, weil der von handball.net
+  // gemeldete Name exakt zu einem bereits angelegten Funktionsträger passt
+  // (siehe ordneHandballNetBesetzungZu in handball-net-zuordnung.ts) — kein
+  // manueller Zuordnungs-Klick, daher eigener Wert statt
+  // "zugeordnet_durch_admin".
+  "handball_net_uebernommen",
 ]);
 
 export const syncStatusEnum = pgEnum("sync_status", [
