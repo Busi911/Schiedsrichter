@@ -76,12 +76,29 @@ describe("parseHandballNetMatch", () => {
 
   it("liefert kein Ergebnis-Segment, solange das Spiel noch nicht ausgetragen ist", () => {
     const event = parseHandballNetMatch(beispielMatch(), "69770");
-    expect(event?.zusatz).not.toMatch(/\d+:\d+/);
+    expect(event?.zusatz ?? "").not.toMatch(/\d+:\d+/);
   });
 
-  it("gruppiert Schiedsrichter/Zeitnehmer nach Rolle mit vollem Namen in zusatz", () => {
+  it("extrahiert Schiedsrichter mit vollem Namen in ein eigenes Feld statt in zusatz", () => {
     const event = parseHandballNetMatch(beispielMatch(), "69770");
-    expect(event?.zusatz).toContain("SCHIEDSRICHTER: Levin Wanders, Georgios Dalampakis");
+    expect(event?.schiedsrichter).toBe("Levin Wanders, Georgios Dalampakis");
+    expect(event?.zeitnehmer).toBeNull();
+    expect(event?.zusatz).toBeNull();
+  });
+
+  it("ordnet Rollen ohne 'Schiedsrichter' im Namen dem Zeitnehmer/Sekretär-Feld zu", () => {
+    const event = parseHandballNetMatch(
+      beispielMatch({
+        referees: [
+          { first_name: "Levin", last_name: "Wanders", role: { name: "SCHIEDSRICHTER" } },
+          { first_name: "Max", last_name: "Mustermann", role: { name: "ZEITNEHMER" } },
+          { first_name: "Erika", last_name: "Musterfrau", role: { name: "SEKRETAER" } },
+        ],
+      }),
+      "69770"
+    );
+    expect(event?.schiedsrichter).toBe("Levin Wanders");
+    expect(event?.zeitnehmer).toBe("Max Mustermann, Erika Musterfrau");
   });
 
   it("fällt bei fehlender Hallen-Angabe auf den Heimmannschaftsnamen zurück", () => {

@@ -45,6 +45,12 @@ export type RundenspielEreignis = {
   // Person, nicht als automatische Zuordnung (die exakte Kürzung ist nicht
   // zuverlässig bekannt).
   schiedsrichterKuerzel: string | null;
+  // Nur bei handball.net-Ursprung gesetzt (siehe handball-net-scraper.ts):
+  // volle Namen statt Kürzel, dafür getrennt nach Rolle. Dient wie
+  // schiedsrichterKuerzel nur als Abgleichs-Hinweis (siehe
+  // angesetzteNamenPassenZu unten), nicht als automatische Zuordnung.
+  angesetzterSchiedsrichter: string | null;
+  angesetzterZeitnehmer: string | null;
 };
 
 export type RundenspielParseFehler = { index: number; grund: string };
@@ -191,6 +197,39 @@ export function schiedsrichterKuerzelPasstZu(
     .some((teilOhnePunkt) => nachname.startsWith(teilOhnePunkt));
 }
 
+// U+0300-U+036F = Unicode "Combining Diacritical Marks" — nach NFD-
+// Normalisierung zerfällt z.B. "ü" in "u" + Kombinationszeichen; das Entfernen
+// macht den Vergleich unempfindlich gegenüber Umlaut-Schreibweisen (gleiches
+// Prinzip wie in lib/namens-abgleich.ts, hier bewusst nicht importiert, da
+// dort nur ein einzelner Name statt einer kommaseparierten Liste verglichen
+// wird und die Fuzzy-Vorschlagslogik hier nicht gebraucht wird).
+function normalisiereName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+// Analog zu schiedsrichterKuerzelPasstZu, aber für handball.net: dort liegen
+// volle Namen vor (siehe angesetzterSchiedsrichter/angesetzterZeitnehmer),
+// daher genügt ein exakter Vergleich statt einer Nachnamen-Heuristik. Mehrere
+// angesetzte Namen sind kommasepariert (siehe
+// gruppiereSchiedsrichterUndZeitnehmer in handball-net-scraper.ts) — ein
+// Treffer auf EINEN der Namen reicht, welche zugeordnete Person zu welchem
+// der (ggf. zwei) angesetzten Namen gehört, wird bewusst nicht geprüft
+// (reiner Hinweis, kein hartes Kriterium).
+export function angesetzteNamenPassenZu(
+  angesetzteNamen: string,
+  name: string | null | undefined
+): boolean {
+  if (!name) return false;
+  const ziel = normalisiereName(name);
+  return angesetzteNamen
+    .split(",")
+    .some((teil) => normalisiereName(teil) === ziel);
+}
+
 type RundenturnierKandidat = {
   uid: string;
   start: Date;
@@ -289,6 +328,8 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
     ergebnisHeim: number | null;
     ergebnisAuswaerts: number | null;
     schiedsrichterKuerzel: string | null;
+    angesetzterSchiedsrichter: string | null;
+    angesetzterZeitnehmer: string | null;
   };
   const rohEreignisse: RohEreignis[] = [];
 
@@ -368,6 +409,13 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
         extrahiereErgebnis(zusatzRoh);
       const { kuerzel: schiedsrichterKuerzel, zusatzOhneKuerzel: zusatz } =
         extrahiereSchiedsrichterKuerzel(zusatzOhneErgebnis);
+      // Nur bei handball.net-Ursprung gesetzt (siehe schiedsrichter/
+      // zeitnehmer in HandballNetEvent) — nuLiga-Events haben diese Felder
+      // nicht, bleiben also stets null.
+      const angesetzterSchiedsrichter =
+        typeof e.schiedsrichter === "string" ? e.schiedsrichter : null;
+      const angesetzterZeitnehmer =
+        typeof e.zeitnehmer === "string" ? e.zeitnehmer : null;
 
       rohEreignisse.push({
         uid,
@@ -381,6 +429,8 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
         istPflichtspiel,
         istFreundschaftsstaffel,
         zusatz,
+        angesetzterSchiedsrichter,
+        angesetzterZeitnehmer,
         ergebnisHeim,
         ergebnisAuswaerts,
         schiedsrichterKuerzel,
@@ -432,6 +482,8 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       ergebnisHeim: r.ergebnisHeim,
       ergebnisAuswaerts: r.ergebnisAuswaerts,
       schiedsrichterKuerzel: r.schiedsrichterKuerzel,
+      angesetzterSchiedsrichter: r.angesetzterSchiedsrichter,
+      angesetzterZeitnehmer: r.angesetzterZeitnehmer,
     };
   });
 

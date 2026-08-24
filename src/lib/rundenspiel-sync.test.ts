@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ermittleRundenspielAenderung, terminBenoetigtUpdate } from "./rundenspiel-sync";
+import {
+  ermittleRundenspielAenderung,
+  ermittleVerwaisteRundenspielIds,
+  terminBenoetigtUpdate,
+} from "./rundenspiel-sync";
 import type { RundenspielEreignis } from "./rundenspiel-import";
 
 const ereignis: RundenspielEreignis = {
@@ -15,6 +19,8 @@ const ereignis: RundenspielEreignis = {
   ergebnisHeim: null,
   ergebnisAuswaerts: null,
   schiedsrichterKuerzel: null,
+  angesetzterSchiedsrichter: null,
+  angesetzterZeitnehmer: null,
 };
 
 const bestehend = {
@@ -30,6 +36,8 @@ const bestehend = {
   ergebnisHeim: ereignis.ergebnisHeim,
   ergebnisAuswaerts: ereignis.ergebnisAuswaerts,
   nuligaSchiedsrichterKuerzel: ereignis.schiedsrichterKuerzel,
+  handballNetSchiedsrichter: ereignis.angesetzterSchiedsrichter,
+  handballNetZeitnehmer: ereignis.angesetzterZeitnehmer,
 };
 
 describe("terminBenoetigtUpdate", () => {
@@ -53,6 +61,11 @@ describe("terminBenoetigtUpdate", () => {
 
   it("meldet ein Update, wenn sich das nuLiga-Schiedsrichter-Kürzel geändert hat", () => {
     const geaendert = { ...ereignis, schiedsrichterKuerzel: "Mü." };
+    expect(terminBenoetigtUpdate(bestehend, geaendert, "m1")).toBe(true);
+  });
+
+  it("meldet ein Update, wenn sich die handball.net-Ansetzung geändert hat", () => {
+    const geaendert = { ...ereignis, angesetzterZeitnehmer: "Max Mustermann" };
     expect(terminBenoetigtUpdate(bestehend, geaendert, "m1")).toBe(true);
   });
 });
@@ -94,5 +107,36 @@ describe("ermittleRundenspielAenderung", () => {
     // erkennt die Änderung trotzdem (siehe oben), nur eben nicht als
     // ergebnisNeu für die Benachrichtigung.
     expect(ermittleRundenspielAenderung(bestehendMitErgebnis, geaendert)).toBeNull();
+  });
+});
+
+describe("ermittleVerwaisteRundenspielIds", () => {
+  it("erkennt einen Termin einer synchronisierten Halle, der im frischen Feed fehlt", () => {
+    const bestehende = [
+      { id: "t1", icsUid: "rundenspiel:30402:2026-08-29:10:30:TV Engers 1:TV Großwallstadt 1" },
+    ];
+    const ids = ermittleVerwaisteRundenspielIds(bestehende, ["30402"], new Set());
+    expect(ids).toEqual(["t1"]);
+  });
+
+  it("lässt einen Termin unangetastet, der weiterhin im frischen Feed auftaucht", () => {
+    const uid = "rundenspiel:30402:2026-08-29:10:30:TV Engers 1:TV Großwallstadt 1";
+    const bestehende = [{ id: "t1", icsUid: uid }];
+    const ids = ermittleVerwaisteRundenspielIds(bestehende, ["30402"], new Set([uid]));
+    expect(ids).toEqual([]);
+  });
+
+  it("lässt einen Termin einer NICHT (mehr) synchronisierten Halle unangetastet", () => {
+    const bestehende = [
+      { id: "t1", icsUid: "rundenspiel:99999:2026-08-29:10:30:Heim:Gast" },
+    ];
+    const ids = ermittleVerwaisteRundenspielIds(bestehende, ["30402"], new Set());
+    expect(ids).toEqual([]);
+  });
+
+  it("ignoriert Termine ohne icsUid (z.B. manuell angelegte Termine)", () => {
+    const bestehende = [{ id: "t1", icsUid: null }];
+    const ids = ermittleVerwaisteRundenspielIds(bestehende, ["30402"], new Set());
+    expect(ids).toEqual([]);
   });
 });

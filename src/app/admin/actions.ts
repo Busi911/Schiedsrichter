@@ -145,6 +145,7 @@ export async function handballNetSynchronisieren() {
   const params = new URLSearchParams();
   params.set("hnNeu", String(ergebnis.neu));
   params.set("hnAktualisiert", String(ergebnis.aktualisiert));
+  params.set("hnEntfernt", String(ergebnis.entfernt));
   const fehlerListe = [
     ...ergebnis.abrufFehler.map((f) => `Team ${f.teamId}: ${f.grund}`),
     ...ergebnis.parseFehler.map((f) => `Eintrag ${f.index}: ${f.grund}`),

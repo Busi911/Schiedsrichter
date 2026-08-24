@@ -15,7 +15,10 @@ import { formatMannschaft } from "@/lib/dashboard";
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { bedarfFuer } from "@/lib/dienste";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
-import { schiedsrichterKuerzelPasstZu } from "@/lib/rundenspiel-import";
+import {
+  angesetzteNamenPassenZu,
+  schiedsrichterKuerzelPasstZu,
+} from "@/lib/rundenspiel-import";
 import type { KalenderEintrag, TurnierBalkenBearbeitbar } from "@/components/monats-kalender";
 import { formatZeit } from "@/lib/format";
 import { formatErgebnis, rundenspielTypLabel } from "@/lib/termin-label";
@@ -72,6 +75,8 @@ export async function holeAdminKalenderDaten(
           ergebnisHeim: termine.ergebnisHeim,
           ergebnisAuswaerts: termine.ergebnisAuswaerts,
           nuligaSchiedsrichterKuerzel: termine.nuligaSchiedsrichterKuerzel,
+          handballNetSchiedsrichter: termine.handballNetSchiedsrichter,
+          handballNetZeitnehmer: termine.handballNetZeitnehmer,
           mannschaftId: termine.mannschaftId,
           mannschaftName: mannschaften.name,
           mannschaftAltersklasse: mannschaften.altersklasse,
@@ -215,28 +220,61 @@ export async function holeAdminKalenderDaten(
       const label = `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
         z.name ?? z.externerName ?? z.email
       }${z.externerName && !z.email ? " (ohne Login)" : ""}`;
+      // z.name ist bei "ohne Login"-Zuordnungen (kein Account) immer null —
+      // ohne den Fallback auf externerName würde der Abgleich für diese
+      // Personen grundsätzlich ins Leere laufen und fälschlich vor einer
+      // Abweichung warnen, selbst wenn der Name eigentlich passt.
+      const zugeordneterName = z.name ?? z.externerName;
       let hinweis: string | undefined;
-      if (z.funktionstraegerTyp === "schiedsrichter" && t.nuligaSchiedsrichterKuerzel) {
-        // z.name ist bei "ohne Login"-Zuordnungen (kein Account) immer
-        // null — ohne den Fallback auf externerName würde der Abgleich für
-        // diese Personen grundsätzlich ins Leere laufen und fälschlich vor
-        // einer Abweichung warnen, selbst wenn der Name eigentlich passt.
-        hinweis = schiedsrichterKuerzelPasstZu(
-          t.nuligaSchiedsrichterKuerzel,
-          z.name ?? z.externerName
-        )
-          ? `✓ passt zu nuLiga: ${t.nuligaSchiedsrichterKuerzel}`
-          : `⚠ nuLiga nennt: ${t.nuligaSchiedsrichterKuerzel}`;
+      if (z.funktionstraegerTyp === "schiedsrichter") {
+        // handball.net liefert volle Namen (siehe angesetzteNamenPassenZu)
+        // und ist damit zuverlässiger als der nuLiga-Kürzel-Abgleich — bei
+        // beiden gleichzeitig gesetzt (kommt praktisch nicht vor, ein Termin
+        // stammt aus genau einer Quelle) gewinnt daher handball.net.
+        if (t.handballNetSchiedsrichter) {
+          hinweis = angesetzteNamenPassenZu(t.handballNetSchiedsrichter, zugeordneterName)
+            ? `✓ passt zu handball.net: ${t.handballNetSchiedsrichter}`
+            : `⚠ handball.net nennt: ${t.handballNetSchiedsrichter}`;
+        } else if (t.nuligaSchiedsrichterKuerzel) {
+          hinweis = schiedsrichterKuerzelPasstZu(t.nuligaSchiedsrichterKuerzel, zugeordneterName)
+            ? `✓ passt zu nuLiga: ${t.nuligaSchiedsrichterKuerzel}`
+            : `⚠ nuLiga nennt: ${t.nuligaSchiedsrichterKuerzel}`;
+        }
+      } else if (
+        (z.funktionstraegerTyp === "zeitnehmer" || z.funktionstraegerTyp === "sekretaer") &&
+        t.handballNetZeitnehmer
+      ) {
+        hinweis = angesetzteNamenPassenZu(t.handballNetZeitnehmer, zugeordneterName)
+          ? `✓ passt zu handball.net: ${t.handballNetZeitnehmer}`
+          : `⚠ handball.net nennt: ${t.handballNetZeitnehmer}`;
       }
       besetzungsDetails.push({ id: z.id, label, hinweis });
     }
     if (
-      t.nuligaSchiedsrichterKuerzel &&
+      (t.handballNetSchiedsrichter || t.nuligaSchiedsrichterKuerzel) &&
       !eigeneZuordnungen.some((z) => z.funktionstraegerTyp === "schiedsrichter")
     ) {
+      besetzungsDetails.push(
+        t.handballNetSchiedsrichter
+          ? {
+              id: `handball-net-schiedsrichter-${t.id}`,
+              label: `handball.net-Ansetzung: ${t.handballNetSchiedsrichter} (noch nicht zugeordnet)`,
+            }
+          : {
+              id: `nuliga-kuerzel-${t.id}`,
+              label: `nuLiga-Ansetzung: ${t.nuligaSchiedsrichterKuerzel} (noch nicht zugeordnet)`,
+            }
+      );
+    }
+    if (
+      t.handballNetZeitnehmer &&
+      !eigeneZuordnungen.some(
+        (z) => z.funktionstraegerTyp === "zeitnehmer" || z.funktionstraegerTyp === "sekretaer"
+      )
+    ) {
       besetzungsDetails.push({
-        id: `nuliga-kuerzel-${t.id}`,
-        label: `nuLiga-Ansetzung: ${t.nuligaSchiedsrichterKuerzel} (noch nicht zugeordnet)`,
+        id: `handball-net-zeitnehmer-${t.id}`,
+        label: `handball.net-Ansetzung: ${t.handballNetZeitnehmer} (noch nicht zugeordnet)`,
       });
     }
 

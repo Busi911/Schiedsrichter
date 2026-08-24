@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  angesetzteNamenPassenZu,
   findeMannschaft,
   gruppiereUnbekannteMannschaften,
   normalisiereMannschaftsname,
@@ -197,6 +198,38 @@ describe("parseRundenspielJson", () => {
   it("lässt schiedsrichterKuerzel null, wenn die Zusatz-Zelle kein Kürzel-Muster enthält", () => {
     const { ereignisse } = parseRundenspielJson(beispielJson());
     expect(ereignisse[0].schiedsrichterKuerzel).toBeNull();
+  });
+
+  it("übernimmt die handball.net-Felder schiedsrichter/zeitnehmer als angesetzte Namen", () => {
+    const { ereignisse } = parseRundenspielJson(
+      beispielJson({
+        events: [
+          {
+            date: "2026-08-02",
+            time: "15:00",
+            start: "2026-08-02T15:00:00+02:00",
+            title: "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1",
+            gameNumber: "2627DHB3LERMC0102",
+            home: "TSF Heuchelheim 1",
+            away: "HSG Lumdatal e.V. 1",
+            location: "Sporthalle Heuchelheim",
+            locationId: 30402,
+            schiedsrichter: "Levin Wanders, Georgios Dalampakis",
+            zeitnehmer: "Max Mustermann",
+          },
+        ],
+      })
+    );
+    expect(ereignisse[0].angesetzterSchiedsrichter).toBe(
+      "Levin Wanders, Georgios Dalampakis"
+    );
+    expect(ereignisse[0].angesetzterZeitnehmer).toBe("Max Mustermann");
+  });
+
+  it("lässt die handball.net-Felder null, wenn sie im Event fehlen (nuLiga-Quelle)", () => {
+    const { ereignisse } = parseRundenspielJson(beispielJson());
+    expect(ereignisse[0].angesetzterSchiedsrichter).toBeNull();
+    expect(ereignisse[0].angesetzterZeitnehmer).toBeNull();
   });
 
   it("extrahiert ein Gespann-Kürzel (zwei Schiedsrichter, durch \"/\" getrennt)", () => {
@@ -752,5 +785,34 @@ describe("schiedsrichterKuerzelPasstZu", () => {
     expect(schiedsrichterKuerzelPasstZu("Eike/Fisc.", "Sabrina Gerullis")).toBe(
       false
     );
+  });
+});
+
+describe("angesetzteNamenPassenZu", () => {
+  it("erkennt einen exakten Namenstreffer", () => {
+    expect(angesetzteNamenPassenZu("Max Mustermann", "Max Mustermann")).toBe(true);
+  });
+
+  it("ist unempfindlich gegenüber Groß-/Kleinschreibung und Umlaut-Schreibweise", () => {
+    expect(angesetzteNamenPassenZu("Max Müller", "max mueller".replace("mueller", "müller"))).toBe(
+      true
+    );
+  });
+
+  it("erkennt einen Treffer auf einen von mehreren kommaseparierten Namen", () => {
+    expect(
+      angesetzteNamenPassenZu("Levin Wanders, Georgios Dalampakis", "Georgios Dalampakis")
+    ).toBe(true);
+  });
+
+  it("lehnt ab, wenn kein angesetzter Name passt", () => {
+    expect(angesetzteNamenPassenZu("Levin Wanders, Georgios Dalampakis", "Max Mustermann")).toBe(
+      false
+    );
+  });
+
+  it("gibt false zurück, wenn kein Name vorhanden ist", () => {
+    expect(angesetzteNamenPassenZu("Max Mustermann", null)).toBe(false);
+    expect(angesetzteNamenPassenZu("Max Mustermann", undefined)).toBe(false);
   });
 });

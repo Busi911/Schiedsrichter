@@ -125,6 +125,7 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
     const ergebnis = await synchronisiereNuligaHallen(vereinId, hallenIds);
     params.set("nuligaNeu", String(ergebnis.neu));
     params.set("nuligaAktualisiert", String(ergebnis.aktualisiert));
+    params.set("nuligaEntfernt", String(ergebnis.entfernt));
     const fehlerListe = [
       ...ergebnis.abrufFehler.map(
         (f) => `Halle ${f.locationId} (${f.requestedMonth}): ${f.grund}`

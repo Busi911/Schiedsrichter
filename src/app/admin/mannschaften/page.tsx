@@ -19,6 +19,7 @@ export default async function MannschaftenPage({
   searchParams: Promise<{
     hnNeu?: string;
     hnAktualisiert?: string;
+    hnEntfernt?: string;
     hnFehler?: string;
     hnDiagnose?: string;
   }>;
@@ -55,7 +56,8 @@ export default async function MannschaftenPage({
         >
           <AlertTitle>
             handball.net-Sync: {hnErgebnis.hnNeu} neu,{" "}
-            {hnErgebnis.hnAktualisiert ?? 0} aktualisiert
+            {hnErgebnis.hnAktualisiert ?? 0} aktualisiert,{" "}
+            {hnErgebnis.hnEntfernt ?? 0} entfernt
           </AlertTitle>
           {(hnErgebnis.hnFehler || hnErgebnis.hnDiagnose) && (
             <AlertDescription>
