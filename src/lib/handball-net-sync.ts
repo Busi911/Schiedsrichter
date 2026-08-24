@@ -8,6 +8,7 @@ import {
   type RundenspielEreignis,
 } from "./rundenspiel-import";
 import {
+  entferneVerwaisteRundenspiele,
   importiereRundenspielEreignisse,
   type RundenspielAenderung,
 } from "./rundenspiel-sync";
@@ -35,6 +36,7 @@ function teamIdAusUid(uid: string): string | null {
 export type HandballNetSyncErgebnis = {
   neu: number;
   aktualisiert: number;
+  entfernt: number;
   aenderungen: RundenspielAenderung[];
   parseFehler: { index: number; grund: string }[];
   abrufFehler: { teamId: string; grund: string }[];
@@ -49,6 +51,7 @@ export async function synchronisiereHandballNetMannschaften(
     return {
       neu: 0,
       aktualisiert: 0,
+      entfernt: 0,
       aenderungen: [],
       parseFehler: [],
       abrufFehler: [],
@@ -81,8 +84,13 @@ export async function synchronisiereHandballNetMannschaften(
     ereignisse,
     mannschaftIdErmitteln
   );
+  const entfernt = await entferneVerwaisteRundenspiele(
+    vereinId,
+    teamIds,
+    new Set(ereignisse.map((e) => e.uid))
+  );
 
-  return { neu, aktualisiert, aenderungen, parseFehler, abrufFehler, diagnose };
+  return { neu, aktualisiert, entfernt, aenderungen, parseFehler, abrufFehler, diagnose };
 }
 
 // Für alle Mannschaften mit gepflegter handball.net-Team-ID, vereinsweise

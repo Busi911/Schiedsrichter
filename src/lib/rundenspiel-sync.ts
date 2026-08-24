@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, gte, inArray } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
 import { mannschaften, termine, vereine } from "@/db/schema";
@@ -197,9 +197,86 @@ export async function importiereRundenspielEreignisse(
   return { neu, aktualisiert, aenderungen };
 }
 
+// locationId steckt als erstes Segment in der UID (siehe bildeUid in
+// rundenspiel-import.ts: "rundenspiel:{locationId}:..."), sowohl bei nuLiga
+// (Hallen-ID) als auch bei handball.net (Team-ID) — beide Quellen teilen sich
+// denselben Namensraum ohne Quellen-Präfix. Träfe eine nuLiga-Hallen-ID
+// zufällig numerisch auf eine handball.net-Team-ID desselben Vereins, könnte
+// der jeweils andere Sync-Lauf dessen Termine fälschlich als verwaist
+// entfernen — praktisch sehr unwahrscheinlich (zwei unabhängige externe
+// ID-Räume) und selbstheilend (der betroffene Sync legt sie beim nächsten
+// Lauf einfach neu an), daher hier bewusst kein Quellen-Tag in der UID
+// ergänzt (würde sonst bestehende UIDs aller bereits importierten Termine
+// brechen).
+function locationIdAusUid(uid: string): string | null {
+  return uid.match(/^rundenspiel:([^:]+):/)?.[1] ?? null;
+}
+
+// Reiner Vergleich (ohne DB-Zugriff, siehe rundenspiel-sync.test.ts):
+// bereits importierte Rundenspiele einer aktuell synchronisierten Halle/
+// Mannschaft, die im frisch geparsten Feed nicht mehr auftauchen — z.B. weil
+// nuLiga die Zeile nachträglich mit "x" als durch ein anderes Spiel ersetzt
+// markiert hat (das Spiel bleibt dabei bei nuLiga selbst sichtbar
+// stehen, "ausgext", nur ohne gültige Uhrzeit-Zelle mehr, siehe
+// nuliga-scraper.ts) — der frische Feed ist für die synchronisierten
+// locationIds die vollständige, aktuelle Wahrheit, ein Fehlen dort bedeutet
+// also "nicht mehr gültig". Nur Termine EINER der aktuell synchronisierten
+// locationIds betroffen — ein Termin einer nicht mehr konfigurierten Halle/
+// Mannschaft (z.B. nach Entfernen der Hallen-ID) bleibt unangetastet, dafür
+// müsste sie ja gerade NICHT mehr Teil dieses Sync-Laufs sein.
+export function ermittleVerwaisteRundenspielIds(
+  bestehende: { id: string; icsUid: string | null }[],
+  locationIds: string[],
+  aktuelleUids: Set<string>
+): string[] {
+  const locationIdSet = new Set(locationIds);
+  return bestehende
+    .filter((t) => {
+      if (!t.icsUid) return false;
+      const locationId = locationIdAusUid(t.icsUid);
+      return locationId !== null && locationIdSet.has(locationId) && !aktuelleUids.has(t.icsUid);
+    })
+    .map((t) => t.id);
+}
+
+// Löscht die von ermittleVerwaisteRundenspielIds gefundenen Termine. Nur
+// ZUKÜNFTIGE Termine (start >= jetzt): vergangene, bereits gespielte Termine
+// bleiben unangetastet, selbst wenn ihre Halle/Mannschaft aktuell
+// synchronisiert wird — die History soll dadurch nicht rückwirkend
+// verschwinden. Cascade-Löschung (siehe termin_zuordnung/benachrichtigung in
+// db/schema.ts) entfernt dabei automatisch auch bereits zugeordnete
+// Schiedsrichter/Zeitnehmer und offene Benachrichtigungen für diesen Termin.
+export async function entferneVerwaisteRundenspiele(
+  vereinId: string,
+  locationIds: string[],
+  aktuelleUids: Set<string>,
+  jetzt = new Date()
+): Promise<number> {
+  if (locationIds.length === 0) return 0;
+
+  return withTenant(vereinId, async (tx) => {
+    const kandidaten = await tx.query.termine.findMany({
+      where: and(
+        eq(termine.vereinId, vereinId),
+        eq(termine.typ, "rundenspiel"),
+        eq(termine.quelle, "rundenspiel_import"),
+        gte(termine.start, jetzt)
+      ),
+      columns: { id: true, icsUid: true },
+    });
+
+    const verwaisteIds = ermittleVerwaisteRundenspielIds(kandidaten, locationIds, aktuelleUids);
+    if (verwaisteIds.length === 0) return 0;
+
+    await tx.delete(termine).where(inArray(termine.id, verwaisteIds));
+    return verwaisteIds.length;
+  });
+}
+
 export type NuligaSyncErgebnis = {
   neu: number;
   aktualisiert: number;
+  entfernt: number;
   aenderungen: RundenspielAenderung[];
   parseFehler: { index: number; grund: string }[];
   abrufFehler: { locationId: string; requestedMonth: string; grund: string }[];
@@ -220,6 +297,7 @@ export async function synchronisiereNuligaHallen(
     return {
       neu: 0,
       aktualisiert: 0,
+      entfernt: 0,
       aenderungen: [],
       parseFehler: [],
       abrufFehler: [],
@@ -233,8 +311,13 @@ export async function synchronisiereNuligaHallen(
     vereinId,
     ereignisse
   );
+  const entfernt = await entferneVerwaisteRundenspiele(
+    vereinId,
+    hallenIds,
+    new Set(ereignisse.map((e) => e.uid))
+  );
 
-  return { neu, aktualisiert, aenderungen, parseFehler, abrufFehler, diagnose };
+  return { neu, aktualisiert, entfernt, aenderungen, parseFehler, abrufFehler, diagnose };
 }
 
 // Für alle Vereine mit aktiviertem Auto-Import (siehe /api/cron/rundenspiel-sync).

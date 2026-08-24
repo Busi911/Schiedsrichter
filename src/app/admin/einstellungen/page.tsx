@@ -23,6 +23,7 @@ export default async function EinstellungenPage({
   searchParams: Promise<{
     nuligaNeu?: string;
     nuligaAktualisiert?: string;
+    nuligaEntfernt?: string;
     nuligaFehler?: string;
     nuligaDiagnose?: string;
   }>;
@@ -261,7 +262,8 @@ export default async function EinstellungenPage({
         >
           <AlertTitle>
             nuLiga-Sync: {nuligaErgebnis.nuligaNeu} neu,{" "}
-            {nuligaErgebnis.nuligaAktualisiert ?? 0} aktualisiert
+            {nuligaErgebnis.nuligaAktualisiert ?? 0} aktualisiert,{" "}
+            {nuligaErgebnis.nuligaEntfernt ?? 0} entfernt
           </AlertTitle>
           {(nuligaErgebnis.nuligaFehler || nuligaErgebnis.nuligaDiagnose) && (
             <AlertDescription>
