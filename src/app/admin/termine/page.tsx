@@ -4,7 +4,6 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { ignorierteMannschaften, mannschaften, termine } from "@/db/schema";
 import {
-  createTermin,
   mannschaftAusRundenspielAnlegen,
   spielDuplikatVerknuepfen,
   unbekannteMannschaftAblehnen,
@@ -17,15 +16,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CollapsibleCard } from "@/components/collapsible-card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LabeledSelect } from "@/components/labeled-select";
+import { NeuerTerminDialog } from "@/components/neuer-termin-dialog";
 import { RundenspieleListe } from "@/components/rundenspiele-liste";
 import {
   Table,
@@ -147,117 +144,63 @@ async function TestspieleTab({
   });
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Alle Termine</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {liste.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Noch keine Termine angelegt.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Datum</TableHead>
-                  <TableHead>Typ</TableHead>
-                  <TableHead>Mannschaft</TableHead>
-                  <TableHead>Ort</TableHead>
-                  <TableHead>Beschreibung</TableHead>
-                  <TableHead />
+    <Card>
+      <CardHeader>
+        <CardTitle>Alle Termine</CardTitle>
+        {istAdmin && (
+          <CardAction>
+            <NeuerTerminDialog mannschaftsListe={mannschaftsListe} />
+          </CardAction>
+        )}
+      </CardHeader>
+      <CardContent>
+        {liste.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Noch keine Termine angelegt.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Datum</TableHead>
+                <TableHead>Typ</TableHead>
+                <TableHead>Mannschaft</TableHead>
+                <TableHead>Ort</TableHead>
+                <TableHead>Beschreibung</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {liste.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-medium">
+                    {formatDateTime(t.start)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {TYP_LABEL[t.typ] ?? t.typ}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatMannschaft(t) ?? "—"}
+                  </TableCell>
+                  <TableCell>{t.ort ?? "—"}</TableCell>
+                  <TableCell>{t.beschreibung ?? "—"}</TableCell>
+                  <TableCell className="text-right">
+                    <Link
+                      href={`/admin/termine/${t.id}`}
+                      className="text-xs text-muted-foreground underline"
+                    >
+                      Bearbeiten
+                    </Link>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {liste.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">
-                      {formatDateTime(t.start)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {TYP_LABEL[t.typ] ?? t.typ}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatMannschaft(t) ?? "—"}
-                    </TableCell>
-                    <TableCell>{t.ort ?? "—"}</TableCell>
-                    <TableCell>{t.beschreibung ?? "—"}</TableCell>
-                    <TableCell className="text-right">
-                      <Link
-                        href={`/admin/termine/${t.id}`}
-                        className="text-xs text-muted-foreground underline"
-                      >
-                        Bearbeiten
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {istAdmin && (
-        <CollapsibleCard title="Neuer Termin" description="Freundschaftsspiel oder Turnier anlegen">
-          <form action={createTermin} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="typ">Typ</Label>
-              <LabeledSelect
-                id="typ"
-                name="typ"
-                defaultValue="testspiel"
-                required
-                options={[
-                  { value: "testspiel", label: "Freundschaftsspiel" },
-                  { value: "turnier", label: "Turnier" },
-                ]}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="start">Start</Label>
-              <Input id="start" name="start" type="datetime-local" required />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="ende">Ende (optional)</Label>
-              <Input id="ende" name="ende" type="datetime-local" />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="ort">Ort</Label>
-              <Input id="ort" name="ort" />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="beschreibung">Beschreibung / Gegner</Label>
-              <Input id="beschreibung" name="beschreibung" />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="mannschaftId">Mannschaft (optional)</Label>
-              <LabeledSelect
-                id="mannschaftId"
-                name="mannschaftId"
-                placeholder="—"
-                options={mannschaftsListe.map((m) => ({
-                  value: m.id,
-                  label: m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name,
-                }))}
-              />
-            </div>
-
-            <Button type="submit" className="w-full">
-              Anlegen
-            </Button>
-          </form>
-        </CollapsibleCard>
-      )}
-    </div>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
