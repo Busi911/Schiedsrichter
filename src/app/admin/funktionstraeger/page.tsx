@@ -3,33 +3,21 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mannschaften, users } from "@/db/schema";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
-import { createFunktionstraeger, funktionstraegerImportieren } from "../actions";
+import { funktionstraegerImportieren } from "../actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { FunktionstraegerTabelle } from "@/components/funktionstraeger-tabelle";
-import { Input } from "@/components/ui/input";
+import { NeuerFunktionstraegerDialog } from "@/components/neuer-funktionstraeger-dialog";
 import { Label } from "@/components/ui/label";
-import { LabeledSelect } from "@/components/labeled-select";
 import { Switch } from "@/components/ui/switch";
-
-const TYP_LABEL: Record<string, string> = {
-  schiedsrichter: "Schiedsrichter",
-  zeitnehmer: "Zeitnehmer",
-  sekretaer: "Sekretär",
-  trainer: "Trainer",
-  ordner: "Ordner",
-  kioskdienst: "Kioskdienst",
-  schiedsrichterwart: "Schiedsrichterwart",
-  zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
-  ordnerwart: "Ordner-/Kioskdienstwart",
-};
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function FunktionstraegerPage({
   searchParams,
@@ -162,114 +150,24 @@ export default async function FunktionstraegerPage({
         </Alert>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Alle Funktionsträger</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FunktionstraegerTabelle
-              personen={personen}
-              eigeneUserId={session.user.id}
-              mannschaftsListe={mannschaftsListe}
-              schreibzugriff={session.user.istAdmin}
-            />
-          </CardContent>
-        </Card>
-
-        {session.user.istAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Neuer Funktionsträger</CardTitle>
-            <CardDescription>Person anlegen oder Rolle ergänzen</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              action={createFunktionstraeger}
-              className="flex flex-col gap-4"
-            >
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" name="name" required />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="email">E-Mail</Label>
-                <Input id="email" name="email" type="email" required />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label>Rollen (Mehrfachauswahl möglich)</Label>
-                <div className="flex flex-col gap-1.5 rounded-lg border p-3">
-                  {Object.entries(TYP_LABEL).map(([value, label]) => (
-                    <label
-                      key={value}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        name="typen"
-                        value={value}
-                        defaultChecked={value === "schiedsrichter"}
-                        className="size-4"
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="istAdmin"
-                  className="size-4"
-                />
-                Admin (voller Zugriff auf den Vereinsbereich)
-              </label>
-
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="istAdminLesend"
-                  className="size-4"
-                />
-                Admin, nur lesend (sieht alles, kann nichts ändern)
-              </label>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="mannschaftId">Mannschaft (nur bei Trainer)</Label>
-                <LabeledSelect
-                  id="mannschaftId"
-                  name="mannschaftId"
-                  placeholder="—"
-                  options={mannschaftsListe.map((m) => ({
-                    value: m.id,
-                    label: m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name,
-                  }))}
-                />
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Switch name="sofortAktiv" id="sofortAktiv" defaultChecked />
-                <Label htmlFor="sofortAktiv">
-                  Sofort aktivieren (Willkommens-Mail mit Login-Link senden)
-                </Label>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Ohne Haken wird die Person ohne Login angelegt — die Mail
-                geht erst raus, wenn sie später über &bdquo;Aktivieren&ldquo;
-                freigeschaltet wird.
-              </p>
-
-              <Button type="submit" className="w-full">
-                Anlegen
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-        )}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Alle Funktionsträger</CardTitle>
+          {session.user.istAdmin && (
+            <CardAction>
+              <NeuerFunktionstraegerDialog mannschaftsListe={mannschaftsListe} />
+            </CardAction>
+          )}
+        </CardHeader>
+        <CardContent>
+          <FunktionstraegerTabelle
+            personen={personen}
+            eigeneUserId={session.user.id}
+            mannschaftsListe={mannschaftsListe}
+            schreibzugriff={session.user.istAdmin}
+          />
+        </CardContent>
+      </Card>
 
       {session.user.istAdmin && (
       <Card className="max-w-2xl">
@@ -303,7 +201,7 @@ export default async function FunktionstraegerPage({
                   className="text-sm"
                 />
               </div>
-              <Button type="submit">Importieren</Button>
+              <SubmitButton>Importieren</SubmitButton>
             </div>
             <div className="flex items-center gap-3">
               <Switch

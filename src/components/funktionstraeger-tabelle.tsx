@@ -6,12 +6,14 @@ import {
   adminRechteToggeln,
   deleteFunktionstraeger,
   funktionstraegerAktivToggeln,
+  funktionstraegerRollenAktivieren,
   rolleHinzufuegen,
   updateFunktionstraeger,
 } from "@/app/admin/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
 import {
@@ -183,21 +185,34 @@ export function FunktionstraegerTabelle({
           </Button>
         )}
         {mehrfachauswahl && ausgewaehlt.size > 0 && (
-          <form
-            action={deleteFunktionstraeger}
-            className="flex items-center gap-2"
-          >
-            {[...ausgewaehlt].map((id) => (
-              <input key={id} type="hidden" name="userId" value={id} />
-            ))}
-            <ConfirmSubmitButton
-              confirmText={`${ausgewaehlt.size} Person${ausgewaehlt.size === 1 ? "" : "en"} wirklich löschen? Login, Rollen und die komplette Einsatz-Historie gehen dabei unwiderruflich verloren.`}
-              variant="destructive"
-              size="sm"
+          <>
+            <form
+              action={funktionstraegerRollenAktivieren}
+              className="flex items-center gap-2"
             >
-              {ausgewaehlt.size} Person{ausgewaehlt.size === 1 ? "" : "en"} löschen
-            </ConfirmSubmitButton>
-          </form>
+              {[...ausgewaehlt].map((id) => (
+                <input key={id} type="hidden" name="userId" value={id} />
+              ))}
+              <SubmitButton variant="outline" size="sm">
+                Rollen aktivieren ({ausgewaehlt.size})
+              </SubmitButton>
+            </form>
+            <form
+              action={deleteFunktionstraeger}
+              className="flex items-center gap-2"
+            >
+              {[...ausgewaehlt].map((id) => (
+                <input key={id} type="hidden" name="userId" value={id} />
+              ))}
+              <ConfirmSubmitButton
+                confirmText={`${ausgewaehlt.size} Person${ausgewaehlt.size === 1 ? "" : "en"} wirklich löschen? Login, Rollen und die komplette Einsatz-Historie gehen dabei unwiderruflich verloren.`}
+                variant="destructive"
+                size="sm"
+              >
+                {ausgewaehlt.size} Person{ausgewaehlt.size === 1 ? "" : "en"} löschen
+              </ConfirmSubmitButton>
+            </form>
+          </>
         )}
       </div>
 
@@ -289,14 +304,13 @@ export function FunktionstraegerTabelle({
                           required
                           className="h-8 w-full sm:w-48"
                         />
-                        <Button
-                          type="submit"
+                        <SubmitButton
                           variant="outline"
                           size="sm"
                           className="w-full sm:w-auto"
                         >
                           Speichern
-                        </Button>
+                        </SubmitButton>
                       </form>
                       <div className="flex items-center gap-1.5">
                         <span
@@ -318,11 +332,11 @@ export function FunktionstraegerTabelle({
                                 name="userId"
                                 value={p.userId}
                               />
-                              <Button type="submit" variant="ghost" size="xs">
+                              <SubmitButton variant="ghost" size="xs">
                                 {p.istAdmin
                                   ? "Admin-Rechte entziehen"
                                   : "Zum Admin machen"}
-                              </Button>
+                              </SubmitButton>
                             </form>
                           )}
                         </span>
@@ -351,11 +365,11 @@ export function FunktionstraegerTabelle({
                                 name="userId"
                                 value={p.userId}
                               />
-                              <Button type="submit" variant="ghost" size="xs">
+                              <SubmitButton variant="ghost" size="xs">
                                 {p.istAdminLesend
                                   ? "Lesezugriff entziehen"
                                   : "Lesezugriff geben"}
-                              </Button>
+                              </SubmitButton>
                             </form>
                           )}
                         </span>
@@ -381,9 +395,9 @@ export function FunktionstraegerTabelle({
                                 name="rolleId"
                                 value={r.rolleId}
                               />
-                              <Button type="submit" variant="ghost" size="xs">
+                              <SubmitButton variant="ghost" size="xs">
                                 {r.aktiv ? "Deaktivieren" : "Aktivieren"}
-                              </Button>
+                              </SubmitButton>
                             </form>
                           </span>
                         ))}
@@ -425,9 +439,9 @@ export function FunktionstraegerTabelle({
                                 />
                               </div>
                             )}
-                            <Button type="submit" variant="outline" size="xs">
+                            <SubmitButton variant="outline" size="xs">
                               Hinzufügen
-                            </Button>
+                            </SubmitButton>
                           </form>
                         );
                       })()}

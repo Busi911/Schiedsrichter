@@ -495,6 +495,75 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
+// Bulk-Variante von funktionstraegerAktivToggeln für die Mehrfachauswahl in
+// FunktionstraegerTabelle: aktiviert alle inaktiven Rollen der ausgewählten
+// Personen auf einmal, statt Rolle für Rolle einzeln durchklicken zu müssen.
+export async function funktionstraegerRollenAktivieren(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const userIds = formData
+    .getAll("userId")
+    .filter((id): id is string => typeof id === "string" && !!id);
+  if (userIds.length === 0) {
+    throw new Error("Keine Person ausgewählt.");
+  }
+
+  const { aktivierte, vereinName } = await withTenant(vereinId, async (tx) => {
+    const personen = await tx
+      .select({
+        userId: users.id,
+        email: users.email,
+        passwordHash: users.passwordHash,
+      })
+      .from(users)
+      .where(and(inArray(users.id, userIds), eq(users.vereinId, vereinId)));
+
+    const aktivierte: { email: string; einmalPasswort: string | null }[] = [];
+    for (const person of personen) {
+      const zuvorInaktiv = await tx
+        .update(funktionstraegerRollen)
+        .set({ aktiv: true })
+        .where(
+          and(
+            eq(funktionstraegerRollen.userId, person.userId),
+            eq(funktionstraegerRollen.aktiv, false)
+          )
+        )
+        .returning({ id: funktionstraegerRollen.id });
+      if (zuvorInaktiv.length === 0) continue;
+
+      const einmalPasswort = await vergebeEinmalPasswortFallsNoetig(
+        tx,
+        person.userId,
+        person.passwordHash
+      );
+      aktivierte.push({ email: person.email, einmalPasswort });
+    }
+
+    const vereinRow = await tx.query.vereine.findFirst({
+      where: (v, { eq }) => eq(v.id, vereinId),
+    });
+    return { aktivierte, vereinName: vereinRow?.name ?? "deinem Verein" };
+  });
+
+  for (const person of aktivierte) {
+    try {
+      const inhalt = willkommensInhalt(vereinName, person.email, person.einmalPasswort);
+      await sendMail(
+        person.email,
+        "Zugang für HandballerPate",
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
+      );
+    } catch (err) {
+      console.error("Willkommens-Mail konnte nicht gesendet werden:", err);
+    }
+  }
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
 function emailGeaendertInhalt(
   vereinName: string,
   neueEmail: string,
