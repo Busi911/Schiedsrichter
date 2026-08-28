@@ -18,6 +18,7 @@ import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
   angesetzteNamenPassenZu,
   schiedsrichterKuerzelPasstZu,
+  zaehleAngesetzteNamen,
 } from "@/lib/rundenspiel-import";
 import type { KalenderEintrag, TurnierBalkenBearbeitbar } from "@/components/monats-kalender";
 import { formatZeit } from "@/lib/format";
@@ -192,6 +193,28 @@ export async function holeAdminKalenderDaten(
     const label = t.beschreibung ?? t.ort ?? typLabel;
 
     const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
+    const hatEigenenSchiri = eigeneZuordnungen.some(
+      (z) => z.funktionstraegerTyp === "schiedsrichter"
+    );
+    const hatEigenenZeitnehmer = eigeneZuordnungen.some(
+      (z) => z.funktionstraegerTyp === "zeitnehmer" || z.funktionstraegerTyp === "sekretaer"
+    );
+    // Ohne eigene Zuordnung, aber bereits von nuLiga/handball.net gemeldet
+    // (siehe besetzungsDetails-Hinweise unten): dann ist die Rolle trotzdem
+    // besetzt, nur eben (noch) nicht mit einem eigenen Funktionsträger
+    // verknüpft — "Besetzung offen" wäre hier irreführend, der Verband/Gegner
+    // hat längst jemanden benannt.
+    const externeSchiriAnzahl = hatEigenenSchiri
+      ? 0
+      : t.handballNetSchiedsrichter
+        ? zaehleAngesetzteNamen(t.handballNetSchiedsrichter)
+        : t.nuligaSchiedsrichterKuerzel
+          ? 1
+          : 0;
+    const externeZeitnehmerSekretaerAnzahl = hatEigenenZeitnehmer
+      ? 0
+      : zaehleAngesetzteNamen(t.handballNetZeitnehmer);
+
     const zuordenbar = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ);
     const besetzung = zuordenbar && verein
       ? istBesetzungVollstaendig(
@@ -206,7 +229,9 @@ export async function holeAdminKalenderDaten(
               t.freundschaftsTyp,
               t.zeitnehmerBedarfOverride
             ),
-            verein.zeitnehmerSekretaerMax
+            verein.zeitnehmerSekretaerMax,
+            externeSchiriAnzahl,
+            externeZeitnehmerSekretaerAnzahl
           ),
           t.typ,
           t.pflichtspiel
@@ -252,7 +277,7 @@ export async function holeAdminKalenderDaten(
     }
     if (
       (t.handballNetSchiedsrichter || t.nuligaSchiedsrichterKuerzel) &&
-      !eigeneZuordnungen.some((z) => z.funktionstraegerTyp === "schiedsrichter")
+      !hatEigenenSchiri
     ) {
       besetzungsDetails.push(
         t.handballNetSchiedsrichter
@@ -266,12 +291,7 @@ export async function holeAdminKalenderDaten(
             }
       );
     }
-    if (
-      t.handballNetZeitnehmer &&
-      !eigeneZuordnungen.some(
-        (z) => z.funktionstraegerTyp === "zeitnehmer" || z.funktionstraegerTyp === "sekretaer"
-      )
-    ) {
+    if (t.handballNetZeitnehmer && !hatEigenenZeitnehmer) {
       besetzungsDetails.push({
         id: `handball-net-zeitnehmer-${t.id}`,
         label: `handball.net-Ansetzung: ${t.handballNetZeitnehmer} (noch nicht zugeordnet)`,

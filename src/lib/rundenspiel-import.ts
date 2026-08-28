@@ -230,6 +230,15 @@ export function angesetzteNamenPassenZu(
     .some((teil) => normalisiereName(teil) === ziel);
 }
 
+// Zählt die kommaseparierten Namen eines handball.net-Ansetzungsfeldes (siehe
+// angesetzteNamenPassenZu oben) — für berechneBesetzung()s
+// externeZeitnehmerSekretaerAnzahl, wenn die Ansetzung (noch) keinem eigenen
+// Funktionsträger zugeordnet werden konnte.
+export function zaehleAngesetzteNamen(feld: string | null | undefined): number {
+  if (!feld) return 0;
+  return feld.split(",").filter((teil) => teil.trim()).length;
+}
+
 type RundenturnierKandidat = {
   uid: string;
   start: Date;
