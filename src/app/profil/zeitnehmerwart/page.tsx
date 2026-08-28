@@ -48,6 +48,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
+import { PersonSelect } from "@/components/person-select";
 import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
@@ -136,6 +137,22 @@ export default async function ZeitnehmerwartPage({
       }
     }
     belegtProZeitpunktUndTermin.set(zeitpunkt, map);
+  }
+
+  // Welche Rolle(n) einer bereits (mit mindestens einer aktiven Rolle)
+  // sichtbaren Person zusätzlich deaktiviert sind — Basis dafür, eine
+  // deaktivierte Rolle in der Zuordnen-Auswahl ausgegraut MIT anzuzeigen
+  // statt sie kommentarlos verschwinden zu lassen (z.B. Jan ist aktiver
+  // Sekretär, aber seine Zeitnehmer-Rolle wurde deaktiviert — "Jan Perkitny
+  // (Zeitnehmer)" taucht dann ausgegraut auf statt gar nicht).
+  const inaktiveRollenProPerson = new Map<
+    string,
+    Set<(typeof ZEITNEHMER_ROLLEN)[number]>
+  >();
+  for (const k of inaktiveKandidaten) {
+    const rollen = inaktiveRollenProPerson.get(k.userId) ?? new Set();
+    rollen.add(k.typ);
+    inaktiveRollenProPerson.set(k.userId, rollen);
   }
 
   // Bewusst ALLE relevanten Termine, nicht nur unbesetzte — sonst ließe sich
@@ -512,16 +529,27 @@ export default async function ZeitnehmerwartPage({
               // eine bereits für diesen Termin/diese Rolle eingetragene Person
               // still aus der Liste verschwinden zu lassen, sah eher wie ein
               // Fehler aus als wie eine bewusste Einschränkung — siehe auch
-              // LabeledSelectOption.disabled.
-              const personOptionen = t.freiePersonen.flatMap((s) =>
-                s.rollen.map((rolle) => ({
-                  value: `${s.userId}|${rolle}`,
-                  label: `${s.name ?? s.email} (${rolle === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"})`,
-                  disabled: bestehende.some(
-                    (z) => z.userId === s.userId && z.funktionstraegerTyp === rolle
-                  ),
-                }))
-              );
+              // PersonSelectOption.disabled. Gleiches Prinzip für eine
+              // deaktivierte Rolle (inaktiveRollenProPerson oben): auch die
+              // erscheint ausgegraut mit Hinweis statt zu fehlen.
+              const personOptionen = t.freiePersonen.flatMap((s) => {
+                const inaktiveRollen = inaktiveRollenProPerson.get(s.userId);
+                return ZEITNEHMER_ROLLEN.filter(
+                  (rolle) => s.rollen.includes(rolle) || inaktiveRollen?.has(rolle)
+                ).map((rolle) => {
+                  const rolleAktiv = s.rollen.includes(rolle);
+                  return {
+                    value: `${s.userId}|${rolle}`,
+                    label: `${s.name ?? s.email} (${rolle === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"})`,
+                    disabled:
+                      !rolleAktiv ||
+                      bestehende.some(
+                        (z) => z.userId === s.userId && z.funktionstraegerTyp === rolle
+                      ),
+                    hinweis: rolleAktiv ? undefined : "Rolle deaktiviert",
+                  };
+                });
+              });
               const auswaehlbareOptionen = personOptionen.filter(
                 (o) => !o.disabled
               ).length;
@@ -662,7 +690,7 @@ export default async function ZeitnehmerwartPage({
                                       value={z.id}
                                     />
                                     <div className="min-w-56">
-                                      <LabeledSelect
+                                      <PersonSelect
                                         name="personRolle"
                                         placeholder="Ersatz wählen…"
                                         options={personOptionen}
@@ -711,7 +739,7 @@ export default async function ZeitnehmerwartPage({
                           >
                             <input type="hidden" name="terminId" value={t.id} />
                             <div className="min-w-56">
-                              <LabeledSelect
+                              <PersonSelect
                                 name="personRolle"
                                 placeholder="Person wählen…"
                                 options={personOptionen}
@@ -742,7 +770,7 @@ export default async function ZeitnehmerwartPage({
                                 value={t.id}
                               />
                               <div className="min-w-56">
-                                <LabeledSelect
+                                <PersonSelect
                                   name="personRolle"
                                   placeholder="Person wählen…"
                                   options={personOptionen}
