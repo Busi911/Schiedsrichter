@@ -3,8 +3,9 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
-import { vereine } from "@/db/schema";
+import { mannschaften, vereine } from "@/db/schema";
 import {
+  holeInaktiveZeitnehmerKandidaten,
   holeZeitnehmerEinsatzZahlen,
   istZeitnehmerwart,
 } from "@/lib/zeitnehmerwart";
@@ -12,8 +13,11 @@ import { holeTermineMitZuordnungen } from "@/lib/zuordnung";
 import { berechneBesetzung } from "@/lib/besetzung";
 import { bedarfFuer } from "@/lib/dienste";
 import { angesetzteNamenPassenZu } from "@/lib/rundenspiel-import";
+import { findeNamensVorschlag } from "@/lib/namens-abgleich";
+import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import {
   zeitnehmerBedarfUeberschreiben,
+  zeitnehmerInaktiveRolleAktivierenUndZuordnen,
   zeitnehmerOhneLoginZuordnen,
   zeitnehmerSelbstanmeldungDeaktivieren,
   zeitnehmerSelbstanmeldungLinkErneuern,
@@ -22,6 +26,7 @@ import {
   zeitnehmerZuordnungEntfernen,
 } from "./actions";
 import { appUrl } from "@/lib/app-url";
+import { LinkSpinner } from "@/components/link-spinner";
 import {
   Card,
   CardContent,
@@ -83,7 +88,7 @@ const ZEITNEHMER_RELEVANTE_TYPEN = [
 export default async function ZeitnehmerwartPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ filter?: string; mannschaft?: string }>;
 }) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
@@ -93,16 +98,27 @@ export default async function ZeitnehmerwartPage({
     notFound();
   }
 
-  const { filter } = await searchParams;
+  const { filter, mannschaft: mannschaftFilter } = await searchParams;
   const nurOffene = filter === "offen";
 
-  const [zeitnehmerListe, termineMitZuordnungen, verein] = await Promise.all([
+  const [
+    zeitnehmerListe,
+    inaktiveKandidaten,
+    termineMitZuordnungen,
+    verein,
+    alleMannschaften,
+  ] = await Promise.all([
     holeZeitnehmerEinsatzZahlen(vereinId),
+    holeInaktiveZeitnehmerKandidaten(vereinId),
     holeTermineMitZuordnungen(vereinId),
     withTenant(vereinId, (tx) =>
       tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
     ),
+    withTenant(vereinId, (tx) =>
+      tx.query.mannschaften.findMany({ where: eq(mannschaften.vereinId, vereinId) })
+    ),
   ]);
+  const mannschaftenSortiert = sortiereMannschaften(alleMannschaften);
 
   // Wer ist an einem bestimmten Zeitpunkt schon anderweitig als Zeitnehmer
   // ODER Sekretär gebunden — Basis für "wer wäre noch frei" bei einer
@@ -162,12 +178,44 @@ export default async function ZeitnehmerwartPage({
         Number(a.besetzung.zeitnehmerSekretaerErfuellt) -
         Number(b.besetzung.zeitnehmerSekretaerErfuellt)
     );
-  const offeneAnzahl = alleRelevantenTermine.filter(
+  // Nur Mannschaften als Filter anbieten, die auch mindestens einen
+  // relevanten Termin haben — sonst führte ein Klick nur zu "Keine
+  // anstehenden Termine" (gleiches Prinzip wie in
+  // zeitnehmer-eintragen/[token]/page.tsx).
+  const mannschaftenMitTerminen = new Set(
+    alleRelevantenTermine
+      .map((t) => t.mannschaftId)
+      .filter((id): id is string => !!id)
+  );
+  const anzeigbareMannschaften = mannschaftenSortiert.filter((m) =>
+    mannschaftenMitTerminen.has(m.id)
+  );
+
+  const terminePerMannschaft = mannschaftFilter
+    ? alleRelevantenTermine.filter((t) => t.mannschaftId === mannschaftFilter)
+    : alleRelevantenTermine;
+  const offeneAnzahl = terminePerMannschaft.filter(
     (t) => !t.besetzung.zeitnehmerSekretaerErfuellt
   ).length;
   const relevanteTermine = nurOffene
-    ? alleRelevantenTermine.filter((t) => !t.besetzung.zeitnehmerSekretaerErfuellt)
-    : alleRelevantenTermine;
+    ? terminePerMannschaft.filter((t) => !t.besetzung.zeitnehmerSekretaerErfuellt)
+    : terminePerMannschaft;
+
+  // Baut die Termine-Filter-URL unter Beibehaltung des jeweils anderen,
+  // unabhängigen Filters (offen/Mannschaft lassen sich kombinieren).
+  function terminFilterHref(overrides: {
+    nurOffene?: boolean;
+    mannschaftId?: string | null;
+  }) {
+    const naechsteOffen = overrides.nurOffene ?? nurOffene;
+    const naechsteMannschaft =
+      overrides.mannschaftId !== undefined ? overrides.mannschaftId : mannschaftFilter;
+    const params = new URLSearchParams();
+    if (naechsteOffen) params.set("filter", "offen");
+    if (naechsteMannschaft) params.set("mannschaft", naechsteMannschaft);
+    const qs = params.toString();
+    return qs ? `?${qs}` : "/profil/zeitnehmerwart";
+  }
 
   // Über die öffentliche Selbsteintragung erfasste Personen, die noch
   // keiner echten Person zugeordnet wurden (siehe
@@ -269,6 +317,24 @@ export default async function ZeitnehmerwartPage({
               const kandidaten = zeitnehmerListe
                 .filter((s) => s.rollen.includes(z.funktionstraegerTyp as (typeof ZEITNEHMER_ROLLEN)[number]))
                 .map((s) => ({ value: s.userId, label: s.name ?? s.email }));
+              // Kein aktiver automatischer Vorschlag (matchVorschlagUserId)
+              // gefunden — häufig, weil die Person zwar schon einmal
+              // angelegt, inzwischen aber deaktiviert wurde (z.B.
+              // Saisonwechsel). In dem Fall zusätzlich gegen deaktivierte
+              // Rollen derselben Art abgleichen und, falls ähnlich, direkt
+              // "Aktivieren & zuordnen" anbieten statt den Umweg über
+              // /admin/funktionstraeger zu erzwingen.
+              const inaktivVorschlag = z.matchVorschlagUserId
+                ? null
+                : (() => {
+                    const { exakt, vorschlag } = findeNamensVorschlag(
+                      z.externerName ?? "",
+                      inaktiveKandidaten.filter(
+                        (k) => k.typ === z.funktionstraegerTyp
+                      )
+                    );
+                    return exakt ?? vorschlag;
+                  })();
               return (
                 <div key={z.id} className="rounded-lg border p-3 text-sm">
                   <p>
@@ -301,6 +367,34 @@ export default async function ZeitnehmerwartPage({
                       <Button type="submit" size="sm">
                         Bestätigen
                       </Button>
+                    </form>
+                  )}
+                  {inaktivVorschlag && (
+                    <form
+                      action={zeitnehmerInaktiveRolleAktivierenUndZuordnen}
+                      className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-dashed p-2"
+                    >
+                      <input type="hidden" name="zuordnungId" value={z.id} />
+                      <input
+                        type="hidden"
+                        name="rolleId"
+                        value={inaktivVorschlag.rolleId}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Ähnlich:{" "}
+                        <span className="font-medium text-foreground">
+                          {inaktivVorschlag.name ?? inaktivVorschlag.email}
+                        </span>{" "}
+                        — als {inaktivVorschlag.typ === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"}{" "}
+                        aktuell inaktiv.
+                      </p>
+                      <ConfirmSubmitButton
+                        confirmText={`${inaktivVorschlag.name ?? inaktivVorschlag.email} aktivieren und dieser Zuordnung zuordnen?`}
+                        size="xs"
+                        variant="outline"
+                      >
+                        Aktivieren &amp; zuordnen
+                      </ConfirmSubmitButton>
                     </form>
                   )}
                 </div>
@@ -358,10 +452,10 @@ export default async function ZeitnehmerwartPage({
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base">
-              Termine ({offeneAnzahl} offen von {alleRelevantenTermine.length})
+              Termine ({offeneAnzahl} offen von {terminePerMannschaft.length})
             </CardTitle>
             <Link
-              href={nurOffene ? "/profil/zeitnehmerwart" : "?filter=offen"}
+              href={terminFilterHref({ nurOffene: !nurOffene })}
               className="text-xs text-muted-foreground underline"
             >
               {nurOffene ? "Alle anzeigen" : "Nur offene anzeigen"}
@@ -374,6 +468,31 @@ export default async function ZeitnehmerwartPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          {anzeigbareMannschaften.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={!mannschaftFilter ? "default" : "outline"}
+                size="sm"
+                render={<Link href={terminFilterHref({ mannschaftId: null })} />}
+                nativeButton={false}
+              >
+                Alle Mannschaften
+                <LinkSpinner />
+              </Button>
+              {anzeigbareMannschaften.map((m) => (
+                <Button
+                  key={m.id}
+                  variant={mannschaftFilter === m.id ? "default" : "outline"}
+                  size="sm"
+                  render={<Link href={terminFilterHref({ mannschaftId: m.id })} />}
+                  nativeButton={false}
+                >
+                  {m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name}
+                  <LinkSpinner />
+                </Button>
+              ))}
+            </div>
+          )}
           {relevanteTermine.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Keine anstehenden Termine mit Zeitnehmer-/Sekretär-Bedarf.
