@@ -26,16 +26,28 @@ export function berechneBesetzung(
   zuordnungen: { funktionstraegerTyp: string }[],
   hatIcsSchiedsrichter = false,
   zeitnehmerSekretaerBedarf = ZEITNEHMER_SEKRETAER_BEDARF_STANDARD,
-  zeitnehmerSekretaerMax = ZEITNEHMER_SEKRETAER_MAX_STANDARD
+  zeitnehmerSekretaerMax = ZEITNEHMER_SEKRETAER_MAX_STANDARD,
+  // Schiedsrichter bzw. Zeitnehmer/Sekretär, die zwar noch keine eigene
+  // terminZuordnungen-Zeile haben (kein Konto im System bzw. Name passt zu
+  // keinem Funktionsträger), aber laut nuLiga/handball.net bereits vom
+  // Verband/Gegner gestellt sind — siehe die "(noch nicht zugeordnet)"-Hinweise
+  // in admin-kalender.ts. Diese Rolle gilt dann trotzdem als besetzt: die
+  // externe Quelle bestätigt bereits eine Person, es fehlt nur der interne
+  // Datensatz.
+  externeSchiriAnzahl = 0,
+  externeZeitnehmerSekretaerAnzahl = 0
 ): Besetzungsstatus {
   const schiriAnzahl =
     zuordnungen.filter((z) => z.funktionstraegerTyp === "schiedsrichter")
-      .length + (hatIcsSchiedsrichter ? 1 : 0);
-  const zeitnehmerSekretaerAnzahl = zuordnungen.filter(
-    (z) =>
-      z.funktionstraegerTyp === "zeitnehmer" ||
-      z.funktionstraegerTyp === "sekretaer"
-  ).length;
+      .length +
+    (hatIcsSchiedsrichter ? 1 : 0) +
+    externeSchiriAnzahl;
+  const zeitnehmerSekretaerAnzahl =
+    zuordnungen.filter(
+      (z) =>
+        z.funktionstraegerTyp === "zeitnehmer" ||
+        z.funktionstraegerTyp === "sekretaer"
+    ).length + externeZeitnehmerSekretaerAnzahl;
 
   const schiriErfuellt = schiriAnzahl >= 1;
   const zeitnehmerSekretaerErfuellt =

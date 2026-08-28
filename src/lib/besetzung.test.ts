@@ -85,6 +85,16 @@ describe("berechneBesetzung", () => {
     expect(zwei.zeitnehmerSekretaerErfuellt).toBe(true);
   });
 
+  it("zählt eine nuLiga/handball.net-Ansetzung ohne eigene Zuordnung als Besetzung mit", () => {
+    const nurSchiri = berechneBesetzung([], false, undefined, undefined, 1, 0);
+    expect(nurSchiri.schiriAnzahl).toBe(1);
+    expect(nurSchiri.schiriErfuellt).toBe(true);
+    expect(nurSchiri.zeitnehmerSekretaerErfuellt).toBe(false);
+
+    const beides = berechneBesetzung([], false, undefined, undefined, 1, 1);
+    expect(beides.vollstaendig).toBe(true);
+  });
+
   it("respektiert eine konfigurierte Zeitnehmer/Sekretär-Obergrenze statt fest 2", () => {
     const drei = berechneBesetzung(
       [
