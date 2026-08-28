@@ -12,9 +12,9 @@ export type Namenskandidat = {
   name: string | null;
 };
 
-export type Namensabgleich = {
-  exakt: Namenskandidat | null;
-  vorschlag: Namenskandidat | null;
+export type Namensabgleich<T extends Namenskandidat = Namenskandidat> = {
+  exakt: T | null;
+  vorschlag: T | null;
 };
 
 // Ab diesem Anteil übereinstimmender Wörter gilt ein Kandidat als Vorschlag
@@ -76,17 +76,22 @@ function aehnlichkeit(eingegeben: string, kandidat: string): number {
   return treffer / eingegebeneWoerter.length;
 }
 
-export function findeNamensVorschlag(
+// Generisch über T statt fest auf Namenskandidat: Aufrufer (z.B.
+// zeitnehmerwart/page.tsx für den Abgleich gegen INAKTIVE Funktionsträger)
+// wollen am gefundenen Kandidaten oft mehr als nur userId/name weiterreichen
+// (z.B. rolleId zum Aktivieren) — mit T bleiben diese Zusatzfelder erhalten,
+// statt beim Rückgabetyp auf Namenskandidat zusammengestutzt zu werden.
+export function findeNamensVorschlag<T extends Namenskandidat>(
   eingegebenerName: string,
-  kandidaten: Namenskandidat[]
-): Namensabgleich {
+  kandidaten: T[]
+): Namensabgleich<T> {
   const norm = normalisiere(eingegebenerName);
 
   const exakt =
     kandidaten.find((k) => k.name && normalisiere(k.name) === norm) ?? null;
   if (exakt) return { exakt, vorschlag: null };
 
-  let bester: Namenskandidat | null = null;
+  let bester: T | null = null;
   let besterScore = 0;
   for (const kandidat of kandidaten) {
     if (!kandidat.name) continue;

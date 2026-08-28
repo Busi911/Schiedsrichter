@@ -83,3 +83,48 @@ export async function holeZeitnehmerEinsatzZahlen(
     return mergeRollenZaehlungen(rollenZeilenGetypt, zuordnungZaehlung);
   });
 }
+
+export type InaktiverZeitnehmerKandidat = {
+  rolleId: string;
+  userId: string;
+  name: string | null;
+  email: string;
+  typ: (typeof ZEITNEHMER_ROLLEN)[number];
+};
+
+// Deaktivierte Zeitnehmer-/Sekretär-Rollen — anders als
+// holeZeitnehmerEinsatzZahlen bewusst UNGEMERGT (eine Zeile pro Rolle, nicht
+// pro Person), da rolleId zum gezielten (Wieder-)Aktivieren genau dieser
+// einen Rolle gebraucht wird (siehe zeitnehmerInaktiveRolleAktivierenUndZuordnen
+// in profil/zeitnehmerwart/actions.ts). Grundlage für den Namensabgleich bei
+// Selbsteintragungen, die keiner aktiven Person zugeordnet werden konnten —
+// oft, weil die Person zwar schon mal angelegt, aber inzwischen deaktiviert
+// wurde (z.B. Saisonwechsel).
+export async function holeInaktiveZeitnehmerKandidaten(
+  vereinId: string
+): Promise<InaktiverZeitnehmerKandidat[]> {
+  return withTenant(vereinId, async (tx) => {
+    const zeilen = await tx
+      .select({
+        rolleId: funktionstraegerRollen.id,
+        userId: users.id,
+        name: users.name,
+        email: users.email,
+        typ: funktionstraegerRollen.typ,
+      })
+      .from(funktionstraegerRollen)
+      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+      .where(
+        and(
+          inArray(funktionstraegerRollen.typ, ZEITNEHMER_ROLLEN),
+          eq(funktionstraegerRollen.aktiv, false)
+        )
+      )
+      .orderBy(users.name);
+
+    return zeilen.map((z) => ({
+      ...z,
+      typ: z.typ as (typeof ZEITNEHMER_ROLLEN)[number],
+    }));
+  });
+}
