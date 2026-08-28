@@ -8,7 +8,7 @@ import {
   users,
   vereine,
 } from "@/db/schema";
-import { berechneBesetzung, ZEITNEHMER_SEKRETAER_MAX_STANDARD } from "@/lib/besetzung";
+import { berechneBesetzung } from "@/lib/besetzung";
 import { findeNamensVorschlag } from "@/lib/namens-abgleich";
 import { ZUORDENBARE_TYPEN, zuordnungsMailInhalt } from "@/lib/zuordnung";
 import { sendMail } from "@/lib/mailer";
@@ -62,8 +62,7 @@ export function ermittleAutomatischeZuordnungen(
     handballNetZeitnehmer: string | null;
   }[],
   bestehendeZuordnungen: BestehendeZuordnung[],
-  funktionstraegerListe: AutomatischerZuordnungKandidat[],
-  zeitnehmerSekretaerMax = ZEITNEHMER_SEKRETAER_MAX_STANDARD
+  funktionstraegerListe: AutomatischerZuordnungKandidat[]
 ): AutomatischeZuordnung[] {
   const ergebnis: AutomatischeZuordnung[] = [];
 
@@ -96,13 +95,14 @@ export function ermittleAutomatischeZuordnungen(
         if (bereitsZugeordnet) return; // schon zugeordnet — nichts weiter zu tun für diesen Namen
 
         const besetzung = berechneBesetzung(
-          zuordnungenDiesesTermins.map((z) => ({ funktionstraegerTyp: z.funktionstraegerTyp })),
-          false,
-          undefined,
-          zeitnehmerSekretaerMax
+          zuordnungenDiesesTermins.map((z) => ({ funktionstraegerTyp: z.funktionstraegerTyp }))
         );
         const rolleVoll =
-          rolle === "schiedsrichter" ? besetzung.schiriVoll : besetzung.zeitnehmerSekretaerVoll;
+          rolle === "schiedsrichter"
+            ? besetzung.schiriVoll
+            : rolle === "zeitnehmer"
+              ? besetzung.zeitnehmerVoll
+              : besetzung.sekretaerVoll;
         if (rolleVoll) continue; // diese Rolle ist voll — nächste Rolle für denselben Namen probieren
 
         ergebnis.push({ terminId: termin.id, userId: treffer.userId, email: treffer.email, rolle });
@@ -214,8 +214,7 @@ export async function ordneHandballNetBesetzungZu(
       // inArray oben grenzt zur Laufzeit bereits auf ZUORDENBARE_TYPEN ein —
       // drizzle kennt den vollen funktionstraegerTypEnum-Typ der Spalte und
       // engt ihn dadurch nicht automatisch ein.
-      funktionstraegerListe as AutomatischerZuordnungKandidat[],
-      verein?.zeitnehmerSekretaerMax
+      funktionstraegerListe as AutomatischerZuordnungKandidat[]
     );
     if (automatischeZuordnungen.length === 0) {
       return { zuordnungen: [] as (AutomatischeZuordnung & { termin: (typeof kandidatenTermine)[number] })[], vereinName: null };

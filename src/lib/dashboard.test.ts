@@ -19,8 +19,6 @@ const verein = {
   rundenspielZeitnehmerBedarf: 1,
 };
 
-const vereinMitBesetzung = { ...verein, zeitnehmerSekretaerMax: 2 };
-
 describe("berechneOffenePosten", () => {
   it("bündelt mehrere offene Rollen desselben Termins in einem Posten statt separater Einträge", () => {
     const termin = { id: "t1", start: new Date("2026-09-01T10:00:00Z"), typ: "testspiel", ort: "Halle 1" };
@@ -264,14 +262,14 @@ describe("berechneOffeneZeitnehmerTermine", () => {
 describe("berechneUnbesetzteTermine", () => {
   it("meldet ein Freundschaftsspiel ohne Schiedsrichter und ohne Zeitnehmer", () => {
     const termin = { id: "t1", start: new Date("2026-09-01T10:00:00Z"), typ: "testspiel", ort: null };
-    const termine = berechneUnbesetzteTermine(vereinMitBesetzung, [termin], []);
+    const termine = berechneUnbesetzteTermine(verein, [termin], []);
     expect(termine).toHaveLength(1);
     expect(termine[0]).toMatchObject({ terminId: "t1", schiriOffen: true, zeitnehmerOffen: true });
   });
 
   it("meldet keinen Termin, wenn Schiedsrichter und Zeitnehmer vollständig besetzt sind", () => {
     const termin = { id: "t1", start: new Date("2026-09-01T10:00:00Z"), typ: "testspiel", ort: null };
-    const termine = berechneUnbesetzteTermine(vereinMitBesetzung, [termin], [
+    const termine = berechneUnbesetzteTermine(verein, [termin], [
       { terminId: "t1", funktionstraegerTyp: "schiedsrichter" },
       { terminId: "t1", funktionstraegerTyp: "zeitnehmer" },
     ]);
@@ -286,21 +284,21 @@ describe("berechneUnbesetzteTermine", () => {
       pflichtspiel: true,
       ort: null,
     };
-    const termine = berechneUnbesetzteTermine(vereinMitBesetzung, [termin], []);
+    const termine = berechneUnbesetzteTermine(verein, [termin], []);
     expect(termine).toHaveLength(1);
     expect(termine[0]).toMatchObject({ schiriOffen: false, zeitnehmerOffen: true });
   });
 
   it("ignoriert spiel_ics-Termine — rein persönliche ICS-Feed-Einsätze, kein Vereins-Termin", () => {
     const termin = { id: "t1", start: new Date("2026-09-01T10:00:00Z"), typ: "spiel_ics", ort: null };
-    const termine = berechneUnbesetzteTermine(vereinMitBesetzung, [termin], []);
+    const termine = berechneUnbesetzteTermine(verein, [termin], []);
     expect(termine).toHaveLength(0);
   });
 
   it("sortiert nach Startzeit", () => {
     const spaeter = { id: "t2", start: new Date("2026-09-05T10:00:00Z"), typ: "testspiel", ort: null };
     const frueher = { id: "t1", start: new Date("2026-09-01T10:00:00Z"), typ: "testspiel", ort: null };
-    const termine = berechneUnbesetzteTermine(vereinMitBesetzung, [spaeter, frueher], []);
+    const termine = berechneUnbesetzteTermine(verein, [spaeter, frueher], []);
     expect(termine.map((t) => t.terminId)).toEqual(["t1", "t2"]);
   });
 });

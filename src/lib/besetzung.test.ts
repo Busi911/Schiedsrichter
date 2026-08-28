@@ -86,28 +86,35 @@ describe("berechneBesetzung", () => {
   });
 
   it("zählt eine nuLiga/handball.net-Ansetzung ohne eigene Zuordnung als Besetzung mit", () => {
-    const nurSchiri = berechneBesetzung([], false, undefined, undefined, 1, 0);
+    const nurSchiri = berechneBesetzung([], false, undefined, 1, 0);
     expect(nurSchiri.schiriAnzahl).toBe(1);
     expect(nurSchiri.schiriErfuellt).toBe(true);
     expect(nurSchiri.zeitnehmerSekretaerErfuellt).toBe(false);
 
-    const beides = berechneBesetzung([], false, undefined, undefined, 1, 1);
+    const beides = berechneBesetzung([], false, undefined, 1, 1);
     expect(beides.vollstaendig).toBe(true);
   });
 
-  it("respektiert eine konfigurierte Zeitnehmer/Sekretär-Obergrenze statt fest 2", () => {
-    const drei = berechneBesetzung(
-      [
-        { funktionstraegerTyp: "zeitnehmer" },
-        { funktionstraegerTyp: "zeitnehmer" },
-        { funktionstraegerTyp: "sekretaer" },
-      ],
-      false,
-      1,
-      4
-    );
-    expect(drei.zeitnehmerSekretaerAnzahl).toBe(3);
-    expect(drei.zeitnehmerSekretaerVoll).toBe(false);
+  it("Zeitnehmer und Sekretär sind jeweils unabhängig auf max. 1 Person begrenzt, nicht konfigurierbar", () => {
+    const zweiZeitnehmer = berechneBesetzung([
+      { funktionstraegerTyp: "zeitnehmer" },
+      { funktionstraegerTyp: "zeitnehmer" },
+    ]);
+    // Die Zeitnehmer-Rolle ist mit einer Person bereits voll — eine zweite
+    // Person würde über pruefeBesetzungsgrenze (zuordnung.ts) abgelehnt;
+    // hier nur die reine Berechnung.
+    expect(zweiZeitnehmer.zeitnehmerVoll).toBe(true);
+    expect(zweiZeitnehmer.sekretaerVoll).toBe(false);
+    // Erst mit BEIDEN Rollen belegt gibt es keinen weiteren Platz mehr.
+    expect(zweiZeitnehmer.zeitnehmerSekretaerVoll).toBe(false);
+
+    const einerJe = berechneBesetzung([
+      { funktionstraegerTyp: "zeitnehmer" },
+      { funktionstraegerTyp: "sekretaer" },
+    ]);
+    expect(einerJe.zeitnehmerVoll).toBe(true);
+    expect(einerJe.sekretaerVoll).toBe(true);
+    expect(einerJe.zeitnehmerSekretaerVoll).toBe(true);
   });
 });
 

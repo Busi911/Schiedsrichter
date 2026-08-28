@@ -152,6 +152,12 @@ export default async function OrdnerEintragenPage({
     beschreibung: t.beschreibung,
     vollstaendig: t.vollstaendig,
     eintragbar: !t.vollstaendig,
+    // Rollen, für die für DIESEN Termin noch Bedarf offen ist — schränkt
+    // unten in TerminMehrfachAuswahl die Rollen-Auswahl ein, damit niemand
+    // eine bereits voll besetzte Rolle wählen kann.
+    offeneRollen: t.luecken
+      .filter((l) => l.vorhanden < l.bedarf)
+      .map((l) => l.rolle),
     zuordnungen: t.zuordnungen.map((z) => ({
       id: z.id,
       label: `${ORDNER_ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${z.name ?? z.externerName ?? "—"}`,

@@ -1,0 +1,1 @@
+ALTER TABLE "verein" DROP COLUMN "zeitnehmer_sekretaer_max";

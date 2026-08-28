@@ -22,6 +22,12 @@ export type EintragbarerTermin = {
   beschreibung: string | null;
   vollstaendig: boolean;
   eintragbar: boolean;
+  // Werte aus rolleOptionen, für die bei DIESEM Termin noch Bedarf besteht
+  // (siehe offeneRollen-Berechnung in den beiden page.tsx) — schränkt unten
+  // die Rollen-Auswahl auf die Schnittmenge über alle ausgewählten Termine
+  // ein, damit niemand eine für die aktuelle Auswahl bereits volle Rolle
+  // wählen kann.
+  offeneRollen: string[];
   zuordnungen: { id: string; label: string }[];
 };
 
@@ -58,6 +64,24 @@ export function TerminMehrfachAuswahl({
   // wäre eine einzelne, immer gleiche Überschrift nur Rauschen (siehe
   // gleiches Prinzip in turnier-spielplan.tsx).
   const mehrtaegig = new Set(termine.map((t) => t.tag)).size > 1;
+
+  // Schnittmenge der noch offenen Rollen über alle aktuell ausgewählten
+  // Termine — bei nur einem Termin einfach dessen eigene offeneRollen. Das
+  // gemeinsame Rolle-Dropdown gilt für ALLE ausgewählten Termine auf einmal
+  // (ein Absenden, eine Rolle), darf also nur Rollen anbieten, die bei
+  // jedem einzelnen noch frei sind — sonst ließe sich eine bereits besetzte
+  // Rolle auswählen, für die die Eintragung ohnehin abgelehnt würde.
+  const ausgewaehlteTermine = termine.filter((t) => ausgewaehlt.has(t.id));
+  const gemeinsameOffeneRollen = ausgewaehlteTermine.reduce<Set<string>>(
+    (schnittmenge, t, i) =>
+      i === 0
+        ? new Set(t.offeneRollen)
+        : new Set([...schnittmenge].filter((r) => t.offeneRollen.includes(r))),
+    new Set()
+  );
+  const rolleOptionenGefiltert = rolleOptionen.filter((o) =>
+    gemeinsameOffeneRollen.has(o.value)
+  );
 
   const [status, submitActionState] = useActionState(
     (_bisher: MehrfachEintragErgebnis | null, formData: FormData) =>
@@ -122,23 +146,38 @@ export function TerminMehrfachAuswahl({
             {ausgewaehlt.size} {ausgewaehlt.size === 1 ? "Termin" : "Termine"}{" "}
             ausgewählt
           </span>
-          <Input
-            name="name"
-            placeholder="Dein Name"
-            required
-            className="h-8 min-w-48 flex-1"
-          />
-          <div className="w-36">
-            <LabeledSelect
-              name="rolle"
-              placeholder="Rolle…"
-              options={rolleOptionen}
-              required
-            />
-          </div>
-          <SubmitButton size="sm" pendingText="Wird eingetragen…">
-            Für alle eintragen
-          </SubmitButton>
+          {rolleOptionenGefiltert.length === 0 ? (
+            // Kein gemeinsames Absenden möglich, wenn die ausgewählten
+            // Termine keine gemeinsam noch offene Rolle mehr haben (z.B.
+            // einer braucht nur noch einen Zeitnehmer, ein anderer nur noch
+            // einen Sekretär) — Hinweis statt einem Rollen-Dropdown ohne
+            // Optionen.
+            <span className="text-xs text-destructive">
+              Für die ausgewählte Kombination gibt es keine gemeinsame offene
+              Rolle mehr — bitte Auswahl anpassen oder Termine einzeln
+              eintragen.
+            </span>
+          ) : (
+            <>
+              <Input
+                name="name"
+                placeholder="Dein Name"
+                required
+                className="h-8 min-w-48 flex-1"
+              />
+              <div className="w-36">
+                <LabeledSelect
+                  name="rolle"
+                  placeholder="Rolle…"
+                  options={rolleOptionenGefiltert}
+                  required
+                />
+              </div>
+              <SubmitButton size="sm" pendingText="Wird eingetragen…">
+                Für alle eintragen
+              </SubmitButton>
+            </>
+          )}
           <Button
             type="button"
             variant="ghost"

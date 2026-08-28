@@ -460,6 +460,119 @@ export async function zeitnehmerVorschlagBestaetigen(formData: FormData) {
   revalidatePath("/admin/kalender");
 }
 
+// Für Selbsteintragungen, zu denen weder eine aktive noch eine deaktivierte
+// Rolle passt (siehe kandidaten/inaktivVorschlag in page.tsx) — statt den
+// Umweg über /admin/funktionstraeger zu erzwingen, legt diese Action direkt
+// eine neue Person mit einer vom Wart eingegebenen E-Mail an (Platzhalter
+// reicht, falls die Person keine echte hinterlegen mag/kann) und bestätigt
+// die Zuordnung in einem Schritt. Anders als createFunktionstraeger in
+// admin/actions.ts bewusst OHNE Willkommens-Mail: die Person hat sich ja
+// bereits per Namenseintrag gemeldet, nicht über einen Login — ein
+// Zustellversuch an eine reine Platzhalter-Adresse würde nur verwirren oder
+// fehlschlagen. Die Rolle ist sofort aktiv, damit die Person direkt
+// auswählbar ist (auch bei künftigen Selbsteintragungen/Zuordnungen). Kein
+// pruefeBesetzungsgrenze-Aufruf nötig: die unbestätigte Selbsteintragung
+// zählt für ihre Rolle bereits als bestehende Zuordnung (siehe
+// berechneBesetzung in besetzung.ts, das nicht nach userId unterscheidet) —
+// hier wird ihr nur eine Identität zugewiesen, kein neuer Platz verbraucht
+// (exakt wie in zeitnehmerVorschlagBestaetigen oben).
+export async function zeitnehmerNeuAnlegenUndBestaetigen(formData: FormData) {
+  const { vereinId } = await requireZeitnehmerwartZugriff();
+
+  const zuordnungId = formData.get("zuordnungId");
+  const email = formData.get("email");
+  if (typeof zuordnungId !== "string" || !zuordnungId) {
+    throw new Error("Zuordnung fehlt.");
+  }
+  if (typeof email !== "string" || !email.trim()) {
+    throw new Error("E-Mail ist erforderlich.");
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+
+  await withTenant(vereinId, async (tx) => {
+    const zuordnung = await tx.query.terminZuordnungen.findFirst({
+      where: eq(terminZuordnungen.id, zuordnungId),
+    });
+    if (
+      !zuordnung ||
+      !(ZEITNEHMER_ROLLEN as readonly string[]).includes(
+        zuordnung.funktionstraegerTyp
+      ) ||
+      zuordnung.userId ||
+      !zuordnung.externerName
+    ) {
+      throw new Error(
+        "Zuordnung nicht gefunden, keine Zeitnehmer-/Sekretär-Rolle, oder bereits bestätigt."
+      );
+    }
+    const rolle = zuordnung.funktionstraegerTyp as ZeitnehmerRolle;
+
+    let person = await tx.query.users.findFirst({
+      where: eq(users.email, normalizedEmail),
+    });
+    if (person && person.vereinId !== vereinId) {
+      throw new Error(
+        "Diese E-Mail-Adresse ist bereits einem anderen Verein zugeordnet."
+      );
+    }
+    if (!person) {
+      [person] = await tx
+        .insert(users)
+        .values({
+          email: normalizedEmail,
+          name: zuordnung.externerName,
+          vereinId,
+        })
+        .returning();
+    }
+
+    const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
+      where: and(
+        eq(funktionstraegerRollen.userId, person.id),
+        eq(funktionstraegerRollen.typ, rolle)
+      ),
+    });
+    if (!vorhandeneRolle) {
+      await tx.insert(funktionstraegerRollen).values({
+        userId: person.id,
+        typ: rolle,
+        aktiv: true,
+      });
+    } else if (!vorhandeneRolle.aktiv) {
+      await tx
+        .update(funktionstraegerRollen)
+        .set({ aktiv: true })
+        .where(eq(funktionstraegerRollen.id, vorhandeneRolle.id));
+    }
+
+    // Wie in zeitnehmerVorschlagBestaetigen: ist die (wiederverwendete)
+    // Person für diese Rolle an diesem Termin bereits anderweitig
+    // zugeordnet, wird die self-eingetragene Dublette entfernt statt einen
+    // zweiten Eintrag zu behalten.
+    const vorhanden = await tx.query.terminZuordnungen.findFirst({
+      where: and(
+        eq(terminZuordnungen.terminId, zuordnung.terminId),
+        eq(terminZuordnungen.userId, person.id),
+        eq(terminZuordnungen.funktionstraegerTyp, rolle)
+      ),
+    });
+    if (vorhanden) {
+      await tx
+        .delete(terminZuordnungen)
+        .where(eq(terminZuordnungen.id, zuordnungId));
+    } else {
+      await tx
+        .update(terminZuordnungen)
+        .set({ userId: person.id, externerName: null, matchVorschlagUserId: null })
+        .where(eq(terminZuordnungen.id, zuordnungId));
+    }
+  });
+
+  revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath("/admin/kalender");
+  revalidatePath("/admin/funktionstraeger");
+}
+
 // Siehe willkommensInhalt in admin/actions.ts — dort nicht exportiert (in
 // einer "use server"-Datei dürfen nur async-Funktionen exportiert werden),
 // deshalb hier dupliziert statt importiert; inhaltlich identisch.

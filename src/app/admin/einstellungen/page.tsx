@@ -77,6 +77,9 @@ export default async function EinstellungenPage({
               Sobald diese Anzahl erreicht ist, können sich weitere
               Interessenten nicht mehr anmelden. Gilt nicht für Termine aus dem
               ICS-Feed (das sind die persönlichen Einsätze der Schiedsrichter).
+              Zeitnehmer und Sekretär sind dabei jeweils eigene Rollen mit
+              fest max. einer Person — der hier eingetragene Bedarf zählt
+              beide zusammen (z.B. 2 = ein Zeitnehmer UND ein Sekretär).
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -241,32 +244,6 @@ export default async function EinstellungenPage({
                     min="0"
                     step="1"
                     defaultValue={verein?.rundenspielZeitnehmerBedarf ?? 1}
-                    className="w-20"
-                  />
-                </div>
-              </fieldset>
-
-              <fieldset
-                disabled={!session.user.istAdmin}
-                className="flex flex-col gap-2"
-              >
-                <legend className="mb-1 text-sm font-medium">
-                  Obergrenze Zeitnehmer/Sekretär
-                </legend>
-                <div className="flex items-center justify-between gap-3">
-                  <Label
-                    htmlFor="zeitnehmerSekretaerMax"
-                    className="font-normal"
-                  >
-                    Max. gleichzeitig zugeordnet (zusammen)
-                  </Label>
-                  <Input
-                    id="zeitnehmerSekretaerMax"
-                    type="number"
-                    name="zeitnehmerSekretaerMax"
-                    min="1"
-                    step="1"
-                    defaultValue={verein?.zeitnehmerSekretaerMax ?? 2}
                     className="w-20"
                   />
                 </div>

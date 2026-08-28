@@ -141,8 +141,7 @@ export async function holeEigeneKalenderEintraege(
                 t.pflichtspiel,
                 t.freundschaftsTyp,
                 t.zeitnehmerBedarfOverride
-              ),
-              verein.zeitnehmerSekretaerMax
+              )
             ),
             t.typ,
             t.pflichtspiel

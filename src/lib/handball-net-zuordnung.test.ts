@@ -160,7 +160,7 @@ describe("ermittleAutomatischeZuordnungen", () => {
     expect(ergebnis).toEqual([]);
   });
 
-  it("ordnet keinen Zeitnehmer/Sekretär mehr zu, wenn das konfigurierte Maximum bereits erreicht ist", () => {
+  it("ordnet keinen zweiten Zeitnehmer zu (Rolle ist bereits mit einer Person besetzt)", () => {
     const ergebnis = ermittleAutomatischeZuordnungen(
       [termin({ handballNetZeitnehmer: "Weitere Person" })],
       [{ terminId: "t1", userId: "u1", funktionstraegerTyp: "zeitnehmer" }],
@@ -171,8 +171,7 @@ describe("ermittleAutomatischeZuordnungen", () => {
           email: "weitere@example.org",
           typ: "zeitnehmer",
         },
-      ],
-      1
+      ]
     );
     expect(ergebnis).toEqual([]);
   });
