@@ -51,12 +51,6 @@ export async function dienstBedarfSpeichern(formData: FormData) {
     formData,
     "rundenspielZeitnehmerBedarf"
   );
-  // Mindestens 1: eine Obergrenze von 0 würde JEDE Zuordnung blockieren.
-  const zeitnehmerSekretaerMax = parseAnzahl(
-    formData,
-    "zeitnehmerSekretaerMax",
-    1
-  );
 
   await withTenant(vereinId, (tx) =>
     tx
@@ -71,7 +65,6 @@ export async function dienstBedarfSpeichern(formData: FormData) {
         testspielZeitnehmerBedarf,
         turnierZeitnehmerBedarf,
         rundenspielZeitnehmerBedarf,
-        zeitnehmerSekretaerMax,
       })
       .where(eq(vereine.id, vereinId))
   );

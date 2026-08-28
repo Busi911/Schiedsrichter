@@ -6,7 +6,6 @@ import {
   termine,
   terminZuordnungen,
   users,
-  vereine,
 } from "@/db/schema";
 import { formatDatumZeitLang } from "@/lib/format";
 import { SCHIRI_GESPANN_MAX, berechneBesetzung } from "@/lib/besetzung";
@@ -126,41 +125,43 @@ export function zuordnungFehlgeschlagenInhalt(
   };
 }
 
-// Prüft die Gespann-/Zweierbesetzung-Obergrenze, BEVOR eine weitere Person
-// eingetragen wird — schiedsrichter max. SCHIRI_GESPANN_MAX (fest 2),
-// zeitnehmer+sekretaer zusammen max. vereine.zeitnehmerSekretaerMax
-// (konfigurierbar, siehe /admin/einstellungen). Wirft, wenn die Grenze für
-// `rolle` bereits erreicht ist. Gemeinsam genutzt vom Kalender-Modal und
-// den Wart-Rollen /profil/schiedsrichterwart und /profil/zeitnehmerwart —
-// liegt hier statt in einer der "use server"-Action-Dateien, da deren
-// Exporte ausschließlich async Server Actions mit serialisierbaren
-// Parametern sein dürfen (tx ist das nicht).
+// Prüft die Besetzungs-Obergrenze, BEVOR eine weitere Person eingetragen
+// wird — schiedsrichter max. SCHIRI_GESPANN_MAX (fest 2 als Gespann),
+// zeitnehmer/sekretaer JEWEILS max. 1 (eigene, unabhängige Rollen, siehe
+// ZEITNEHMER_ROLLE_MAX/SEKRETAER_ROLLE_MAX in besetzung.ts). Wirft, wenn die
+// Grenze für `rolle` bereits erreicht ist, unabhängig davon, ob dieselbe
+// oder eine andere Person die Rolle schon hält. Bei einer Umbesetzung
+// ("Ersetzen") entfernen alle Aufrufstellen die bisherige Zuordnung VOR
+// diesem Aufruf, in derselben Transaktion — die frisch geladenen
+// `bestehende` sehen sie dadurch bereits nicht mehr, ohne dass diese
+// Funktion einen eigenen Ausnahme-Parameter bräuchte. Gemeinsam genutzt vom
+// Kalender-Modal und den Wart-Rollen /profil/schiedsrichterwart und
+// /profil/zeitnehmerwart — liegt hier statt in einer der
+// "use server"-Action-Dateien, da deren Exporte ausschließlich async Server
+// Actions mit serialisierbaren Parametern sein dürfen (tx ist das nicht).
 export async function pruefeBesetzungsgrenze(
   tx: Parameters<Parameters<typeof withTenant>[1]>[0],
-  vereinId: string,
+  // Nicht mehr gebraucht, seit die Obergrenze nicht mehr aus den
+  // Vereinseinstellungen kommt (siehe oben) — Parameter bleibt aus
+  // Kompatibilität zu den bestehenden Aufrufstellen erhalten.
+  _vereinId: string,
   terminId: string,
   rolle: (typeof ZUORDENBARE_TYPEN)[number]
 ) {
-  const [bestehende, verein] = await Promise.all([
-    tx.query.terminZuordnungen.findMany({
-      where: eq(terminZuordnungen.terminId, terminId),
-    }),
-    tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) }),
-  ]);
-  const zeitnehmerSekretaerMax = verein?.zeitnehmerSekretaerMax;
-  const status = berechneBesetzung(bestehende, false, undefined, zeitnehmerSekretaerMax);
+  const bestehende = await tx.query.terminZuordnungen.findMany({
+    where: eq(terminZuordnungen.terminId, terminId),
+  });
+  const status = berechneBesetzung(bestehende);
   if (rolle === "schiedsrichter" && status.schiriVoll) {
     throw new Error(
       `Es sind bereits ${SCHIRI_GESPANN_MAX} Schiedsrichter (Gespann-Maximum) zugeordnet.`
     );
   }
-  if (
-    (rolle === "zeitnehmer" || rolle === "sekretaer") &&
-    status.zeitnehmerSekretaerVoll
-  ) {
-    throw new Error(
-      `Es sind bereits ${zeitnehmerSekretaerMax} Zeitnehmer/Sekretäre zugeordnet.`
-    );
+  if (rolle === "zeitnehmer" && status.zeitnehmerVoll) {
+    throw new Error("Es ist bereits ein Zeitnehmer zugeordnet.");
+  }
+  if (rolle === "sekretaer" && status.sekretaerVoll) {
+    throw new Error("Es ist bereits ein Sekretär zugeordnet.");
   }
 }
 

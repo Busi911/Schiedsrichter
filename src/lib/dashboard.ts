@@ -133,8 +133,6 @@ export type UnbesetzterTermin = {
   zeitnehmerOffen: boolean;
 };
 
-type VereinBesetzung = VereinBedarf & { zeitnehmerSekretaerMax: number };
-
 // spiel_ics bewusst ausgenommen — rein persönlicher ICS-Feed-Einsatz eines
 // Schiedsrichters (oft bei fremden Vereinen), kein Vereins-Termin. Dieselbe
 // Ausnahme wie im Admin-Kalender, siehe holeAdminKalenderDaten in
@@ -149,7 +147,7 @@ const UNBESETZTE_TERMINE_TYPEN = ["testspiel", "turnier_spiel", "rundenspiel"] a
 // Zeitnehmer/Sekretär, NICHT Ordner/Kioskdienst (das sind reine
 // Helferdienste, siehe berechneOffenePosten unten für /admin/dienste).
 export function berechneUnbesetzteTermine(
-  verein: VereinBesetzung,
+  verein: VereinBedarf,
   anstehende: AnstehenderTermin[],
   zuordnungen: Zuordnung[]
 ): UnbesetzterTermin[] {
@@ -169,8 +167,7 @@ export function berechneUnbesetzteTermine(
         termin.pflichtspiel,
         termin.freundschaftsTyp,
         termin.zeitnehmerBedarfOverride
-      ),
-      verein.zeitnehmerSekretaerMax
+      )
     );
     if (istBesetzungVollstaendig(status, termin.typ, termin.pflichtspiel)) continue;
 

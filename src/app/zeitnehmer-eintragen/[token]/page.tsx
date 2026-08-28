@@ -117,19 +117,13 @@ export default async function ZeitnehmerEintragenPage({
             ...t,
             zeitnehmerBedarf,
             zuordnungen: eigeneZuordnungen,
-            besetzung: berechneBesetzung(
-              eigeneZuordnungen,
-              false,
-              zeitnehmerBedarf,
-              verein.zeitnehmerSekretaerMax
-            ),
+            besetzung: berechneBesetzung(eigeneZuordnungen, false, zeitnehmerBedarf),
           };
         })
         // Ohne diesen Filter blieb ein Termin mit Bedarf 0 (z.B. Freundschafts-
         // spiele/Turniere, für die der Verein gar keinen Zeitnehmer/Sekretär
         // braucht, siehe /admin/einstellungen) trotzdem sichtbar UND
-        // eintragbar: "voll" prüfte bisher nur gegen die globale Obergrenze
-        // (zeitnehmerSekretaerMax), nicht gegen den tatsächlichen Bedarf.
+        // eintragbar.
         .filter((t) => t.zeitnehmerBedarf > 0);
 
       return { alleMannschaften, relevanteTermine };
@@ -164,6 +158,16 @@ export default async function ZeitnehmerEintragenPage({
     beschreibung: t.beschreibung,
     vollstaendig: t.besetzung.zeitnehmerSekretaerErfuellt,
     eintragbar: !t.besetzung.zeitnehmerSekretaerVoll,
+    // Welche der beiden Rollen für DIESEN Termin noch frei ist (je max. 1,
+    // siehe besetzung.ts) — schränkt unten in TerminMehrfachAuswahl die
+    // Rollen-Auswahl ein, damit niemand eine bereits besetzte Rolle wählen
+    // kann, für die die Eintragung ohnehin abgelehnt würde.
+    offeneRollen: ZEITNEHMER_ROLLEN.filter(
+      (rolle) =>
+        !(rolle === "zeitnehmer"
+          ? t.besetzung.zeitnehmerVoll
+          : t.besetzung.sekretaerVoll)
+    ),
     zuordnungen: t.zuordnungen.map((z) => ({
       id: z.id,
       label: `${z.funktionstraegerTyp === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"}: ${z.name ?? z.externerName ?? "—"}`,

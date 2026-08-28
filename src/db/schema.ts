@@ -137,13 +137,6 @@ export const vereine = pgTable("verein", {
   rundenspielZeitnehmerBedarf: integer("rundenspiel_zeitnehmer_bedarf")
     .notNull()
     .default(1),
-  // Obergrenze für gleichzeitig zugeordnete Zeitnehmer+Sekretär zusammen
-  // (bisher hart ZEITNEHMER_SEKRETAER_MAX = 2 in src/lib/besetzung.ts) —
-  // EIN Wert für alle Termin-Typen, da es sich um eine praktische
-  // Kapazitätsgrenze am Tisch handelt, nicht um einen typabhängigen Bedarf.
-  zeitnehmerSekretaerMax: integer("zeitnehmer_sekretaer_max")
-    .notNull()
-    .default(2),
   // Automatischer nuLiga-Rundenspiel-Import (siehe src/lib/nuliga-scraper.ts):
   // bis zu drei Hallen-IDs (dieselben Angaben wie im bisherigen manuellen
   // Export-Workflow), Import läuft nur, wenn aktiviert UND mindestens eine

@@ -18,6 +18,7 @@ import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import {
   zeitnehmerBedarfUeberschreiben,
   zeitnehmerInaktiveRolleAktivierenUndZuordnen,
+  zeitnehmerNeuAnlegenUndBestaetigen,
   zeitnehmerOhneLoginZuordnen,
   zeitnehmerSelbstanmeldungDeaktivieren,
   zeitnehmerSelbstanmeldungLinkErneuern,
@@ -181,12 +182,7 @@ export default async function ZeitnehmerwartPage({
       return {
         ...termin,
         zeitnehmerBedarf,
-        besetzung: berechneBesetzung(
-          termin.zuordnungen,
-          false,
-          zeitnehmerBedarf,
-          verein?.zeitnehmerSekretaerMax
-        ),
+        besetzung: berechneBesetzung(termin.zuordnungen, false, zeitnehmerBedarf),
         freiePersonen,
       };
     })
@@ -363,9 +359,32 @@ export default async function ZeitnehmerwartPage({
                     {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
                   </p>
                   {kandidaten.length === 0 ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Keine passende Person im Verein angelegt.
-                    </p>
+                    <div className="mt-1 flex flex-col gap-1.5">
+                      <p className="text-xs text-muted-foreground">
+                        Keine passende Person im Verein angelegt.
+                      </p>
+                      {/* Fallback: direkt eine neue Person anlegen statt den
+                          Umweg über /admin/funktionstraeger zu erzwingen —
+                          eine Platzhalter-E-Mail reicht, es geht nur darum,
+                          einen Eintrag zum Zuordnen zu haben (siehe
+                          zeitnehmerNeuAnlegenUndBestaetigen). */}
+                      <form
+                        action={zeitnehmerNeuAnlegenUndBestaetigen}
+                        className="flex flex-wrap items-center gap-2"
+                      >
+                        <input type="hidden" name="zuordnungId" value={z.id} />
+                        <Input
+                          name="email"
+                          type="email"
+                          placeholder="E-Mail (Platzhalter reicht)"
+                          required
+                          className="h-8 min-w-56 flex-1"
+                        />
+                        <Button type="submit" size="xs" variant="outline">
+                          Person anlegen &amp; zuordnen
+                        </Button>
+                      </form>
+                    </div>
                   ) : (
                     <form
                       action={zeitnehmerVorschlagBestaetigen}
@@ -525,31 +544,46 @@ export default async function ZeitnehmerwartPage({
                   z.funktionstraegerTyp
                 )
               );
-              // Bewusst NICHT herausgefiltert, sondern nur ausgegraut (disabled):
-              // eine bereits für diesen Termin/diese Rolle eingetragene Person
-              // still aus der Liste verschwinden zu lassen, sah eher wie ein
-              // Fehler aus als wie eine bewusste Einschränkung — siehe auch
-              // PersonSelectOption.disabled. Gleiches Prinzip für eine
-              // deaktivierte Rolle (inaktiveRollenProPerson oben): auch die
-              // erscheint ausgegraut mit Hinweis statt zu fehlen.
-              const personOptionen = t.freiePersonen.flatMap((s) => {
-                const inaktiveRollen = inaktiveRollenProPerson.get(s.userId);
-                return ZEITNEHMER_ROLLEN.filter(
-                  (rolle) => s.rollen.includes(rolle) || inaktiveRollen?.has(rolle)
-                ).map((rolle) => {
-                  const rolleAktiv = s.rollen.includes(rolle);
-                  return {
-                    value: `${s.userId}|${rolle}`,
-                    label: `${s.name ?? s.email} (${rolle === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"})`,
-                    disabled:
-                      !rolleAktiv ||
-                      bestehende.some(
-                        (z) => z.userId === s.userId && z.funktionstraegerTyp === rolle
-                      ),
-                    hinweis: rolleAktiv ? undefined : "Rolle deaktiviert",
-                  };
+              // Je Rolle max. 1 Person (siehe ZEITNEHMER_ROLLE_MAX/
+              // SEKRETAER_ROLLE_MAX in besetzung.ts) — ist eine Rolle für
+              // diesen Termin schon besetzt, wird sie für ALLE Personen
+              // ausgegraut angeboten, nicht nur für die bereits zugeordnete.
+              // `ausgenommeneZuordnungId` blendet beim "Ersetzen" die eigene,
+              // gleich zu löschende Zuordnung aus dieser Prüfung aus, sonst
+              // ließe sich eine Rolle nicht durch eine andere Person ersetzen.
+              // Bewusst NICHT herausgefiltert, sondern nur ausgegraut
+              // (disabled): eine Rolle/Person kommentarlos aus der Liste
+              // verschwinden zu lassen, sah eher wie ein Fehler aus als wie
+              // eine bewusste Einschränkung — siehe auch
+              // PersonSelectOption.disabled.
+              function personOptionenFuer(ausgenommeneZuordnungId?: string) {
+                const rolleBesetzt = (rolle: (typeof ZEITNEHMER_ROLLEN)[number]) =>
+                  bestehende.some(
+                    (z) =>
+                      z.funktionstraegerTyp === rolle &&
+                      z.id !== ausgenommeneZuordnungId
+                  );
+                return t.freiePersonen.flatMap((s) => {
+                  const inaktiveRollen = inaktiveRollenProPerson.get(s.userId);
+                  return ZEITNEHMER_ROLLEN.filter(
+                    (rolle) => s.rollen.includes(rolle) || inaktiveRollen?.has(rolle)
+                  ).map((rolle) => {
+                    const rolleAktiv = s.rollen.includes(rolle);
+                    const besetzt = rolleAktiv && rolleBesetzt(rolle);
+                    return {
+                      value: `${s.userId}|${rolle}`,
+                      label: `${s.name ?? s.email} (${rolle === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"})`,
+                      disabled: !rolleAktiv || besetzt,
+                      hinweis: !rolleAktiv
+                        ? "Rolle deaktiviert"
+                        : besetzt
+                          ? "Rolle bereits besetzt"
+                          : undefined,
+                    };
+                  });
                 });
-              });
+              }
+              const personOptionen = personOptionenFuer();
               const auswaehlbareOptionen = personOptionen.filter(
                 (o) => !o.disabled
               ).length;
@@ -642,6 +676,15 @@ export default async function ZeitnehmerwartPage({
                               z.name ?? z.externerName
                             )
                           : null;
+                        // Eigene Optionsliste je zu ersetzender Zuordnung:
+                        // deren eigene Rolle gilt hier NICHT als "bereits
+                        // besetzt" (sie wird beim Ersetzen ja selbst
+                        // gelöscht) — andere, tatsächlich noch belegte
+                        // Rollen bleiben weiterhin ausgegraut.
+                        const ersatzOptionen = personOptionenFuer(z.id);
+                        const auswaehlbareErsatzOptionen = ersatzOptionen.filter(
+                          (o) => !o.disabled
+                        ).length;
                         return (
                         <li key={z.id}>
                           <div className="flex items-center justify-between gap-2">
@@ -665,7 +708,7 @@ export default async function ZeitnehmerwartPage({
                               )}
                             </span>
                             <div className="flex items-center gap-3">
-                              {auswaehlbareOptionen > 0 && (
+                              {auswaehlbareErsatzOptionen > 0 && (
                                 <details className="group">
                                   <summary className={DISCLOSURE_KLASSE}>
                                     <span className="group-open:hidden">
@@ -693,7 +736,7 @@ export default async function ZeitnehmerwartPage({
                                       <PersonSelect
                                         name="personRolle"
                                         placeholder="Ersatz wählen…"
-                                        options={personOptionen}
+                                        options={ersatzOptionen}
                                         required
                                       />
                                     </div>

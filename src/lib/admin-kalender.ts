@@ -229,7 +229,6 @@ export async function holeAdminKalenderDaten(
               t.freundschaftsTyp,
               t.zeitnehmerBedarfOverride
             ),
-            verein.zeitnehmerSekretaerMax,
             externeSchiriAnzahl,
             externeZeitnehmerSekretaerAnzahl
           ),
