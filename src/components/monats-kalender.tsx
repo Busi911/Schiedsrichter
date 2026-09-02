@@ -77,12 +77,20 @@ export type KalenderEintrag = {
   schiedsrichterZuordnenErlaubt?: boolean;
   ort?: string | null;
   // id = terminZuordnungen-Id (für "Entfernen"), bei nicht entfernbaren
-  // Einträgen (z.B. ICS-Schiedsrichter) ein synthetischer Platzhalter.
-  // hinweis = optionaler nuLiga-Abgleichs-Hinweis (siehe
-  // schiedsrichterKuerzelPasstZu), als eigene Zeile unter dem Namen statt
-  // inline angehängt, damit lange Gespann-Kürzel nicht mit dem Namen
-  // zusammenlaufen.
-  besetzungsDetails?: { id: string; label: string; hinweis?: string }[];
+  // Einträgen (z.B. ICS-Schiedsrichter, oder eine noch nicht mit einer
+  // eigenen Person verknüpfte nuLiga-/handball.net-Ansetzung) ein
+  // synthetischer Platzhalter — dafür entfernbar explizit false, siehe
+  // dessen Verwendung unten (kein "Entfernen"-Button für einen Eintrag, der
+  // gar keine echte terminZuordnungen-Zeile ist). hinweis = optionaler
+  // nuLiga-Abgleichs-Hinweis (siehe schiedsrichterKuerzelPasstZu), als
+  // eigene Zeile unter dem Namen statt inline angehängt, damit lange
+  // Gespann-Kürzel nicht mit dem Namen zusammenlaufen.
+  besetzungsDetails?: {
+    id: string;
+    label: string;
+    hinweis?: string;
+    entfernbar?: boolean;
+  }[];
   // "Herren 1 (MJC)" o.ä. — siehe formatMannschaft in lib/dashboard.ts.
   mannschaftLabel?: string | null;
   bearbeitenHref?: string;
@@ -337,7 +345,7 @@ export function MonatsKalender({
                       <span className="text-xs">{d.hinweis}</span>
                     )}
                   </span>
-                  {schreibzugriff && e.zuordenbar && !d.id.startsWith("ics-") && (
+                  {schreibzugriff && e.zuordenbar && d.entfernbar !== false && (
                     <form action={zuordnungEntfernen} className="shrink-0">
                       <input
                         type="hidden"
