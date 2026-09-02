@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq, inArray, lt } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNotNull, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
@@ -90,23 +90,6 @@ export async function holeZeitnehmerEinsatzZahlen(
   });
 }
 
-// Stammdaten der Person für die Einsätze-Detailseite (Klick auf den Namen in
-// der Übersicht) — mit eq(users.vereinId, vereinId) abgesichert, damit über
-// die userId in der URL nicht Personen anderer Vereine abgefragt werden
-// können.
-export async function holeZeitnehmerPerson(
-  vereinId: string,
-  userId: string
-): Promise<{ name: string | null; email: string } | null> {
-  return withTenant(vereinId, async (tx) => {
-    const person = await tx.query.users.findFirst({
-      where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
-      columns: { name: true, email: true },
-    });
-    return person ?? null;
-  });
-}
-
 export type ZeitnehmerPersonEinsatz = {
   terminId: string;
   start: Date;
@@ -118,18 +101,28 @@ export type ZeitnehmerPersonEinsatz = {
   rolle: (typeof ZEITNEHMER_ROLLEN)[number];
   mannschaftName: string | null;
   mannschaftAltersklasse: string | null;
+  // Einmalig beim Laden bestimmt (statt im Client per Date.now() neu
+  // verglichen) — sonst könnte serverseitig gerenderte und client-
+  // hydratisierte Einordnung je nach Render-Zeitpunkt auseinanderlaufen.
+  istVergangenheit: boolean;
 };
 
-// Alle vergangenen Einsätze einer Person als Zeitnehmer/Sekretär im Verein —
-// Detailliste zur Zahl in holeZeitnehmerEinsatzZahlen (Klick auf den Namen
-// dort). Nur vergangene Termine, analog zur Zählung dort.
-export async function holeZeitnehmerEinsaetzeFuerPerson(
-  vereinId: string,
-  userId: string
-): Promise<ZeitnehmerPersonEinsatz[]> {
+// Alle Einsätze (vergangen UND anstehend) aller aktiven Zeitnehmer/
+// Sekretäre im Verein, gruppiert nach Person — Basis für das
+// Einsätze-Modal in der Übersicht (ein Query statt eines pro Person, siehe
+// ZeitnehmerEinsaetzeDialog). Anders als die reine Zählung in
+// holeZeitnehmerEinsatzZahlen werden hier bewusst auch anstehende Termine
+// mitgeliefert, damit die Person im Modal sieht, wofür sie bereits
+// eingeteilt ist.
+export async function holeZeitnehmerEinsaetzeProPerson(
+  vereinId: string
+): Promise<Map<string, ZeitnehmerPersonEinsatz[]>> {
   return withTenant(vereinId, async (tx) => {
+    const jetzt = new Date();
+
     const zeilen = await tx
       .select({
+        userId: terminZuordnungen.userId,
         terminId: termine.id,
         start: termine.start,
         typ: termine.typ,
@@ -147,17 +140,23 @@ export async function holeZeitnehmerEinsaetzeFuerPerson(
       .where(
         and(
           eq(termine.vereinId, vereinId),
-          eq(terminZuordnungen.userId, userId),
-          inArray(terminZuordnungen.funktionstraegerTyp, ZEITNEHMER_ROLLEN),
-          lt(termine.start, new Date())
+          isNotNull(terminZuordnungen.userId),
+          inArray(terminZuordnungen.funktionstraegerTyp, ZEITNEHMER_ROLLEN)
         )
       )
       .orderBy(desc(termine.start));
 
-    return zeilen.map((z) => ({
-      ...z,
-      rolle: z.rolle as (typeof ZEITNEHMER_ROLLEN)[number],
-    }));
+    const proPerson = new Map<string, ZeitnehmerPersonEinsatz[]>();
+    for (const z of zeilen) {
+      const liste = proPerson.get(z.userId!) ?? [];
+      liste.push({
+        ...z,
+        rolle: z.rolle as (typeof ZEITNEHMER_ROLLEN)[number],
+        istVergangenheit: z.start < jetzt,
+      });
+      proPerson.set(z.userId!, liste);
+    }
+    return proPerson;
   });
 }
 
