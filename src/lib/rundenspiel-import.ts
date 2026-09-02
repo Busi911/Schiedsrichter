@@ -136,19 +136,33 @@ function extrahiereErgebnis(zusatz: string | undefined): {
 // selben Zusatz-Kanal wie das Ergebnis (siehe extrahiereErgebnis oben),
 // nach dessen Extraktion aufgerufen. Die genaue Kürzungsregel (Anzahl
 // Buchstaben) ist nicht zuverlässig bekannt, daher bewusst kein exaktes
-// Muster, sondern nur "ein Wort, groß beginnend, mit Punkt endend" — genug,
-// um es aus dem Titel herauszuhalten und als Abgleichs-Hinweis gegen die
-// zugeordnete Person anzuzeigen (siehe schiedsrichterKuerzelPasstZu), NICHT
-// um automatisch jemanden zuzuordnen.
-const KUERZEL_MUSTER = /^[A-ZÄÖÜ][a-zäöüß]{1,14}\.$/;
+// Muster, sondern nur "ein bis zwei groß beginnende Wörter, mit Punkt
+// endend" — genug, um es aus dem Titel herauszuhalten und als
+// Abgleichs-Hinweis gegen die zugeordnete Person anzuzeigen (siehe
+// schiedsrichterKuerzelPasstZu), NICHT um automatisch jemanden zuzuordnen.
+// Zwei Wörter deckt einen zusammengesetzten Nachnamen ab (beobachtet:
+// "Al M." als eine Hälfte eines Gespann-Kürzels) — der Punkt sitzt dabei
+// immer am Ende des GESAMTEN Kürzels, nicht nach jedem Wortteil. Das
+// abschließende Wortteil darf dabei auch nur ein einzelner Buchstabe sein
+// (wie "M" in "Al M."), das vorangestellte Wortteil eines zusammengesetzten
+// Namens (wie "Al") braucht mindestens 2 Buchstaben — sonst ließe sich ein
+// einzelner Großbuchstabe nicht mehr von einem abschließenden Kürzel-Wortteil
+// unterscheiden.
+const KUERZEL_WORT = "[A-ZÄÖÜ][a-zäöüß]{1,14}";
+const KUERZEL_LETZTES_WORT = `(?:${KUERZEL_WORT}|[A-ZÄÖÜ])`;
+const KUERZEL_NAME = `(?:${KUERZEL_WORT} )?${KUERZEL_LETZTES_WORT}`;
+const KUERZEL_MUSTER = new RegExp(`^${KUERZEL_NAME}\\.$`);
 // Bei Gespann-Besetzung (zwei Schiedsrichter) setzt nuLiga beide Kürzel
 // durch "/" getrennt in dieselbe Zelle (beobachtet: "Eike/Fisc." für
-// Schiedsrichter "Eike" und "Fischer") — der kurze Nachname bleibt dabei
-// offenbar unabgekürzt (kein Punkt), nur der längere wird wie gewohnt
-// gekürzt+Punkt. Deshalb links optional, rechts Punkt Pflicht (sonst
-// bräuchte es kein Kürzel-Signal mehr, um es vom Rest zu unterscheiden).
-const GESPANN_KUERZEL_MUSTER =
-  /^[A-ZÄÖÜ][a-zäöüß]{1,14}\.?\/[A-ZÄÖÜ][a-zäöüß]{1,14}\.$/;
+// Schiedsrichter "Eike" und "Fischer", sowie "Al M./Fara." mit
+// zusammengesetztem Nachnamen auf der linken Seite). Der kurze Nachname
+// bleibt dabei offenbar unabgekürzt (kein Punkt), nur der längere wird wie
+// gewohnt gekürzt+Punkt. Deshalb links optional, rechts Punkt Pflicht
+// (sonst bräuchte es kein Kürzel-Signal mehr, um es vom Rest zu
+// unterscheiden).
+const GESPANN_KUERZEL_MUSTER = new RegExp(
+  `^${KUERZEL_NAME}\\.?\\/${KUERZEL_NAME}\\.$`
+);
 
 function extrahiereSchiedsrichterKuerzel(zusatz: string | undefined): {
   kuerzel: string | null;
