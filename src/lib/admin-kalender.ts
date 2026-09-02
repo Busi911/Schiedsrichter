@@ -243,7 +243,12 @@ export async function holeAdminKalenderDaten(
         : ("offen" as const)
       : undefined;
 
-    const besetzungsDetails: { id: string; label: string; hinweis?: string }[] = [];
+    const besetzungsDetails: {
+      id: string;
+      label: string;
+      hinweis?: string;
+      entfernbar?: boolean;
+    }[] = [];
     for (const z of eigeneZuordnungen) {
       const label = `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
         z.name ?? z.externerName ?? z.email
@@ -282,15 +287,25 @@ export async function holeAdminKalenderDaten(
       (t.handballNetSchiedsrichter || t.nuligaSchiedsrichterKuerzel) &&
       !hatEigenenSchiri
     ) {
+      // Bei echten Ligaspielen ordnet der Verein ohnehin keinen
+      // Schiedsrichter zu (siehe brauchtSchiedsrichterVomVerein) — der
+      // Zusatz "(noch nicht zugeordnet)" suggeriert dort fälschlich eine
+      // offene Aufgabe, obwohl die externe Ansetzung bereits die
+      // vollständige Besetzung ist und intern nichts mehr zu tun bleibt.
+      const nochNichtZugeordnet = brauchtSchiedsrichterVomVerein(t)
+        ? " (noch nicht zugeordnet)"
+        : "";
       besetzungsDetails.push(
         t.handballNetSchiedsrichter
           ? {
               id: `handball-net-schiedsrichter-${t.id}`,
-              label: `handball.net-Ansetzung: ${t.handballNetSchiedsrichter} (noch nicht zugeordnet)`,
+              label: `handball.net-Ansetzung: ${t.handballNetSchiedsrichter}${nochNichtZugeordnet}`,
+              entfernbar: false,
             }
           : {
               id: `nuliga-kuerzel-${t.id}`,
-              label: `nuLiga-Ansetzung: ${t.nuligaSchiedsrichterKuerzel} (noch nicht zugeordnet)`,
+              label: `nuLiga-Ansetzung: ${t.nuligaSchiedsrichterKuerzel}${nochNichtZugeordnet}`,
+              entfernbar: false,
             }
       );
     }
@@ -298,6 +313,7 @@ export async function holeAdminKalenderDaten(
       besetzungsDetails.push({
         id: `handball-net-zeitnehmer-${t.id}`,
         label: `handball.net-Ansetzung: ${t.handballNetZeitnehmer} (noch nicht zugeordnet)`,
+        entfernbar: false,
       });
     }
 
