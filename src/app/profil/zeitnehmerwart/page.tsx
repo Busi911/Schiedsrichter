@@ -6,6 +6,7 @@ import { withTenant } from "@/db";
 import { mannschaften, vereine } from "@/db/schema";
 import {
   holeInaktiveZeitnehmerKandidaten,
+  holeZeitnehmerEinsaetzeProPerson,
   holeZeitnehmerEinsatzZahlen,
   istZeitnehmerwart,
 } from "@/lib/zeitnehmerwart";
@@ -51,6 +52,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
 import { PersonSelect } from "@/components/person-select";
+import { ZeitnehmerEinsaetzeDialog } from "@/components/zeitnehmer-einsaetze-dialog";
 import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
@@ -106,12 +108,14 @@ export default async function ZeitnehmerwartPage({
 
   const [
     zeitnehmerListe,
+    einsaetzeProPerson,
     inaktiveKandidaten,
     termineMitZuordnungen,
     verein,
     alleMannschaften,
   ] = await Promise.all([
     holeZeitnehmerEinsatzZahlen(vereinId),
+    holeZeitnehmerEinsaetzeProPerson(vereinId),
     holeInaktiveZeitnehmerKandidaten(vereinId),
     holeTermineMitZuordnungen(vereinId),
     withTenant(vereinId, (tx) =>
@@ -467,12 +471,10 @@ export default async function ZeitnehmerwartPage({
                 {zeitnehmerListe.map((s) => (
                   <TableRow key={s.userId}>
                     <TableCell className="font-medium">
-                      <Link
-                        href={`/profil/zeitnehmerwart/${s.userId}`}
-                        className="underline underline-offset-2 hover:text-primary"
-                      >
-                        {s.name ?? "—"}
-                      </Link>
+                      <ZeitnehmerEinsaetzeDialog
+                        person={{ name: s.name, email: s.email }}
+                        einsaetze={einsaetzeProPerson.get(s.userId) ?? []}
+                      />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {s.email}

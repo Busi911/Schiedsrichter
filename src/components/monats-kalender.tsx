@@ -29,6 +29,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
+import { PersonSelect } from "@/components/person-select";
 import { cn } from "@/lib/utils";
 import {
   formatMonatJahr,
@@ -68,6 +69,12 @@ export type KalenderEintrag = {
   // Ob im Modal ein "Person zuordnen"-Mini-Formular angeboten wird (siehe
   // zuordenbarePersonen-Prop) — deckt sich mit BESETZUNGSRELEVANTE_TYPEN.
   zuordenbar?: boolean;
+  // Bei echten Ligaspielen (Rundenspiel mit pflichtspiel = true) stellt der
+  // Verband den Schiedsrichter — der Verein ordnet hier keinen zu (siehe
+  // brauchtSchiedsrichterVomVerein in lib/besetzung.ts). Default true (siehe
+  // Verwendung unten), da andere Aufrufstellen (z.B. "Mein Kalender") dieses
+  // Feld gar nicht erst setzen.
+  schiedsrichterZuordnenErlaubt?: boolean;
   ort?: string | null;
   // id = terminZuordnungen-Id (für "Entfernen"), bei nicht entfernbaren
   // Einträgen (z.B. ICS-Schiedsrichter) ein synthetischer Platzhalter.
@@ -352,9 +359,24 @@ export function MonatsKalender({
           )}
           {schreibzugriff && e.zuordenbar &&
             (() => {
+              // Bei echten Ligaspielen stellt der Verband den
+              // Schiedsrichter (siehe Kommentar bei
+              // schiedsrichterZuordnenErlaubt oben) — die Rolle dann gar
+              // nicht erst als zuordenbar anbieten, sonst könnte der
+              // Eindruck entstehen, der Verein müsste hier selbst jemanden
+              // benennen.
+              const schiriErlaubt = e.schiedsrichterZuordnenErlaubt !== false;
+              const auswaehlbarePersonen = schiriErlaubt
+                ? zuordenbarePersonen
+                : zuordenbarePersonen.filter((p) => p.typ !== "schiedsrichter");
+              const auswaehlbareRollen = schiriErlaubt
+                ? Object.entries(ZUORDENBARE_TYP_LABEL)
+                : Object.entries(ZUORDENBARE_TYP_LABEL).filter(
+                    ([value]) => value !== "schiedsrichter"
+                  );
               const zuordnenForm = (
                 <div className="flex flex-col gap-2">
-                  {zuordenbarePersonen.length > 0 && (
+                  {auswaehlbarePersonen.length > 0 && (
                     <form
                       action={zuordnen}
                       className="flex items-center gap-2"
@@ -365,11 +387,11 @@ export function MonatsKalender({
                         value={e.id}
                       />
                       <div className="flex-1">
-                        <LabeledSelect
+                        <PersonSelect
                           name="personTyp"
                           placeholder="Person wählen…"
                           required
-                          options={zuordenbarePersonen.map((p) => ({
+                          options={auswaehlbarePersonen.map((p) => ({
                             value: `${p.userId}|${p.typ}`,
                             label: ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ,
                             group: p.name ?? p.email,
@@ -419,9 +441,7 @@ export function MonatsKalender({
                             name="rolle"
                             placeholder="Rolle…"
                             required
-                            options={Object.entries(
-                              ZUORDENBARE_TYP_LABEL
-                            ).map(([value, label]) => ({
+                            options={auswaehlbareRollen.map(([value, label]) => ({
                               value,
                               label,
                             }))}

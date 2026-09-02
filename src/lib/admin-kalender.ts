@@ -12,7 +12,11 @@ import {
 import { monatsBereich, tagKey } from "@/lib/kalender";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { formatMannschaft } from "@/lib/dashboard";
-import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
+import {
+  berechneBesetzung,
+  brauchtSchiedsrichterVomVerein,
+  istBesetzungVollstaendig,
+} from "@/lib/besetzung";
 import { bedarfFuer } from "@/lib/dienste";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
@@ -304,6 +308,7 @@ export async function holeAdminKalenderDaten(
       typLabel,
       besetzung,
       zuordenbar,
+      schiedsrichterZuordnenErlaubt: brauchtSchiedsrichterVomVerein(t),
       ort: t.ort,
       besetzungsDetails,
       mannschaftLabel: formatMannschaft(t),
