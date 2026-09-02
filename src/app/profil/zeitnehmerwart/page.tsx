@@ -46,6 +46,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
@@ -392,7 +393,7 @@ export default async function ZeitnehmerwartPage({
                     >
                       <input type="hidden" name="zuordnungId" value={z.id} />
                       <div className="min-w-56">
-                        <LabeledSelect
+                        <PersonSelect
                           name="userId"
                           placeholder="Person wählen…"
                           defaultValue={z.matchVorschlagUserId ?? undefined}
@@ -400,9 +401,7 @@ export default async function ZeitnehmerwartPage({
                           required
                         />
                       </div>
-                      <Button type="submit" size="sm">
-                        Bestätigen
-                      </Button>
+                      <SubmitButton size="sm">Bestätigen</SubmitButton>
                     </form>
                   )}
                   {inaktivVorschlag && (
@@ -468,7 +467,12 @@ export default async function ZeitnehmerwartPage({
                 {zeitnehmerListe.map((s) => (
                   <TableRow key={s.userId}>
                     <TableCell className="font-medium">
-                      {s.name ?? "—"}
+                      <Link
+                        href={`/profil/zeitnehmerwart/${s.userId}`}
+                        className="underline underline-offset-2 hover:text-primary"
+                      >
+                        {s.name ?? "—"}
+                      </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {s.email}
