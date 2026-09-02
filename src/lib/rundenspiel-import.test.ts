@@ -260,6 +260,33 @@ describe("parseRundenspielJson", () => {
     );
   });
 
+  it("extrahiert ein Gespann-Kürzel mit zusammengesetztem Nachnamen auf einer Seite (\"Al M./Fara.\")", () => {
+    const { ereignisse } = parseRundenspielJson(
+      beispielJson({
+        events: [
+          {
+            date: "2026-08-02",
+            time: "15:00",
+            start: "2026-08-02T15:00:00+02:00",
+            title: "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1",
+            gameNumber: "0",
+            category: "Mä/männl.",
+            league: "F 2026-08-02 M TSF Heuchelheim (BOL) gg HSG Lumdatal (LL)",
+            home: "TSF Heuchelheim 1",
+            away: "HSG Lumdatal e.V. 1",
+            location: "Sporthalle Heuchelheim",
+            locationId: 30402,
+            zusatz: "Al M./Fara.",
+          },
+        ],
+      })
+    );
+    expect(ereignisse[0].schiedsrichterKuerzel).toBe("Al M./Fara.");
+    expect(ereignisse[0].beschreibung).toBe(
+      "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1 · Mä/männl. · Freundschaftsspiel"
+    );
+  });
+
   it("kennzeichnet echte Pflichtspiele (Spielnummer != 0) als Ligaspiel statt Freundschaftsspiel/Turnier", () => {
     const { ereignisse } = parseRundenspielJson(
       beispielJson({
