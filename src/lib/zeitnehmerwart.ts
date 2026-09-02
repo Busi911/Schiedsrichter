@@ -1,7 +1,13 @@
 import "server-only";
-import { and, count, eq, inArray, lt } from "drizzle-orm";
+import { and, count, desc, eq, inArray, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { funktionstraegerRollen, termine, terminZuordnungen, users } from "@/db/schema";
+import {
+  funktionstraegerRollen,
+  mannschaften,
+  termine,
+  terminZuordnungen,
+  users,
+} from "@/db/schema";
 import { mergeRollenZaehlungen } from "./einsatz-zahlen";
 
 const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
@@ -81,6 +87,77 @@ export async function holeZeitnehmerEinsatzZahlen(
       typ: r.typ as (typeof ZEITNEHMER_ROLLEN)[number],
     }));
     return mergeRollenZaehlungen(rollenZeilenGetypt, zuordnungZaehlung);
+  });
+}
+
+// Stammdaten der Person für die Einsätze-Detailseite (Klick auf den Namen in
+// der Übersicht) — mit eq(users.vereinId, vereinId) abgesichert, damit über
+// die userId in der URL nicht Personen anderer Vereine abgefragt werden
+// können.
+export async function holeZeitnehmerPerson(
+  vereinId: string,
+  userId: string
+): Promise<{ name: string | null; email: string } | null> {
+  return withTenant(vereinId, async (tx) => {
+    const person = await tx.query.users.findFirst({
+      where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
+      columns: { name: true, email: true },
+    });
+    return person ?? null;
+  });
+}
+
+export type ZeitnehmerPersonEinsatz = {
+  terminId: string;
+  start: Date;
+  typ: string;
+  ort: string | null;
+  beschreibung: string | null;
+  pflichtspiel: boolean | null;
+  freundschaftsTyp: "freundschaftsspiel" | "turnier" | null;
+  rolle: (typeof ZEITNEHMER_ROLLEN)[number];
+  mannschaftName: string | null;
+  mannschaftAltersklasse: string | null;
+};
+
+// Alle vergangenen Einsätze einer Person als Zeitnehmer/Sekretär im Verein —
+// Detailliste zur Zahl in holeZeitnehmerEinsatzZahlen (Klick auf den Namen
+// dort). Nur vergangene Termine, analog zur Zählung dort.
+export async function holeZeitnehmerEinsaetzeFuerPerson(
+  vereinId: string,
+  userId: string
+): Promise<ZeitnehmerPersonEinsatz[]> {
+  return withTenant(vereinId, async (tx) => {
+    const zeilen = await tx
+      .select({
+        terminId: termine.id,
+        start: termine.start,
+        typ: termine.typ,
+        ort: termine.ort,
+        beschreibung: termine.beschreibung,
+        pflichtspiel: termine.pflichtspiel,
+        freundschaftsTyp: termine.freundschaftsTyp,
+        rolle: terminZuordnungen.funktionstraegerTyp,
+        mannschaftName: mannschaften.name,
+        mannschaftAltersklasse: mannschaften.altersklasse,
+      })
+      .from(terminZuordnungen)
+      .innerJoin(termine, eq(terminZuordnungen.terminId, termine.id))
+      .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
+      .where(
+        and(
+          eq(termine.vereinId, vereinId),
+          eq(terminZuordnungen.userId, userId),
+          inArray(terminZuordnungen.funktionstraegerTyp, ZEITNEHMER_ROLLEN),
+          lt(termine.start, new Date())
+        )
+      )
+      .orderBy(desc(termine.start));
+
+    return zeilen.map((z) => ({
+      ...z,
+      rolle: z.rolle as (typeof ZEITNEHMER_ROLLEN)[number],
+    }));
   });
 }
 
