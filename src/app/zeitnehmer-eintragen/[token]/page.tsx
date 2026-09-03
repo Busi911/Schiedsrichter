@@ -4,7 +4,7 @@ import Link from "next/link";
 import { adminDb } from "@/db/admin";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
-import { bedarfFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { berechneBesetzung } from "@/lib/besetzung";
 import { tagKey } from "@/lib/kalender";
@@ -102,6 +102,7 @@ export default async function ZeitnehmerEintragenPage({
             )
         : [];
 
+      const mannschaftenNachId = new Map(alleMannschaften.map((m) => [m.id, m]));
       const relevanteTermine = relevante
         .map((t) => {
           const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
@@ -111,7 +112,11 @@ export default async function ZeitnehmerEintragenPage({
             "zeitnehmer",
             t.pflichtspiel,
             t.freundschaftsTyp,
-            t.zeitnehmerBedarfOverride
+            t.zeitnehmerBedarfOverride,
+            mannschaftBedarfDeaktiviertFuer(
+              t.mannschaftId ? mannschaftenNachId.get(t.mannschaftId) : null,
+              "zeitnehmer"
+            )
           );
           return {
             ...t,

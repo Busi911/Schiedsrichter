@@ -3,15 +3,17 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
-import { vereine } from "@/db/schema";
+import { mannschaften, vereine } from "@/db/schema";
 import {
   holeOrdnerEinsatzZahlen,
   holeOrdnerRelevanteTermine,
   istOrdnerwart,
   ORDNER_ROLLEN,
 } from "@/lib/ordnerwart";
-import { bedarfFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import {
+  ordnerMannschaftBedarfUmschalten,
   ordnerSelbstanmeldungDeaktivieren,
   ordnerSelbstanmeldungLinkErneuern,
   ordnerVorschlagBestaetigen,
@@ -75,13 +77,18 @@ export default async function OrdnerwartPage({
   const { filter } = await searchParams;
   const nurOffene = filter === "offen";
 
-  const [personenListe, termineRoh, verein] = await Promise.all([
+  const [personenListe, termineRoh, verein, alleMannschaften] = await Promise.all([
     holeOrdnerEinsatzZahlen(vereinId),
     holeOrdnerRelevanteTermine(vereinId),
     withTenant(vereinId, (tx) =>
       tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
     ),
+    withTenant(vereinId, (tx) =>
+      tx.query.mannschaften.findMany({ where: eq(mannschaften.vereinId, vereinId) })
+    ),
   ]);
+  const mannschaftenSortiert = sortiereMannschaften(alleMannschaften);
+  const mannschaftenNachId = new Map(alleMannschaften.map((m) => [m.id, m]));
 
   const belegtProZeitpunktUndTermin = new Map<number, Map<string, string>>();
   for (const termin of termineRoh) {
@@ -106,6 +113,9 @@ export default async function OrdnerwartPage({
   // "Nur offene"-Filter unten blendet sie bei Bedarf trotzdem aus.
   const alleRelevantenTermine = termineRoh
     .map((termin) => {
+      const mannschaft = termin.mannschaftId
+        ? mannschaftenNachId.get(termin.mannschaftId)
+        : null;
       const luecken = (["ordner", "kioskdienst"] as const)
         .map((rolle) => {
           const bedarf = verein
@@ -114,7 +124,9 @@ export default async function OrdnerwartPage({
                 termin.typ,
                 rolle,
                 termin.pflichtspiel,
-                termin.freundschaftsTyp
+                termin.freundschaftsTyp,
+                undefined,
+                mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
               )
             : 0;
           const vorhanden = termin.zuordnungen.filter(
@@ -226,6 +238,54 @@ export default async function OrdnerwartPage({
           </div>
         </CardContent>
       </Card>
+
+      {mannschaftenSortiert.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Bedarf pro Mannschaft</CardTitle>
+            <CardDescription>
+              Für Mannschaften ohne eigene Heimspiele mit Publikum (z.B.
+              manche Jugend-Mannschaften) lässt sich der Ordner-/
+              Kioskdienst-Bedarf hier komplett abschalten — wirkt auf alle
+              Termine dieser Mannschaft, auch bereits bestehende offene.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            {mannschaftenSortiert.map((m) => (
+              <div
+                key={m.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2 text-sm"
+              >
+                <span>{m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name}</span>
+                <div className="flex flex-wrap gap-2">
+                  <form action={ordnerMannschaftBedarfUmschalten}>
+                    <input type="hidden" name="mannschaftId" value={m.id} />
+                    <input type="hidden" name="rolle" value="ordner" />
+                    <Button
+                      type="submit"
+                      size="xs"
+                      variant={m.ordnerBedarfDeaktiviert ? "outline" : "secondary"}
+                    >
+                      Ordner {m.ordnerBedarfDeaktiviert ? "deaktiviert" : "aktiv"}
+                    </Button>
+                  </form>
+                  <form action={ordnerMannschaftBedarfUmschalten}>
+                    <input type="hidden" name="mannschaftId" value={m.id} />
+                    <input type="hidden" name="rolle" value="kioskdienst" />
+                    <Button
+                      type="submit"
+                      size="xs"
+                      variant={m.kioskdienstBedarfDeaktiviert ? "outline" : "secondary"}
+                    >
+                      Kioskdienst {m.kioskdienstBedarfDeaktiviert ? "deaktiviert" : "aktiv"}
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {unbestaetigteSelbsteintragungen.length > 0 && (
         <Card>

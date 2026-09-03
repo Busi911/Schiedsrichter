@@ -108,6 +108,9 @@ type AnstehenderTermin = {
   mannschaftAltersklasse?: string | null;
   kategorie?: string | null;
   zeitnehmerBedarfOverride?: number | null;
+  mannschaftOrdnerBedarfDeaktiviert?: boolean | null;
+  mannschaftKioskdienstBedarfDeaktiviert?: boolean | null;
+  mannschaftZeitnehmerBedarfDeaktiviert?: boolean | null;
 };
 type Zuordnung = { terminId: string; funktionstraegerTyp: string };
 
@@ -166,7 +169,8 @@ export function berechneUnbesetzteTermine(
         "zeitnehmer",
         termin.pflichtspiel,
         termin.freundschaftsTyp,
-        termin.zeitnehmerBedarfOverride
+        termin.zeitnehmerBedarfOverride,
+        termin.mannschaftZeitnehmerBedarfDeaktiviert
       )
     );
     if (istBesetzungVollstaendig(status, termin.typ, termin.pflichtspiel)) continue;
@@ -215,6 +219,9 @@ export async function holeUnbesetzteTermine(
         mannschaftAltersklasse: mannschaften.altersklasse,
         kategorie: termine.kategorie,
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+        mannschaftOrdnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
+        mannschaftKioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
+        mannschaftZeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
@@ -262,7 +269,11 @@ export function berechneOffenePosten(
         termin.typ,
         rolle,
         termin.pflichtspiel,
-        termin.freundschaftsTyp
+        termin.freundschaftsTyp,
+        undefined,
+        rolle === "ordner"
+          ? termin.mannschaftOrdnerBedarfDeaktiviert
+          : termin.mannschaftKioskdienstBedarfDeaktiviert
       );
       if (bedarf <= 0) continue;
       const vorhanden = zuordnungen.filter(
@@ -278,7 +289,8 @@ export function berechneOffenePosten(
         "zeitnehmer",
         termin.pflichtspiel,
         termin.freundschaftsTyp,
-        termin.zeitnehmerBedarfOverride
+        termin.zeitnehmerBedarfOverride,
+        termin.mannschaftZeitnehmerBedarfDeaktiviert
       );
       const vorhanden = zuordnungen.filter(
         (z) =>
@@ -326,6 +338,9 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
         mannschaftAltersklasse: mannschaften.altersklasse,
         kategorie: termine.kategorie,
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+        mannschaftOrdnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
+        mannschaftKioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
+        mannschaftZeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
@@ -521,7 +536,8 @@ export function berechneOffeneZeitnehmerTermine(
       "zeitnehmer",
       termin.pflichtspiel,
       termin.freundschaftsTyp,
-      termin.zeitnehmerBedarfOverride
+      termin.zeitnehmerBedarfOverride,
+      termin.mannschaftZeitnehmerBedarfDeaktiviert
     );
     if (bedarf <= 0) continue;
 
@@ -567,6 +583,7 @@ export async function holeOffeneZeitnehmerTermine(
         mannschaftAltersklasse: mannschaften.altersklasse,
         kategorie: termine.kategorie,
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+        mannschaftZeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))

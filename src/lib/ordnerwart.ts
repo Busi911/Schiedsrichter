@@ -1,8 +1,8 @@
 import "server-only";
 import { and, count, eq, gte, inArray, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { funktionstraegerRollen, termine, terminZuordnungen, users, vereine } from "@/db/schema";
-import { bedarfFuer } from "@/lib/dienste";
+import { funktionstraegerRollen, mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { mergeRollenZaehlungen } from "./einsatz-zahlen";
 
 export const ORDNER_ROLLEN = ["ordner", "kioskdienst"] as const;
@@ -18,13 +18,29 @@ export async function pruefeOrdnerBesetzungsgrenze(
   tx: Parameters<Parameters<typeof withTenant>[1]>[0],
   vereinId: string,
   terminId: string,
-  termin: { typ: string; pflichtspiel: boolean | null; freundschaftsTyp: "freundschaftsspiel" | "turnier" | null },
+  termin: {
+    typ: string;
+    pflichtspiel: boolean | null;
+    freundschaftsTyp: "freundschaftsspiel" | "turnier" | null;
+    mannschaftId: string | null;
+  },
   rolle: (typeof ORDNER_ROLLEN)[number]
 ) {
   const verein = await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) });
   if (!verein) throw new Error("Verein nicht gefunden.");
 
-  const bedarf = bedarfFuer(verein, termin.typ, rolle, termin.pflichtspiel, termin.freundschaftsTyp);
+  const mannschaft = termin.mannschaftId
+    ? await tx.query.mannschaften.findFirst({ where: eq(mannschaften.id, termin.mannschaftId) })
+    : null;
+  const bedarf = bedarfFuer(
+    verein,
+    termin.typ,
+    rolle,
+    termin.pflichtspiel,
+    termin.freundschaftsTyp,
+    undefined,
+    mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
+  );
   const bestehende = await tx.query.terminZuordnungen.findMany({
     where: and(
       eq(terminZuordnungen.terminId, terminId),

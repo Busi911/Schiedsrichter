@@ -87,6 +87,7 @@ export async function holeEigeneKalenderEintraege(
           mannschaftAltersklasse: mannschaften.altersklasse,
           kategorie: termine.kategorie,
           zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+          mannschaftZeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
         })
         .from(termine)
         .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
@@ -140,7 +141,8 @@ export async function holeEigeneKalenderEintraege(
                 "zeitnehmer",
                 t.pflichtspiel,
                 t.freundschaftsTyp,
-                t.zeitnehmerBedarfOverride
+                t.zeitnehmerBedarfOverride,
+                t.mannschaftZeitnehmerBedarfDeaktiviert
               )
             ),
             t.typ,

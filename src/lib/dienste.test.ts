@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bedarfFuer } from "./dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "./dienste";
 
 const verein = {
   testspielOrdnerBedarf: 2,
@@ -98,5 +98,39 @@ describe("bedarfFuer", () => {
   it("ohne gesetzten Override (null/undefined) gilt weiterhin der globale Bedarf", () => {
     expect(bedarfFuer(verein, "testspiel", "zeitnehmer", null, null, null)).toBe(7);
     expect(bedarfFuer(verein, "testspiel", "zeitnehmer", null, null, undefined)).toBe(7);
+  });
+
+  it("liefert 0, wenn der Bedarf für die Mannschaft deaktiviert ist", () => {
+    expect(bedarfFuer(verein, "testspiel", "ordner", null, null, null, true)).toBe(0);
+    expect(bedarfFuer(verein, "turnier", "kioskdienst", null, null, null, true)).toBe(0);
+    expect(bedarfFuer(verein, "rundenspiel", "zeitnehmer", true, null, null, true)).toBe(0);
+  });
+
+  it("ohne Deaktivierung (false/undefined) gilt weiterhin der globale Bedarf", () => {
+    expect(bedarfFuer(verein, "testspiel", "ordner", null, null, null, false)).toBe(2);
+    expect(bedarfFuer(verein, "testspiel", "ordner", null, null, null, undefined)).toBe(2);
+  });
+
+  it("ein expliziter Zeitnehmer-Override für einen Termin geht der Mannschafts-Deaktivierung vor", () => {
+    expect(bedarfFuer(verein, "testspiel", "zeitnehmer", null, null, 3, true)).toBe(3);
+  });
+});
+
+describe("mannschaftBedarfDeaktiviertFuer", () => {
+  const mannschaft = {
+    ordnerBedarfDeaktiviert: true,
+    kioskdienstBedarfDeaktiviert: false,
+    zeitnehmerBedarfDeaktiviert: true,
+  };
+
+  it("wählt das zur Rolle passende Flag", () => {
+    expect(mannschaftBedarfDeaktiviertFuer(mannschaft, "ordner")).toBe(true);
+    expect(mannschaftBedarfDeaktiviertFuer(mannschaft, "kioskdienst")).toBe(false);
+    expect(mannschaftBedarfDeaktiviertFuer(mannschaft, "zeitnehmer")).toBe(true);
+  });
+
+  it("liefert false ohne Mannschaftsbezug", () => {
+    expect(mannschaftBedarfDeaktiviertFuer(null, "ordner")).toBe(false);
+    expect(mannschaftBedarfDeaktiviertFuer(undefined, "ordner")).toBe(false);
   });
 });

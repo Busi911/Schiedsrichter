@@ -186,6 +186,23 @@ export const mannschaften = pgTable("mannschaft", {
   // der Team-Seite ablesbar, z.B. bei handball.net/team/69770 ist die
   // Team-ID 69770.
   handballNetTeamId: text("handball_net_team_id"),
+  // Vom jeweiligen Wart pro Mannschaft abschaltbar, wenn diese Mannschaft
+  // grundsätzlich keinen Ordner-/Kioskdienst-/Zeitnehmer-Bedarf hat (z.B.
+  // eine Jugend-Mannschaft ohne eigene Heimspiele mit Publikum) — siehe
+  // bedarfFuer in src/lib/dienste.ts. Gilt für ALLE Termin-Typen dieser
+  // Mannschaft (testspiel/turnier/rundenspiel gleichermaßen), nicht nach
+  // Termin-Typ unterscheidbar. Wirkt live: bereits bestehende offene
+  // Termine der Mannschaft gelten sofort als "kein Bedarf" (bedarfFuer wird
+  // bei jeder Anzeige/Auswertung neu berechnet, kein Snapshot pro Termin).
+  ordnerBedarfDeaktiviert: boolean("ordner_bedarf_deaktiviert")
+    .notNull()
+    .default(false),
+  kioskdienstBedarfDeaktiviert: boolean("kioskdienst_bedarf_deaktiviert")
+    .notNull()
+    .default(false),
+  zeitnehmerBedarfDeaktiviert: boolean("zeitnehmer_bedarf_deaktiviert")
+    .notNull()
+    .default(false),
 });
 
 // Vom Admin bewusst übersprungene Vorschläge aus "Unbekannte Mannschaften"

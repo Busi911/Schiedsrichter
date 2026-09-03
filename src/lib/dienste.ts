@@ -1,5 +1,5 @@
 import "server-only";
-import type { vereine } from "@/db/schema";
+import type { mannschaften, vereine } from "@/db/schema";
 import { ZEITNEHMER_SEKRETAER_BEDARF_STANDARD } from "./besetzung";
 
 type VereinBedarf = Pick<
@@ -41,10 +41,21 @@ export function bedarfFuer(
   // termine.zeitnehmerBedarfOverride in db/schema.ts) — nur für rolle
   // "zeitnehmer" relevant, geht bei gesetztem Wert (auch 0) allen anderen
   // Regeln unten vor, inklusive dem spiel_ics-Standardwert.
-  zeitnehmerBedarfOverride?: number | null
+  zeitnehmerBedarfOverride?: number | null,
+  // Vom jeweiligen Wart pro Mannschaft gesetzt (siehe
+  // mannschaften.ordnerBedarfDeaktiviert/kioskdienstBedarfDeaktiviert/
+  // zeitnehmerBedarfDeaktiviert in db/schema.ts) — true bedeutet, dass diese
+  // Mannschaft für die übergebene Rolle grundsätzlich keinen Bedarf hat.
+  // Geht dem globalen Bedarf vor, aber NICHT dem expliziten
+  // zeitnehmerBedarfOverride oben: ein bewusst für genau diesen Termin
+  // gesetzter Override ist die spezifischere Entscheidung.
+  mannschaftBedarfDeaktiviert?: boolean | null
 ): number {
   if (rolle === "zeitnehmer" && zeitnehmerBedarfOverride != null) {
     return zeitnehmerBedarfOverride;
+  }
+  if (mannschaftBedarfDeaktiviert) {
+    return 0;
   }
   if (rolle === "zeitnehmer" && typ === "spiel_ics") {
     return ZEITNEHMER_SEKRETAER_BEDARF_STANDARD;
@@ -69,4 +80,23 @@ export function bedarfFuer(
   if (rolle === "ordner") return verein[`${feld}OrdnerBedarf`];
   if (rolle === "kioskdienst") return verein[`${feld}KioskdienstBedarf`];
   return verein[`${feld}ZeitnehmerBedarf`];
+}
+
+type MannschaftBedarfDeaktiviert = Pick<
+  typeof mannschaften.$inferSelect,
+  "ordnerBedarfDeaktiviert" | "kioskdienstBedarfDeaktiviert" | "zeitnehmerBedarfDeaktiviert"
+>;
+
+// Wählt aus den drei Mannschafts-Flags das für die übergebene Rolle passende
+// aus — für den mannschaftBedarfDeaktiviert-Parameter von bedarfFuer oben.
+// mannschaft = undefined (Termin ohne Mannschaftsbezug, z.B. Turnier ohne
+// erkannte Mannschaft) bedeutet: keine Deaktivierung.
+export function mannschaftBedarfDeaktiviertFuer(
+  mannschaft: MannschaftBedarfDeaktiviert | null | undefined,
+  rolle: Rolle
+): boolean {
+  if (!mannschaft) return false;
+  if (rolle === "ordner") return mannschaft.ordnerBedarfDeaktiviert;
+  if (rolle === "kioskdienst") return mannschaft.kioskdienstBedarfDeaktiviert;
+  return mannschaft.zeitnehmerBedarfDeaktiviert;
 }

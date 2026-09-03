@@ -12,13 +12,14 @@ import {
 } from "@/lib/zeitnehmerwart";
 import { holeTermineMitZuordnungen } from "@/lib/zuordnung";
 import { berechneBesetzung } from "@/lib/besetzung";
-import { bedarfFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { angesetzteNamenPassenZu } from "@/lib/rundenspiel-import";
 import { findeNamensVorschlag } from "@/lib/namens-abgleich";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import {
   zeitnehmerBedarfUeberschreiben,
   zeitnehmerInaktiveRolleAktivierenUndZuordnen,
+  zeitnehmerMannschaftBedarfUmschalten,
   zeitnehmerNeuAnlegenUndBestaetigen,
   zeitnehmerOhneLoginZuordnen,
   zeitnehmerSelbstanmeldungDeaktivieren,
@@ -126,6 +127,7 @@ export default async function ZeitnehmerwartPage({
     ),
   ]);
   const mannschaftenSortiert = sortiereMannschaften(alleMannschaften);
+  const mannschaftenNachId = new Map(alleMannschaften.map((m) => [m.id, m]));
 
   // Wer ist an einem bestimmten Zeitpunkt schon anderweitig als Zeitnehmer
   // ODER Sekretär gebunden — Basis für "wer wäre noch frei" bei einer
@@ -181,7 +183,11 @@ export default async function ZeitnehmerwartPage({
             "zeitnehmer",
             termin.pflichtspiel,
             termin.freundschaftsTyp,
-            termin.zeitnehmerBedarfOverride
+            termin.zeitnehmerBedarfOverride,
+            mannschaftBedarfDeaktiviertFuer(
+              termin.mannschaftId ? mannschaftenNachId.get(termin.mannschaftId) : null,
+              "zeitnehmer"
+            )
           )
         : 1;
       return {
@@ -315,6 +321,42 @@ export default async function ZeitnehmerwartPage({
           </div>
         </CardContent>
       </Card>
+
+      {mannschaftenSortiert.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Bedarf pro Mannschaft</CardTitle>
+            <CardDescription>
+              Für Mannschaften, die grundsätzlich keinen eigenen Zeitnehmer/
+              Sekretär brauchen (z.B. manche Jugend-Mannschaften), lässt sich
+              der Bedarf hier komplett abschalten — wirkt auf alle Termine
+              dieser Mannschaft, auch bereits bestehende offene. Ein für
+              einen einzelnen Termin gesetzter Bedarf (siehe unten bei den
+              Terminen) geht weiterhin vor.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            {mannschaftenSortiert.map((m) => (
+              <div
+                key={m.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2 text-sm"
+              >
+                <span>{m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name}</span>
+                <form action={zeitnehmerMannschaftBedarfUmschalten}>
+                  <input type="hidden" name="mannschaftId" value={m.id} />
+                  <Button
+                    type="submit"
+                    size="xs"
+                    variant={m.zeitnehmerBedarfDeaktiviert ? "outline" : "secondary"}
+                  >
+                    Zeitnehmer/Sekretär {m.zeitnehmerBedarfDeaktiviert ? "deaktiviert" : "aktiv"}
+                  </Button>
+                </form>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {unbestaetigteSelbsteintragungen.length > 0 && (
         <Card>

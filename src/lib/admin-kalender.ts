@@ -17,7 +17,7 @@ import {
   brauchtSchiedsrichterVomVerein,
   istBesetzungVollstaendig,
 } from "@/lib/besetzung";
-import { bedarfFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
   angesetzteNamenPassenZu,
@@ -164,6 +164,7 @@ export async function holeAdminKalenderDaten(
 
   const zuordenbarePersonen = await holeZuordenbareFunktionstraeger(vereinId);
 
+  const mannschaftenNachId = new Map(mannschaftsListe.map((m) => [m.id, m]));
   const eintraegeProTag = new Map<string, KalenderEintrag[]>();
   const mehrtaegigeEintraege: TurnierBalkenBearbeitbar[] = [];
   for (const t of termineDesMonats) {
@@ -231,7 +232,11 @@ export async function holeAdminKalenderDaten(
               "zeitnehmer",
               t.pflichtspiel,
               t.freundschaftsTyp,
-              t.zeitnehmerBedarfOverride
+              t.zeitnehmerBedarfOverride,
+              mannschaftBedarfDeaktiviertFuer(
+                t.mannschaftId ? mannschaftenNachId.get(t.mannschaftId) : null,
+                "zeitnehmer"
+              )
             ),
             externeSchiriAnzahl,
             externeZeitnehmerSekretaerAnzahl
