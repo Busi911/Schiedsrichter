@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
+  mannschaften,
   schiedsrichterProfile,
   termine,
   terminZuordnungen,
@@ -12,7 +13,7 @@ import {
   vereine,
 } from "@/db/schema";
 import { signOut } from "@/auth";
-import { bedarfFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { monatsBereich, parseMonatParam } from "@/lib/kalender";
 import { holeEigeneKalenderEintraege } from "@/lib/eigener-kalender";
 import {
@@ -80,6 +81,7 @@ export default async function ProfilPage({
       verfuegbareTermine,
       zuordnungenFuerVerfuegbare,
       vereinEinstellungen,
+      mannschaftenFuerVerfuegbare,
       verein,
       meineTurniere,
     },
@@ -180,6 +182,17 @@ export default async function ProfilPage({
         ? await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
         : undefined;
 
+      const mannschaftIdsFuerVerfuegbare = [
+        ...new Set(
+          verfuegbareTermine.map((t) => t.mannschaftId).filter((id): id is string => !!id)
+        ),
+      ];
+      const mannschaftenFuerVerfuegbare = mannschaftIdsFuerVerfuegbare.length
+        ? await tx.query.mannschaften.findMany({
+            where: inArray(mannschaften.id, mannschaftIdsFuerVerfuegbare),
+          })
+        : [];
+
       // Turniere, für die dieser Nutzer als Turnierverantwortlicher benannt
       // wurde (siehe turnierVerantwortlicherId in db/schema.ts) — bewusst
       // unabhängig von den obigen Funktionsträger-Rollen, da das eine
@@ -202,6 +215,7 @@ export default async function ProfilPage({
         verfuegbareTermine,
         zuordnungenFuerVerfuegbare,
         vereinEinstellungen,
+        mannschaftenFuerVerfuegbare,
         verein,
         meineTurniere,
       };
@@ -609,6 +623,9 @@ export default async function ProfilPage({
                 </p>
               )}
               {verfuegbareTermine.map((termin) => {
+                const mannschaft = termin.mannschaftId
+                  ? mannschaftenFuerVerfuegbare.find((m) => m.id === termin.mannschaftId)
+                  : null;
                 const rollenMitBedarf = eigeneTypen.filter(
                   (typ) =>
                     bedarfFuer(
@@ -616,7 +633,9 @@ export default async function ProfilPage({
                       termin.typ,
                       typ,
                       termin.pflichtspiel,
-                      termin.freundschaftsTyp
+                      termin.freundschaftsTyp,
+                      undefined,
+                      mannschaftBedarfDeaktiviertFuer(mannschaft, typ)
                     ) > 0
                 );
                 if (rollenMitBedarf.length === 0) return null;
@@ -635,7 +654,9 @@ export default async function ProfilPage({
                           termin.typ,
                           typ,
                           termin.pflichtspiel,
-                          termin.freundschaftsTyp
+                          termin.freundschaftsTyp,
+                          undefined,
+                          mannschaftBedarfDeaktiviertFuer(mannschaft, typ)
                         );
                         const angemeldet = zuordnungenFuerVerfuegbare.filter(
                           (d) =>

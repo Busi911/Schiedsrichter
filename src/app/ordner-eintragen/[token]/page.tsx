@@ -4,7 +4,7 @@ import { and, eq, gte, inArray } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
-import { bedarfFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { tagKey } from "@/lib/kalender";
@@ -103,12 +103,22 @@ export default async function OrdnerEintragenPage({
             )
         : [];
 
+      const mannschaftenNachId = new Map(alleMannschaften.map((m) => [m.id, m]));
       const relevanteTermine = relevante
         .map((t) => {
           const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
+          const mannschaft = t.mannschaftId ? mannschaftenNachId.get(t.mannschaftId) : null;
           const luecken = ORDNER_ROLLEN.map((rolle) => ({
             rolle,
-            bedarf: bedarfFuer(verein, t.typ, rolle, t.pflichtspiel, t.freundschaftsTyp),
+            bedarf: bedarfFuer(
+              verein,
+              t.typ,
+              rolle,
+              t.pflichtspiel,
+              t.freundschaftsTyp,
+              undefined,
+              mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
+            ),
             vorhanden: eigeneZuordnungen.filter((z) => z.funktionstraegerTyp === rolle)
               .length,
           })).filter((l) => l.bedarf > 0);

@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
+  mannschaften,
   pushAbos,
   schiedsrichterProfile,
   termine,
@@ -14,7 +15,7 @@ import {
   vereine,
 } from "@/db/schema";
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
-import { bedarfFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
 
@@ -200,12 +201,19 @@ export async function selbstAnmelden(formData: FormData) {
     });
     if (!verein) throw new Error("Verein nicht gefunden.");
 
+    const mannschaft = termin.mannschaftId
+      ? await tx.query.mannschaften.findFirst({
+          where: eq(mannschaften.id, termin.mannschaftId),
+        })
+      : null;
     const bedarf = bedarfFuer(
       verein,
       termin.typ,
       rolle,
       termin.pflichtspiel,
-      termin.freundschaftsTyp
+      termin.freundschaftsTyp,
+      undefined,
+      mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
     );
     const bestehende = await tx.query.terminZuordnungen.findMany({
       where: and(

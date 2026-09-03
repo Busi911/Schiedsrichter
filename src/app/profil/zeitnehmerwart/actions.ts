@@ -4,7 +4,14 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
-import { funktionstraegerRollen, termine, terminZuordnungen, users, vereine } from "@/db/schema";
+import {
+  funktionstraegerRollen,
+  mannschaften,
+  termine,
+  terminZuordnungen,
+  users,
+  vereine,
+} from "@/db/schema";
 import {
   pruefeBesetzungsgrenze,
   zuordnungEntferntInhalt,
@@ -321,6 +328,37 @@ export async function zeitnehmerBedarfUeberschreiben(formData: FormData) {
   revalidatePath("/profil/zeitnehmerwart");
   revalidatePath("/admin/kalender");
   revalidatePath("/admin/dienste");
+}
+
+// Schaltet den Zeitnehmer-/Sekretär-Bedarf für EINE Mannschaft komplett
+// aus/ein (siehe mannschaften.zeitnehmerBedarfDeaktiviert in db/schema.ts
+// und mannschaftBedarfDeaktiviertFuer in lib/dienste.ts) — z.B. für eine
+// Jugend-Mannschaft, die nie eigene Zeitnehmer/Sekretäre braucht. Wirkt
+// sofort auf alle Termine dieser Mannschaft, auch bereits bestehende offene
+// (bedarfFuer wird live berechnet, kein Snapshot). Ein bereits pro Termin
+// gesetzter zeitnehmerBedarfUeberschreiben-Override bleibt davon unberührt
+// und geht weiterhin vor (siehe bedarfFuer).
+export async function zeitnehmerMannschaftBedarfUmschalten(formData: FormData) {
+  const { vereinId } = await requireZeitnehmerwartZugriff();
+
+  const mannschaftId = formData.get("mannschaftId");
+  if (typeof mannschaftId !== "string" || !mannschaftId) {
+    throw new Error("Mannschaft fehlt.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    const mannschaft = await tx.query.mannschaften.findFirst({
+      where: and(eq(mannschaften.id, mannschaftId), eq(mannschaften.vereinId, vereinId)),
+    });
+    if (!mannschaft) throw new Error("Mannschaft nicht gefunden.");
+
+    await tx
+      .update(mannschaften)
+      .set({ zeitnehmerBedarfDeaktiviert: !mannschaft.zeitnehmerBedarfDeaktiviert })
+      .where(eq(mannschaften.id, mannschaftId));
+  });
+
+  revalidatePath("/profil/zeitnehmerwart");
 }
 
 // Aktiviert die öffentliche Selbsteintragung (siehe

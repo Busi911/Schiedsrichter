@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
-import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
+import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { zuordnungEntferntInhalt, zuordnungsMailInhalt } from "@/lib/zuordnung";
-import { bedarfFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { istOrdnerwart, ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
@@ -120,12 +120,19 @@ export async function ordnerZuordnen(formData: FormData) {
     });
     if (vorhanden) return { neu: null, entfernt };
 
+    const mannschaft = termin.mannschaftId
+      ? await tx.query.mannschaften.findFirst({
+          where: eq(mannschaften.id, termin.mannschaftId),
+        })
+      : null;
     const bedarf = bedarfFuer(
       verein,
       termin.typ,
       rolle,
       termin.pflichtspiel,
-      termin.freundschaftsTyp
+      termin.freundschaftsTyp,
+      undefined,
+      mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
     );
     const bestehende = await tx.query.terminZuordnungen.findMany({
       where: and(
@@ -247,6 +254,50 @@ export async function ordnerZuordnungEntfernen(formData: FormData) {
 
   revalidatePath("/profil/ordnerwart");
   revalidatePath("/admin/kalender");
+}
+
+// Schaltet den Ordner- bzw. Kioskdienst-Bedarf für EINE Mannschaft komplett
+// aus/ein (siehe mannschaften.ordnerBedarfDeaktiviert/
+// kioskdienstBedarfDeaktiviert in db/schema.ts und mannschaftBedarfDeaktiviertFuer
+// in lib/dienste.ts) — z.B. für eine Jugend-Mannschaft ohne eigene
+// Heimspiele mit Publikum. Wirkt sofort auf alle Termine dieser Mannschaft,
+// auch bereits bestehende (bedarfFuer wird live berechnet, kein Snapshot).
+export async function ordnerMannschaftBedarfUmschalten(formData: FormData) {
+  const { vereinId } = await requireOrdnerwartZugriff();
+
+  const mannschaftId = formData.get("mannschaftId");
+  const rolleRoh = formData.get("rolle");
+  if (typeof mannschaftId !== "string" || !mannschaftId) {
+    throw new Error("Mannschaft fehlt.");
+  }
+  if (
+    typeof rolleRoh !== "string" ||
+    !(ORDNER_ROLLEN as readonly string[]).includes(rolleRoh)
+  ) {
+    throw new Error("Ungültige Rolle.");
+  }
+  const rolle = rolleRoh as OrdnerRolle;
+
+  await withTenant(vereinId, async (tx) => {
+    const mannschaft = await tx.query.mannschaften.findFirst({
+      where: and(eq(mannschaften.id, mannschaftId), eq(mannschaften.vereinId, vereinId)),
+    });
+    if (!mannschaft) throw new Error("Mannschaft nicht gefunden.");
+
+    if (rolle === "ordner") {
+      await tx
+        .update(mannschaften)
+        .set({ ordnerBedarfDeaktiviert: !mannschaft.ordnerBedarfDeaktiviert })
+        .where(eq(mannschaften.id, mannschaftId));
+    } else {
+      await tx
+        .update(mannschaften)
+        .set({ kioskdienstBedarfDeaktiviert: !mannschaft.kioskdienstBedarfDeaktiviert })
+        .where(eq(mannschaften.id, mannschaftId));
+    }
+  });
+
+  revalidatePath("/profil/ordnerwart");
 }
 
 // Analog zu zeitnehmerSelbstanmeldungLinkErneuern/-Deaktivieren in
