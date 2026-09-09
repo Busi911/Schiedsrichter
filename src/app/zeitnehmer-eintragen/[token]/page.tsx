@@ -1,6 +1,7 @@
 import { and, eq, gte, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { auth } from "@/auth";
 import { adminDb } from "@/db/admin";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
@@ -20,7 +21,10 @@ import {
   TerminMehrfachAuswahl,
   type EintragbarerTermin,
 } from "@/components/mehrfachauswahl";
-import { zeitnehmerSelbstEintragenMehrfachOeffentlich } from "./actions";
+import {
+  zeitnehmerSelbstEintragenMehrfachEingeloggt,
+  zeitnehmerSelbstEintragenMehrfachOeffentlich,
+} from "./actions";
 
 const ZEITNEHMER_ROLLE_OPTIONEN = [
   { value: "zeitnehmer", label: "Zeitnehmer" },
@@ -40,10 +44,14 @@ const ZEITNEHMER_RELEVANTE_TYPEN = ["testspiel", "turnier_spiel", "rundenspiel"]
 
 const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
 
-// Öffentliche, login-freie Selbsteintragung für Zeitnehmer/Sekretär (siehe
+// Öffentliche Selbsteintragung für Zeitnehmer/Sekretär (siehe
 // vereine.zeitnehmerSelbstanmeldungToken, vom Zeitnehmerwart aktivierbar) —
-// analog zur öffentlichen Turnier-Ansicht (/turnier/[token]), aber mit
-// Schreibzugriff statt nur Lesen.
+// Login ist NICHT nötig (Kenntnis des Tokens ist die Berechtigung), wird
+// eine passende Session zu diesem Verein erkannt aber genutzt, um Name/
+// E-Mail-Eingabe zu überspringen (siehe eingeloggtePerson unten und
+// zeitnehmerSelbstEintragenMehrfachEingeloggt in actions.ts). Analog zur
+// öffentlichen Turnier-Ansicht (/turnier/[token]), aber mit Schreibzugriff
+// statt nur Lesen.
 export default async function ZeitnehmerEintragenPage({
   params,
   searchParams,
@@ -60,6 +68,14 @@ export default async function ZeitnehmerEintragenPage({
   if (!verein) {
     notFound();
   }
+
+  // Optionale Session — siehe gleiches Prinzip in
+  // ordner-eintragen/[token]/page.tsx.
+  const session = await auth();
+  const eingeloggtePerson =
+    session?.user?.vereinId === verein.id
+      ? { name: session.user.name ?? session.user.email ?? "" }
+      : null;
 
   const { alleMannschaften, relevanteTermine } = await withTenant(
     verein.id,
@@ -197,12 +213,26 @@ export default async function ZeitnehmerEintragenPage({
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        Kein Login nötig: einen oder mehrere Termine auswählen, Namen
-        eintragen, Rolle wählen und absenden. Bereits im System angelegte
-        Personen werden dabei automatisch erkannt — bei Unsicherheit prüft
-        das der Zeitnehmerwart nach.
-      </p>
+      {eingeloggtePerson ? (
+        <p className="text-sm text-muted-foreground">
+          Angemeldet als <strong>{eingeloggtePerson.name}</strong> — einen
+          oder mehrere Termine auswählen, Rolle wählen und absenden.
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Kein Login nötig: einen oder mehrere Termine auswählen, Namen
+          eintragen, Rolle wählen und absenden. Bereits im System angelegte
+          Personen werden dabei automatisch erkannt — bei Unsicherheit prüft
+          das der Zeitnehmerwart nach. Optional lässt sich dabei auch gleich
+          ein eigener Zugang anlegen (E-Mail-Adresse angeben).{" "}
+          <Link
+            href={`/login?redirect=${encodeURIComponent(`/zeitnehmer-eintragen/${token}`)}`}
+            className="underline"
+          >
+            Schon einen Zugang? Hier einloggen.
+          </Link>
+        </p>
+      )}
 
       {gefilterteTermine.length > 0 && (
         <p className="text-sm font-medium">
@@ -247,7 +277,13 @@ export default async function ZeitnehmerEintragenPage({
           token={token}
           termine={eintragbareTermine}
           rolleOptionen={ZEITNEHMER_ROLLE_OPTIONEN}
-          submitAction={zeitnehmerSelbstEintragenMehrfachOeffentlich}
+          submitAction={
+            eingeloggtePerson
+              ? zeitnehmerSelbstEintragenMehrfachEingeloggt
+              : zeitnehmerSelbstEintragenMehrfachOeffentlich
+          }
+          eingeloggtAls={eingeloggtePerson?.name}
+          zeigeEmailFeld={!eingeloggtePerson}
         />
       )}
 
