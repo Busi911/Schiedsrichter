@@ -72,8 +72,9 @@ export default async function EinstellungenPage({
           <CardHeader>
             <CardTitle>Dienste-Bedarf pro Termin</CardTitle>
             <CardDescription>
-              Wie viele Ordner-, Kioskdienst- und Zeitnehmer/Sekretär-Kräfte pro
-              Freundschaftsspiel, Turnier bzw. Rundenspiel benötigt werden.
+              Wie viele Ordner-, Kioskdienst-, Kassierer- und Zeitnehmer/
+              Sekretär-Kräfte pro Freundschaftsspiel, Turnier bzw. Rundenspiel
+              benötigt werden.
               Sobald diese Anzahl erreicht ist, können sich weitere
               Interessenten nicht mehr anmelden. Gilt nicht für Termine aus dem
               ICS-Feed (das sind die persönlichen Einsätze der Schiedsrichter).
@@ -117,6 +118,20 @@ export default async function EinstellungenPage({
                     min="0"
                     step="1"
                     defaultValue={verein?.testspielKioskdienstBedarf ?? 0}
+                    className="w-20"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="testspielKassiererBedarf" className="font-normal">
+                    Kassierer
+                  </Label>
+                  <Input
+                    id="testspielKassiererBedarf"
+                    type="number"
+                    name="testspielKassiererBedarf"
+                    min="0"
+                    step="1"
+                    defaultValue={verein?.testspielKassiererBedarf ?? 0}
                     className="w-20"
                   />
                 </div>
@@ -176,6 +191,20 @@ export default async function EinstellungenPage({
                   />
                 </div>
                 <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="turnierKassiererBedarf" className="font-normal">
+                    Kassierer
+                  </Label>
+                  <Input
+                    id="turnierKassiererBedarf"
+                    type="number"
+                    name="turnierKassiererBedarf"
+                    min="0"
+                    step="1"
+                    defaultValue={verein?.turnierKassiererBedarf ?? 0}
+                    className="w-20"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
                   <Label
                     htmlFor="turnierZeitnehmerBedarf"
                     className="font-normal"
@@ -227,6 +256,20 @@ export default async function EinstellungenPage({
                     min="0"
                     step="1"
                     defaultValue={verein?.rundenspielKioskdienstBedarf ?? 0}
+                    className="w-20"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="rundenspielKassiererBedarf" className="font-normal">
+                    Kassierer
+                  </Label>
+                  <Input
+                    id="rundenspielKassiererBedarf"
+                    type="number"
+                    name="rundenspielKassiererBedarf"
+                    min="0"
+                    step="1"
+                    defaultValue={verein?.rundenspielKassiererBedarf ?? 0}
                     className="w-20"
                   />
                 </div>

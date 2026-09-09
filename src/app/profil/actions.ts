@@ -16,10 +16,11 @@ import {
 } from "@/db/schema";
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
 
-const SELBST_ANMELDBARE_TYPEN = ["ordner", "kioskdienst"] as const;
+const SELBST_ANMELDBARE_TYPEN = ORDNER_ROLLEN;
 
 // Selbstverwaltung der eigenen Stammdaten (Name, Telefonnummer) — bewusst
 // OHNE E-Mail-Änderung, die bleibt Admin-Aufgabe (login-kritisch, siehe

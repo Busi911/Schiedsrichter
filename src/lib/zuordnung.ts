@@ -26,6 +26,7 @@ const ZUORDNUNGS_ROLLE_LABEL: Record<string, string> = {
   sekretaer: "Sekretär",
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
 };
 
 // Gemeinsam genutzt vom Kalender-Modal (admin/zuordnung/actions.ts, siehe

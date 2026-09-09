@@ -22,9 +22,10 @@ const TYP_LABEL: Record<string, string> = {
   trainer: "Trainer",
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
   schiedsrichterwart: "Schiedsrichterwart",
   zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
-  ordnerwart: "Ordner-/Kioskdienstwart",
+  ordnerwart: "Ordner-/Kioskdienst-/Kassiererwart",
 };
 
 // Vormals ein dauerhaft sichtbares Formular in einer eigenen Spalte neben

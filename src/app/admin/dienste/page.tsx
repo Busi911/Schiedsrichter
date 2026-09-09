@@ -22,6 +22,7 @@ import { formatDatumZeit as formatDateTime } from "@/lib/format";
 const ROLLE_LABEL: Record<string, string> = {
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
   zeitnehmer: "Zeitnehmer/Sekretär",
 };
 
@@ -66,9 +67,9 @@ export default async function DienstePage() {
           Unbesetzte Dienste
         </h1>
         <p className="text-sm text-muted-foreground">
-          Offener Ordner-/Kioskdienst-Bedarf sowie fehlende Zeitnehmer/
-          Sekretär — ein Termin mit mehreren offenen Rollen zählt hier nur
-          einmal.
+          Offener Ordner-/Kioskdienst-/Kassierer-Bedarf sowie fehlende
+          Zeitnehmer/Sekretär — ein Termin mit mehreren offenen Rollen zählt
+          hier nur einmal.
         </p>
       </div>
 
@@ -78,8 +79,8 @@ export default async function DienstePage() {
             {offenePostenZeilen.length} offen
           </CardTitle>
           <CardDescription>
-            Ordner/Kioskdienst melden sich selbst an, Zeitnehmer/Sekretär
-            werden über Zuordnung eingeteilt.
+            Ordner/Kioskdienst/Kassierer melden sich selbst an,
+            Zeitnehmer/Sekretär werden über Zuordnung eingeteilt.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
@@ -154,7 +155,7 @@ export default async function DienstePage() {
             <CardTitle className="text-base">Top Dienstleistende</CardTitle>
             <CardDescription>
               Absolvierte Einsätze als Schiedsrichter, Zeitnehmer, Sekretär,
-              Ordner oder Kioskdienst zusammen.
+              Ordner, Kioskdienst oder Kassierer zusammen.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -39,6 +39,12 @@ export async function dienstBedarfSpeichern(formData: FormData) {
     formData,
     "rundenspielKioskdienstBedarf"
   );
+  const testspielKassiererBedarf = parseAnzahl(formData, "testspielKassiererBedarf");
+  const turnierKassiererBedarf = parseAnzahl(formData, "turnierKassiererBedarf");
+  const rundenspielKassiererBedarf = parseAnzahl(
+    formData,
+    "rundenspielKassiererBedarf"
+  );
   const testspielZeitnehmerBedarf = parseAnzahl(
     formData,
     "testspielZeitnehmerBedarf"
@@ -62,6 +68,9 @@ export async function dienstBedarfSpeichern(formData: FormData) {
         turnierKioskdienstBedarf,
         rundenspielOrdnerBedarf,
         rundenspielKioskdienstBedarf,
+        testspielKassiererBedarf,
+        turnierKassiererBedarf,
+        rundenspielKassiererBedarf,
         testspielZeitnehmerBedarf,
         turnierZeitnehmerBedarf,
         rundenspielZeitnehmerBedarf,

@@ -14,6 +14,9 @@ const verein = {
   turnierKioskdienstBedarf: 0,
   rundenspielOrdnerBedarf: 0,
   rundenspielKioskdienstBedarf: 0,
+  testspielKassiererBedarf: 0,
+  turnierKassiererBedarf: 0,
+  rundenspielKassiererBedarf: 0,
   testspielZeitnehmerBedarf: 1,
   turnierZeitnehmerBedarf: 1,
   rundenspielZeitnehmerBedarf: 1,
@@ -75,6 +78,18 @@ describe("berechneOffenePosten", () => {
       { terminId: "t1", funktionstraegerTyp: "sekretaer" },
     ]);
     expect(posten).toHaveLength(0);
+  });
+
+  it("meldet eine offene Kassierer-Rolle wie Ordner/Kioskdienst", () => {
+    const mitKassiererBedarf = { ...verein, testspielKassiererBedarf: 1 };
+    const termin = { id: "t1", start: new Date("2026-09-01T10:00:00Z"), typ: "testspiel", ort: null };
+    const posten = berechneOffenePosten(mitKassiererBedarf, [termin], [
+      { terminId: "t1", funktionstraegerTyp: "kioskdienst" },
+      { terminId: "t1", funktionstraegerTyp: "zeitnehmer" },
+    ]);
+    expect(posten).toHaveLength(1);
+    const kassiererLuecke = posten[0].luecken.find((l) => l.rolle === "kassierer");
+    expect(kassiererLuecke).toMatchObject({ vorhanden: 0, bedarf: 1 });
   });
 
   it("sortiert Posten nach Startzeit", () => {

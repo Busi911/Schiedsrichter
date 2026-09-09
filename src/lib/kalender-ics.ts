@@ -25,6 +25,7 @@ const ROLLE_LABEL: Record<string, string> = {
   sekretaer: "Sekretär",
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
   trainer: "Trainer",
 };
 

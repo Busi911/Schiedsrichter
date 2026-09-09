@@ -5,7 +5,7 @@ import { funktionstraegerRollen, mannschaften, termine, terminZuordnungen, users
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { mergeRollenZaehlungen } from "./einsatz-zahlen";
 
-export const ORDNER_ROLLEN = ["ordner", "kioskdienst"] as const;
+export const ORDNER_ROLLEN = ["ordner", "kioskdienst", "kassierer"] as const;
 
 // Prüft die konfigurierte Bedarfsgrenze (siehe bedarfFuer in dienste.ts),
 // BEVOR eine weitere Person eingetragen wird — anders als bei Schiedsrichter/
@@ -52,10 +52,10 @@ export async function pruefeOrdnerBesetzungsgrenze(
   }
 }
 
-// Verhindert, dass dieselbe Person an einem Termin sowohl als Ordner ALS
-// AUCH als Kioskdienst eingeteilt wird (oder zweimal in derselben Rolle) —
-// analog zu pruefeKeineDoppelrolle in zuordnung.ts, aber für ORDNER_ROLLEN
-// statt zeitnehmer/sekretaer.
+// Verhindert, dass dieselbe Person an einem Termin in mehreren ORDNER_ROLLEN
+// (Ordner/Kioskdienst/Kassierer) gleichzeitig eingeteilt wird (oder zweimal
+// in derselben Rolle) — analog zu pruefeKeineDoppelrolle in zuordnung.ts,
+// aber für ORDNER_ROLLEN statt zeitnehmer/sekretaer.
 export async function pruefeKeineOrdnerDoppelrolle(
   tx: Parameters<Parameters<typeof withTenant>[1]>[0],
   terminId: string,
@@ -78,7 +78,7 @@ export async function pruefeKeineOrdnerDoppelrolle(
         );
   if (doppelt) {
     throw new Error(
-      "Diese Person ist für diesen Termin bereits als Ordner oder Kioskdienst eingetragen."
+      "Diese Person ist für diesen Termin bereits als Ordner, Kioskdienst oder Kassierer eingetragen."
     );
   }
 }
@@ -150,14 +150,16 @@ export type OrdnerEinsatzZahl = {
   name: string | null;
   email: string;
   anzahlEinsaetze: number;
-  // WELCHE der beiden Rollen die Person tatsächlich hält — eine Person mit
-  // nur "ordner" darf nicht als "kioskdienst" zugeordnet werden können,
-  // auch wenn beide Rollen gemeinsam als EIN Wart-Bereich verwaltet werden.
+  // WELCHE der ORDNER_ROLLEN die Person tatsächlich hält — eine Person mit
+  // nur "ordner" darf nicht als "kioskdienst" oder "kassierer" zugeordnet
+  // werden können, auch wenn alle Rollen gemeinsam als EIN Wart-Bereich
+  // verwaltet werden.
   rollen: (typeof ORDNER_ROLLEN)[number][];
 };
 
-// Ordner und Kioskdienst zusammen — eine Person mit BEIDEN Rollen taucht
-// nur einmal auf, mit der Summe ihrer Einsätze in beiden Rollen.
+// Ordner, Kioskdienst und Kassierer zusammen — eine Person mit MEHREREN
+// dieser Rollen taucht nur einmal auf, mit der Summe ihrer Einsätze in allen
+// Rollen.
 export async function holeOrdnerEinsatzZahlen(
   vereinId: string
 ): Promise<OrdnerEinsatzZahl[]> {

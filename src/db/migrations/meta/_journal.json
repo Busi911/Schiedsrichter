@@ -274,6 +274,13 @@
       "when": 1788439610891,
       "tag": "0038_groovy_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1788945288412,
+      "tag": "0039_lowly_vapor",
+      "breakpoints": true
     }
   ]
 }
