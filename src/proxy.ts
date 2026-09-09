@@ -23,6 +23,10 @@ export default auth((req) => {
     // (Kenntnis des Tokens ist die Berechtigung) — siehe
     // src/app/zeitnehmer-eintragen/[token]/page.tsx.
     pathname.startsWith("/zeitnehmer-eintragen/") ||
+    // Öffentliche, login-freie Selbsteintragung für Ordner/Kioskdienst,
+    // analog zu /zeitnehmer-eintragen/ — siehe
+    // src/app/ordner-eintragen/[token]/page.tsx.
+    pathname.startsWith("/ordner-eintragen/") ||
     // Öffentlicher ICS-Kalender-Feed (Kenntnis des Tokens ist die
     // Berechtigung) — Kalender-Apps rufen das anonym ab, ohne Login-Session,
     // siehe src/app/kalender/[token]/route.ts.
