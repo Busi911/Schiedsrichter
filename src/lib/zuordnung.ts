@@ -126,6 +126,28 @@ export function zuordnungFehlgeschlagenInhalt(
   };
 }
 
+// Benachrichtigt den Wart, wenn sich über die öffentliche Selbsteintragung
+// (Ordner-/Kioskdienst-/Kassierer- bzw. Zeitnehmer-/Sekretär-Link) jemand
+// mit E-Mail-Adresse registriert, den es im System noch nicht als
+// Funktionsträger dieser Rolle gibt — die Rolle wird dabei bewusst INAKTIV
+// angelegt (siehe ordnerSelbstEintragenMehrfachOeffentlich/
+// zeitnehmerSelbstEintragenMehrfachOeffentlich), damit ein Wart die Person
+// erst bestätigt/freischaltet, statt dass sich jeder mit einer beliebigen
+// E-Mail-Adresse ungeprüft selbst zum Funktionsträger macht.
+export function neueSelbstregistrierungInhalt(
+  name: string,
+  email: string,
+  rolle: string,
+  cta: { text: string; url: string }
+): EmailInhalt {
+  const rolleLabel = ZUORDNUNGS_ROLLE_LABEL[rolle] ?? rolle;
+  return {
+    ueberschrift: `${name} hat sich über den öffentlichen Link als ${rolleLabel} registriert und wartet auf Freischaltung.`,
+    zeilen: [`E-Mail: ${email}`],
+    cta,
+  };
+}
+
 // Prüft die Besetzungs-Obergrenze, BEVOR eine weitere Person eingetragen
 // wird — schiedsrichter max. SCHIRI_GESPANN_MAX (fest 2 als Gespann),
 // zeitnehmer/sekretaer JEWEILS max. 1 (eigene, unabhängige Rollen, siehe

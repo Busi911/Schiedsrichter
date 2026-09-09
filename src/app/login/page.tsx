@@ -16,12 +16,23 @@ const FEHLER_TEXT: Record<string, string> = {
   CredentialsSignin: "E-Mail oder Passwort falsch.",
 };
 
+// Nur ein einzelner, verein-interner Pfad ("/xyz", nicht "//evil.com" oder
+// "https://…") ist als Redirect-Ziel erlaubt — sonst ließe sich der Login
+// als offener Redirector für beliebige externe URLs missbrauchen.
+function sichererRedirect(ziel: string | undefined): string {
+  if (ziel && ziel.startsWith("/") && !ziel.startsWith("//")) {
+    return ziel;
+  }
+  return "/";
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; passwortGeaendert?: string }>;
+  searchParams: Promise<{ error?: string; passwortGeaendert?: string; redirect?: string }>;
 }) {
-  const { error, passwortGeaendert } = await searchParams;
+  const { error, passwortGeaendert, redirect } = await searchParams;
+  const redirectTo = sichererRedirect(redirect);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
@@ -52,7 +63,7 @@ export default async function LoginPage({
               await signIn("credentials", {
                 email: formData.get("email"),
                 password: formData.get("password"),
-                redirectTo: "/",
+                redirectTo,
               });
             }}
             className="flex flex-col gap-4"
@@ -127,7 +138,7 @@ export default async function LoginPage({
               "use server";
               const email = formData.get("email");
               if (typeof email === "string" && email) {
-                await signIn("nodemailer", { email, redirectTo: "/" });
+                await signIn("nodemailer", { email, redirectTo });
               }
             }}
             className="flex flex-col gap-4"

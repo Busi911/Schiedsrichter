@@ -44,19 +44,38 @@ export type MehrfachEintragErgebnis = {
 // sich dann für alle ausgewählten Termine auf einmal ein. Rollenneutral
 // (rolleOptionen/submitAction als Props) — genutzt sowohl von
 // /zeitnehmer-eintragen (Zeitnehmer/Sekretär) als auch /ordner-eintragen
-// (Ordner/Kioskdienst), gleiches Mehrfachauswahl-Muster wie in
+// (Ordner/Kioskdienst/Kassierer), gleiches Mehrfachauswahl-Muster wie in
 // mannschaften-tabelle.tsx. Selektionszustand braucht Client-State, daher
 // hier statt direkt in der jeweiligen (Server Component) page.tsx.
+//
+// Drei Absende-Varianten, gesteuert über eingeloggtAls/zeigeEmailFeld (siehe
+// dort): anonym per Name, anonym per Name+E-Mail (legt bei Bedarf ein
+// zunächst inaktives Konto an), oder mit erkannter Session (Name/E-Mail
+// komplett ausgeblendet, Identität kommt aus der Session).
 export function TerminMehrfachAuswahl({
   token,
   termine,
   rolleOptionen,
   submitAction,
+  eingeloggtAls,
+  zeigeEmailFeld,
 }: {
   token: string;
   termine: EintragbarerTermin[];
   rolleOptionen: { value: string; label: string }[];
   submitAction: (formData: FormData) => Promise<MehrfachEintragErgebnis>;
+  // Gesetzt, wenn die Seite eine passende, eingeloggte Session erkannt hat
+  // (siehe auth() in den beiden page.tsx) — blendet Name/E-Mail-Feld
+  // komplett aus, die Identität kommt dann serverseitig aus der Session
+  // statt aus dem Formular (siehe *SelbstEintragenMehrfachEingeloggt in den
+  // jeweiligen actions.ts).
+  eingeloggtAls?: string;
+  // Zusätzliches, OPTIONALES E-Mail-Feld im anonymen Formular — wird eine
+  // E-Mail angegeben, legt submitAction dafür direkt ein Konto (+ zunächst
+  // inaktive Rolle, bis ein Wart sie freischaltet) an, statt nur einen
+  // freien Namenstext zu speichern. Nur relevant, wenn eingeloggtAls NICHT
+  // gesetzt ist.
+  zeigeEmailFeld?: boolean;
 }) {
   const [ausgewaehlt, setAusgewaehlt] = useState<Set<string>>(new Set());
   // Tages-Überschriften nur, wenn die Liste tatsächlich mehrere Kalendertage
@@ -159,12 +178,28 @@ export function TerminMehrfachAuswahl({
             </span>
           ) : (
             <>
-              <Input
-                name="name"
-                placeholder="Dein Name"
-                required
-                className="h-8 min-w-48 flex-1"
-              />
+              {eingeloggtAls ? (
+                <span className="text-sm">
+                  Eintragen als <strong>{eingeloggtAls}</strong>
+                </span>
+              ) : (
+                <>
+                  <Input
+                    name="name"
+                    placeholder="Dein Name"
+                    required
+                    className="h-8 min-w-48 flex-1"
+                  />
+                  {zeigeEmailFeld && (
+                    <Input
+                      name="email"
+                      type="email"
+                      placeholder="E-Mail (optional, für eigenen Zugang)"
+                      className="h-8 min-w-56 flex-1"
+                    />
+                  )}
+                </>
+              )}
               <div className="w-36">
                 <LabeledSelect
                   name="rolle"

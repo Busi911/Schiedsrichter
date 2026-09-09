@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { and, eq, gte, inArray } from "drizzle-orm";
+import { auth } from "@/auth";
 import { adminDb } from "@/db/admin";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
@@ -16,7 +17,10 @@ import {
   TerminMehrfachAuswahl,
   type EintragbarerTermin,
 } from "@/components/mehrfachauswahl";
-import { ordnerSelbstEintragenMehrfachOeffentlich } from "./actions";
+import {
+  ordnerSelbstEintragenMehrfachEingeloggt,
+  ordnerSelbstEintragenMehrfachOeffentlich,
+} from "./actions";
 import { formatDatumZeit as formatDateTime, formatWochentagDatum } from "@/lib/format";
 
 const TYP_LABEL: Record<string, string> = {
@@ -43,9 +47,13 @@ const ORDNER_ROLLE_OPTIONEN = [
 // statt "turnier_spiel" in dieser Liste.
 const ORDNER_RELEVANTE_TYPEN = ["testspiel", "turnier", "rundenspiel"];
 
-// Öffentliche, login-freie Selbsteintragung für Ordner/Kioskdienst/Kassierer
-// (siehe vereine.ordnerSelbstanmeldungToken, vom Ordnerwart aktivierbar) — analog
-// zu /zeitnehmer-eintragen/[token], siehe dortige Kommentare für die
+// Öffentliche Selbsteintragung für Ordner/Kioskdienst/Kassierer (siehe
+// vereine.ordnerSelbstanmeldungToken, vom Ordnerwart aktivierbar) — Login
+// ist NICHT nötig (Kenntnis des Tokens ist die Berechtigung), wird eine
+// passende Session zu diesem Verein erkannt aber genutzt, um Name/E-Mail-
+// Eingabe zu überspringen (siehe eingeloggtePerson unten und
+// ordnerSelbstEintragenMehrfachEingeloggt in actions.ts). Analog zu
+// /zeitnehmer-eintragen/[token], siehe dortige Kommentare für die
 // Grundprinzipien.
 export default async function OrdnerEintragenPage({
   params,
@@ -63,6 +71,18 @@ export default async function OrdnerEintragenPage({
   if (!verein) {
     notFound();
   }
+
+  // Optionale Session (kein requireSession — die Seite bleibt für alle
+  // ohne Login zugänglich, siehe Kommentar unten). Nur relevant, wenn sie
+  // zu GENAU diesem Verein gehört: eine Session eines anderen Vereins (z.B.
+  // ein Schiedsrichter, der auch bei einem fremden Verein diesen Link
+  // öffnet) macht aus dieser Seite keine "eingeloggt"-Ansicht, sondern
+  // bleibt beim normalen anonymen Formular.
+  const session = await auth();
+  const eingeloggtePerson =
+    session?.user?.vereinId === verein.id
+      ? { name: session.user.name ?? session.user.email ?? "" }
+      : null;
 
   const { alleMannschaften, relevanteTermine } = await withTenant(
     verein.id,
@@ -192,12 +212,26 @@ export default async function OrdnerEintragenPage({
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        Kein Login nötig: einen oder mehrere Termine auswählen, Namen
-        eintragen, Rolle wählen und absenden. Bereits im System angelegte
-        Personen werden dabei automatisch erkannt — bei Unsicherheit prüft
-        das der Ordnerwart nach.
-      </p>
+      {eingeloggtePerson ? (
+        <p className="text-sm text-muted-foreground">
+          Angemeldet als <strong>{eingeloggtePerson.name}</strong> — einen
+          oder mehrere Termine auswählen, Rolle wählen und absenden.
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Kein Login nötig: einen oder mehrere Termine auswählen, Namen
+          eintragen, Rolle wählen und absenden. Bereits im System angelegte
+          Personen werden dabei automatisch erkannt — bei Unsicherheit prüft
+          das der Ordnerwart nach. Optional lässt sich dabei auch gleich ein
+          eigener Zugang anlegen (E-Mail-Adresse angeben).{" "}
+          <Link
+            href={`/login?redirect=${encodeURIComponent(`/ordner-eintragen/${token}`)}`}
+            className="underline"
+          >
+            Schon einen Zugang? Hier einloggen.
+          </Link>
+        </p>
+      )}
 
       {gefilterteTermine.length > 0 && (
         <p className="text-sm font-medium">
@@ -242,7 +276,13 @@ export default async function OrdnerEintragenPage({
           token={token}
           termine={eintragbareTermine}
           rolleOptionen={ORDNER_ROLLE_OPTIONEN}
-          submitAction={ordnerSelbstEintragenMehrfachOeffentlich}
+          submitAction={
+            eingeloggtePerson
+              ? ordnerSelbstEintragenMehrfachEingeloggt
+              : ordnerSelbstEintragenMehrfachOeffentlich
+          }
+          eingeloggtAls={eingeloggtePerson?.name}
+          zeigeEmailFeld={!eingeloggtePerson}
         />
       )}
 
