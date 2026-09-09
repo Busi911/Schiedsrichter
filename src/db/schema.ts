@@ -23,6 +23,12 @@ export const funktionstraegerTypEnum = pgEnum("funktionstraeger_typ", [
   "trainer",
   "ordner",
   "kioskdienst",
+  // Sammelt/verwaltet Eintrittsgeld o.ä. bei Testspielen/Turnieren/
+  // Rundenspielen — organisatorisch wie Ordner/Kioskdienst behandelt (siehe
+  // ORDNER_ROLLEN in lib/ordnerwart.ts): gleicher Bedarf-Mechanismus
+  // (testspiel/turnier/rundenspielKassiererBedarf unten), gleiche
+  // Selbsteintragung/Zuordnung über den Ordnerwart.
+  "kassierer",
   // Übersicht über alle Schiedsrichter/Einsätze im Verein (Ressourcenplanung,
   // offene Stellen, Statistik) sowie Zuordnen/Entfernen beschränkt auf die
   // Rolle "schiedsrichter" — siehe /profil/schiedsrichterwart. Wie jede
@@ -123,6 +129,18 @@ export const vereine = pgTable("verein", {
   rundenspielKioskdienstBedarf: integer("rundenspiel_kioskdienst_bedarf")
     .notNull()
     .default(0),
+  // Kassierer-Bedarf, organisatorisch wie Ordner/Kioskdienst oben behandelt
+  // (siehe ORDNER_ROLLEN in lib/ordnerwart.ts) — gleiche Termin-Typ-
+  // Aufteilung, gleicher Default 0.
+  testspielKassiererBedarf: integer("testspiel_kassierer_bedarf")
+    .notNull()
+    .default(0),
+  turnierKassiererBedarf: integer("turnier_kassierer_bedarf")
+    .notNull()
+    .default(0),
+  rundenspielKassiererBedarf: integer("rundenspiel_kassierer_bedarf")
+    .notNull()
+    .default(0),
   // Mindestanzahl Zeitnehmer/Sekretär pro Termin-Typ (bisher hart 1 in
   // src/lib/besetzung.ts) — analog zum Ordner-/Kioskdienst-Bedarf oben,
   // ebenfalls nicht für spiel_ics (persönliche Einsätze des
@@ -187,8 +205,9 @@ export const mannschaften = pgTable("mannschaft", {
   // Team-ID 69770.
   handballNetTeamId: text("handball_net_team_id"),
   // Vom jeweiligen Wart pro Mannschaft abschaltbar, wenn diese Mannschaft
-  // grundsätzlich keinen Ordner-/Kioskdienst-/Zeitnehmer-Bedarf hat (z.B.
-  // eine Jugend-Mannschaft ohne eigene Heimspiele mit Publikum) — siehe
+  // grundsätzlich keinen Ordner-/Kioskdienst-/Kassierer-/Zeitnehmer-Bedarf
+  // hat (z.B. eine Jugend-Mannschaft ohne eigene Heimspiele mit Publikum) —
+  // siehe
   // bedarfFuer in src/lib/dienste.ts. Gilt für ALLE Termin-Typen dieser
   // Mannschaft (testspiel/turnier/rundenspiel gleichermaßen), nicht nach
   // Termin-Typ unterscheidbar. Wirkt live: bereits bestehende offene
@@ -201,6 +220,9 @@ export const mannschaften = pgTable("mannschaft", {
     .notNull()
     .default(false),
   zeitnehmerBedarfDeaktiviert: boolean("zeitnehmer_bedarf_deaktiviert")
+    .notNull()
+    .default(false),
+  kassiererBedarfDeaktiviert: boolean("kassierer_bedarf_deaktiviert")
     .notNull()
     .default(false),
 });

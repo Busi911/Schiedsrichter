@@ -8,6 +8,7 @@ export const FUNKTIONSTRAEGER_TYPEN = [
   "trainer",
   "ordner",
   "kioskdienst",
+  "kassierer",
 ] as const;
 
 const ROLLE_ALIASE: Record<string, (typeof FUNKTIONSTRAEGER_TYPEN)[number]> = {
@@ -18,6 +19,7 @@ const ROLLE_ALIASE: Record<string, (typeof FUNKTIONSTRAEGER_TYPEN)[number]> = {
   trainer: "trainer",
   ordner: "ordner",
   kioskdienst: "kioskdienst",
+  kassierer: "kassierer",
 };
 
 export type ImportZeile = {

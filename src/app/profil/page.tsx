@@ -14,6 +14,7 @@ import {
 } from "@/db/schema";
 import { signOut } from "@/auth";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { monatsBereich, parseMonatParam } from "@/lib/kalender";
 import { holeEigeneKalenderEintraege } from "@/lib/eigener-kalender";
 import {
@@ -53,12 +54,13 @@ const TYP_LABEL: Record<string, string> = {
   trainer: "Trainer",
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
   schiedsrichterwart: "Schiedsrichterwart",
   zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
-  ordnerwart: "Ordner-/Kioskdienstwart",
+  ordnerwart: "Ordner-/Kioskdienst-/Kassiererwart",
 };
 
-const SELBST_ANMELDBARE_TYPEN = ["ordner", "kioskdienst"] as const;
+const SELBST_ANMELDBARE_TYPEN = ORDNER_ROLLEN;
 
 export default async function ProfilPage({
   searchParams,
@@ -113,9 +115,9 @@ export default async function ProfilPage({
 
       // "Meine Termine" gilt für alle Funktionsträger-Rollen, nicht nur
       // Schiedsrichter: eigene termin_zuordnung-Einträge (Zeitnehmer/
-      // Sekretär/Ordner/Kioskdienst) sowie — für Trainer — alle Termine der
-      // eigenen Mannschaft, zusätzlich zu den ICS-Feed-Einsätzen der
-      // Schiedsrichter.
+      // Sekretär/Ordner/Kioskdienst/Kassierer) sowie — für Trainer — alle
+      // Termine der eigenen Mannschaft, zusätzlich zu den ICS-Feed-Einsätzen
+      // der Schiedsrichter.
       const mannschaftIds = rollen
         .filter((r) => r.typ === "trainer" && r.mannschaftId)
         .map((r) => r.mannschaftId!);
@@ -326,7 +328,8 @@ export default async function ProfilPage({
             <CardTitle>Mein Kalender</CardTitle>
             <CardDescription>
               Alle Termine, bei denen du als Schiedsrichter, Zeitnehmer,
-              Sekretär, Ordner, Kioskdienst oder Trainer beteiligt bist.
+              Sekretär, Ordner, Kioskdienst, Kassierer oder Trainer beteiligt
+              bist.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -614,7 +617,7 @@ export default async function ProfilPage({
         {eigeneTypen.length > 0 && vereinEinstellungen && (
           <Card>
             <CardHeader>
-              <CardTitle>Dienste (Ordner/Kioskdienst)</CardTitle>
+              <CardTitle>Dienste (Ordner/Kioskdienst/Kassierer)</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {verfuegbareTermine.length === 0 && (

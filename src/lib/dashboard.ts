@@ -3,6 +3,7 @@ import { and, asc, desc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, vereine } from "@/db/schema";
 import { bedarfFuer } from "./dienste";
+import { ORDNER_ROLLEN } from "./ordnerwart";
 import {
   berechneBesetzung,
   brauchtSchiedsrichterVomVerein,
@@ -90,7 +91,7 @@ export type OffenePosten = {
   ort: string | null;
   mannschaftLabel: string | null;
   luecken: {
-    rolle: "ordner" | "kioskdienst" | "zeitnehmer";
+    rolle: "ordner" | "kioskdienst" | "kassierer" | "zeitnehmer";
     vorhanden: number;
     bedarf: number;
   }[];
@@ -110,8 +111,22 @@ type AnstehenderTermin = {
   zeitnehmerBedarfOverride?: number | null;
   mannschaftOrdnerBedarfDeaktiviert?: boolean | null;
   mannschaftKioskdienstBedarfDeaktiviert?: boolean | null;
+  mannschaftKassiererBedarfDeaktiviert?: boolean | null;
   mannschaftZeitnehmerBedarfDeaktiviert?: boolean | null;
 };
+
+// Wählt aus den geflachten mannschaftXyzBedarfDeaktiviert-Feldern eines
+// AnstehenderTermin das zur Rolle passende aus — Pendant zu
+// mannschaftBedarfDeaktiviertFuer in dienste.ts, das ein verschachteltes
+// Mannschafts-Objekt statt geflachter Termin-Felder erwartet.
+function mannschaftDeaktiviertFuerOrdnerRolle(
+  termin: AnstehenderTermin,
+  rolle: (typeof ORDNER_ROLLEN)[number]
+): boolean | null | undefined {
+  if (rolle === "ordner") return termin.mannschaftOrdnerBedarfDeaktiviert;
+  if (rolle === "kioskdienst") return termin.mannschaftKioskdienstBedarfDeaktiviert;
+  return termin.mannschaftKassiererBedarfDeaktiviert;
+}
 type Zuordnung = { terminId: string; funktionstraegerTyp: string };
 
 // Nur diese Typen brauchen eine Zeitnehmer-/Sekretär-Zuordnung — deckungsgleich
@@ -263,7 +278,7 @@ export function berechneOffenePosten(
   for (const termin of anstehende) {
     const luecken: OffenePosten["luecken"] = [];
 
-    for (const rolle of ["ordner", "kioskdienst"] as const) {
+    for (const rolle of ORDNER_ROLLEN) {
       const bedarf = bedarfFuer(
         verein,
         termin.typ,
@@ -271,9 +286,7 @@ export function berechneOffenePosten(
         termin.pflichtspiel,
         termin.freundschaftsTyp,
         undefined,
-        rolle === "ordner"
-          ? termin.mannschaftOrdnerBedarfDeaktiviert
-          : termin.mannschaftKioskdienstBedarfDeaktiviert
+        mannschaftDeaktiviertFuerOrdnerRolle(termin, rolle)
       );
       if (bedarf <= 0) continue;
       const vorhanden = zuordnungen.filter(
@@ -340,6 +353,7 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
         mannschaftOrdnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
         mannschaftKioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
+        mannschaftKassiererBedarfDeaktiviert: mannschaften.kassiererBedarfDeaktiviert,
         mannschaftZeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
       })
       .from(termine)

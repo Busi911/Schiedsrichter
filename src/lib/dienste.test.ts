@@ -8,6 +8,9 @@ const verein = {
   turnierKioskdienstBedarf: 3,
   rundenspielOrdnerBedarf: 5,
   rundenspielKioskdienstBedarf: 6,
+  testspielKassiererBedarf: 10,
+  turnierKassiererBedarf: 11,
+  rundenspielKassiererBedarf: 12,
   testspielZeitnehmerBedarf: 7,
   turnierZeitnehmerBedarf: 8,
   rundenspielZeitnehmerBedarf: 9,
@@ -33,6 +36,14 @@ describe("bedarfFuer", () => {
   it("liefert 0 für spiel_ics (persönliche Einsätze, kein Vereins-Dienst)", () => {
     expect(bedarfFuer(verein, "spiel_ics", "ordner")).toBe(0);
     expect(bedarfFuer(verein, "spiel_ics", "kioskdienst")).toBe(0);
+    expect(bedarfFuer(verein, "spiel_ics", "kassierer")).toBe(0);
+    expect(bedarfFuer(verein, "spiel_ics", "zeitnehmer")).toBe(0);
+  });
+
+  it("liefert den Kassierer-Bedarf für Testspiele/Turniere/echte Ligaspiele", () => {
+    expect(bedarfFuer(verein, "testspiel", "kassierer")).toBe(10);
+    expect(bedarfFuer(verein, "turnier", "kassierer")).toBe(11);
+    expect(bedarfFuer(verein, "rundenspiel", "kassierer", true)).toBe(12);
   });
 
   it("liefert 0 für unbekannte Termin-Typen", () => {
@@ -81,10 +92,6 @@ describe("bedarfFuer", () => {
     expect(bedarfFuer(verein, "rundenspiel", "zeitnehmer", false, "turnier")).toBe(8);
   });
 
-  it("liefert für spiel_ics einen festen Zeitnehmer-Standardbedarf (nicht konfigurierbar, persönlicher Einsatz)", () => {
-    expect(bedarfFuer(verein, "spiel_ics", "zeitnehmer")).toBe(1);
-  });
-
   it("Zeitnehmer-Override (Zeitnehmerwart) übersteuert den globalen Bedarf für einen einzelnen Termin, inklusive 0", () => {
     expect(bedarfFuer(verein, "testspiel", "zeitnehmer", null, null, 0)).toBe(0);
     expect(bedarfFuer(verein, "testspiel", "zeitnehmer", null, null, 3)).toBe(3);
@@ -120,12 +127,14 @@ describe("mannschaftBedarfDeaktiviertFuer", () => {
   const mannschaft = {
     ordnerBedarfDeaktiviert: true,
     kioskdienstBedarfDeaktiviert: false,
+    kassiererBedarfDeaktiviert: true,
     zeitnehmerBedarfDeaktiviert: true,
   };
 
   it("wählt das zur Rolle passende Flag", () => {
     expect(mannschaftBedarfDeaktiviertFuer(mannschaft, "ordner")).toBe(true);
     expect(mannschaftBedarfDeaktiviertFuer(mannschaft, "kioskdienst")).toBe(false);
+    expect(mannschaftBedarfDeaktiviertFuer(mannschaft, "kassierer")).toBe(true);
     expect(mannschaftBedarfDeaktiviertFuer(mannschaft, "zeitnehmer")).toBe(true);
   });
 

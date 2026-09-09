@@ -60,6 +60,7 @@ const TYP_LABEL: Record<string, string> = {
 const ROLLE_LABEL: Record<string, string> = {
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
 };
 
 export default async function OrdnerwartPage({
@@ -105,6 +106,12 @@ export default async function OrdnerwartPage({
         rolleLabel: "Kioskdienst",
         deaktiviert: m.kioskdienstBedarfDeaktiviert,
       },
+      {
+        id: `${m.id}|kassierer`,
+        mannschaftLabel: label,
+        rolleLabel: "Kassierer",
+        deaktiviert: m.kassiererBedarfDeaktiviert,
+      },
     ];
   });
 
@@ -114,9 +121,7 @@ export default async function OrdnerwartPage({
     const map = belegtProZeitpunktUndTermin.get(zeitpunkt) ?? new Map();
     for (const z of termin.zuordnungen) {
       if (
-        (["ordner", "kioskdienst"] as const).includes(
-          z.funktionstraegerTyp as "ordner" | "kioskdienst"
-        ) &&
+        (ORDNER_ROLLEN as readonly string[]).includes(z.funktionstraegerTyp) &&
         z.userId
       ) {
         map.set(z.userId, termin.id);
@@ -134,7 +139,7 @@ export default async function OrdnerwartPage({
       const mannschaft = termin.mannschaftId
         ? mannschaftenNachId.get(termin.mannschaftId)
         : null;
-      const luecken = (["ordner", "kioskdienst"] as const)
+      const luecken = ORDNER_ROLLEN
         .map((rolle) => {
           const bedarf = verein
             ? bedarfFuer(
@@ -201,14 +206,14 @@ export default async function OrdnerwartPage({
           ← Zurück zu meinem Profil
         </Link>
         <h1 className="font-heading text-2xl font-semibold">
-          Ordner-/Kioskdienstwart
+          Ordner-/Kioskdienst-/Kassiererwart
         </h1>
         <p className="text-sm text-muted-foreground">
-          Übersicht über alle Ordner/Kioskdienst-Helfer im Verein und ihre
-          Einsätze, sowie Termine mit Ordner-/Kioskdienst-Bedarf. Ordner/
-          Kioskdienst melden sich normalerweise selbst an (eingeloggt über
-          /profil oder login-frei über den Link unten) — hier lässt sich
-          zusätzlich manuell zuordnen, entfernen oder ersetzen.
+          Übersicht über alle Ordner-/Kioskdienst-/Kassierer-Helfer im
+          Verein und ihre Einsätze, sowie Termine mit entsprechendem Bedarf.
+          Sie melden sich normalerweise selbst an (eingeloggt über /profil
+          oder login-frei über den Link unten) — hier lässt sich zusätzlich
+          manuell zuordnen, entfernen oder ersetzen.
         </p>
       </div>
 
@@ -217,8 +222,8 @@ export default async function OrdnerwartPage({
           <CardTitle className="text-base">Öffentliche Selbsteintragung</CardTitle>
           <CardDescription>
             Login-freier Link, über den sich Personen (z.B. Eltern eines
-            Kaders) selbst als Ordner/Kioskdienst eintragen können —
-            gefiltert nach Mannschaft. Namen werden dabei automatisch mit
+            Kaders) selbst als Ordner/Kioskdienst/Kassierer eintragen können
+            — gefiltert nach Mannschaft. Namen werden dabei automatisch mit
             bereits angelegten Funktionsträgern abgeglichen; bei Unsicherheit
             landet der Eintrag unten zur Bestätigung.
           </CardDescription>
@@ -264,9 +269,9 @@ export default async function OrdnerwartPage({
             <CardDescription>
               Für Mannschaften ohne eigene Heimspiele mit Publikum (z.B.
               manche Jugend-Mannschaften) lässt sich der Ordner-/
-              Kioskdienst-Bedarf hier komplett abschalten — auch mehrere auf
-              einmal per Mehrfachauswahl. Wirkt auf alle Termine der
-              jeweiligen Mannschaft, auch bereits bestehende offene.
+              Kioskdienst-/Kassierer-Bedarf hier komplett abschalten — auch
+              mehrere auf einmal per Mehrfachauswahl. Wirkt auf alle Termine
+              der jeweiligen Mannschaft, auch bereits bestehende offene.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -343,7 +348,7 @@ export default async function OrdnerwartPage({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            Ordner/Kioskdienst-Helfer im Verein
+            Ordner-/Kioskdienst-/Kassierer-Helfer im Verein
           </CardTitle>
           <CardDescription>
             Anzahl bereits absolvierter Einsätze (in beiden Rollen
@@ -353,7 +358,7 @@ export default async function OrdnerwartPage({
         <CardContent>
           {personenListe.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Keine aktiven Ordner/Kioskdienst-Helfer im Verein.
+              Keine aktiven Ordner-/Kioskdienst-/Kassierer-Helfer im Verein.
             </p>
           ) : (
             <Table>
@@ -399,15 +404,16 @@ export default async function OrdnerwartPage({
           </div>
           <CardDescription>
             Freundschaftsspiele, Turniere und Rundenspiele mit konfiguriertem
-            Ordner-/Kioskdienst-Bedarf. Die Auswahl zeigt nur Personen, die
-            zu diesem Zeitpunkt nicht bereits an einem anderen Termin
-            eingeteilt sind.
+            Ordner-/Kioskdienst-/Kassierer-Bedarf. Die Auswahl zeigt nur
+            Personen, die zu diesem Zeitpunkt nicht bereits an einem anderen
+            Termin eingeteilt sind.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {relevanteTermine.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Keine anstehenden Termine mit Ordner-/Kioskdienst-Bedarf.
+              Keine anstehenden Termine mit Ordner-/Kioskdienst-/
+              Kassierer-Bedarf.
             </p>
           ) : (
             relevanteTermine.map((t) => {
@@ -416,9 +422,7 @@ export default async function OrdnerwartPage({
                   ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
                   : (TYP_LABEL[t.typ] ?? t.typ);
               const bestehende = t.zuordnungen.filter((z) =>
-                (["ordner", "kioskdienst"] as const).includes(
-                  z.funktionstraegerTyp as "ordner" | "kioskdienst"
-                )
+                (ORDNER_ROLLEN as readonly string[]).includes(z.funktionstraegerTyp)
               );
               // Bewusst NICHT herausgefiltert, sondern nur ausgegraut
               // (disabled), wenn die Person für diese Rolle bereits

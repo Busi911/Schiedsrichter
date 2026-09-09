@@ -32,7 +32,8 @@ import type { MehrfachEintragErgebnis } from "@/components/mehrfachauswahl";
 
 type OrdnerRolle = (typeof ORDNER_ROLLEN)[number];
 
-// Öffentliche, login-freie Selbsteintragung für Ordner/Kioskdienst — analog
+// Öffentliche, login-freie Selbsteintragung für Ordner/Kioskdienst/Kassierer
+// — analog
 // zu zeitnehmerSelbstEintragenOeffentlich in
 // zeitnehmer-eintragen/[token]/actions.ts, siehe dortige Kommentare für die
 // Grundprinzipien (Token statt Session, adminDb nur für den Token-Lookup,
@@ -290,7 +291,7 @@ export async function ordnerSelbstEintragenMehrfachOeffentlich(
       const inhalt = {
         vereinName: verein.name,
         ...zuordnungFehlgeschlagenInhalt(eingegebenerName, rolle, fehler, {
-          text: "Zur Ordner-/Kioskdienst-Übersicht",
+          text: "Zur Ordner-/Kioskdienst-/Kassierer-Übersicht",
           url: `${appUrl()}/profil/ordnerwart`,
         }),
       };

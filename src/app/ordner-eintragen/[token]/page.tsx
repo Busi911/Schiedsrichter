@@ -28,21 +28,23 @@ const TYP_LABEL: Record<string, string> = {
 const ORDNER_ROLLE_LABEL: Record<string, string> = {
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
 };
 
 const ORDNER_ROLLE_OPTIONEN = [
   { value: "ordner", label: "Ordner" },
   { value: "kioskdienst", label: "Kioskdienst" },
+  { value: "kassierer", label: "Kassierer" },
 ];
 
-// Ordner-/Kioskdienst-Bedarf gilt für den Turnier-CONTAINER selbst (typ =
-// turnier), nicht für dessen Einzelspiele — siehe Kommentar in
+// Ordner-/Kioskdienst-/Kassierer-Bedarf gilt für den Turnier-CONTAINER
+// selbst (typ = turnier), nicht für dessen Einzelspiele — siehe Kommentar in
 // lib/ordnerwart.ts. Anders als bei Zeitnehmer/Sekretär deshalb "turnier"
 // statt "turnier_spiel" in dieser Liste.
 const ORDNER_RELEVANTE_TYPEN = ["testspiel", "turnier", "rundenspiel"];
 
-// Öffentliche, login-freie Selbsteintragung für Ordner/Kioskdienst (siehe
-// vereine.ordnerSelbstanmeldungToken, vom Ordnerwart aktivierbar) — analog
+// Öffentliche, login-freie Selbsteintragung für Ordner/Kioskdienst/Kassierer
+// (siehe vereine.ordnerSelbstanmeldungToken, vom Ordnerwart aktivierbar) — analog
 // zu /zeitnehmer-eintragen/[token], siehe dortige Kommentare für die
 // Grundprinzipien.
 export default async function OrdnerEintragenPage({
@@ -94,10 +96,10 @@ export default async function OrdnerEintragenPage({
             .where(
               and(
                 inArray(terminZuordnungen.terminId, terminIds),
-                // Nur Ordner/Kioskdienst anzeigen — sonst würden z.B.
+                // Nur ORDNER_ROLLEN anzeigen — sonst würden z.B.
                 // Schiedsrichter-Zuordnungen desselben Termins hier
                 // mitgeladen und fälschlich gelabelt (das Label unten kennt
-                // nur diese beiden Rollen).
+                // nur diese Rollen).
                 inArray(terminZuordnungen.funktionstraegerTyp, ORDNER_ROLLEN)
               )
             )
@@ -185,7 +187,7 @@ export default async function OrdnerEintragenPage({
             {verein.name}
           </p>
           <h1 className="font-heading text-xl font-semibold">
-            Als Ordner/Kioskdienst eintragen
+            Als Ordner/Kioskdienst/Kassierer eintragen
           </h1>
         </div>
       </div>

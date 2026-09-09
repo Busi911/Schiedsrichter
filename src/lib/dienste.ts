@@ -1,6 +1,5 @@
 import "server-only";
 import type { mannschaften, vereine } from "@/db/schema";
-import { ZEITNEHMER_SEKRETAER_BEDARF_STANDARD } from "./besetzung";
 
 type VereinBedarf = Pick<
   typeof vereine.$inferSelect,
@@ -10,19 +9,24 @@ type VereinBedarf = Pick<
   | "turnierKioskdienstBedarf"
   | "rundenspielOrdnerBedarf"
   | "rundenspielKioskdienstBedarf"
+  | "testspielKassiererBedarf"
+  | "turnierKassiererBedarf"
+  | "rundenspielKassiererBedarf"
   | "testspielZeitnehmerBedarf"
   | "turnierZeitnehmerBedarf"
   | "rundenspielZeitnehmerBedarf"
 >;
 
-type Rolle = "ordner" | "kioskdienst" | "zeitnehmer";
+type Rolle = "ordner" | "kioskdienst" | "kassierer" | "zeitnehmer";
 
-// Dienste-Bedarf (Ordner/Kioskdienst/Zeitnehmer-Sekretär) gilt bewusst nur
-// für testspiel/turnier/rundenspiel (eigene Veranstaltungen bzw. Heimspiele
-// an der eigenen Halle) — nicht für spiel_ics (persönliche Einsätze des
-// Schiedsrichters, oft bei fremden Vereinen). Die Zeitnehmer/Sekretär-
-// Mindestbesetzung für spiel_ics bleibt daher beim bisherigen festen
-// Standardwert (siehe ZEITNEHMER_RELEVANTE_TYPEN in dashboard.ts).
+// Dienste-Bedarf (Ordner/Kioskdienst/Kassierer/Zeitnehmer-Sekretär) gilt
+// bewusst nur für testspiel/turnier/rundenspiel (eigene Veranstaltungen bzw.
+// Heimspiele an der eigenen Halle) — nicht für spiel_ics (persönliche
+// Einsätze des Schiedsrichters, oft bei fremden Vereinen, ohne jeden Bezug
+// zur eigenen Halle). Der Zeitnehmerwart kann diesen 0-Bedarf für einen
+// einzelnen spiel_ics-Termin trotzdem überschreiben (siehe
+// zeitnehmerBedarfOverride unten), falls der Verein ausnahmsweise doch
+// jemanden mitschickt.
 //
 // Bei Rundenspielen mit pflichtspiel = false (Freundschaftsspiel/Turnier
 // innerhalb des Liga-Spielplans, siehe rundenspiel-import.ts) ist der
@@ -57,8 +61,15 @@ export function bedarfFuer(
   if (mannschaftBedarfDeaktiviert) {
     return 0;
   }
+  // spiel_ics = persönlicher ICS-Feed-Einsatz eines Schiedsrichters (oft bei
+  // fremden Vereinen, ohne jeden Bezug zur eigenen Halle) — wie beim Ordner-/
+  // Kioskdienst-Bedarf oben braucht das grundsätzlich keinen Zeitnehmer/
+  // Sekretär vom eigenen Verein. Der Zeitnehmerwart kann für ein einzelnes
+  // spiel_ics trotzdem einen Bedarf setzen (siehe zeitnehmerBedarfOverride
+  // oben, das dieser Regel vorgeht), falls der Verein ausnahmsweise doch
+  // jemanden mitschickt.
   if (rolle === "zeitnehmer" && typ === "spiel_ics") {
-    return ZEITNEHMER_SEKRETAER_BEDARF_STANDARD;
+    return 0;
   }
   // Zeitnehmer/Sekretär wird PRO Einzelspiel besetzt, auch beim Turnier
   // (anders als Ordner/Kioskdienst, die für den ganzen Turnier-Container
@@ -79,15 +90,19 @@ export function bedarfFuer(
   if (!feld) return 0;
   if (rolle === "ordner") return verein[`${feld}OrdnerBedarf`];
   if (rolle === "kioskdienst") return verein[`${feld}KioskdienstBedarf`];
+  if (rolle === "kassierer") return verein[`${feld}KassiererBedarf`];
   return verein[`${feld}ZeitnehmerBedarf`];
 }
 
 type MannschaftBedarfDeaktiviert = Pick<
   typeof mannschaften.$inferSelect,
-  "ordnerBedarfDeaktiviert" | "kioskdienstBedarfDeaktiviert" | "zeitnehmerBedarfDeaktiviert"
+  | "ordnerBedarfDeaktiviert"
+  | "kioskdienstBedarfDeaktiviert"
+  | "kassiererBedarfDeaktiviert"
+  | "zeitnehmerBedarfDeaktiviert"
 >;
 
-// Wählt aus den drei Mannschafts-Flags das für die übergebene Rolle passende
+// Wählt aus den vier Mannschafts-Flags das für die übergebene Rolle passende
 // aus — für den mannschaftBedarfDeaktiviert-Parameter von bedarfFuer oben.
 // mannschaft = undefined (Termin ohne Mannschaftsbezug, z.B. Turnier ohne
 // erkannte Mannschaft) bedeutet: keine Deaktivierung.
@@ -98,5 +113,6 @@ export function mannschaftBedarfDeaktiviertFuer(
   if (!mannschaft) return false;
   if (rolle === "ordner") return mannschaft.ordnerBedarfDeaktiviert;
   if (rolle === "kioskdienst") return mannschaft.kioskdienstBedarfDeaktiviert;
+  if (rolle === "kassierer") return mannschaft.kassiererBedarfDeaktiviert;
   return mannschaft.zeitnehmerBedarfDeaktiviert;
 }

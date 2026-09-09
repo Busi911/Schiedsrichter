@@ -815,7 +815,7 @@ export default async function ZeitnehmerwartPage({
                       })}
                     </ul>
                   )}
-                  {!t.besetzung.zeitnehmerSekretaerVoll && (
+                  {t.zeitnehmerBedarf > 0 && !t.besetzung.zeitnehmerSekretaerVoll && (
                     <div className="mt-2 flex flex-col gap-2">
                       {auswaehlbareOptionen === 0 && (
                         <p className="text-xs text-muted-foreground">

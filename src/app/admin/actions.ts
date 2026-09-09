@@ -223,6 +223,7 @@ const FUNKTIONSTRAEGER_TYPEN = [
   "trainer",
   "ordner",
   "kioskdienst",
+  "kassierer",
   "schiedsrichterwart",
   "zeitnehmerwart",
   "ordnerwart",
@@ -1171,7 +1172,7 @@ export async function spielDuplikatVerknuepfen(formData: FormData) {
 
 // ---------------------------------------------------------------------------
 // Turnier-Spielplan: einzelne Spiele innerhalb eines Turnier-Containers
-// (termine.typ = "turnier"). Dienste-Bedarf (Ordner/Kiosk) gilt weiterhin
+// (termine.typ = "turnier"). Dienste-Bedarf (Ordner/Kiosk/Kassierer) gilt weiterhin
 // nur für den Container, nicht für jedes Einzelspiel — die brauchen aber
 // jeweils eigene Schiri-/Zeitnehmer-/Sekretär-Zuordnung.
 // ---------------------------------------------------------------------------

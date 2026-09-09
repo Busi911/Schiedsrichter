@@ -40,9 +40,10 @@ const TYP_LABEL: Record<string, string> = {
   trainer: "Trainer",
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
   schiedsrichterwart: "Schiedsrichterwart",
   zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
-  ordnerwart: "Ordner-/Kioskdienstwart",
+  ordnerwart: "Ordner-/Kioskdienst-/Kassiererwart",
 };
 
 const SELECT_KLASSE =

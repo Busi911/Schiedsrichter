@@ -15,8 +15,9 @@ import { generiereOeffentlichenToken } from "@/lib/token";
 type OrdnerRolle = (typeof ORDNER_ROLLEN)[number];
 
 // Eigene, bewusst eng begrenzte Actions (siehe Kommentar in
-// schiedsrichterwart/actions.ts) — der Ordnerwart darf NUR die Rollen
-// "ordner"/"kioskdienst" zuordnen bzw. entfernen. Anders als Schiedsrichter/
+// schiedsrichterwart/actions.ts) — der Ordnerwart darf NUR die Rollen in
+// ORDNER_ROLLEN ("ordner"/"kioskdienst"/"kassierer") zuordnen bzw.
+// entfernen. Anders als Schiedsrichter/
 // Zeitnehmer/Sekretär gibt es hier KEINE feste Gespann-Obergrenze — die
 // Kapazität ist der konfigurierte Dienste-Bedarf (siehe bedarfFuer), exakt
 // dieselbe Prüfung wie bei der Selbst-Anmeldung in profil/actions.ts.
@@ -256,11 +257,13 @@ export async function ordnerZuordnungEntfernen(formData: FormData) {
   revalidatePath("/admin/kalender");
 }
 
-// Setzt den Ordner- bzw. Kioskdienst-Bedarf für MEHRERE ausgewählte
-// Mannschaft+Rolle-Kombinationen auf einmal auf einen Zielzustand (siehe
-// MannschaftBedarfAuswahl in components/mannschaft-bedarf-auswahl.tsx und
-// mannschaften.ordnerBedarfDeaktiviert/kioskdienstBedarfDeaktiviert in
-// db/schema.ts) — z.B. für mehrere Jugend-Mannschaften ohne eigene
+// Setzt den Ordner-, Kioskdienst- bzw. Kassierer-Bedarf für MEHRERE
+// ausgewählte Mannschaft+Rolle-Kombinationen auf einmal auf einen
+// Zielzustand (siehe MannschaftBedarfAuswahl in
+// components/mannschaft-bedarf-auswahl.tsx und
+// mannschaften.ordnerBedarfDeaktiviert/kioskdienstBedarfDeaktiviert/
+// kassiererBedarfDeaktiviert in db/schema.ts) — z.B. für mehrere
+// Jugend-Mannschaften ohne eigene
 // Heimspiele mit Publikum in einem Rutsch. Wirkt sofort auf alle Termine
 // dieser Mannschaften, auch bereits bestehende (bedarfFuer wird live
 // berechnet, kein Snapshot). Bewusst ein Ziel-Zustand statt Toggle: die
@@ -300,10 +303,15 @@ export async function ordnerMannschaftenBedarfSetzen(
           .update(mannschaften)
           .set({ ordnerBedarfDeaktiviert: deaktivieren })
           .where(eq(mannschaften.id, mannschaftId));
-      } else {
+      } else if (rolle === "kioskdienst") {
         await tx
           .update(mannschaften)
           .set({ kioskdienstBedarfDeaktiviert: deaktivieren })
+          .where(eq(mannschaften.id, mannschaftId));
+      } else {
+        await tx
+          .update(mannschaften)
+          .set({ kassiererBedarfDeaktiviert: deaktivieren })
           .where(eq(mannschaften.id, mannschaftId));
       }
     }

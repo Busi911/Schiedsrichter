@@ -19,6 +19,7 @@ const FENSTER_TAGE = 3;
 const ROLLE_LABEL: Record<string, string> = {
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
   zeitnehmer: "Zeitnehmer/Sekretär",
 };
 
