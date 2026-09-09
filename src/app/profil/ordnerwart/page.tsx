@@ -13,13 +13,14 @@ import {
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import {
-  ordnerMannschaftBedarfUmschalten,
+  ordnerMannschaftenBedarfSetzen,
   ordnerSelbstanmeldungDeaktivieren,
   ordnerSelbstanmeldungLinkErneuern,
   ordnerVorschlagBestaetigen,
   ordnerZuordnen,
   ordnerZuordnungEntfernen,
 } from "./actions";
+import { MannschaftBedarfAuswahl } from "@/components/mannschaft-bedarf-auswahl";
 import { appUrl } from "@/lib/app-url";
 import {
   Card,
@@ -89,6 +90,23 @@ export default async function OrdnerwartPage({
   ]);
   const mannschaftenSortiert = sortiereMannschaften(alleMannschaften);
   const mannschaftenNachId = new Map(alleMannschaften.map((m) => [m.id, m]));
+  const bedarfEintraege = mannschaftenSortiert.flatMap((m) => {
+    const label = m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name;
+    return [
+      {
+        id: `${m.id}|ordner`,
+        mannschaftLabel: label,
+        rolleLabel: "Ordner",
+        deaktiviert: m.ordnerBedarfDeaktiviert,
+      },
+      {
+        id: `${m.id}|kioskdienst`,
+        mannschaftLabel: label,
+        rolleLabel: "Kioskdienst",
+        deaktiviert: m.kioskdienstBedarfDeaktiviert,
+      },
+    ];
+  });
 
   const belegtProZeitpunktUndTermin = new Map<number, Map<string, string>>();
   for (const termin of termineRoh) {
@@ -239,50 +257,23 @@ export default async function OrdnerwartPage({
         </CardContent>
       </Card>
 
-      {mannschaftenSortiert.length > 0 && (
+      {bedarfEintraege.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Bedarf pro Mannschaft</CardTitle>
             <CardDescription>
               Für Mannschaften ohne eigene Heimspiele mit Publikum (z.B.
               manche Jugend-Mannschaften) lässt sich der Ordner-/
-              Kioskdienst-Bedarf hier komplett abschalten — wirkt auf alle
-              Termine dieser Mannschaft, auch bereits bestehende offene.
+              Kioskdienst-Bedarf hier komplett abschalten — auch mehrere auf
+              einmal per Mehrfachauswahl. Wirkt auf alle Termine der
+              jeweiligen Mannschaft, auch bereits bestehende offene.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {mannschaftenSortiert.map((m) => (
-              <div
-                key={m.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2 text-sm"
-              >
-                <span>{m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name}</span>
-                <div className="flex flex-wrap gap-2">
-                  <form action={ordnerMannschaftBedarfUmschalten}>
-                    <input type="hidden" name="mannschaftId" value={m.id} />
-                    <input type="hidden" name="rolle" value="ordner" />
-                    <Button
-                      type="submit"
-                      size="xs"
-                      variant={m.ordnerBedarfDeaktiviert ? "outline" : "secondary"}
-                    >
-                      Ordner {m.ordnerBedarfDeaktiviert ? "deaktiviert" : "aktiv"}
-                    </Button>
-                  </form>
-                  <form action={ordnerMannschaftBedarfUmschalten}>
-                    <input type="hidden" name="mannschaftId" value={m.id} />
-                    <input type="hidden" name="rolle" value="kioskdienst" />
-                    <Button
-                      type="submit"
-                      size="xs"
-                      variant={m.kioskdienstBedarfDeaktiviert ? "outline" : "secondary"}
-                    >
-                      Kioskdienst {m.kioskdienstBedarfDeaktiviert ? "deaktiviert" : "aktiv"}
-                    </Button>
-                  </form>
-                </div>
-              </div>
-            ))}
+          <CardContent>
+            <MannschaftBedarfAuswahl
+              eintraege={bedarfEintraege}
+              submitAction={ordnerMannschaftenBedarfSetzen}
+            />
           </CardContent>
         </Card>
       )}
