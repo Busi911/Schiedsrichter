@@ -67,8 +67,9 @@ export default async function AuswertungPage({
           Terminauswertung
         </h1>
         <p className="text-sm text-muted-foreground">
-          Rohdaten für Auswertung/Abrechnung außerhalb der App — filterbar
-          und exportierbar.
+          Gesamter Dienstplan mit allen besetzten Rollen (Schiedsrichter,
+          Ordner, Kioskdienst, Kassierer, Zeitnehmer, Sekretär) — filterbar
+          und als Excel/PDF exportierbar.
         </p>
       </div>
 
@@ -116,10 +117,12 @@ export default async function AuswertungPage({
               Filtern
             </Button>
             <Button
-              render={<a href={`/admin/auswertung/export?${exportParams.toString()}`} />}
+              render={
+                <a href={`/admin/auswertung/export/excel?${exportParams.toString()}`} />
+              }
               nativeButton={false}
             >
-              Als CSV exportieren
+              Als Excel exportieren
             </Button>
             <Button
               variant="outline"
@@ -153,6 +156,11 @@ export default async function AuswertungPage({
                   <TableHead>Beschreibung</TableHead>
                   <TableHead>Mannschaft</TableHead>
                   <TableHead>Schiedsrichter</TableHead>
+                  <TableHead>Ordner</TableHead>
+                  <TableHead>Kioskdienst</TableHead>
+                  <TableHead>Kassierer</TableHead>
+                  <TableHead>Zeitnehmer</TableHead>
+                  <TableHead>Sekretär</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -172,6 +180,11 @@ export default async function AuswertungPage({
                     <TableCell>{t.beschreibung ?? "—"}</TableCell>
                     <TableCell>{t.mannschaftName ?? "—"}</TableCell>
                     <TableCell>{t.schiedsrichterName ?? "—"}</TableCell>
+                    <TableCell>{t.ordnerName ?? "—"}</TableCell>
+                    <TableCell>{t.kioskdienstName ?? "—"}</TableCell>
+                    <TableCell>{t.kassiererName ?? "—"}</TableCell>
+                    <TableCell>{t.zeitnehmerName ?? "—"}</TableCell>
+                    <TableCell>{t.sekretaerName ?? "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

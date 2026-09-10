@@ -2,7 +2,6 @@ import "server-only";
 import { and, asc, eq, gte, inArray, lte, type SQL } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
-import { formatDatumKurz, formatZeitKurz } from "./format";
 
 export type AuswertungFilter = {
   von?: string;
@@ -41,6 +40,71 @@ export type ManuelleSchiedsrichterZuordnung = {
   name: string | null;
   email: string | null;
 };
+
+// Die vier anderen Dienst-Rollen (siehe ORDNER_ROLLEN in ordnerwart.ts plus
+// Zeitnehmer/Sekretär) — anders als beim Schiedsrichter oben gibt es dafür
+// keine ICS-Selbst-Abo-Quelle, nur termin_zuordnung, daher reicht hier eine
+// einfache Name-Liste pro Termin+Rolle statt der aufwändigeren
+// Kombinationslogik oben.
+const ANDERE_ROLLEN = [
+  "ordner",
+  "kioskdienst",
+  "kassierer",
+  "zeitnehmer",
+  "sekretaer",
+] as const;
+type AndereRolle = (typeof ANDERE_ROLLEN)[number];
+
+const ANDERE_ROLLE_FELD: Record<AndereRolle, string> = {
+  ordner: "ordnerName",
+  kioskdienst: "kioskdienstName",
+  kassierer: "kassiererName",
+  zeitnehmer: "zeitnehmerName",
+  sekretaer: "sekretaerName",
+};
+
+export type DienstRollenFelder = {
+  ordnerName: string | null;
+  kioskdienstName: string | null;
+  kassiererName: string | null;
+  zeitnehmerName: string | null;
+  sekretaerName: string | null;
+};
+
+export type AndereZuordnung = {
+  terminId: string;
+  funktionstraegerTyp: string;
+  name: string | null;
+};
+
+// Reine Zusammenführung (ohne DB-Zugriff, siehe kombiniereSchiedsrichter-
+// Zuordnungen oben) — mehrere Personen je Termin+Rolle (z.B. zwei
+// Kioskdienste) werden mit ", " zu einem Spaltenwert zusammengefasst
+// (anders als beim Schiedsrichter-Gespann, das " / " nutzt, um die
+// besondere Zweier-Paarung sichtbar zu halten).
+export function ergaenzeDienstZuordnungen<T extends { id: string }>(
+  zeilen: T[],
+  zuordnungen: AndereZuordnung[]
+): (T & DienstRollenFelder)[] {
+  const namenProTerminUndRolle = new Map<string, string[]>();
+  for (const z of zuordnungen) {
+    if (!z.name) continue;
+    const schluessel = `${z.terminId}|${z.funktionstraegerTyp}`;
+    const liste = namenProTerminUndRolle.get(schluessel) ?? [];
+    liste.push(z.name);
+    namenProTerminUndRolle.set(schluessel, liste);
+  }
+
+  return zeilen.map((zeile) => {
+    const felder = {} as DienstRollenFelder;
+    for (const rolle of ANDERE_ROLLEN) {
+      const namen = namenProTerminUndRolle.get(`${zeile.id}|${rolle}`);
+      felder[ANDERE_ROLLE_FELD[rolle] as keyof DienstRollenFelder] =
+        namen && namen.length > 0 ? namen.join(", ") : null;
+    }
+    return { ...zeile, ...felder };
+  });
+}
 
 // Reine Zusammenführung (ohne DB-Zugriff), damit sie ohne Testdatenbank
 // getestet werden kann — siehe termin-auswertung.test.ts. icsSchiedsrichter*
@@ -151,14 +215,17 @@ export async function holeTermineFuerAuswertung(
       .orderBy(asc(termine.start));
 
     // Separate Abfrage statt JOIN, da ein Termin bei Gespann-Besetzung ZWEI
-    // Schiedsrichter-Zuordnungen haben kann und ein direkter JOIN die
-    // Termin-Zeile sonst verdoppeln würde (siehe
-    // kombiniereSchiedsrichterZuordnungen oben).
+    // Schiedsrichter-Zuordnungen haben kann (und Ordner/Kioskdienst analog
+    // mehrere Personen) und ein direkter JOIN die Termin-Zeile sonst
+    // verdoppeln würde (siehe kombiniereSchiedsrichterZuordnungen und
+    // ergaenzeDienstZuordnungen oben). Eine gemeinsame Abfrage für ALLE
+    // Rollen statt einer je Rolle, danach clientseitig aufgeteilt.
     const terminIds = basisListe.map((t) => t.id);
-    const manuelleZuordnungen = terminIds.length
+    const alleZuordnungen = terminIds.length
       ? await tx
           .select({
             terminId: terminZuordnungen.terminId,
+            funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
             userId: terminZuordnungen.userId,
             externerName: terminZuordnungen.externerName,
             name: users.name,
@@ -166,17 +233,23 @@ export async function holeTermineFuerAuswertung(
           })
           .from(terminZuordnungen)
           .leftJoin(users, eq(terminZuordnungen.userId, users.id))
-          .where(
-            and(
-              inArray(terminZuordnungen.terminId, terminIds),
-              eq(terminZuordnungen.funktionstraegerTyp, "schiedsrichter")
-            )
-          )
+          .where(inArray(terminZuordnungen.terminId, terminIds))
       : [];
 
-    return kombiniereSchiedsrichterZuordnungen(
+    const schiedsrichterZuordnungen = alleZuordnungen.filter(
+      (z) => z.funktionstraegerTyp === "schiedsrichter"
+    );
+    const andereZuordnungen: AndereZuordnung[] = alleZuordnungen
+      .filter((z) => z.funktionstraegerTyp !== "schiedsrichter")
+      .map((z) => ({
+        terminId: z.terminId,
+        funktionstraegerTyp: z.funktionstraegerTyp,
+        name: z.name ?? z.externerName,
+      }));
+
+    const zeilen = kombiniereSchiedsrichterZuordnungen(
       basisListe,
-      manuelleZuordnungen.map((z) => ({
+      schiedsrichterZuordnungen.map((z) => ({
         terminId: z.terminId,
         userId: z.userId,
         name: z.name ?? z.externerName,
@@ -184,46 +257,7 @@ export async function holeTermineFuerAuswertung(
       })),
       filter.schiedsrichterId
     );
+
+    return ergaenzeDienstZuordnungen(zeilen, andereZuordnungen);
   });
-}
-
-export function terminAlsCsv(
-  zeilen: Awaited<ReturnType<typeof holeTermineFuerAuswertung>>
-) {
-  const kopf = [
-    "Datum",
-    "Uhrzeit",
-    "Typ",
-    "Ort",
-    "Beschreibung",
-    "Mannschaft",
-    "Schiedsrichter",
-    "Schiedsrichter-E-Mail",
-  ];
-
-  function csvFeld(wert: unknown) {
-    const text = wert == null ? "" : String(wert);
-    if (/[",\n;]/.test(text)) {
-      return `"${text.replace(/"/g, '""')}"`;
-    }
-    return text;
-  }
-
-  const zeilenText = zeilen.map((z) =>
-    [
-      formatDatumKurz(z.start),
-      formatZeitKurz(z.start),
-      z.typ,
-      z.ort,
-      z.beschreibung,
-      z.mannschaftName,
-      z.schiedsrichterName,
-      z.schiedsrichterEmail,
-    ]
-      .map(csvFeld)
-      .join(";")
-  );
-
-  // BOM, damit Excel unter Windows UTF-8 korrekt erkennt.
-  return "﻿" + [kopf.join(";"), ...zeilenText].join("\n");
 }

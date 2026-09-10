@@ -13,14 +13,22 @@ const TYP_LABEL: Record<string, string> = {
   rundenspiel: "Rundenspiel",
 };
 
+// Beschreibung/Schiedsrichter-E-Mail bewusst weggelassen (anders als in der
+// Excel-Version, siehe termin-excel.ts) — bei sechs möglichen Dienst-Rollen
+// pro Termin reicht die Breite der A4-Querformat-Seite sonst nicht mehr für
+// eine lesbare Tabelle.
 const SPALTEN = [
-  { label: "Datum", width: 65 },
-  { label: "Zeit", width: 40 },
-  { label: "Typ", width: 65 },
-  { label: "Ort", width: 90 },
-  { label: "Beschreibung", width: 130 },
-  { label: "Mannschaft", width: 90 },
-  { label: "Schiedsrichter", width: 100 },
+  { label: "Datum", width: 55 },
+  { label: "Zeit", width: 35 },
+  { label: "Typ", width: 60 },
+  { label: "Ort", width: 65 },
+  { label: "Mannschaft", width: 65 },
+  { label: "Schiedsrichter", width: 80 },
+  { label: "Ordner", width: 60 },
+  { label: "Kioskdienst", width: 60 },
+  { label: "Kassierer", width: 55 },
+  { label: "Zeitnehmer", width: 60 },
+  { label: "Sekretär", width: 60 },
 ];
 
 export function terminAlsPdf(zeilen: Zeile[]): Promise<Buffer> {
@@ -56,7 +64,7 @@ export function terminAlsPdf(zeilen: Zeile[]): Promise<Buffer> {
       );
     }
 
-    doc.font("Helvetica-Bold").fontSize(16).text("Terminauswertung", startX, y);
+    doc.font("Helvetica-Bold").fontSize(16).text("Dienstplan", startX, y);
     y += 28;
     kopfzeile();
 
@@ -72,9 +80,13 @@ export function terminAlsPdf(zeilen: Zeile[]): Promise<Buffer> {
           formatZeitKurz(z.start),
           TYP_LABEL[z.typ] ?? z.typ,
           z.ort ?? "",
-          z.beschreibung ?? "",
           z.mannschaftName ?? "",
           z.schiedsrichterName ?? "",
+          z.ordnerName ?? "",
+          z.kioskdienstName ?? "",
+          z.kassiererName ?? "",
+          z.zeitnehmerName ?? "",
+          z.sekretaerName ?? "",
         ],
         false
       );

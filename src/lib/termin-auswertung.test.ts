@@ -1,47 +1,55 @@
 import { describe, expect, it } from "vitest";
 import {
+  ergaenzeDienstZuordnungen,
   kombiniereSchiedsrichterZuordnungen,
-  terminAlsCsv,
   type AuswertungsBasisZeile,
 } from "./termin-auswertung";
 
-const basisZeile = {
-  id: "t1",
-  typ: "testspiel" as const,
-  start: new Date("2026-05-01T18:30:00"),
-  ende: null,
-  ort: "Sporthalle",
-  beschreibung: "gegen TuS Musterstadt",
-  pflichtspiel: null,
-  freundschaftsTyp: null,
-  mannschaftName: "Herren 1",
-  schiedsrichterName: null,
-  schiedsrichterEmail: null,
-};
-
-describe("terminAlsCsv", () => {
-  it("enthält Kopfzeile und formatierte Datenzeile", () => {
-    const csv = terminAlsCsv([basisZeile]);
-    const zeilen = csv.replace(/^﻿/, "").split("\n");
-
-    expect(zeilen[0]).toBe(
-      "Datum;Uhrzeit;Typ;Ort;Beschreibung;Mannschaft;Schiedsrichter;Schiedsrichter-E-Mail"
+describe("ergaenzeDienstZuordnungen", () => {
+  it("ordnet Namen der passenden Rolle und dem passenden Termin zu", () => {
+    const [zeile] = ergaenzeDienstZuordnungen(
+      [{ id: "t1" }],
+      [
+        { terminId: "t1", funktionstraegerTyp: "ordner", name: "Lena Fischer" },
+        { terminId: "t1", funktionstraegerTyp: "kioskdienst", name: "Sven Wagner" },
+        { terminId: "t2", funktionstraegerTyp: "ordner", name: "Person bei anderem Termin" },
+      ]
     );
-    expect(zeilen[1]).toContain("testspiel");
-    expect(zeilen[1]).toContain("Sporthalle");
-    expect(zeilen[1]).toContain("Herren 1");
+    expect(zeile.ordnerName).toBe("Lena Fischer");
+    expect(zeile.kioskdienstName).toBe("Sven Wagner");
+    expect(zeile.kassiererName).toBeNull();
+    expect(zeile.zeitnehmerName).toBeNull();
+    expect(zeile.sekretaerName).toBeNull();
   });
 
-  it("escaped Beschreibungen mit Semikolon", () => {
-    const csv = terminAlsCsv([
-      { ...basisZeile, beschreibung: "Heim; Auswärts getauscht" },
-    ]);
-    expect(csv).toContain('"Heim; Auswärts getauscht"');
+  it("verbindet mehrere Personen derselben Rolle mit ', '", () => {
+    const [zeile] = ergaenzeDienstZuordnungen(
+      [{ id: "t1" }],
+      [
+        { terminId: "t1", funktionstraegerTyp: "kioskdienst", name: "Sven Wagner" },
+        { terminId: "t1", funktionstraegerTyp: "kioskdienst", name: "Anna Klein" },
+      ]
+    );
+    expect(zeile.kioskdienstName).toBe("Sven Wagner, Anna Klein");
   });
 
-  it("liefert nur die Kopfzeile bei leerer Liste", () => {
-    const csv = terminAlsCsv([]);
-    expect(csv.replace(/^﻿/, "").split("\n")).toHaveLength(1);
+  it("ignoriert Zuordnungen ohne Namen (weder Login noch externerName)", () => {
+    const [zeile] = ergaenzeDienstZuordnungen(
+      [{ id: "t1" }],
+      [{ terminId: "t1", funktionstraegerTyp: "kassierer", name: null }]
+    );
+    expect(zeile.kassiererName).toBeNull();
+  });
+
+  it("liefert null für alle Rollen, wenn keine Zuordnungen existieren", () => {
+    const [zeile] = ergaenzeDienstZuordnungen([{ id: "t1" }], []);
+    expect(zeile).toMatchObject({
+      ordnerName: null,
+      kioskdienstName: null,
+      kassiererName: null,
+      zeitnehmerName: null,
+      sekretaerName: null,
+    });
   });
 });
 

@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
-import { holeTermineFuerAuswertung, terminAlsCsv } from "@/lib/termin-auswertung";
+import { holeTermineFuerAuswertung } from "@/lib/termin-auswertung";
+import { terminAlsExcel } from "@/lib/termin-excel";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -19,12 +20,13 @@ export async function GET(request: Request) {
   };
 
   const termine = await holeTermineFuerAuswertung(session.user.vereinId, filter);
-  const csv = terminAlsCsv(termine);
+  const excel = await terminAlsExcel(termine);
 
-  return new Response(csv, {
+  return new Response(new Uint8Array(excel), {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="termine.csv"',
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": 'attachment; filename="dienstplan.xlsx"',
     },
   });
 }
