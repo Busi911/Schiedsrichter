@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="termine.pdf"',
+      "Content-Disposition": 'attachment; filename="dienstplan.pdf"',
     },
   });
 }
