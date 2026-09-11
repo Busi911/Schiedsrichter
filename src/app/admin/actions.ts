@@ -1499,3 +1499,89 @@ export async function unbekannteMannschaftAblehnen(formData: FormData) {
 
   revalidatePath("/admin/termine");
 }
+
+// Macht eine Ablehnung (siehe unbekannteMannschaftAblehnen oben) rückgängig —
+// der Vorschlag kann danach wieder unter "Unbekannte Mannschaften" auftauchen
+// (falls noch unverknüpfte Termine dafür bestehen), und dessen Termine zählen
+// wieder als offene Dienste (siehe istMannschaftIgnoriert in dashboard.ts).
+export async function ignorierteMannschaftReaktivieren(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) {
+    throw new Error("Id fehlt.");
+  }
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .delete(ignorierteMannschaften)
+      .where(
+        and(eq(ignorierteMannschaften.id, id), eq(ignorierteMannschaften.vereinId, vereinId))
+      )
+  );
+
+  revalidatePath("/admin/termine");
+  revalidatePath("/admin");
+  revalidatePath("/admin/dienste");
+}
+
+const MANNSCHAFT_BEDARF_ROLLEN = ["ordner", "kioskdienst", "kassierer", "zeitnehmer"] as const;
+
+// Admin-Pendant zu ordnerMannschaftenBedarfSetzen (profil/ordnerwart/actions.ts)
+// und zeitnehmerMannschaftBedarfUmschalten (profil/zeitnehmerwart/actions.ts) —
+// dort jeweils nur für Inhaber der passenden Wart-Rolle nutzbar. Gibt dem
+// Vereinsadmin (der nicht zwingend selbst eine dieser Wart-Rollen hat) eine
+// zentrale Übersicht über ALLE vier Rollen auf einmal (siehe
+// /admin/mannschaften), statt zwischen den Wart-Seiten wechseln zu müssen.
+export async function mannschaftBedarfRolleUmschalten(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const mannschaftId = formData.get("mannschaftId");
+  if (typeof mannschaftId !== "string" || !mannschaftId) {
+    throw new Error("Mannschaft fehlt.");
+  }
+  const rolle = formData.get("rolle");
+  if (
+    typeof rolle !== "string" ||
+    !(MANNSCHAFT_BEDARF_ROLLEN as readonly string[]).includes(rolle)
+  ) {
+    throw new Error("Rolle fehlt.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    const mannschaft = await tx.query.mannschaften.findFirst({
+      where: and(eq(mannschaften.id, mannschaftId), eq(mannschaften.vereinId, vereinId)),
+    });
+    if (!mannschaft) throw new Error("Mannschaft nicht gefunden.");
+
+    if (rolle === "ordner") {
+      await tx
+        .update(mannschaften)
+        .set({ ordnerBedarfDeaktiviert: !mannschaft.ordnerBedarfDeaktiviert })
+        .where(eq(mannschaften.id, mannschaftId));
+    } else if (rolle === "kioskdienst") {
+      await tx
+        .update(mannschaften)
+        .set({ kioskdienstBedarfDeaktiviert: !mannschaft.kioskdienstBedarfDeaktiviert })
+        .where(eq(mannschaften.id, mannschaftId));
+    } else if (rolle === "kassierer") {
+      await tx
+        .update(mannschaften)
+        .set({ kassiererBedarfDeaktiviert: !mannschaft.kassiererBedarfDeaktiviert })
+        .where(eq(mannschaften.id, mannschaftId));
+    } else {
+      await tx
+        .update(mannschaften)
+        .set({ zeitnehmerBedarfDeaktiviert: !mannschaft.zeitnehmerBedarfDeaktiviert })
+        .where(eq(mannschaften.id, mannschaftId));
+    }
+  });
+
+  revalidatePath("/admin/mannschaften");
+  revalidatePath("/admin/dienste");
+  revalidatePath("/admin");
+  revalidatePath("/profil/ordnerwart");
+  revalidatePath("/profil/zeitnehmerwart");
+}
