@@ -2,7 +2,12 @@ import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, users } from "@/db/schema";
-import { holeTermineFuerAuswertung } from "@/lib/termin-auswertung";
+import {
+  AUSWERTUNG_ROLLEN,
+  AUSWERTUNG_ROLLE_LABEL,
+  holeTermineFuerAuswertung,
+  rollenZellenWert,
+} from "@/lib/termin-auswertung";
 import { tagKey } from "@/lib/kalender";
 import { AlleAuswaehlenCheckbox } from "@/components/alle-auswaehlen-checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -77,8 +82,8 @@ export default async function AuswertungPage({
           Gesamter Dienstplan mit allen besetzten Rollen (Schiedsrichter,
           Ordner, Kioskdienst, Kassierer, Zeitnehmer, Sekretär) — filterbar
           und als Excel/PDF exportierbar. Standardmäßig alle Termine ab heute
-          ohne Enddatum; einzelne Zeilen lassen sich unten für den Export
-          gezielt auswählen.
+          ohne Enddatum; einzelne Zeilen und Rollen lassen sich unten für den
+          Export gezielt auswählen.
         </p>
       </div>
 
@@ -137,6 +142,25 @@ export default async function AuswertungPage({
             >
               Als PDF exportieren
             </Button>
+          </div>
+          <div className="mt-3 flex flex-col gap-1.5">
+            <Label>Rollen für Excel/PDF</Label>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {AUSWERTUNG_ROLLEN.map((r) => (
+                <label key={r} className="flex items-center gap-1.5 text-sm">
+                  <input
+                    type="checkbox"
+                    name="rolle"
+                    value={r}
+                    className="size-4 accent-primary"
+                  />
+                  {AUSWERTUNG_ROLLE_LABEL[r]}
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ohne Auswahl werden alle Rollen exportiert.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -199,11 +223,21 @@ export default async function AuswertungPage({
                     <TableCell>{t.beschreibung ?? "—"}</TableCell>
                     <TableCell>{t.mannschaftName ?? "—"}</TableCell>
                     <TableCell>{t.schiedsrichterName ?? "—"}</TableCell>
-                    <TableCell>{t.ordnerName ?? "—"}</TableCell>
-                    <TableCell>{t.kioskdienstName ?? "—"}</TableCell>
-                    <TableCell>{t.kassiererName ?? "—"}</TableCell>
-                    <TableCell>{t.zeitnehmerName ?? "—"}</TableCell>
-                    <TableCell>{t.sekretaerName ?? "—"}</TableCell>
+                    <TableCell>
+                      {rollenZellenWert(t.ordnerName, t.rollenBedarf?.ordner, "—")}
+                    </TableCell>
+                    <TableCell>
+                      {rollenZellenWert(t.kioskdienstName, t.rollenBedarf?.kioskdienst, "—")}
+                    </TableCell>
+                    <TableCell>
+                      {rollenZellenWert(t.kassiererName, t.rollenBedarf?.kassierer, "—")}
+                    </TableCell>
+                    <TableCell>
+                      {rollenZellenWert(t.zeitnehmerName, t.rollenBedarf?.zeitnehmer, "—")}
+                    </TableCell>
+                    <TableCell>
+                      {rollenZellenWert(t.sekretaerName, t.rollenBedarf?.sekretaer, "—")}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

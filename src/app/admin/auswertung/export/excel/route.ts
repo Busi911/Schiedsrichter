@@ -1,5 +1,9 @@
 import { auth } from "@/auth";
-import { holeTermineFuerAuswertung } from "@/lib/termin-auswertung";
+import {
+  AUSWERTUNG_ROLLEN,
+  holeTermineFuerAuswertung,
+  type AuswertungsRolle,
+} from "@/lib/termin-auswertung";
 import { terminAlsExcel } from "@/lib/termin-excel";
 
 export async function GET(request: Request) {
@@ -27,7 +31,15 @@ export async function GET(request: Request) {
   const termineExport = terminIds.length
     ? termine.filter((t) => terminIds.includes(t.id))
     : termine;
-  const excel = await terminAlsExcel(termineExport);
+  // Analog zur Zeilen-Auswahl: angehakte "rolle"-Checkboxen (siehe
+  // admin/auswertung/page.tsx) schränken die exportierten Spalten ein, ohne
+  // jede Auswahl bleiben wie bisher alle Rollen drin (siehe terminAlsExcel).
+  const rollen = url.searchParams
+    .getAll("rolle")
+    .filter((r): r is AuswertungsRolle =>
+      (AUSWERTUNG_ROLLEN as readonly string[]).includes(r)
+    );
+  const excel = await terminAlsExcel(termineExport, rollen);
 
   return new Response(new Uint8Array(excel), {
     headers: {

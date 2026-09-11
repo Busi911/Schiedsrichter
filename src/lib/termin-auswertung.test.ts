@@ -2,8 +2,27 @@ import { describe, expect, it } from "vitest";
 import {
   ergaenzeDienstZuordnungen,
   kombiniereSchiedsrichterZuordnungen,
+  rollenZellenWert,
   type AuswertungsBasisZeile,
 } from "./termin-auswertung";
+
+describe("rollenZellenWert", () => {
+  it("zeigt den Namen, wenn jemand zugeordnet ist", () => {
+    expect(rollenZellenWert("Lena Fischer", false, "—")).toBe("Lena Fischer");
+  });
+
+  it("zeigt \"intern\", wenn niemand zugeordnet ist und kein Bedarf besteht", () => {
+    expect(rollenZellenWert(null, false, "—")).toBe("intern");
+  });
+
+  it("zeigt den Leerwert, wenn niemand zugeordnet ist, aber Bedarf besteht", () => {
+    expect(rollenZellenWert(null, true, "—")).toBe("—");
+  });
+
+  it("zeigt den Leerwert, wenn der Bedarf unbekannt ist (z.B. Schiedsrichter)", () => {
+    expect(rollenZellenWert(null, undefined, "—")).toBe("—");
+  });
+});
 
 describe("ergaenzeDienstZuordnungen", () => {
   it("ordnet Namen der passenden Rolle und dem passenden Termin zu", () => {
@@ -66,6 +85,7 @@ function basisAuswertungsZeile(
     pflichtspiel: null,
     freundschaftsTyp: null,
     mannschaftName: "Herren 1",
+    heimMannschaftName: null,
     icsSchiedsrichterId: null,
     icsSchiedsrichterName: null,
     icsSchiedsrichterEmail: null,
@@ -150,9 +170,7 @@ describe("kombiniereSchiedsrichterZuordnungen", () => {
       [basisAuswertungsZeile({ nuligaSchiedsrichterKuerzel: "Schu." })],
       []
     );
-    expect(zeile.schiedsrichterName).toBe(
-      "Schu. (laut nuLiga, noch nicht zugeordnet)"
-    );
+    expect(zeile.schiedsrichterName).toBe("Schu.");
   });
 
   it("bevorzugt eine echte Zuordnung gegenüber dem nuLiga-Kürzel-Fallback", () => {
@@ -168,5 +186,21 @@ describe("kombiniereSchiedsrichterZuordnungen", () => {
     expect(
       kombiniereSchiedsrichterZuordnungen(basis, [], "u1").map((z) => z.id)
     ).toEqual([]);
+  });
+
+  it("zeigt den rohen Heim-Namen, wenn (noch) keine Mannschaft verknüpft ist", () => {
+    const [zeile] = kombiniereSchiedsrichterZuordnungen(
+      [basisAuswertungsZeile({ mannschaftName: null, heimMannschaftName: "TSF Heuchelheim" })],
+      []
+    );
+    expect(zeile.mannschaftName).toBe("TSF Heuchelheim");
+  });
+
+  it("bevorzugt die verknüpfte Mannschaft gegenüber dem rohen Heim-Namen", () => {
+    const [zeile] = kombiniereSchiedsrichterZuordnungen(
+      [basisAuswertungsZeile({ mannschaftName: "Herren 1", heimMannschaftName: "TSF Heuchelheim" })],
+      []
+    );
+    expect(zeile.mannschaftName).toBe("Herren 1");
   });
 });
