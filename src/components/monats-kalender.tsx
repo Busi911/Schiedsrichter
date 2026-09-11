@@ -69,6 +69,12 @@ export type KalenderEintrag = {
   // Ob im Modal ein "Person zuordnen"-Mini-Formular angeboten wird (siehe
   // zuordenbarePersonen-Prop) — deckt sich mit BESETZUNGSRELEVANTE_TYPEN.
   zuordenbar?: boolean;
+  // funktionstraegerTyp-Werte ("schiedsrichter"/"zeitnehmer"/"sekretaer"), für
+  // die dieser Termin bereits die maximale Anzahl an Personen hat (siehe
+  // schiriVoll/zeitnehmerVoll/sekretaerVoll in besetzung.ts) — die
+  // entsprechenden Optionen im "Person wählen…"-Dropdown werden dafür
+  // ausgegraut, weil eine weitere Zuordnung ohnehin abgelehnt würde.
+  volleRollen?: string[];
   // Bei echten Ligaspielen (Rundenspiel mit pflichtspiel = true) stellt der
   // Verband den Schiedsrichter — der Verein ordnet hier keinen zu (siehe
   // brauchtSchiedsrichterVomVerein in lib/besetzung.ts). Default true (siehe
@@ -399,11 +405,16 @@ export function MonatsKalender({
                           name="personTyp"
                           placeholder="Person wählen…"
                           required
-                          options={auswaehlbarePersonen.map((p) => ({
-                            value: `${p.userId}|${p.typ}`,
-                            label: ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ,
-                            group: p.name ?? p.email,
-                          }))}
+                          options={auswaehlbarePersonen.map((p) => {
+                            const rolleVoll = e.volleRollen?.includes(p.typ) ?? false;
+                            return {
+                              value: `${p.userId}|${p.typ}`,
+                              label: ZUORDENBARE_TYP_LABEL[p.typ] ?? p.typ,
+                              group: p.name ?? p.email,
+                              disabled: rolleVoll,
+                              hinweis: rolleVoll ? "bereits besetzt" : undefined,
+                            };
+                          })}
                         />
                       </div>
                       <Button type="submit" variant="outline" size="sm">
@@ -452,6 +463,7 @@ export function MonatsKalender({
                             options={auswaehlbareRollen.map(([value, label]) => ({
                               value,
                               label,
+                              disabled: e.volleRollen?.includes(value) ?? false,
                             }))}
                           />
                         </div>

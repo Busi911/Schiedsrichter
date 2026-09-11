@@ -221,32 +221,39 @@ export async function holeAdminKalenderDaten(
       : zaehleAngesetzteNamen(t.handballNetZeitnehmer);
 
     const zuordenbar = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ);
-    const besetzung = zuordenbar && verein
-      ? istBesetzungVollstaendig(
-          berechneBesetzung(
-            eigeneZuordnungen,
-            false,
-            bedarfFuer(
-              verein,
-              t.typ,
-              "zeitnehmer",
-              t.pflichtspiel,
-              t.freundschaftsTyp,
-              t.zeitnehmerBedarfOverride,
-              mannschaftBedarfDeaktiviertFuer(
-                t.mannschaftId ? mannschaftenNachId.get(t.mannschaftId) : null,
-                "zeitnehmer"
-              )
-            ),
-            externeSchiriAnzahl,
-            externeZeitnehmerSekretaerAnzahl
+    const besetzungsStatus = zuordenbar && verein
+      ? berechneBesetzung(
+          eigeneZuordnungen,
+          false,
+          bedarfFuer(
+            verein,
+            t.typ,
+            "zeitnehmer",
+            t.pflichtspiel,
+            t.freundschaftsTyp,
+            t.zeitnehmerBedarfOverride,
+            mannschaftBedarfDeaktiviertFuer(
+              t.mannschaftId ? mannschaftenNachId.get(t.mannschaftId) : null,
+              "zeitnehmer"
+            )
           ),
-          t.typ,
-          t.pflichtspiel
+          externeSchiriAnzahl,
+          externeZeitnehmerSekretaerAnzahl
         )
+      : null;
+    const besetzung = besetzungsStatus
+      ? istBesetzungVollstaendig(besetzungsStatus, t.typ, t.pflichtspiel)
         ? ("vollstaendig" as const)
         : ("offen" as const)
       : undefined;
+    // Rollen, für die eine weitere Zuordnung ohnehin abgelehnt würde (siehe
+    // zuordnen in admin/zuordnung/actions.ts, das dieselbe Grenze serverseitig
+    // prüft) — im "Person wählen…"-Dropdown werden die passenden Optionen
+    // dafür ausgegraut (siehe volleRollen in monats-kalender.tsx).
+    const volleRollen: string[] = [];
+    if (besetzungsStatus?.schiriVoll) volleRollen.push("schiedsrichter");
+    if (besetzungsStatus?.zeitnehmerVoll) volleRollen.push("zeitnehmer");
+    if (besetzungsStatus?.sekretaerVoll) volleRollen.push("sekretaer");
 
     const besetzungsDetails: {
       id: string;
@@ -329,6 +336,7 @@ export async function holeAdminKalenderDaten(
       typLabel,
       besetzung,
       zuordenbar,
+      volleRollen,
       schiedsrichterZuordnenErlaubt: brauchtSchiedsrichterVomVerein(t),
       ort: t.ort,
       besetzungsDetails,
