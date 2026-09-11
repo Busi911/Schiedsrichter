@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { ignorierteMannschaften, mannschaften, termine } from "@/db/schema";
 import {
+  ignorierteMannschaftReaktivieren,
   mannschaftAusRundenspielAnlegen,
   spielDuplikatVerknuepfen,
   unbekannteMannschaftAblehnen,
@@ -305,6 +306,42 @@ async function RundenspieleTab({
                 </form>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {istAdmin && ignoriert.length > 0 && (
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <CardTitle>Abgelehnte Mannschaften</CardTitle>
+            <CardDescription>
+              Per &bdquo;Ablehnen&ldquo; oben bewusst nicht als eigene
+              Mannschaft angelegt — meist Gegner-Mannschaften an der eigenen
+              Halle. Deren Termine zählen deshalb nirgends als offener Dienst
+              (siehe /admin, /admin/dienste). Rückgängig macht den Vorschlag
+              wieder sichtbar, falls noch unverknüpfte Termine dafür
+              bestehen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col divide-y">
+            {ignoriert.map((i) => (
+              <form
+                key={i.id}
+                action={ignorierteMannschaftReaktivieren}
+                className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
+              >
+                <input type="hidden" name="id" value={i.id} />
+                <span className="text-sm">
+                  {i.normalisierterName}
+                  {i.kategorie && (
+                    <span className="text-muted-foreground"> ({i.kategorie})</span>
+                  )}
+                </span>
+                <Button type="submit" variant="ghost" size="sm">
+                  Rückgängig
+                </Button>
+              </form>
+            ))}
           </CardContent>
         </Card>
       )}
