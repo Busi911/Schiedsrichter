@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronDownIcon } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { holeOffenePosten } from "@/lib/dashboard";
 import {
@@ -100,75 +101,87 @@ export default async function DienstePage() {
         </CardContent>
       </Card>
 
-      <div>
-        <h2 className="font-heading text-xl font-semibold">Statistik</h2>
-        <p className="text-sm text-muted-foreground">
-          Rundenspiele mit erfasstem Ergebnis sowie Dienste seit Vereinsstart.
-        </p>
-      </div>
+      {/* Standardmäßig eingeklappt: Statistik ist reine Zusatzinfo (Siegquote,
+          Top-Mannschaften/-Dienstleistende) und lenkt sonst von der
+          eigentlichen Aufgabe dieser Seite ab — offene Dienste sehen. Gleiches
+          Disclosure-Muster wie z.B. "Ohne Login zuordnen" in
+          monats-kalender.tsx, hier aber für einen ganzen Abschnitt statt ein
+          Mini-Formular. */}
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden">
+          <h2 className="font-heading text-xl font-semibold">Statistik</h2>
+          <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="mt-3 flex flex-col gap-6">
+          <p className="-mt-1 text-sm text-muted-foreground">
+            Rundenspiele mit erfasstem Ergebnis sowie Dienste seit
+            Vereinsstart.
+          </p>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardDescription>Rundenspiele mit Ergebnis</CardDescription>
-            <CardTitle className="text-3xl">{gesamtSpiele}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Siegquote (alle Mannschaften)</CardDescription>
-            <CardTitle className="text-3xl">
-              {siegquote !== null ? `${siegquote}%` : "—"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Aktive Dienstleistende</CardDescription>
-            <CardTitle className="text-3xl">{anzahlAktive}</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardDescription>Rundenspiele mit Ergebnis</CardDescription>
+                <CardTitle className="text-3xl">{gesamtSpiele}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardDescription>Siegquote (alle Mannschaften)</CardDescription>
+                <CardTitle className="text-3xl">
+                  {siegquote !== null ? `${siegquote}%` : "—"}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardDescription>Aktive Dienstleistende</CardDescription>
+                <CardTitle className="text-3xl">{anzahlAktive}</CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Erfolgreichste Mannschaften</CardTitle>
-            <CardDescription>
-              Sieg/Unentschieden/Niederlage aus dem nuLiga-Rundenspiel-Import.
-              Balkenlänge = Spiele relativ zur aktivsten Mannschaft.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {erfolgreichsteMannschaften.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Noch keine Rundenspiel-Ergebnisse mit zugeordneter Mannschaft.
-              </p>
-            ) : (
-              <ErfolgreichsteMannschaftenChart bilanzen={erfolgreichsteMannschaften} />
-            )}
-          </CardContent>
-        </Card>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Erfolgreichste Mannschaften</CardTitle>
+                <CardDescription>
+                  Sieg/Unentschieden/Niederlage aus dem nuLiga-Rundenspiel-Import.
+                  Balkenlänge = Spiele relativ zur aktivsten Mannschaft.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {erfolgreichsteMannschaften.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Noch keine Rundenspiel-Ergebnisse mit zugeordneter Mannschaft.
+                  </p>
+                ) : (
+                  <ErfolgreichsteMannschaftenChart bilanzen={erfolgreichsteMannschaften} />
+                )}
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top Dienstleistende</CardTitle>
-            <CardDescription>
-              Absolvierte Einsätze als Schiedsrichter, Zeitnehmer, Sekretär,
-              Ordner, Kioskdienst oder Kassierer zusammen.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {topDienstmenschen.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Noch keine absolvierten Dienste.
-              </p>
-            ) : (
-              <TopDienstmenschenChart personen={topDienstmenschen} />
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Top Dienstleistende</CardTitle>
+                <CardDescription>
+                  Absolvierte Einsätze als Schiedsrichter, Zeitnehmer, Sekretär,
+                  Ordner, Kioskdienst oder Kassierer zusammen.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {topDienstmenschen.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Noch keine absolvierten Dienste.
+                  </p>
+                ) : (
+                  <TopDienstmenschenChart personen={topDienstmenschen} />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }
