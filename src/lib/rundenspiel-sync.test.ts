@@ -3,6 +3,7 @@ import {
   ermittleRundenspielAenderung,
   ermittleVerwaisteRundenspielIds,
   terminBenoetigtUpdate,
+  waehleFallbackTermin,
 } from "./rundenspiel-sync";
 import type { RundenspielEreignis } from "./rundenspiel-import";
 
@@ -21,6 +22,7 @@ const ereignis: RundenspielEreignis = {
   schiedsrichterKuerzel: null,
   angesetzterSchiedsrichter: null,
   angesetzterZeitnehmer: null,
+  hatSpielnummer: true,
 };
 
 const bestehend = {
@@ -138,5 +140,36 @@ describe("ermittleVerwaisteRundenspielIds", () => {
     const bestehende = [{ id: "t1", icsUid: null }];
     const ids = ermittleVerwaisteRundenspielIds(bestehende, ["30402"], new Set());
     expect(ids).toEqual([]);
+  });
+});
+
+describe("waehleFallbackTermin", () => {
+  it("wählt den einzigen zeitlich nahen Kandidaten (Verlegung um wenige Tage)", () => {
+    const kandidaten = [
+      { id: "t1", start: new Date("2026-09-05T18:00:00Z") },
+    ];
+    const treffer = waehleFallbackTermin(kandidaten, new Date("2026-09-01T18:00:00Z"));
+    expect(treffer?.id).toBe("t1");
+  });
+
+  it("lehnt einen Kandidaten außerhalb des 60-Tage-Fensters ab", () => {
+    const kandidaten = [
+      { id: "t1", start: new Date("2026-12-01T18:00:00Z") },
+    ];
+    const treffer = waehleFallbackTermin(kandidaten, new Date("2026-09-01T18:00:00Z"));
+    expect(treffer).toBeUndefined();
+  });
+
+  it("lehnt mehrere gleichzeitig infrage kommende Kandidaten ab (mehrdeutig)", () => {
+    const kandidaten = [
+      { id: "t1", start: new Date("2026-09-05T18:00:00Z") },
+      { id: "t2", start: new Date("2026-09-10T18:00:00Z") },
+    ];
+    const treffer = waehleFallbackTermin(kandidaten, new Date("2026-09-01T18:00:00Z"));
+    expect(treffer).toBeUndefined();
+  });
+
+  it("liefert undefined bei leerer Kandidatenliste", () => {
+    expect(waehleFallbackTermin([], new Date("2026-09-01T18:00:00Z"))).toBeUndefined();
   });
 });
