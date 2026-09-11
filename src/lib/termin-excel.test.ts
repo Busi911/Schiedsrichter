@@ -20,6 +20,7 @@ function zeile(overrides: Partial<Parameters<typeof terminAlsExcel>[0][number]> 
     kassiererName: null,
     zeitnehmerName: null,
     sekretaerName: null,
+    rollenBedarf: undefined,
     ...overrides,
   };
 }
@@ -40,7 +41,6 @@ describe("terminAlsExcel", () => {
 
     expect(sheet.getRow(1).values).toEqual([
       undefined,
-      "Datum",
       "Uhrzeit",
       "Typ",
       "Ort",
@@ -58,10 +58,46 @@ describe("terminAlsExcel", () => {
     // termin-excel.ts), die eigentlichen Daten stehen ab Zeile 3. Beim
     // erneuten Laden aus dem Buffer sind die beim Schreiben genutzten
     // key-Namen (siehe sheet.columns in termin-excel.ts) nicht mehr verfügbar
-    // — exceljs kennt beim Lesen nur noch Spaltenbuchstaben/-nummern.
+    // — exceljs kennt beim Lesen nur noch Spaltenbuchstaben/-nummern. Ohne
+    // eigene Datum-Spalte (steht bereits in der Trennzeile) rutscht alles um
+    // eine Spalte nach links: Schiedsrichter ist jetzt F statt G, Ordner H
+    // statt I.
     expect(sheet.getRow(2).getCell("A").value).toContain("2026");
-    expect(sheet.getRow(3).getCell("G").value).toBe("Max Mustermann");
-    expect(sheet.getRow(3).getCell("I").value).toBe("Lena Fischer, Anna Klein");
+    expect(sheet.getRow(3).getCell("F").value).toBe("Max Mustermann");
+    expect(sheet.getRow(3).getCell("H").value).toBe("Lena Fischer, Anna Klein");
+  });
+
+  it("beschränkt die Spalten auf die ausgewählten Rollen", async () => {
+    const buffer = await terminAlsExcel(
+      [zeile({ schiedsrichterName: "Max Mustermann", ordnerName: "Lena Fischer" })],
+      ["schiedsrichter"]
+    );
+    const workbook = new ExcelJS.Workbook();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await workbook.xlsx.load(buffer as any);
+    const sheet = workbook.getWorksheet("Dienstplan")!;
+
+    expect(sheet.getRow(1).values).toEqual([
+      undefined,
+      "Uhrzeit",
+      "Typ",
+      "Ort",
+      "Beschreibung",
+      "Mannschaft",
+      "Schiedsrichter",
+      "Schiedsrichter-E-Mail",
+    ]);
+  });
+
+  it("zeigt \"intern\" statt einer leeren Zelle, wenn die Rolle für diesen Termin keinen Bedarf hat", async () => {
+    const buffer = await terminAlsExcel([
+      zeile({ ordnerName: null, rollenBedarf: { ordner: false, kioskdienst: true, kassierer: true, zeitnehmer: true, sekretaer: true } }),
+    ]);
+    const workbook = new ExcelJS.Workbook();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await workbook.xlsx.load(buffer as any);
+    const sheet = workbook.getWorksheet("Dienstplan")!;
+    expect(sheet.getRow(3).getCell("H").value).toBe("intern");
   });
 
   it("gruppiert Termine an verschiedenen Tagen mit je eigener Trennzeile", async () => {

@@ -1,8 +1,9 @@
 import "server-only";
 import { and, asc, eq, gte, inArray, lte, ne, type SQL } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
+import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { tagKey } from "./kalender";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "./dienste";
 
 export type AuswertungFilter = {
   von?: string;
@@ -33,6 +34,7 @@ export type AuswertungsBasisZeile = {
   pflichtspiel: boolean | null;
   freundschaftsTyp: "freundschaftsspiel" | "turnier" | null;
   mannschaftName: string | null;
+  heimMannschaftName: string | null;
   icsSchiedsrichterId: string | null;
   icsSchiedsrichterName: string | null;
   icsSchiedsrichterEmail: string | null;
@@ -67,6 +69,37 @@ const ANDERE_ROLLE_FELD: Record<AndereRolle, string> = {
   zeitnehmer: "zeitnehmerName",
   sekretaer: "sekretaerName",
 };
+
+// Für die Rollen-Auswahl beim Excel/PDF-Export (siehe admin/auswertung/
+// page.tsx sowie termin-pdf.ts/termin-excel.ts) — alle sechs Dienst-Rollen,
+// die im Dienstplan als Spalte auftauchen können.
+export const AUSWERTUNG_ROLLEN = ["schiedsrichter", ...ANDERE_ROLLEN] as const;
+export type AuswertungsRolle = (typeof AUSWERTUNG_ROLLEN)[number];
+export const AUSWERTUNG_ROLLE_LABEL: Record<AuswertungsRolle, string> = {
+  schiedsrichter: "Schiedsrichter",
+  ordner: "Ordner",
+  kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
+  zeitnehmer: "Zeitnehmer",
+  sekretaer: "Sekretär",
+};
+
+export type RollenBedarf = Record<Exclude<AuswertungsRolle, "schiedsrichter">, boolean>;
+
+// Gemeinsam für Tabelle (admin/auswertung/page.tsx), PDF (termin-pdf.ts) und
+// Excel (termin-excel.ts): ohne diese Unterscheidung sah eine Rolle ohne
+// Bedarf (z.B. Kassierer für diese Mannschaft abgeschaltet, siehe
+// bedarfFuer in dienste.ts) optisch identisch zu "noch nicht besetzt" aus.
+// bedarf === undefined (z.B. Schiedsrichter, für die es kein bedarfFuer
+// gibt) verhält sich wie true — dann bleibt es beim bisherigen leerWert.
+export function rollenZellenWert(
+  name: string | null,
+  bedarf: boolean | undefined,
+  leerWert: string
+): string {
+  if (name) return name;
+  return bedarf === false ? "intern" : leerWert;
+}
 
 export type DienstRollenFelder = {
   ordnerName: string | null;
@@ -123,12 +156,10 @@ export function ergaenzeDienstZuordnungen<T extends { id: string }>(
 // besetzung.ts) — manuelle Zuordnung hat Vorrang, falls (unüblich) beides
 // für denselben Termin vorhanden wäre. Ist noch niemand zugeordnet, aber
 // nuLiga hat für den Termin ein Schiedsrichter-Kürzel geliefert (siehe
-// nuligaSchiedsrichterKuerzel in rundenspiel-import.ts), wird das als
-// Fallback angezeigt statt "—" — analog zur "nuLiga-Ansetzung
-// (noch nicht zugeordnet)"-Zeile im Kalender-Modal (admin/kalender/
-// page.tsx), aber bewusst nicht in schiedsrichterIds, da es keine echte
-// Person mit userId ist und daher nicht über den Schiedsrichter-Filter
-// gefunden werden kann.
+// nuligaSchiedsrichterKuerzel in rundenspiel-import.ts), wird das Kürzel als
+// Fallback angezeigt statt "—", aber bewusst nicht in schiedsrichterIds, da
+// es keine echte Person mit userId ist und daher nicht über den
+// Schiedsrichter-Filter gefunden werden kann.
 export function kombiniereSchiedsrichterZuordnungen(
   basisListe: AuswertungsBasisZeile[],
   manuelleZuordnungen: ManuelleSchiedsrichterZuordnung[],
@@ -150,10 +181,7 @@ export function kombiniereSchiedsrichterZuordnungen(
 
     const schiedsrichterName = manuell.length
       ? manuell.map((m) => m.name ?? m.email ?? "").join(" / ")
-      : t.icsSchiedsrichterName ??
-        (t.nuligaSchiedsrichterKuerzel
-          ? `${t.nuligaSchiedsrichterKuerzel} (laut nuLiga, noch nicht zugeordnet)`
-          : null);
+      : t.icsSchiedsrichterName ?? t.nuligaSchiedsrichterKuerzel ?? null;
 
     return {
       id: t.id,
@@ -164,7 +192,14 @@ export function kombiniereSchiedsrichterZuordnungen(
       beschreibung: t.beschreibung,
       pflichtspiel: t.pflichtspiel,
       freundschaftsTyp: t.freundschaftsTyp,
-      mannschaftName: t.mannschaftName,
+      // Fällt auf den rohen Heim-Namen aus dem Import zurück, wenn (noch)
+      // keine Verknüpfung zu einer lokalen Mannschaft besteht (siehe
+      // "Unbekannte Mannschaften" in admin/termine/page.tsx) — sonst stand
+      // die Spalte leer, obwohl der Name aus nuLiga/handball.net längst
+      // bekannt ist. Alle Termine hier sind Spiele an der eigenen Halle
+      // (siehe Hinweis in admin/termine/page.tsx), daher ist der Heim-Name
+      // immer die relevante Mannschaft.
+      mannschaftName: t.mannschaftName ?? t.heimMannschaftName,
       schiedsrichterName,
       schiedsrichterEmail: manuell.length
         ? manuell.map((m) => m.email).filter((e) => e).join(" / ") || null
@@ -218,6 +253,13 @@ export async function holeTermineFuerAuswertung(
         pflichtspiel: termine.pflichtspiel,
         freundschaftsTyp: termine.freundschaftsTyp,
         mannschaftName: mannschaften.name,
+        heimMannschaftName: termine.heimMannschaftName,
+        mannschaftId: termine.mannschaftId,
+        zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+        ordnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
+        kioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
+        kassiererBedarfDeaktiviert: mannschaften.kassiererBedarfDeaktiviert,
+        zeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
         icsSchiedsrichterId: termine.icsSchiedsrichterId,
         icsSchiedsrichterName: users.name,
         icsSchiedsrichterEmail: users.email,
@@ -273,6 +315,86 @@ export async function holeTermineFuerAuswertung(
       filter.schiedsrichterId
     );
 
-    return ergaenzeDienstZuordnungen(zeilen, andereZuordnungen);
+    const ergebnis = ergaenzeDienstZuordnungen(zeilen, andereZuordnungen);
+
+    // Ordner/Kioskdienst/Kassierer/Zeitnehmer-Sekretär braucht nicht jeder
+    // Termin (siehe bedarfFuer in dienste.ts, z.B. abgeschaltet pro
+    // Mannschaft oder gar nicht Teil des Vereins-Bedarfs) — ohne diese Info
+    // sah eine deshalb leere Spalte im Export genauso aus wie "noch nicht
+    // besetzt". Das rollenBedarf-Feld unten macht die Unterscheidung nach
+    // außen verfügbar (siehe rollenZellenWert oben, genutzt von
+    // admin/auswertung/page.tsx, termin-pdf.ts und termin-excel.ts, die
+    // dann statt einer leeren Zelle "intern" zeigen).
+    const vereinRow = await tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+    });
+    const bedarfProTermin = new Map<string, RollenBedarf>();
+    if (vereinRow) {
+      for (const t of basisListe) {
+        // t.mannschaftId === null → kein Mannschaftsbezug, dann kommen die
+        // Deaktivierungs-Flags aus dem LEFT JOIN oben ebenfalls als null
+        // zurück statt als "nicht deaktiviert" (false) — mannschaft bleibt
+        // hier bewusst null, analog zum selben Muster in admin-kalender.ts.
+        const mannschaft = t.mannschaftId
+          ? {
+              ordnerBedarfDeaktiviert: t.ordnerBedarfDeaktiviert ?? false,
+              kioskdienstBedarfDeaktiviert: t.kioskdienstBedarfDeaktiviert ?? false,
+              kassiererBedarfDeaktiviert: t.kassiererBedarfDeaktiviert ?? false,
+              zeitnehmerBedarfDeaktiviert: t.zeitnehmerBedarfDeaktiviert ?? false,
+            }
+          : null;
+        const zeitnehmerBedarf = bedarfFuer(
+          vereinRow,
+          t.typ,
+          "zeitnehmer",
+          t.pflichtspiel,
+          t.freundschaftsTyp,
+          t.zeitnehmerBedarfOverride,
+          mannschaftBedarfDeaktiviertFuer(mannschaft, "zeitnehmer")
+        );
+        bedarfProTermin.set(t.id, {
+          ordner:
+            bedarfFuer(
+              vereinRow,
+              t.typ,
+              "ordner",
+              t.pflichtspiel,
+              t.freundschaftsTyp,
+              undefined,
+              mannschaftBedarfDeaktiviertFuer(mannschaft, "ordner")
+            ) > 0,
+          kioskdienst:
+            bedarfFuer(
+              vereinRow,
+              t.typ,
+              "kioskdienst",
+              t.pflichtspiel,
+              t.freundschaftsTyp,
+              undefined,
+              mannschaftBedarfDeaktiviertFuer(mannschaft, "kioskdienst")
+            ) > 0,
+          kassierer:
+            bedarfFuer(
+              vereinRow,
+              t.typ,
+              "kassierer",
+              t.pflichtspiel,
+              t.freundschaftsTyp,
+              undefined,
+              mannschaftBedarfDeaktiviertFuer(mannschaft, "kassierer")
+            ) > 0,
+          zeitnehmer: zeitnehmerBedarf > 0,
+          // Zeitnehmer und Sekretär teilen sich denselben Mindestbedarf
+          // (siehe zeitnehmerSekretaerBedarf in besetzung.ts) — eine eigene
+          // Deaktivierung für Sekretär gibt es nicht.
+          sekretaer: zeitnehmerBedarf > 0,
+        });
+      }
+    }
+
+    return ergebnis.map((z) => ({
+      ...z,
+      rollenBedarf: bedarfProTermin.get(z.id),
+    }));
   });
 }

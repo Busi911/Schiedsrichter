@@ -1,5 +1,12 @@
+import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
-import { holeTermineFuerAuswertung } from "@/lib/termin-auswertung";
+import { adminDb } from "@/db/admin";
+import { vereine } from "@/db/schema";
+import {
+  AUSWERTUNG_ROLLEN,
+  holeTermineFuerAuswertung,
+  type AuswertungsRolle,
+} from "@/lib/termin-auswertung";
 import { terminAlsPdf } from "@/lib/termin-pdf";
 
 export async function GET(request: Request) {
@@ -19,7 +26,10 @@ export async function GET(request: Request) {
     schiedsrichterId: url.searchParams.get("schiedsrichterId") ?? undefined,
   };
 
-  const termine = await holeTermineFuerAuswertung(session.user.vereinId, filter);
+  const [termine, verein] = await Promise.all([
+    holeTermineFuerAuswertung(session.user.vereinId, filter),
+    adminDb.query.vereine.findFirst({ where: eq(vereine.id, session.user.vereinId) }),
+  ]);
   // Angehakte Zeilen-Checkboxen auf der Auswertungsseite (siehe
   // AlleAuswaehlenCheckbox in admin/auswertung/page.tsx) — ohne jede Auswahl
   // (Standardfall) bleibt die komplette gefilterte Liste unverändert.
@@ -27,7 +37,15 @@ export async function GET(request: Request) {
   const termineExport = terminIds.length
     ? termine.filter((t) => terminIds.includes(t.id))
     : termine;
-  const pdf = await terminAlsPdf(termineExport);
+  // Analog zur Zeilen-Auswahl: angehakte "rolle"-Checkboxen (siehe
+  // admin/auswertung/page.tsx) schränken die exportierten Spalten ein, ohne
+  // jede Auswahl bleiben wie bisher alle Rollen drin (siehe terminAlsPdf).
+  const rollen = url.searchParams
+    .getAll("rolle")
+    .filter((r): r is AuswertungsRolle =>
+      (AUSWERTUNG_ROLLEN as readonly string[]).includes(r)
+    );
+  const pdf = await terminAlsPdf(termineExport, rollen, verein?.name);
 
   return new Response(new Uint8Array(pdf), {
     headers: {
