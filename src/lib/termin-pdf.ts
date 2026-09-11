@@ -1,7 +1,8 @@
 import "server-only";
 import PDFDocument from "pdfkit";
 import type { holeTermineFuerAuswertung } from "./termin-auswertung";
-import { formatDatumKurz, formatZeitKurz } from "./format";
+import { formatDatumKurz, formatWochentagDatum, formatZeitKurz } from "./format";
+import { gruppiereProTag } from "./kalender";
 
 type Zeile = Awaited<ReturnType<typeof holeTermineFuerAuswertung>>[number];
 
@@ -76,28 +77,47 @@ export function terminAlsPdf(zeilen: Zeile[]): Promise<Buffer> {
     y += 28;
     kopfzeile();
 
-    for (const z of zeilen) {
-      if (y > doc.page.height - doc.page.margins.bottom - rowHeight) {
+    // Nach Kalendertag gruppiert (zeilen kommen bereits nach Startzeit
+    // sortiert aus holeTermineFuerAuswertung) — eine fette Tages-Trennzeile
+    // macht lange Listen scanbar, ohne die Datum-Spalte pro Zeile zu
+    // entfernen (die bleibt für sich genommen weiterhin eindeutig lesbar).
+    for (const { items } of gruppiereProTag(zeilen)) {
+      // Trennzeile zusammen mit der Kopfzeile auf die nächste Seite, statt
+      // sie als letzte Zeile allein am Seitenende hängen zu lassen.
+      if (y > doc.page.height - doc.page.margins.bottom - rowHeight * 2) {
         doc.addPage();
         y = doc.page.margins.top;
         kopfzeile();
       }
-      zeichneZeile(
-        [
-          formatDatumKurz(z.start),
-          formatZeitKurz(z.start),
-          TYP_LABEL[z.typ] ?? z.typ,
-          z.ort ?? "",
-          z.mannschaftName ?? "",
-          z.schiedsrichterName ?? "",
-          z.ordnerName ?? "",
-          z.kioskdienstName ?? "",
-          z.kassiererName ?? "",
-          z.zeitnehmerName ?? "",
-          z.sekretaerName ?? "",
-        ],
-        false
-      );
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text(formatWochentagDatum(items[0].start), startX, y);
+      y += rowHeight;
+
+      for (const z of items) {
+        if (y > doc.page.height - doc.page.margins.bottom - rowHeight) {
+          doc.addPage();
+          y = doc.page.margins.top;
+          kopfzeile();
+        }
+        zeichneZeile(
+          [
+            formatDatumKurz(z.start),
+            formatZeitKurz(z.start),
+            TYP_LABEL[z.typ] ?? z.typ,
+            z.ort ?? "",
+            z.mannschaftName ?? "",
+            z.schiedsrichterName ?? "",
+            z.ordnerName ?? "",
+            z.kioskdienstName ?? "",
+            z.kassiererName ?? "",
+            z.zeitnehmerName ?? "",
+            z.sekretaerName ?? "",
+          ],
+          false
+        );
+      }
     }
 
     if (zeilen.length === 0) {

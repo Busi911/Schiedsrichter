@@ -54,11 +54,33 @@ describe("terminAlsExcel", () => {
       "Zeitnehmer",
       "Sekretär",
     ]);
-    // Beim erneuten Laden aus dem Buffer sind die beim Schreiben genutzten
+    // Zeile 2 ist die Tages-Trennzeile (siehe gruppiereProTag-Nutzung in
+    // termin-excel.ts), die eigentlichen Daten stehen ab Zeile 3. Beim
+    // erneuten Laden aus dem Buffer sind die beim Schreiben genutzten
     // key-Namen (siehe sheet.columns in termin-excel.ts) nicht mehr verfügbar
     // — exceljs kennt beim Lesen nur noch Spaltenbuchstaben/-nummern.
-    expect(sheet.getRow(2).getCell("G").value).toBe("Max Mustermann");
-    expect(sheet.getRow(2).getCell("I").value).toBe("Lena Fischer, Anna Klein");
+    expect(sheet.getRow(2).getCell("A").value).toContain("2026");
+    expect(sheet.getRow(3).getCell("G").value).toBe("Max Mustermann");
+    expect(sheet.getRow(3).getCell("I").value).toBe("Lena Fischer, Anna Klein");
+  });
+
+  it("gruppiert Termine an verschiedenen Tagen mit je eigener Trennzeile", async () => {
+    const buffer = await terminAlsExcel([
+      zeile({ id: "t1", start: new Date("2026-05-01T18:30:00") }),
+      zeile({ id: "t2", start: new Date("2026-05-02T10:00:00") }),
+    ]);
+
+    const workbook = new ExcelJS.Workbook();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await workbook.xlsx.load(buffer as any);
+    const sheet = workbook.getWorksheet("Dienstplan")!;
+
+    // Kopfzeile(1) + Trennzeile Tag1(2) + Datenzeile(3) + Trennzeile Tag2(4)
+    // + Datenzeile(5).
+    expect(sheet.rowCount).toBe(5);
+    expect(sheet.getRow(2).getCell("A").value).not.toBe(
+      sheet.getRow(4).getCell("A").value
+    );
   });
 
   it("erzeugt eine leere Tabelle (nur Kopfzeile) ohne Termine", async () => {
