@@ -1,12 +1,13 @@
 import "server-only";
 import { and, eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { users } from "@/db/schema";
-import type { RundenspielAenderung } from "./rundenspiel-sync";
+import { termine, users } from "@/db/schema";
+import type { EntfernteZuordnungBeiVerlegung, RundenspielAenderung } from "./rundenspiel-sync";
 import { sendMail } from "./mailer";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
 import { formatDatumZeitLang } from "./format";
 import { appUrl } from "./app-url";
+import { zuordnungEntferntWegenVerlegungInhalt } from "./zuordnung";
 
 function aenderungsArt(a: RundenspielAenderung): string {
   if (a.verlegt && a.ergebnisNeu) return "verlegt, Ergebnis eingetragen";
@@ -62,6 +63,46 @@ export async function sendeRundenspielAenderungenBenachrichtigung(
   for (const admin of admins) {
     await sendMail(admin.email, betreff, emailAlsText(inhalt), emailAlsHtml(inhalt));
     versendet++;
+  }
+  return { versendet };
+}
+
+// Wird nach jedem automatischen Sync aufgerufen (nuLiga: siehe
+// synchronisiereAlleAktivenNuligaVereine in rundenspiel-sync.ts; handball.net:
+// siehe synchronisiereAlleAktivenHandballNetMannschaften in
+// handball-net-sync.ts) — bewusst OHNE Opt-in (anders als
+// sendeRundenspielAenderungenBenachrichtigung oben): das hier informiert die
+// direkt BETROFFENE Person über den Wegfall ihrer eigenen Zuordnung, kein
+// zusätzlicher Admin-Kanal, den man sich aussuchen könnte.
+export async function sendeZuordnungEntferntWegenVerlegungBenachrichtigungen(
+  verein: { id: string; name: string },
+  entfernte: EntfernteZuordnungBeiVerlegung[]
+): Promise<{ versendet: number }> {
+  if (entfernte.length === 0) return { versendet: 0 };
+
+  let versendet = 0;
+  for (const e of entfernte) {
+    const [person, termin] = await Promise.all([
+      adminDb.query.users.findFirst({ where: eq(users.id, e.userId) }),
+      adminDb.query.termine.findFirst({ where: eq(termine.id, e.terminId) }),
+    ]);
+    if (!person || !termin) continue;
+
+    const inhalt: EmailInhalt = {
+      vereinName: verein.name,
+      ...zuordnungEntferntWegenVerlegungInhalt(e.funktionstraegerTyp, termin),
+    };
+    try {
+      await sendMail(
+        person.email,
+        "Termin verlegt — deine Zuordnung wurde entfernt",
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
+      );
+      versendet++;
+    } catch (err) {
+      console.error("Verlegungs-Entfernungs-Mail konnte nicht gesendet werden:", err);
+    }
   }
   return { versendet };
 }

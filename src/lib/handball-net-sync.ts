@@ -10,10 +10,14 @@ import {
 import {
   entferneVerwaisteRundenspiele,
   importiereRundenspielEreignisse,
+  type EntfernteZuordnungBeiVerlegung,
   type RundenspielAenderung,
 } from "./rundenspiel-sync";
 import { holeHandballNetJson, type HandballNetDiagnose } from "./handball-net-scraper";
-import { sendeRundenspielAenderungenBenachrichtigung } from "./rundenspiel-benachrichtigung";
+import {
+  sendeRundenspielAenderungenBenachrichtigung,
+  sendeZuordnungEntferntWegenVerlegungBenachrichtigungen,
+} from "./rundenspiel-benachrichtigung";
 import { sendeDuplikatBenachrichtigungen } from "./duplikat-benachrichtigung";
 import { ordneHandballNetBesetzungZu } from "./handball-net-zuordnung";
 
@@ -39,6 +43,7 @@ export type HandballNetSyncErgebnis = {
   aktualisiert: number;
   entfernt: number;
   aenderungen: RundenspielAenderung[];
+  entfernteZuordnungen: EntfernteZuordnungBeiVerlegung[];
   parseFehler: { index: number; grund: string }[];
   abrufFehler: { teamId: string; grund: string }[];
   diagnose: HandballNetDiagnose[];
@@ -54,6 +59,7 @@ export async function synchronisiereHandballNetMannschaften(
       aktualisiert: 0,
       entfernt: 0,
       aenderungen: [],
+      entfernteZuordnungen: [],
       parseFehler: [],
       abrufFehler: [],
       diagnose: [],
@@ -80,11 +86,8 @@ export async function synchronisiereHandballNetMannschaften(
     return bekannt ?? findeMannschaft(ereignis, mannschaftsListe);
   };
 
-  const { neu, aktualisiert, aenderungen, terminIds } = await importiereRundenspielEreignisse(
-    vereinId,
-    ereignisse,
-    mannschaftIdErmitteln
-  );
+  const { neu, aktualisiert, aenderungen, terminIds, entfernteZuordnungen } =
+    await importiereRundenspielEreignisse(vereinId, ereignisse, mannschaftIdErmitteln);
   const entfernt = await entferneVerwaisteRundenspiele(
     vereinId,
     teamIds,
@@ -100,7 +103,16 @@ export async function synchronisiereHandballNetMannschaften(
     console.error("Automatische handball.net-Zuordnung fehlgeschlagen:", err);
   }
 
-  return { neu, aktualisiert, entfernt, aenderungen, parseFehler, abrufFehler, diagnose };
+  return {
+    neu,
+    aktualisiert,
+    entfernt,
+    aenderungen,
+    entfernteZuordnungen,
+    parseFehler,
+    abrufFehler,
+    diagnose,
+  };
 }
 
 // Für alle Mannschaften mit gepflegter handball.net-Team-ID, vereinsweise
@@ -132,6 +144,10 @@ export async function synchronisiereAlleAktivenHandballNetMannschaften() {
         });
         if (verein) {
           await sendeRundenspielAenderungenBenachrichtigung(verein, ergebnis.aenderungen);
+          await sendeZuordnungEntferntWegenVerlegungBenachrichtigungen(
+            verein,
+            ergebnis.entfernteZuordnungen
+          );
         }
       } catch {
         // ignoriert — der Sync selbst war bereits erfolgreich.
