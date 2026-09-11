@@ -54,7 +54,7 @@ export function terminAlsPdf(
   // Keine (bzw. keine gültige) Auswahl → wie bisher alle Rollen zeigen.
   const ausgewaehlteRollen = rollen?.length ? rollen : AUSWERTUNG_ROLLEN;
 
-  const SPALTEN = [
+  const basisSpalten = [
     { label: "Zeit", width: 35 },
     { label: "Typ", width: 70 },
     { label: "Ort", width: 85 },
@@ -81,6 +81,19 @@ export function terminAlsPdf(
       doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const rowHeight = 18;
     let y = doc.page.margins.top;
+
+    // Bei einer Rollen-Auswahl (siehe admin/auswertung/page.tsx) bleibt
+    // sonst ein Teil der Seite ungenutzt leer — die festen Spaltenbreiten
+    // oben sind auf ALLE Rollen ausgelegt. Bleibt Platz übrig, wird
+    // proportional auf die volle Seitenbreite hochskaliert statt ihn
+    // brachliegen zu lassen; passen alle Spalten (Standardfall, alle
+    // Rollen gewählt) schon von sich aus, bleibt die Breite unverändert.
+    const basisBreite = basisSpalten.reduce((summe, s) => summe + s.width, 0);
+    const skalierung = Math.max(1, inhaltsBreite / basisBreite);
+    const SPALTEN = basisSpalten.map((s) => ({
+      ...s,
+      width: s.width * skalierung,
+    }));
 
     function zeichneZeile(werte: string[], fett: boolean) {
       let x = startX;
