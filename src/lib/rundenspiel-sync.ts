@@ -1,15 +1,18 @@
 import "server-only";
-import { and, asc, eq, gte, inArray, isNull, notInArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, ne, notInArray } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { mannschaften, termine, vereine } from "@/db/schema";
+import { mannschaften, termine, terminZuordnungen, vereine } from "@/db/schema";
 import {
   findeMannschaft,
   parseRundenspielJson,
   type RundenspielEreignis,
 } from "./rundenspiel-import";
 import { holeNuligaJson, type NuligaDiagnose } from "./nuliga-scraper";
-import { sendeRundenspielAenderungenBenachrichtigung } from "./rundenspiel-benachrichtigung";
+import {
+  sendeRundenspielAenderungenBenachrichtigung,
+  sendeZuordnungEntferntWegenVerlegungBenachrichtigungen,
+} from "./rundenspiel-benachrichtigung";
 import { sendeDuplikatBenachrichtigungen } from "./duplikat-benachrichtigung";
 
 // DB-Import-Logik für bereits geparste Rundenspiel-Ereignisse — geteilt
@@ -77,6 +80,17 @@ export type RundenspielAenderung = {
   ergebnisNeu: boolean;
 };
 
+// Eine bei einer Verlegung entfernte Zuordnung (siehe
+// importiereRundenspielEreignisse) — Basis für
+// sendeZuordnungEntferntWegenVerlegungBenachrichtigungen
+// (rundenspiel-benachrichtigung.ts). Nur Zuordnungen mit userId (echtes
+// Konto) landen hier, "ohne Login"-Zuordnungen haben keinen Mail-Empfänger.
+export type EntfernteZuordnungBeiVerlegung = {
+  terminId: string;
+  userId: string;
+  funktionstraegerTyp: string;
+};
+
 // Reiner Vergleich (ohne DB-Zugriff, siehe rundenspiel-sync.test.ts) —
 // separat von terminBenoetigtUpdate, da hier nur die zwei
 // benachrichtigungsrelevanten Änderungsarten interessieren, nicht JEDES
@@ -142,6 +156,7 @@ export async function importiereRundenspielEreignisse(
   // der passende Funktionsträger erst NACH dem letzten Sync angelegt
   // wurde).
   const terminIds: string[] = [];
+  const entfernteZuordnungen: EntfernteZuordnungBeiVerlegung[] = [];
 
   await withTenant(vereinId, async (tx) => {
     // Explizite Sortierung, damit findeMannschaft bei mehreren Treffern
@@ -221,6 +236,42 @@ export async function importiereRundenspielEreignisse(
               ...aenderung,
             });
           }
+          if (aenderung?.verlegt) {
+            // Wer sich für den ALTEN Zeitpunkt eingetragen hatte, kann zum
+            // neuen ggf. nicht mehr — Zuordnung entfernen statt sie
+            // stillschweigend auf den verlegten Termin "mitzunehmen" (die
+            // betroffene Person bekäme sonst nie mit, dass sich der Termin
+            // geändert hat, siehe sendeZuordnungEntferntWegenVerlegung-
+            // Benachrichtigungen in rundenspiel-benachrichtigung.ts).
+            // Schiedsrichter bei echten Ligaspielen bewusst ausgenommen —
+            // die stellt ohnehin der Verband, siehe
+            // brauchtSchiedsrichterVomVerein in besetzung.ts.
+            const betroffeneZuordnungen = await tx.query.terminZuordnungen.findMany({
+              where: and(
+                eq(terminZuordnungen.terminId, bestehend.id),
+                ne(terminZuordnungen.funktionstraegerTyp, "schiedsrichter")
+              ),
+            });
+            if (betroffeneZuordnungen.length > 0) {
+              await tx
+                .delete(terminZuordnungen)
+                .where(
+                  and(
+                    eq(terminZuordnungen.terminId, bestehend.id),
+                    ne(terminZuordnungen.funktionstraegerTyp, "schiedsrichter")
+                  )
+                );
+              for (const z of betroffeneZuordnungen) {
+                if (z.userId) {
+                  entfernteZuordnungen.push({
+                    terminId: bestehend.id,
+                    userId: z.userId,
+                    funktionstraegerTyp: z.funktionstraegerTyp,
+                  });
+                }
+              }
+            }
+          }
           await tx
             .update(termine)
             .set({
@@ -277,7 +328,7 @@ export async function importiereRundenspielEreignisse(
     }
   });
 
-  return { neu, aktualisiert, aenderungen, terminIds };
+  return { neu, aktualisiert, aenderungen, terminIds, entfernteZuordnungen };
 }
 
 // locationId steckt als erstes Segment in der UID (siehe bildeUid in
@@ -361,6 +412,7 @@ export type NuligaSyncErgebnis = {
   aktualisiert: number;
   entfernt: number;
   aenderungen: RundenspielAenderung[];
+  entfernteZuordnungen: EntfernteZuordnungBeiVerlegung[];
   parseFehler: { index: number; grund: string }[];
   abrufFehler: { locationId: string; requestedMonth: string; grund: string }[];
   diagnose: NuligaDiagnose[];
@@ -382,6 +434,7 @@ export async function synchronisiereNuligaHallen(
       aktualisiert: 0,
       entfernt: 0,
       aenderungen: [],
+      entfernteZuordnungen: [],
       parseFehler: [],
       abrufFehler: [],
       diagnose: [],
@@ -390,17 +443,24 @@ export async function synchronisiereNuligaHallen(
 
   const { json, fehler: abrufFehler, diagnose } = await holeNuligaJson(hallenIds);
   const { ereignisse, fehler: parseFehler } = parseRundenspielJson(json);
-  const { neu, aktualisiert, aenderungen } = await importiereRundenspielEreignisse(
-    vereinId,
-    ereignisse
-  );
+  const { neu, aktualisiert, aenderungen, entfernteZuordnungen } =
+    await importiereRundenspielEreignisse(vereinId, ereignisse);
   const entfernt = await entferneVerwaisteRundenspiele(
     vereinId,
     hallenIds,
     new Set(ereignisse.map((e) => e.uid))
   );
 
-  return { neu, aktualisiert, entfernt, aenderungen, parseFehler, abrufFehler, diagnose };
+  return {
+    neu,
+    aktualisiert,
+    entfernt,
+    aenderungen,
+    entfernteZuordnungen,
+    parseFehler,
+    abrufFehler,
+    diagnose,
+  };
 }
 
 // Für alle Vereine mit aktiviertem Auto-Import (siehe /api/cron/rundenspiel-sync).
@@ -427,6 +487,15 @@ export async function synchronisiereAlleAktivenNuligaVereine() {
       // Push-Kommentar in terminerinnerungen.ts).
       try {
         await sendeRundenspielAenderungenBenachrichtigung(verein, ergebnis.aenderungen);
+      } catch {
+        // ignoriert — der Sync selbst war bereits erfolgreich.
+      }
+
+      try {
+        await sendeZuordnungEntferntWegenVerlegungBenachrichtigungen(
+          verein,
+          ergebnis.entfernteZuordnungen
+        );
       } catch {
         // ignoriert — der Sync selbst war bereits erfolgreich.
       }

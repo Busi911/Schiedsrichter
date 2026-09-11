@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   mehrfachZuordnungsMailInhalt,
   zuordnungEntferntInhalt,
+  zuordnungEntferntWegenVerlegungInhalt,
   zuordnungFehlgeschlagenInhalt,
   zuordnungsMailInhalt,
 } from "./zuordnung";
@@ -56,6 +57,37 @@ describe("zuordnungEntferntInhalt", () => {
     });
     expect(inhalt.zeilen).toContainEqual(expect.stringContaining("Halle 1"));
     expect(inhalt.zeilen).toContain("Herren 1 vs. Herren 2");
+  });
+});
+
+describe("zuordnungEntferntWegenVerlegungInhalt", () => {
+  it("nennt die entfernte Rolle und den Grund (Verlegung) in der Überschrift", () => {
+    const inhalt = zuordnungEntferntWegenVerlegungInhalt("zeitnehmer", {
+      start: new Date("2026-09-05T18:00:00+02:00"),
+      ort: "Halle 2",
+      beschreibung: null,
+    });
+    expect(inhalt.ueberschrift).toContain("Zeitnehmer");
+    expect(inhalt.ueberschrift).toContain("verlegt");
+  });
+
+  it("zeigt den NEUEN Termin (Zeitpunkt/Ort/Beschreibung)", () => {
+    const inhalt = zuordnungEntferntWegenVerlegungInhalt("ordner", {
+      start: new Date("2026-09-05T18:00:00+02:00"),
+      ort: "Halle 2",
+      beschreibung: "Herren 1 vs. Herren 2",
+    });
+    expect(inhalt.zeilen).toContainEqual(expect.stringContaining("Halle 2"));
+    expect(inhalt.zeilen).toContain("Herren 1 vs. Herren 2");
+  });
+
+  it("weist im Kleingedruckten auf eine erneute Eintragung hin", () => {
+    const inhalt = zuordnungEntferntWegenVerlegungInhalt("kassierer", {
+      start: new Date("2026-09-05T18:00:00+02:00"),
+      ort: null,
+      beschreibung: null,
+    });
+    expect(inhalt.kleingedrucktes).toBeTruthy();
   });
 });
 

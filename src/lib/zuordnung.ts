@@ -68,6 +68,28 @@ export function zuordnungEntferntInhalt(
   };
 }
 
+// Eigene Variante von zuordnungEntferntInhalt oben, speziell für eine
+// Terminverlegung beim nuLiga-/handball.net-Sync (siehe
+// importiereRundenspielEreignisse in rundenspiel-sync.ts): wer sich für den
+// ALTEN Zeitpunkt eingetragen hatte, kann zum neuen ggf. nicht mehr — die
+// Zuordnung wird deshalb entfernt statt stillschweigend mitgenommen. Nennt
+// zusätzlich den neuen Termin (statt nur "entfernt" zu melden) und einen
+// Hinweis zum erneuten Eintragen, falls die Person zum neuen Termin kann.
+export function zuordnungEntferntWegenVerlegungInhalt(
+  rolle: string,
+  neuerTermin: { start: Date; ort: string | null; beschreibung: string | null }
+) {
+  const zeitpunkt = formatDatumZeitLang(neuerTermin.start);
+  const zeilen: string[] = [`Neuer Termin: ${zeitpunkt}`];
+  if (neuerTermin.ort) zeilen.push(`Ort: ${neuerTermin.ort}`);
+  if (neuerTermin.beschreibung) zeilen.push(neuerTermin.beschreibung);
+  return {
+    ueberschrift: `Der Termin wurde verlegt — deine Zuordnung als ${ZUORDNUNGS_ROLLE_LABEL[rolle] ?? rolle} wurde daher entfernt.`,
+    zeilen,
+    kleingedrucktes: "Kannst du zum neuen Termin? Dann gerne erneut eintragen.",
+  };
+}
+
 // Analog zu zuordnungsMailInhalt oben, aber für mehrere Termine auf einmal
 // (siehe zeitnehmerSelbstEintragenMehrfachOeffentlich in
 // zeitnehmer-eintragen/[token]/actions.ts) — EINE Mail mit einer Zeile pro
