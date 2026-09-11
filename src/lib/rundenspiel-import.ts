@@ -51,6 +51,16 @@ export type RundenspielEreignis = {
   // angesetzteNamenPassenZu unten), nicht als automatische Zuordnung.
   angesetzterSchiedsrichter: string | null;
   angesetzterZeitnehmer: string | null;
+  // Ob bildeUid unten die stabile, datums-/zeitunabhängige UID-Variante
+  // verwendet hat (echte Spielnummer vorhanden) oder auf Datum/Zeit im
+  // Schlüssel zurückfallen musste — NICHT dasselbe wie pflichtspiel: auch
+  // ein Freundschaftsspiel/Turnier innerhalb einer Sammelstaffel kann eine
+  // echte, von "0" verschiedene Spielnummer haben (siehe Kommentar bei
+  // istPflichtspiel unten). Bei false kann rundenspiel-sync.ts eine
+  // Terminverlegung nicht am unveränderten Schlüssel erkennen — dort greift
+  // stattdessen ein Fallback-Abgleich über Halle+Heim+Auswärts+Zeitnähe,
+  // damit bereits eingetragene Zuordnungen nicht verloren gehen.
+  hatSpielnummer: boolean;
 };
 
 export type RundenspielParseFehler = { index: number; grund: string };
@@ -507,6 +517,8 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       schiedsrichterKuerzel: r.schiedsrichterKuerzel,
       angesetzterSchiedsrichter: r.angesetzterSchiedsrichter,
       angesetzterZeitnehmer: r.angesetzterZeitnehmer,
+      // Dieselbe Bedingung wie in bildeUid oben für die Wahl der UID-Variante.
+      hatSpielnummer: !!r.gameNumberRoh && r.gameNumberRoh !== "0",
     };
   });
 

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, gte, inArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, notInArray } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
 import { mannschaften, termine, vereine } from "@/db/schema";
@@ -96,6 +96,28 @@ export function ermittleRundenspielAenderung(
   return verlegt || ergebnisNeu ? { verlegt, ergebnisNeu } : null;
 }
 
+const FALLBACK_NAEHE_TAGE = 60;
+const TAG_MS = 24 * 60 * 60 * 1000;
+
+// Ob eine per SQL bereits grob vorgefilterte Kandidatenliste (siehe
+// importiereRundenspielEreignisse) GENAU EINEN zeitlich nahen Treffer
+// enthält — eigene, reine Funktion, damit die Business-Entscheidung "wie nah
+// ist nah genug" ohne Testdatenbank testbar ist (siehe rundenspiel-
+// sync.test.ts). Bewusst konservativ: mehrere gleichzeitig infrage kommende
+// Termine (z.B. dieselbe Paarung spielt zweimal in der Saison an derselben
+// Halle) gelten NICHT als eindeutig — dann lieber einen neuen Termin
+// anlegen, als das falsche Spiel zu treffen und dessen Zuordnungen einem
+// fremden Spiel zuzuschreiben.
+export function waehleFallbackTermin<T extends { start: Date }>(
+  kandidaten: T[],
+  ereignisStart: Date
+): T | undefined {
+  const inReichweite = kandidaten.filter(
+    (k) => Math.abs(k.start.getTime() - ereignisStart.getTime()) <= FALLBACK_NAEHE_TAGE * TAG_MS
+  );
+  return inReichweite.length === 1 ? inReichweite[0] : undefined;
+}
+
 export async function importiereRundenspielEreignisse(
   vereinId: string,
   ereignisse: RundenspielEreignis[],
@@ -131,16 +153,61 @@ export async function importiereRundenspielEreignisse(
       orderBy: (m) => [asc(m.name)],
     });
 
+    // Innerhalb dieses Laufs bereits per UID oder Fallback verwendete
+    // Termin-IDs — verhindert, dass zwei verschiedene Ereignisse in
+    // demselben Sync-Durchlauf denselben Fallback-Kandidaten beanspruchen
+    // (siehe Fallback-Abgleich unten).
+    const verwendeteIds: string[] = [];
+
     for (const ereignis of ereignisse) {
       const mannschaftId = mannschaftIdErmitteln(ereignis, mannschaftsListe);
-      const bestehend = await tx.query.termine.findFirst({
+      let bestehend = await tx.query.termine.findFirst({
         where: and(
           eq(termine.vereinId, vereinId),
           eq(termine.icsUid, ereignis.uid)
         ),
       });
 
+      // Ohne direkten UID-Treffer und ohne stabile Spielnummer (siehe
+      // hatSpielnummer in rundenspiel-import.ts) steckt Datum/Zeit selbst in
+      // der UID — eine Verlegung würde sonst als komplett neuer Termin
+      // ankommen, während der alte (samt bereits eingetragener Zuordnungen)
+      // im Anschluss als verwaist gelöscht würde (siehe
+      // entferneVerwaisteRundenspiele unten). Fallback-Abgleich über
+      // Halle+Heim+Auswärts+zeitliche Nähe rettet die Zuordnungen, indem er
+      // denselben bestehenden Termin wiederverwendet.
+      if (!bestehend && !ereignis.hatSpielnummer) {
+        const locationId = locationIdAusUid(ereignis.uid);
+        if (locationId) {
+          const bedingungen = [
+            eq(termine.vereinId, vereinId),
+            eq(termine.typ, "rundenspiel"),
+            eq(termine.quelle, "rundenspiel_import"),
+            eq(termine.heimMannschaftName, ereignis.heimMannschaft),
+            eq(termine.auswaertsMannschaftName, ereignis.auswaertsMannschaft),
+            isNull(termine.ergebnisHeim),
+          ];
+          if (verwendeteIds.length > 0) {
+            bedingungen.push(notInArray(termine.id, verwendeteIds));
+          }
+          const kandidaten = await tx.query.termine.findMany({
+            where: and(...bedingungen),
+          });
+          // Gleiche Halle erst hier statt per SQL-LIKE geprüft (locationId
+          // kann bei fehlender numerischer Hallen-ID auf den rohen
+          // Hallennamen zurückfallen, siehe bildeUid — als LIKE-Pattern
+          // müsste der erst escaped werden, als exakter String-Vergleich
+          // nach demselben Extraktionsschema wie bei
+          // ermittleVerwaisteRundenspielIds nicht).
+          const gleicheHalle = kandidaten.filter(
+            (k) => k.icsUid && locationIdAusUid(k.icsUid) === locationId
+          );
+          bestehend = waehleFallbackTermin(gleicheHalle, ereignis.start);
+        }
+      }
+
       if (bestehend) {
+        verwendeteIds.push(bestehend.id);
         terminIds.push(bestehend.id);
         if (terminBenoetigtUpdate(bestehend, ereignis, mannschaftId)) {
           const aenderung = ermittleRundenspielAenderung(bestehend, ereignis);
@@ -161,6 +228,11 @@ export async function importiereRundenspielEreignisse(
               ort: ereignis.ort,
               beschreibung: ereignis.beschreibung,
               mannschaftId,
+              // Bei einem UID-Treffer ein No-op, bei einem Fallback-Treffer
+              // (siehe oben) hält das den Schlüssel aktuell — sonst würde
+              // derselbe Termin bei jedem künftigen Sync erneut über den
+              // Fallback statt über die (jetzt korrekte) UID gefunden.
+              icsUid: ereignis.uid,
               heimMannschaftName: ereignis.heimMannschaft,
               auswaertsMannschaftName: ereignis.auswaertsMannschaft,
               kategorie: ereignis.kategorie,
