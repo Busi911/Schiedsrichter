@@ -20,8 +20,9 @@ import {
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
 
+// Ohne spiel_ics — siehe TERMIN_TYPEN in termin-auswertung.ts, das diese
+// Termine grundsätzlich ausschließt.
 const TYP_LABEL: Record<string, string> = {
-  spiel_ics: "Spiel (ICS)",
   testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",

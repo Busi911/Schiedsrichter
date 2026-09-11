@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, gte, inArray, lte, type SQL } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte, ne, type SQL } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
 
@@ -10,8 +10,12 @@ export type AuswertungFilter = {
   schiedsrichterId?: string;
 };
 
+// Ohne spiel_ics — das sind persönliche ICS-Einsätze eines Schiedsrichters,
+// oft bei fremden Vereinen ohne jeden Bezug zur eigenen Halle (siehe gleiche
+// Einschränkung bei bedarfFuer in dienste.ts). Im Dienstplan (Ordner/
+// Kioskdienst/Kassierer/Zeitnehmer/Sekretär) sind sie reines Rauschen, da es
+// dafür nie einen Bedarf gibt.
 const TERMIN_TYPEN = [
-  "spiel_ics",
   "testspiel",
   "turnier",
   "turnier_spiel",
@@ -179,7 +183,10 @@ export async function holeTermineFuerAuswertung(
   filter: AuswertungFilter
 ) {
   return withTenant(vereinId, async (tx) => {
-    const bedingungen: SQL[] = [eq(termine.vereinId, vereinId)];
+    const bedingungen: SQL[] = [
+      eq(termine.vereinId, vereinId),
+      ne(termine.typ, "spiel_ics"),
+    ];
 
     if (filter.von) bedingungen.push(gte(termine.start, new Date(filter.von)));
     if (filter.bis) bedingungen.push(lte(termine.start, new Date(filter.bis)));

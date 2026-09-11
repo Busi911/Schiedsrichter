@@ -6,7 +6,6 @@ import { formatDatumKurz, formatZeitKurz } from "./format";
 type Zeile = Awaited<ReturnType<typeof holeTermineFuerAuswertung>>[number];
 
 const TYP_LABEL: Record<string, string> = {
-  spiel_ics: "Spiel (ICS)",
   testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
@@ -20,10 +19,10 @@ const TYP_LABEL: Record<string, string> = {
 const SPALTEN = [
   { label: "Datum", width: 55 },
   { label: "Zeit", width: 35 },
-  { label: "Typ", width: 60 },
-  { label: "Ort", width: 65 },
-  { label: "Mannschaft", width: 65 },
-  { label: "Schiedsrichter", width: 80 },
+  { label: "Typ", width: 70 },
+  { label: "Ort", width: 85 },
+  { label: "Mannschaft", width: 90 },
+  { label: "Schiedsrichter", width: 120 },
   { label: "Ordner", width: 60 },
   { label: "Kioskdienst", width: 60 },
   { label: "Kassierer", width: 55 },
@@ -51,7 +50,16 @@ export function terminAlsPdf(zeilen: Zeile[]): Promise<Buffer> {
       let x = startX;
       doc.font(fett ? "Helvetica-Bold" : "Helvetica").fontSize(9);
       werte.forEach((wert, i) => {
-        doc.text(wert, x, y, { width: SPALTEN[i].width, ellipsis: true });
+        // height muss mitgegeben werden, sonst wirkt ellipsis nicht (pdfkit
+        // kürzt nur, wenn der Text die angegebene Höhe überschreiten würde) —
+        // ohne height lief ein zu langer Wert (z.B. "Frei. (laut nuLiga,
+        // noch nicht zugeordnet)" in der Schiedsrichter-Spalte) stattdessen
+        // mehrzeilig um und überlappte die nächste Zeile.
+        doc.text(wert, x, y, {
+          width: SPALTEN[i].width,
+          height: rowHeight,
+          ellipsis: true,
+        });
         x += SPALTEN[i].width;
       });
       y += rowHeight;
