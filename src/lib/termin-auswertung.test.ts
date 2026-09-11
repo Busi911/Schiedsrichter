@@ -2,9 +2,26 @@ import { describe, expect, it } from "vitest";
 import {
   ergaenzeDienstZuordnungen,
   kombiniereSchiedsrichterZuordnungen,
+  mannschaftMitAltersklasse,
   rollenZellenWert,
   type AuswertungsBasisZeile,
 } from "./termin-auswertung";
+
+describe("mannschaftMitAltersklasse", () => {
+  it("hängt die Altersklasse in Klammern an, wenn beides bekannt ist", () => {
+    expect(mannschaftMitAltersklasse("TSF Heuchelheim", "Herren")).toBe(
+      "TSF Heuchelheim (Herren)"
+    );
+  });
+
+  it("zeigt nur den Namen, wenn keine Altersklasse bekannt ist", () => {
+    expect(mannschaftMitAltersklasse("TSF Heuchelheim", null)).toBe("TSF Heuchelheim");
+  });
+
+  it("zeigt null, wenn kein Name bekannt ist", () => {
+    expect(mannschaftMitAltersklasse(null, "Herren")).toBeNull();
+  });
+});
 
 describe("rollenZellenWert", () => {
   it("zeigt den Namen, wenn jemand zugeordnet ist", () => {
@@ -85,7 +102,9 @@ function basisAuswertungsZeile(
     pflichtspiel: null,
     freundschaftsTyp: null,
     mannschaftName: "Herren 1",
+    mannschaftAltersklasse: null,
     heimMannschaftName: null,
+    kategorie: null,
     icsSchiedsrichterId: null,
     icsSchiedsrichterName: null,
     icsSchiedsrichterEmail: null,
@@ -202,5 +221,27 @@ describe("kombiniereSchiedsrichterZuordnungen", () => {
       []
     );
     expect(zeile.mannschaftName).toBe("Herren 1");
+  });
+
+  it("hängt die Altersklasse der verknüpften Mannschaft an", () => {
+    const [zeile] = kombiniereSchiedsrichterZuordnungen(
+      [basisAuswertungsZeile({ mannschaftName: "Herren 1", mannschaftAltersklasse: "Herren" })],
+      []
+    );
+    expect(zeile.mannschaftName).toBe("Herren 1 (Herren)");
+  });
+
+  it("hängt beim rohen Heim-Namen die Kategorie aus dem Import an", () => {
+    const [zeile] = kombiniereSchiedsrichterZuordnungen(
+      [
+        basisAuswertungsZeile({
+          mannschaftName: null,
+          heimMannschaftName: "TSF Heuchelheim",
+          kategorie: "mJC",
+        }),
+      ],
+      []
+    );
+    expect(zeile.mannschaftName).toBe("TSF Heuchelheim (mJC)");
   });
 });

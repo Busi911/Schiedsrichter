@@ -1,16 +1,9 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
-import { ChevronRightIcon } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
-import { ignorierteMannschaften, mannschaften, termine } from "@/db/schema";
-import {
-  ignorierteMannschaftReaktivieren,
-  mannschaftAusRundenspielAnlegen,
-  spielDuplikatVerknuepfen,
-  unbekannteMannschaftAblehnen,
-} from "../actions";
-import { gruppiereUnbekannteMannschaften } from "@/lib/rundenspiel-import";
+import { mannschaften, termine } from "@/db/schema";
+import { spielDuplikatVerknuepfen } from "../actions";
 import { findeSpielDuplikate } from "@/lib/duplikat-erkennung";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { formatMannschaft } from "@/lib/dashboard";
@@ -220,7 +213,6 @@ async function RundenspieleTab({
         start: termine.start,
         ort: termine.ort,
         beschreibung: termine.beschreibung,
-        mannschaftId: termine.mannschaftId,
         mannschaftName: mannschaften.name,
         heimMannschaftName: termine.heimMannschaftName,
         auswaertsMannschaftName: termine.auswaertsMannschaftName,
@@ -232,17 +224,6 @@ async function RundenspieleTab({
       .orderBy(asc(termine.start))
   );
 
-  const ignoriert = await withTenant(vereinId, (tx) =>
-    tx.query.ignorierteMannschaften.findMany({
-      where: eq(ignorierteMannschaften.vereinId, vereinId),
-    })
-  );
-  const ignoriertSet = new Set(
-    ignoriert.map((i) => `${i.normalisierterName}::${i.kategorie ?? ""}`)
-  );
-  const unbekannteMannschaften = gruppiereUnbekannteMannschaften(liste).filter(
-    (m) => !ignoriertSet.has(`${m.normalisiert}::${m.kategorie ?? ""}`)
-  );
   const { rundenspielDuplikate, icsDuplikate } = await findeSpielDuplikate(vereinId);
 
   return (
@@ -251,111 +232,10 @@ async function RundenspieleTab({
         Alle Spiele an der eigenen Halle — Liga-Pflichtspiele ebenso wie
         Freundschaftsspiele/Turniere, automatisch aus nuLiga synchronisiert
         (siehe Einstellungen). Inklusive Spiele fremder Mannschaften an der
-        eigenen Halle (relevant für Ordner-/Kioskdienst).
+        eigenen Halle (relevant für Ordner-/Kioskdienst). Noch nicht
+        verknüpfte bzw. abgelehnte Mannschaften daraus verwaltet ihr unter
+        /admin/mannschaften.
       </p>
-
-      {istAdmin && unbekannteMannschaften.length > 0 && (
-        <Card className="max-w-2xl">
-          <CardHeader>
-            <CardTitle>Unbekannte Mannschaften</CardTitle>
-            <CardDescription>
-              Heim-/Auswärtsnamen aus dem Import, die noch keiner Mannschaft
-              zugeordnet sind — sortiert nach Häufigkeit. Bereits importierte
-              Spiele werden beim Anlegen rückwirkend verknüpft.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-              <strong>Nur eure eigenen Mannschaften anlegen.</strong> Die
-              Halle wird auch von anderen Vereinen bespielt — deren
-              Mannschaften tauchen hier zwangsläufig mit auf und sollten
-              per &bdquo;Ablehnen&ldquo; entfernt werden, statt sie zu
-              &uuml;berspringen (sonst erscheinen sie bei jedem weiteren
-              Import erneut).
-            </div>
-            <div className="flex flex-col divide-y">
-              {unbekannteMannschaften.map((m) => (
-                <form
-                  key={`${m.normalisiert}::${m.kategorie ?? ""}`}
-                  action={mannschaftAusRundenspielAnlegen}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
-                >
-                  <input type="hidden" name="name" value={m.anzeigeName} />
-                  <input type="hidden" name="kategorie" value={m.kategorie ?? ""} />
-                  <span className="text-sm">
-                    {m.anzeigeName}
-                    {m.kategorie && (
-                      <span className="text-muted-foreground"> ({m.kategorie})</span>
-                    )}{" "}
-                    <span className="text-xs text-muted-foreground">
-                      ({m.anzahlSpiele} {m.anzahlSpiele === 1 ? "Spiel" : "Spiele"})
-                    </span>
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="submit"
-                      formAction={unbekannteMannschaftAblehnen}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      Ablehnen
-                    </Button>
-                    <Button type="submit" variant="outline" size="sm">
-                      Als Mannschaft anlegen
-                    </Button>
-                  </div>
-                </form>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {istAdmin && ignoriert.length > 0 && (
-        // Standardmäßig eingeklappt und bewusst dezent (nur eine kleine,
-        // graue Zeile statt einer vollen Karten-Überschrift) — anders als
-        // "Unbekannte Mannschaften" oben ist das hier kein aktiver
-        // Handlungsbedarf, sondern nur eine bei Bedarf einsehbare
-        // Rückgängig-Möglichkeit für längst erledigte Ablehnungen.
-        <details className="group max-w-2xl">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm text-muted-foreground [&::-webkit-details-marker]:hidden">
-            <ChevronRightIcon className="size-3.5 transition-transform group-open:rotate-90" />
-            Abgelehnte Mannschaften ({ignoriert.length})
-          </summary>
-          <Card className="mt-2">
-            <CardHeader>
-              <CardDescription>
-                Per &bdquo;Ablehnen&ldquo; oben bewusst nicht als eigene
-                Mannschaft angelegt — meist Gegner-Mannschaften an der
-                eigenen Halle. Deren Termine zählen deshalb nirgends als
-                offener Dienst (siehe /admin, /admin/dienste). Rückgängig
-                macht den Vorschlag wieder sichtbar, falls noch
-                unverknüpfte Termine dafür bestehen.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col divide-y">
-              {ignoriert.map((i) => (
-                <form
-                  key={i.id}
-                  action={ignorierteMannschaftReaktivieren}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
-                >
-                  <input type="hidden" name="id" value={i.id} />
-                  <span className="text-sm">
-                    {i.normalisierterName}
-                    {i.kategorie && (
-                      <span className="text-muted-foreground"> ({i.kategorie})</span>
-                    )}
-                  </span>
-                  <Button type="submit" variant="ghost" size="sm">
-                    Rückgängig
-                  </Button>
-                </form>
-              ))}
-            </CardContent>
-          </Card>
-        </details>
-      )}
 
       {istAdmin && rundenspielDuplikate.length > 0 && (
         <Card className="max-w-2xl">

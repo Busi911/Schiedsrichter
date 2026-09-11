@@ -34,7 +34,9 @@ export type AuswertungsBasisZeile = {
   pflichtspiel: boolean | null;
   freundschaftsTyp: "freundschaftsspiel" | "turnier" | null;
   mannschaftName: string | null;
+  mannschaftAltersklasse: string | null;
   heimMannschaftName: string | null;
+  kategorie: string | null;
   icsSchiedsrichterId: string | null;
   icsSchiedsrichterName: string | null;
   icsSchiedsrichterEmail: string | null;
@@ -144,6 +146,16 @@ export function ergaenzeDienstZuordnungen<T extends { id: string }>(
   });
 }
 
+// Hängt die Altersklasse in Klammern an den Mannschaftsnamen an, sofern
+// beides bekannt ist — z.B. "TSF Heuchelheim (Herren)".
+export function mannschaftMitAltersklasse(
+  name: string | null,
+  altersklasse: string | null
+): string | null {
+  if (!name) return null;
+  return altersklasse ? `${name} (${altersklasse})` : name;
+}
+
 // Reine Zusammenführung (ohne DB-Zugriff), damit sie ohne Testdatenbank
 // getestet werden kann — siehe termin-auswertung.test.ts. icsSchiedsrichter*
 // deckt nur die (ältere) Selbst-Abo-Zuordnung über den persönlichen
@@ -198,8 +210,15 @@ export function kombiniereSchiedsrichterZuordnungen(
       // die Spalte leer, obwohl der Name aus nuLiga/handball.net längst
       // bekannt ist. Alle Termine hier sind Spiele an der eigenen Halle
       // (siehe Hinweis in admin/termine/page.tsx), daher ist der Heim-Name
-      // immer die relevante Mannschaft.
-      mannschaftName: t.mannschaftName ?? t.heimMannschaftName,
+      // immer die relevante Mannschaft. Altersklasse dahinter in Klammern,
+      // wenn bekannt — bei einer verknüpften Mannschaft aus deren eigenem
+      // Feld, sonst (Fallback, siehe oben) aus der vom Import gelieferten
+      // Kategorie (z.B. "mJC"), die aus demselben Grund existiert: gleiche
+      // Vereinsnamen in unterschiedlichen Altersklassen unterscheiden.
+      mannschaftName: mannschaftMitAltersklasse(
+        t.mannschaftName ?? t.heimMannschaftName,
+        t.mannschaftAltersklasse ?? t.kategorie
+      ),
       schiedsrichterName,
       schiedsrichterEmail: manuell.length
         ? manuell.map((m) => m.email).filter((e) => e).join(" / ") || null
@@ -253,7 +272,9 @@ export async function holeTermineFuerAuswertung(
         pflichtspiel: termine.pflichtspiel,
         freundschaftsTyp: termine.freundschaftsTyp,
         mannschaftName: mannschaften.name,
+        mannschaftAltersklasse: mannschaften.altersklasse,
         heimMannschaftName: termine.heimMannschaftName,
+        kategorie: termine.kategorie,
         mannschaftId: termine.mannschaftId,
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
         ordnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
