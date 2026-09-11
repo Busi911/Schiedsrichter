@@ -272,24 +272,45 @@ export async function createFunktionstraeger(formData: FormData) {
       where: eq(users.email, normalizedEmail),
     });
 
-    if (user && user.vereinId !== vereinId) {
+    // vereinId === null bei einer bestehenden Zeile heißt NICHT "gehört
+    // einem anderen Verein": Auth.js (Magic-Link-Provider, siehe auth.ts)
+    // legt schon beim bloßen ANFORDERN eines Login-Links einen User-Datensatz
+    // an, noch vor jeder Bestätigung — z.B. wenn die Person schon vorab auf
+    // /login versucht hat, sich mit ihrer E-Mail einzuloggen. Diese Zeile ist
+    // keine echte Zuordnung und wird unten für diesen Verein übernommen,
+    // statt fälschlich als Kollision blockiert zu werden.
+    if (user && user.vereinId !== null && user.vereinId !== vereinId) {
       throw new Error(
         "Diese E-Mail-Adresse ist bereits einem anderen Verein zugeordnet."
       );
     }
+    const verwaisterStub = !!user && user.vereinId === null;
 
     let einmalPasswort: string | null = null;
-    if (!user) {
-      [user] = await tx
-        .insert(users)
-        .values({
-          email: normalizedEmail,
-          name: name.trim(),
-          vereinId,
-          istAdmin: alsAdmin,
-          istAdminLesend: alsAdminLesend,
-        })
-        .returning();
+    if (!user || verwaisterStub) {
+      if (user) {
+        [user] = await tx
+          .update(users)
+          .set({
+            name: name.trim(),
+            vereinId,
+            istAdmin: alsAdmin,
+            istAdminLesend: alsAdminLesend,
+          })
+          .where(eq(users.id, user.id))
+          .returning();
+      } else {
+        [user] = await tx
+          .insert(users)
+          .values({
+            email: normalizedEmail,
+            name: name.trim(),
+            vereinId,
+            istAdmin: alsAdmin,
+            istAdminLesend: alsAdminLesend,
+          })
+          .returning();
+      }
       // Nur bei sofortAktiv gleich vergeben, da nur dann auch sofort die
       // Willkommens-Mail mit dem Einmal-Passwort rausgeht (siehe unten) —
       // sonst bekäme die Person ein Passwort, das nirgends auftaucht.
@@ -618,9 +639,16 @@ export async function updateFunktionstraeger(formData: FormData) {
         where: eq(users.email, neueEmail),
       });
       if (belegt) {
-        throw new Error(
-          "Diese E-Mail-Adresse wird bereits von einem anderen Zugang verwendet."
-        );
+        if (belegt.vereinId !== null) {
+          throw new Error(
+            "Diese E-Mail-Adresse wird bereits von einem anderen Zugang verwendet."
+          );
+        }
+        // vereinId === null: keine echte Zuordnung, sondern nur eine
+        // verwaiste Zeile aus einem Magic-Link-Login-Versuch (siehe
+        // Kommentar bei createFunktionstraeger oben) — im Weg räumen statt
+        // fälschlich als Kollision zu blockieren.
+        await tx.delete(users).where(eq(users.id, belegt.id));
       }
     }
 
@@ -797,17 +825,29 @@ export async function funktionstraegerImportieren(formData: FormData) {
       let user = await tx.query.users.findFirst({
         where: eq(users.email, zeile.email),
       });
-      if (user && user.vereinId !== vereinId) {
+      // vereinId === null: keine echte Zuordnung, sondern nur eine
+      // verwaiste Zeile aus einem Magic-Link-Login-Versuch (siehe Kommentar
+      // bei createFunktionstraeger oben) — wird unten übernommen statt
+      // fälschlich als Kollision übersprungen zu werden.
+      if (user && user.vereinId !== null && user.vereinId !== vereinId) {
         fehlerListe.push(
           `Zeile ${zeile.zeilenNr}: E-Mail bereits einem anderen Verein zugeordnet.`
         );
         continue;
       }
-      if (!user) {
-        [user] = await tx
-          .insert(users)
-          .values({ email: zeile.email, name: zeile.name, vereinId })
-          .returning();
+      if (!user || user.vereinId === null) {
+        if (user) {
+          [user] = await tx
+            .update(users)
+            .set({ name: zeile.name, vereinId })
+            .where(eq(users.id, user.id))
+            .returning();
+        } else {
+          [user] = await tx
+            .insert(users)
+            .values({ email: zeile.email, name: zeile.name, vereinId })
+            .returning();
+        }
         if (sofortAktiv) {
           const einmalPasswort = await vergebeEinmalPasswortFallsNoetig(
             tx,
