@@ -20,7 +20,14 @@ export async function GET(request: Request) {
   };
 
   const termine = await holeTermineFuerAuswertung(session.user.vereinId, filter);
-  const pdf = await terminAlsPdf(termine);
+  // Angehakte Zeilen-Checkboxen auf der Auswertungsseite (siehe
+  // AlleAuswaehlenCheckbox in admin/auswertung/page.tsx) — ohne jede Auswahl
+  // (Standardfall) bleibt die komplette gefilterte Liste unverändert.
+  const terminIds = url.searchParams.getAll("terminId");
+  const termineExport = terminIds.length
+    ? termine.filter((t) => terminIds.includes(t.id))
+    : termine;
+  const pdf = await terminAlsPdf(termineExport);
 
   return new Response(new Uint8Array(pdf), {
     headers: {

@@ -3,6 +3,8 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, users } from "@/db/schema";
 import { holeTermineFuerAuswertung } from "@/lib/termin-auswertung";
+import { tagKey } from "@/lib/kalender";
+import { AlleAuswaehlenCheckbox } from "@/components/alle-auswaehlen-checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +44,10 @@ export default async function AuswertungPage({
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
   const filter = await searchParams;
+  // Deckt sich mit dem Default in holeTermineFuerAuswertung (dort greift er
+  // serverseitig auch ohne explizites "von" in der URL) — hier nur, damit das
+  // Datumsfeld den tatsächlich angewandten Wert zeigt statt leer zu wirken.
+  const heute = tagKey(new Date());
 
   const [termineListe, schiedsrichterListe] = await Promise.all([
     holeTermineFuerAuswertung(vereinId, filter),
@@ -54,15 +60,15 @@ export default async function AuswertungPage({
     ),
   ]);
 
-  const exportParams = new URLSearchParams();
-  if (filter.von) exportParams.set("von", filter.von);
-  if (filter.bis) exportParams.set("bis", filter.bis);
-  if (filter.typ) exportParams.set("typ", filter.typ);
-  if (filter.schiedsrichterId)
-    exportParams.set("schiedsrichterId", filter.schiedsrichterId);
-
   return (
-    <div className="flex flex-col gap-6">
+    // EIN gemeinsames Formular für Filter, Zeilen-Auswahl und alle drei
+    // Buttons (Filtern/Excel/PDF, siehe formAction unten) — bei einer nativen
+    // GET-Übermittlung landen automatisch alle Filterfelder UND die
+    // angehakten "terminId"-Checkboxen im Query-String der jeweiligen Route.
+    // Ohne Auswahl (kein Häkchen gesetzt) exportieren Excel/PDF weiterhin
+    // die komplette gefilterte Liste wie bisher (siehe export/excel|pdf/
+    // route.ts).
+    <form method="get" className="flex flex-col gap-6">
       <div>
         <h1 className="font-heading text-2xl font-semibold">
           Terminauswertung
@@ -70,19 +76,23 @@ export default async function AuswertungPage({
         <p className="text-sm text-muted-foreground">
           Gesamter Dienstplan mit allen besetzten Rollen (Schiedsrichter,
           Ordner, Kioskdienst, Kassierer, Zeitnehmer, Sekretär) — filterbar
-          und als Excel/PDF exportierbar.
+          und als Excel/PDF exportierbar. Standardmäßig alle Termine ab heute
+          ohne Enddatum; einzelne Zeilen lassen sich unten für den Export
+          gezielt auswählen.
         </p>
       </div>
 
       <Card>
         <CardContent>
-          <form
-            method="get"
-            className="flex flex-wrap items-end gap-3"
-          >
+          <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="von">Von</Label>
-              <Input id="von" name="von" type="date" defaultValue={filter.von} />
+              <Input
+                id="von"
+                name="von"
+                type="date"
+                defaultValue={filter.von || heute}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="bis">Bis</Label>
@@ -117,24 +127,17 @@ export default async function AuswertungPage({
             <Button type="submit" variant="outline">
               Filtern
             </Button>
-            <Button
-              render={
-                <a href={`/admin/auswertung/export/excel?${exportParams.toString()}`} />
-              }
-              nativeButton={false}
-            >
+            <Button type="submit" formAction="/admin/auswertung/export/excel">
               Als Excel exportieren
             </Button>
             <Button
+              type="submit"
               variant="outline"
-              nativeButton={false}
-              render={
-                <a href={`/admin/auswertung/export/pdf?${exportParams.toString()}`} />
-              }
+              formAction="/admin/auswertung/export/pdf"
             >
               Als PDF exportieren
             </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
 
@@ -151,6 +154,12 @@ export default async function AuswertungPage({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-0">
+                    <AlleAuswaehlenCheckbox
+                      name="terminId"
+                      label="Alle Termine auswählen"
+                    />
+                  </TableHead>
                   <TableHead>Datum</TableHead>
                   <TableHead>Typ</TableHead>
                   <TableHead>Ort</TableHead>
@@ -167,6 +176,15 @@ export default async function AuswertungPage({
               <TableBody>
                 {termineListe.map((t) => (
                   <TableRow key={t.id}>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        name="terminId"
+                        value={t.id}
+                        aria-label={`${formatDateTime(t.start)} auswählen`}
+                        className="size-4 accent-primary"
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">
                       {formatDateTime(t.start)}
                     </TableCell>
@@ -193,6 +211,6 @@ export default async function AuswertungPage({
           )}
         </CardContent>
       </Card>
-    </div>
+    </form>
   );
 }

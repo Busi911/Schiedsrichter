@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
+import { ChevronRightIcon } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { ignorierteMannschaften, mannschaften, termine } from "@/db/schema";
@@ -311,39 +312,49 @@ async function RundenspieleTab({
       )}
 
       {istAdmin && ignoriert.length > 0 && (
-        <Card className="max-w-2xl">
-          <CardHeader>
-            <CardTitle>Abgelehnte Mannschaften</CardTitle>
-            <CardDescription>
-              Per &bdquo;Ablehnen&ldquo; oben bewusst nicht als eigene
-              Mannschaft angelegt — meist Gegner-Mannschaften an der eigenen
-              Halle. Deren Termine zählen deshalb nirgends als offener Dienst
-              (siehe /admin, /admin/dienste). Rückgängig macht den Vorschlag
-              wieder sichtbar, falls noch unverknüpfte Termine dafür
-              bestehen.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col divide-y">
-            {ignoriert.map((i) => (
-              <form
-                key={i.id}
-                action={ignorierteMannschaftReaktivieren}
-                className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
-              >
-                <input type="hidden" name="id" value={i.id} />
-                <span className="text-sm">
-                  {i.normalisierterName}
-                  {i.kategorie && (
-                    <span className="text-muted-foreground"> ({i.kategorie})</span>
-                  )}
-                </span>
-                <Button type="submit" variant="ghost" size="sm">
-                  Rückgängig
-                </Button>
-              </form>
-            ))}
-          </CardContent>
-        </Card>
+        // Standardmäßig eingeklappt und bewusst dezent (nur eine kleine,
+        // graue Zeile statt einer vollen Karten-Überschrift) — anders als
+        // "Unbekannte Mannschaften" oben ist das hier kein aktiver
+        // Handlungsbedarf, sondern nur eine bei Bedarf einsehbare
+        // Rückgängig-Möglichkeit für längst erledigte Ablehnungen.
+        <details className="group max-w-2xl">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm text-muted-foreground [&::-webkit-details-marker]:hidden">
+            <ChevronRightIcon className="size-3.5 transition-transform group-open:rotate-90" />
+            Abgelehnte Mannschaften ({ignoriert.length})
+          </summary>
+          <Card className="mt-2">
+            <CardHeader>
+              <CardDescription>
+                Per &bdquo;Ablehnen&ldquo; oben bewusst nicht als eigene
+                Mannschaft angelegt — meist Gegner-Mannschaften an der
+                eigenen Halle. Deren Termine zählen deshalb nirgends als
+                offener Dienst (siehe /admin, /admin/dienste). Rückgängig
+                macht den Vorschlag wieder sichtbar, falls noch
+                unverknüpfte Termine dafür bestehen.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col divide-y">
+              {ignoriert.map((i) => (
+                <form
+                  key={i.id}
+                  action={ignorierteMannschaftReaktivieren}
+                  className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
+                >
+                  <input type="hidden" name="id" value={i.id} />
+                  <span className="text-sm">
+                    {i.normalisierterName}
+                    {i.kategorie && (
+                      <span className="text-muted-foreground"> ({i.kategorie})</span>
+                    )}
+                  </span>
+                  <Button type="submit" variant="ghost" size="sm">
+                    Rückgängig
+                  </Button>
+                </form>
+              ))}
+            </CardContent>
+          </Card>
+        </details>
       )}
 
       {istAdmin && rundenspielDuplikate.length > 0 && (
