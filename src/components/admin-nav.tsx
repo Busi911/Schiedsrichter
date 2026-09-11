@@ -23,12 +23,11 @@ const PRIMARY_ITEMS = [
   { href: "/admin/termine", label: "Termine" },
 ];
 
-// /admin/auswertung ist erstmal aus der Navigation raus (Seite/Route bleibt
-// bestehen, nur nicht mehr verlinkt).
 const VERWALTUNG_ITEMS = [
   { href: "/admin/mannschaften", label: "Mannschaften" },
   { href: "/admin/funktionstraeger", label: "Funktionsträger" },
   { href: "/admin/dienste", label: "Unbesetzte Dienste" },
+  { href: "/admin/auswertung", label: "Dienstplan" },
   { href: "/admin/einstellungen", label: "Einstellungen" },
 ];
 

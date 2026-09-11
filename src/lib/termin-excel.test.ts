@@ -34,6 +34,7 @@ describe("terminAlsExcel", () => {
     // Buffer.from(arrayBuffer) liefert Buffer<ArrayBufferLike>, exceljs'
     // Typings erwarten den engeren globalen Buffer-Typ — zur Laufzeit identisch
     // (siehe gleicher Cast in funktionstraeger-import.ts).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await workbook.xlsx.load(buffer as any);
     const sheet = workbook.getWorksheet("Dienstplan")!;
 
@@ -66,6 +67,7 @@ describe("terminAlsExcel", () => {
     // Buffer.from(arrayBuffer) liefert Buffer<ArrayBufferLike>, exceljs'
     // Typings erwarten den engeren globalen Buffer-Typ — zur Laufzeit identisch
     // (siehe gleicher Cast in funktionstraeger-import.ts).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await workbook.xlsx.load(buffer as any);
     const sheet = workbook.getWorksheet("Dienstplan")!;
     expect(sheet.rowCount).toBe(1);
