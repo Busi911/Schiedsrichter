@@ -77,6 +77,12 @@ export function UnbesetzteDiensteTabelle({
 }) {
   return (
     <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Termin</TableHead>
+          <TableHead>Fehlende Rolle</TableHead>
+        </TableRow>
+      </TableHeader>
       <TableBody>
         {posten.flatMap((p) =>
           p.luecken.map((l, i) => (
@@ -97,8 +103,13 @@ export function UnbesetzteDiensteTabelle({
                   )}
                 </TableCell>
               )}
-              <TableCell className="text-sm whitespace-normal text-muted-foreground">
-                {l.rolle}: {l.vorhanden}/{l.bedarf}
+              <TableCell className="text-sm whitespace-normal">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="warning">{l.rolle}</Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {l.vorhanden} von {l.bedarf} besetzt
+                  </span>
+                </div>
               </TableCell>
             </TableRow>
           ))
