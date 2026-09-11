@@ -1,7 +1,13 @@
 import "server-only";
 import { and, asc, desc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { mannschaften, termine, terminZuordnungen, vereine } from "@/db/schema";
+import {
+  ignorierteMannschaften,
+  mannschaften,
+  termine,
+  terminZuordnungen,
+  vereine,
+} from "@/db/schema";
 import { bedarfFuer } from "./dienste";
 import { ORDNER_ROLLEN } from "./ordnerwart";
 import {
@@ -10,6 +16,7 @@ import {
   istBesetzungVollstaendig,
 } from "./besetzung";
 import { rundenspielTypLabel } from "./termin-label";
+import { normalisiereMannschaftsname } from "./rundenspiel-import";
 
 const OFFENE_POSTEN_TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -108,12 +115,46 @@ type AnstehenderTermin = {
   mannschaftName?: string | null;
   mannschaftAltersklasse?: string | null;
   kategorie?: string | null;
+  // Roh-Heimname aus dem nuLiga-Import (siehe termine.heimMannschaftName in
+  // db/schema.ts) — nur relevant, um gegen IgnorierteMannschaft abzugleichen
+  // (siehe istMannschaftIgnoriert unten), wenn keine echte Mannschaft
+  // verknüpft ist (mannschaftName leer).
+  heimMannschaftName?: string | null;
   zeitnehmerBedarfOverride?: number | null;
   mannschaftOrdnerBedarfDeaktiviert?: boolean | null;
   mannschaftKioskdienstBedarfDeaktiviert?: boolean | null;
   mannschaftKassiererBedarfDeaktiviert?: boolean | null;
   mannschaftZeitnehmerBedarfDeaktiviert?: boolean | null;
 };
+
+export type IgnorierteMannschaft = {
+  normalisierterName: string;
+  kategorie: string | null;
+};
+
+// Ein Termin ohne verknüpfte Mannschaft (mannschaftName leer, siehe
+// formatMannschaft oben), dessen roher nuLiga-Heimname+Kategorie der Admin
+// bereits per "Ablehnen" auf /admin/termine als bewusst nicht anzulegende
+// Mannschaft abgelehnt hat (siehe ignorierteMannschaften in db/schema.ts und
+// unbekannteMannschaftAblehnen in admin/actions.ts), soll nicht mehr als
+// "unbesetzt" auftauchen — der Admin hat sich bereits bewusst dagegen
+// entschieden, diese Mannschaft im System zu führen, das Fehlen eines
+// Zeitnehmers/Ordners dafür ist dann kein offener Posten mehr. Ist die
+// Mannschaft hingegen verknüpft (mannschaftName gesetzt), greift stattdessen
+// die reguläre Bedarf-Deaktivierung pro Mannschaft (siehe
+// mannschaftBedarfDeaktiviertFuer in dienste.ts) — dieser Check hier bleibt
+// dann folgenlos, ein zufälliger Namens-Treffer soll eine ECHTE Mannschaft
+// nie fälschlich ausblenden.
+export function istMannschaftIgnoriert(
+  termin: Pick<AnstehenderTermin, "mannschaftName" | "heimMannschaftName" | "kategorie">,
+  ignorierteMannschaften: IgnorierteMannschaft[]
+): boolean {
+  if (termin.mannschaftName || !termin.heimMannschaftName) return false;
+  const heimNorm = normalisiereMannschaftsname(termin.heimMannschaftName);
+  return ignorierteMannschaften.some(
+    (m) => m.normalisierterName === heimNorm && m.kategorie === (termin.kategorie ?? null)
+  );
+}
 
 // Wählt aus den geflachten mannschaftXyzBedarfDeaktiviert-Feldern eines
 // AnstehenderTermin das zur Rolle passende aus — Pendant zu
@@ -167,12 +208,14 @@ const UNBESETZTE_TERMINE_TYPEN = ["testspiel", "turnier_spiel", "rundenspiel"] a
 export function berechneUnbesetzteTermine(
   verein: VereinBedarf,
   anstehende: AnstehenderTermin[],
-  zuordnungen: Zuordnung[]
+  zuordnungen: Zuordnung[],
+  ignorierteMannschaften: IgnorierteMannschaft[] = []
 ): UnbesetzterTermin[] {
   const ergebnis: UnbesetzterTermin[] = [];
 
   for (const termin of anstehende) {
     if (!(UNBESETZTE_TERMINE_TYPEN as readonly string[]).includes(termin.typ)) continue;
+    if (istMannschaftIgnoriert(termin, ignorierteMannschaften)) continue;
 
     const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === termin.id);
     const status = berechneBesetzung(
@@ -212,6 +255,21 @@ export function berechneUnbesetzteTermine(
   return ergebnis.sort((a, b) => a.start.getTime() - b.start.getTime());
 }
 
+// Gemeinsam von holeUnbesetzteTermine und holeOffenePosten genutzt — siehe
+// istMannschaftIgnoriert oben.
+function holeIgnorierteMannschaften(
+  tx: Parameters<Parameters<typeof withTenant>[1]>[0],
+  vereinId: string
+) {
+  return tx
+    .select({
+      normalisierterName: ignorierteMannschaften.normalisierterName,
+      kategorie: ignorierteMannschaften.kategorie,
+    })
+    .from(ignorierteMannschaften)
+    .where(eq(ignorierteMannschaften.vereinId, vereinId));
+}
+
 export async function holeUnbesetzteTermine(
   vereinId: string,
   limit = 10
@@ -233,6 +291,7 @@ export async function holeUnbesetzteTermine(
         mannschaftName: mannschaften.name,
         mannschaftAltersklasse: mannschaften.altersklasse,
         kategorie: termine.kategorie,
+        heimMannschaftName: termine.heimMannschaftName,
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
         mannschaftOrdnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
         mannschaftKioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
@@ -251,15 +310,18 @@ export async function holeUnbesetzteTermine(
     if (anstehende.length === 0) return [];
 
     const terminIds = anstehende.map((t) => t.id);
-    const zuordnungen = await tx
-      .select({
-        terminId: terminZuordnungen.terminId,
-        funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
-      })
-      .from(terminZuordnungen)
-      .where(inArray(terminZuordnungen.terminId, terminIds));
+    const [zuordnungen, ignoriert] = await Promise.all([
+      tx
+        .select({
+          terminId: terminZuordnungen.terminId,
+          funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+        })
+        .from(terminZuordnungen)
+        .where(inArray(terminZuordnungen.terminId, terminIds)),
+      holeIgnorierteMannschaften(tx, vereinId),
+    ]);
 
-    return berechneUnbesetzteTermine(verein, anstehende, zuordnungen).slice(0, limit);
+    return berechneUnbesetzteTermine(verein, anstehende, zuordnungen, ignoriert).slice(0, limit);
   });
 }
 
@@ -271,11 +333,13 @@ export async function holeUnbesetzteTermine(
 export function berechneOffenePosten(
   verein: VereinBedarf,
   anstehende: AnstehenderTermin[],
-  zuordnungen: Zuordnung[]
+  zuordnungen: Zuordnung[],
+  ignorierteMannschaften: IgnorierteMannschaft[] = []
 ): OffenePosten[] {
   const posten: OffenePosten[] = [];
 
   for (const termin of anstehende) {
+    if (istMannschaftIgnoriert(termin, ignorierteMannschaften)) continue;
     const luecken: OffenePosten["luecken"] = [];
 
     for (const rolle of ORDNER_ROLLEN) {
@@ -350,6 +414,7 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
         mannschaftName: mannschaften.name,
         mannschaftAltersklasse: mannschaften.altersklasse,
         kategorie: termine.kategorie,
+        heimMannschaftName: termine.heimMannschaftName,
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
         mannschaftOrdnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
         mannschaftKioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
@@ -375,15 +440,18 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
     if (anstehende.length === 0) return [];
 
     const terminIds = anstehende.map((t) => t.id);
-    const zuordnungen = await tx
-      .select({
-        terminId: terminZuordnungen.terminId,
-        funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
-      })
-      .from(terminZuordnungen)
-      .where(inArray(terminZuordnungen.terminId, terminIds));
+    const [zuordnungen, ignoriert] = await Promise.all([
+      tx
+        .select({
+          terminId: terminZuordnungen.terminId,
+          funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+        })
+        .from(terminZuordnungen)
+        .where(inArray(terminZuordnungen.terminId, terminIds)),
+      holeIgnorierteMannschaften(tx, vereinId),
+    ]);
 
-    return berechneOffenePosten(verein, anstehende, zuordnungen);
+    return berechneOffenePosten(verein, anstehende, zuordnungen, ignoriert);
   });
 }
 
