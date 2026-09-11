@@ -5,6 +5,7 @@ import {
   berechneOffeneZeitnehmerTermine,
   berechneOffenePosten,
   berechneUnbesetzteTermine,
+  istMannschaftIgnoriert,
 } from "./dashboard";
 
 const verein = {
@@ -97,6 +98,21 @@ describe("berechneOffenePosten", () => {
     const frueher = { id: "t1", start: new Date("2026-09-01T10:00:00Z"), typ: "testspiel", ort: null };
     const posten = berechneOffenePosten(verein, [spaeter, frueher], []);
     expect(posten[0].terminId).toBe("t1");
+  });
+
+  it("blendet einen Termin ohne verknüpfte Mannschaft aus, dessen Heimname+Kategorie bereits abgelehnt wurde", () => {
+    const termin = {
+      id: "t1",
+      start: new Date("2026-09-01T10:00:00Z"),
+      typ: "rundenspiel",
+      ort: null,
+      heimMannschaftName: "wJSG Bieber/Heuchelheim",
+      kategorie: "WJE",
+    };
+    const posten = berechneOffenePosten(verein, [termin], [], [
+      { normalisierterName: "wjsg bieber/heuchelheim", kategorie: "WJE" },
+    ]);
+    expect(posten).toHaveLength(0);
   });
 });
 
@@ -315,5 +331,74 @@ describe("berechneUnbesetzteTermine", () => {
     const frueher = { id: "t1", start: new Date("2026-09-01T10:00:00Z"), typ: "testspiel", ort: null };
     const termine = berechneUnbesetzteTermine(verein, [spaeter, frueher], []);
     expect(termine.map((t) => t.terminId)).toEqual(["t1", "t2"]);
+  });
+
+  it("blendet einen Termin ohne verknüpfte Mannschaft aus, dessen Heimname+Kategorie bereits abgelehnt wurde", () => {
+    const termin = {
+      id: "t1",
+      start: new Date("2026-09-01T10:00:00Z"),
+      typ: "rundenspiel",
+      ort: null,
+      heimMannschaftName: "wJSG Bieber/Heuchelheim",
+      kategorie: "WJE",
+    };
+    const termine = berechneUnbesetzteTermine(verein, [termin], [], [
+      { normalisierterName: "wjsg bieber/heuchelheim", kategorie: "WJE" },
+    ]);
+    expect(termine).toHaveLength(0);
+  });
+
+  it("blendet eine ECHTE, verknüpfte Mannschaft trotz zufälligem Namens-Treffer nicht aus", () => {
+    const termin = {
+      id: "t1",
+      start: new Date("2026-09-01T10:00:00Z"),
+      typ: "rundenspiel",
+      ort: null,
+      mannschaftName: "wJSG Bieber/Heuchelheim",
+      heimMannschaftName: "wJSG Bieber/Heuchelheim",
+      kategorie: "WJE",
+    };
+    const termine = berechneUnbesetzteTermine(verein, [termin], [], [
+      { normalisierterName: "wjsg bieber/heuchelheim", kategorie: "WJE" },
+    ]);
+    expect(termine).toHaveLength(1);
+  });
+});
+
+describe("istMannschaftIgnoriert", () => {
+  it("ist true bei Übereinstimmung von normalisiertem Heimnamen UND Kategorie", () => {
+    expect(
+      istMannschaftIgnoriert(
+        { mannschaftName: null, heimMannschaftName: "wJSG Bieber/Heuchelheim", kategorie: "WJE" },
+        [{ normalisierterName: "wjsg bieber/heuchelheim", kategorie: "WJE" }]
+      )
+    ).toBe(true);
+  });
+
+  it("ist false, wenn bereits eine Mannschaft verknüpft ist", () => {
+    expect(
+      istMannschaftIgnoriert(
+        { mannschaftName: "wJSG Bieber/Heuchelheim", heimMannschaftName: "wJSG Bieber/Heuchelheim", kategorie: "WJE" },
+        [{ normalisierterName: "wjsg bieber/heuchelheim", kategorie: "WJE" }]
+      )
+    ).toBe(false);
+  });
+
+  it("ist false bei unterschiedlicher Kategorie (z.B. andere Jugendklasse desselben Vereinsnamens)", () => {
+    expect(
+      istMannschaftIgnoriert(
+        { mannschaftName: null, heimMannschaftName: "wJSG Bieber/Heuchelheim", kategorie: "WJB" },
+        [{ normalisierterName: "wjsg bieber/heuchelheim", kategorie: "WJE" }]
+      )
+    ).toBe(false);
+  });
+
+  it("ist false ohne heimMannschaftName", () => {
+    expect(
+      istMannschaftIgnoriert(
+        { mannschaftName: null, heimMannschaftName: null, kategorie: "WJE" },
+        [{ normalisierterName: "wjsg bieber/heuchelheim", kategorie: "WJE" }]
+      )
+    ).toBe(false);
   });
 });
