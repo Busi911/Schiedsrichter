@@ -18,6 +18,7 @@ import {
   istBesetzungVollstaendig,
 } from "@/lib/besetzung";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
   angesetzteNamenPassenZu,
@@ -224,22 +225,23 @@ export async function holeAdminKalenderDaten(
       : zaehleAngesetzteNamen(t.handballNetZeitnehmer);
 
     const zuordenbar = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ);
+    const mannschaft = t.mannschaftId ? mannschaftenNachId.get(t.mannschaftId) : null;
+    const zeitnehmerBedarf = verein
+      ? bedarfFuer(
+          verein,
+          t.typ,
+          "zeitnehmer",
+          t.pflichtspiel,
+          t.freundschaftsTyp,
+          t.zeitnehmerBedarfOverride,
+          mannschaftBedarfDeaktiviertFuer(mannschaft, "zeitnehmer")
+        )
+      : 0;
     const besetzungsStatus = zuordenbar && verein
       ? berechneBesetzung(
           eigeneZuordnungen,
           false,
-          bedarfFuer(
-            verein,
-            t.typ,
-            "zeitnehmer",
-            t.pflichtspiel,
-            t.freundschaftsTyp,
-            t.zeitnehmerBedarfOverride,
-            mannschaftBedarfDeaktiviertFuer(
-              t.mannschaftId ? mannschaftenNachId.get(t.mannschaftId) : null,
-              "zeitnehmer"
-            )
-          ),
+          zeitnehmerBedarf,
           externeSchiriAnzahl,
           externeZeitnehmerSekretaerAnzahl
         )
@@ -330,6 +332,64 @@ export async function holeAdminKalenderDaten(
         label: `handball.net-Ansetzung: ${t.handballNetZeitnehmer} (noch nicht zugeordnet)`,
         entfernbar: false,
       });
+    }
+
+    // Für jede Rolle mit tatsächlichem Bedarf (siehe bedarfFuer in dienste.ts,
+    // z.B. pro Mannschaft abgeschaltet oder in den Vereins-Einstellungen auf
+    // 0) und ohne jede Zuordnung/externe Ansetzung eine eigene "offen"-Zeile
+    // — sonst war eine unbesetzte Rolle im Kalender nur durch ihr Fehlen
+    // erkennbar, nicht direkt als offener Punkt sichtbar.
+    if (verein) {
+      if (
+        zuordenbar &&
+        brauchtSchiedsrichterVomVerein(t) &&
+        !hatEigenenSchiri &&
+        !t.handballNetSchiedsrichter &&
+        !t.nuligaSchiedsrichterKuerzel
+      ) {
+        besetzungsDetails.push({
+          id: `offen-schiedsrichter-${t.id}`,
+          label: "Schiedsrichter: offen",
+          entfernbar: false,
+        });
+      }
+      if (
+        zuordenbar &&
+        zeitnehmerBedarf > 0 &&
+        !hatEigenenZeitnehmer &&
+        !t.handballNetZeitnehmer
+      ) {
+        besetzungsDetails.push({
+          id: `offen-zeitnehmer-${t.id}`,
+          label: "Zeitnehmer/Sekretär: offen",
+          entfernbar: false,
+        });
+      }
+      for (const rolle of ORDNER_ROLLEN) {
+        const hatEigene = eigeneZuordnungen.some(
+          (z) => z.funktionstraegerTyp === rolle
+        );
+        if (hatEigene) continue;
+        // bedarfFuer liefert für nicht zutreffende Typen (z.B. turnier_spiel,
+        // siehe Kommentar dort) bereits selbst 0 zurück — keine zusätzliche
+        // Typ-Prüfung hier nötig.
+        const bedarf = bedarfFuer(
+          verein,
+          t.typ,
+          rolle,
+          t.pflichtspiel,
+          t.freundschaftsTyp,
+          undefined,
+          mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
+        );
+        if (bedarf > 0) {
+          besetzungsDetails.push({
+            id: `offen-${rolle}-${t.id}`,
+            label: `${ROLLE_LABEL[rolle]}: offen`,
+            entfernbar: false,
+          });
+        }
+      }
     }
 
     liste.push({
