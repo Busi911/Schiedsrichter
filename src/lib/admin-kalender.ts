@@ -39,6 +39,9 @@ const ROLLE_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
   zeitnehmer: "Zeitnehmer",
   sekretaer: "Sekretär",
+  ordner: "Ordner",
+  kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
 };
 
 // Nur diese Typen brauchen eine Schiri-/Zeitnehmer-/Sekretär-Zuordnung —
