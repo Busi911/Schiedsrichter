@@ -266,11 +266,22 @@ export function TerminMehrfachAuswahl({
               {t.beschreibung && (
                 <p className="text-muted-foreground">{t.beschreibung}</p>
               )}
-              {t.zuordnungen.length > 0 && (
+              {(t.zuordnungen.length > 0 || t.offeneRollen.length > 0) && (
                 <div className="flex flex-wrap gap-1">
                   {t.zuordnungen.map((z) => (
                     <Badge key={z.id} variant="secondary">
                       {z.label}
+                    </Badge>
+                  ))}
+                  {// Direkt sichtbar statt nur indirekt über die Rollen-Auswahl
+                  // im Formular oben (die nur bei ausgewählten Terminen und
+                  // nur als Schnittmenge über alle Auswahl sichtbar ist) —
+                  // sonst war eine noch offene Rolle nur am generischen
+                  // "Besetzung offen"-Badge erkennbar, nicht WELCHE Rolle.
+                  t.offeneRollen.map((rolle) => (
+                    <Badge key={rolle} variant="outline">
+                      {rolleOptionen.find((o) => o.value === rolle)?.label ?? rolle}:
+                      offen
                     </Badge>
                   ))}
                 </div>
