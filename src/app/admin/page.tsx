@@ -11,6 +11,12 @@ import {
 import { berechneGesamtbilanz, holeMannschaftsBilanzen } from "@/lib/dienste-statistik";
 import { parseMonatParam } from "@/lib/kalender";
 import { holeAdminKalenderDaten } from "@/lib/admin-kalender";
+import { holeOffeneSelbsteintragungen } from "@/lib/offene-selbsteintragungen";
+import { ordnerVorschlagBestaetigen } from "@/app/profil/ordnerwart/actions";
+import {
+  zeitnehmerInaktiveRolleAktivierenUndZuordnen,
+  zeitnehmerVorschlagBestaetigen,
+} from "@/app/profil/zeitnehmerwart/actions";
 import { MonatsKalender } from "@/components/monats-kalender";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,6 +26,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { PersonSelect } from "@/components/person-select";
+import { SubmitButton } from "@/components/submit-button";
 import { UnbesetzteTermineTabelle } from "@/components/dashboard-tabellen";
 import {
   Table,
@@ -73,21 +82,31 @@ export default async function AdminDashboardPage({
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
   );
 
-  const [unbesetzteTermine, letzteErgebnisse, mannschaftsBilanzen, kalenderDaten] =
-    await Promise.all([
-      // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
-      // den Link "Alle Termine" unten.
-      holeUnbesetzteTermine(vereinId, 10),
-      holeLetzteErgebnisse(vereinId, 10),
-      // Ungekappt (anders als letzteErgebnisse oben) — die Saison-KPIs unten
-      // sollen die echte Gesamtbilanz zeigen, nicht nur die der letzten 10
-      // angezeigten Ergebnisse.
-      holeMannschaftsBilanzen(vereinId),
-      // Derselbe Monatskalender wie auf /admin/kalender, hier direkt unter
-      // den KPI-Kacheln eingebettet — "alles Wichtige auf einen Blick" statt
-      // extra dorthin navigieren zu müssen.
-      holeAdminKalenderDaten(vereinId, jahr, monatNull),
-    ]);
+  const [
+    unbesetzteTermine,
+    letzteErgebnisse,
+    mannschaftsBilanzen,
+    kalenderDaten,
+    offeneSelbsteintragungen,
+  ] = await Promise.all([
+    // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
+    // den Link "Alle Termine" unten.
+    holeUnbesetzteTermine(vereinId, 10),
+    holeLetzteErgebnisse(vereinId, 10),
+    // Ungekappt (anders als letzteErgebnisse oben) — die Saison-KPIs unten
+    // sollen die echte Gesamtbilanz zeigen, nicht nur die der letzten 10
+    // angezeigten Ergebnisse.
+    holeMannschaftsBilanzen(vereinId),
+    // Derselbe Monatskalender wie auf /admin/kalender, hier direkt unter
+    // den KPI-Kacheln eingebettet — "alles Wichtige auf einen Blick" statt
+    // extra dorthin navigieren zu müssen.
+    holeAdminKalenderDaten(vereinId, jahr, monatNull),
+    // Über die öffentliche Selbsteintragung erfasste Personen, die noch
+    // keiner angelegten Person zugeordnet wurden — Ordner/Kioskdienst/
+    // Kassierer UND Zeitnehmer/Sekretär zusammen, statt zwischen den beiden
+    // Wart-Seiten wechseln zu müssen (siehe lib/offene-selbsteintragungen.ts).
+    holeOffeneSelbsteintragungen(vereinId),
+  ]);
   const { spiele: gesamtSpiele, siegquote } = berechneGesamtbilanz(mannschaftsBilanzen);
 
   const unbesetzteTermineZeilen = unbesetzteTermine.map((t) => ({
@@ -125,6 +144,103 @@ export default async function AdminDashboardPage({
           </CardHeader>
         </Card>
       </div>
+
+      {offeneSelbsteintragungen.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Selbsteintragungen zum Bestätigen (
+              {offeneSelbsteintragungen.length})
+            </CardTitle>
+            <CardDescription>
+              Über die öffentlichen Selbsteintragungs-Links erfasst (Ordner/
+              Kioskdienst/Kassierer sowie Zeitnehmer/Sekretär zusammen), noch
+              keiner angelegten Person zugeordnet. Vorausgewählt ist der
+              beste automatische Namens-Vorschlag, falls vorhanden — bei
+              Bedarf vor dem Bestätigen korrigieren.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {offeneSelbsteintragungen.map((z) => (
+              <div key={z.id} className="rounded-lg border p-3 text-sm">
+                <p>
+                  <span className="font-medium">{z.externerName}</span> als{" "}
+                  {z.rolleLabel} · {formatDateTime(z.termin.start)}
+                  {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
+                </p>
+                {session.user.istAdmin ? (
+                  z.kandidaten.length === 0 ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Keine passende Person im Verein angelegt — auf{" "}
+                      <Link
+                        href={
+                          z.bereich === "ordner"
+                            ? "/profil/ordnerwart"
+                            : "/profil/zeitnehmerwart"
+                        }
+                        className="underline"
+                      >
+                        {z.bereich === "ordner"
+                          ? "der Ordnerwart-Seite"
+                          : "der Zeitnehmerwart-Seite"}
+                      </Link>{" "}
+                      lässt sich stattdessen direkt eine neue Person anlegen.
+                    </p>
+                  ) : (
+                    <form
+                      action={
+                        z.bereich === "ordner"
+                          ? ordnerVorschlagBestaetigen
+                          : zeitnehmerVorschlagBestaetigen
+                      }
+                      className="mt-2 flex flex-wrap items-center gap-2"
+                    >
+                      <input type="hidden" name="zuordnungId" value={z.id} />
+                      <div className="min-w-56">
+                        <PersonSelect
+                          name="userId"
+                          placeholder="Person wählen…"
+                          defaultValue={z.matchVorschlagUserId ?? undefined}
+                          options={z.kandidaten}
+                          required
+                        />
+                      </div>
+                      <SubmitButton size="sm">Bestätigen</SubmitButton>
+                    </form>
+                  )
+                ) : null}
+                {session.user.istAdmin && z.inaktivVorschlag && (
+                  <form
+                    action={zeitnehmerInaktiveRolleAktivierenUndZuordnen}
+                    className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-dashed p-2"
+                  >
+                    <input type="hidden" name="zuordnungId" value={z.id} />
+                    <input
+                      type="hidden"
+                      name="rolleId"
+                      value={z.inaktivVorschlag.rolleId}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Ähnlich:{" "}
+                      <span className="font-medium text-foreground">
+                        {z.inaktivVorschlag.name ?? z.inaktivVorschlag.email}
+                      </span>{" "}
+                      — als {z.rolleLabel} aktuell inaktiv.
+                    </p>
+                    <ConfirmSubmitButton
+                      confirmText={`${z.inaktivVorschlag.name ?? z.inaktivVorschlag.email} aktivieren und dieser Zuordnung zuordnen?`}
+                      size="xs"
+                      variant="outline"
+                    >
+                      Aktivieren &amp; zuordnen
+                    </ConfirmSubmitButton>
+                  </form>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
