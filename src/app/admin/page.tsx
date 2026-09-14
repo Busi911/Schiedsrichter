@@ -12,13 +12,18 @@ import { berechneGesamtbilanz, holeMannschaftsBilanzen } from "@/lib/dienste-sta
 import { parseMonatParam } from "@/lib/kalender";
 import { holeAdminKalenderDaten } from "@/lib/admin-kalender";
 import { holeOffeneSelbsteintragungen } from "@/lib/offene-selbsteintragungen";
-import { ordnerVorschlagBestaetigen } from "@/app/profil/ordnerwart/actions";
+import {
+  ordnerNeuAnlegenUndBestaetigen,
+  ordnerVorschlagBestaetigen,
+} from "@/app/profil/ordnerwart/actions";
 import {
   zeitnehmerInaktiveRolleAktivierenUndZuordnen,
+  zeitnehmerNeuAnlegenUndBestaetigen,
   zeitnehmerVorschlagBestaetigen,
 } from "@/app/profil/zeitnehmerwart/actions";
 import { MonatsKalender } from "@/components/monats-kalender";
 import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -27,6 +32,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { Input } from "@/components/ui/input";
 import { PersonSelect } from "@/components/person-select";
 import { SubmitButton } from "@/components/submit-button";
 import { UnbesetzteTermineTabelle } from "@/components/dashboard-tabellen";
@@ -38,8 +44,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { formatErgebnis, rundenspielTypLabel } from "@/lib/termin-label";
+
+// Siehe DISCLOSURE_KLASSE in profil/schiedsrichterwart/page.tsx.
+const DISCLOSURE_KLASSE = cn(
+  buttonVariants({ variant: "outline", size: "xs" }),
+  "cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+);
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -168,47 +181,74 @@ export default async function AdminDashboardPage({
                   {z.rolleLabel} · {formatDateTime(z.termin.start)}
                   {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
                 </p>
-                {session.user.istAdmin ? (
-                  z.kandidaten.length === 0 ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Keine passende Person im Verein angelegt — auf{" "}
-                      <Link
-                        href={
+                {session.user.istAdmin && (
+                  <>
+                    {z.kandidaten.length === 0 ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Keine passende Person im Verein angelegt.
+                      </p>
+                    ) : (
+                      <form
+                        action={
                           z.bereich === "ordner"
-                            ? "/profil/ordnerwart"
-                            : "/profil/zeitnehmerwart"
+                            ? ordnerVorschlagBestaetigen
+                            : zeitnehmerVorschlagBestaetigen
                         }
-                        className="underline"
+                        className="mt-2 flex flex-wrap items-center gap-2"
                       >
-                        {z.bereich === "ordner"
-                          ? "der Ordnerwart-Seite"
-                          : "der Zeitnehmerwart-Seite"}
-                      </Link>{" "}
-                      lässt sich stattdessen direkt eine neue Person anlegen.
-                    </p>
-                  ) : (
-                    <form
-                      action={
-                        z.bereich === "ordner"
-                          ? ordnerVorschlagBestaetigen
-                          : zeitnehmerVorschlagBestaetigen
-                      }
-                      className="mt-2 flex flex-wrap items-center gap-2"
-                    >
-                      <input type="hidden" name="zuordnungId" value={z.id} />
-                      <div className="min-w-56">
-                        <PersonSelect
-                          name="userId"
-                          placeholder="Person wählen…"
-                          defaultValue={z.matchVorschlagUserId ?? undefined}
-                          options={z.kandidaten}
+                        <input type="hidden" name="zuordnungId" value={z.id} />
+                        <div className="min-w-56">
+                          <PersonSelect
+                            name="userId"
+                            placeholder="Person wählen…"
+                            defaultValue={z.matchVorschlagUserId ?? undefined}
+                            options={z.kandidaten}
+                            required
+                          />
+                        </div>
+                        <SubmitButton size="sm">Bestätigen</SubmitButton>
+                      </form>
+                    )}
+                    {/* Immer verfügbar, nicht nur als Fallback ohne
+                        Kandidaten — die vorgeschlagenen Kandidaten oben
+                        können allesamt nicht zutreffen (z.B. bei Vornamen
+                        ohne erkennbaren Bezug zu bereits angelegten
+                        Personen). Dieselben Actions wie auf den jeweiligen
+                        Wart-Seiten (siehe ordnerNeuAnlegenUndBestaetigen/
+                        zeitnehmerNeuAnlegenUndBestaetigen). */}
+                    <details className="group mt-1.5">
+                      <summary className={DISCLOSURE_KLASSE}>
+                        <span className="group-open:hidden">
+                          Neue Person anlegen
+                        </span>
+                        <span className="hidden group-open:inline">
+                          Schließen
+                        </span>
+                      </summary>
+                      <form
+                        action={
+                          z.bereich === "ordner"
+                            ? ordnerNeuAnlegenUndBestaetigen
+                            : zeitnehmerNeuAnlegenUndBestaetigen
+                        }
+                        className="mt-2 flex flex-wrap items-center gap-2"
+                      >
+                        <input type="hidden" name="zuordnungId" value={z.id} />
+                        <Input
+                          name="email"
+                          type="email"
+                          placeholder="E-Mail (Platzhalter reicht)"
                           required
+                          className="h-8 min-w-56 flex-1"
                         />
-                      </div>
-                      <SubmitButton size="sm">Bestätigen</SubmitButton>
-                    </form>
-                  )
-                ) : null}
+                        <Button type="submit" size="xs" variant="outline">
+                          {z.externerName} anlegen &amp; als {z.rolleLabel}{" "}
+                          bestätigen
+                        </Button>
+                      </form>
+                    </details>
+                  </>
+                )}
                 {session.user.istAdmin && z.inaktivVorschlag && (
                   <form
                     action={zeitnehmerInaktiveRolleAktivierenUndZuordnen}

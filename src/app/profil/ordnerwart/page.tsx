@@ -14,6 +14,7 @@ import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import {
   ordnerMannschaftenBedarfSetzen,
+  ordnerNeuAnlegenUndBestaetigen,
   ordnerSelbstanmeldungDeaktivieren,
   ordnerSelbstanmeldungLinkErneuern,
   ordnerVorschlagBestaetigen,
@@ -40,6 +41,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
 import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
@@ -343,6 +345,42 @@ export default async function OrdnerwartPage({
                       </Button>
                     </form>
                   )}
+                  {/* Immer verfügbar, nicht nur als Fallback ohne
+                      Kandidaten: die vorgeschlagenen Kandidaten oben können
+                      allesamt nicht zutreffen (z.B. bei Vornamen wie "Anika"
+                      ohne erkennbaren Bezug zu bereits angelegten Personen)
+                      — dann direkt aus der Selbsteintragung heraus eine neue
+                      Person mit dieser Rolle anlegen, statt den Umweg über
+                      /admin/funktionstraeger zu erzwingen. Analog zum
+                      gleichen Fallback in profil/zeitnehmerwart/page.tsx. */}
+                  <details className="group mt-1.5">
+                    <summary className={DISCLOSURE_KLASSE}>
+                      <span className="group-open:hidden">
+                        Neue Person anlegen
+                      </span>
+                      <span className="hidden group-open:inline">
+                        Schließen
+                      </span>
+                    </summary>
+                    <form
+                      action={ordnerNeuAnlegenUndBestaetigen}
+                      className="mt-2 flex flex-wrap items-center gap-2"
+                    >
+                      <input type="hidden" name="zuordnungId" value={z.id} />
+                      <Input
+                        name="email"
+                        type="email"
+                        placeholder="E-Mail (Platzhalter reicht)"
+                        required
+                        className="h-8 min-w-56 flex-1"
+                      />
+                      <Button type="submit" size="xs" variant="outline">
+                        {z.externerName} anlegen &amp; als{" "}
+                        {ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}{" "}
+                        bestätigen
+                      </Button>
+                    </form>
+                  </details>
                 </div>
               );
             })}
