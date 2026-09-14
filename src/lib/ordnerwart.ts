@@ -7,6 +7,12 @@ import { mergeRollenZaehlungen } from "./einsatz-zahlen";
 
 export const ORDNER_ROLLEN = ["ordner", "kioskdienst", "kassierer"] as const;
 
+export const ORDNER_ROLLE_LABEL: Record<(typeof ORDNER_ROLLEN)[number], string> = {
+  ordner: "Ordner",
+  kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
+};
+
 // Prüft die konfigurierte Bedarfsgrenze (siehe bedarfFuer in dienste.ts),
 // BEVOR eine weitere Person eingetragen wird — anders als bei Schiedsrichter/
 // Zeitnehmer/Sekretär (siehe pruefeBesetzungsgrenze in zuordnung.ts) gibt es
@@ -52,35 +58,50 @@ export async function pruefeOrdnerBesetzungsgrenze(
   }
 }
 
-// Verhindert, dass dieselbe Person an einem Termin in mehreren ORDNER_ROLLEN
-// (Ordner/Kioskdienst/Kassierer) gleichzeitig eingeteilt wird (oder zweimal
-// in derselben Rolle) — analog zu pruefeKeineDoppelrolle in zuordnung.ts,
-// aber für ORDNER_ROLLEN statt zeitnehmer/sekretaer.
+// Zweimal DIESELBE Rolle für dieselbe Person an demselben Termin bleibt
+// blockiert (ergibt keinen Sinn). Über die drei ORDNER_ROLLEN hinweg
+// (z.B. Ordner UND Kassierer) ist das dagegen keine harte Grenze mehr,
+// sondern nur noch ein Hinweis — anders als bei Schiedsrichter/Zeitnehmer/
+// Sekretär (siehe pruefeKeineDoppelrolle in zuordnung.ts, dort weiterhin
+// ein hartes Blockieren), weil sich z.B. Ordner und Kassierer an
+// Einlass/Kasse durchaus von derselben Person gleichzeitig übernehmen
+// lassen. Gibt den Hinweistext zurück, damit die aufrufende Stelle ihn der
+// Person anzeigen kann, statt die Eintragung abzulehnen.
 export async function pruefeKeineOrdnerDoppelrolle(
   tx: Parameters<Parameters<typeof withTenant>[1]>[0],
   terminId: string,
-  person: { userId: string } | { externerName: string }
-) {
+  person: { userId: string } | { externerName: string },
+  rolle: (typeof ORDNER_ROLLEN)[number]
+): Promise<{ warnung: string | null }> {
   const bestehende = await tx.query.terminZuordnungen.findMany({
     where: and(
       eq(terminZuordnungen.terminId, terminId),
       inArray(terminZuordnungen.funktionstraegerTyp, ORDNER_ROLLEN)
     ),
   });
-  const doppelt =
+  const eigene =
     "userId" in person
-      ? bestehende.some((z) => z.userId === person.userId)
-      : bestehende.some(
+      ? bestehende.filter((z) => z.userId === person.userId)
+      : bestehende.filter(
           (z) =>
             !z.userId &&
             z.externerName?.trim().toLowerCase() ===
               person.externerName.trim().toLowerCase()
         );
-  if (doppelt) {
+  if (eigene.length === 0) {
+    return { warnung: null };
+  }
+  if (eigene.some((z) => z.funktionstraegerTyp === rolle)) {
     throw new Error(
-      "Diese Person ist für diesen Termin bereits als Ordner, Kioskdienst oder Kassierer eingetragen."
+      `Diese Person ist für diesen Termin bereits als ${ORDNER_ROLLE_LABEL[rolle]} eingetragen.`
     );
   }
+  const bisherigeRollen = [
+    ...new Set(eigene.map((z) => ORDNER_ROLLE_LABEL[z.funktionstraegerTyp as (typeof ORDNER_ROLLEN)[number]])),
+  ].join(", ");
+  return {
+    warnung: `Diese Person ist für diesen Termin bereits als ${bisherigeRollen} eingetragen und wurde nun zusätzlich als ${ORDNER_ROLLE_LABEL[rolle]} eingetragen.`,
+  };
 }
 
 // Ordner-/Kioskdienst-Bedarf gilt für testspiel/turnier/rundenspiel — beim

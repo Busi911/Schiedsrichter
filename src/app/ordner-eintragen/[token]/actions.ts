@@ -85,7 +85,7 @@ export async function ordnerSelbstEintragenOeffentlich(formData: FormData) {
     await pruefeOrdnerBesetzungsgrenze(tx, verein.id, terminId, termin, rolle);
 
     if (exakt) {
-      await pruefeKeineOrdnerDoppelrolle(tx, terminId, { userId: exakt.userId });
+      await pruefeKeineOrdnerDoppelrolle(tx, terminId, { userId: exakt.userId }, rolle);
 
       await tx.insert(terminZuordnungen).values({
         terminId,
@@ -104,7 +104,12 @@ export async function ordnerSelbstEintragenOeffentlich(formData: FormData) {
       };
     }
 
-    await pruefeKeineOrdnerDoppelrolle(tx, terminId, { externerName: eingegebenerName });
+    await pruefeKeineOrdnerDoppelrolle(
+      tx,
+      terminId,
+      { externerName: eingegebenerName },
+      rolle
+    );
 
     await tx.insert(terminZuordnungen).values({
       terminId,
@@ -319,6 +324,7 @@ export async function ordnerSelbstEintragenMehrfachOeffentlich(
     beschreibung: string | null;
   }[] = [];
   const fehler: string[] = [];
+  const warnungen: string[] = [];
 
   for (const terminId of terminIds) {
     try {
@@ -328,15 +334,17 @@ export async function ordnerSelbstEintragenMehrfachOeffentlich(
         });
         if (!termin) throw new Error("Termin nicht gefunden.");
 
+        let warnung: string | null = null;
         try {
           await pruefeOrdnerBesetzungsgrenze(tx, verein.id, terminId, termin, rolle);
-          await pruefeKeineOrdnerDoppelrolle(
+          ({ warnung } = await pruefeKeineOrdnerDoppelrolle(
             tx,
             terminId,
             identitaet.art === "userId"
               ? { userId: identitaet.userId }
-              : { externerName: identitaet.externerName }
-          );
+              : { externerName: identitaet.externerName },
+            rolle
+          ));
         } catch (err) {
           throw new Error(
             `${formatDatumZeit(termin.start)}: ${
@@ -344,6 +352,7 @@ export async function ordnerSelbstEintragenMehrfachOeffentlich(
             }`
           );
         }
+        if (warnung) warnungen.push(`${formatDatumZeit(termin.start)}: ${warnung}`);
 
         await tx.insert(terminZuordnungen).values({
           terminId,
@@ -445,6 +454,7 @@ export async function ordnerSelbstEintragenMehrfachOeffentlich(
     eingetragen: eingetrageneTermine.length,
     gesamt: terminIds.length,
     fehler: fehler.length > 0 ? fehler.join(" | ") : null,
+    warnung: warnungen.length > 0 ? warnungen.join(" | ") : null,
   };
 }
 
@@ -536,6 +546,7 @@ export async function ordnerSelbstEintragenMehrfachEingeloggt(
     beschreibung: string | null;
   }[] = [];
   const fehler: string[] = [];
+  const warnungen: string[] = [];
 
   for (const terminId of terminIds) {
     try {
@@ -545,9 +556,10 @@ export async function ordnerSelbstEintragenMehrfachEingeloggt(
         });
         if (!termin) throw new Error("Termin nicht gefunden.");
 
+        let warnung: string | null = null;
         try {
           await pruefeOrdnerBesetzungsgrenze(tx, vereinId, terminId, termin, rolle);
-          await pruefeKeineOrdnerDoppelrolle(tx, terminId, { userId });
+          ({ warnung } = await pruefeKeineOrdnerDoppelrolle(tx, terminId, { userId }, rolle));
         } catch (err) {
           throw new Error(
             `${formatDatumZeit(termin.start)}: ${
@@ -555,6 +567,7 @@ export async function ordnerSelbstEintragenMehrfachEingeloggt(
             }`
           );
         }
+        if (warnung) warnungen.push(`${formatDatumZeit(termin.start)}: ${warnung}`);
 
         await tx.insert(terminZuordnungen).values({
           terminId,
@@ -580,5 +593,6 @@ export async function ordnerSelbstEintragenMehrfachEingeloggt(
     eingetragen: eingetrageneTermine.length,
     gesamt: terminIds.length,
     fehler: fehler.length > 0 ? fehler.join(" | ") : null,
+    warnung: warnungen.length > 0 ? warnungen.join(" | ") : null,
   };
 }

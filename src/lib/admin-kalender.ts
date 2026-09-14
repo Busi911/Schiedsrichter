@@ -297,6 +297,30 @@ export async function holeAdminKalenderDaten(
         hinweis = angesetzteNamenPassenZu(t.handballNetZeitnehmer, zugeordneterName)
           ? `✓ passt zu handball.net: ${t.handballNetZeitnehmer}`
           : `⚠ handball.net nennt: ${t.handballNetZeitnehmer}`;
+      } else if ((ORDNER_ROLLEN as readonly string[]).includes(z.funktionstraegerTyp)) {
+        // Anders als bei Schiedsrichter/Zeitnehmer/Sekretär ist eine
+        // Person hier bewusst NICHT auf eine der ORDNER_ROLLEN begrenzt
+        // (siehe pruefeKeineOrdnerDoppelrolle in lib/ordnerwart.ts) — nur
+        // noch ein Hinweis, kein Blockieren. Erkennung über E-Mail (bei
+        // Konto) bzw. externerName (ohne Konto), da userId hier nicht mit
+        // geladen wird.
+        const andereRollen = eigeneZuordnungen.filter(
+          (andere) =>
+            andere.id !== z.id &&
+            (ORDNER_ROLLEN as readonly string[]).includes(andere.funktionstraegerTyp) &&
+            (z.email
+              ? andere.email === z.email
+              : !!z.externerName &&
+                andere.externerName?.trim().toLowerCase() ===
+                  z.externerName.trim().toLowerCase())
+        );
+        if (andereRollen.length > 0) {
+          hinweis = `⚠ zusätzlich als ${[
+            ...new Set(
+              andereRollen.map((a) => ROLLE_LABEL[a.funktionstraegerTyp] ?? a.funktionstraegerTyp)
+            ),
+          ].join(", ")} eingetragen`;
+        }
       }
       besetzungsDetails.push({ id: z.id, label, hinweis });
     }
