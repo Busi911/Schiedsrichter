@@ -229,6 +229,46 @@ const FUNKTIONSTRAEGER_TYPEN = [
   "ordnerwart",
 ] as const;
 
+// Für die Rollen-Info-Mail unten (rollenHinzugefuegtInhalt) — dieselben
+// Bezeichnungen wie TYP_LABEL in FunktionstraegerTabelle, hier separat
+// gepflegt, da diese Datei (Server Action) nicht aus der Client-Komponente
+// importieren soll.
+const FUNKTIONSTRAEGER_TYP_LABEL: Record<
+  (typeof FUNKTIONSTRAEGER_TYPEN)[number],
+  string
+> = {
+  schiedsrichter: "Schiedsrichter",
+  zeitnehmer: "Zeitnehmer",
+  sekretaer: "Sekretär",
+  trainer: "Trainer",
+  ordner: "Ordner",
+  kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
+  schiedsrichterwart: "Schiedsrichterwart",
+  zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
+  ordnerwart: "Ordner-/Kioskdienst-/Kassiererwart",
+};
+
+// Für rolleHinzufuegen unten — die Person hat schon einen Zugang (sonst
+// stünde sie nicht in dieser Liste), braucht also keine Login-Anleitung wie
+// willkommensInhalt, nur eine Info über die neu zugewiesene(n) Rolle(n) —
+// alle auf einmal in EINER Mail, egal wie viele gleichzeitig hinzugefügt
+// wurden.
+function rollenHinzugefuegtInhalt(
+  vereinName: string,
+  rollenLabels: string[]
+): EmailInhalt {
+  return {
+    vereinName,
+    ueberschrift:
+      rollenLabels.length === 1
+        ? `Du wurdest als ${rollenLabels[0]} eingetragen.`
+        : `Du wurdest eingetragen als: ${rollenLabels.join(", ")}.`,
+    zeilen: [],
+    cta: { text: "Zum Login", url: `${appUrl()}/login` },
+  };
+}
+
 export async function createFunktionstraeger(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
@@ -416,12 +456,13 @@ export async function rolleHinzufuegen(formData: FormData) {
   }
   const typedTypen = typen as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
 
-  await withTenant(vereinId, async (tx) => {
+  const { email, vereinName, neueRollenLabels } = await withTenant(vereinId, async (tx) => {
     const person = await tx.query.users.findFirst({
       where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
     });
     if (!person) throw new Error("Person nicht gefunden.");
 
+    const neueRollenLabels: string[] = [];
     for (const typedTyp of typedTypen) {
       const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
         where: and(
@@ -443,8 +484,36 @@ export async function rolleHinzufuegen(formData: FormData) {
         // createFunktionstraeger nötig.
         aktiv: true,
       });
+      neueRollenLabels.push(FUNKTIONSTRAEGER_TYP_LABEL[typedTyp]);
     }
+
+    const vereinRow = await tx.query.vereine.findFirst({
+      where: (v, { eq }) => eq(v.id, vereinId),
+    });
+    return {
+      email: person.email,
+      vereinName: vereinRow?.name ?? "deinem Verein",
+      neueRollenLabels,
+    };
   });
+
+  // Alle auf einmal hinzugefügten Rollen in EINER Mail, egal wie viele
+  // ausgewählt wurden (siehe rollenHinzugefuegtInhalt oben) — waren alle
+  // ausgewählten Rollen bereits vorhanden, bleibt neueRollenLabels leer und
+  // es geht keine Mail raus.
+  if (neueRollenLabels.length > 0) {
+    try {
+      const inhalt = rollenHinzugefuegtInhalt(vereinName, neueRollenLabels);
+      await sendMail(
+        email,
+        "Neue Rolle für HandballerPate",
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
+      );
+    } catch (err) {
+      console.error("Rollen-Info-Mail konnte nicht gesendet werden:", err);
+    }
+  }
 
   revalidatePath("/admin/funktionstraeger");
 }
@@ -514,6 +583,90 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
       );
       await sendMail(
         aktivierung.email,
+        "Zugang für HandballerPate",
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
+      );
+    } catch (err) {
+      console.error("Willkommens-Mail konnte nicht gesendet werden:", err);
+    }
+  }
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
+// Bündelt die Aktivierung mehrerer einzelner Rollen (Checkbox-Mehrfachauswahl
+// im Bearbeiten-Panel einer Person, siehe FunktionstraegerTabelle) — anders
+// als funktionstraegerRollenAktivieren unten (das nach PERSON filtert und
+// dabei ALLE ihre inaktiven Rollen aktiviert) hier gezielt nur die
+// ausgewählten Rollen, damit eine bewusst weiterhin inaktiv gehaltene Rolle
+// nicht versehentlich mitaktiviert wird. Sendet trotzdem nur EINE
+// Willkommens-Mail pro Person, auch wenn mehrere ihrer Rollen auf einmal
+// aktiviert werden — sonst kämen bei drei aktivierten Rollen drei
+// (redundante) Mails hintereinander.
+export async function funktionstraegerRollenAktivierenEinzeln(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const rolleIds = formData
+    .getAll("rolleId")
+    .filter((id): id is string => typeof id === "string" && !!id);
+  if (rolleIds.length === 0) {
+    throw new Error("Keine Rolle ausgewählt.");
+  }
+
+  const { aktivierte, vereinName } = await withTenant(vereinId, async (tx) => {
+    const rollen = await tx
+      .select({
+        id: funktionstraegerRollen.id,
+        userId: funktionstraegerRollen.userId,
+        email: users.email,
+        passwordHash: users.passwordHash,
+      })
+      .from(funktionstraegerRollen)
+      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+      .where(
+        and(
+          inArray(funktionstraegerRollen.id, rolleIds),
+          eq(users.vereinId, vereinId),
+          eq(funktionstraegerRollen.aktiv, false)
+        )
+      );
+    if (rollen.length === 0) return { aktivierte: [], vereinName: "" };
+
+    await tx
+      .update(funktionstraegerRollen)
+      .set({ aktiv: true })
+      .where(inArray(funktionstraegerRollen.id, rollen.map((r) => r.id)));
+
+    // Mehrere ausgewählte Rollen können zur selben Person gehören — pro
+    // Person trotzdem nur EIN Einmal-Passwort/EINE Mail (siehe Kommentar
+    // oben), daher hier zusammenfassen statt pro Rolle zu iterieren.
+    const proPerson = new Map(
+      rollen.map((r) => [r.userId, { email: r.email, passwordHash: r.passwordHash }])
+    );
+
+    const aktivierte: { email: string; einmalPasswort: string | null }[] = [];
+    for (const [userId, person] of proPerson) {
+      const einmalPasswort = await vergebeEinmalPasswortFallsNoetig(
+        tx,
+        userId,
+        person.passwordHash
+      );
+      aktivierte.push({ email: person.email, einmalPasswort });
+    }
+
+    const vereinRow = await tx.query.vereine.findFirst({
+      where: (v, { eq }) => eq(v.id, vereinId),
+    });
+    return { aktivierte, vereinName: vereinRow?.name ?? "deinem Verein" };
+  });
+
+  for (const person of aktivierte) {
+    try {
+      const inhalt = willkommensInhalt(vereinName, person.email, person.einmalPasswort);
+      await sendMail(
+        person.email,
         "Zugang für HandballerPate",
         emailAlsText(inhalt),
         emailAlsHtml(inhalt)

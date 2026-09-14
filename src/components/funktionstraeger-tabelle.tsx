@@ -7,6 +7,7 @@ import {
   deleteFunktionstraeger,
   funktionstraegerAktivToggeln,
   funktionstraegerRollenAktivieren,
+  funktionstraegerRollenAktivierenEinzeln,
   rolleHinzufuegen,
   updateFunktionstraeger,
 } from "@/app/admin/actions";
@@ -376,33 +377,60 @@ export function FunktionstraegerTabelle({
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {p.rollen.map((r) => (
-                          <span
-                            key={r.rolleId}
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs ${
-                              r.aktiv
-                                ? "border-border"
-                                : "border-destructive/30 text-destructive"
-                            }`}
-                          >
-                            <span className="font-medium">
-                              {TYP_LABEL[r.typ] ?? r.typ}
-                              {r.mannschaftName ? ` (${r.mannschaftName})` : ""}
-                              {!r.aktiv && " · inaktiv"}
+                        {p.rollen
+                          .filter((r) => r.aktiv)
+                          .map((r) => (
+                            <span
+                              key={r.rolleId}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-0.5 text-xs"
+                            >
+                              <span className="font-medium">
+                                {TYP_LABEL[r.typ] ?? r.typ}
+                                {r.mannschaftName ? ` (${r.mannschaftName})` : ""}
+                              </span>
+                              <form action={funktionstraegerAktivToggeln}>
+                                <input
+                                  type="hidden"
+                                  name="rolleId"
+                                  value={r.rolleId}
+                                />
+                                <SubmitButton variant="ghost" size="xs">
+                                  Deaktivieren
+                                </SubmitButton>
+                              </form>
                             </span>
-                            <form action={funktionstraegerAktivToggeln}>
-                              <input
-                                type="hidden"
-                                name="rolleId"
-                                value={r.rolleId}
-                              />
-                              <SubmitButton variant="ghost" size="xs">
-                                {r.aktiv ? "Deaktivieren" : "Aktivieren"}
-                              </SubmitButton>
-                            </form>
-                          </span>
-                        ))}
+                          ))}
                       </div>
+                      {(() => {
+                        const inaktiveRollen = p.rollen.filter((r) => !r.aktiv);
+                        if (inaktiveRollen.length === 0) return null;
+                        return (
+                          <form
+                            action={funktionstraegerRollenAktivierenEinzeln}
+                            className="flex flex-wrap items-center gap-2"
+                          >
+                            {inaktiveRollen.map((r) => (
+                              <label
+                                key={r.rolleId}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 px-2.5 py-0.5 text-xs text-destructive"
+                              >
+                                <input
+                                  type="checkbox"
+                                  name="rolleId"
+                                  value={r.rolleId}
+                                  className="size-3.5 accent-primary"
+                                />
+                                {TYP_LABEL[r.typ] ?? r.typ}
+                                {r.mannschaftName ? ` (${r.mannschaftName})` : ""} ·
+                                inaktiv
+                              </label>
+                            ))}
+                            <SubmitButton variant="outline" size="xs">
+                              Ausgewählte aktivieren
+                            </SubmitButton>
+                          </form>
+                        );
+                      })()}
                       {(() => {
                         const vorhandeneTypen = new Set(p.rollen.map((r) => r.typ));
                         const verfuegbareRollen = Object.entries(TYP_LABEL).filter(
