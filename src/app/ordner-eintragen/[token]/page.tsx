@@ -6,7 +6,7 @@ import { adminDb } from "@/db/admin";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
-import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
+import { ORDNER_ROLLE_LABEL, ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { tagKey } from "@/lib/kalender";
 import { rundenspielTypLabel } from "@/lib/termin-label";
@@ -27,12 +27,6 @@ const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
   rundenspiel: "Rundenspiel",
-};
-
-const ORDNER_ROLLE_LABEL: Record<string, string> = {
-  ordner: "Ordner",
-  kioskdienst: "Kioskdienst",
-  kassierer: "Kassierer",
 };
 
 const ORDNER_ROLLE_OPTIONEN = [
@@ -192,7 +186,9 @@ export default async function OrdnerEintragenPage({
       .map((l) => l.rolle),
     zuordnungen: t.zuordnungen.map((z) => ({
       id: z.id,
-      label: `${ORDNER_ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${z.name ?? z.externerName ?? "—"}`,
+      label: `${
+        (ORDNER_ROLLE_LABEL as Record<string, string>)[z.funktionstraegerTyp] ?? z.funktionstraegerTyp
+      }: ${z.name ?? z.externerName ?? "—"}`,
     })),
   }));
 

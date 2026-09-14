@@ -518,6 +518,99 @@ export async function rolleHinzufuegen(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
+// Mehrfachauswahl-Variante von rolleHinzufuegen oben: dieselbe(n) Rolle(n)
+// auf einmal für MEHRERE bereits bestehende Personen anlegen (siehe
+// Mehrfachauswahl-Leiste in FunktionstraegerTabelle) — z.B. um mehrere neue
+// Trainer derselben Mannschaft oder mehrere neue Ordner in einem Rutsch
+// anzulegen, statt jede Person einzeln im Bearbeiten-Panel aufzuklappen.
+// Jede Person bekommt trotzdem ihre EIGENE, auf ihre tatsächlich neuen
+// Rollen begrenzte Info-Mail (eine Person kann eine der ausgewählten Rollen
+// schon haben, eine andere nicht) — analog zur Gruppierung in
+// funktionstraegerRollenAktivierenEinzeln unten.
+export async function rollenHinzufuegenMehrfach(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const userIds = formData
+    .getAll("userId")
+    .filter((v): v is string => typeof v === "string" && !!v);
+  const typen = formData.getAll("typ");
+  const mannschaftId = formData.get("mannschaftId");
+
+  if (userIds.length === 0) {
+    throw new Error("Bitte mindestens eine Person auswählen.");
+  }
+  if (
+    !typen.every(
+      (t): t is (typeof FUNKTIONSTRAEGER_TYPEN)[number] =>
+        typeof t === "string" &&
+        (FUNKTIONSTRAEGER_TYPEN as readonly string[]).includes(t)
+    )
+  ) {
+    throw new Error("Ungültige Rolle ausgewählt.");
+  }
+  if (typen.length === 0) {
+    throw new Error("Bitte mindestens eine Rolle auswählen.");
+  }
+  const typedTypen = typen as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
+
+  const { benachrichtigungen, vereinName } = await withTenant(vereinId, async (tx) => {
+    const benachrichtigungen: { email: string; neueRollenLabels: string[] }[] = [];
+    for (const userId of userIds) {
+      const person = await tx.query.users.findFirst({
+        where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
+      });
+      if (!person) continue;
+
+      const neueRollenLabels: string[] = [];
+      for (const typedTyp of typedTypen) {
+        const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
+          where: and(
+            eq(funktionstraegerRollen.userId, userId),
+            eq(funktionstraegerRollen.typ, typedTyp)
+          ),
+        });
+        if (vorhandeneRolle) continue;
+
+        await tx.insert(funktionstraegerRollen).values({
+          userId,
+          typ: typedTyp,
+          mannschaftId:
+            typedTyp === "trainer" && typeof mannschaftId === "string" && mannschaftId
+              ? mannschaftId
+              : null,
+          aktiv: true,
+        });
+        neueRollenLabels.push(FUNKTIONSTRAEGER_TYP_LABEL[typedTyp]);
+      }
+      if (neueRollenLabels.length > 0) {
+        benachrichtigungen.push({ email: person.email, neueRollenLabels });
+      }
+    }
+
+    const vereinRow = await tx.query.vereine.findFirst({
+      where: (v, { eq }) => eq(v.id, vereinId),
+    });
+    return { benachrichtigungen, vereinName: vereinRow?.name ?? "deinem Verein" };
+  });
+
+  for (const { email, neueRollenLabels } of benachrichtigungen) {
+    try {
+      const inhalt = rollenHinzugefuegtInhalt(vereinName, neueRollenLabels);
+      await sendMail(
+        email,
+        "Neue Rolle für HandballerPate",
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
+      );
+    } catch (err) {
+      console.error("Rollen-Info-Mail konnte nicht gesendet werden:", err);
+    }
+  }
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
 // Statt Löschen: eine Rolle wird deaktiviert (bleibt in der
 // Zuordnungs-Historie erhalten), taucht aber nicht mehr in Zuordnung/
 // Selbst-Anmeldung auf.

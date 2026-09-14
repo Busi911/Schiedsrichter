@@ -37,6 +37,11 @@ export type MehrfachEintragErgebnis = {
   // Mehrere Fehler mit " | " getrennt, analog zu den Import-/nuLiga-
   // Ergebnissen in admin/funktionstraeger und admin/einstellungen.
   fehler: string | null;
+  // Nicht blockierende Hinweise (z.B. Ordner-Doppelrolle über ORDNER_ROLLEN
+  // hinweg, siehe pruefeKeineOrdnerDoppelrolle in lib/ordnerwart.ts) —
+  // anders als fehler kein abgelehnter Termin, nur ein Hinweis zu einem
+  // trotzdem erfolgreich eingetragenen. Ebenfalls mit " | " getrennt.
+  warnung?: string | null;
 };
 
 // Ersetzt die frühere Einzel-Eintragung (ein Formular je Termin) — Checkbox
@@ -147,6 +152,16 @@ export function TerminMehrfachAuswahl({
             )}
             {status.fehler.split(" | ").map((f) => (
               <p key={f}>{f}</p>
+            ))}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {status?.warnung && (
+        <Alert>
+          <AlertDescription>
+            {status.warnung.split(" | ").map((w) => (
+              <p key={w}>{w}</p>
             ))}
           </AlertDescription>
         </Alert>

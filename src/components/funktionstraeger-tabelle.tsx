@@ -9,6 +9,7 @@ import {
   funktionstraegerRollenAktivieren,
   funktionstraegerRollenAktivierenEinzeln,
   rolleHinzufuegen,
+  rollenHinzufuegenMehrfach,
   updateFunktionstraeger,
 } from "@/app/admin/actions";
 import { Badge } from "@/components/ui/badge";
@@ -199,6 +200,52 @@ export function FunktionstraegerTabelle({
                 Rollen aktivieren ({ausgewaehlt.size})
               </SubmitButton>
             </form>
+            <details className="text-left">
+              <summary className={DISCLOSURE_KLASSE}>
+                Rollen hinzufügen ({ausgewaehlt.size})…
+              </summary>
+              <form
+                action={rollenHinzufuegenMehrfach}
+                className="mt-2 flex flex-col gap-2 rounded-lg border bg-background p-3"
+              >
+                {[...ausgewaehlt].map((id) => (
+                  <input key={id} type="hidden" name="userId" value={id} />
+                ))}
+                <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                  {Object.entries(TYP_LABEL).map(([value, label]) => (
+                    <label key={value} className="flex items-center gap-1.5 text-xs">
+                      <input
+                        type="checkbox"
+                        name="typ"
+                        value={value}
+                        className="size-3.5 accent-primary"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {mannschaftsListe.length > 0 && (
+                    <div className="w-40">
+                      <LabeledSelect
+                        name="mannschaftId"
+                        placeholder="Mannschaft (nur Trainer)"
+                        options={mannschaftsListe.map((m) => ({
+                          value: m.id,
+                          label: m.altersklasse
+                            ? `${m.name} (${m.altersklasse})`
+                            : m.name,
+                        }))}
+                      />
+                    </div>
+                  )}
+                  <SubmitButton variant="outline" size="sm">
+                    Ausgewählte Rollen für {ausgewaehlt.size} Person
+                    {ausgewaehlt.size === 1 ? "" : "en"} hinzufügen
+                  </SubmitButton>
+                </div>
+              </form>
+            </details>
             <form
               action={deleteFunktionstraeger}
               className="flex items-center gap-2"
