@@ -384,30 +384,37 @@ export async function createFunktionstraeger(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
-// Einer BEREITS bestehenden Person eine zusätzliche Rolle zuweisen — bisher
-// ging das nur über das "Neuer Funktionsträger"-Formular (per Name+E-Mail,
-// die dann auf die vorhandene Person matcht), was im Bearbeiten-Panel jeder
-// Zeile (FunktionstraegerTabelle) nicht ersichtlich/erreichbar war. Direkt
-// per userId statt per E-Mail, da die Person hier schon eindeutig feststeht.
+// Einer BEREITS bestehenden Person eine oder mehrere zusätzliche Rollen auf
+// einmal zuweisen (Checkbox-Mehrfachauswahl statt Einzel-Dropdown, siehe
+// FunktionstraegerTabelle) — bisher ging das nur über das "Neuer
+// Funktionsträger"-Formular (per Name+E-Mail, die dann auf die vorhandene
+// Person matcht), was im Bearbeiten-Panel jeder Zeile nicht
+// ersichtlich/erreichbar war. Direkt per userId statt per E-Mail, da die
+// Person hier schon eindeutig feststeht.
 export async function rolleHinzufuegen(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
   const userId = formData.get("userId");
-  const typ = formData.get("typ");
+  const typen = formData.getAll("typ");
   const mannschaftId = formData.get("mannschaftId");
 
   if (typeof userId !== "string" || !userId) {
     throw new Error("Person fehlt.");
   }
   if (
-    typeof typ !== "string" ||
-    !(FUNKTIONSTRAEGER_TYPEN as readonly string[]).includes(typ)
+    !typen.every(
+      (t): t is (typeof FUNKTIONSTRAEGER_TYPEN)[number] =>
+        typeof t === "string" &&
+        (FUNKTIONSTRAEGER_TYPEN as readonly string[]).includes(t)
+    )
   ) {
-    throw new Error("Ungültige Rolle.");
+    throw new Error("Ungültige Rolle ausgewählt.");
   }
-
-  const typedTyp = typ as (typeof FUNKTIONSTRAEGER_TYPEN)[number];
+  if (typen.length === 0) {
+    throw new Error("Bitte mindestens eine Rolle auswählen.");
+  }
+  const typedTypen = typen as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
 
   await withTenant(vereinId, async (tx) => {
     const person = await tx.query.users.findFirst({
@@ -415,26 +422,28 @@ export async function rolleHinzufuegen(formData: FormData) {
     });
     if (!person) throw new Error("Person nicht gefunden.");
 
-    const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
-      where: and(
-        eq(funktionstraegerRollen.userId, userId),
-        eq(funktionstraegerRollen.typ, typedTyp)
-      ),
-    });
-    if (vorhandeneRolle) return;
+    for (const typedTyp of typedTypen) {
+      const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
+        where: and(
+          eq(funktionstraegerRollen.userId, userId),
+          eq(funktionstraegerRollen.typ, typedTyp)
+        ),
+      });
+      if (vorhandeneRolle) continue;
 
-    await tx.insert(funktionstraegerRollen).values({
-      userId,
-      typ: typedTyp,
-      mannschaftId:
-        typ === "trainer" && typeof mannschaftId === "string" && mannschaftId
-          ? mannschaftId
-          : null,
-      // Direkt aktiv: die Person ist bereits bekannt/eingeloggt, es geht nur
-      // um eine zusätzliche Rolle — kein separater Onboarding-Schritt wie
-      // bei createFunktionstraeger nötig.
-      aktiv: true,
-    });
+      await tx.insert(funktionstraegerRollen).values({
+        userId,
+        typ: typedTyp,
+        mannschaftId:
+          typedTyp === "trainer" && typeof mannschaftId === "string" && mannschaftId
+            ? mannschaftId
+            : null,
+        // Direkt aktiv: die Person ist bereits bekannt/eingeloggt, es geht nur
+        // um zusätzliche Rollen — kein separater Onboarding-Schritt wie bei
+        // createFunktionstraeger nötig.
+        aktiv: true,
+      });
+    }
   });
 
   revalidatePath("/admin/funktionstraeger");
