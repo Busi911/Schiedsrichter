@@ -50,6 +50,11 @@ export default async function FunktionstraegerPage({
     importAngelegt?: string;
     importUebersprungen?: string;
     importFehler?: string;
+    // Von der "Neue Selbstregistrierung"-Mail an die Warte (siehe
+    // neueSelbstregistrierungInhalt in lib/zuordnung.ts) — belegt die Suche
+    // in FunktionstraegerTabelle direkt mit der neu registrierten E-Mail
+    // vor, statt in der unfilterten Gesamtliste suchen zu müssen.
+    suche?: string;
   }>;
 }) {
   const session = await requireAdmin();
@@ -190,6 +195,7 @@ export default async function FunktionstraegerPage({
             eigeneUserId={session.user.id}
             mannschaftsListe={mannschaftsListe}
             schreibzugriff={session.user.istAdmin}
+            initialSuche={importErgebnis.suche}
           />
         </CardContent>
       </Card>

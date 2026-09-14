@@ -76,13 +76,18 @@ export function FunktionstraegerTabelle({
   eigeneUserId,
   mannschaftsListe = [],
   schreibzugriff = true,
+  // Von der "Neue Selbstregistrierung"-Mail vorbelegt (siehe
+  // admin/funktionstraeger/page.tsx) — zeigt direkt nur die neu
+  // registrierte Person, statt sie in der Gesamtliste suchen zu müssen.
+  initialSuche,
 }: {
   personen: Person[];
   eigeneUserId: string;
   mannschaftsListe?: { id: string; name: string; altersklasse?: string | null }[];
   schreibzugriff?: boolean;
+  initialSuche?: string;
 }) {
-  const [suche, setSuche] = useState("");
+  const [suche, setSuche] = useState(initialSuche ?? "");
   const [rolleFilter, setRolleFilter] = useState("alle");
   const [statusFilter, setStatusFilter] = useState<"alle" | "aktiv" | "inaktiv">(
     "alle"
@@ -112,6 +117,11 @@ export function FunktionstraegerTabelle({
       });
     });
   }, [personen, suche, rolleFilter, statusFilter]);
+
+  // Vorbelegte Suche über die Mail-Verlinkung UND genau ein Treffer — dann
+  // gleich das Bearbeiten-Panel aufklappen, sonst müsste der Wart nach dem
+  // ohnehin schon gezielten Sucheinstieg trotzdem noch selbst klicken.
+  const automatischAufgeklappt = !!initialSuche && gefiltert.length === 1;
 
   // Man selbst darf nicht in der Mehrfachauswahl landen (keine
   // Selbstlöschung über diesen Weg, siehe deleteFunktionstraeger).
@@ -332,7 +342,7 @@ export function FunktionstraegerTabelle({
                 </TableCell>
                 <TableCell className="text-right">
                   {schreibzugriff && (
-                  <details className="text-left">
+                  <details className="text-left" open={automatischAufgeklappt}>
                     <summary className={DISCLOSURE_KLASSE}>Bearbeiten</summary>
                     <div className="mt-2 flex flex-col gap-3 rounded-lg border p-3">
                       <form

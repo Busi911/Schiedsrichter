@@ -396,7 +396,11 @@ export async function ordnerSelbstEintragenMehrfachOeffentlich(
         vereinName: verein.name,
         ...neueSelbstregistrierungInhalt(eingegebenerName, eingegebeneEmail, rolle, {
           text: "Zur Funktionsträger-Verwaltung",
-          url: `${appUrl()}/admin/funktionstraeger`,
+          // ?suche vorbelegt die Suche in FunktionstraegerTabelle direkt mit
+          // der E-Mail — sonst landet der Wart auf der unfilterten Liste
+          // aller Funktionsträger und muss die neu registrierte Person darin
+          // erst manuell suchen.
+          url: `${appUrl()}/admin/funktionstraeger?suche=${encodeURIComponent(eingegebeneEmail)}`,
         }),
       };
       for (const wart of ordnerwarte) {
