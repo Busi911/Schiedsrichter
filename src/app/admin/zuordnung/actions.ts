@@ -11,8 +11,18 @@ import {
   zuordnungEntferntInhalt,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
+import { ORDNER_ROLLEN, pruefeOrdnerBesetzungsgrenze } from "@/lib/ordnerwart";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
+
+// Alle über dieses Modal zuordenbaren Rollen — Schiedsrichter/Zeitnehmer/
+// Sekretär (feste Gespann-Obergrenze, siehe pruefeBesetzungsgrenze) UND
+// Ordner/Kioskdienst/Kassierer (Bedarf pro Mannschaft/Vereinseinstellung,
+// siehe pruefeOrdnerBesetzungsgrenze) — bis vor Kurzem waren Ordner-Dienste
+// hier gar nicht wählbar, nur über /profil/ordnerwart. Beide Prüfungen
+// bleiben getrennt, da sie strukturell unterschiedlich funktionieren; hier
+// nur zusammengeführt, WELCHE Prüfung je nach gewählter Rolle greift.
+const ALLE_ZUORDENBAREN_TYPEN = [...ZUORDENBARE_TYPEN, ...ORDNER_ROLLEN] as const;
 
 export async function zuordnen(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
@@ -28,10 +38,10 @@ export async function zuordnen(formData: FormData) {
     throw new Error("Bitte eine Person auswählen.");
   }
   const [userId, typ] = auswahl.split("|");
-  if (!(ZUORDENBARE_TYPEN as readonly string[]).includes(typ)) {
+  if (!(ALLE_ZUORDENBAREN_TYPEN as readonly string[]).includes(typ)) {
     throw new Error("Ungültige Rolle.");
   }
-  const rolle = typ as (typeof ZUORDENBARE_TYPEN)[number];
+  const rolle = typ as (typeof ALLE_ZUORDENBAREN_TYPEN)[number];
 
   const benachrichtigung = await withTenant(vereinId, async (tx) => {
     // userId kommt roh aus dem Formular (Dropdown zeigt zwar nur Personen
@@ -55,7 +65,27 @@ export async function zuordnen(formData: FormData) {
     });
     if (vorhanden) return null;
 
-    await pruefeBesetzungsgrenze(tx, vereinId, terminId, rolle);
+    const termin = await tx.query.termine.findFirst({
+      where: eq(termine.id, terminId),
+    });
+    if (!termin) throw new Error("Termin nicht gefunden.");
+
+    if ((ORDNER_ROLLEN as readonly string[]).includes(rolle)) {
+      await pruefeOrdnerBesetzungsgrenze(
+        tx,
+        vereinId,
+        terminId,
+        termin,
+        rolle as (typeof ORDNER_ROLLEN)[number]
+      );
+    } else {
+      await pruefeBesetzungsgrenze(
+        tx,
+        vereinId,
+        terminId,
+        rolle as (typeof ZUORDENBARE_TYPEN)[number]
+      );
+    }
 
     await tx.insert(terminZuordnungen).values({
       terminId,
@@ -63,11 +93,6 @@ export async function zuordnen(formData: FormData) {
       funktionstraegerTyp: rolle,
       quelle: "zugeordnet_durch_admin",
     });
-
-    const termin = await tx.query.termine.findFirst({
-      where: eq(termine.id, terminId),
-    });
-    if (!termin) return null;
 
     const verein = await tx.query.vereine.findFirst({
       where: eq(vereine.id, vereinId),
@@ -114,27 +139,42 @@ export async function externeZuordnung(formData: FormData) {
   }
   if (
     typeof rolle !== "string" ||
-    !(ZUORDENBARE_TYPEN as readonly string[]).includes(rolle)
+    !(ALLE_ZUORDENBAREN_TYPEN as readonly string[]).includes(rolle)
   ) {
     throw new Error("Ungültige Rolle.");
   }
   if (typeof name !== "string" || !name.trim()) {
     throw new Error("Name ist erforderlich.");
   }
+  const typedRolle = rolle as (typeof ALLE_ZUORDENBAREN_TYPEN)[number];
 
   await withTenant(vereinId, async (tx) => {
-    await pruefeBesetzungsgrenze(
-      tx,
-      vereinId,
-      terminId,
-      rolle as (typeof ZUORDENBARE_TYPEN)[number]
-    );
+    if ((ORDNER_ROLLEN as readonly string[]).includes(typedRolle)) {
+      const termin = await tx.query.termine.findFirst({
+        where: eq(termine.id, terminId),
+      });
+      if (!termin) throw new Error("Termin nicht gefunden.");
+      await pruefeOrdnerBesetzungsgrenze(
+        tx,
+        vereinId,
+        terminId,
+        termin,
+        typedRolle as (typeof ORDNER_ROLLEN)[number]
+      );
+    } else {
+      await pruefeBesetzungsgrenze(
+        tx,
+        vereinId,
+        terminId,
+        typedRolle as (typeof ZUORDENBARE_TYPEN)[number]
+      );
+    }
 
     await tx.insert(terminZuordnungen).values({
       terminId,
       userId: null,
       externerName: name.trim(),
-      funktionstraegerTyp: rolle as (typeof ZUORDENBARE_TYPEN)[number],
+      funktionstraegerTyp: typedRolle,
       quelle: "zugeordnet_durch_admin",
     });
   });

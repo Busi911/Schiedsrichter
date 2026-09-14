@@ -55,6 +55,9 @@ const ZUORDENBARE_TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
   zeitnehmer: "Zeitnehmer",
   sekretaer: "Sekretär",
+  ordner: "Ordner",
+  kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
 };
 
 export type KalenderEintrag = {

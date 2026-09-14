@@ -18,7 +18,7 @@ import {
   istBesetzungVollstaendig,
 } from "@/lib/besetzung";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
-import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
+import { holeOrdnerEinsatzZahlen, ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
   angesetzteNamenPassenZu,
@@ -166,7 +166,29 @@ export async function holeAdminKalenderDaten(
       return [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe, verein];
     });
 
-  const zuordenbarePersonen = await holeZuordenbareFunktionstraeger(vereinId);
+  // Ordner/Kioskdienst/Kassierer waren im Zuordnen-Modal bisher gar nicht
+  // wählbar (nur über /profil/ordnerwart) — hier zu den Schiedsrichter-/
+  // Zeitnehmer-/Sekretär-Kandidaten dazugemischt, damit sich auch diese
+  // Dienste direkt im Admin-Kalender zuordnen lassen (siehe zuordnen in
+  // admin/zuordnung/actions.ts, das jetzt beide Rollen-Familien annimmt).
+  // holeOrdnerEinsatzZahlen liefert eine Zeile PRO PERSON mit all ihren
+  // Rollen — hier auf eine Zeile PRO Rolle aufgefächert, damit sie zur
+  // flachen ZuordenbarePerson-Form passt (wie holeZuordenbareFunktionstraeger).
+  const [zuordenbareFunktionstraeger, ordnerEinsatzZahlen] = await Promise.all([
+    holeZuordenbareFunktionstraeger(vereinId),
+    holeOrdnerEinsatzZahlen(vereinId),
+  ]);
+  const zuordenbarePersonen = [
+    ...zuordenbareFunktionstraeger,
+    ...ordnerEinsatzZahlen.flatMap((p) =>
+      p.rollen.map((rolle) => ({
+        userId: p.userId,
+        name: p.name,
+        email: p.email,
+        typ: rolle,
+      }))
+    ),
+  ];
 
   const mannschaftenNachId = new Map(mannschaftsListe.map((m) => [m.id, m]));
   const eintraegeProTag = new Map<string, KalenderEintrag[]>();
@@ -390,10 +412,9 @@ export async function holeAdminKalenderDaten(
         });
       }
       for (const rolle of ORDNER_ROLLEN) {
-        const hatEigene = eigeneZuordnungen.some(
+        const vorhandeneAnzahl = eigeneZuordnungen.filter(
           (z) => z.funktionstraegerTyp === rolle
-        );
-        if (hatEigene) continue;
+        ).length;
         // bedarfFuer liefert für nicht zutreffende Typen (z.B. turnier_spiel,
         // siehe Kommentar dort) bereits selbst 0 zurück — keine zusätzliche
         // Typ-Prüfung hier nötig.
@@ -406,7 +427,13 @@ export async function holeAdminKalenderDaten(
           undefined,
           mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
         );
-        if (bedarf > 0) {
+        // Wie bei schiriVoll/zeitnehmerVoll/sekretaerVoll oben: dieselbe
+        // Grenze, die pruefeOrdnerBesetzungsgrenze serverseitig prüft (siehe
+        // zuordnen in admin/zuordnung/actions.ts), hier gespiegelt, damit das
+        // "Person wählen…"-Dropdown eine ohnehin abgelehnte Zuordnung gar
+        // nicht erst anbietet.
+        if (vorhandeneAnzahl >= bedarf) volleRollen.push(rolle);
+        if (bedarf > 0 && vorhandeneAnzahl === 0) {
           besetzungsDetails.push({
             id: `offen-${rolle}-${t.id}`,
             label: `${ROLLE_LABEL[rolle]}: offen`,
