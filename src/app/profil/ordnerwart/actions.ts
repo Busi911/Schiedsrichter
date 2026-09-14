@@ -4,7 +4,14 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
-import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
+import {
+  funktionstraegerRollen,
+  mannschaften,
+  termine,
+  terminZuordnungen,
+  users,
+  vereine,
+} from "@/db/schema";
 import { zuordnungEntferntInhalt, zuordnungsMailInhalt } from "@/lib/zuordnung";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { istOrdnerwart, ORDNER_ROLLEN } from "@/lib/ordnerwart";
@@ -451,4 +458,107 @@ export async function ordnerVorschlagBestaetigen(formData: FormData) {
 
   revalidatePath("/profil/ordnerwart");
   revalidatePath("/admin/kalender");
+}
+
+// Für Selbsteintragungen ohne passenden Kandidaten (oder wenn keiner der
+// vorgeschlagenen Kandidaten tatsächlich zutrifft) — analog zu
+// zeitnehmerNeuAnlegenUndBestaetigen in profil/zeitnehmerwart/actions.ts,
+// siehe dortige Kommentare (legt die Person mit einer vom Wart eingegebenen
+// E-Mail an — Platzhalter reicht — und bestätigt die Zuordnung in einem
+// Schritt, statt den Umweg über /admin/funktionstraeger zu erzwingen).
+export async function ordnerNeuAnlegenUndBestaetigen(formData: FormData) {
+  const { vereinId } = await requireOrdnerwartZugriff();
+
+  const zuordnungId = formData.get("zuordnungId");
+  const email = formData.get("email");
+  if (typeof zuordnungId !== "string" || !zuordnungId) {
+    throw new Error("Zuordnung fehlt.");
+  }
+  if (typeof email !== "string" || !email.trim()) {
+    throw new Error("E-Mail ist erforderlich.");
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+
+  await withTenant(vereinId, async (tx) => {
+    const zuordnung = await tx.query.terminZuordnungen.findFirst({
+      where: eq(terminZuordnungen.id, zuordnungId),
+    });
+    if (
+      !zuordnung ||
+      !(ORDNER_ROLLEN as readonly string[]).includes(
+        zuordnung.funktionstraegerTyp
+      ) ||
+      zuordnung.userId ||
+      !zuordnung.externerName
+    ) {
+      throw new Error(
+        "Zuordnung nicht gefunden, keine Ordner-/Kioskdienst-/Kassierer-Rolle, oder bereits bestätigt."
+      );
+    }
+    const rolle = zuordnung.funktionstraegerTyp as OrdnerRolle;
+
+    let person = await tx.query.users.findFirst({
+      where: eq(users.email, normalizedEmail),
+    });
+    if (person && person.vereinId !== vereinId) {
+      throw new Error(
+        "Diese E-Mail-Adresse ist bereits einem anderen Verein zugeordnet."
+      );
+    }
+    if (!person) {
+      [person] = await tx
+        .insert(users)
+        .values({
+          email: normalizedEmail,
+          name: zuordnung.externerName,
+          vereinId,
+        })
+        .returning();
+    }
+
+    const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
+      where: and(
+        eq(funktionstraegerRollen.userId, person.id),
+        eq(funktionstraegerRollen.typ, rolle)
+      ),
+    });
+    if (!vorhandeneRolle) {
+      await tx.insert(funktionstraegerRollen).values({
+        userId: person.id,
+        typ: rolle,
+        aktiv: true,
+      });
+    } else if (!vorhandeneRolle.aktiv) {
+      await tx
+        .update(funktionstraegerRollen)
+        .set({ aktiv: true })
+        .where(eq(funktionstraegerRollen.id, vorhandeneRolle.id));
+    }
+
+    // Wie in ordnerVorschlagBestaetigen: ist die (wiederverwendete) Person
+    // für diese Rolle an diesem Termin bereits anderweitig zugeordnet, wird
+    // die self-eingetragene Dublette entfernt statt einen zweiten Eintrag
+    // zu behalten.
+    const vorhanden = await tx.query.terminZuordnungen.findFirst({
+      where: and(
+        eq(terminZuordnungen.terminId, zuordnung.terminId),
+        eq(terminZuordnungen.userId, person.id),
+        eq(terminZuordnungen.funktionstraegerTyp, rolle)
+      ),
+    });
+    if (vorhanden) {
+      await tx
+        .delete(terminZuordnungen)
+        .where(eq(terminZuordnungen.id, zuordnungId));
+    } else {
+      await tx
+        .update(terminZuordnungen)
+        .set({ userId: person.id, externerName: null, matchVorschlagUserId: null })
+        .where(eq(terminZuordnungen.id, zuordnungId));
+    }
+  });
+
+  revalidatePath("/profil/ordnerwart");
+  revalidatePath("/admin/kalender");
+  revalidatePath("/admin/funktionstraeger");
 }

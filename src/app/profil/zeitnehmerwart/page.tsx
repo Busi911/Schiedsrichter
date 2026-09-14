@@ -409,32 +409,9 @@ export default async function ZeitnehmerwartPage({
                     {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
                   </p>
                   {kandidaten.length === 0 ? (
-                    <div className="mt-1 flex flex-col gap-1.5">
-                      <p className="text-xs text-muted-foreground">
-                        Keine passende Person im Verein angelegt.
-                      </p>
-                      {/* Fallback: direkt eine neue Person anlegen statt den
-                          Umweg über /admin/funktionstraeger zu erzwingen —
-                          eine Platzhalter-E-Mail reicht, es geht nur darum,
-                          einen Eintrag zum Zuordnen zu haben (siehe
-                          zeitnehmerNeuAnlegenUndBestaetigen). */}
-                      <form
-                        action={zeitnehmerNeuAnlegenUndBestaetigen}
-                        className="flex flex-wrap items-center gap-2"
-                      >
-                        <input type="hidden" name="zuordnungId" value={z.id} />
-                        <Input
-                          name="email"
-                          type="email"
-                          placeholder="E-Mail (Platzhalter reicht)"
-                          required
-                          className="h-8 min-w-56 flex-1"
-                        />
-                        <Button type="submit" size="xs" variant="outline">
-                          Person anlegen &amp; zuordnen
-                        </Button>
-                      </form>
-                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Keine passende Person im Verein angelegt.
+                    </p>
                   ) : (
                     <form
                       action={zeitnehmerVorschlagBestaetigen}
@@ -453,6 +430,42 @@ export default async function ZeitnehmerwartPage({
                       <SubmitButton size="sm">Bestätigen</SubmitButton>
                     </form>
                   )}
+                  {/* Immer verfügbar, nicht nur als Fallback ohne
+                      Kandidaten: die vorgeschlagenen Kandidaten oben können
+                      allesamt nicht zutreffen — dann direkt aus der
+                      Selbsteintragung heraus eine neue Person mit dieser
+                      Rolle anlegen, statt den Umweg über
+                      /admin/funktionstraeger zu erzwingen. */}
+                  <details className="group mt-1.5">
+                    <summary className={DISCLOSURE_KLASSE}>
+                      <span className="group-open:hidden">
+                        Neue Person anlegen
+                      </span>
+                      <span className="hidden group-open:inline">
+                        Schließen
+                      </span>
+                    </summary>
+                    <form
+                      action={zeitnehmerNeuAnlegenUndBestaetigen}
+                      className="mt-2 flex flex-wrap items-center gap-2"
+                    >
+                      <input type="hidden" name="zuordnungId" value={z.id} />
+                      <Input
+                        name="email"
+                        type="email"
+                        placeholder="E-Mail (Platzhalter reicht)"
+                        required
+                        className="h-8 min-w-56 flex-1"
+                      />
+                      <Button type="submit" size="xs" variant="outline">
+                        {z.externerName} anlegen &amp; als{" "}
+                        {z.funktionstraegerTyp === "zeitnehmer"
+                          ? "Zeitnehmer"
+                          : "Sekretär"}{" "}
+                        bestätigen
+                      </Button>
+                    </form>
+                  </details>
                   {inaktivVorschlag && (
                     <form
                       action={zeitnehmerInaktiveRolleAktivierenUndZuordnen}
