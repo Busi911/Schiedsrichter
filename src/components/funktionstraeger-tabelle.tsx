@@ -412,37 +412,44 @@ export function FunktionstraegerTabelle({
                         return (
                           <form
                             action={rolleHinzufuegen}
-                            className="flex flex-wrap items-center gap-2 border-t pt-3"
+                            className="flex flex-col gap-2 border-t pt-3"
                           >
                             <input type="hidden" name="userId" value={p.userId} />
-                            <div className="w-44">
-                              <LabeledSelect
-                                name="typ"
-                                placeholder="Rolle hinzufügen…"
-                                options={verfuegbareRollen.map(([value, label]) => ({
-                                  value,
-                                  label,
-                                }))}
-                                required
-                              />
+                            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                              {verfuegbareRollen.map(([value, label]) => (
+                                <label
+                                  key={value}
+                                  className="flex items-center gap-1.5 text-xs"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    name="typ"
+                                    value={value}
+                                    className="size-3.5 accent-primary"
+                                  />
+                                  {label}
+                                </label>
+                              ))}
                             </div>
-                            {mannschaftsListe.length > 0 && (
-                              <div className="w-40">
-                                <LabeledSelect
-                                  name="mannschaftId"
-                                  placeholder="Mannschaft (nur Trainer)"
-                                  options={mannschaftsListe.map((m) => ({
-                                    value: m.id,
-                                    label: m.altersklasse
-                                      ? `${m.name} (${m.altersklasse})`
-                                      : m.name,
-                                  }))}
-                                />
-                              </div>
-                            )}
-                            <SubmitButton variant="outline" size="xs">
-                              Hinzufügen
-                            </SubmitButton>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {mannschaftsListe.length > 0 && (
+                                <div className="w-40">
+                                  <LabeledSelect
+                                    name="mannschaftId"
+                                    placeholder="Mannschaft (nur Trainer)"
+                                    options={mannschaftsListe.map((m) => ({
+                                      value: m.id,
+                                      label: m.altersklasse
+                                        ? `${m.name} (${m.altersklasse})`
+                                        : m.name,
+                                    }))}
+                                  />
+                                </div>
+                              )}
+                              <SubmitButton variant="outline" size="xs">
+                                Ausgewählte Rollen hinzufügen
+                              </SubmitButton>
+                            </div>
                           </form>
                         );
                       })()}
