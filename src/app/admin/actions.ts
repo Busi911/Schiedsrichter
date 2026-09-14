@@ -9,6 +9,7 @@ import {
   funktionstraegerRollen,
   ignorierteMannschaften,
   mannschaften,
+  schiedsrichterProfile,
   termine,
   terminZuordnungen,
   users,
@@ -1048,6 +1049,161 @@ export async function deleteFunktionstraeger(formData: FormData) {
       .delete(users)
       .where(and(inArray(users.id, userIds), eq(users.vereinId, vereinId)))
   );
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
+// Führt zwei Personen-Accounts zu einem zusammen — für den Fall, dass
+// dieselbe reale Person versehentlich zweimal angelegt wurde (z.B. durch
+// eine öffentliche Selbsteintragung unter leicht anderer Schreibweise, siehe
+// findeFunktionstraegerDuplikate). Der Admin wählt bewusst manuell, welcher
+// der beiden Accounts (und damit welche E-Mail/welches Login) bestehen
+// bleibt — kein automatisches Erraten, das wäre bei echten Logins zu
+// riskant. Rollen und Einsatz-Historie des anderen Accounts werden auf den
+// verbleibenden übertragen (sonst verschwänden vergangene Einsätze aus der
+// Statistik), danach wird der andere Account gelöscht — Cascade (siehe
+// schema.ts) räumt den Rest (Login-Session, Push-Abos, Sync-Log,
+// Benachrichtigungs-Historie) automatisch mit auf, ohne eigene Übertragung,
+// da das nur Nebensächliches ist.
+export async function funktionstraegerZusammenfuehren(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const behaltenUserId = formData.get("behaltenUserId");
+  const userIdA = formData.get("userIdA");
+  const userIdB = formData.get("userIdB");
+
+  if (
+    typeof behaltenUserId !== "string" ||
+    !behaltenUserId ||
+    typeof userIdA !== "string" ||
+    !userIdA ||
+    typeof userIdB !== "string" ||
+    !userIdB ||
+    (behaltenUserId !== userIdA && behaltenUserId !== userIdB)
+  ) {
+    throw new Error("Ungültige Auswahl.");
+  }
+  const entferntUserId = behaltenUserId === userIdA ? userIdB : userIdA;
+
+  await withTenant(vereinId, async (tx) => {
+    const [behalten, entfernt] = await Promise.all([
+      tx.query.users.findFirst({
+        where: and(eq(users.id, behaltenUserId), eq(users.vereinId, vereinId)),
+      }),
+      tx.query.users.findFirst({
+        where: and(eq(users.id, entferntUserId), eq(users.vereinId, vereinId)),
+      }),
+    ]);
+    if (!behalten || !entfernt) throw new Error("Person nicht gefunden.");
+
+    // Rollen: dieselbe Rolle darf am Ende nur einmal existieren (siehe
+    // Prüfung in rolleHinzufuegen oben) — eine bereits beim verbleibenden
+    // Account vorhandene Rolle gewinnt (ggf. auf aktiv "befördert"), sonst
+    // wird die Zeile des anderen Accounts übernommen.
+    const [behalteneRollen, entfernteRollen] = await Promise.all([
+      tx.query.funktionstraegerRollen.findMany({
+        where: eq(funktionstraegerRollen.userId, behaltenUserId),
+      }),
+      tx.query.funktionstraegerRollen.findMany({
+        where: eq(funktionstraegerRollen.userId, entferntUserId),
+      }),
+    ]);
+    for (const rolle of entfernteRollen) {
+      const vorhandene = behalteneRollen.find((r) => r.typ === rolle.typ);
+      if (vorhandene) {
+        if (rolle.aktiv && !vorhandene.aktiv) {
+          await tx
+            .update(funktionstraegerRollen)
+            .set({ aktiv: true })
+            .where(eq(funktionstraegerRollen.id, vorhandene.id));
+        }
+        await tx
+          .delete(funktionstraegerRollen)
+          .where(eq(funktionstraegerRollen.id, rolle.id));
+      } else {
+        await tx
+          .update(funktionstraegerRollen)
+          .set({ userId: behaltenUserId })
+          .where(eq(funktionstraegerRollen.id, rolle.id));
+      }
+    }
+
+    // Einsatz-Historie: dieselbe Rolle am selben Termin darf am Ende nur
+    // einmal existieren, sonst tauchte sie in Kalender/Statistik doppelt auf.
+    const [behalteneZuordnungen, entfernteZuordnungen] = await Promise.all([
+      tx.query.terminZuordnungen.findMany({
+        where: eq(terminZuordnungen.userId, behaltenUserId),
+      }),
+      tx.query.terminZuordnungen.findMany({
+        where: eq(terminZuordnungen.userId, entferntUserId),
+      }),
+    ]);
+    for (const zuordnung of entfernteZuordnungen) {
+      const doppelt = behalteneZuordnungen.some(
+        (z) =>
+          z.terminId === zuordnung.terminId &&
+          z.funktionstraegerTyp === zuordnung.funktionstraegerTyp
+      );
+      if (doppelt) {
+        await tx
+          .delete(terminZuordnungen)
+          .where(eq(terminZuordnungen.id, zuordnung.id));
+      } else {
+        await tx
+          .update(terminZuordnungen)
+          .set({ userId: behaltenUserId })
+          .where(eq(terminZuordnungen.id, zuordnung.id));
+      }
+    }
+    // Unbestätigte Namens-Vorschläge (siehe matchVorschlagUserId in
+    // schema.ts) — unkritisch, einfach mit übernehmen.
+    await tx
+      .update(terminZuordnungen)
+      .set({ matchVorschlagUserId: behaltenUserId })
+      .where(eq(terminZuordnungen.matchVorschlagUserId, entferntUserId));
+
+    // Weitere Verweise auf den entfernten Account, die sonst durch
+    // Cascade/SET NULL beim Löschen unten verlorengingen (siehe schema.ts).
+    await tx
+      .update(termine)
+      .set({ erstelltVon: behaltenUserId })
+      .where(eq(termine.erstelltVon, entferntUserId));
+    await tx
+      .update(termine)
+      .set({ icsSchiedsrichterId: behaltenUserId })
+      .where(eq(termine.icsSchiedsrichterId, entferntUserId));
+    await tx
+      .update(termine)
+      .set({ turnierVerantwortlicherId: behaltenUserId })
+      .where(eq(termine.turnierVerantwortlicherId, entferntUserId));
+
+    // schiedsrichter_profil hat userId als Primärschlüssel — existiert beim
+    // verbleibenden Account bereits eine Zeile, bleibt sie (kann nicht
+    // einfach überschrieben werden), sonst wird die des anderen übernommen.
+    const behaltenesProfil = await tx.query.schiedsrichterProfile.findFirst({
+      where: eq(schiedsrichterProfile.userId, behaltenUserId),
+    });
+    if (!behaltenesProfil) {
+      await tx
+        .update(schiedsrichterProfile)
+        .set({ userId: behaltenUserId })
+        .where(eq(schiedsrichterProfile.userId, entferntUserId));
+    }
+
+    // Admin-Rechte nur BEFÖRDERN, nie durch den Merge versehentlich
+    // verlieren (analog zu createFunktionstraeger oben).
+    const aenderungen: Partial<typeof users.$inferInsert> = {};
+    if (entfernt.istAdmin && !behalten.istAdmin) aenderungen.istAdmin = true;
+    if (entfernt.istAdminLesend && !behalten.istAdminLesend) {
+      aenderungen.istAdminLesend = true;
+    }
+    if (Object.keys(aenderungen).length > 0) {
+      await tx.update(users).set(aenderungen).where(eq(users.id, behaltenUserId));
+    }
+
+    await tx.delete(users).where(eq(users.id, entferntUserId));
+  });
 
   revalidatePath("/admin/funktionstraeger");
 }

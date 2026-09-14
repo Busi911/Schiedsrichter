@@ -26,7 +26,7 @@ const VORSCHLAG_SCHWELLE = 0.5;
 // macht den Abgleich unempfindlich gegenüber Umlaut-Schreibweisen.
 const DIAKRITIKA_MUSTER = /[\u0300-\u036f]/g;
 
-function normalisiere(text: string): string {
+export function normalisiere(text: string): string {
   return text
     .normalize("NFD")
     .replace(DIAKRITIKA_MUSTER, "")
@@ -66,7 +66,7 @@ function woerterPassenZusammen(a: string, b: string): boolean {
 // Anteil der eingegebenen Wörter, die in einem Wort des Kandidatennamens
 // wiedergefunden werden — funktioniert auch, wenn nur Vor- ODER Nachname
 // eingegeben wurde (dann trifft ein einziges Wort zu 100%).
-function aehnlichkeit(eingegeben: string, kandidat: string): number {
+export function aehnlichkeit(eingegeben: string, kandidat: string): number {
   const eingegebeneWoerter = eingegeben.split(" ").filter(Boolean);
   if (eingegebeneWoerter.length === 0) return 0;
   const kandidatWoerter = kandidat.split(" ").filter(Boolean);

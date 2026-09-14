@@ -3,8 +3,13 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mannschaften, users } from "@/db/schema";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
-import { funktionstraegerImportieren } from "../actions";
+import { findeFunktionstraegerDuplikate } from "@/lib/funktionstraeger-duplikate";
+import {
+  funktionstraegerImportieren,
+  funktionstraegerZusammenfuehren,
+} from "../actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardAction,
@@ -13,11 +18,30 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { FunktionstraegerTabelle } from "@/components/funktionstraeger-tabelle";
+import { LabeledSelect } from "@/components/labeled-select";
 import { NeuerFunktionstraegerDialog } from "@/components/neuer-funktionstraeger-dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SubmitButton } from "@/components/submit-button";
+import { formatDatumZeit } from "@/lib/format";
+
+// Wie TYP_LABEL in funktionstraeger-tabelle.tsx — hier separat gepflegt, da
+// diese Datei eine Server Component ist und nicht aus der Client-Komponente
+// importieren soll.
+const TYP_LABEL: Record<string, string> = {
+  schiedsrichter: "Schiedsrichter",
+  zeitnehmer: "Zeitnehmer",
+  sekretaer: "Sekretär",
+  trainer: "Trainer",
+  ordner: "Ordner",
+  kioskdienst: "Kioskdienst",
+  kassierer: "Kassierer",
+  schiedsrichterwart: "Schiedsrichterwart",
+  zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
+  ordnerwart: "Ordner-/Kioskdienst-/Kassiererwart",
+};
 
 export default async function FunktionstraegerPage({
   searchParams,
@@ -118,6 +142,7 @@ export default async function FunktionstraegerPage({
   }
 
   const personen = Array.from(personenMap.values());
+  const duplikate = findeFunktionstraegerDuplikate(personen);
 
   return (
     <div className="flex flex-col gap-6">
@@ -168,6 +193,86 @@ export default async function FunktionstraegerPage({
           />
         </CardContent>
       </Card>
+
+      {session.user.istAdmin && duplikate.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Mögliche Duplikate</CardTitle>
+            <CardDescription>
+              Personen mit sehr ähnlichem Namen — vermutlich derselbe Mensch
+              mit zwei Zugängen (z.B. durch eine Selbsteintragung mit
+              abweichender Schreibweise). Beim Verknüpfen bleibt der
+              gewählte Account bestehen: seine Rollen und die
+              Einsatz-Historie des anderen werden übernommen, der andere
+              Account wird anschließend gelöscht.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {duplikate.map(([a, b]) => (
+              <div
+                key={`${a.userId}-${b.userId}`}
+                className="flex flex-col gap-2 rounded-lg border p-3 text-sm"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+                  {[a, b].map((p) => (
+                    <div key={p.userId} className="flex flex-1 flex-col gap-1">
+                      <p className="font-medium">
+                        {p.name} <span className="text-muted-foreground">· {p.email}</span>
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {p.istAdmin && <Badge variant="default">Admin</Badge>}
+                        {p.istAdminLesend && (
+                          <Badge variant="outline">Admin (nur lesend)</Badge>
+                        )}
+                        {p.rollen.map((r) => (
+                          <Badge
+                            key={r.rolleId}
+                            variant={r.aktiv ? "secondary" : "outline"}
+                          >
+                            {TYP_LABEL[r.typ] ?? r.typ}
+                            {!r.aktiv && " · inaktiv"}
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Zuletzt eingeloggt:{" "}
+                        {p.letzterLoginAm
+                          ? formatDatumZeit(p.letzterLoginAm)
+                          : "Nie"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <form
+                  action={funktionstraegerZusammenfuehren}
+                  className="flex flex-wrap items-center gap-2 border-t pt-2"
+                >
+                  <input type="hidden" name="userIdA" value={a.userId} />
+                  <input type="hidden" name="userIdB" value={b.userId} />
+                  <div className="w-72">
+                    <LabeledSelect
+                      name="behaltenUserId"
+                      placeholder="Diesen Account behalten…"
+                      required
+                      options={[
+                        { value: a.userId, label: `${a.name} (${a.email}) behalten` },
+                        { value: b.userId, label: `${b.name} (${b.email}) behalten` },
+                      ]}
+                    />
+                  </div>
+                  <ConfirmSubmitButton
+                    confirmText={`${a.name} und ${b.name} wirklich zu einem Account zusammenführen? Der nicht ausgewählte Account wird dabei unwiderruflich gelöscht (Rollen und Einsatz-Historie werden vorher übernommen).`}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    Verknüpfen
+                  </ConfirmSubmitButton>
+                </form>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {session.user.istAdmin && (
       <Card className="max-w-2xl">
