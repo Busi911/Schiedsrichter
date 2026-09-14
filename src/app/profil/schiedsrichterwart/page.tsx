@@ -66,7 +66,10 @@ export default async function SchiedsrichterwartPage({
   const vereinId = session.user.vereinId!;
   const userId = session.user.id;
 
-  if (!(await istSchiedsrichterwart(vereinId, userId))) {
+  // Admins sehen (und bearbeiten) diese Seite unabhängig davon, ob sie
+  // zusätzlich selbst die Schiedsrichterwart-Rolle haben — siehe gleicher
+  // Bypass in profil/ordnerwart/page.tsx.
+  if (!session.user.istAdmin && !(await istSchiedsrichterwart(vereinId, userId))) {
     notFound();
   }
 

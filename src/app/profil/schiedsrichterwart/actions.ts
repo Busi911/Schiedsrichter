@@ -23,7 +23,11 @@ import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
 async function requireSchiedsrichterwartZugriff() {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
-  const berechtigt = await istSchiedsrichterwart(vereinId, session.user.id);
+  // Admins dürfen unabhängig von einer eigenen Schiedsrichterwart-Rolle
+  // (siehe gleicher Bypass in page.tsx).
+  const berechtigt =
+    session.user.istAdmin ||
+    (await istSchiedsrichterwart(vereinId, session.user.id));
   if (!berechtigt) {
     throw new Error("Keine Berechtigung als Schiedsrichterwart.");
   }

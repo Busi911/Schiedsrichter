@@ -100,7 +100,10 @@ export default async function ZeitnehmerwartPage({
   const vereinId = session.user.vereinId!;
   const userId = session.user.id;
 
-  if (!(await istZeitnehmerwart(vereinId, userId))) {
+  // Admins sehen (und bearbeiten) diese Seite unabhängig davon, ob sie
+  // zusätzlich selbst die Zeitnehmerwart-Rolle haben — siehe gleicher
+  // Bypass in profil/ordnerwart/page.tsx.
+  if (!session.user.istAdmin && !(await istZeitnehmerwart(vereinId, userId))) {
     notFound();
   }
 
