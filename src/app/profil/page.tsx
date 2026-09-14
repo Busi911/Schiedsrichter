@@ -273,7 +273,7 @@ export default async function ProfilPage({
                 Zum Admin-Bereich
               </Button>
             )}
-            {istSchiedsrichterwart && (
+            {(istSchiedsrichterwart || session.user.istAdmin) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -283,7 +283,7 @@ export default async function ProfilPage({
                 Schiedsrichterwart
               </Button>
             )}
-            {istZeitnehmerwart && (
+            {(istZeitnehmerwart || session.user.istAdmin) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -293,7 +293,7 @@ export default async function ProfilPage({
                 Zeitnehmerwart
               </Button>
             )}
-            {istOrdnerwart && (
+            {(istOrdnerwart || session.user.istAdmin) && (
               <Button
                 variant="outline"
                 size="sm"

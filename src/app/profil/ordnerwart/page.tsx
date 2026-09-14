@@ -72,7 +72,12 @@ export default async function OrdnerwartPage({
   const vereinId = session.user.vereinId!;
   const userId = session.user.id;
 
-  if (!(await istOrdnerwart(vereinId, userId))) {
+  // Admins sehen (und bearbeiten) diese Seite unabhängig davon, ob sie
+  // zusätzlich selbst die Ordnerwart-Rolle haben — sonst bräuchte der
+  // Hauptadmin für jede Wart-Aufgabe im Verein zusätzlich eine eigene
+  // Funktionsträger-Rolle, nur um z.B. Selbsteintragungen bestätigen zu
+  // können.
+  if (!session.user.istAdmin && !(await istOrdnerwart(vereinId, userId))) {
     notFound();
   }
 

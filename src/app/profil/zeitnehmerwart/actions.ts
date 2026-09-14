@@ -34,7 +34,10 @@ type ZeitnehmerRolle = (typeof ZEITNEHMER_ROLLEN)[number];
 async function requireZeitnehmerwartZugriff() {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
-  const berechtigt = await istZeitnehmerwart(vereinId, session.user.id);
+  // Admins dürfen unabhängig von einer eigenen Zeitnehmerwart-Rolle (siehe
+  // gleicher Bypass in page.tsx).
+  const berechtigt =
+    session.user.istAdmin || (await istZeitnehmerwart(vereinId, session.user.id));
   if (!berechtigt) {
     throw new Error("Keine Berechtigung als Zeitnehmerwart.");
   }

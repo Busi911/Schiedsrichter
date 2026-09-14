@@ -24,7 +24,10 @@ type OrdnerRolle = (typeof ORDNER_ROLLEN)[number];
 async function requireOrdnerwartZugriff() {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
-  const berechtigt = await istOrdnerwart(vereinId, session.user.id);
+  // Admins dürfen unabhängig von einer eigenen Ordnerwart-Rolle (siehe
+  // gleicher Bypass in page.tsx).
+  const berechtigt =
+    session.user.istAdmin || (await istOrdnerwart(vereinId, session.user.id));
   if (!berechtigt) {
     throw new Error("Keine Berechtigung als Ordner-/Kioskdienstwart.");
   }
