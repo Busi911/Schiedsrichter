@@ -17,7 +17,7 @@ type VereinBedarf = Pick<
   | "rundenspielZeitnehmerBedarf"
 >;
 
-type Rolle = "ordner" | "kioskdienst" | "kassierer" | "zeitnehmer";
+type Rolle = "ordner" | "kioskdienst" | "kassierer" | "zeitnehmer" | "sekretaer";
 
 // Dienste-Bedarf (Ordner/Kioskdienst/Kassierer/Zeitnehmer-Sekretär) gilt
 // bewusst nur für testspiel/turnier/rundenspiel (eigene Veranstaltungen bzw.
