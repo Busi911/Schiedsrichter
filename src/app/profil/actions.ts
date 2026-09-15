@@ -16,19 +16,10 @@ import {
 } from "@/db/schema";
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
-import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
+import { SELBST_ANMELDBARE_TYPEN } from "@/lib/eigene-offene-dienste";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
 import { pruefeBesetzungsgrenze, pruefeKeineDoppelrolle } from "@/lib/zuordnung";
-
-// Schiedsrichter fehlt hier bewusst: keine öffentliche Selbsteintragung dafür
-// (siehe Kommentar in offene-selbsteintragungen.ts), bleibt Admin-/
-// Schiedsrichterwart-Sache.
-const SELBST_ANMELDBARE_TYPEN = [
-  ...ORDNER_ROLLEN,
-  "zeitnehmer",
-  "sekretaer",
-] as const;
 
 // Selbstverwaltung der eigenen Stammdaten (Name, Telefonnummer) — bewusst
 // OHNE E-Mail-Änderung, die bleibt Admin-Aufgabe (login-kritisch, siehe
