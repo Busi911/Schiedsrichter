@@ -47,20 +47,33 @@ function rollenWerte(
     werte.schiedsrichter = z.schiedsrichterName ?? "";
     werte.schiedsrichterEmail = z.schiedsrichterEmail ?? "";
   }
+  // "offen" statt einer leeren Zelle, wenn tatsächlich noch jemand fehlt
+  // (rollenBedarf === true, kein Name) — eine leere Zelle war sonst optisch
+  // nicht von "kein Bedarf" (siehe "intern" in rollenZellenWert) zu
+  // unterscheiden und fiel beim schnellen Überfliegen der Tabelle nicht als
+  // Lücke auf.
   if (rollen.includes("ordner")) {
-    werte.ordner = rollenZellenWert(z.ordnerName, z.rollenBedarf?.ordner, "");
+    werte.ordner = rollenZellenWert(z.ordnerName, z.rollenBedarf?.ordner, "offen");
   }
   if (rollen.includes("kioskdienst")) {
-    werte.kioskdienst = rollenZellenWert(z.kioskdienstName, z.rollenBedarf?.kioskdienst, "");
+    werte.kioskdienst = rollenZellenWert(
+      z.kioskdienstName,
+      z.rollenBedarf?.kioskdienst,
+      "offen"
+    );
   }
   if (rollen.includes("kassierer")) {
-    werte.kassierer = rollenZellenWert(z.kassiererName, z.rollenBedarf?.kassierer, "");
+    werte.kassierer = rollenZellenWert(z.kassiererName, z.rollenBedarf?.kassierer, "offen");
   }
   if (rollen.includes("zeitnehmer")) {
-    werte.zeitnehmer = rollenZellenWert(z.zeitnehmerName, z.rollenBedarf?.zeitnehmer, "");
+    werte.zeitnehmer = rollenZellenWert(
+      z.zeitnehmerName,
+      z.rollenBedarf?.zeitnehmer,
+      "offen"
+    );
   }
   if (rollen.includes("sekretaer")) {
-    werte.sekretaer = rollenZellenWert(z.sekretaerName, z.rollenBedarf?.sekretaer, "");
+    werte.sekretaer = rollenZellenWert(z.sekretaerName, z.rollenBedarf?.sekretaer, "offen");
   }
   return werte;
 }

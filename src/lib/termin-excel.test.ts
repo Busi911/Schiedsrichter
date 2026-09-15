@@ -100,6 +100,17 @@ describe("terminAlsExcel", () => {
     expect(sheet.getRow(3).getCell("H").value).toBe("intern");
   });
 
+  it("zeigt \"offen\" statt einer leeren Zelle, wenn die Rolle noch unbesetzt ist", async () => {
+    const buffer = await terminAlsExcel([
+      zeile({ ordnerName: null, rollenBedarf: { ordner: true, kioskdienst: true, kassierer: true, zeitnehmer: true, sekretaer: true } }),
+    ]);
+    const workbook = new ExcelJS.Workbook();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await workbook.xlsx.load(buffer as any);
+    const sheet = workbook.getWorksheet("Dienstplan")!;
+    expect(sheet.getRow(3).getCell("H").value).toBe("offen");
+  });
+
   it("gruppiert Termine an verschiedenen Tagen mit je eigener Trennzeile", async () => {
     const buffer = await terminAlsExcel([
       zeile({ id: "t1", start: new Date("2026-05-01T18:30:00") }),

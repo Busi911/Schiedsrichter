@@ -36,6 +36,12 @@ const TYP_LABEL: Record<string, string> = {
   rundenspiel: "Rundenspiel",
 };
 
+// Nur für die Vorschau unten auf dieser Seite — der Export (Excel/PDF, siehe
+// export/excel|pdf/route.ts) fragt unabhängig davon und ohne Limit erneut
+// über denselben Filter ab, deckt also immer den kompletten gewählten
+// Zeitraum ab, egal wie viele Zeilen hier angezeigt werden.
+const VORSCHAU_LIMIT = 20;
+
 export default async function AuswertungPage({
   searchParams,
 }: {
@@ -54,8 +60,10 @@ export default async function AuswertungPage({
   // Datumsfeld den tatsächlich angewandten Wert zeigt statt leer zu wirken.
   const heute = tagKey(new Date());
 
-  const [termineListe, schiedsrichterListe] = await Promise.all([
-    holeTermineFuerAuswertung(vereinId, filter),
+  const [termineRoh, schiedsrichterListe] = await Promise.all([
+    // +1 statt genau VORSCHAU_LIMIT, um zu erkennen, ob noch mehr Termine
+    // existieren, ohne dafür eine zweite (COUNT-)Abfrage zu brauchen.
+    holeTermineFuerAuswertung(vereinId, filter, VORSCHAU_LIMIT + 1),
     withTenant(vereinId, (tx) =>
       tx
         .select({ id: users.id, name: users.name, email: users.email })
@@ -64,6 +72,8 @@ export default async function AuswertungPage({
         .where(eq(funktionstraegerRollen.typ, "schiedsrichter"))
     ),
   ]);
+  const gibtWeitere = termineRoh.length > VORSCHAU_LIMIT;
+  const termineListe = termineRoh.slice(0, VORSCHAU_LIMIT);
 
   return (
     // EIN gemeinsames Formular für Filter, Zeilen-Auswahl und alle drei
@@ -168,6 +178,12 @@ export default async function AuswertungPage({
       <Card>
         <CardHeader>
           <CardTitle>Termine</CardTitle>
+          {gibtWeitere && (
+            <p className="text-sm text-muted-foreground">
+              Zeigt die ersten {VORSCHAU_LIMIT} Termine — Excel/PDF-Export
+              enthält trotzdem immer den kompletten gewählten Zeitraum.
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           {termineListe.length === 0 ? (
