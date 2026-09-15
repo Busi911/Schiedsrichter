@@ -401,7 +401,9 @@ export default async function ProfilPage({
                             value={rolle.zuordnungId}
                           />
                           <SubmitButton variant="outline" size="sm">
-                            {TYP_LABEL[rolle.typ]}: angemeldet — abmelden
+                            {rolle.abmeldungAngefragt
+                              ? `${TYP_LABEL[rolle.typ]}: Abmeldung angefragt — zurückziehen`
+                              : `${TYP_LABEL[rolle.typ]}: angemeldet — abmelden`}
                           </SubmitButton>
                         </form>
                       ) : (

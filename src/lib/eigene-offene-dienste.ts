@@ -98,6 +98,11 @@ export type EigenerOffenerDienst = {
     // Gesetzt, wenn die Person für diese Rolle an diesem Termin bereits
     // eingetragen ist (Button zeigt dann "abmelden" statt "anmelden").
     zuordnungId: string | null;
+    // Nur relevant, wenn zuordnungId gesetzt ist: die Person hat sich schon
+    // wieder abmelden wollen, der zuständige Wart hat das aber noch nicht
+    // bestätigt (siehe selbstAbmelden in profil/actions.ts) — Button zeigt
+    // dann "Abmeldung angefragt" statt "angemeldet".
+    abmeldungAngefragt: boolean;
     // Fortschritts-Hinweis ("1/2") nur bei der Ordner-Familie sinnvoll, da
     // dort Bedarf == Obergrenze ist — bei Zeitnehmer/Sekretär (feste
     // Obergrenze 1, unabhängig vom konfigurierten Bedarf) wäre ein Zähler
@@ -193,6 +198,7 @@ export async function holeEigeneOffenenDienste(
           eintrag.rollen.push({
             typ,
             zuordnungId: bestehend?.id ?? null,
+            abmeldungAngefragt: bestehend?.abmeldungAngefragtAm != null,
             anzahlHinweis:
               familie === ORDNER_FAMILIE ? `${zuordnungenDerRolle.length}/${bedarf}` : null,
           });

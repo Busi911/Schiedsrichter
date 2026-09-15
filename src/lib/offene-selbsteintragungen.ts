@@ -131,3 +131,67 @@ export async function holeOffeneSelbsteintragungen(
     (a, b) => a.termin.start.getTime() - b.termin.start.getTime()
   );
 }
+
+export type OffeneAbmeldeanfrage = {
+  id: string;
+  bereich: "ordner" | "zeitnehmer";
+  name: string;
+  rolleLabel: string;
+  termin: { start: Date; beschreibung: string | null };
+};
+
+// Analog zu holeOffeneSelbsteintragungen oben, aber für Abmeldeanfragen
+// (siehe selbstAbmelden in profil/actions.ts, terminZuordnungen.
+// abmeldungAngefragtAm) — führt beide Wart-Bereiche für die Admin-Übersicht
+// zusammen, damit ein Admin ohne eigene Wart-Rolle die Anfragen ebenfalls
+// sieht (er kann sie dank istAdmin-Bypass auf den Wart-Seiten selbst auch
+// bestätigen/ablehnen, siehe abmeldungGenehmigen/abmeldungAblehnen in
+// profil/ordnerwart/actions.ts bzw. profil/zeitnehmerwart/actions.ts).
+export async function holeOffeneAbmeldeanfragen(
+  vereinId: string
+): Promise<OffeneAbmeldeanfrage[]> {
+  const [ordnerTermine, zeitnehmerTermine] = await Promise.all([
+    holeOrdnerRelevanteTermine(vereinId),
+    holeTermineMitZuordnungen(vereinId),
+  ]);
+
+  const ordnerAnfragen: OffeneAbmeldeanfrage[] = ordnerTermine.flatMap((t) =>
+    t.zuordnungen
+      .filter(
+        (z) =>
+          z.abmeldungAngefragtAm != null &&
+          (ORDNER_ROLLEN as readonly string[]).includes(z.funktionstraegerTyp)
+      )
+      .map((z) => ({
+        id: z.id,
+        bereich: "ordner" as const,
+        name: z.name ?? z.externerName ?? "",
+        rolleLabel: ORDNER_ROLLE_LABEL[z.funktionstraegerTyp as (typeof ORDNER_ROLLEN)[number]] ??
+          z.funktionstraegerTyp,
+        termin: { start: t.start, beschreibung: t.beschreibung },
+      }))
+  );
+
+  const zeitnehmerAnfragen: OffeneAbmeldeanfrage[] = zeitnehmerTermine.flatMap(
+    (t) =>
+      t.zuordnungen
+        .filter(
+          (z) =>
+            z.abmeldungAngefragtAm != null &&
+            (ZEITNEHMER_ROLLEN as readonly string[]).includes(
+              z.funktionstraegerTyp
+            )
+        )
+        .map((z) => ({
+          id: z.id,
+          bereich: "zeitnehmer" as const,
+          name: z.name ?? z.externerName ?? "",
+          rolleLabel: ZEITNEHMER_ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp,
+          termin: { start: t.start, beschreibung: t.beschreibung },
+        }))
+  );
+
+  return [...ordnerAnfragen, ...zeitnehmerAnfragen].sort(
+    (a, b) => a.termin.start.getTime() - b.termin.start.getTime()
+  );
+}

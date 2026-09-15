@@ -19,7 +19,10 @@ import {
   zuordnungFehlgeschlagenInhalt,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
-import { holeZeitnehmerEinsatzZahlen } from "@/lib/zeitnehmerwart";
+import {
+  holeZeitnehmerEinsatzZahlen,
+  holeZeitnehmerwarteEmails,
+} from "@/lib/zeitnehmerwart";
 import { findeNamensVorschlag } from "@/lib/namens-abgleich";
 import { requireSession } from "@/lib/session";
 import type { MehrfachEintragErgebnis } from "@/components/mehrfachauswahl";
@@ -162,21 +165,6 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
 type Identitaet =
   | { art: "userId"; userId: string; email: string }
   | { art: "extern"; externerName: string; matchVorschlagUserId: string | null };
-
-async function holeZeitnehmerwarteEmails(vereinId: string) {
-  return withTenant(vereinId, (tx) =>
-    tx
-      .select({ email: users.email })
-      .from(funktionstraegerRollen)
-      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
-      .where(
-        and(
-          eq(funktionstraegerRollen.typ, "zeitnehmerwart"),
-          eq(funktionstraegerRollen.aktiv, true)
-        )
-      )
-  );
-}
 
 // Siehe loeseIdentitaetPerEmailAuf in ordner-eintragen/[token]/actions.ts —
 // identisches Muster, nur für zeitnehmer/sekretaer statt ORDNER_ROLLEN.

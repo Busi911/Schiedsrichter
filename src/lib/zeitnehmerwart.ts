@@ -31,6 +31,27 @@ export async function istZeitnehmerwart(
   });
 }
 
+// Lädt alle aktiven Zeitnehmerwarte-E-Mail-Adressen — genutzt für Mails,
+// die den Wart über etwas informieren sollen, das seine Aufmerksamkeit
+// braucht (neue Selbstregistrierung, Abmeldeanfrage). Ursprünglich lokal in
+// zeitnehmer-eintragen/[token]/actions.ts definiert, hierher gezogen, damit
+// selbstAbmelden (profil/actions.ts) dieselbe Abfrage nutzen kann statt sie
+// ein drittes Mal zu duplizieren.
+export async function holeZeitnehmerwarteEmails(vereinId: string) {
+  return withTenant(vereinId, (tx) =>
+    tx
+      .select({ email: users.email })
+      .from(funktionstraegerRollen)
+      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+      .where(
+        and(
+          eq(funktionstraegerRollen.typ, "zeitnehmerwart"),
+          eq(funktionstraegerRollen.aktiv, true)
+        )
+      )
+  );
+}
+
 export type ZeitnehmerEinsatzZahl = {
   userId: string;
   name: string | null;

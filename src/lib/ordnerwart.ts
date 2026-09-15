@@ -134,6 +134,7 @@ export async function holeOrdnerRelevanteTermine(vereinId: string) {
             email: users.email,
             externerName: terminZuordnungen.externerName,
             matchVorschlagUserId: terminZuordnungen.matchVorschlagUserId,
+            abmeldungAngefragtAm: terminZuordnungen.abmeldungAngefragtAm,
           })
           .from(terminZuordnungen)
           .leftJoin(users, eq(terminZuordnungen.userId, users.id))
@@ -164,6 +165,27 @@ export async function istOrdnerwart(
     });
     return !!rolle;
   });
+}
+
+// Lädt alle aktiven Ordnerwarte-E-Mail-Adressen — genutzt für Mails, die
+// den Wart über etwas informieren sollen, das seine Aufmerksamkeit braucht
+// (neue Selbstregistrierung, Abmeldeanfrage). Ursprünglich lokal in
+// ordner-eintragen/[token]/actions.ts definiert, hierher gezogen, damit
+// selbstAbmelden (profil/actions.ts) dieselbe Abfrage nutzen kann statt sie
+// ein drittes Mal zu duplizieren.
+export async function holeOrdnerwarteEmails(vereinId: string) {
+  return withTenant(vereinId, (tx) =>
+    tx
+      .select({ email: users.email })
+      .from(funktionstraegerRollen)
+      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+      .where(
+        and(
+          eq(funktionstraegerRollen.typ, "ordnerwart"),
+          eq(funktionstraegerRollen.aktiv, true)
+        )
+      )
+  );
 }
 
 export type OrdnerEinsatzZahl = {
