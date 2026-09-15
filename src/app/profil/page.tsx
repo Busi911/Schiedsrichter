@@ -626,9 +626,9 @@ export default async function ProfilPage({
                             name="zuordnungId"
                             value={rolle.zuordnungId}
                           />
-                          <Button type="submit" variant="outline" size="sm">
+                          <SubmitButton variant="outline" size="sm">
                             {TYP_LABEL[rolle.typ]}: angemeldet — abmelden
-                          </Button>
+                          </SubmitButton>
                         </form>
                       ) : (
                         <form key={rolle.typ} action={selbstAnmelden}>
@@ -638,10 +638,10 @@ export default async function ProfilPage({
                             value={termin.terminId}
                           />
                           <input type="hidden" name="typ" value={rolle.typ} />
-                          <Button type="submit" size="sm">
+                          <SubmitButton size="sm">
                             Als {TYP_LABEL[rolle.typ]} anmelden
                             {rolle.anzahlHinweis ? ` (${rolle.anzahlHinweis})` : ""}
-                          </Button>
+                          </SubmitButton>
                         </form>
                       )
                     )}
