@@ -74,40 +74,11 @@ export default async function DienstePage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-baseline gap-x-3 gap-y-1">
-          <CardTitle className="text-base">
-            {offenePostenZeilen.length} offen
-          </CardTitle>
-          <CardDescription>
-            Ordner/Kioskdienst/Kassierer melden sich selbst an,
-            Zeitnehmer/Sekretär werden über Zuordnung eingeteilt.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {offenePostenZeilen.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Alle Dienste sind besetzt.
-            </p>
-          ) : (
-            <UnbesetzteDiensteTabelle posten={offenePostenZeilen} />
-          )}
-          <Link
-            href="/admin/einstellungen"
-            className="mt-1 text-xs text-muted-foreground underline"
-          >
-            Dienste-Bedarf einstellen
-          </Link>
-        </CardContent>
-      </Card>
-
-      {/* Standardmäßig eingeklappt: Statistik ist reine Zusatzinfo (Siegquote,
-          Top-Mannschaften/-Dienstleistende) und lenkt sonst von der
-          eigentlichen Aufgabe dieser Seite ab — offene Dienste sehen. Gleiches
-          Disclosure-Muster wie z.B. "Ohne Login zuordnen" in
-          monats-kalender.tsx, hier aber für einen ganzen Abschnitt statt ein
-          Mini-Formular. */}
-      <details className="group">
+      {/* Oberhalb der offenen Dienste und standardmäßig aufgeklappt — anders
+          als früher (unterhalb, eingeklappt), da die Statistik so direkt ins
+          Auge fällt statt erst per Klick entdeckt zu werden. Bleibt trotzdem
+          ein <details>, damit sie bei Bedarf eingeklappt werden kann. */}
+      <details className="group" open>
         <summary className="flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden">
           <h2 className="font-heading text-xl font-semibold">Statistik</h2>
           <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
@@ -182,6 +153,33 @@ export default async function DienstePage() {
           </div>
         </div>
       </details>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            {offenePostenZeilen.length} offen
+          </CardTitle>
+          <CardDescription>
+            Ordner/Kioskdienst/Kassierer melden sich selbst an,
+            Zeitnehmer/Sekretär werden über Zuordnung eingeteilt.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {offenePostenZeilen.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Alle Dienste sind besetzt.
+            </p>
+          ) : (
+            <UnbesetzteDiensteTabelle posten={offenePostenZeilen} />
+          )}
+          <Link
+            href="/admin/einstellungen"
+            className="mt-1 text-xs text-muted-foreground underline"
+          >
+            Dienste-Bedarf einstellen
+          </Link>
+        </CardContent>
+      </Card>
     </div>
   );
 }
