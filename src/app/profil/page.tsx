@@ -1,11 +1,10 @@
-import { and, eq, gte, inArray, ne, or } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import Link from "next/link";
 import { LogOutIcon } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
-  mannschaften,
   schiedsrichterProfile,
   termine,
   terminZuordnungen,
@@ -13,9 +12,10 @@ import {
   vereine,
 } from "@/db/schema";
 import { signOut } from "@/auth";
-import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
-import { berechneBesetzung } from "@/lib/besetzung";
-import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
+import {
+  holeEigeneOffenenDienste,
+  SELBST_ANMELDBARE_TYPEN,
+} from "@/lib/eigene-offene-dienste";
 import { monatsBereich, parseMonatParam } from "@/lib/kalender";
 import { holeEigeneKalenderEintraege } from "@/lib/eigener-kalender";
 import {
@@ -70,12 +70,6 @@ const TYP_LABEL: Record<string, string> = {
   ordnerwart: "Ordner-/Kioskdienst-/Kassiererwart",
 };
 
-// Schiedsrichter fehlt hier bewusst: keine öffentliche Selbsteintragung dafür
-// (siehe Kommentar in offene-selbsteintragungen.ts), bleibt Admin-/
-// Schiedsrichterwart-Sache.
-const ZEITNEHMER_TYPEN = ["zeitnehmer", "sekretaer"] as const;
-const SELBST_ANMELDBARE_TYPEN = [...ORDNER_ROLLEN, ...ZEITNEHMER_TYPEN] as const;
-
 export default async function ProfilPage({
   searchParams,
 }: {
@@ -89,20 +83,7 @@ export default async function ProfilPage({
   const { von, bis } = monatsBereich(jahr, monatNull);
 
   const [
-    {
-      eigeneStammdaten,
-      rollen,
-      profil,
-      eigeneTermine,
-      verfuegbareTermine,
-      zuordnungenFuerVerfuegbare,
-      verfuegbareZeitnehmerTermine,
-      zuordnungenFuerVerfuegbareZeitnehmer,
-      vereinEinstellungen,
-      mannschaftenFuerVerfuegbare,
-      verein,
-      meineTurniere,
-    },
+    { eigeneStammdaten, rollen, profil, eigeneTermine, verein, meineTurniere },
     eintraegeProTag,
   ] = await Promise.all([
     withTenant(vereinId, async (tx) => {
@@ -166,85 +147,6 @@ export default async function ProfilPage({
         return { ...t, meineRollen: [...meineRollen] };
       });
 
-      const eigeneTypen = rollen
-        .filter((r) => r.aktiv)
-        .map((r) => r.typ)
-        .filter((t): t is (typeof SELBST_ANMELDBARE_TYPEN)[number] =>
-          (SELBST_ANMELDBARE_TYPEN as readonly string[]).includes(t)
-        );
-      const eigeneOrdnerTypen = eigeneTypen.filter(
-        (t): t is (typeof ORDNER_ROLLEN)[number] =>
-          (ORDNER_ROLLEN as readonly string[]).includes(t)
-      );
-      const eigeneZeitnehmerTypen = eigeneTypen.filter(
-        (t): t is (typeof ZEITNEHMER_TYPEN)[number] =>
-          (ZEITNEHMER_TYPEN as readonly string[]).includes(t)
-      );
-
-      // Dienste gelten bewusst nur für testspiel/turnier/rundenspiel, nicht
-      // für spiel_ics (persönliche Einsätze des Schiedsrichters, oft bei
-      // fremden Vereinen).
-      const verfuegbareTermine = eigeneOrdnerTypen.length
-        ? await tx.query.termine.findMany({
-            where: and(
-              eq(termine.vereinId, vereinId),
-              gte(termine.start, new Date()),
-              inArray(termine.typ, ["testspiel", "turnier", "rundenspiel"])
-            ),
-            orderBy: (t, { asc }) => [asc(t.start)],
-          })
-        : [];
-
-      const zuordnungenFuerVerfuegbare = verfuegbareTermine.length
-        ? await tx.query.terminZuordnungen.findMany({
-            where: inArray(
-              terminZuordnungen.terminId,
-              verfuegbareTermine.map((t) => t.id)
-            ),
-          })
-        : [];
-
-      // Zeitnehmer/Sekretär werden PRO Einzelspiel besetzt, auch beim
-      // Turnier (turnier_spiel statt des Turnier-Containers selbst, siehe
-      // bedarfFuer in dienste.ts) — andere Termin-Menge als beim
-      // containerbasierten Ordner-Bedarf oben, daher eigene Abfrage.
-      const verfuegbareZeitnehmerTermine = eigeneZeitnehmerTypen.length
-        ? await tx.query.termine.findMany({
-            where: and(
-              eq(termine.vereinId, vereinId),
-              gte(termine.start, new Date()),
-              ne(termine.typ, "turnier")
-            ),
-            orderBy: (t, { asc }) => [asc(t.start)],
-          })
-        : [];
-
-      const zuordnungenFuerVerfuegbareZeitnehmer = verfuegbareZeitnehmerTermine.length
-        ? await tx.query.terminZuordnungen.findMany({
-            where: inArray(
-              terminZuordnungen.terminId,
-              verfuegbareZeitnehmerTermine.map((t) => t.id)
-            ),
-          })
-        : [];
-
-      const vereinEinstellungen = eigeneTypen.length
-        ? await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
-        : undefined;
-
-      const mannschaftIdsFuerVerfuegbare = [
-        ...new Set(
-          [...verfuegbareTermine, ...verfuegbareZeitnehmerTermine]
-            .map((t) => t.mannschaftId)
-            .filter((id): id is string => !!id)
-        ),
-      ];
-      const mannschaftenFuerVerfuegbare = mannschaftIdsFuerVerfuegbare.length
-        ? await tx.query.mannschaften.findMany({
-            where: inArray(mannschaften.id, mannschaftIdsFuerVerfuegbare),
-          })
-        : [];
-
       // Turniere, für die dieser Nutzer als Turnierverantwortlicher benannt
       // wurde (siehe turnierVerantwortlicherId in db/schema.ts) — bewusst
       // unabhängig von den obigen Funktionsträger-Rollen, da das eine
@@ -264,12 +166,6 @@ export default async function ProfilPage({
         rollen,
         profil,
         eigeneTermine,
-        verfuegbareTermine,
-        zuordnungenFuerVerfuegbare,
-        verfuegbareZeitnehmerTermine,
-        zuordnungenFuerVerfuegbareZeitnehmer,
-        vereinEinstellungen,
-        mannschaftenFuerVerfuegbare,
         verein,
         meineTurniere,
       };
@@ -298,14 +194,9 @@ export default async function ProfilPage({
     .filter((t): t is (typeof SELBST_ANMELDBARE_TYPEN)[number] =>
       (SELBST_ANMELDBARE_TYPEN as readonly string[]).includes(t)
     );
-  const eigeneOrdnerTypen = eigeneTypen.filter(
-    (t): t is (typeof ORDNER_ROLLEN)[number] =>
-      (ORDNER_ROLLEN as readonly string[]).includes(t)
-  );
-  const eigeneZeitnehmerTypen = eigeneTypen.filter(
-    (t): t is (typeof ZEITNEHMER_TYPEN)[number] =>
-      (ZEITNEHMER_TYPEN as readonly string[]).includes(t)
-  );
+  const eigeneOffeneDienste = eigeneTypen.length
+    ? await holeEigeneOffenenDienste(vereinId, userId, eigeneTypen)
+    : [];
 
   return (
     <div className="min-h-screen">
@@ -703,204 +594,60 @@ export default async function ProfilPage({
           </Card>
         )}
 
-        {eigeneOrdnerTypen.length > 0 && vereinEinstellungen && (
+        {eigeneTypen.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Dienste (Ordner/Kioskdienst/Kassierer)</CardTitle>
+              <CardTitle>Offene Dienste</CardTitle>
+              <CardDescription>
+                Anstehende Termine mit noch freiem Platz für eine deiner
+                Rollen — bereits vollständig besetzte Dienste werden hier
+                nicht angezeigt.
+              </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              {verfuegbareTermine.length === 0 && (
+              {eigeneOffeneDienste.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  Keine anstehenden Termine.
+                  Aktuell keine offenen Dienste für deine Rollen.
                 </p>
               )}
-              {verfuegbareTermine.map((termin) => {
-                const mannschaft = termin.mannschaftId
-                  ? mannschaftenFuerVerfuegbare.find((m) => m.id === termin.mannschaftId)
-                  : null;
-                const rollenMitBedarf = eigeneOrdnerTypen.filter(
-                  (typ) =>
-                    bedarfFuer(
-                      vereinEinstellungen,
-                      termin.typ,
-                      typ,
-                      termin.pflichtspiel,
-                      termin.freundschaftsTyp,
-                      undefined,
-                      mannschaftBedarfDeaktiviertFuer(mannschaft, typ)
-                    ) > 0
-                );
-                if (rollenMitBedarf.length === 0) return null;
-
-                return (
-                  <div key={termin.id} className="rounded-lg border p-3 text-sm">
-                    <p>
-                      {formatDateTime(termin.start)}
-                      {termin.ort ? ` · ${termin.ort}` : ""}
-                      {termin.beschreibung ? ` · ${termin.beschreibung}` : ""}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {rollenMitBedarf.map((typ) => {
-                        const bedarf = bedarfFuer(
-                          vereinEinstellungen,
-                          termin.typ,
-                          typ,
-                          termin.pflichtspiel,
-                          termin.freundschaftsTyp,
-                          undefined,
-                          mannschaftBedarfDeaktiviertFuer(mannschaft, typ)
-                        );
-                        const angemeldet = zuordnungenFuerVerfuegbare.filter(
-                          (d) =>
-                            d.terminId === termin.id &&
-                            d.funktionstraegerTyp === typ
-                        );
-                        const bestehend = angemeldet.find(
-                          (d) => d.userId === userId
-                        );
-                        const voll = angemeldet.length >= bedarf;
-
-                        if (bestehend) {
-                          return (
-                            <form key={typ} action={selbstAbmelden}>
-                              <input
-                                type="hidden"
-                                name="zuordnungId"
-                                value={bestehend.id}
-                              />
-                              <Button type="submit" variant="outline" size="sm">
-                                {TYP_LABEL[typ]}: angemeldet (
-                                {angemeldet.length}/{bedarf}) — abmelden
-                              </Button>
-                            </form>
-                          );
-                        }
-                        if (voll) {
-                          return (
-                            <Badge key={typ} variant="outline">
-                              {TYP_LABEL[typ]}: voll ({angemeldet.length}/
-                              {bedarf})
-                            </Badge>
-                          );
-                        }
-                        return (
-                          <form key={typ} action={selbstAnmelden}>
-                            <input
-                              type="hidden"
-                              name="terminId"
-                              value={termin.id}
-                            />
-                            <input type="hidden" name="typ" value={typ} />
-                            <Button type="submit" size="sm">
-                              Als {TYP_LABEL[typ]} anmelden ({angemeldet.length}
-                              /{bedarf})
-                            </Button>
-                          </form>
-                        );
-                      })}
-                    </div>
+              {eigeneOffeneDienste.map((termin) => (
+                <div key={termin.terminId} className="rounded-lg border p-3 text-sm">
+                  <p>
+                    {formatDateTime(termin.start)}
+                    {termin.ort ? ` · ${termin.ort}` : ""}
+                    {termin.beschreibung ? ` · ${termin.beschreibung}` : ""}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {termin.rollen.map((rolle) =>
+                      rolle.zuordnungId ? (
+                        <form key={rolle.typ} action={selbstAbmelden}>
+                          <input
+                            type="hidden"
+                            name="zuordnungId"
+                            value={rolle.zuordnungId}
+                          />
+                          <Button type="submit" variant="outline" size="sm">
+                            {TYP_LABEL[rolle.typ]}: angemeldet — abmelden
+                          </Button>
+                        </form>
+                      ) : (
+                        <form key={rolle.typ} action={selbstAnmelden}>
+                          <input
+                            type="hidden"
+                            name="terminId"
+                            value={termin.terminId}
+                          />
+                          <input type="hidden" name="typ" value={rolle.typ} />
+                          <Button type="submit" size="sm">
+                            Als {TYP_LABEL[rolle.typ]} anmelden
+                            {rolle.anzahlHinweis ? ` (${rolle.anzahlHinweis})` : ""}
+                          </Button>
+                        </form>
+                      )
+                    )}
                   </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        )}
-
-        {eigeneZeitnehmerTypen.length > 0 && vereinEinstellungen && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Dienste (Zeitnehmer/Sekretär)</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {verfuegbareZeitnehmerTermine.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Keine anstehenden Termine.
-                </p>
-              )}
-              {verfuegbareZeitnehmerTermine.map((termin) => {
-                const mannschaft = termin.mannschaftId
-                  ? mannschaftenFuerVerfuegbare.find((m) => m.id === termin.mannschaftId)
-                  : null;
-                const rollenMitBedarf = eigeneZeitnehmerTypen.filter(
-                  (typ) =>
-                    bedarfFuer(
-                      vereinEinstellungen,
-                      termin.typ,
-                      typ,
-                      termin.pflichtspiel,
-                      termin.freundschaftsTyp,
-                      termin.zeitnehmerBedarfOverride,
-                      mannschaftBedarfDeaktiviertFuer(mannschaft, typ)
-                    ) > 0
-                );
-                if (rollenMitBedarf.length === 0) return null;
-
-                const zuordnungenDiesesTermins = zuordnungenFuerVerfuegbareZeitnehmer.filter(
-                  (d) => d.terminId === termin.id
-                );
-                // Feste Obergrenze je Rolle (max. 1), unabhängig vom
-                // konfigurierten Bedarf oben (der nur bestimmt, ob überhaupt
-                // ein Bedarf besteht) — dieselbe Berechnung wie bei der
-                // serverseitigen Prüfung in selbstAnmelden.
-                const besetzung = berechneBesetzung(zuordnungenDiesesTermins);
-
-                return (
-                  <div key={termin.id} className="rounded-lg border p-3 text-sm">
-                    <p>
-                      {formatDateTime(termin.start)}
-                      {termin.ort ? ` · ${termin.ort}` : ""}
-                      {termin.beschreibung ? ` · ${termin.beschreibung}` : ""}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {rollenMitBedarf.map((typ) => {
-                        const voll =
-                          typ === "zeitnehmer"
-                            ? besetzung.zeitnehmerVoll
-                            : besetzung.sekretaerVoll;
-                        const bestehend = zuordnungenDiesesTermins.find(
-                          (d) =>
-                            d.funktionstraegerTyp === typ && d.userId === userId
-                        );
-
-                        if (bestehend) {
-                          return (
-                            <form key={typ} action={selbstAbmelden}>
-                              <input
-                                type="hidden"
-                                name="zuordnungId"
-                                value={bestehend.id}
-                              />
-                              <Button type="submit" variant="outline" size="sm">
-                                {TYP_LABEL[typ]}: angemeldet — abmelden
-                              </Button>
-                            </form>
-                          );
-                        }
-                        if (voll) {
-                          return (
-                            <Badge key={typ} variant="outline">
-                              {TYP_LABEL[typ]}: besetzt
-                            </Badge>
-                          );
-                        }
-                        return (
-                          <form key={typ} action={selbstAnmelden}>
-                            <input
-                              type="hidden"
-                              name="terminId"
-                              value={termin.id}
-                            />
-                            <input type="hidden" name="typ" value={typ} />
-                            <Button type="submit" size="sm">
-                              Als {TYP_LABEL[typ]} anmelden
-                            </Button>
-                          </form>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}
