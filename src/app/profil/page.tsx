@@ -768,40 +768,56 @@ export default async function ProfilPage({
                 Keine Termine vorhanden.
               </p>
             )}
-            {Object.entries(
-              eigeneTermine.reduce<Record<string, typeof eigeneTermine>>(
-                (gruppen, t) => {
-                  const saison = saisonLabel(t.start);
-                  (gruppen[saison] ??= []).push(t);
-                  return gruppen;
-                },
-                {}
+            {(() => {
+              const aktuelleSaison = saisonSortKey(saisonLabel(new Date()));
+              return Object.entries(
+                eigeneTermine.reduce<Record<string, typeof eigeneTermine>>(
+                  (gruppen, t) => {
+                    const saison = saisonLabel(t.start);
+                    (gruppen[saison] ??= []).push(t);
+                    return gruppen;
+                  },
+                  {}
+                )
               )
-            )
-              .sort(([a], [b]) => saisonSortKey(b) - saisonSortKey(a))
-              .map(([saison, termineDerSaison]) => (
-                <div key={saison} className="flex flex-col gap-2">
-                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    Saison {saison}
-                  </p>
-                  {termineDerSaison.map((t) => (
-                    <div key={t.id} className="rounded-lg border p-3 text-sm">
-                      {formatDateTime(t.start)}
-                      {t.ort ? ` · ${t.ort}` : ""}
-                      {t.beschreibung ? ` · ${t.beschreibung}` : ""}
-                      {t.meineRollen.length > 0 && (
-                        <span className="ml-2 inline-flex flex-wrap gap-1 align-middle">
-                          {t.meineRollen.map((r) => (
-                            <Badge key={r} variant="outline" className="text-xs">
-                              {TYP_LABEL[r] ?? r}
-                            </Badge>
-                          ))}
-                        </span>
-                      )}
+                .sort(([a], [b]) => saisonSortKey(b) - saisonSortKey(a))
+                .map(([saison, termineDerSaison]) => (
+                  // Abgeschlossene (vergangene) Saisons eingeklappt, damit
+                  // die Liste über die Jahre nicht immer weiter aufläuft —
+                  // die laufende (und eine theoretisch schon begonnene
+                  // zukünftige) Saison bleibt offen.
+                  <details
+                    key={saison}
+                    open={saisonSortKey(saison) >= aktuelleSaison}
+                  >
+                    <summary className="cursor-pointer list-none text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                      Saison {saison}
+                    </summary>
+                    <div className="mt-2 flex flex-col gap-2">
+                      {termineDerSaison.map((t) => (
+                        <div key={t.id} className="rounded-lg border p-3 text-sm">
+                          {formatDateTime(t.start)}
+                          {t.ort ? ` · ${t.ort}` : ""}
+                          {t.beschreibung ? ` · ${t.beschreibung}` : ""}
+                          {t.meineRollen.length > 0 && (
+                            <span className="ml-2 inline-flex flex-wrap gap-1 align-middle">
+                              {t.meineRollen.map((r) => (
+                                <Badge
+                                  key={r}
+                                  variant="outline"
+                                  className="text-xs"
+                                >
+                                  {TYP_LABEL[r] ?? r}
+                                </Badge>
+                              ))}
+                            </span>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ))}
+                  </details>
+                ));
+            })()}
           </CardContent>
         </Card>
       </main>
