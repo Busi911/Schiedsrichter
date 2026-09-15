@@ -31,14 +31,21 @@ const ROLLEN_BREITE: Record<AuswertungsRolle, number> = {
   sekretaer: 60,
 };
 
+// "offen" statt einer leeren Zelle, wenn tatsächlich noch jemand fehlt
+// (rollenBedarf === true, kein Name) — eine leere Zelle war sonst optisch
+// nicht von "kein Bedarf" (siehe "intern" unten) zu unterscheiden und fiel
+// beim schnellen Überfliegen des PDFs nicht als Lücke auf.
 const ROLLEN_WERT: Record<AuswertungsRolle, (z: Zeile) => string> = {
   schiedsrichter: (z) => z.schiedsrichterName ?? "",
-  ordner: (z) => rollenZellenWert(z.ordnerName, z.rollenBedarf?.ordner, ""),
+  ordner: (z) => rollenZellenWert(z.ordnerName, z.rollenBedarf?.ordner, "offen"),
   kioskdienst: (z) =>
-    rollenZellenWert(z.kioskdienstName, z.rollenBedarf?.kioskdienst, ""),
-  kassierer: (z) => rollenZellenWert(z.kassiererName, z.rollenBedarf?.kassierer, ""),
-  zeitnehmer: (z) => rollenZellenWert(z.zeitnehmerName, z.rollenBedarf?.zeitnehmer, ""),
-  sekretaer: (z) => rollenZellenWert(z.sekretaerName, z.rollenBedarf?.sekretaer, ""),
+    rollenZellenWert(z.kioskdienstName, z.rollenBedarf?.kioskdienst, "offen"),
+  kassierer: (z) =>
+    rollenZellenWert(z.kassiererName, z.rollenBedarf?.kassierer, "offen"),
+  zeitnehmer: (z) =>
+    rollenZellenWert(z.zeitnehmerName, z.rollenBedarf?.zeitnehmer, "offen"),
+  sekretaer: (z) =>
+    rollenZellenWert(z.sekretaerName, z.rollenBedarf?.sekretaer, "offen"),
 };
 
 // Beschreibung/Schiedsrichter-E-Mail bewusst weggelassen (anders als in der

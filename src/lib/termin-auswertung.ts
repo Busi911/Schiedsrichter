@@ -235,7 +235,13 @@ export function kombiniereSchiedsrichterZuordnungen(
 
 export async function holeTermineFuerAuswertung(
   vereinId: string,
-  filter: AuswertungFilter
+  filter: AuswertungFilter,
+  // Nur für die Vorschau auf admin/auswertung/page.tsx gedacht (dort ohne
+  // Enddatum sonst potenziell hunderte Termine mit allen Zuordnungen) — die
+  // Export-Routen (export/excel|pdf/route.ts) rufen ohne limit auf und
+  // bekommen weiterhin IMMER den kompletten gefilterten Zeitraum, unabhängig
+  // von der angezeigten Vorschau.
+  limit?: number
 ) {
   return withTenant(vereinId, async (tx) => {
     // Ohne explizites "von" gilt der Dienstplan ab heute (Europe/Berlin) statt
@@ -261,7 +267,7 @@ export async function holeTermineFuerAuswertung(
       );
     }
 
-    const basisListe = await tx
+    const basisListeQuery = tx
       .select({
         id: termine.id,
         typ: termine.typ,
@@ -291,6 +297,17 @@ export async function holeTermineFuerAuswertung(
       .leftJoin(users, eq(termine.icsSchiedsrichterId, users.id))
       .where(and(...bedingungen))
       .orderBy(asc(termine.start));
+
+    // schiedsrichterId filtert erst NACH dieser Abfrage (siehe
+    // kombiniereSchiedsrichterZuordnungen unten) — ein SQL-LIMIT hier könnte
+    // dann fälschlich zu wenige Zeilen übriglassen, obwohl ohne den Filter
+    // mehr passende existieren. Deshalb limit in diesem Fall ignorieren
+    // (schiedsrichterId schränkt die Treffermenge ohnehin meist schon genug
+    // ein, um performant zu bleiben).
+    const basisListe =
+      limit != null && !filter.schiedsrichterId
+        ? await basisListeQuery.limit(limit)
+        : await basisListeQuery;
 
     // Separate Abfrage statt JOIN, da ein Termin bei Gespann-Besetzung ZWEI
     // Schiedsrichter-Zuordnungen haben kann (und Ordner/Kioskdienst analog
