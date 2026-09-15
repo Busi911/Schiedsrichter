@@ -250,7 +250,7 @@ export default async function ProfilPage({
   return (
     <div className="min-h-screen">
       <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4">
           <div className="flex items-center gap-3">
             <Logo className="size-8 shrink-0 text-primary" />
             <div>
@@ -322,7 +322,7 @@ export default async function ProfilPage({
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+      <main className="mx-auto flex max-w-screen-2xl flex-col gap-6 p-6">
         <Card>
           <CardHeader>
             <CardTitle>Mein Kalender</CardTitle>
