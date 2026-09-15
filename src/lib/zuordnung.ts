@@ -68,6 +68,52 @@ export function zuordnungEntferntInhalt(
   };
 }
 
+// Benachrichtigt den zuständigen Wart, wenn eine eingeloggte Person sich
+// über /profil von einem Termin wieder abmelden möchte (siehe selbstAbmelden
+// in profil/actions.ts) — die Zuordnung wird dabei NICHT sofort entfernt,
+// sondern nur als Anfrage markiert (terminZuordnungen.abmeldungAngefragtAm),
+// damit eine Abmeldung nicht stillschweigend passiert, ohne dass der Wart
+// die entstehende Lücke bemerkt. Der Wart entscheidet über
+// abmeldungGenehmigen/abmeldungAblehnen (profil/ordnerwart/actions.ts bzw.
+// profil/zeitnehmerwart/actions.ts).
+export function abmeldungAngefragtInhalt(
+  name: string,
+  rolle: string,
+  termin: { start: Date; ort: string | null; beschreibung: string | null },
+  cta: { text: string; url: string }
+): EmailInhalt {
+  const zeitpunkt = formatDatumZeitLang(termin.start);
+  const zeilen: string[] = [`Termin: ${zeitpunkt}`];
+  if (termin.ort) zeilen.push(`Ort: ${termin.ort}`);
+  if (termin.beschreibung) zeilen.push(termin.beschreibung);
+  return {
+    ueberschrift: `${name} möchte sich als ${ZUORDNUNGS_ROLLE_LABEL[rolle] ?? rolle} wieder abmelden und wartet auf deine Bestätigung.`,
+    zeilen,
+    cta,
+  };
+}
+
+// Gegenstück zu abmeldungAngefragtInhalt oben — informiert die Person
+// selbst, ob ihre Abmeldeanfrage bestätigt (Zuordnung entfernt) oder
+// abgelehnt (weiterhin eingeteilt) wurde.
+export function abmeldungEntschiedenInhalt(
+  rolle: string,
+  termin: { start: Date; ort: string | null; beschreibung: string | null },
+  genehmigt: boolean
+): EmailInhalt {
+  const zeitpunkt = formatDatumZeitLang(termin.start);
+  const zeilen: string[] = [`Termin: ${zeitpunkt}`];
+  if (termin.ort) zeilen.push(`Ort: ${termin.ort}`);
+  if (termin.beschreibung) zeilen.push(termin.beschreibung);
+  const rolleLabel = ZUORDNUNGS_ROLLE_LABEL[rolle] ?? rolle;
+  return {
+    ueberschrift: genehmigt
+      ? `Deine Abmeldung als ${rolleLabel} wurde bestätigt.`
+      : `Deine Abmeldung als ${rolleLabel} wurde abgelehnt — du bist weiterhin eingeteilt.`,
+    zeilen,
+  };
+}
+
 // Eigene Variante von zuordnungEntferntInhalt oben, speziell für eine
 // Terminverlegung beim nuLiga-/handball.net-Sync (siehe
 // importiereRundenspielEreignisse in rundenspiel-sync.ts): wer sich für den
@@ -273,6 +319,7 @@ export async function holeTermineMitZuordnungen(vereinId: string) {
             email: users.email,
             externerName: terminZuordnungen.externerName,
             matchVorschlagUserId: terminZuordnungen.matchVorschlagUserId,
+            abmeldungAngefragtAm: terminZuordnungen.abmeldungAngefragtAm,
           })
           .from(terminZuordnungen)
           .leftJoin(users, eq(terminZuordnungen.userId, users.id))

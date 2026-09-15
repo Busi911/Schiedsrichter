@@ -17,9 +17,17 @@ import {
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { SELBST_ANMELDBARE_TYPEN } from "@/lib/eigene-offene-dienste";
+import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
+import { sendMail } from "@/lib/mailer";
+import { holeOrdnerwarteEmails, ORDNER_ROLLEN } from "@/lib/ordnerwart";
+import { appUrl } from "@/lib/app-url";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
-import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
-import { pruefeBesetzungsgrenze, pruefeKeineDoppelrolle } from "@/lib/zuordnung";
+import { holeZeitnehmerwarteEmails, istZeitnehmerwart } from "@/lib/zeitnehmerwart";
+import {
+  abmeldungAngefragtInhalt,
+  pruefeBesetzungsgrenze,
+  pruefeKeineDoppelrolle,
+} from "@/lib/zuordnung";
 
 // Selbstverwaltung der eigenen Stammdaten (Name, Telefonnummer) — bewusst
 // OHNE E-Mail-Änderung, die bleibt Admin-Aufgabe (login-kritisch, siehe
@@ -249,6 +257,14 @@ export async function selbstAnmelden(formData: FormData) {
   revalidatePath("/admin/kalender");
 }
 
+// Entfernt die Zuordnung NICHT direkt, sondern markiert sie nur als
+// Abmeldeanfrage (terminZuordnungen.abmeldungAngefragtAm) und benachrichtigt
+// den zuständigen Wart — sonst verschwindet eine Zuordnung stillschweigend,
+// ohne dass der Wart die entstehende Lücke bemerkt. Der Wart entscheidet
+// über abmeldungGenehmigen/abmeldungAblehnen (profil/ordnerwart/actions.ts
+// bzw. profil/zeitnehmerwart/actions.ts). Ein erneuter Klick auf eine
+// bereits angefragte Abmeldung zieht die Anfrage wieder zurück, statt einen
+// zweiten Hinweis an den Wart zu schicken.
 export async function selbstAbmelden(formData: FormData) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
@@ -259,19 +275,66 @@ export async function selbstAbmelden(formData: FormData) {
     throw new Error("Zuordnung fehlt.");
   }
 
-  await withTenant(vereinId, async (tx) => {
+  const anfrage = await withTenant(vereinId, async (tx) => {
     // Sicherheitscheck: nur die eigene Anmeldung darf abgemeldet werden.
     const zuordnung = await tx.query.terminZuordnungen.findFirst({
       where: eq(terminZuordnungen.id, zuordnungId),
     });
-    if (!zuordnung || zuordnung.userId !== userId) return;
+    if (!zuordnung || zuordnung.userId !== userId) return null;
+
+    if (zuordnung.abmeldungAngefragtAm) {
+      await tx
+        .update(terminZuordnungen)
+        .set({ abmeldungAngefragtAm: null })
+        .where(eq(terminZuordnungen.id, zuordnungId));
+      return null;
+    }
 
     await tx
-      .delete(terminZuordnungen)
+      .update(terminZuordnungen)
+      .set({ abmeldungAngefragtAm: new Date() })
       .where(eq(terminZuordnungen.id, zuordnungId));
+
+    const [termin, verein, nutzer] = await Promise.all([
+      tx.query.termine.findFirst({ where: eq(termine.id, zuordnung.terminId) }),
+      tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) }),
+      tx.query.users.findFirst({ where: eq(users.id, userId) }),
+    ]);
+    if (!termin || !verein || !nutzer) return null;
+
+    return { termin, verein, nutzer, rolle: zuordnung.funktionstraegerTyp };
   });
 
+  if (anfrage) {
+    const { termin, verein, nutzer, rolle } = anfrage;
+    const istOrdnerFamilie = (ORDNER_ROLLEN as readonly string[]).includes(rolle);
+    const warte = istOrdnerFamilie
+      ? await holeOrdnerwarteEmails(vereinId)
+      : await holeZeitnehmerwarteEmails(vereinId);
+    const wartUrl = `${appUrl()}${istOrdnerFamilie ? "/profil/ordnerwart" : "/profil/zeitnehmerwart"}`;
+    const inhalt = {
+      vereinName: verein.name,
+      ...abmeldungAngefragtInhalt(nutzer.name ?? nutzer.email, rolle, termin, {
+        text: "Abmeldung bestätigen",
+        url: wartUrl,
+      }),
+    };
+    for (const wart of warte) {
+      try {
+        await sendMail(
+          wart.email,
+          "Abmeldeanfrage",
+          emailAlsText(inhalt),
+          emailAlsHtml(inhalt)
+        );
+      } catch (err) {
+        console.error("Abmeldeanfrage-Mail konnte nicht gesendet werden:", err);
+      }
+    }
+  }
+
   revalidatePath("/profil");
+  revalidatePath("/profil/ordnerwart");
   revalidatePath("/profil/zeitnehmerwart");
   revalidatePath("/admin/kalender");
 }

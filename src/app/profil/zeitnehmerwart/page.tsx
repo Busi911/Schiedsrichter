@@ -17,6 +17,8 @@ import { angesetzteNamenPassenZu } from "@/lib/rundenspiel-import";
 import { findeNamensVorschlag } from "@/lib/namens-abgleich";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import {
+  abmeldungAblehnen,
+  abmeldungGenehmigen,
   zeitnehmerBedarfUeberschreiben,
   zeitnehmerInaktiveRolleAktivierenUndZuordnen,
   zeitnehmerMannschaftBedarfUmschalten,
@@ -263,6 +265,20 @@ export default async function ZeitnehmerwartPage({
       .map((z) => ({ ...z, termin: t }))
   );
 
+  // Personen, die sich über /profil selbst wieder abmelden wollten (siehe
+  // selbstAbmelden in profil/actions.ts) — die Zuordnung besteht bewusst
+  // noch, bis hier bestätigt oder abgelehnt wird (siehe
+  // abmeldungGenehmigen/abmeldungAblehnen unten).
+  const abmeldeanfragen = termineMitZuordnungen.flatMap((t) =>
+    t.zuordnungen
+      .filter(
+        (z) =>
+          z.abmeldungAngefragtAm != null &&
+          (ZEITNEHMER_ROLLEN as readonly string[]).includes(z.funktionstraegerTyp)
+      )
+      .map((z) => ({ ...z, termin: t }))
+  );
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
       <div>
@@ -497,6 +513,47 @@ export default async function ZeitnehmerwartPage({
                 </div>
               );
             })}
+          </CardContent>
+        </Card>
+      )}
+
+      {abmeldeanfragen.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Abmeldeanfragen ({abmeldeanfragen.length})
+            </CardTitle>
+            <CardDescription>
+              Diese Personen möchten sich wieder abmelden — die Zuordnung
+              bleibt bestehen, bis du zustimmst oder ablehnst.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {abmeldeanfragen.map((z) => (
+              <div
+                key={z.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"
+              >
+                <p>
+                  <span className="font-medium">{z.name ?? z.externerName}</span> als{" "}
+                  {z.funktionstraegerTyp === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"}{" "}
+                  · {formatDateTime(z.termin.start)}
+                  {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
+                </p>
+                <div className="flex gap-2">
+                  <form action={abmeldungGenehmigen}>
+                    <input type="hidden" name="zuordnungId" value={z.id} />
+                    <SubmitButton size="sm">Bestätigen</SubmitButton>
+                  </form>
+                  <form action={abmeldungAblehnen}>
+                    <input type="hidden" name="zuordnungId" value={z.id} />
+                    <SubmitButton variant="outline" size="sm">
+                      Ablehnen
+                    </SubmitButton>
+                  </form>
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}

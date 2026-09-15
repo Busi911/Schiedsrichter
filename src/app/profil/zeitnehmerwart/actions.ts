@@ -13,6 +13,7 @@ import {
   vereine,
 } from "@/db/schema";
 import {
+  abmeldungEntschiedenInhalt,
   pruefeBesetzungsgrenze,
   zuordnungEntferntInhalt,
   zuordnungsMailInhalt,
@@ -296,6 +297,138 @@ export async function zeitnehmerZuordnungEntfernen(formData: FormData) {
   }
 
   revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath("/admin/kalender");
+}
+
+// Bestätigt eine Abmeldeanfrage (siehe selbstAbmelden in profil/actions.ts,
+// terminZuordnungen.abmeldungAngefragtAm) — entfernt die Zuordnung jetzt
+// tatsächlich und informiert die Person, dass ihre Abmeldung durch ist.
+export async function abmeldungGenehmigen(formData: FormData) {
+  const { vereinId } = await requireZeitnehmerwartZugriff();
+
+  const zuordnungId = formData.get("zuordnungId");
+  if (typeof zuordnungId !== "string" || !zuordnungId) {
+    throw new Error("Zuordnung fehlt.");
+  }
+
+  const benachrichtigung = await withTenant(vereinId, async (tx) => {
+    const zuordnung = await tx.query.terminZuordnungen.findFirst({
+      where: eq(terminZuordnungen.id, zuordnungId),
+    });
+    if (
+      !zuordnung ||
+      !(ZEITNEHMER_ROLLEN as readonly string[]).includes(
+        zuordnung.funktionstraegerTyp
+      ) ||
+      !zuordnung.abmeldungAngefragtAm
+    ) {
+      throw new Error("Keine offene Abmeldeanfrage für diese Zuordnung.");
+    }
+    await tx
+      .delete(terminZuordnungen)
+      .where(eq(terminZuordnungen.id, zuordnungId));
+
+    if (!zuordnung.userId) return null; // ohne Login kein Empfänger
+
+    const [person, termin] = await Promise.all([
+      tx.query.users.findFirst({ where: eq(users.id, zuordnung.userId) }),
+      tx.query.termine.findFirst({ where: eq(termine.id, zuordnung.terminId) }),
+    ]);
+    if (!person || !termin) return null;
+
+    return {
+      termin,
+      email: person.email,
+      rolle: zuordnung.funktionstraegerTyp as ZeitnehmerRolle,
+    };
+  });
+
+  if (benachrichtigung) {
+    const inhalt = abmeldungEntschiedenInhalt(
+      benachrichtigung.rolle,
+      benachrichtigung.termin,
+      true
+    );
+    try {
+      await sendMail(
+        benachrichtigung.email,
+        "Abmeldung bestätigt",
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
+      );
+    } catch (err) {
+      console.error("Bestätigungs-Mail konnte nicht gesendet werden:", err);
+    }
+  }
+
+  revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath("/profil");
+  revalidatePath("/admin/kalender");
+}
+
+// Gegenstück zu abmeldungGenehmigen — lehnt die Anfrage ab, die Zuordnung
+// bleibt bestehen (Person weiterhin eingeteilt).
+export async function abmeldungAblehnen(formData: FormData) {
+  const { vereinId } = await requireZeitnehmerwartZugriff();
+
+  const zuordnungId = formData.get("zuordnungId");
+  if (typeof zuordnungId !== "string" || !zuordnungId) {
+    throw new Error("Zuordnung fehlt.");
+  }
+
+  const benachrichtigung = await withTenant(vereinId, async (tx) => {
+    const zuordnung = await tx.query.terminZuordnungen.findFirst({
+      where: eq(terminZuordnungen.id, zuordnungId),
+    });
+    if (
+      !zuordnung ||
+      !(ZEITNEHMER_ROLLEN as readonly string[]).includes(
+        zuordnung.funktionstraegerTyp
+      ) ||
+      !zuordnung.abmeldungAngefragtAm
+    ) {
+      throw new Error("Keine offene Abmeldeanfrage für diese Zuordnung.");
+    }
+    await tx
+      .update(terminZuordnungen)
+      .set({ abmeldungAngefragtAm: null })
+      .where(eq(terminZuordnungen.id, zuordnungId));
+
+    if (!zuordnung.userId) return null; // ohne Login kein Empfänger
+
+    const [person, termin] = await Promise.all([
+      tx.query.users.findFirst({ where: eq(users.id, zuordnung.userId) }),
+      tx.query.termine.findFirst({ where: eq(termine.id, zuordnung.terminId) }),
+    ]);
+    if (!person || !termin) return null;
+
+    return {
+      termin,
+      email: person.email,
+      rolle: zuordnung.funktionstraegerTyp as ZeitnehmerRolle,
+    };
+  });
+
+  if (benachrichtigung) {
+    const inhalt = abmeldungEntschiedenInhalt(
+      benachrichtigung.rolle,
+      benachrichtigung.termin,
+      false
+    );
+    try {
+      await sendMail(
+        benachrichtigung.email,
+        "Abmeldung abgelehnt",
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
+      );
+    } catch (err) {
+      console.error("Ablehnungs-Mail konnte nicht gesendet werden:", err);
+    }
+  }
+
+  revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath("/profil");
   revalidatePath("/admin/kalender");
 }
 

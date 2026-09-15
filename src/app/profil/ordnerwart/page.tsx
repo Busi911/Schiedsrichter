@@ -13,6 +13,8 @@ import {
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import {
+  abmeldungAblehnen,
+  abmeldungGenehmigen,
   ordnerMannschaftenBedarfSetzen,
   ordnerNeuAnlegenUndBestaetigen,
   ordnerSelbstanmeldungDeaktivieren,
@@ -206,6 +208,16 @@ export default async function OrdnerwartPage({
       .map((z) => ({ ...z, termin: t }))
   );
 
+  // Personen, die sich über /profil selbst wieder abmelden wollten (siehe
+  // selbstAbmelden in profil/actions.ts) — die Zuordnung besteht bewusst
+  // noch, bis hier bestätigt oder abgelehnt wird (siehe
+  // abmeldungGenehmigen/abmeldungAblehnen unten).
+  const abmeldeanfragen = termineRoh.flatMap((t) =>
+    t.zuordnungen
+      .filter((z) => z.abmeldungAngefragtAm != null)
+      .map((z) => ({ ...z, termin: t }))
+  );
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
       <div>
@@ -384,6 +396,49 @@ export default async function OrdnerwartPage({
                 </div>
               );
             })}
+          </CardContent>
+        </Card>
+      )}
+
+      {abmeldeanfragen.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Abmeldeanfragen ({abmeldeanfragen.length})
+            </CardTitle>
+            <CardDescription>
+              Diese Personen möchten sich wieder abmelden — die Zuordnung
+              bleibt bestehen, bis du zustimmst oder ablehnst.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {abmeldeanfragen.map((z) => (
+              <div
+                key={z.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"
+              >
+                <p>
+                  <span className="font-medium">{z.name ?? z.externerName}</span> als{" "}
+                  {ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}{" "}
+                  · {formatDateTime(z.termin.start)}
+                  {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
+                </p>
+                <div className="flex gap-2">
+                  <form action={abmeldungGenehmigen}>
+                    <input type="hidden" name="zuordnungId" value={z.id} />
+                    <Button type="submit" size="sm">
+                      Bestätigen
+                    </Button>
+                  </form>
+                  <form action={abmeldungAblehnen}>
+                    <input type="hidden" name="zuordnungId" value={z.id} />
+                    <Button type="submit" variant="outline" size="sm">
+                      Ablehnen
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}

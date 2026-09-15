@@ -19,6 +19,7 @@ import {
 } from "@/lib/zuordnung";
 import {
   holeOrdnerEinsatzZahlen,
+  holeOrdnerwarteEmails,
   ORDNER_ROLLEN,
   pruefeKeineOrdnerDoppelrolle,
   pruefeOrdnerBesetzungsgrenze,
@@ -152,23 +153,6 @@ export async function ordnerSelbstEintragenOeffentlich(formData: FormData) {
 type Identitaet =
   | { art: "userId"; userId: string; email: string }
   | { art: "extern"; externerName: string; matchVorschlagUserId: string | null };
-
-// Lädt alle aktiven Ordnerwarte-E-Mail-Adressen — geteilt zwischen der
-// Fehlschlags- und der Neu-Registrierung-Benachrichtigung unten.
-async function holeOrdnerwarteEmails(vereinId: string) {
-  return withTenant(vereinId, (tx) =>
-    tx
-      .select({ email: users.email })
-      .from(funktionstraegerRollen)
-      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
-      .where(
-        and(
-          eq(funktionstraegerRollen.typ, "ordnerwart"),
-          eq(funktionstraegerRollen.aktiv, true)
-        )
-      )
-  );
-}
 
 // Löst die E-Mail-Variante der Identität auf: bestehendes Konto (im
 // eigenen Verein) wiederverwenden oder neu anlegen, dann die Rolle

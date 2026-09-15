@@ -547,6 +547,14 @@ export const terminZuordnungen = pgTable("termin_zuordnung", {
   ),
   funktionstraegerTyp: funktionstraegerTypEnum("funktionstraeger_typ").notNull(),
   quelle: zuordnungQuelleEnum("quelle").notNull(),
+  // Gesetzt, wenn die zugeordnete Person sich selbst wieder abmelden möchte
+  // (siehe selbstAbmelden in profil/actions.ts) — entfernt die Zuordnung
+  // NICHT sofort, sondern markiert sie nur als Anfrage: der zuständige Wart
+  // muss sie erst bestätigen (siehe abmeldungGenehmigen/abmeldungAblehnen in
+  // profil/ordnerwart/actions.ts bzw. profil/zeitnehmerwart/actions.ts),
+  // damit ein Abmelden nicht stillschweigend passiert, ohne dass der Wart
+  // die Lücke bemerkt.
+  abmeldungAngefragtAm: timestamp("abmeldung_angefragt_am", { mode: "date" }),
 });
 
 export const icsSyncLog = pgTable("ics_sync_log", {

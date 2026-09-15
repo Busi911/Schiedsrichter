@@ -1,0 +1,1 @@
+ALTER TABLE "termin_zuordnung" ADD COLUMN "abmeldung_angefragt_am" timestamp;

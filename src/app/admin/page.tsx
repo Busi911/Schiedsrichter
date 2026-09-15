@@ -11,12 +11,19 @@ import {
 import { berechneGesamtbilanz, holeMannschaftsBilanzen } from "@/lib/dienste-statistik";
 import { parseMonatParam } from "@/lib/kalender";
 import { holeAdminKalenderDaten } from "@/lib/admin-kalender";
-import { holeOffeneSelbsteintragungen } from "@/lib/offene-selbsteintragungen";
 import {
+  holeOffeneAbmeldeanfragen,
+  holeOffeneSelbsteintragungen,
+} from "@/lib/offene-selbsteintragungen";
+import {
+  abmeldungAblehnen as ordnerAbmeldungAblehnen,
+  abmeldungGenehmigen as ordnerAbmeldungGenehmigen,
   ordnerNeuAnlegenUndBestaetigen,
   ordnerVorschlagBestaetigen,
 } from "@/app/profil/ordnerwart/actions";
 import {
+  abmeldungAblehnen as zeitnehmerAbmeldungAblehnen,
+  abmeldungGenehmigen as zeitnehmerAbmeldungGenehmigen,
   zeitnehmerInaktiveRolleAktivierenUndZuordnen,
   zeitnehmerNeuAnlegenUndBestaetigen,
   zeitnehmerVorschlagBestaetigen,
@@ -101,6 +108,7 @@ export default async function AdminDashboardPage({
     mannschaftsBilanzen,
     kalenderDaten,
     offeneSelbsteintragungen,
+    offeneAbmeldeanfragen,
   ] = await Promise.all([
     // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
     // den Link "Alle Termine" unten.
@@ -119,6 +127,10 @@ export default async function AdminDashboardPage({
     // Kassierer UND Zeitnehmer/Sekretär zusammen, statt zwischen den beiden
     // Wart-Seiten wechseln zu müssen (siehe lib/offene-selbsteintragungen.ts).
     holeOffeneSelbsteintragungen(vereinId),
+    // Personen, die sich selbst wieder abmelden wollten (siehe selbstAbmelden
+    // in profil/actions.ts) — auch hier beide Wart-Bereiche zusammen, damit
+    // der Admin es sieht, selbst ohne eigene Wart-Rolle.
+    holeOffeneAbmeldeanfragen(vereinId),
   ]);
   const { spiele: gesamtSpiele, siegquote } = berechneGesamtbilanz(mannschaftsBilanzen);
 
@@ -275,6 +287,60 @@ export default async function AdminDashboardPage({
                       Aktivieren &amp; zuordnen
                     </ConfirmSubmitButton>
                   </form>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {offeneAbmeldeanfragen.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Abmeldeanfragen ({offeneAbmeldeanfragen.length})
+            </CardTitle>
+            <CardDescription>
+              Diese Personen möchten sich wieder abmelden — die Zuordnung
+              bleibt bestehen, bis zugestimmt oder abgelehnt wird.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {offeneAbmeldeanfragen.map((z) => (
+              <div
+                key={z.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"
+              >
+                <p>
+                  <span className="font-medium">{z.name}</span> als{" "}
+                  {z.rolleLabel} · {formatDateTime(z.termin.start)}
+                  {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
+                </p>
+                {session.user.istAdmin && (
+                  <div className="flex gap-2">
+                    <form
+                      action={
+                        z.bereich === "ordner"
+                          ? ordnerAbmeldungGenehmigen
+                          : zeitnehmerAbmeldungGenehmigen
+                      }
+                    >
+                      <input type="hidden" name="zuordnungId" value={z.id} />
+                      <SubmitButton size="sm">Bestätigen</SubmitButton>
+                    </form>
+                    <form
+                      action={
+                        z.bereich === "ordner"
+                          ? ordnerAbmeldungAblehnen
+                          : zeitnehmerAbmeldungAblehnen
+                      }
+                    >
+                      <input type="hidden" name="zuordnungId" value={z.id} />
+                      <SubmitButton variant="outline" size="sm">
+                        Ablehnen
+                      </SubmitButton>
+                    </form>
+                  </div>
                 )}
               </div>
             ))}
