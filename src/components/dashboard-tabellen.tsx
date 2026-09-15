@@ -80,40 +80,42 @@ export function UnbesetzteDiensteTabelle({
       <TableHeader>
         <TableRow>
           <TableHead>Termin</TableHead>
-          <TableHead>Fehlende Rolle</TableHead>
+          <TableHead>Fehlende Rollen</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {posten.flatMap((p) =>
-          p.luecken.map((l, i) => (
-            <TableRow key={`${p.terminId}-${l.rolle}`}>
-              {i === 0 && (
-                <TableCell
-                  rowSpan={p.luecken.length}
-                  className="w-0 align-top text-sm whitespace-normal"
-                >
-                  <div className="font-medium">{p.zeit}</div>
-                  <div className="mt-0.5">
-                    <Badge variant="outline">{p.typLabel}</Badge>
-                  </div>
-                  {p.mannschaft && (
-                    <div className="text-xs text-muted-foreground">
-                      {p.mannschaft}
-                    </div>
-                  )}
-                </TableCell>
-              )}
-              <TableCell className="text-sm whitespace-normal">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="warning">{l.rolle}</Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {l.vorhanden} von {l.bedarf} besetzt
-                  </span>
+        {posten.map((p) => (
+          <TableRow key={p.terminId}>
+            <TableCell className="w-0 align-top text-sm whitespace-normal">
+              <div className="font-medium">{p.zeit}</div>
+              <div className="mt-0.5">
+                <Badge variant="outline">{p.typLabel}</Badge>
+              </div>
+              {p.mannschaft && (
+                <div className="text-xs text-muted-foreground">
+                  {p.mannschaft}
                 </div>
-              </TableCell>
-            </TableRow>
-          ))
-        )}
+              )}
+            </TableCell>
+            <TableCell className="text-sm whitespace-normal">
+              {/* Alle fehlenden Rollen dieses Termins nebeneinander in EINER
+                  Zeile statt je einer eigenen Tabellenzeile — kompakter und
+                  ein Termin mit mehreren Lücken bleibt auf einen Blick
+                  zusammenhängend, statt über mehrere Zeilen aufgeteilt zu
+                  wirken. */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                {p.luecken.map((l) => (
+                  <div key={l.rolle} className="flex items-center gap-2">
+                    <Badge variant="warning">{l.rolle}</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {l.vorhanden} von {l.bedarf} besetzt
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
       </TableBody>
     </Table>
   );

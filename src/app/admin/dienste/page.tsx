@@ -74,8 +74,8 @@ export default async function DienstePage() {
         </p>
       </div>
 
-      <Card className="max-w-3xl">
-        <CardHeader>
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-baseline gap-x-3 gap-y-1">
           <CardTitle className="text-base">
             {offenePostenZeilen.length} offen
           </CardTitle>
