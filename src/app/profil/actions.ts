@@ -19,8 +19,16 @@ import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
+import { pruefeBesetzungsgrenze, pruefeKeineDoppelrolle } from "@/lib/zuordnung";
 
-const SELBST_ANMELDBARE_TYPEN = ORDNER_ROLLEN;
+// Schiedsrichter fehlt hier bewusst: keine öffentliche Selbsteintragung dafür
+// (siehe Kommentar in offene-selbsteintragungen.ts), bleibt Admin-/
+// Schiedsrichterwart-Sache.
+const SELBST_ANMELDBARE_TYPEN = [
+  ...ORDNER_ROLLEN,
+  "zeitnehmer",
+  "sekretaer",
+] as const;
 
 // Selbstverwaltung der eigenen Stammdaten (Name, Telefonnummer) — bewusst
 // OHNE E-Mail-Änderung, die bleibt Admin-Aufgabe (login-kritisch, siehe
@@ -197,35 +205,44 @@ export async function selbstAnmelden(formData: FormData) {
     });
     if (!termin) throw new Error("Termin nicht gefunden.");
 
-    const verein = await tx.query.vereine.findFirst({
-      where: eq(vereine.id, vereinId),
-    });
-    if (!verein) throw new Error("Verein nicht gefunden.");
+    // Zeitnehmer/Sekretär haben eine feste Obergrenze von je 1 (siehe
+    // pruefeBesetzungsgrenze/pruefeKeineDoppelrolle in zuordnung.ts, dieselbe
+    // Prüfung wie bei der öffentlichen Selbsteintragung) statt der
+    // konfigurierbaren Bedarfsgrenze der Ordner-Rollen unten.
+    if (rolle === "zeitnehmer" || rolle === "sekretaer") {
+      await pruefeBesetzungsgrenze(tx, vereinId, terminId, rolle);
+      await pruefeKeineDoppelrolle(tx, terminId, { userId });
+    } else {
+      const verein = await tx.query.vereine.findFirst({
+        where: eq(vereine.id, vereinId),
+      });
+      if (!verein) throw new Error("Verein nicht gefunden.");
 
-    const mannschaft = termin.mannschaftId
-      ? await tx.query.mannschaften.findFirst({
-          where: eq(mannschaften.id, termin.mannschaftId),
-        })
-      : null;
-    const bedarf = bedarfFuer(
-      verein,
-      termin.typ,
-      rolle,
-      termin.pflichtspiel,
-      termin.freundschaftsTyp,
-      undefined,
-      mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
-    );
-    const bestehende = await tx.query.terminZuordnungen.findMany({
-      where: and(
-        eq(terminZuordnungen.terminId, terminId),
-        eq(terminZuordnungen.funktionstraegerTyp, rolle)
-      ),
-    });
-    if (bestehende.length >= bedarf) {
-      throw new Error(
-        "Für diesen Dienst sind bereits genug Personen angemeldet."
+      const mannschaft = termin.mannschaftId
+        ? await tx.query.mannschaften.findFirst({
+            where: eq(mannschaften.id, termin.mannschaftId),
+          })
+        : null;
+      const bedarf = bedarfFuer(
+        verein,
+        termin.typ,
+        rolle,
+        termin.pflichtspiel,
+        termin.freundschaftsTyp,
+        undefined,
+        mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
       );
+      const bestehende = await tx.query.terminZuordnungen.findMany({
+        where: and(
+          eq(terminZuordnungen.terminId, terminId),
+          eq(terminZuordnungen.funktionstraegerTyp, rolle)
+        ),
+      });
+      if (bestehende.length >= bedarf) {
+        throw new Error(
+          "Für diesen Dienst sind bereits genug Personen angemeldet."
+        );
+      }
     }
 
     await tx.insert(terminZuordnungen).values({
@@ -237,6 +254,8 @@ export async function selbstAnmelden(formData: FormData) {
   });
 
   revalidatePath("/profil");
+  revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath("/admin/kalender");
 }
 
 export async function selbstAbmelden(formData: FormData) {
@@ -262,6 +281,8 @@ export async function selbstAbmelden(formData: FormData) {
   });
 
   revalidatePath("/profil");
+  revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath("/admin/kalender");
 }
 
 type PushSubscriptionJson = {
