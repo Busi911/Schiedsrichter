@@ -37,6 +37,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -344,69 +352,6 @@ export default async function ProfilPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Kalender abonnieren</CardTitle>
-            <CardDescription>
-              Abo-Link für Apple/Google/Outlook Kalender & Co. — dieselben
-              Termine wie oben, automatisch aktuell gehalten, ohne dass du
-              hier vorbeischauen musst.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {eigeneStammdaten?.kalenderToken ? (
-              <>
-                <p className="break-all rounded-lg border bg-muted/40 p-3 text-sm">
-                  {appUrl()}/kalender/{eigeneStammdaten.kalenderToken}
-                </p>
-                {/* webcal:// statt https:// — auf iPhone/iPad/Mac öffnet das
-                    antippen direkt den "Abonnement hinzufügen"-Dialog der
-                    Kalender-App, ohne den Link manuell einfügen zu müssen.
-                    Nebeneffekt: vermeidet auch iOS' "Unsichere Verbindung"-
-                    Warnung, die beim manuellen Einfügen eines https-Links
-                    dort erscheint (Apples generischer Hinweis für externe
-                    Feeds, kein echtes Zertifikatsproblem) — "Fortfahren"
-                    funktioniert zwar ebenso, aber webcal:// ist der direktere
-                    Weg. */}
-                <a
-                  href={`webcal://${appUrl().replace(/^https?:\/\//, "")}/kalender/${eigeneStammdaten.kalenderToken}`}
-                  className="text-sm text-primary underline"
-                >
-                  Direkt abonnieren (iPhone/iPad/Mac)
-                </a>
-                <p className="text-xs text-muted-foreground">
-                  Für Google Kalender/Outlook den obigen Link dort manuell
-                  als Abo einfügen.
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Noch nicht aktiviert.
-              </p>
-            )}
-            <div className="flex flex-wrap gap-2">
-              <form action={kalenderLinkErneuern}>
-                <Button type="submit" variant="outline" size="sm">
-                  {eigeneStammdaten?.kalenderToken
-                    ? "Link neu generieren (alter Link wird ungültig)"
-                    : "Aktivieren"}
-                </Button>
-              </form>
-              {eigeneStammdaten?.kalenderToken && (
-                <form action={kalenderLinkDeaktivieren}>
-                  <ConfirmSubmitButton
-                    confirmText="Kalender-Abo deaktivieren? Der bisherige Link funktioniert danach nicht mehr."
-                    variant="ghost"
-                    size="sm"
-                  >
-                    Deaktivieren
-                  </ConfirmSubmitButton>
-                </form>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Meine Rollen</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
@@ -425,129 +370,260 @@ export default async function ProfilPage({
           </CardContent>
         </Card>
 
+        {/* Einstellungen als Reiter statt eigener Cards — jede öffnet ihren
+            bisherigen Karteninhalt unverändert in einem Modal (siehe Dialog-
+            Muster in monats-kalender.tsx), damit die Seite nicht durch eine
+            lange Kette selten genutzter Konfigurationsformulare scrollt. */}
         <Card>
           <CardHeader>
-            <CardTitle>Meine Stammdaten</CardTitle>
-            <CardDescription>
-              Name und Telefonnummer selbst pflegen. Die E-Mail-Adresse (dein
-              Login) kann nur der Vereinsadmin ändern.
-            </CardDescription>
+            <CardTitle>Einstellungen</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form action={updateStammdaten} className="flex flex-col gap-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  defaultValue={eigeneStammdaten?.name ?? ""}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="telefonnummer">Telefonnummer</Label>
-                <Input
-                  id="telefonnummer"
-                  name="telefonnummer"
-                  type="tel"
-                  defaultValue={eigeneStammdaten?.telefonnummer ?? ""}
-                  placeholder="optional"
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                E-Mail: {eigeneStammdaten?.email ?? session.user.email}
-              </p>
-              <Button type="submit">Speichern</Button>
-            </form>
-            <Link
-              href="/profil/passwort-aendern"
-              className="mt-3 inline-block text-sm text-muted-foreground underline"
-            >
-              Passwort ändern
-            </Link>
-          </CardContent>
-        </Card>
+          <CardContent className="flex flex-wrap gap-2">
+            <Dialog>
+              <DialogTrigger render={<Button variant="outline" size="sm" />}>
+                Kalender abonnieren
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Kalender abonnieren</DialogTitle>
+                  <DialogDescription>
+                    Abo-Link für Apple/Google/Outlook Kalender & Co. —
+                    dieselben Termine wie oben, automatisch aktuell gehalten,
+                    ohne dass du hier vorbeischauen musst.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-3">
+                  {eigeneStammdaten?.kalenderToken ? (
+                    <>
+                      <p className="break-all rounded-lg border bg-muted/40 p-3 text-sm">
+                        {appUrl()}/kalender/{eigeneStammdaten.kalenderToken}
+                      </p>
+                      {/* webcal:// statt https:// — auf iPhone/iPad/Mac
+                          öffnet das antippen direkt den "Abonnement
+                          hinzufügen"-Dialog der Kalender-App, ohne den Link
+                          manuell einfügen zu müssen. Nebeneffekt: vermeidet
+                          auch iOS' "Unsichere Verbindung"-Warnung, die beim
+                          manuellen Einfügen eines https-Links dort
+                          erscheint (Apples generischer Hinweis für externe
+                          Feeds, kein echtes Zertifikatsproblem) —
+                          "Fortfahren" funktioniert zwar ebenso, aber
+                          webcal:// ist der direktere Weg. */}
+                      <a
+                        href={`webcal://${appUrl().replace(/^https?:\/\//, "")}/kalender/${eigeneStammdaten.kalenderToken}`}
+                        className="text-sm text-primary underline"
+                      >
+                        Direkt abonnieren (iPhone/iPad/Mac)
+                      </a>
+                      <p className="text-xs text-muted-foreground">
+                        Für Google Kalender/Outlook den obigen Link dort
+                        manuell als Abo einfügen.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Noch nicht aktiviert.
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <form action={kalenderLinkErneuern}>
+                      <Button type="submit" variant="outline" size="sm">
+                        {eigeneStammdaten?.kalenderToken
+                          ? "Link neu generieren (alter Link wird ungültig)"
+                          : "Aktivieren"}
+                      </Button>
+                    </form>
+                    {eigeneStammdaten?.kalenderToken && (
+                      <form action={kalenderLinkDeaktivieren}>
+                        <ConfirmSubmitButton
+                          confirmText="Kalender-Abo deaktivieren? Der bisherige Link funktioniert danach nicht mehr."
+                          variant="ghost"
+                          size="sm"
+                        >
+                          Deaktivieren
+                        </ConfirmSubmitButton>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>E-Mail-Benachrichtigungen</CardTitle>
-            <CardDescription>
-              Welche automatischen Erinnerungs-Mails du bekommen möchtest.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              action={updateBenachrichtigungen}
-              className="flex flex-col gap-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="wochenDigestAktiviert" className="font-normal">
-                  Wöchentliches Update über anstehende Termine
-                </Label>
-                <Switch
-                  key={String(eigeneStammdaten?.wochenDigestAktiviert ?? true)}
-                  id="wochenDigestAktiviert"
-                  name="wochenDigestAktiviert"
-                  defaultChecked={eigeneStammdaten?.wochenDigestAktiviert ?? true}
-                />
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <Label
-                  htmlFor="terminErinnerungAktiviert"
-                  className="font-normal"
+            <Dialog>
+              <DialogTrigger render={<Button variant="outline" size="sm" />}>
+                Stammdaten
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Meine Stammdaten</DialogTitle>
+                  <DialogDescription>
+                    Name und Telefonnummer selbst pflegen. Die E-Mail-Adresse
+                    (dein Login) kann nur der Vereinsadmin ändern.
+                  </DialogDescription>
+                </DialogHeader>
+                <form action={updateStammdaten} className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      defaultValue={eigeneStammdaten?.name ?? ""}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="telefonnummer">Telefonnummer</Label>
+                    <Input
+                      id="telefonnummer"
+                      name="telefonnummer"
+                      type="tel"
+                      defaultValue={eigeneStammdaten?.telefonnummer ?? ""}
+                      placeholder="optional"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    E-Mail: {eigeneStammdaten?.email ?? session.user.email}
+                  </p>
+                  <Button type="submit">Speichern</Button>
+                </form>
+                <Link
+                  href="/profil/passwort-aendern"
+                  className="inline-block text-sm text-muted-foreground underline"
                 >
-                  Erinnerung 24 Stunden vor einem Termin
-                </Label>
-                <Switch
-                  key={String(eigeneStammdaten?.terminErinnerungAktiviert ?? true)}
-                  id="terminErinnerungAktiviert"
-                  name="terminErinnerungAktiviert"
-                  defaultChecked={eigeneStammdaten?.terminErinnerungAktiviert ?? true}
-                />
-              </div>
-              {istSchiedsrichterwart && (
-                <div className="flex items-center justify-between gap-3">
-                  <Label
-                    htmlFor="offeneSchiedsrichterErinnerungAktiviert"
-                    className="font-normal"
-                  >
-                    Als Schiedsrichterwart: Erinnerung an unbesetzte Spiele
-                  </Label>
-                  <Switch
-                    key={String(
-                      eigeneStammdaten?.offeneSchiedsrichterErinnerungAktiviert ?? true
+                  Passwort ändern
+                </Link>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger render={<Button variant="outline" size="sm" />}>
+                Benachrichtigungen
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>E-Mail-Benachrichtigungen</DialogTitle>
+                  <DialogDescription>
+                    Welche automatischen Erinnerungs-Mails du bekommen
+                    möchtest.
+                  </DialogDescription>
+                </DialogHeader>
+                <form
+                  action={updateBenachrichtigungen}
+                  className="flex flex-col gap-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="wochenDigestAktiviert" className="font-normal">
+                      Wöchentliches Update über anstehende Termine
+                    </Label>
+                    <Switch
+                      key={String(eigeneStammdaten?.wochenDigestAktiviert ?? true)}
+                      id="wochenDigestAktiviert"
+                      name="wochenDigestAktiviert"
+                      defaultChecked={eigeneStammdaten?.wochenDigestAktiviert ?? true}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <Label
+                      htmlFor="terminErinnerungAktiviert"
+                      className="font-normal"
+                    >
+                      Erinnerung 24 Stunden vor einem Termin
+                    </Label>
+                    <Switch
+                      key={String(eigeneStammdaten?.terminErinnerungAktiviert ?? true)}
+                      id="terminErinnerungAktiviert"
+                      name="terminErinnerungAktiviert"
+                      defaultChecked={eigeneStammdaten?.terminErinnerungAktiviert ?? true}
+                    />
+                  </div>
+                  {istSchiedsrichterwart && (
+                    <div className="flex items-center justify-between gap-3">
+                      <Label
+                        htmlFor="offeneSchiedsrichterErinnerungAktiviert"
+                        className="font-normal"
+                      >
+                        Als Schiedsrichterwart: Erinnerung an unbesetzte Spiele
+                      </Label>
+                      <Switch
+                        key={String(
+                          eigeneStammdaten?.offeneSchiedsrichterErinnerungAktiviert ?? true
+                        )}
+                        id="offeneSchiedsrichterErinnerungAktiviert"
+                        name="offeneSchiedsrichterErinnerungAktiviert"
+                        defaultChecked={
+                          eigeneStammdaten?.offeneSchiedsrichterErinnerungAktiviert ?? true
+                        }
+                      />
+                    </div>
+                  )}
+                  {istZeitnehmerwart && (
+                    <div className="flex items-center justify-between gap-3">
+                      <Label
+                        htmlFor="offeneZeitnehmerErinnerungAktiviert"
+                        className="font-normal"
+                      >
+                        Als Zeitnehmerwart: Erinnerung an unbesetzte
+                        Zeitnehmer-/Sekretär-Posten
+                      </Label>
+                      <Switch
+                        key={String(
+                          eigeneStammdaten?.offeneZeitnehmerErinnerungAktiviert ?? true
+                        )}
+                        id="offeneZeitnehmerErinnerungAktiviert"
+                        name="offeneZeitnehmerErinnerungAktiviert"
+                        defaultChecked={
+                          eigeneStammdaten?.offeneZeitnehmerErinnerungAktiviert ?? true
+                        }
+                      />
+                    </div>
+                  )}
+                  <SubmitButton className="w-full">Speichern</SubmitButton>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {istSchiedsrichter && (
+              <Dialog>
+                <DialogTrigger render={<Button variant="outline" size="sm" />}>
+                  ICS-Feed
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>ICS-Feed (Spielansetzungen)</DialogTitle>
+                    <DialogDescription>
+                      Abo-Link deines Verbands hinterlegen, damit deine
+                      Einsätze automatisch synchronisiert werden. Aktuelle
+                      Spielzeit: <strong>Saison {saisonLabel(new Date())}</strong>.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-4">
+                    <form action={updateIcsFeedUrl} className="flex flex-col gap-3">
+                      <Label htmlFor="icsFeedUrl">ICS-Feed-URL</Label>
+                      <Input
+                        id="icsFeedUrl"
+                        name="icsFeedUrl"
+                        type="url"
+                        defaultValue={profil?.icsFeedUrl ?? ""}
+                        placeholder="https://.../schiedsrichter.ics"
+                      />
+                      <Button type="submit">Speichern</Button>
+                    </form>
+
+                    <form action={syncJetzt}>
+                      <Button type="submit" variant="outline" className="w-full">
+                        Jetzt synchronisieren
+                      </Button>
+                    </form>
+
+                    {profil?.letzterSyncAm && (
+                      <p className="text-sm text-muted-foreground">
+                        Letzter Sync: {formatDateTime(profil.letzterSyncAm)} (
+                        {profil.letzterSyncStatus})
+                      </p>
                     )}
-                    id="offeneSchiedsrichterErinnerungAktiviert"
-                    name="offeneSchiedsrichterErinnerungAktiviert"
-                    defaultChecked={
-                      eigeneStammdaten?.offeneSchiedsrichterErinnerungAktiviert ?? true
-                    }
-                  />
-                </div>
-              )}
-              {istZeitnehmerwart && (
-                <div className="flex items-center justify-between gap-3">
-                  <Label
-                    htmlFor="offeneZeitnehmerErinnerungAktiviert"
-                    className="font-normal"
-                  >
-                    Als Zeitnehmerwart: Erinnerung an unbesetzte Zeitnehmer-/
-                    Sekretär-Posten
-                  </Label>
-                  <Switch
-                    key={String(
-                      eigeneStammdaten?.offeneZeitnehmerErinnerungAktiviert ?? true
-                    )}
-                    id="offeneZeitnehmerErinnerungAktiviert"
-                    name="offeneZeitnehmerErinnerungAktiviert"
-                    defaultChecked={
-                      eigeneStammdaten?.offeneZeitnehmerErinnerungAktiviert ?? true
-                    }
-                  />
-                </div>
-              )}
-              <SubmitButton className="w-full">Speichern</SubmitButton>
-            </form>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </CardContent>
         </Card>
 
@@ -571,45 +647,6 @@ export default async function ProfilPage({
                   {t.ort ? ` · ${t.ort}` : ""}
                 </Link>
               ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {istSchiedsrichter && (
-          <Card>
-            <CardHeader>
-              <CardTitle>ICS-Feed (Spielansetzungen)</CardTitle>
-              <CardDescription>
-                Abo-Link deines Verbands hinterlegen, damit deine Einsätze
-                automatisch synchronisiert werden. Aktuelle Spielzeit:{" "}
-                <strong>Saison {saisonLabel(new Date())}</strong>.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <form action={updateIcsFeedUrl} className="flex flex-col gap-3">
-                <Label htmlFor="icsFeedUrl">ICS-Feed-URL</Label>
-                <Input
-                  id="icsFeedUrl"
-                  name="icsFeedUrl"
-                  type="url"
-                  defaultValue={profil?.icsFeedUrl ?? ""}
-                  placeholder="https://.../schiedsrichter.ics"
-                />
-                <Button type="submit">Speichern</Button>
-              </form>
-
-              <form action={syncJetzt}>
-                <Button type="submit" variant="outline" className="w-full">
-                  Jetzt synchronisieren
-                </Button>
-              </form>
-
-              {profil?.letzterSyncAm && (
-                <p className="text-sm text-muted-foreground">
-                  Letzter Sync: {formatDateTime(profil.letzterSyncAm)} (
-                  {profil.letzterSyncStatus})
-                </p>
-              )}
             </CardContent>
           </Card>
         )}
