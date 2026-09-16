@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   berechneBesetzung,
   brauchtSchiedsrichterVomVerein,
+  externeAnsetzungsAnzahlen,
   istBesetzungVollstaendig,
+  zaehleAngesetzteNamen,
 } from "./besetzung";
 
 describe("berechneBesetzung", () => {
@@ -194,5 +196,68 @@ describe("brauchtSchiedsrichterVomVerein", () => {
 
   it("verlangt KEINEN vereinseigenen Schiedsrichter bei ICS-Feed-Terminen (Person IST der Schiedsrichter)", () => {
     expect(brauchtSchiedsrichterVomVerein({ typ: "spiel_ics" })).toBe(false);
+  });
+});
+
+describe("externeAnsetzungsAnzahlen", () => {
+  it("zählt eine handball.net-Ansetzung ohne eigene Schiedsrichter-Zuordnung", () => {
+    const { externeSchiriAnzahl } = externeAnsetzungsAnzahlen(
+      { handballNetSchiedsrichter: "Levin Wanders, Georgios Dalampakis" },
+      []
+    );
+    expect(externeSchiriAnzahl).toBe(2);
+  });
+
+  it("zählt eine nuLiga-Kürzel-Ansetzung als genau eine Person", () => {
+    const { externeSchiriAnzahl } = externeAnsetzungsAnzahlen(
+      { nuligaSchiedsrichterKuerzel: "MU" },
+      []
+    );
+    expect(externeSchiriAnzahl).toBe(1);
+  });
+
+  it("zählt NICHT extern, wenn bereits ein eigener Schiedsrichter zugeordnet ist", () => {
+    const { externeSchiriAnzahl } = externeAnsetzungsAnzahlen(
+      { handballNetSchiedsrichter: "Levin Wanders" },
+      [{ funktionstraegerTyp: "schiedsrichter" }]
+    );
+    expect(externeSchiriAnzahl).toBe(0);
+  });
+
+  it("zählt eine handball.net-Zeitnehmer-Ansetzung nur ohne eigenen Zeitnehmer/Sekretär", () => {
+    const ohneEigenen = externeAnsetzungsAnzahlen(
+      { handballNetZeitnehmer: "Max Mustermann" },
+      []
+    );
+    expect(ohneEigenen.externeZeitnehmerSekretaerAnzahl).toBe(1);
+
+    const mitEigenem = externeAnsetzungsAnzahlen(
+      { handballNetZeitnehmer: "Max Mustermann" },
+      [{ funktionstraegerTyp: "sekretaer" }]
+    );
+    expect(mitEigenem.externeZeitnehmerSekretaerAnzahl).toBe(0);
+  });
+
+  it("gibt 0/0 ohne jede externe Ansetzung", () => {
+    expect(externeAnsetzungsAnzahlen({}, [])).toEqual({
+      externeSchiriAnzahl: 0,
+      externeZeitnehmerSekretaerAnzahl: 0,
+    });
+  });
+});
+
+describe("zaehleAngesetzteNamen", () => {
+  it("zählt einen einzelnen Namen", () => {
+    expect(zaehleAngesetzteNamen("Max Mustermann")).toBe(1);
+  });
+
+  it("zählt mehrere kommaseparierte Namen (z.B. Schiri-Gespann)", () => {
+    expect(zaehleAngesetzteNamen("Levin Wanders, Georgios Dalampakis")).toBe(2);
+  });
+
+  it("gibt 0 zurück, wenn kein Feld vorhanden ist", () => {
+    expect(zaehleAngesetzteNamen(null)).toBe(0);
+    expect(zaehleAngesetzteNamen(undefined)).toBe(0);
+    expect(zaehleAngesetzteNamen("")).toBe(0);
   });
 });

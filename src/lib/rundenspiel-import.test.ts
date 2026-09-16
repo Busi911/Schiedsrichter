@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   angesetzteNamenPassenZu,
-  zaehleAngesetzteNamen,
   findeMannschaft,
   gruppiereUnbekannteMannschaften,
   normalisiereMannschaftsname,
@@ -842,21 +841,5 @@ describe("angesetzteNamenPassenZu", () => {
   it("gibt false zurück, wenn kein Name vorhanden ist", () => {
     expect(angesetzteNamenPassenZu("Max Mustermann", null)).toBe(false);
     expect(angesetzteNamenPassenZu("Max Mustermann", undefined)).toBe(false);
-  });
-});
-
-describe("zaehleAngesetzteNamen", () => {
-  it("zählt einen einzelnen Namen", () => {
-    expect(zaehleAngesetzteNamen("Max Mustermann")).toBe(1);
-  });
-
-  it("zählt mehrere kommaseparierte Namen (z.B. Schiri-Gespann)", () => {
-    expect(zaehleAngesetzteNamen("Levin Wanders, Georgios Dalampakis")).toBe(2);
-  });
-
-  it("gibt 0 zurück, wenn kein Feld vorhanden ist", () => {
-    expect(zaehleAngesetzteNamen(null)).toBe(0);
-    expect(zaehleAngesetzteNamen(undefined)).toBe(0);
-    expect(zaehleAngesetzteNamen("")).toBe(0);
   });
 });

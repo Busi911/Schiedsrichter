@@ -120,12 +120,24 @@ describe("parseMonatParam", () => {
 });
 
 describe("monatsBereich", () => {
-  it("liefert ersten und letzten Tag des Monats", () => {
+  it("liefert ersten und letzten Tag des Monats in Europe/Berlin", () => {
+    // Über tagKey statt getDate()/getMonth() geprüft: diese lesen die
+    // Zeitzone der Laufzeitumgebung (auf Vercel UTC) aus, hier interessiert
+    // aber der Berliner Kalendertag der Grenzen.
     const { von, bis } = monatsBereich(2026, 1); // Februar 2026 (kein Schaltjahr)
-    expect(von.getDate()).toBe(1);
-    expect(von.getMonth()).toBe(1);
-    expect(bis.getDate()).toBe(28);
-    expect(bis.getMonth()).toBe(1);
+    expect(tagKey(von)).toBe("2026-02-01");
+    expect(tagKey(bis)).toBe("2026-02-28");
+  });
+
+  it("Regression: die Grenzen liegen am Berliner Mitternachtspunkt, nicht am UTC-Mitternachtspunkt", () => {
+    // Vorher (new Date(jahr, monatNull, 1, 0,0,0,0) in Laufzeitzone UTC)
+    // schloss "von" einen Termin am 1. um 00:30 Berliner Zeit aus, da der
+    // dafür nötige UTC-Zeitpunkt bereits VOR "von" lag.
+    const { von, bis } = monatsBereich(2026, 1);
+    const terminAmErstenFruehMorgens = new Date("2026-02-01T00:30:00+01:00");
+    expect(von.getTime()).toBeLessThanOrEqual(terminAmErstenFruehMorgens.getTime());
+    const terminAmLetztenSpaetAbends = new Date("2026-02-28T23:30:00+01:00");
+    expect(bis.getTime()).toBeGreaterThanOrEqual(terminAmLetztenSpaetAbends.getTime());
   });
 });
 

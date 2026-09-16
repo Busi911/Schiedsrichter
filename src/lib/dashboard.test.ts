@@ -156,6 +156,34 @@ describe("berechneOffeneSchiedsrichterAnzahl", () => {
     );
     expect(anzahl).toBe(0);
   });
+
+  it("zählt ein Spiel mit handball.net/nuLiga-Ansetzung ohne eigene Zuordnung NICHT mehr als offen", () => {
+    // Regression: früher widersprach sich das Dashboard mit dem
+    // Monatskalender, der dieselbe externe Ansetzung bereits als Besetzung
+    // wertet (siehe externeAnsetzungsAnzahlen in besetzung.ts).
+    const anzahl = berechneOffeneSchiedsrichterAnzahl(
+      [{ id: "t1", typ: "testspiel", handballNetSchiedsrichter: "Max Mustermann" }],
+      []
+    );
+    expect(anzahl).toBe(0);
+  });
+
+  it("blendet einen Termin ohne verknüpfte Mannschaft aus, dessen Heimname+Kategorie bereits abgelehnt wurde", () => {
+    const anzahl = berechneOffeneSchiedsrichterAnzahl(
+      [
+        {
+          id: "t1",
+          typ: "rundenspiel",
+          pflichtspiel: false,
+          heimMannschaftName: "wJSG Bieber/Heuchelheim",
+          kategorie: "WJE",
+        },
+      ],
+      [],
+      [{ normalisierterName: "wjsg bieber/heuchelheim", kategorie: "WJE" }]
+    );
+    expect(anzahl).toBe(0);
+  });
 });
 
 describe("berechneOffeneSchiedsrichterTermine", () => {
@@ -220,6 +248,22 @@ describe("berechneOffeneSchiedsrichterTermine", () => {
     };
     const termine = berechneOffeneSchiedsrichterTermine([spaeter, frueher], []);
     expect(termine.map((t) => t.terminId)).toEqual(["t1", "t2"]);
+  });
+
+  it("lässt ein Spiel mit externer Ansetzung aus (Regression, siehe berechneOffeneSchiedsrichterAnzahl)", () => {
+    const termine = berechneOffeneSchiedsrichterTermine(
+      [
+        {
+          id: "t1",
+          typ: "testspiel",
+          start: new Date("2026-09-01T10:00:00Z"),
+          ort: null,
+          nuligaSchiedsrichterKuerzel: "MU",
+        },
+      ],
+      []
+    );
+    expect(termine).toHaveLength(0);
   });
 });
 
@@ -287,6 +331,36 @@ describe("berechneOffeneZeitnehmerTermine", () => {
     };
     const termine = berechneOffeneZeitnehmerTermine(verein, [spaeter, frueher], []);
     expect(termine.map((t) => t.terminId)).toEqual(["t1", "t2"]);
+  });
+
+  it("zählt eine handball.net-Ansetzung ohne eigene Zuordnung gegen den Bedarf mit (Regression)", () => {
+    const termin = {
+      id: "t1",
+      typ: "rundenspiel",
+      start: new Date("2026-09-01T10:00:00Z"),
+      ort: null,
+      handballNetZeitnehmer: "Max Mustermann",
+    };
+    const termine = berechneOffeneZeitnehmerTermine(verein, [termin], []);
+    expect(termine).toHaveLength(0);
+  });
+
+  it("blendet einen Termin ohne verknüpfte Mannschaft aus, dessen Heimname+Kategorie bereits abgelehnt wurde", () => {
+    const termin = {
+      id: "t1",
+      typ: "rundenspiel",
+      start: new Date("2026-09-01T10:00:00Z"),
+      ort: null,
+      heimMannschaftName: "wJSG Bieber/Heuchelheim",
+      kategorie: "WJE",
+    };
+    const termine = berechneOffeneZeitnehmerTermine(
+      verein,
+      [termin],
+      [],
+      [{ normalisierterName: "wjsg bieber/heuchelheim", kategorie: "WJE" }]
+    );
+    expect(termine).toHaveLength(0);
   });
 });
 

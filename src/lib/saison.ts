@@ -1,10 +1,18 @@
+import { tagKey } from "./kalender";
+
 // Handball-Saisons laufen nicht mit dem Kalenderjahr, sondern enden jeweils
 // am 23. Juni. "Saison 2025/26" läuft also bis einschließlich 23.06.2026;
 // ab dem 24.06.2026 zählt ein Termin bereits zur Saison 2026/27.
 export function saisonLabel(d: Date): string {
-  const jahr = d.getFullYear();
-  const istNeueSaison =
-    d.getMonth() > 5 || (d.getMonth() === 5 && d.getDate() >= 24);
+  // Über tagKey (Europe/Berlin) statt d.getFullYear()/getMonth()/getDate()
+  // (Laufzeitzone, auf Vercel UTC) — sonst würde ein Termin z.B. am
+  // 24.06. um 00:30 Berliner Zeit auf einem UTC-Server noch als 23.06.
+  // gelesen und fälschlich der alten Saison zugeordnet.
+  const [jahrStr, monatStr, tagStr] = tagKey(d).split("-");
+  const jahr = Number(jahrStr);
+  const monatNull = Number(monatStr) - 1;
+  const tag = Number(tagStr);
+  const istNeueSaison = monatNull > 5 || (monatNull === 5 && tag >= 24);
   const saisonStartJahr = istNeueSaison ? jahr : jahr - 1;
   return `${saisonStartJahr}/${String((saisonStartJahr + 1) % 100).padStart(2, "0")}`;
 }

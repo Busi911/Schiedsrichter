@@ -37,24 +37,32 @@ export async function syncSchiedsrichterIcsFeed(
   vereinId: string,
   userId: string
 ) {
-  return withTenant(vereinId, async (tx) => {
+  // Eigener Vorab-Schritt: eine fehlende Feed-URL ist keine fehlgeschlagene
+  // Synchronisierung, sondern gar keine — sie landet deshalb bewusst weder
+  // im Sync-Status noch im Log.
+  const feedUrl = await withTenant(vereinId, async (tx) => {
     const profil = await tx.query.schiedsrichterProfile.findFirst({
       where: eq(schiedsrichterProfile.userId, userId),
     });
-    if (!profil?.icsFeedUrl) {
-      throw new Error("Keine ICS-Feed-URL hinterlegt.");
-    }
+    return profil?.icsFeedUrl ?? null;
+  });
+  if (!feedUrl) {
+    throw new Error("Keine ICS-Feed-URL hinterlegt.");
+  }
 
-    let neu = 0;
-    let aktualisiert = 0;
-    let entfernt = 0;
-    let status: "erfolgreich" | "fehler" = "erfolgreich";
-    let fehlermeldung: string | null = null;
+  let ergebnis = { neu: 0, aktualisiert: 0, entfernt: 0 };
+  let fehlermeldung: string | null = null;
 
-    try {
-      const events = await icalAsync.fromURL(
-        normalisiereFeedUrl(profil.icsFeedUrl)
-      );
+  // Der eigentliche Abgleich bleibt eine einzige Transaktion: schlägt er
+  // mittendrin fehl, sollen die bis dahin geschriebenen Termine wieder
+  // verschwinden statt halb importiert stehen zu bleiben.
+  try {
+    ergebnis = await withTenant(vereinId, async (tx) => {
+      let neu = 0;
+      let aktualisiert = 0;
+      let entfernt = 0;
+
+      const events = await icalAsync.fromURL(normalisiereFeedUrl(feedUrl));
 
       const vorhandene = await tx.query.termine.findMany({
         where: and(
@@ -122,11 +130,21 @@ export async function syncSchiedsrichterIcsFeed(
           entfernt++;
         }
       }
-    } catch (err) {
-      status = "fehler";
-      fehlermeldung = err instanceof Error ? err.message : String(err);
-    }
 
+      return { neu, aktualisiert, entfernt };
+    });
+  } catch (err) {
+    fehlermeldung = err instanceof Error ? err.message : String(err);
+  }
+
+  const status = fehlermeldung ? "fehler" : "erfolgreich";
+
+  // Bewusst eine EIGENE Transaktion: früher stand dieser Schreibvorgang in
+  // derselben Transaktion wie der Abgleich und wurde vom anschließenden
+  // throw wieder zurückgerollt — der Fehlerstatus kam also nie in der
+  // Datenbank an, obwohl die Profilseite und das Sync-Log genau ihn anzeigen
+  // sollen.
+  await withTenant(vereinId, async (tx) => {
     await tx
       .update(schiedsrichterProfile)
       .set({ letzterSyncAm: new Date(), letzterSyncStatus: status })
@@ -134,16 +152,16 @@ export async function syncSchiedsrichterIcsFeed(
 
     await tx.insert(icsSyncLog).values({
       schiedsrichterId: userId,
-      neuCount: neu,
-      aktualisiertCount: aktualisiert,
-      entferntCount: entfernt,
+      neuCount: ergebnis.neu,
+      aktualisiertCount: ergebnis.aktualisiert,
+      entferntCount: ergebnis.entfernt,
       status,
       fehlermeldung,
     });
-
-    if (status === "fehler") {
-      throw new Error(fehlermeldung ?? "Synchronisierung fehlgeschlagen.");
-    }
-    return { neu, aktualisiert, entfernt };
   });
+
+  if (fehlermeldung) {
+    throw new Error(fehlermeldung);
+  }
+  return ergebnis;
 }

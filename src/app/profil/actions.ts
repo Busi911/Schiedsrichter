@@ -204,6 +204,16 @@ export async function selbstAnmelden(formData: FormData) {
     });
     if (!termin) throw new Error("Termin nicht gefunden.");
 
+    const verein = await tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+    });
+    if (!verein) throw new Error("Verein nicht gefunden.");
+    const mannschaft = termin.mannschaftId
+      ? await tx.query.mannschaften.findFirst({
+          where: eq(mannschaften.id, termin.mannschaftId),
+        })
+      : null;
+
     // Zeitnehmer/Sekretär haben eine feste Obergrenze von je 1 (siehe
     // pruefeBesetzungsgrenze/pruefeKeineDoppelrolle in zuordnung.ts, dieselbe
     // Prüfung wie bei der öffentlichen Selbsteintragung) statt der
@@ -211,17 +221,27 @@ export async function selbstAnmelden(formData: FormData) {
     if (rolle === "zeitnehmer" || rolle === "sekretaer") {
       await pruefeBesetzungsgrenze(tx, vereinId, terminId, rolle);
       await pruefeKeineDoppelrolle(tx, terminId, { userId });
-    } else {
-      const verein = await tx.query.vereine.findFirst({
-        where: eq(vereine.id, vereinId),
-      });
-      if (!verein) throw new Error("Verein nicht gefunden.");
 
-      const mannschaft = termin.mannschaftId
-        ? await tx.query.mannschaften.findFirst({
-            where: eq(mannschaften.id, termin.mannschaftId),
-          })
-        : null;
+      // bedarfFuer liefert für zeitnehmer/sekretaer den KOMBINIERTEN
+      // Mindestbedarf (siehe berechneBesetzung), keine Obergrenze pro
+      // Rolle — die kommt bereits über pruefeBesetzungsgrenze. Hier zählt
+      // nur der Sonderfall 0 (Bedarf für diesen Termin/diese Mannschaft
+      // ausdrücklich abgeschaltet, siehe zeitnehmerBedarfOverride/
+      // mannschaftZeitnehmerBedarfDeaktiviert): ohne diese Prüfung konnte
+      // sich jemand per manipuliertem Request trotzdem eintragen.
+      const bedarf = bedarfFuer(
+        verein,
+        termin.typ,
+        rolle,
+        termin.pflichtspiel,
+        termin.freundschaftsTyp,
+        termin.zeitnehmerBedarfOverride,
+        mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
+      );
+      if (bedarf <= 0) {
+        throw new Error("Für diesen Termin ist dieser Dienst nicht vorgesehen.");
+      }
+    } else {
       const bedarf = bedarfFuer(
         verein,
         termin.typ,
