@@ -7,6 +7,7 @@ import { withTenant } from "@/db";
 import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import {
   pruefeBesetzungsgrenze,
+  pruefeKeineDoppelrolle,
   ZUORDENBARE_TYPEN,
   zuordnungEntferntInhalt,
   zuordnungsMailInhalt,
@@ -85,6 +86,11 @@ export async function zuordnen(formData: FormData) {
         terminId,
         rolle as (typeof ZUORDENBARE_TYPEN)[number]
       );
+      // Nur für Zeitnehmer/Sekretär relevant (siehe pruefeKeineDoppelrolle) —
+      // dieselbe Person darf nicht beide Rollen an einem Termin belegen.
+      if (rolle === "zeitnehmer" || rolle === "sekretaer") {
+        await pruefeKeineDoppelrolle(tx, terminId, { userId });
+      }
     }
 
     await tx.insert(terminZuordnungen).values({
@@ -119,6 +125,10 @@ export async function zuordnen(formData: FormData) {
   }
 
   revalidatePath("/admin/kalender");
+  // /admin bettet denselben Monatskalender ein (siehe admin/page.tsx) — ohne
+  // dieses Revalidate blieb eine Zuordnung dort unsichtbar, bis der Cache
+  // durch einen anderen Pfad ohnehin abgelaufen war.
+  revalidatePath("/admin");
 }
 
 // Zuordnung einer Person OHNE Zugang im System (z.B. Schiedsrichter eines
@@ -168,6 +178,11 @@ export async function externeZuordnung(formData: FormData) {
         terminId,
         typedRolle as (typeof ZUORDENBARE_TYPEN)[number]
       );
+      if (typedRolle === "zeitnehmer" || typedRolle === "sekretaer") {
+        await pruefeKeineDoppelrolle(tx, terminId, {
+          externerName: name.trim(),
+        });
+      }
     }
 
     await tx.insert(terminZuordnungen).values({
@@ -180,6 +195,10 @@ export async function externeZuordnung(formData: FormData) {
   });
 
   revalidatePath("/admin/kalender");
+  // /admin bettet denselben Monatskalender ein (siehe admin/page.tsx) — ohne
+  // dieses Revalidate blieb eine Zuordnung dort unsichtbar, bis der Cache
+  // durch einen anderen Pfad ohnehin abgelaufen war.
+  revalidatePath("/admin");
 }
 
 export async function zuordnungEntfernen(formData: FormData) {
@@ -238,4 +257,8 @@ export async function zuordnungEntfernen(formData: FormData) {
   }
 
   revalidatePath("/admin/kalender");
+  // /admin bettet denselben Monatskalender ein (siehe admin/page.tsx) — ohne
+  // dieses Revalidate blieb eine Zuordnung dort unsichtbar, bis der Cache
+  // durch einen anderen Pfad ohnehin abgelaufen war.
+  revalidatePath("/admin");
 }

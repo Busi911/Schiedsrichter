@@ -4,7 +4,7 @@ import Link from "next/link";
 import { LogOutIcon } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
-import { funktionstraegerRollen, vereine } from "@/db/schema";
+import { vereine } from "@/db/schema";
 import { signOut } from "@/auth";
 import { holeOffenePosten, holeOffeneSchiedsrichterAnzahl } from "@/lib/dashboard";
 import { Badge } from "@/components/ui/badge";
@@ -30,20 +30,8 @@ export default async function AdminLayout({
 }) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
-  const { verein, hatEigeneRollen } = await withTenant(
-    vereinId,
-    async (tx) => {
-      const verein = await tx.query.vereine.findFirst({
-        where: eq(vereine.id, vereinId),
-      });
-      // Ein Admin kann zusätzlich eigene Funktionsträger-Rollen haben (z.B.
-      // selbst Schiedsrichter sein) — dafür braucht es einen Weg zu /profil,
-      // da die Startseite Admins immer direkt zu /admin schickt.
-      const eigeneRolle = await tx.query.funktionstraegerRollen.findFirst({
-        where: eq(funktionstraegerRollen.userId, session.user.id),
-      });
-      return { verein, hatEigeneRollen: !!eigeneRolle };
-    }
+  const verein = await withTenant(vereinId, (tx) =>
+    tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
   );
   // Auf jeder Admin-Seite sichtbar (nicht nur auf der Übersicht) — der Admin
   // soll die Besetzung nur noch überwachen, die eigentliche Zuordnung
@@ -103,22 +91,28 @@ export default async function AdminLayout({
               </Link>
             )}
             {offeneSchiedsrichterAnzahl > 0 && (
-              <Link href="/admin/kalender">
+              // Ziel /admin statt /admin/kalender: die "Unbesetzte
+              // Termine"-Karte dort listet genau diese offenen Posten, der
+              // Kalender selbst zeigt keine dedizierte Schiri-Liste.
+              <Link href="/admin">
                 <Badge variant="warning">
                   {offeneSchiedsrichterAnzahl} Schiris offen
                 </Badge>
               </Link>
             )}
-            {hatEigeneRollen && (
-              <Button
-                variant="outline"
-                size="sm"
-                render={<Link href="/profil" />}
-                nativeButton={false}
-              >
-                Mein Profil
-              </Button>
-            )}
+            {/* Nicht mehr an eigene Funktionsträger-Rollen gekoppelt: ein
+                Admin OHNE eigene Rolle landete sonst nie auf /profil und kam
+                damit auch nie an die dortigen Wart-Buttons (istAdmin greift
+                dort als Bypass, siehe profil/page.tsx) — u.a. der einzige
+                Weg zu den öffentlichen Selbsteintragungs-Links. */}
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link href="/profil" />}
+              nativeButton={false}
+            >
+              Mein Profil
+            </Button>
             <form
               action={async () => {
                 "use server";

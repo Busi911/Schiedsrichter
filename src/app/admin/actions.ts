@@ -1499,6 +1499,9 @@ export async function updateTerminInline(formData: FormData) {
   await aktualisiereTerminFelder(session, formData);
 
   revalidatePath("/admin/kalender");
+  // /admin bettet denselben Monatskalender ein (siehe admin/page.tsx) —
+  // ohne dieses Revalidate blieb eine Inline-Bearbeitung dort unsichtbar.
+  revalidatePath("/admin");
   revalidatePath("/admin/termine");
 }
 
@@ -1694,6 +1697,7 @@ export async function createTurnierSpiel(formData: FormData) {
   });
 
   revalidatePath(`/admin/termine/${turnierId}`);
+  revalidatePath(`/profil/turnier/${turnierId}`);
 }
 
 export async function updateTurnierSpiel(formData: FormData) {

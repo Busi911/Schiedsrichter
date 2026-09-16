@@ -13,6 +13,7 @@ import { ORDNER_ROLLEN } from "./ordnerwart";
 import {
   berechneBesetzung,
   brauchtSchiedsrichterVomVerein,
+  externeAnsetzungsAnzahlen,
   istBesetzungVollstaendig,
 } from "./besetzung";
 import { rundenspielTypLabel } from "./termin-label";
@@ -125,6 +126,13 @@ type AnstehenderTermin = {
   mannschaftKioskdienstBedarfDeaktiviert?: boolean | null;
   mannschaftKassiererBedarfDeaktiviert?: boolean | null;
   mannschaftZeitnehmerBedarfDeaktiviert?: boolean | null;
+  // Vom Verband/Gegner bereits gemeldete Ansetzungen — siehe
+  // externeAnsetzungsAnzahlen in besetzung.ts. Ohne diese Felder hielt das
+  // Dashboard Termine für unbesetzt, die der Monatskalender längst als
+  // vollständig anzeigt.
+  handballNetSchiedsrichter?: string | null;
+  nuligaSchiedsrichterKuerzel?: string | null;
+  handballNetZeitnehmer?: string | null;
 };
 
 export type IgnorierteMannschaft = {
@@ -218,6 +226,8 @@ export function berechneUnbesetzteTermine(
     if (istMannschaftIgnoriert(termin, ignorierteMannschaften)) continue;
 
     const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === termin.id);
+    const { externeSchiriAnzahl, externeZeitnehmerSekretaerAnzahl } =
+      externeAnsetzungsAnzahlen(termin, eigeneZuordnungen);
     const status = berechneBesetzung(
       eigeneZuordnungen,
       false,
@@ -229,7 +239,9 @@ export function berechneUnbesetzteTermine(
         termin.freundschaftsTyp,
         termin.zeitnehmerBedarfOverride,
         termin.mannschaftZeitnehmerBedarfDeaktiviert
-      )
+      ),
+      externeSchiriAnzahl,
+      externeZeitnehmerSekretaerAnzahl
     );
     if (istBesetzungVollstaendig(status, termin.typ, termin.pflichtspiel)) continue;
 
@@ -296,6 +308,9 @@ export async function holeUnbesetzteTermine(
         mannschaftOrdnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
         mannschaftKioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
         mannschaftZeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
+        handballNetSchiedsrichter: termine.handballNetSchiedsrichter,
+        nuligaSchiedsrichterKuerzel: termine.nuligaSchiedsrichterKuerzel,
+        handballNetZeitnehmer: termine.handballNetZeitnehmer,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
@@ -455,7 +470,36 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
   });
 }
 
-type AnstehenderSchiriTermin = { id: string; typ: string; pflichtspiel?: boolean | null };
+type AnstehenderSchiriTermin = {
+  id: string;
+  typ: string;
+  pflichtspiel?: boolean | null;
+  // Für istMannschaftIgnoriert und externeAnsetzungsAnzahlen — beides galt
+  // hier früher nicht, sodass Badge und Wart-Erinnerung Termine als offen
+  // meldeten, die der Kalender als besetzt bzw. bewusst ignoriert führt.
+  mannschaftName?: string | null;
+  heimMannschaftName?: string | null;
+  kategorie?: string | null;
+  handballNetSchiedsrichter?: string | null;
+  nuligaSchiedsrichterKuerzel?: string | null;
+};
+
+// Ein Schiedsrichter-Posten gilt als offen, wenn weder eine eigene Zuordnung
+// noch eine Verbands-/Gegner-Ansetzung existiert. Gemeinsam genutzt von der
+// Badge-Zählung und der Schiedsrichterwart-Erinnerung, damit beide dieselbe
+// Termin-Menge sehen.
+function istSchiedsrichterPostenOffen(
+  termin: AnstehenderSchiriTermin,
+  zuordnungen: { terminId: string; funktionstraegerTyp: string }[],
+  ignorierteMannschaften: IgnorierteMannschaft[]
+): boolean {
+  if (!brauchtSchiedsrichterVomVerein(termin)) return false;
+  if (istMannschaftIgnoriert(termin, ignorierteMannschaften)) return false;
+  const eigene = zuordnungen.filter((z) => z.terminId === termin.id);
+  const { externeSchiriAnzahl } = externeAnsetzungsAnzahlen(termin, eigene);
+  if (externeSchiriAnzahl > 0) return false;
+  return !eigene.some((z) => z.funktionstraegerTyp === "schiedsrichter");
+}
 
 // Reine Berechnung (ohne DB-Zugriff, siehe dashboard.test.ts). Getrennt von
 // berechneOffenePosten/holeOffenePosten (Ordner/Kioskdienst/Zeitnehmer, siehe
@@ -464,23 +508,29 @@ type AnstehenderSchiriTermin = { id: string; typ: string; pflichtspiel?: boolean
 // Zähler statt eines weiteren luecken-Eintrags in OffenePosten.
 export function berechneOffeneSchiedsrichterAnzahl(
   anstehende: AnstehenderSchiriTermin[],
-  zuordnungen: { terminId: string; funktionstraegerTyp: string }[]
+  zuordnungen: { terminId: string; funktionstraegerTyp: string }[],
+  ignorierteMannschaften: IgnorierteMannschaft[] = []
 ): number {
-  return anstehende
-    .filter(brauchtSchiedsrichterVomVerein)
-    .filter(
-      (t) =>
-        !zuordnungen.some(
-          (z) => z.terminId === t.id && z.funktionstraegerTyp === "schiedsrichter"
-        )
-    ).length;
+  return anstehende.filter((t) =>
+    istSchiedsrichterPostenOffen(t, zuordnungen, ignorierteMannschaften)
+  ).length;
 }
 
 export async function holeOffeneSchiedsrichterAnzahl(vereinId: string): Promise<number> {
   return withTenant(vereinId, async (tx) => {
     const anstehende = await tx
-      .select({ id: termine.id, typ: termine.typ, pflichtspiel: termine.pflichtspiel })
+      .select({
+        id: termine.id,
+        typ: termine.typ,
+        pflichtspiel: termine.pflichtspiel,
+        mannschaftName: mannschaften.name,
+        heimMannschaftName: termine.heimMannschaftName,
+        kategorie: termine.kategorie,
+        handballNetSchiedsrichter: termine.handballNetSchiedsrichter,
+        nuligaSchiedsrichterKuerzel: termine.nuligaSchiedsrichterKuerzel,
+      })
       .from(termine)
+      .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
       .where(
         and(
           eq(termine.vereinId, vereinId),
@@ -491,15 +541,18 @@ export async function holeOffeneSchiedsrichterAnzahl(vereinId: string): Promise<
     if (anstehende.length === 0) return 0;
 
     const terminIds = anstehende.map((t) => t.id);
-    const zuordnungen = await tx
-      .select({
-        terminId: terminZuordnungen.terminId,
-        funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
-      })
-      .from(terminZuordnungen)
-      .where(inArray(terminZuordnungen.terminId, terminIds));
+    const [zuordnungen, ignoriert] = await Promise.all([
+      tx
+        .select({
+          terminId: terminZuordnungen.terminId,
+          funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+        })
+        .from(terminZuordnungen)
+        .where(inArray(terminZuordnungen.terminId, terminIds)),
+      holeIgnorierteMannschaften(tx, vereinId),
+    ]);
 
-    return berechneOffeneSchiedsrichterAnzahl(anstehende, zuordnungen);
+    return berechneOffeneSchiedsrichterAnzahl(anstehende, zuordnungen, ignoriert);
   });
 }
 
@@ -526,16 +579,11 @@ type AnstehenderSchiriTerminMitDetails = AnstehenderSchiriTermin & {
 // dashboard.test.ts.
 export function berechneOffeneSchiedsrichterTermine(
   anstehende: AnstehenderSchiriTerminMitDetails[],
-  zuordnungen: { terminId: string; funktionstraegerTyp: string }[]
+  zuordnungen: { terminId: string; funktionstraegerTyp: string }[],
+  ignorierteMannschaften: IgnorierteMannschaft[] = []
 ): OffenerSchiedsrichterTermin[] {
   return anstehende
-    .filter(brauchtSchiedsrichterVomVerein)
-    .filter(
-      (t) =>
-        !zuordnungen.some(
-          (z) => z.terminId === t.id && z.funktionstraegerTyp === "schiedsrichter"
-        )
-    )
+    .filter((t) => istSchiedsrichterPostenOffen(t, zuordnungen, ignorierteMannschaften))
     .map((t) => ({
       terminId: t.id,
       start: t.start,
@@ -560,6 +608,9 @@ export async function holeOffeneSchiedsrichterTermine(
         mannschaftName: mannschaften.name,
         mannschaftAltersklasse: mannschaften.altersklasse,
         kategorie: termine.kategorie,
+        heimMannschaftName: termine.heimMannschaftName,
+        handballNetSchiedsrichter: termine.handballNetSchiedsrichter,
+        nuligaSchiedsrichterKuerzel: termine.nuligaSchiedsrichterKuerzel,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
@@ -573,15 +624,18 @@ export async function holeOffeneSchiedsrichterTermine(
     if (anstehende.length === 0) return [];
 
     const terminIds = anstehende.map((t) => t.id);
-    const zuordnungen = await tx
-      .select({
-        terminId: terminZuordnungen.terminId,
-        funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
-      })
-      .from(terminZuordnungen)
-      .where(inArray(terminZuordnungen.terminId, terminIds));
+    const [zuordnungen, ignoriert] = await Promise.all([
+      tx
+        .select({
+          terminId: terminZuordnungen.terminId,
+          funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+        })
+        .from(terminZuordnungen)
+        .where(inArray(terminZuordnungen.terminId, terminIds)),
+      holeIgnorierteMannschaften(tx, vereinId),
+    ]);
 
-    return berechneOffeneSchiedsrichterTermine(anstehende, zuordnungen);
+    return berechneOffeneSchiedsrichterTermine(anstehende, zuordnungen, ignoriert);
   });
 }
 
@@ -605,12 +659,14 @@ export type OffenerZeitnehmerTermin = {
 export function berechneOffeneZeitnehmerTermine(
   verein: VereinBedarf,
   anstehende: AnstehenderTermin[],
-  zuordnungen: Zuordnung[]
+  zuordnungen: Zuordnung[],
+  ignorierteMannschaften: IgnorierteMannschaft[] = []
 ): OffenerZeitnehmerTermin[] {
   const posten: OffenerZeitnehmerTermin[] = [];
 
   for (const termin of anstehende) {
     if (!(ZEITNEHMER_RELEVANTE_TYPEN as readonly string[]).includes(termin.typ)) continue;
+    if (istMannschaftIgnoriert(termin, ignorierteMannschaften)) continue;
 
     const bedarf = bedarfFuer(
       verein,
@@ -623,11 +679,17 @@ export function berechneOffeneZeitnehmerTermine(
     );
     if (bedarf <= 0) continue;
 
-    const vorhanden = zuordnungen.filter(
-      (z) =>
-        z.terminId === termin.id &&
-        (z.funktionstraegerTyp === "zeitnehmer" || z.funktionstraegerTyp === "sekretaer")
-    ).length;
+    const eigene = zuordnungen.filter((z) => z.terminId === termin.id);
+    const { externeZeitnehmerSekretaerAnzahl } = externeAnsetzungsAnzahlen(
+      termin,
+      eigene
+    );
+    const vorhanden =
+      eigene.filter(
+        (z) =>
+          z.funktionstraegerTyp === "zeitnehmer" ||
+          z.funktionstraegerTyp === "sekretaer"
+      ).length + externeZeitnehmerSekretaerAnzahl;
     if (vorhanden >= bedarf) continue;
 
     posten.push({
@@ -666,6 +728,8 @@ export async function holeOffeneZeitnehmerTermine(
         kategorie: termine.kategorie,
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
         mannschaftZeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
+        heimMannschaftName: termine.heimMannschaftName,
+        handballNetZeitnehmer: termine.handballNetZeitnehmer,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
@@ -680,14 +744,17 @@ export async function holeOffeneZeitnehmerTermine(
     if (anstehende.length === 0) return [];
 
     const terminIds = anstehende.map((t) => t.id);
-    const zuordnungen = await tx
-      .select({
-        terminId: terminZuordnungen.terminId,
-        funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
-      })
-      .from(terminZuordnungen)
-      .where(inArray(terminZuordnungen.terminId, terminIds));
+    const [zuordnungen, ignoriert] = await Promise.all([
+      tx
+        .select({
+          terminId: terminZuordnungen.terminId,
+          funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+        })
+        .from(terminZuordnungen)
+        .where(inArray(terminZuordnungen.terminId, terminIds)),
+      holeIgnorierteMannschaften(tx, vereinId),
+    ]);
 
-    return berechneOffeneZeitnehmerTermine(verein, anstehende, zuordnungen);
+    return berechneOffeneZeitnehmerTermine(verein, anstehende, zuordnungen, ignoriert);
   });
 }

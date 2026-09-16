@@ -15,6 +15,7 @@ import { formatMannschaft } from "@/lib/dashboard";
 import {
   berechneBesetzung,
   brauchtSchiedsrichterVomVerein,
+  externeAnsetzungsAnzahlen,
   istBesetzungVollstaendig,
 } from "@/lib/besetzung";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
@@ -23,7 +24,6 @@ import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
   angesetzteNamenPassenZu,
   schiedsrichterKuerzelPasstZu,
-  zaehleAngesetzteNamen,
 } from "@/lib/rundenspiel-import";
 import type { KalenderEintrag, TurnierBalkenBearbeitbar } from "@/components/monats-kalender";
 import { formatZeit } from "@/lib/format";
@@ -235,16 +235,8 @@ export async function holeAdminKalenderDaten(
     // besetzt, nur eben (noch) nicht mit einem eigenen Funktionsträger
     // verknüpft — "Besetzung offen" wäre hier irreführend, der Verband/Gegner
     // hat längst jemanden benannt.
-    const externeSchiriAnzahl = hatEigenenSchiri
-      ? 0
-      : t.handballNetSchiedsrichter
-        ? zaehleAngesetzteNamen(t.handballNetSchiedsrichter)
-        : t.nuligaSchiedsrichterKuerzel
-          ? 1
-          : 0;
-    const externeZeitnehmerSekretaerAnzahl = hatEigenenZeitnehmer
-      ? 0
-      : zaehleAngesetzteNamen(t.handballNetZeitnehmer);
+    const { externeSchiriAnzahl, externeZeitnehmerSekretaerAnzahl } =
+      externeAnsetzungsAnzahlen(t, eigeneZuordnungen);
 
     const zuordenbar = BESETZUNGSRELEVANTE_TYPEN.includes(t.typ);
     const mannschaft = t.mannschaftId ? mannschaftenNachId.get(t.mannschaftId) : null;

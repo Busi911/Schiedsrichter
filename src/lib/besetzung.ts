@@ -14,6 +14,51 @@ export const SEKRETAER_ROLLE_MAX = 1;
 // bestehenden Tests) — entspricht dem bisherigen festen Verhalten.
 export const ZEITNEHMER_SEKRETAER_BEDARF_STANDARD = 1;
 
+// nuLiga/handball.net liefern die angesetzten Namen als EIN kommagetrenntes
+// Feld ("Mustermann, Schmidt") — gezählt wird daraus die Anzahl Personen.
+export function zaehleAngesetzteNamen(feld: string | null | undefined): number {
+  if (!feld) return 0;
+  return feld.split(",").filter((teil) => teil.trim()).length;
+}
+
+export type ExternAngesetzterTermin = {
+  handballNetSchiedsrichter?: string | null;
+  nuligaSchiedsrichterKuerzel?: string | null;
+  handballNetZeitnehmer?: string | null;
+};
+
+// Leitet aus den Verbands-/Gegner-Feldern eines Termins ab, wie viele
+// Schiedsrichter bzw. Zeitnehmer/Sekretär bereits extern angesetzt sind, und
+// zwar nur, solange es dafür keine EIGENE Zuordnung gibt (sonst würde dieselbe
+// Person doppelt zählen). Zentral hier statt je Aufrufer, damit Monatskalender,
+// Dashboard und die Wart-Erinnerungen denselben Termin nicht unterschiedlich
+// bewerten — genau das ist zuvor auseinandergelaufen.
+export function externeAnsetzungsAnzahlen(
+  termin: ExternAngesetzterTermin,
+  zuordnungen: { funktionstraegerTyp: string }[]
+): { externeSchiriAnzahl: number; externeZeitnehmerSekretaerAnzahl: number } {
+  const hatEigenenSchiri = zuordnungen.some(
+    (z) => z.funktionstraegerTyp === "schiedsrichter"
+  );
+  const hatEigenenZeitnehmer = zuordnungen.some(
+    (z) =>
+      z.funktionstraegerTyp === "zeitnehmer" ||
+      z.funktionstraegerTyp === "sekretaer"
+  );
+  return {
+    externeSchiriAnzahl: hatEigenenSchiri
+      ? 0
+      : termin.handballNetSchiedsrichter
+        ? zaehleAngesetzteNamen(termin.handballNetSchiedsrichter)
+        : termin.nuligaSchiedsrichterKuerzel
+          ? 1
+          : 0,
+    externeZeitnehmerSekretaerAnzahl: hatEigenenZeitnehmer
+      ? 0
+      : zaehleAngesetzteNamen(termin.handballNetZeitnehmer),
+  };
+}
+
 export type Besetzungsstatus = {
   schiriAnzahl: number;
   schiriErfuellt: boolean;

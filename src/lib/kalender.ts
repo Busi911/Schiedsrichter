@@ -1,6 +1,6 @@
 // Reine Kalender-Berechnung (kein DB-Zugriff), damit sie ohne Testdatenbank
 // getestet werden kann — siehe src/lib/kalender.test.ts.
-import { ZEITZONE } from "./format";
+import { parseBerlinDatumZeit, ZEITZONE } from "./format";
 
 export type KalenderTag = {
   datum: Date;
@@ -133,13 +133,27 @@ export function parseMonatParam(
   return { jahr: jetzt.getFullYear(), monatNull: jetzt.getMonth() };
 }
 
-// Bereich [von, bis] des Kalendermonats (für DB-Abfragen).
+// Bereich [von, bis] des Kalendermonats (für DB-Abfragen), als Europe/
+// Berlin-Kalendermonat — nicht als Monat der Laufzeitzone. Die vorherige
+// new Date(jahr, monatNull, ...)-Konstruktion nutzte die Zeitzone der
+// Laufzeitumgebung (auf Vercel UTC): ein Termin am 1. des Monats um 00:30
+// Berliner Zeit fiel dadurch aus der Abfrage heraus (er liegt in UTC noch
+// im Vormonat), während einer am letzten Tag um 00:30 Berliner Zeit
+// fälschlich in den Folgemonat gerutscht wäre. parseBerlinDatumZeit
+// wandelt die gewünschte Berliner Uhrzeit korrekt (inkl. Sommer-/
+// Winterzeit) in den passenden UTC-Zeitpunkt um.
 export function monatsBereich(
   jahr: number,
   monatNull: number
 ): { von: Date; bis: Date } {
-  const von = new Date(jahr, monatNull, 1, 0, 0, 0, 0);
-  const bis = new Date(jahr, monatNull + 1, 0, 23, 59, 59, 999);
+  // Letzter Tag des Monats über den Tag-0-des-Folgemonats-Trick — reine
+  // Kalenderarithmetik, unabhängig von jeder Zeitzone.
+  const letzterTag = new Date(Date.UTC(jahr, monatNull + 1, 0)).getUTCDate();
+  const monatStr = String(monatNull + 1).padStart(2, "0");
+  const von = parseBerlinDatumZeit(`${jahr}-${monatStr}-01T00:00`);
+  const bis = parseBerlinDatumZeit(
+    `${jahr}-${monatStr}-${String(letzterTag).padStart(2, "0")}T23:59:59`
+  );
   return { von, bis };
 }
 
