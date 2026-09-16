@@ -65,7 +65,7 @@ export default async function DienstePage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-heading text-2xl font-semibold">
-          Unbesetzte Dienste
+          Offene Dienste
         </h1>
         <p className="text-sm text-muted-foreground">
           Offener Ordner-/Kioskdienst-/Kassierer-Bedarf sowie fehlende
