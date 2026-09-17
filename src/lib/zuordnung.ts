@@ -3,13 +3,15 @@ import { and, asc, eq, gte, inArray, ne } from "drizzle-orm";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
+  funktionstraegerTypEnum,
   termine,
   terminZuordnungen,
   users,
 } from "@/db/schema";
 import { formatDatumZeitLang } from "@/lib/format";
 import { SCHIRI_GESPANN_MAX, berechneBesetzung } from "@/lib/besetzung";
-import type { EmailInhalt, EmailZeile } from "@/lib/email-layout";
+import { emailAlsHtml, emailAlsText, type EmailInhalt, type EmailZeile } from "@/lib/email-layout";
+import { sendMail } from "@/lib/mailer";
 
 // Rollen, die einem Termin über termin_zuordnung zugeordnet werden können.
 // 'trainer' hängt an der Mannschaft (nicht am einzelnen Termin), 'ordner'
@@ -214,6 +216,91 @@ export function neueSelbstregistrierungInhalt(
     zeilen: [`E-Mail: ${email}`],
     cta,
   };
+}
+
+// Verschickt dieselbe Mail an mehrere Warte (z.B. alle Ordner-/
+// Zeitnehmerwarte eines Vereins) — ein einzelner fehlgeschlagener Versand
+// (z.B. ungültige Adresse) darf die übrigen nicht verhindern, daher pro
+// Empfänger ein eigenes try/catch statt eines gemeinsamen für die ganze
+// Schleife. fehlerKontext taucht nur im Server-Log auf (z.B. "Registrierungs-
+// Mail an Ordnerwart konnte nicht gesendet werden"), nicht in der Mail
+// selbst.
+export async function sendeMailAnAlle(
+  empfaenger: { email: string }[],
+  betreff: string,
+  inhalt: EmailInhalt,
+  fehlerKontext: string
+) {
+  for (const person of empfaenger) {
+    try {
+      await sendMail(person.email, betreff, emailAlsText(inhalt), emailAlsHtml(inhalt));
+    } catch (err) {
+      console.error(`${fehlerKontext}:`, err);
+    }
+  }
+}
+
+// Wer die bei einer öffentlichen Selbsteintragung (ordner-eintragen/
+// zeitnehmer-eintragen) eingegebene Person letztlich IST, für den Rest der
+// jeweiligen Aktion einheitlich behandelt — "userId" entweder aus einem
+// Namensabgleich-Treffer (siehe findeNamensVorschlag) oder, wenn eine
+// E-Mail angegeben wurde, aus einem definitiv aufgelösten Konto (siehe
+// loeseIdentitaetPerEmailAuf unten); "extern" ist der Fallback ohne
+// Konto/E-Mail.
+export type SelbstEintragenIdentitaet =
+  | { art: "userId"; userId: string; email: string }
+  | { art: "extern"; externerName: string; matchVorschlagUserId: string | null };
+
+// Löst die E-Mail-Variante der Identität bei einer öffentlichen
+// Selbsteintragung auf: bestehendes Konto (im eigenen Verein) wiederverwenden
+// oder neu anlegen, dann die Rolle anlegen — bewusst INAKTIV (siehe
+// funktionstraegerRollen.aktiv in db/schema.ts), damit sich nicht jeder mit
+// einer beliebigen E-Mail-Adresse ungeprüft selbst zum aktiven
+// Funktionsträger macht. Ein Wart muss die Person erst freischalten (siehe
+// /admin/funktionstraeger), genau wie beim manuellen Anlegen ohne "sofort
+// aktivieren" (createFunktionstraeger in admin/actions.ts).
+// warNeuRegistriert = true nur, wenn die Rolle dabei neu angelegt wurde
+// (nicht bei einer bereits bekannten, ggf. schon aktiven Person) — steuert
+// die Benachrichtigung an den zuständigen Wart.
+export async function loeseIdentitaetPerEmailAuf(
+  vereinId: string,
+  email: string,
+  name: string,
+  rolle: (typeof funktionstraegerTypEnum.enumValues)[number]
+): Promise<{ identitaet: SelbstEintragenIdentitaet; warNeuRegistriert: boolean }> {
+  return withTenant(vereinId, async (tx) => {
+    let user = await tx.query.users.findFirst({ where: eq(users.email, email) });
+    if (user && user.vereinId !== vereinId) {
+      throw new Error(
+        "Diese E-Mail-Adresse ist bereits einem anderen Verein zugeordnet."
+      );
+    }
+    if (!user) {
+      [user] = await tx
+        .insert(users)
+        .values({ email, name, vereinId })
+        .returning();
+    }
+
+    const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
+      where: and(
+        eq(funktionstraegerRollen.userId, user.id),
+        eq(funktionstraegerRollen.typ, rolle)
+      ),
+    });
+    let warNeuRegistriert = false;
+    if (!vorhandeneRolle) {
+      await tx
+        .insert(funktionstraegerRollen)
+        .values({ userId: user.id, typ: rolle, aktiv: false });
+      warNeuRegistriert = true;
+    }
+
+    return {
+      identitaet: { art: "userId" as const, userId: user.id, email: user.email },
+      warNeuRegistriert,
+    };
+  });
 }
 
 // Prüft die Besetzungs-Obergrenze, BEVOR eine weitere Person eingetragen
