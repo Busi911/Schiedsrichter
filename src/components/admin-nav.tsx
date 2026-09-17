@@ -26,8 +26,8 @@ const PRIMARY_ITEMS = [
 const VERWALTUNG_ITEMS = [
   { href: "/admin/mannschaften", label: "Mannschaften" },
   { href: "/admin/funktionstraeger", label: "Funktionsträger" },
-  { href: "/admin/dienste", label: "Dienste" },
-  { href: "/admin/auswertung", label: "Dienstplan" },
+  { href: "/admin/dienste", label: "Offene Dienste" },
+  { href: "/admin/auswertung", label: "Auswertung & Export" },
   { href: "/admin/einstellungen", label: "Einstellungen" },
 ];
 

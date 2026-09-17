@@ -8,9 +8,6 @@ import {
   holeLetzteErgebnisse,
   holeUnbesetzteTermine,
 } from "@/lib/dashboard";
-import { berechneGesamtbilanz, holeMannschaftsBilanzen } from "@/lib/dienste-statistik";
-import { parseMonatParam } from "@/lib/kalender";
-import { holeAdminKalenderDaten } from "@/lib/admin-kalender";
 import {
   holeOffeneAbmeldeanfragen,
   holeOffeneSelbsteintragungen,
@@ -28,7 +25,6 @@ import {
   zeitnehmerNeuAnlegenUndBestaetigen,
   zeitnehmerVorschlagBestaetigen,
 } from "@/app/profil/zeitnehmerwart/actions";
-import { MonatsKalender } from "@/components/monats-kalender";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -88,51 +84,30 @@ function kuerzeBeschreibung(t: {
   return rest.length ? rest.join(" · ") : null;
 }
 
-export default async function AdminDashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ monat?: string }>;
-}) {
+export default async function AdminDashboardPage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
-  const { monat } = await searchParams;
-  const { jahr, monatNull } = parseMonatParam(monat);
 
   const verein = await withTenant(vereinId, (tx) =>
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
   );
 
-  const [
-    unbesetzteTermine,
-    letzteErgebnisse,
-    mannschaftsBilanzen,
-    kalenderDaten,
-    offeneSelbsteintragungen,
-    offeneAbmeldeanfragen,
-  ] = await Promise.all([
-    // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
-    // den Link "Alle Termine" unten.
-    holeUnbesetzteTermine(vereinId, 10),
-    holeLetzteErgebnisse(vereinId, 10),
-    // Ungekappt (anders als letzteErgebnisse oben) — die Saison-KPIs unten
-    // sollen die echte Gesamtbilanz zeigen, nicht nur die der letzten 10
-    // angezeigten Ergebnisse.
-    holeMannschaftsBilanzen(vereinId),
-    // Derselbe Monatskalender wie auf /admin/kalender, hier direkt unter
-    // den KPI-Kacheln eingebettet — "alles Wichtige auf einen Blick" statt
-    // extra dorthin navigieren zu müssen.
-    holeAdminKalenderDaten(vereinId, jahr, monatNull),
-    // Über die öffentliche Selbsteintragung erfasste Personen, die noch
-    // keiner angelegten Person zugeordnet wurden — Ordner/Kioskdienst/
-    // Kassierer UND Zeitnehmer/Sekretär zusammen, statt zwischen den beiden
-    // Wart-Seiten wechseln zu müssen (siehe lib/offene-selbsteintragungen.ts).
-    holeOffeneSelbsteintragungen(vereinId),
-    // Personen, die sich selbst wieder abmelden wollten (siehe selbstAbmelden
-    // in profil/actions.ts) — auch hier beide Wart-Bereiche zusammen, damit
-    // der Admin es sieht, selbst ohne eigene Wart-Rolle.
-    holeOffeneAbmeldeanfragen(vereinId),
-  ]);
-  const { spiele: gesamtSpiele, siegquote } = berechneGesamtbilanz(mannschaftsBilanzen);
+  const [unbesetzteTermine, letzteErgebnisse, offeneSelbsteintragungen, offeneAbmeldeanfragen] =
+    await Promise.all([
+      // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
+      // den Link "Alle Termine" unten.
+      holeUnbesetzteTermine(vereinId, 10),
+      holeLetzteErgebnisse(vereinId, 10),
+      // Über die öffentliche Selbsteintragung erfasste Personen, die noch
+      // keiner angelegten Person zugeordnet wurden — Ordner/Kioskdienst/
+      // Kassierer UND Zeitnehmer/Sekretär zusammen, statt zwischen den beiden
+      // Wart-Seiten wechseln zu müssen (siehe lib/offene-selbsteintragungen.ts).
+      holeOffeneSelbsteintragungen(vereinId),
+      // Personen, die sich selbst wieder abmelden wollten (siehe selbstAbmelden
+      // in profil/actions.ts) — auch hier beide Wart-Bereiche zusammen, damit
+      // der Admin es sieht, selbst ohne eigene Wart-Rolle.
+      holeOffeneAbmeldeanfragen(vereinId),
+    ]);
 
   const unbesetzteTermineZeilen = unbesetzteTermine.map((t) => ({
     terminId: t.terminId,
@@ -151,23 +126,6 @@ export default async function AdminDashboardPage({
         <p className="text-sm text-muted-foreground">
           {verein?.name ?? "Verein"}
         </p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardDescription>Rundenspiele mit Ergebnis</CardDescription>
-            <CardTitle className="text-3xl">{gesamtSpiele}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Siegquote (alle Mannschaften)</CardDescription>
-            <CardTitle className="text-3xl">
-              {siegquote !== null ? `${siegquote}%` : "—"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
       </div>
 
       {offeneSelbsteintragungen.length > 0 && (
@@ -348,33 +306,14 @@ export default async function AdminDashboardPage({
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Kalender</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MonatsKalender
-            jahr={jahr}
-            monatNull={monatNull}
-            eintraegeProTag={kalenderDaten.eintraegeProTag}
-            mehrtaegigeEintraege={kalenderDaten.mehrtaegigeEintraege}
-            mannschaftsListe={kalenderDaten.mannschaftsListe}
-            trainerListe={kalenderDaten.trainerListe}
-            zuordenbarePersonen={kalenderDaten.zuordenbarePersonen}
-            basisPfad="/admin"
-            schreibzugriff={session.user.istAdmin}
-          />
-        </CardContent>
-      </Card>
-
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Unbesetzte Termine</CardTitle>
             <CardDescription>
               Nächste Termine, denen noch Schiedsrichter und/oder Zeitnehmer/
-              Sekretär fehlen — der Kalender oben zeigt bereits alle Termine,
-              hier interessiert nur noch die offene Besetzung.
+              Sekretär fehlen — der vollständige Kalender steht unter
+              &bdquo;Kalender&ldquo; in der Navigation.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">

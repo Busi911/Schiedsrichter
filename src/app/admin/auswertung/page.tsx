@@ -86,7 +86,7 @@ export default async function AuswertungPage({
     <form method="get" className="flex flex-col gap-6">
       <div>
         <h1 className="font-heading text-2xl font-semibold">
-          Terminauswertung
+          Auswertung &amp; Export
         </h1>
         <p className="text-sm text-muted-foreground">
           Gesamter Dienstplan mit allen besetzten Rollen (Schiedsrichter,
