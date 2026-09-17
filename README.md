@@ -187,26 +187,6 @@ Mail. Lokal manuell auslösen:
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/wochen-digest
 ```
 
-## Push-Benachrichtigungen
-
-Zusätzlich zur E-Mail können Nutzer auf `/profil` Push-Benachrichtigungen für
-ihr aktuelles Gerät aktivieren (`src/components/push-anmelden.tsx`, Web Push
-Standard über `public/sw.js`). Abos landen in `push_abo`
-(`src/lib/push.ts`); der Terminerinnerungen-Cron sendet dorthin parallel zur
-E-Mail. Abgelaufene Abos (Browser meldet 404/410) werden beim nächsten
-Sendeversuch automatisch entfernt.
-
-VAPID-Keys erzeugen und in `.env` eintragen:
-
-```bash
-npx web-push generate-vapid-keys
-```
-
-Ohne `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` bleibt Push
-einfach inaktiv (kein Fehler) — der Rest der App funktioniert unverändert.
-`NEXT_PUBLIC_VAPID_PUBLIC_KEY` (derselbe Wert wie `VAPID_PUBLIC_KEY`) muss
-zusätzlich gesetzt sein, damit der Browser ihn zum Abonnieren lesen kann.
-
 ## PWA / Installierbarkeit
 
 `public/manifest.json` + `public/sw.js` machen die App auf Mobilgeräten als
@@ -215,9 +195,9 @@ zusätzlich gesetzt sein, damit der Browser ihn zum Abonnieren lesen kann.
 Einsatz; `public/icon-192.png`/`icon-512.png`/`apple-touch-icon.png` sind
 daraus gerasterte Fallbacks für das Manifest bzw. iOS-Homescreen-Icons, wo
 SVG nicht zuverlässig unterstützt wird. Der Service Worker registriert sich
-global (`src/components/sw-register.tsx`, Root Layout) und übernimmt
-zusätzlich die Push-Zustellung — bewusst ohne Offline-Caching/Fetch-Handler,
-da die App durchgehend serverseitig (Server Actions, RLS-Session) rendert.
+global (`src/components/sw-register.tsx`, Root Layout) — bewusst ohne
+Offline-Caching/Fetch-Handler, da die App durchgehend serverseitig (Server
+Actions, RLS-Session) rendert.
 
 ## Spielzuordnung, Selbst-Anmeldung, Zuschüsse (Phase 3)
 

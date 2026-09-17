@@ -11,7 +11,6 @@ import {
   vereine,
 } from "@/db/schema";
 import { sendMail } from "./mailer";
-import { sendePushAn } from "./push";
 import { formatDatumZeitLang } from "./format";
 import { terminMailHtml, terminMailText } from "./termin-mail";
 
@@ -91,14 +90,6 @@ export function erinnerungsMailInhalt(termin: ErinnerungsTermin) {
   return { ueberschrift: "Erinnerung an deinen anstehenden Termin.", zeilen };
 }
 
-export function erinnerungsPushText(termin: ErinnerungsTermin) {
-  const zeitpunkt = formatDatumZeitLang(termin.start);
-  const zeilen = [`Erinnerung an deinen Termin am ${zeitpunkt}.`];
-  if (termin.ort) zeilen.push(`Ort: ${termin.ort}`);
-  if (termin.beschreibung) zeilen.push(termin.beschreibung);
-  return zeilen.join("\n");
-}
-
 const vereinNamenCache = new Map<string, string>();
 async function holeVereinName(vereinId: string): Promise<string> {
   const gecacht = vereinNamenCache.get(vereinId);
@@ -144,20 +135,6 @@ export async function sendeAusstehendeErinnerungen() {
           terminMailText(mailParams),
           terminMailHtml(mailParams)
         );
-        // Push ist ein zusätzlicher, best-effort Kanal — ein fehlendes/
-        // ungültiges Abo darf den (bereits erfolgreichen) E-Mail-Versand
-        // nicht als Fehler markieren, daher eigenes try/catch statt im
-        // äußeren Block mitgefangen zu werden.
-        try {
-          await sendePushAn(person.id, {
-            title: "Erinnerung: anstehender Termin",
-            body: erinnerungsPushText(termin),
-            url: "/profil",
-          });
-        } catch {
-          // Push-Fehler bewusst ignoriert (siehe sendePushAn: räumt ungültige
-          // Abos bereits selbst auf), die E-Mail ist der verlässliche Kanal.
-        }
         await withTenant(termin.vereinId, (tx) =>
           tx.insert(benachrichtigungen).values({
             terminId: termin.id,
