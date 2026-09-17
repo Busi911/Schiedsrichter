@@ -24,13 +24,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { DisclosureSummary } from "@/components/disclosure-summary";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
 import { PersonSelect } from "@/components/person-select";
-import { cn } from "@/lib/utils";
 import {
   formatMonatJahr,
   formatWochentagDatum,
@@ -44,12 +44,6 @@ const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 // jedes Einzelspiel als eigener Eintrag, siehe holeAdminKalenderDaten) sonst
 // eine unlesbare Wand aus winzigem Text.
 const MAX_SICHTBARE_EINTRAEGE = 3;
-
-// Siehe DISCLOSURE_KLASSE in profil/schiedsrichterwart/page.tsx.
-const DISCLOSURE_KLASSE = cn(
-  buttonVariants({ variant: "outline", size: "xs" }),
-  "cursor-pointer list-none [&::-webkit-details-marker]:hidden"
-);
 
 const ZUORDENBARE_TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -434,14 +428,14 @@ export function MonatsKalender({
                       angelegte Personen sollen der
                       naheliegendere Weg bleiben. */}
                   <details className="group">
-                    <summary className={DISCLOSURE_KLASSE}>
+                    <DisclosureSummary>
                       <span className="group-open:hidden">
                         Ohne Login zuordnen (Fallback)
                       </span>
                       <span className="hidden group-open:inline">
                         Schließen
                       </span>
-                    </summary>
+                    </DisclosureSummary>
                     <form
                       action={externeZuordnung}
                       className="mt-2 flex flex-col gap-2"

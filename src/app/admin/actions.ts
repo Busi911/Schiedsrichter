@@ -21,36 +21,15 @@ import { vergebeEinmalPasswortFallsNoetig } from "@/lib/passwort";
 import { sendMail } from "@/lib/mailer";
 import { appUrl } from "@/lib/app-url";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
+import { willkommensInhalt } from "@/lib/willkommens-mail";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { istTurnierBerechtigt } from "@/lib/turnier-zugriff";
 import { generiereOeffentlichenToken } from "@/lib/token";
 
 // einmalPasswort ist nur bei einer neu vergebenen Einmal-Passwort-Zeile
 // gesetzt (siehe vergebeEinmalPasswortFallsNoetig) — hat die Person schon
-// eins (oder loggt sich per Magic-Link ein), bleibt es null. Ein
-// EmailInhalt statt getrennter Text-/Html-Funktionen (wie in login-mail.ts/
-// termin-mail.ts) — siehe CLAUDE.md, EIN Aufbau für beide Formate ist
-// weniger fehleranfällig als zwei parallel gepflegte Texte.
-function willkommensInhalt(
-  vereinName: string,
-  email: string,
-  einmalPasswort: string | null
-): EmailInhalt {
-  return {
-    vereinName,
-    ueberschrift: "Für dich wurde ein Zugang angelegt.",
-    zeilen: einmalPasswort
-      ? [
-          `Melde dich mit deiner E-Mail-Adresse (${email}) und dem folgenden Einmal-Passwort an.`,
-          `Einmal-Passwort: ${einmalPasswort}`,
-          "Direkt nach dem ersten Login musst du ein eigenes Passwort vergeben. Alternativ kannst du dich jederzeit auch ohne Passwort per Login-Link einloggen.",
-        ]
-      : [
-          `Melde dich mit deiner E-Mail-Adresse (${email}) an — du bekommst dort einen Login-Link per E-Mail zugeschickt.`,
-        ],
-    cta: { text: "Jetzt einloggen", url: `${appUrl()}/login` },
-  };
-}
+// eins (oder loggt sich per Magic-Link ein), bleibt es null. willkommensInhalt
+// selbst liegt in lib/willkommens-mail.ts (siehe dort).
 
 // Nur Ziffern (siehe URL der handball.net-Team-Seite, z.B.
 // handball.net/team/69770 → Team-ID 69770) — dieselbe Validierung wie bei

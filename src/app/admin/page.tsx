@@ -26,7 +26,8 @@ import {
   zeitnehmerVorschlagBestaetigen,
 } from "@/app/profil/zeitnehmerwart/actions";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { DisclosureSummary } from "@/components/disclosure-summary";
 import {
   Card,
   CardContent,
@@ -47,15 +48,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { formatErgebnis, rundenspielTypLabel } from "@/lib/termin-label";
-
-// Siehe DISCLOSURE_KLASSE in profil/schiedsrichterwart/page.tsx.
-const DISCLOSURE_KLASSE = cn(
-  buttonVariants({ variant: "outline", size: "xs" }),
-  "cursor-pointer list-none [&::-webkit-details-marker]:hidden"
-);
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -187,14 +181,14 @@ export default async function AdminDashboardPage() {
                         Wart-Seiten (siehe ordnerNeuAnlegenUndBestaetigen/
                         zeitnehmerNeuAnlegenUndBestaetigen). */}
                     <details className="group mt-1.5">
-                      <summary className={DISCLOSURE_KLASSE}>
+                      <DisclosureSummary>
                         <span className="group-open:hidden">
                           Neue Person anlegen
                         </span>
                         <span className="hidden group-open:inline">
                           Schließen
                         </span>
-                      </summary>
+                      </DisclosureSummary>
                       <form
                         action={
                           z.bereich === "ordner"

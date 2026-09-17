@@ -41,19 +41,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { DisclosureSummary } from "@/components/disclosure-summary";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
-import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
-
-// Siehe DISCLOSURE_KLASSE in profil/schiedsrichterwart/page.tsx.
-const DISCLOSURE_KLASSE = cn(
-  buttonVariants({ variant: "outline", size: "xs" }),
-  "cursor-pointer list-none [&::-webkit-details-marker]:hidden"
-);
 
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
@@ -366,14 +360,14 @@ export default async function OrdnerwartPage({
                       /admin/funktionstraeger zu erzwingen. Analog zum
                       gleichen Fallback in profil/zeitnehmerwart/page.tsx. */}
                   <details className="group mt-1.5">
-                    <summary className={DISCLOSURE_KLASSE}>
+                    <DisclosureSummary>
                       <span className="group-open:hidden">
                         Neue Person anlegen
                       </span>
                       <span className="hidden group-open:inline">
                         Schließen
                       </span>
-                    </summary>
+                    </DisclosureSummary>
                     <form
                       action={ordnerNeuAnlegenUndBestaetigen}
                       className="mt-2 flex flex-wrap items-center gap-2"
@@ -584,14 +578,14 @@ export default async function OrdnerwartPage({
                             <div className="flex items-center gap-3">
                               {auswaehlbareOptionen > 0 && (
                                 <details className="group">
-                                  <summary className={DISCLOSURE_KLASSE}>
+                                  <DisclosureSummary>
                                     <span className="group-open:hidden">
                                       Ersetzen
                                     </span>
                                     <span className="hidden group-open:inline">
                                       Schließen
                                     </span>
-                                  </summary>
+                                  </DisclosureSummary>
                                   <form
                                     action={ordnerZuordnen}
                                     className="mt-2 flex flex-wrap items-center gap-2"
@@ -666,14 +660,14 @@ export default async function OrdnerwartPage({
                     </form>
                   ) : (
                     <details className="group mt-2">
-                      <summary className={DISCLOSURE_KLASSE}>
+                      <DisclosureSummary>
                         <span className="group-open:hidden">
                           Weitere Person hinzufügen
                         </span>
                         <span className="hidden group-open:inline">
                           Schließen
                         </span>
-                      </summary>
+                      </DisclosureSummary>
                       <form
                         action={ordnerZuordnen}
                         className="mt-2 flex flex-wrap items-center gap-2"
