@@ -58,11 +58,6 @@ export function formatMonatJahr(jahr: number, monatNull: number): string {
   }).format(new Date(Date.UTC(jahr, monatNull, 1)));
 }
 
-// Kurzform TT.MM.JJJJ bzw. HH:MM für CSV-/PDF-Exporte.
-export function formatDatumKurz(d: Date): string {
-  return d.toLocaleDateString("de-DE", { timeZone: ZEITZONE });
-}
-
 export function formatZeitKurz(d: Date): string {
   return d.toLocaleTimeString("de-DE", {
     hour: "2-digit",

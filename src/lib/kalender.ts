@@ -59,8 +59,6 @@ export type PlatzierungsInfo = {
   lane: number; // 0-basiert; bei Überschneidung mehrerer Balken in derselben Woche
 };
 
-export type PlatzierterBalken = TurnierBalken & PlatzierungsInfo;
-
 // Platziert mehrtägige Balken (z.B. Turniere) pro Kalenderwoche als
 // CSS-Grid-Spalten + Lane (Zeile bei Überschneidung) — Greedy-
 // Intervallfärbung, sortiert nach Dauer (lang zuerst) für ein ruhigeres

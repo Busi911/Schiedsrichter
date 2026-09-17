@@ -1,42 +1,7 @@
-// Service Worker für Push-Benachrichtigungen und PWA-Installierbarkeit.
-// Bewusst ohne Offline-Caching/Fetch-Handler — die App ist serverseitig
-// gerendert (Server Actions, RLS-Session), ein Offline-Modus wäre ohnehin
-// nicht sinnvoll nutzbar.
-
-self.addEventListener("push", (event) => {
-  if (!event.data) return;
-
-  let payload;
-  try {
-    payload = event.data.json();
-  } catch {
-    payload = { title: "HandballerPate", body: event.data.text() };
-  }
-
-  event.waitUntil(
-    self.registration.showNotification(payload.title ?? "HandballerPate", {
-      body: payload.body,
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
-      data: { url: payload.url ?? "/profil" },
-    })
-  );
-});
-
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  const url = event.notification.data?.url ?? "/profil";
-
-  event.waitUntil(
-    self.clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clientList) => {
-        for (const client of clientList) {
-          if (client.url.includes(url) && "focus" in client) {
-            return client.focus();
-          }
-        }
-        if (self.clients.openWindow) return self.clients.openWindow(url);
-      })
-  );
-});
+// Service Worker nur für PWA-Installierbarkeit (Chrome/Android verlangt
+// einen registrierten Service Worker, siehe ServiceWorkerRegistrar in
+// src/components/sw-register.tsx) — bewusst ohne Push-Handling (das
+// Feature wurde entfernt, siehe lib/push.ts in der Git-Historie) und ohne
+// Offline-Caching/Fetch-Handler, da die App serverseitig gerendert wird
+// (Server Actions, RLS-Session) und ein Offline-Modus ohnehin nicht
+// sinnvoll nutzbar wäre.

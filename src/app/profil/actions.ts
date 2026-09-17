@@ -7,7 +7,6 @@ import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
   mannschaften,
-  pushAbos,
   schiedsrichterProfile,
   termine,
   terminZuordnungen,
@@ -357,48 +356,6 @@ export async function selbstAbmelden(formData: FormData) {
   revalidatePath("/profil/ordnerwart");
   revalidatePath("/profil/zeitnehmerwart");
   revalidatePath("/admin/kalender");
-}
-
-type PushSubscriptionJson = {
-  endpoint: string;
-  keys: { p256dh: string; auth: string };
-};
-
-// Vom Client (siehe src/components/push-anmelden.tsx) direkt aufgerufene
-// Server Actions, kein <form> — Next.js erlaubt das für "use server"-
-// exportierte Funktionen genauso wie den form-action-Aufruf.
-export async function pushAbonnieren(subscription: PushSubscriptionJson) {
-  const session = await requireSession();
-  const vereinId = session.user.vereinId!;
-  const userId = session.user.id;
-
-  await withTenant(vereinId, (tx) =>
-    tx
-      .insert(pushAbos)
-      .values({
-        userId,
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
-      })
-      .onConflictDoUpdate({
-        target: pushAbos.endpoint,
-        set: {
-          userId,
-          p256dh: subscription.keys.p256dh,
-          auth: subscription.keys.auth,
-        },
-      })
-  );
-}
-
-export async function pushAbbestellen(endpoint: string) {
-  const session = await requireSession();
-  const vereinId = session.user.vereinId!;
-
-  await withTenant(vereinId, (tx) =>
-    tx.delete(pushAbos).where(eq(pushAbos.endpoint, endpoint))
-  );
 }
 
 export async function syncJetzt() {

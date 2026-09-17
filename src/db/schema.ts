@@ -584,17 +584,3 @@ export const benachrichtigungen = pgTable("benachrichtigung", {
   versendetAm: timestamp("versendet_am", { mode: "date" }),
 });
 
-// Web-Push-Abos (siehe src/lib/push.ts). Ein Nutzer kann mehrere Geräte
-// abonnieren (mehrere Zeilen); der Browser liefert je Gerät eine eigene
-// endpoint-URL. Kein eigenes verein_id nötig — RLS läuft über den Join auf
-// user (analog schiedsrichter_profil).
-export const pushAbos = pgTable("push_abo", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  endpoint: text("endpoint").notNull().unique(),
-  p256dh: text("p256dh").notNull(),
-  auth: text("auth").notNull(),
-  erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
-});
