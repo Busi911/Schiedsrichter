@@ -8,6 +8,7 @@ import {
 } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -182,15 +183,15 @@ export function MannschaftenTabelle({
                           inputMode="numeric"
                           className="h-8 w-40"
                         />
-                        <Button type="submit" variant="outline" size="sm">
+                        <SubmitButton variant="outline" size="sm">
                           Speichern
-                        </Button>
+                        </SubmitButton>
                       </form>
                       <form action={deleteMannschaft}>
                         <input type="hidden" name="mannschaftId" value={m.id} />
-                        <Button type="submit" variant="ghost" size="sm">
+                        <SubmitButton variant="ghost" size="sm">
                           Löschen
-                        </Button>
+                        </SubmitButton>
                       </form>
                     </div>
                   </details>

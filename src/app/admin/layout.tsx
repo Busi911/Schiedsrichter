@@ -9,6 +9,7 @@ import { signOut } from "@/auth";
 import { holeOffenePosten, holeOffeneSchiedsrichterAnzahl } from "@/lib/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { AdminNav } from "@/components/admin-nav";
 import { Logo } from "@/components/logo";
 
@@ -73,14 +74,14 @@ export default async function AdminLayout({
               }}
               className="md:hidden"
             >
-              <Button
-                type="submit"
+              <SubmitButton
                 variant="outline"
                 size="icon-sm"
                 aria-label="Logout"
+                pendingText=""
               >
                 <LogOutIcon />
-              </Button>
+              </SubmitButton>
             </form>
           </div>
           <AdminNav />
@@ -120,14 +121,14 @@ export default async function AdminLayout({
               }}
               className="hidden md:block"
             >
-              <Button
-                type="submit"
+              <SubmitButton
                 variant="outline"
                 size="icon-sm"
                 aria-label="Logout"
+                pendingText=""
               >
                 <LogOutIcon />
-              </Button>
+              </SubmitButton>
             </form>
           </div>
         </div>

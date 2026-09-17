@@ -8,7 +8,8 @@ import { findeSpielDuplikate } from "@/lib/duplikat-erkennung";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { formatMannschaft } from "@/lib/dashboard";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import {
   Card,
   CardAction,
@@ -286,9 +287,9 @@ async function RundenspieleTab({
                   <form action={spielDuplikatVerknuepfen}>
                     <input type="hidden" name="quellId" value={d.quellId} />
                     <input type="hidden" name="rundenspielId" value={d.rundenspielId} />
-                    <Button type="submit" variant="outline" size="sm">
+                    <SubmitButton variant="outline" size="sm">
                       Verknüpfen
-                    </Button>
+                    </SubmitButton>
                   </form>
                 </div>
               ))}

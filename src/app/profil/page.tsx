@@ -291,14 +291,14 @@ export default async function ProfilPage({
                 await signOut({ redirectTo: "/login" });
               }}
             >
-              <Button
-                type="submit"
+              <SubmitButton
                 variant="outline"
                 size="icon-sm"
                 aria-label="Logout"
+                pendingText=""
               >
                 <LogOutIcon />
-              </Button>
+              </SubmitButton>
             </form>
           </div>
         </div>

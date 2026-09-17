@@ -32,9 +32,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { DisclosureSummary } from "@/components/disclosure-summary";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
@@ -355,9 +355,9 @@ export default async function SchiedsrichterwartPage({
                                         required
                                       />
                                     </div>
-                                    <Button type="submit" size="xs" variant="outline">
+                                    <SubmitButton size="xs" variant="outline">
                                       Ersetzen
-                                    </Button>
+                                    </SubmitButton>
                                   </form>
                                 </details>
                               )}
@@ -407,9 +407,7 @@ export default async function SchiedsrichterwartPage({
                                 required
                               />
                             </div>
-                            <Button type="submit" size="sm">
-                              Zuordnen
-                            </Button>
+                            <SubmitButton size="sm">Zuordnen</SubmitButton>
                           </form>
                         ) : (
                           <details className="group">
@@ -434,9 +432,9 @@ export default async function SchiedsrichterwartPage({
                                   required
                                 />
                               </div>
-                              <Button type="submit" size="sm">
+                              <SubmitButton size="sm">
                                 Weiteren zuordnen
-                              </Button>
+                              </SubmitButton>
                             </form>
                           </details>
                         ))}
@@ -467,9 +465,9 @@ export default async function SchiedsrichterwartPage({
                             required
                             className="h-8 min-w-64 flex-1"
                           />
-                          <Button type="submit" size="xs" variant="ghost">
+                          <SubmitButton size="xs" variant="ghost">
                             Zuordnen
-                          </Button>
+                          </SubmitButton>
                         </form>
                       </details>
                       {t.belegtAnderweitig.length > 0 && (

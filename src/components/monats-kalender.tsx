@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DisclosureSummary } from "@/components/disclosure-summary";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
@@ -271,9 +272,9 @@ export function MonatsKalender({
                 />
               </div>
             )}
-            <Button type="submit" size="sm" className="mt-1">
+            <SubmitButton size="sm" className="mt-1">
               Speichern
-            </Button>
+            </SubmitButton>
           </form>
         ) : (
           <div className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -414,9 +415,9 @@ export function MonatsKalender({
                           })}
                         />
                       </div>
-                      <Button type="submit" variant="outline" size="sm">
+                      <SubmitButton variant="outline" size="sm">
                         Zuordnen
-                      </Button>
+                      </SubmitButton>
                     </form>
                   )}
                   {/* Ohne Login (z.B. Gast-Schiri eines
@@ -464,9 +465,9 @@ export function MonatsKalender({
                             }))}
                           />
                         </div>
-                        <Button type="submit" variant="ghost" size="xs">
+                        <SubmitButton variant="ghost" size="xs">
                           Zuordnen
-                        </Button>
+                        </SubmitButton>
                       </div>
                     </form>
                   </details>

@@ -311,11 +311,11 @@ export default async function ZeitnehmerwartPage({
           )}
           <div className="flex flex-wrap gap-2">
             <form action={zeitnehmerSelbstanmeldungLinkErneuern}>
-              <Button type="submit" variant="outline" size="sm">
+              <SubmitButton variant="outline" size="sm">
                 {verein?.zeitnehmerSelbstanmeldungToken
                   ? "Link neu generieren (alter Link wird ungültig)"
                   : "Aktivieren"}
-              </Button>
+              </SubmitButton>
             </form>
             {verein?.zeitnehmerSelbstanmeldungToken && (
               <form action={zeitnehmerSelbstanmeldungDeaktivieren}>
@@ -354,13 +354,12 @@ export default async function ZeitnehmerwartPage({
                 <span>{m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name}</span>
                 <form action={zeitnehmerMannschaftBedarfUmschalten}>
                   <input type="hidden" name="mannschaftId" value={m.id} />
-                  <Button
-                    type="submit"
+                  <SubmitButton
                     size="xs"
                     variant={m.zeitnehmerBedarfDeaktiviert ? "outline" : "secondary"}
                   >
                     Zeitnehmer/Sekretär {m.zeitnehmerBedarfDeaktiviert ? "deaktiviert" : "aktiv"}
-                  </Button>
+                  </SubmitButton>
                 </form>
               </div>
             ))}
@@ -464,13 +463,13 @@ export default async function ZeitnehmerwartPage({
                         required
                         className="h-8 min-w-56 flex-1"
                       />
-                      <Button type="submit" size="xs" variant="outline">
+                      <SubmitButton size="xs" variant="outline">
                         {z.externerName} anlegen &amp; als{" "}
                         {z.funktionstraegerTyp === "zeitnehmer"
                           ? "Zeitnehmer"
                           : "Sekretär"}{" "}
                         bestätigen
-                      </Button>
+                      </SubmitButton>
                     </form>
                   </details>
                   {inaktivVorschlag && (
@@ -761,16 +760,16 @@ export default async function ZeitnehmerwartPage({
                           placeholder="Standard"
                           className="h-8 w-20"
                         />
-                        <Button type="submit" size="xs" variant="outline">
+                        <SubmitButton size="xs" variant="outline">
                           Speichern
-                        </Button>
+                        </SubmitButton>
                       </form>
                       {t.zeitnehmerBedarfOverride != null && (
                         <form action={zeitnehmerBedarfUeberschreiben}>
                           <input type="hidden" name="terminId" value={t.id} />
-                          <Button type="submit" size="xs" variant="ghost">
+                          <SubmitButton size="xs" variant="ghost">
                             Zurücksetzen (Standard)
-                          </Button>
+                          </SubmitButton>
                         </form>
                       )}
                     </div>
@@ -852,9 +851,9 @@ export default async function ZeitnehmerwartPage({
                                         required
                                       />
                                     </div>
-                                    <Button type="submit" size="xs" variant="outline">
+                                    <SubmitButton size="xs" variant="outline">
                                       Ersetzen
-                                    </Button>
+                                    </SubmitButton>
                                   </form>
                                 </details>
                               )}
@@ -901,9 +900,7 @@ export default async function ZeitnehmerwartPage({
                                 required
                               />
                             </div>
-                            <Button type="submit" size="sm">
-                              Zuordnen
-                            </Button>
+                            <SubmitButton size="sm">Zuordnen</SubmitButton>
                           </form>
                         ) : (
                           <details className="group">
@@ -932,9 +929,9 @@ export default async function ZeitnehmerwartPage({
                                   required
                                 />
                               </div>
-                              <Button type="submit" size="sm">
+                              <SubmitButton size="sm">
                                 Weitere zuordnen
-                              </Button>
+                              </SubmitButton>
                             </form>
                           </details>
                         ))}
@@ -970,9 +967,9 @@ export default async function ZeitnehmerwartPage({
                               required
                             />
                           </div>
-                          <Button type="submit" size="xs" variant="ghost">
+                          <SubmitButton size="xs" variant="ghost">
                             Zuordnen
-                          </Button>
+                          </SubmitButton>
                         </form>
                       </details>
                     </div>

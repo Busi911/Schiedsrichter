@@ -41,9 +41,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { DisclosureSummary } from "@/components/disclosure-summary";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
@@ -254,11 +254,11 @@ export default async function OrdnerwartPage({
           )}
           <div className="flex flex-wrap gap-2">
             <form action={ordnerSelbstanmeldungLinkErneuern}>
-              <Button type="submit" variant="outline" size="sm">
+              <SubmitButton variant="outline" size="sm">
                 {verein?.ordnerSelbstanmeldungToken
                   ? "Link neu generieren (alter Link wird ungültig)"
                   : "Aktivieren"}
-              </Button>
+              </SubmitButton>
             </form>
             {verein?.ordnerSelbstanmeldungToken && (
               <form action={ordnerSelbstanmeldungDeaktivieren}>
@@ -346,9 +346,7 @@ export default async function OrdnerwartPage({
                           required
                         />
                       </div>
-                      <Button type="submit" size="sm">
-                        Bestätigen
-                      </Button>
+                      <SubmitButton size="sm">Bestätigen</SubmitButton>
                     </form>
                   )}
                   {/* Immer verfügbar, nicht nur als Fallback ohne
@@ -380,11 +378,11 @@ export default async function OrdnerwartPage({
                         required
                         className="h-8 min-w-56 flex-1"
                       />
-                      <Button type="submit" size="xs" variant="outline">
+                      <SubmitButton size="xs" variant="outline">
                         {z.externerName} anlegen &amp; als{" "}
                         {ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}{" "}
                         bestätigen
-                      </Button>
+                      </SubmitButton>
                     </form>
                   </details>
                 </div>
@@ -420,15 +418,13 @@ export default async function OrdnerwartPage({
                 <div className="flex gap-2">
                   <form action={abmeldungGenehmigen}>
                     <input type="hidden" name="zuordnungId" value={z.id} />
-                    <Button type="submit" size="sm">
-                      Bestätigen
-                    </Button>
+                    <SubmitButton size="sm">Bestätigen</SubmitButton>
                   </form>
                   <form action={abmeldungAblehnen}>
                     <input type="hidden" name="zuordnungId" value={z.id} />
-                    <Button type="submit" variant="outline" size="sm">
+                    <SubmitButton variant="outline" size="sm">
                       Ablehnen
-                    </Button>
+                    </SubmitButton>
                   </form>
                 </div>
               </div>
@@ -608,9 +604,9 @@ export default async function OrdnerwartPage({
                                         required
                                       />
                                     </div>
-                                    <Button type="submit" size="xs" variant="outline">
+                                    <SubmitButton size="xs" variant="outline">
                                       Ersetzen
-                                    </Button>
+                                    </SubmitButton>
                                   </form>
                                 </details>
                               )}
@@ -654,9 +650,7 @@ export default async function OrdnerwartPage({
                           required
                         />
                       </div>
-                      <Button type="submit" size="sm">
-                        Zuordnen
-                      </Button>
+                      <SubmitButton size="sm">Zuordnen</SubmitButton>
                     </form>
                   ) : (
                     <details className="group mt-2">
@@ -681,9 +675,9 @@ export default async function OrdnerwartPage({
                             required
                           />
                         </div>
-                        <Button type="submit" size="sm">
+                        <SubmitButton size="sm">
                           Weitere zuordnen
-                        </Button>
+                        </SubmitButton>
                       </form>
                     </details>
                   )}

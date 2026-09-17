@@ -26,7 +26,6 @@ import {
   zeitnehmerVorschlagBestaetigen,
 } from "@/app/profil/zeitnehmerwart/actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { DisclosureSummary } from "@/components/disclosure-summary";
 import {
   Card,
@@ -205,10 +204,10 @@ export default async function AdminDashboardPage() {
                           required
                           className="h-8 min-w-56 flex-1"
                         />
-                        <Button type="submit" size="xs" variant="outline">
+                        <SubmitButton size="xs" variant="outline">
                           {z.externerName} anlegen &amp; als {z.rolleLabel}{" "}
                           bestätigen
-                        </Button>
+                        </SubmitButton>
                       </form>
                     </details>
                   </>
