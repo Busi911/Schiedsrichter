@@ -32,30 +32,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { DisclosureSummary } from "@/components/disclosure-summary";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
-import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
-
-// Einheitlicher Button-Look für <summary>-Aufklapptoggles (Ersetzen/Weiteren
-// hinzufügen/Schließen) — echte <Button>-Komponenten können hier nicht
-// stehen (die native Aufklapp-Mechanik braucht ein <summary>-Element),
-// aber dieselbe buttonVariants-Funktion liefert exakt dieselben Klassen wie
-// überall sonst, statt einem eigenen Ad-hoc-Textlink-Stil.
-const DISCLOSURE_KLASSE = cn(
-  buttonVariants({ variant: "outline", size: "xs" }),
-  "cursor-pointer list-none [&::-webkit-details-marker]:hidden"
-);
 
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
   turnier_spiel: "Turnierspiel",
   rundenspiel: "Rundenspiel",
 };
-
 
 export default async function SchiedsrichterwartPage({
   searchParams,
@@ -332,14 +321,14 @@ export default async function SchiedsrichterwartPage({
                             <div className="flex items-center gap-3">
                               {auswaehlbareOptionen > 0 && (
                                 <details className="group">
-                                  <summary className={DISCLOSURE_KLASSE}>
+                                  <DisclosureSummary>
                                     <span className="group-open:hidden">
                                       Ersetzen
                                     </span>
                                     <span className="hidden group-open:inline">
                                       Schließen
                                     </span>
-                                  </summary>
+                                  </DisclosureSummary>
                                   {/* Ersatz für GENAU diese Person — nur
                                       diese eine Zuordnung wird beim Absenden
                                       entfernt, nicht alle bestehenden (siehe
@@ -424,14 +413,14 @@ export default async function SchiedsrichterwartPage({
                           </form>
                         ) : (
                           <details className="group">
-                            <summary className={DISCLOSURE_KLASSE}>
+                            <DisclosureSummary>
                               <span className="group-open:hidden">
                                 Weiteren Schiedsrichter hinzufügen
                               </span>
                               <span className="hidden group-open:inline">
                                 Schließen
                               </span>
-                            </summary>
+                            </DisclosureSummary>
                             <form
                               action={schiedsrichterZuordnen}
                               className="mt-2 flex flex-wrap items-center gap-2"
@@ -459,14 +448,14 @@ export default async function SchiedsrichterwartPage({
                           eingeklappt: nur ein Fallback, richtig angelegte
                           Personen sollen der naheliegendere Weg bleiben. */}
                       <details className="group">
-                        <summary className={DISCLOSURE_KLASSE}>
+                        <DisclosureSummary>
                           <span className="group-open:hidden">
                             Ohne Login zuordnen (Fallback)
                           </span>
                           <span className="hidden group-open:inline">
                             Schließen
                           </span>
-                        </summary>
+                        </DisclosureSummary>
                         <form
                           action={schiedsrichterOhneLoginZuordnen}
                           className="mt-2 flex flex-wrap items-center gap-2"

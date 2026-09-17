@@ -13,7 +13,8 @@ import {
   updateFunktionstraeger,
 } from "@/app/admin/actions";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { DisclosureSummary } from "@/components/disclosure-summary";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -26,14 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import { formatDatumZeit } from "@/lib/format";
-
-// Siehe DISCLOSURE_KLASSE in profil/schiedsrichterwart/page.tsx.
-const DISCLOSURE_KLASSE = cn(
-  buttonVariants({ variant: "outline", size: "xs" }),
-  "cursor-pointer list-none [&::-webkit-details-marker]:hidden"
-);
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -211,9 +205,9 @@ export function FunktionstraegerTabelle({
               </SubmitButton>
             </form>
             <details className="text-left">
-              <summary className={DISCLOSURE_KLASSE}>
+              <DisclosureSummary>
                 Rollen hinzufügen ({ausgewaehlt.size})…
-              </summary>
+              </DisclosureSummary>
               <form
                 action={rollenHinzufuegenMehrfach}
                 className="mt-2 flex flex-col gap-2 rounded-lg border bg-background p-3"
@@ -343,7 +337,7 @@ export function FunktionstraegerTabelle({
                 <TableCell className="text-right">
                   {schreibzugriff && (
                   <details className="text-left" open={automatischAufgeklappt}>
-                    <summary className={DISCLOSURE_KLASSE}>Bearbeiten</summary>
+                    <DisclosureSummary>Bearbeiten</DisclosureSummary>
                     <div className="mt-2 flex flex-col gap-3 rounded-lg border p-3">
                       <form
                         action={updateFunktionstraeger}

@@ -48,7 +48,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { DisclosureSummary } from "@/components/disclosure-summary";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -56,18 +57,8 @@ import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
 import { PersonSelect } from "@/components/person-select";
 import { ZeitnehmerEinsaetzeDialog } from "@/components/zeitnehmer-einsaetze-dialog";
-import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
-
-// Siehe DISCLOSURE_KLASSE in profil/schiedsrichterwart/page.tsx — gleicher
-// Button-Look für <summary>-Aufklapptoggles, hier dupliziert statt aus einer
-// gemeinsamen Datei importiert, weil beide Seiten sonst keine Berührung
-// hätten (bewusst eng begrenzte, getrennte Wart-Seiten, siehe actions.ts).
-const DISCLOSURE_KLASSE = cn(
-  buttonVariants({ variant: "outline", size: "xs" }),
-  "cursor-pointer list-none [&::-webkit-details-marker]:hidden"
-);
 
 const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
@@ -453,14 +444,14 @@ export default async function ZeitnehmerwartPage({
                       Rolle anlegen, statt den Umweg über
                       /admin/funktionstraeger zu erzwingen. */}
                   <details className="group mt-1.5">
-                    <summary className={DISCLOSURE_KLASSE}>
+                    <DisclosureSummary>
                       <span className="group-open:hidden">
                         Neue Person anlegen
                       </span>
                       <span className="hidden group-open:inline">
                         Schließen
                       </span>
-                    </summary>
+                    </DisclosureSummary>
                     <form
                       action={zeitnehmerNeuAnlegenUndBestaetigen}
                       className="mt-2 flex flex-wrap items-center gap-2"
@@ -742,13 +733,13 @@ export default async function ZeitnehmerwartPage({
                     </p>
                   )}
                   <details className="group mt-1">
-                    <summary className={cn(DISCLOSURE_KLASSE, "text-[0.7rem]")}>
+                    <DisclosureSummary className="text-[0.7rem]">
                       <span className="group-open:hidden">
                         Bedarf: {t.zeitnehmerBedarf}
                         {t.zeitnehmerBedarfOverride != null && " (angepasst)"}
                       </span>
                       <span className="hidden group-open:inline">Schließen</span>
-                    </summary>
+                    </DisclosureSummary>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <form
                         action={zeitnehmerBedarfUeberschreiben}
@@ -831,14 +822,14 @@ export default async function ZeitnehmerwartPage({
                             <div className="flex items-center gap-3">
                               {auswaehlbareErsatzOptionen > 0 && (
                                 <details className="group">
-                                  <summary className={DISCLOSURE_KLASSE}>
+                                  <DisclosureSummary>
                                     <span className="group-open:hidden">
                                       Ersetzen
                                     </span>
                                     <span className="hidden group-open:inline">
                                       Schließen
                                     </span>
-                                  </summary>
+                                  </DisclosureSummary>
                                   <form
                                     action={zeitnehmerZuordnen}
                                     className="mt-2 flex flex-wrap items-center gap-2"
@@ -916,14 +907,14 @@ export default async function ZeitnehmerwartPage({
                           </form>
                         ) : (
                           <details className="group">
-                            <summary className={DISCLOSURE_KLASSE}>
+                            <DisclosureSummary>
                               <span className="group-open:hidden">
                                 Weitere Person hinzufügen
                               </span>
                               <span className="hidden group-open:inline">
                                 Schließen
                               </span>
-                            </summary>
+                            </DisclosureSummary>
                             <form
                               action={zeitnehmerZuordnen}
                               className="mt-2 flex flex-wrap items-center gap-2"
@@ -952,14 +943,14 @@ export default async function ZeitnehmerwartPage({
                           schiedsrichterwart/page.tsx. Standardmäßig
                           eingeklappt: nur ein Fallback. */}
                       <details className="group">
-                        <summary className={DISCLOSURE_KLASSE}>
+                        <DisclosureSummary>
                           <span className="group-open:hidden">
                             Ohne Login zuordnen (Fallback)
                           </span>
                           <span className="hidden group-open:inline">
                             Schließen
                           </span>
-                        </summary>
+                        </DisclosureSummary>
                         <form
                           action={zeitnehmerOhneLoginZuordnen}
                           className="mt-2 flex flex-wrap items-center gap-2"

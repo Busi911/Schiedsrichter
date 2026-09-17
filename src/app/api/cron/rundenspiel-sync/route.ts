@@ -1,5 +1,6 @@
 import { synchronisiereAlleAktivenNuligaVereine } from "@/lib/rundenspiel-sync";
 import { synchronisiereAlleAktivenHandballNetMannschaften } from "@/lib/handball-net-sync";
+import { pruefeCronSecret } from "@/lib/cron-auth";
 
 // Läuft täglich per Vercel Cron (siehe vercel.json). Zwei unabhängige
 // Quellen: nuLiga (Verein-weit, je Hallen-ID) für die regulären Ligen und
@@ -7,13 +8,8 @@ import { synchronisiereAlleAktivenHandballNetMannschaften } from "@/lib/handball
 // nicht abdeckt (siehe handball-net-scraper.ts) — ein Fehler in der einen
 // Quelle darf den Sync der anderen nicht verhindern.
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (
-    !process.env.CRON_SECRET ||
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  const unauthorized = pruefeCronSecret(request);
+  if (unauthorized) return unauthorized;
 
   const [nuliga, handballNet] = await Promise.all([
     synchronisiereAlleAktivenNuligaVereine(),

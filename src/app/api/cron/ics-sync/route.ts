@@ -3,19 +3,15 @@ import { adminDb } from "@/db/admin";
 import { schiedsrichterProfile, users } from "@/db/schema";
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
 import { sendeDuplikatBenachrichtigungen } from "@/lib/duplikat-benachrichtigung";
+import { pruefeCronSecret } from "@/lib/cron-auth";
 
 // Läuft täglich per Vercel Cron (siehe vercel.json). Nutzt adminDb NUR zum
 // vereinsübergreifenden Auflisten der Kandidaten — der eigentliche Sync pro
 // Schiedsrichter läuft über withTenant() (siehe src/lib/ics-sync.ts) und
 // bleibt damit RLS-konform.
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (
-    !process.env.CRON_SECRET ||
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  const unauthorized = pruefeCronSecret(request);
+  if (unauthorized) return unauthorized;
 
   const kandidaten = await adminDb
     .select({

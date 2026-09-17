@@ -24,8 +24,8 @@ import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
 import { generiereOeffentlichenToken } from "@/lib/token";
 import { vergebeEinmalPasswortFallsNoetig } from "@/lib/passwort";
-import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
-import { appUrl } from "@/lib/app-url";
+import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
+import { willkommensInhalt } from "@/lib/willkommens-mail";
 
 const ZEITNEHMER_ROLLEN = ["zeitnehmer", "sekretaer"] as const;
 type ZeitnehmerRolle = (typeof ZEITNEHMER_ROLLEN)[number];
@@ -754,29 +754,9 @@ export async function zeitnehmerNeuAnlegenUndBestaetigen(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
-// Siehe willkommensInhalt in admin/actions.ts — dort nicht exportiert (in
-// einer "use server"-Datei dürfen nur async-Funktionen exportiert werden),
-// deshalb hier dupliziert statt importiert; inhaltlich identisch.
-function willkommensInhalt(
-  vereinName: string,
-  email: string,
-  einmalPasswort: string | null
-): EmailInhalt {
-  return {
-    vereinName,
-    ueberschrift: "Für dich wurde ein Zugang angelegt.",
-    zeilen: einmalPasswort
-      ? [
-          `Melde dich mit deiner E-Mail-Adresse (${email}) und dem folgenden Einmal-Passwort an.`,
-          `Einmal-Passwort: ${einmalPasswort}`,
-          "Direkt nach dem ersten Login musst du ein eigenes Passwort vergeben. Alternativ kannst du dich jederzeit auch ohne Passwort per Login-Link einloggen.",
-        ]
-      : [
-          `Melde dich mit deiner E-Mail-Adresse (${email}) an — du bekommst dort einen Login-Link per E-Mail zugeschickt.`,
-        ],
-    cta: { text: "Jetzt einloggen", url: `${appUrl()}/login` },
-  };
-}
+// willkommensInhalt liegt jetzt in lib/willkommens-mail.ts (siehe dort) —
+// vorher hier dupliziert, weil eine "use server"-Datei nur async-Funktionen
+// exportieren darf.
 
 // Für Selbsteintragungen, zu denen KEINE aktive Person passte, aber laut
 // Namensabgleich eine bereits angelegte, nur DEAKTIVIERTE Zeitnehmer-/
