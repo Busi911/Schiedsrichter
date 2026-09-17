@@ -7,7 +7,7 @@ import { funktionstraegerRollen, mannschaften, termine, users } from "@/db/schem
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { turnierLinkErneuern } from "../../actions";
 import { appUrl } from "@/lib/app-url";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import {
   Card,
   CardContent,
@@ -117,9 +117,9 @@ export default async function TerminBearbeitenPage({
               {session.user.istAdmin && (
                 <form action={turnierLinkErneuern}>
                   <input type="hidden" name="turnierId" value={termin.id} />
-                  <Button type="submit" variant="outline" size="sm">
+                  <SubmitButton variant="outline" size="sm">
                     Link neu generieren (alter Link wird ungültig)
-                  </Button>
+                  </SubmitButton>
                 </form>
               )}
             </CardContent>

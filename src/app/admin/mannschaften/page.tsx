@@ -13,7 +13,6 @@ import {
   unbekannteMannschaftAblehnen,
 } from "../actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -174,17 +173,16 @@ export default async function MannschaftenPage({
                     </span>
                   </span>
                   <div className="flex items-center gap-2">
-                    <Button
-                      type="submit"
+                    <SubmitButton
                       formAction={unbekannteMannschaftAblehnen}
                       variant="ghost"
                       size="sm"
                     >
                       Ablehnen
-                    </Button>
-                    <Button type="submit" variant="outline" size="sm">
+                    </SubmitButton>
+                    <SubmitButton variant="outline" size="sm">
                       Als Mannschaft anlegen
-                    </Button>
+                    </SubmitButton>
                   </div>
                 </form>
               ))}
@@ -229,9 +227,9 @@ export default async function MannschaftenPage({
                       <span className="text-muted-foreground"> ({i.kategorie})</span>
                     )}
                   </span>
-                  <Button type="submit" variant="ghost" size="sm">
+                  <SubmitButton variant="ghost" size="sm">
                     Rückgängig
-                  </Button>
+                  </SubmitButton>
                 </form>
               ))}
             </CardContent>
@@ -274,13 +272,12 @@ export default async function MannschaftenPage({
                           <form action={mannschaftBedarfRolleUmschalten}>
                             <input type="hidden" name="mannschaftId" value={m.id} />
                             <input type="hidden" name="rolle" value={r.wert} />
-                            <Button
-                              type="submit"
+                            <SubmitButton
                               size="xs"
                               variant={deaktiviert ? "outline" : "secondary"}
                             >
                               {deaktiviert ? "deaktiviert" : "aktiv"}
-                            </Button>
+                            </SubmitButton>
                           </form>
                         </TableCell>
                       );

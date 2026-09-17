@@ -4,7 +4,6 @@ import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
 import { dienstBedarfSpeichern, nuligaEinstellungenSpeichern } from "./actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -293,9 +292,7 @@ export default async function EinstellungenPage({
               </fieldset>
 
               {session.user.istAdmin && (
-                <Button type="submit" className="w-full">
-                  Speichern
-                </Button>
+                <SubmitButton className="w-full">Speichern</SubmitButton>
               )}
             </form>
           </CardContent>

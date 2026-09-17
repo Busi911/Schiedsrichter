@@ -14,7 +14,7 @@ import {
   toDatetimeLocalWert,
 } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -258,9 +258,9 @@ export function TurnierSpielplan({
                                     placeholder="Ausw."
                                     className="h-8 w-16"
                                   />
-                                  <Button type="submit" variant="outline" size="sm">
+                                  <SubmitButton variant="outline" size="sm">
                                     Speichern
-                                  </Button>
+                                  </SubmitButton>
                                 </form>
                               </details>
                             ) : (
@@ -293,9 +293,9 @@ export function TurnierSpielplan({
                                   name="turnierId"
                                   value={turnierId}
                                 />
-                                <Button type="submit" variant="ghost" size="sm">
+                                <SubmitButton variant="ghost" size="sm">
                                   Löschen
-                                </Button>
+                                </SubmitButton>
                               </form>
                             )}
                           </div>
@@ -344,9 +344,7 @@ export function TurnierSpielplan({
             className="h-8 w-48"
           />
         </div>
-        <Button type="submit" size="sm">
-          Spiel hinzufügen
-        </Button>
+        <SubmitButton size="sm">Spiel hinzufügen</SubmitButton>
       </form>
       )}
     </div>

@@ -4,6 +4,7 @@ import { deleteTermin, updateTermin } from "@/app/admin/actions";
 import { toDatetimeLocalWert } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { SubmitButton } from "@/components/submit-button";
 import {
   Dialog,
   DialogContent,
@@ -145,9 +146,7 @@ export function TerminBearbeitenDialog({
             </div>
           )}
 
-          <Button type="submit" className="w-full">
-            Speichern
-          </Button>
+          <SubmitButton className="w-full">Speichern</SubmitButton>
         </form>
 
         <div className="flex justify-end border-t pt-4">

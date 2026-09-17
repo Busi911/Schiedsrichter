@@ -1,5 +1,5 @@
 import { bootstrapVerein } from "./actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import {
   Card,
   CardContent,
@@ -44,9 +44,7 @@ export default function SetupPage() {
               <Input id="adminEmail" name="adminEmail" type="email" required />
             </div>
 
-            <Button type="submit" className="w-full">
-              Verein anlegen
-            </Button>
+            <SubmitButton className="w-full">Verein anlegen</SubmitButton>
           </form>
         </CardContent>
       </Card>

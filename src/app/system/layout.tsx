@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LogOutIcon } from "lucide-react";
 import { requireSystemAdmin } from "@/lib/session";
 import { signOut } from "@/auth";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { SystemNav } from "@/components/system-nav";
 import { Logo } from "@/components/logo";
 
@@ -45,14 +45,14 @@ export default async function SystemLayout({
               await signOut({ redirectTo: "/login" });
             }}
           >
-            <Button
-              type="submit"
+            <SubmitButton
               variant="outline"
               size="icon-sm"
               aria-label="Logout"
+              pendingText=""
             >
               <LogOutIcon />
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       </header>
