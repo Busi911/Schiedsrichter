@@ -15,7 +15,7 @@ import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import {
   abmeldungAblehnen,
   abmeldungGenehmigen,
-  ordnerMannschaftenBedarfSetzen,
+  ordnerMannschaftBedarfUmschalten,
   ordnerNeuAnlegenUndBestaetigen,
   ordnerSelbstanmeldungDeaktivieren,
   ordnerSelbstanmeldungLinkErneuern,
@@ -23,7 +23,6 @@ import {
   ordnerZuordnen,
   ordnerZuordnungEntfernen,
 } from "./actions";
-import { MannschaftBedarfAuswahl } from "@/components/mannschaft-bedarf-auswahl";
 import { appUrl } from "@/lib/app-url";
 import {
   Card,
@@ -97,29 +96,6 @@ export default async function OrdnerwartPage({
   ]);
   const mannschaftenSortiert = sortiereMannschaften(alleMannschaften);
   const mannschaftenNachId = new Map(alleMannschaften.map((m) => [m.id, m]));
-  const bedarfEintraege = mannschaftenSortiert.flatMap((m) => {
-    const label = m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name;
-    return [
-      {
-        id: `${m.id}|ordner`,
-        mannschaftLabel: label,
-        rolleLabel: "Ordner",
-        deaktiviert: m.ordnerBedarfDeaktiviert,
-      },
-      {
-        id: `${m.id}|kioskdienst`,
-        mannschaftLabel: label,
-        rolleLabel: "Kioskdienst",
-        deaktiviert: m.kioskdienstBedarfDeaktiviert,
-      },
-      {
-        id: `${m.id}|kassierer`,
-        mannschaftLabel: label,
-        rolleLabel: "Kassierer",
-        deaktiviert: m.kassiererBedarfDeaktiviert,
-      },
-    ];
-  });
 
   const belegtProZeitpunktUndTermin = new Map<number, Map<string, string>>();
   for (const termin of termineRoh) {
@@ -325,23 +301,50 @@ export default async function OrdnerwartPage({
         </CardContent>
       </Card>
 
-      {bedarfEintraege.length > 0 && (
+      {mannschaftenSortiert.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Bedarf pro Mannschaft</CardTitle>
             <CardDescription>
               Für Mannschaften ohne eigene Heimspiele mit Publikum (z.B.
               manche Jugend-Mannschaften) lässt sich der Ordner-/
-              Kioskdienst-/Kassierer-Bedarf hier komplett abschalten — auch
-              mehrere auf einmal per Mehrfachauswahl. Wirkt auf alle Termine
-              der jeweiligen Mannschaft, auch bereits bestehende offene.
+              Kioskdienst-/Kassierer-Bedarf hier komplett abschalten. Wirkt
+              auf alle Termine der jeweiligen Mannschaft, auch bereits
+              bestehende offene.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <MannschaftBedarfAuswahl
-              eintraege={bedarfEintraege}
-              submitAction={ordnerMannschaftenBedarfSetzen}
-            />
+          <CardContent className="flex flex-col gap-2">
+            {mannschaftenSortiert.map((m) => {
+              const label = m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name;
+              return (
+                <div
+                  key={m.id}
+                  className="flex flex-col gap-2 rounded-lg border p-2 text-sm"
+                >
+                  <span>{label}</span>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        ["ordner", m.ordnerBedarfDeaktiviert],
+                        ["kioskdienst", m.kioskdienstBedarfDeaktiviert],
+                        ["kassierer", m.kassiererBedarfDeaktiviert],
+                      ] as const
+                    ).map(([rolle, deaktiviert]) => (
+                      <form key={rolle} action={ordnerMannschaftBedarfUmschalten}>
+                        <input type="hidden" name="mannschaftId" value={m.id} />
+                        <input type="hidden" name="rolle" value={rolle} />
+                        <SubmitButton
+                          size="xs"
+                          variant={deaktiviert ? "outline" : "secondary"}
+                        >
+                          {ROLLE_LABEL[rolle]} {deaktiviert ? "deaktiviert" : "aktiv"}
+                        </SubmitButton>
+                      </form>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       )}

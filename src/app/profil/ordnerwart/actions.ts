@@ -392,68 +392,55 @@ export async function abmeldungAblehnen(formData: FormData) {
   revalidatePath("/admin/kalender");
 }
 
-// Setzt den Ordner-, Kioskdienst- bzw. Kassierer-Bedarf für MEHRERE
-// ausgewählte Mannschaft+Rolle-Kombinationen auf einmal auf einen
-// Zielzustand (siehe MannschaftBedarfAuswahl in
-// components/mannschaft-bedarf-auswahl.tsx und
+// Schaltet den Ordner-, Kioskdienst- bzw. Kassierer-Bedarf für EINE
+// Mannschaft+Rolle-Kombination komplett aus/ein (siehe
 // mannschaften.ordnerBedarfDeaktiviert/kioskdienstBedarfDeaktiviert/
-// kassiererBedarfDeaktiviert in db/schema.ts) — z.B. für mehrere
-// Jugend-Mannschaften ohne eigene
-// Heimspiele mit Publikum in einem Rutsch. Wirkt sofort auf alle Termine
-// dieser Mannschaften, auch bereits bestehende (bedarfFuer wird live
-// berechnet, kein Snapshot). Bewusst ein Ziel-Zustand statt Toggle: die
-// Auswahl kann Einträge in gemischtem Zustand enthalten.
-export async function ordnerMannschaftenBedarfSetzen(
-  formData: FormData
-): Promise<{ geaendert: number }> {
+// kassiererBedarfDeaktiviert in db/schema.ts) — z.B. für eine
+// Jugend-Mannschaft ohne eigene Heimspiele mit Publikum. Wirkt sofort auf
+// alle Termine dieser Mannschaft, auch bereits bestehende offene
+// (bedarfFuer wird live berechnet, kein Snapshot). Analog zu
+// zeitnehmerMannschaftBedarfUmschalten (profil/zeitnehmerwart/actions.ts).
+export async function ordnerMannschaftBedarfUmschalten(formData: FormData) {
   const { vereinId } = await requireOrdnerwartZugriff();
 
-  const deaktivierenRoh = formData.get("deaktivieren");
-  if (deaktivierenRoh !== "true" && deaktivierenRoh !== "false") {
-    throw new Error("Ungültiger Zielzustand.");
+  const mannschaftId = formData.get("mannschaftId");
+  if (typeof mannschaftId !== "string" || !mannschaftId) {
+    throw new Error("Mannschaft fehlt.");
   }
-  const deaktivieren = deaktivierenRoh === "true";
-
-  const eintraege = formData
-    .getAll("eintraege")
-    .filter((e): e is string => typeof e === "string")
-    .map((e) => {
-      const [mannschaftId, rolle] = e.split("|");
-      return { mannschaftId, rolle };
-    })
-    .filter(
-      (e): e is { mannschaftId: string; rolle: OrdnerRolle } =>
-        !!e.mannschaftId && (ORDNER_ROLLEN as readonly string[]).includes(e.rolle)
-    );
+  const rolleRoh = formData.get("rolle");
+  if (
+    typeof rolleRoh !== "string" ||
+    !(ORDNER_ROLLEN as readonly string[]).includes(rolleRoh)
+  ) {
+    throw new Error("Rolle fehlt.");
+  }
+  const rolle = rolleRoh as OrdnerRolle;
 
   await withTenant(vereinId, async (tx) => {
-    for (const { mannschaftId, rolle } of eintraege) {
-      const mannschaft = await tx.query.mannschaften.findFirst({
-        where: and(eq(mannschaften.id, mannschaftId), eq(mannschaften.vereinId, vereinId)),
-      });
-      if (!mannschaft) continue;
+    const mannschaft = await tx.query.mannschaften.findFirst({
+      where: and(eq(mannschaften.id, mannschaftId), eq(mannschaften.vereinId, vereinId)),
+    });
+    if (!mannschaft) throw new Error("Mannschaft nicht gefunden.");
 
-      if (rolle === "ordner") {
-        await tx
-          .update(mannschaften)
-          .set({ ordnerBedarfDeaktiviert: deaktivieren })
-          .where(eq(mannschaften.id, mannschaftId));
-      } else if (rolle === "kioskdienst") {
-        await tx
-          .update(mannschaften)
-          .set({ kioskdienstBedarfDeaktiviert: deaktivieren })
-          .where(eq(mannschaften.id, mannschaftId));
-      } else {
-        await tx
-          .update(mannschaften)
-          .set({ kassiererBedarfDeaktiviert: deaktivieren })
-          .where(eq(mannschaften.id, mannschaftId));
-      }
+    if (rolle === "ordner") {
+      await tx
+        .update(mannschaften)
+        .set({ ordnerBedarfDeaktiviert: !mannschaft.ordnerBedarfDeaktiviert })
+        .where(eq(mannschaften.id, mannschaftId));
+    } else if (rolle === "kioskdienst") {
+      await tx
+        .update(mannschaften)
+        .set({ kioskdienstBedarfDeaktiviert: !mannschaft.kioskdienstBedarfDeaktiviert })
+        .where(eq(mannschaften.id, mannschaftId));
+    } else {
+      await tx
+        .update(mannschaften)
+        .set({ kassiererBedarfDeaktiviert: !mannschaft.kassiererBedarfDeaktiviert })
+        .where(eq(mannschaften.id, mannschaftId));
     }
   });
 
   revalidatePath("/profil/ordnerwart");
-  return { geaendert: eintraege.length };
 }
 
 // Analog zu zeitnehmerSelbstanmeldungLinkErneuern/-Deaktivieren in
