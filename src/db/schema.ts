@@ -91,6 +91,18 @@ export const syncStatusEnum = pgEnum("sync_status", [
   "fehler",
 ]);
 
+// Welche Ablauf-Erinnerungsstufe zu einer Lizenz (funktionstraeger_rolle.
+// lizenz_gueltig_bis) zuletzt versendet wurde — siehe lizenz-erinnerung.ts.
+// Reihenfolge der Werte entspricht der Dringlichkeit, gepflegt in
+// LIZENZ_ERINNERUNG_STUFEN dort (Reihenfolge hier ohne fachliche Bedeutung,
+// nur als DB-Enum-Deklaration).
+export const lizenzErinnerungStufeEnum = pgEnum("lizenz_erinnerung_stufe", [
+  "60_tage",
+  "30_tage",
+  "7_tage",
+  "abgelaufen",
+]);
+
 // Feinere Unterscheidung innerhalb "kein Pflichtspiel" (pflichtspiel = false,
 // siehe termine.pflichtspiel) — welche der beiden nuLiga-Rundenspiel-Import
 // erkennt anhand unterschiedlicher Signale (Rohtext-Präfix bzw. Rundenturnier-
@@ -402,6 +414,17 @@ export const funktionstraegerRollen = pgTable("funktionstraeger_rolle", {
   // der Historie von Zuordnungen erhalten). Inaktive Rollen tauchen nicht
   // mehr in Zuordnung/Selbst-Anmeldung auf.
   aktiv: boolean("aktiv").notNull().default(true),
+  // Ablaufdatum der Verbands-Lizenz — nur bei typ 'schiedsrichter',
+  // 'zeitnehmer' oder 'sekretaer' fachlich sinnvoll (siehe
+  // LIZENZ_ROLLEN in lizenz-erinnerung.ts), UI blendet das Feld sonst aus.
+  // null = keine Lizenz hinterlegt (kein Ablauf-Tracking für diese Rolle).
+  lizenzGueltigBis: timestamp("lizenz_gueltig_bis", { mode: "date" }),
+  // Höchste bereits versendete Erinnerungsstufe für lizenzGueltigBis (siehe
+  // lizenz-erinnerung.ts) — verhindert tägliches Doppelversenden innerhalb
+  // desselben Fensters. Wird beim Setzen/Ändern von lizenzGueltigBis wieder
+  // auf null zurückgesetzt (neue/verlängerte Lizenz, siehe
+  // updateFunktionstraegerLizenz in admin/actions.ts).
+  lizenzErinnerungStufe: lizenzErinnerungStufeEnum("lizenz_erinnerung_stufe"),
 });
 
 export const schiedsrichterProfile = pgTable("schiedsrichter_profil", {
@@ -590,5 +613,24 @@ export const benachrichtigungen = pgTable("benachrichtigung", {
     .references(() => users.id, { onDelete: "cascade" }),
   typ: text("typ").notNull(),
   versendetAm: timestamp("versendet_am", { mode: "date" }),
+});
+
+// Freitext-Feedback aus dem Header (siehe FeedbackDialog) — Vereine testen
+// die App gerade aktiv, daher ein niedrigschwelliger Kanal direkt aus jeder
+// eingeloggten Seite statt eines externen Formulars. Wird vom Systemadmin
+// vereinsübergreifend eingesehen (siehe /system/feedback), daher trotz
+// eigenem vereinId regulär tenant-isoliert wie mannschaft (Schreiben läuft
+// über withTenant, Lesen für /system/feedback über adminDb).
+export const produktFeedback = pgTable("produkt_feedback", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  seite: text("seite").notNull(),
+  nachricht: text("nachricht").notNull(),
+  erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 
