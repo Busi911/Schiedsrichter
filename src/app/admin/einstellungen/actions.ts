@@ -57,6 +57,8 @@ export async function dienstBedarfSpeichern(formData: FormData) {
     formData,
     "rundenspielZeitnehmerBedarf"
   );
+  const offeneDiensteBroadcastAktiviert =
+    formData.get("offeneDiensteBroadcastAktiviert") === "on";
 
   await withTenant(vereinId, (tx) =>
     tx
@@ -74,6 +76,7 @@ export async function dienstBedarfSpeichern(formData: FormData) {
         testspielZeitnehmerBedarf,
         turnierZeitnehmerBedarf,
         rundenspielZeitnehmerBedarf,
+        offeneDiensteBroadcastAktiviert,
       })
       .where(eq(vereine.id, vereinId))
   );

@@ -292,6 +292,35 @@ export default async function EinstellungenPage({
                 </div>
               </fieldset>
 
+              <fieldset disabled={!session.user.istAdmin} className="contents">
+                <div className="flex items-center justify-between gap-3 border-t pt-4">
+                  <div>
+                    <Label
+                      htmlFor="offeneDiensteBroadcastAktiviert"
+                      className="font-normal"
+                    >
+                      Bei unbesetztem Dienst (3 Tage vorher) alle
+                      Rolleninhaber per Mail fragen
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Zusätzlich zur bestehenden Erinnerung an euch als
+                      Admin — geht an ALLE aktiven Personen mit der
+                      betroffenen Rolle (Ordner/Kioskdienst/Kassierer/
+                      Zeitnehmer/Sekretär), nicht nur an bereits
+                      Zugeordnete. Einzelne Personen können das für sich
+                      selbst in ihren eigenen Benachrichtigungs-
+                      Einstellungen wieder abschalten.
+                    </p>
+                  </div>
+                  <Switch
+                    key={String(verein?.offeneDiensteBroadcastAktiviert ?? false)}
+                    id="offeneDiensteBroadcastAktiviert"
+                    name="offeneDiensteBroadcastAktiviert"
+                    defaultChecked={verein?.offeneDiensteBroadcastAktiviert ?? false}
+                  />
+                </div>
+              </fieldset>
+
               {session.user.istAdmin && (
                 <SubmitButton className="w-full">Speichern</SubmitButton>
               )}

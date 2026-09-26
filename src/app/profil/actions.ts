@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
@@ -198,6 +198,8 @@ export async function kalenderLinkDeaktivieren() {
 // terminerinnerungen.ts, schiedsrichterwart-erinnerung.ts) — Checkboxen
 // senden bei "aus" gar kein Feld, daher jeweils "on"-Vergleich statt eines
 // booleschen Werts.
+const DIENST_ROLLEN = ["ordner", "kioskdienst", "kassierer", "zeitnehmer", "sekretaer"] as const;
+
 export async function updateBenachrichtigungen(formData: FormData) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
@@ -206,18 +208,31 @@ export async function updateBenachrichtigungen(formData: FormData) {
   const wochenDigestAktiviert = formData.get("wochenDigestAktiviert") === "on";
   const terminErinnerungAktiviert = formData.get("terminErinnerungAktiviert") === "on";
 
-  // Der Schiedsrichterwart-Schalter erscheint im Formular nur, wenn die
-  // Person aktuell Schiedsrichterwart ist (siehe profil/page.tsx) — ohne
-  // diese Prüfung würde ein Absenden des Formulars ohne diesen Schalter
-  // (z.B. von jemandem ohne diese Rolle) das Feld stumm auf false
-  // zurücksetzen, statt es einfach unverändert zu lassen. Vor withTenant
-  // aufgerufen, damit istSchiedsrichterwart nicht in einer verschachtelten
-  // Transaktion läuft (es öffnet selbst eine eigene withTenant-Transaktion).
-  const [darfSchiedsrichterwartFeldAendern, darfZeitnehmerwartFeldAendern] =
-    await Promise.all([
-      istSchiedsrichterwart(vereinId, userId),
-      istZeitnehmerwart(vereinId, userId),
-    ]);
+  // Der Schiedsrichterwart-/Zeitnehmerwart-/Dienst-Rolle-Schalter erscheint
+  // im Formular nur, wenn die Person die jeweilige Rolle aktuell innehat
+  // (siehe profil/page.tsx) — ohne diese Prüfung würde ein Absenden des
+  // Formulars ohne diesen Schalter (z.B. von jemandem ohne diese Rolle)
+  // das Feld stumm auf false zurücksetzen, statt es einfach unverändert
+  // zu lassen. Vor withTenant aufgerufen, damit istSchiedsrichterwart/
+  // istZeitnehmerwart nicht in einer verschachtelten Transaktion laufen
+  // (sie öffnen selbst je eine eigene withTenant-Transaktion).
+  const [
+    darfSchiedsrichterwartFeldAendern,
+    darfZeitnehmerwartFeldAendern,
+    dienstRollen,
+  ] = await Promise.all([
+    istSchiedsrichterwart(vereinId, userId),
+    istZeitnehmerwart(vereinId, userId),
+    withTenant(vereinId, (tx) =>
+      tx.query.funktionstraegerRollen.findFirst({
+        where: and(
+          eq(funktionstraegerRollen.userId, userId),
+          eq(funktionstraegerRollen.aktiv, true),
+          inArray(funktionstraegerRollen.typ, DIENST_ROLLEN)
+        ),
+      })
+    ),
+  ]);
 
   const werteZumSpeichern: Partial<typeof users.$inferInsert> = {
     wochenDigestAktiviert,
@@ -230,6 +245,10 @@ export async function updateBenachrichtigungen(formData: FormData) {
   if (darfZeitnehmerwartFeldAendern) {
     werteZumSpeichern.offeneZeitnehmerErinnerungAktiviert =
       formData.get("offeneZeitnehmerErinnerungAktiviert") === "on";
+  }
+  if (dienstRollen) {
+    werteZumSpeichern.offeneDiensteBroadcastAktiviert =
+      formData.get("offeneDiensteBroadcastAktiviert") === "on";
   }
 
   await withTenant(vereinId, (tx) =>

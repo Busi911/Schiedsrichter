@@ -47,8 +47,10 @@ export function ProfilEinstellungenMenu({
   terminErinnerungAktiviert,
   offeneSchiedsrichterErinnerungAktiviert,
   offeneZeitnehmerErinnerungAktiviert,
+  offeneDiensteBroadcastAktiviert,
   istSchiedsrichterwart,
   istZeitnehmerwart,
+  istDienstRolleninhaber,
   istSchiedsrichter,
   icsFeedUrl,
   letzterSyncAm,
@@ -73,8 +75,10 @@ export function ProfilEinstellungenMenu({
   terminErinnerungAktiviert: boolean;
   offeneSchiedsrichterErinnerungAktiviert: boolean;
   offeneZeitnehmerErinnerungAktiviert: boolean;
+  offeneDiensteBroadcastAktiviert: boolean;
   istSchiedsrichterwart: boolean;
   istZeitnehmerwart: boolean;
+  istDienstRolleninhaber: boolean;
   istSchiedsrichter: boolean;
   icsFeedUrl: string | null;
   letzterSyncAm: Date | null;
@@ -324,6 +328,24 @@ export function ProfilEinstellungenMenu({
                   id="offeneZeitnehmerErinnerungAktiviert"
                   name="offeneZeitnehmerErinnerungAktiviert"
                   defaultChecked={offeneZeitnehmerErinnerungAktiviert}
+                />
+              </div>
+            )}
+            {istDienstRolleninhaber && (
+              <div className="flex items-center justify-between gap-3">
+                <Label
+                  htmlFor="offeneDiensteBroadcastAktiviert"
+                  className="font-normal"
+                >
+                  Anfrage, wenn deine Dienst-Rolle (Ordner/Kioskdienst/
+                  Kassierer/Zeitnehmer/Sekretär) kurzfristig noch gesucht
+                  wird
+                </Label>
+                <Switch
+                  key={String(offeneDiensteBroadcastAktiviert)}
+                  id="offeneDiensteBroadcastAktiviert"
+                  name="offeneDiensteBroadcastAktiviert"
+                  defaultChecked={offeneDiensteBroadcastAktiviert}
                 />
               </div>
             )}

@@ -93,6 +93,7 @@ export default async function ProfilPage({
           terminErinnerungAktiviert: true,
           offeneSchiedsrichterErinnerungAktiviert: true,
           offeneZeitnehmerErinnerungAktiviert: true,
+          offeneDiensteBroadcastAktiviert: true,
           kalenderToken: true,
         },
       });
@@ -180,6 +181,11 @@ export default async function ProfilPage({
   );
   const istOrdnerwart = rollen.some(
     (r) => r.typ === "ordnerwart" && r.aktiv
+  );
+  const istDienstRolleninhaber = rollen.some(
+    (r) =>
+      r.aktiv &&
+      ["ordner", "kioskdienst", "kassierer", "zeitnehmer", "sekretaer"].includes(r.typ)
   );
   const eigeneTypen = rollen
     .filter((r) => r.aktiv)
@@ -276,8 +282,12 @@ export default async function ProfilPage({
               offeneZeitnehmerErinnerungAktiviert={
                 eigeneStammdaten?.offeneZeitnehmerErinnerungAktiviert ?? true
               }
+              offeneDiensteBroadcastAktiviert={
+                eigeneStammdaten?.offeneDiensteBroadcastAktiviert ?? true
+              }
               istSchiedsrichterwart={istSchiedsrichterwart}
               istZeitnehmerwart={istZeitnehmerwart}
+              istDienstRolleninhaber={istDienstRolleninhaber}
               istSchiedsrichter={istSchiedsrichter}
               icsFeedUrl={profil?.icsFeedUrl ?? null}
               letzterSyncAm={profil?.letzterSyncAm ?? null}
