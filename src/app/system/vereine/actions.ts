@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSystemAdmin } from "@/lib/session";
-import { withTenant } from "@/db";
-import { users, vereine } from "@/db/schema";
+import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 
 export async function vereinErstellen(formData: FormData) {
   await requireSystemAdmin();
@@ -23,18 +22,7 @@ export async function vereinErstellen(formData: FormData) {
     throw new Error("Bitte alle Felder ausfüllen.");
   }
 
-  const vereinId = crypto.randomUUID();
-  await withTenant(vereinId, async (tx) => {
-    await tx
-      .insert(vereine)
-      .values({ id: vereinId, name: vereinsname.trim() });
-    await tx.insert(users).values({
-      email: adminEmail.trim().toLowerCase(),
-      name: adminName.trim(),
-      vereinId,
-      istAdmin: true,
-    });
-  });
+  await legeVereinMitAdminAn(vereinsname, adminName, adminEmail);
 
   revalidatePath("/system/vereine");
 }

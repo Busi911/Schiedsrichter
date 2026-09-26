@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
@@ -291,6 +292,35 @@ export default async function EinstellungenPage({
                 </div>
               </fieldset>
 
+              <fieldset disabled={!session.user.istAdmin} className="contents">
+                <div className="flex items-center justify-between gap-3 border-t pt-4">
+                  <div>
+                    <Label
+                      htmlFor="offeneDiensteBroadcastAktiviert"
+                      className="font-normal"
+                    >
+                      Bei unbesetztem Dienst (3 Tage vorher) alle
+                      Rolleninhaber per Mail fragen
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Zusätzlich zur bestehenden Erinnerung an euch als
+                      Admin — geht an ALLE aktiven Personen mit der
+                      betroffenen Rolle (Ordner/Kioskdienst/Kassierer/
+                      Zeitnehmer/Sekretär), nicht nur an bereits
+                      Zugeordnete. Einzelne Personen können das für sich
+                      selbst in ihren eigenen Benachrichtigungs-
+                      Einstellungen wieder abschalten.
+                    </p>
+                  </div>
+                  <Switch
+                    key={String(verein?.offeneDiensteBroadcastAktiviert ?? false)}
+                    id="offeneDiensteBroadcastAktiviert"
+                    name="offeneDiensteBroadcastAktiviert"
+                    defaultChecked={verein?.offeneDiensteBroadcastAktiviert ?? false}
+                  />
+                </div>
+              </fieldset>
+
               {session.user.istAdmin && (
                 <SubmitButton className="w-full">Speichern</SubmitButton>
               )}
@@ -331,6 +361,12 @@ export default async function EinstellungenPage({
                 z.B. bei{" "}
                 <code>...courtInfo?federation=HHV&amp;location=30402</code>{" "}
                 ist die Hallen-ID <code>30402</code>.
+              </p>
+              <p className="mt-2">
+                <Link href="/hilfe" className="underline">
+                  Mehr dazu (inkl. Unterschied zur handball.net-Team-ID ab
+                  der 3. Liga)
+                </Link>
               </p>
             </div>
             <form
@@ -410,6 +446,20 @@ export default async function EinstellungenPage({
                 </SubmitButton>
               )}
             </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Rechtliches</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-1 text-sm">
+            <Link href="/admin/avv" className="underline">
+              Auftragsverarbeitungsvertrag (AVV) ansehen
+            </Link>
+            <Link href="/datenschutz" className="underline">
+              Datenschutzerklärung
+            </Link>
           </CardContent>
         </Card>
       </div>

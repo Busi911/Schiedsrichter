@@ -21,6 +21,8 @@ import { vergebeEinmalPasswortFallsNoetig } from "@/lib/passwort";
 import { sendMail } from "@/lib/mailer";
 import { appUrl } from "@/lib/app-url";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
+import { emailGeaendertInhalt, pruefeEmailVerfuegbar } from "@/lib/email-aendern";
+import { LIZENZ_ROLLEN } from "@/lib/lizenz-rollen";
 import { willkommensInhalt } from "@/lib/willkommens-mail";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { istTurnierBerechtigt } from "@/lib/turnier-zugriff";
@@ -668,6 +670,54 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
+// Setzt/ändert/entfernt das Lizenz-Ablaufdatum einer Rolle (siehe
+// funktionstraegerRollen.lizenzGueltigBis in db/schema.ts, nur bei
+// LIZENZ_ROLLEN fachlich sinnvoll — UI blendet das Feld sonst aus, hier
+// zusätzlich serverseitig geprüft). Setzt lizenzErinnerungStufe IMMER
+// zurück, auch bei gleichem Datum: einfacher als ein Vergleich mit dem
+// bisherigen Wert, und eine erneute Bestätigung "ja, das Datum stimmt
+// noch" soll ohnehin wie eine Verlängerung behandelt werden (nächste
+// Erinnerung erst wieder ab 60 Tage vor DIESEM Ablauf).
+export async function updateFunktionstraegerLizenz(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const rolleId = formData.get("rolleId");
+  const gueltigBisRoh = formData.get("lizenzGueltigBis");
+  if (typeof rolleId !== "string" || !rolleId) {
+    throw new Error("Rolle fehlt.");
+  }
+  if (typeof gueltigBisRoh !== "string") {
+    throw new Error("Ungültiges Datum.");
+  }
+  const gueltigBis = gueltigBisRoh ? new Date(gueltigBisRoh) : null;
+  if (gueltigBisRoh && Number.isNaN(gueltigBis?.getTime())) {
+    throw new Error("Ungültiges Datum.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    const rolle = await tx
+      .select({ typ: funktionstraegerRollen.typ })
+      .from(funktionstraegerRollen)
+      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+      .where(
+        and(eq(funktionstraegerRollen.id, rolleId), eq(users.vereinId, vereinId))
+      )
+      .then((r) => r[0]);
+    if (!rolle) throw new Error("Rolle nicht gefunden.");
+    if (!(LIZENZ_ROLLEN as readonly string[]).includes(rolle.typ)) {
+      throw new Error("Für diese Rolle ist kein Lizenz-Ablaufdatum vorgesehen.");
+    }
+
+    await tx
+      .update(funktionstraegerRollen)
+      .set({ lizenzGueltigBis: gueltigBis, lizenzErinnerungStufe: null })
+      .where(eq(funktionstraegerRollen.id, rolleId));
+  });
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
 // Bündelt die Aktivierung mehrerer einzelner Rollen (Checkbox-Mehrfachauswahl
 // im Bearbeiten-Panel einer Person, siehe FunktionstraegerTabelle) — anders
 // als funktionstraegerRollenAktivieren unten (das nach PERSON filtert und
@@ -821,26 +871,6 @@ export async function funktionstraegerRollenAktivieren(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
-function emailGeaendertInhalt(
-  vereinName: string,
-  neueEmail: string,
-  istNeueAdresse: boolean
-): EmailInhalt {
-  return {
-    vereinName,
-    ueberschrift: "Deine E-Mail-Adresse wurde geändert.",
-    zeilen: istNeueAdresse
-      ? [`Du kannst dich ab sofort mit ${neueEmail} einloggen.`]
-      : [
-          `Dein Zugang läuft jetzt über ${neueEmail}.`,
-          "Falls das nicht du warst bzw. dir diese Änderung nicht bekannt vorkommt, melde dich bitte beim Vereinsadmin.",
-        ],
-    cta: istNeueAdresse
-      ? { text: "Zum Login", url: `${appUrl()}/login` }
-      : undefined,
-  };
-}
-
 // Name/E-Mail einer bestehenden Person bearbeiten. Bei E-Mail-Änderung geht
 // eine Info sowohl an die neue als auch an die alte Adresse raus, damit ein
 // versehentlicher/unbefugter Wechsel auffällt.
@@ -870,21 +900,7 @@ export async function updateFunktionstraeger(formData: FormData) {
     if (!bestehend) throw new Error("Person nicht gefunden.");
 
     if (neueEmail !== bestehend.email) {
-      const belegt = await tx.query.users.findFirst({
-        where: eq(users.email, neueEmail),
-      });
-      if (belegt) {
-        if (belegt.vereinId !== null) {
-          throw new Error(
-            "Diese E-Mail-Adresse wird bereits von einem anderen Zugang verwendet."
-          );
-        }
-        // vereinId === null: keine echte Zuordnung, sondern nur eine
-        // verwaiste Zeile aus einem Magic-Link-Login-Versuch (siehe
-        // Kommentar bei createFunktionstraeger oben) — im Weg räumen statt
-        // fälschlich als Kollision zu blockieren.
-        await tx.delete(users).where(eq(users.id, belegt.id));
-      }
+      await pruefeEmailVerfuegbar(tx, neueEmail, userId);
     }
 
     const alteEmail = bestehend.email;
@@ -1481,6 +1497,45 @@ export async function updateTerminInline(formData: FormData) {
   // /admin bettet denselben Monatskalender ein (siehe admin/page.tsx) —
   // ohne dieses Revalidate blieb eine Inline-Bearbeitung dort unsichtbar.
   revalidatePath("/admin");
+  revalidatePath("/admin/termine");
+}
+
+// Ergebnis-Eintragung für ein eigenständiges Freundschaftsspiel (typ
+// "testspiel") — anders als bei turnier_spiel (siehe updateTurnierSpiel/
+// turnier-spielplan.tsx) gibt es hier keinen Spielplan-Kontext, daher eine
+// eigene, schlanke Action statt die vorhandene Turnier-Logik zu verbiegen.
+// Rundenspiele (Hallenspielplan) bekommen ihr Ergebnis automatisch vom
+// nuLiga-Sync (siehe rundenspiel-sync.ts) und werden hier bewusst NICHT
+// editierbar angeboten — eine manuelle Eintragung würde beim nächsten Sync
+// ohnehin wieder überschrieben.
+export async function updateTestspielErgebnis(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const terminId = formData.get("terminId");
+  if (typeof terminId !== "string" || !terminId) {
+    throw new Error("Termin fehlt.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    const bestehend = await tx.query.termine.findFirst({
+      where: and(
+        eq(termine.id, terminId),
+        eq(termine.vereinId, vereinId),
+        eq(termine.typ, "testspiel")
+      ),
+    });
+    if (!bestehend) throw new Error("Termin nicht gefunden.");
+
+    await tx
+      .update(termine)
+      .set({
+        ergebnisHeim: parseErgebnisWert(formData.get("ergebnisHeim")),
+        ergebnisAuswaerts: parseErgebnisWert(formData.get("ergebnisAuswaerts")),
+      })
+      .where(eq(termine.id, terminId));
+  });
+
   revalidatePath("/admin/termine");
 }
 

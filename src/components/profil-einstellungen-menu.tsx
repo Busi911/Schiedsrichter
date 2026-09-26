@@ -42,12 +42,15 @@ export function ProfilEinstellungenMenu({
   name,
   telefonnummer,
   email,
+  pendingEmail,
   wochenDigestAktiviert,
   terminErinnerungAktiviert,
   offeneSchiedsrichterErinnerungAktiviert,
   offeneZeitnehmerErinnerungAktiviert,
+  offeneDiensteBroadcastAktiviert,
   istSchiedsrichterwart,
   istZeitnehmerwart,
+  istDienstRolleninhaber,
   istSchiedsrichter,
   icsFeedUrl,
   letzterSyncAm,
@@ -56,6 +59,8 @@ export function ProfilEinstellungenMenu({
   kalenderLinkErneuern,
   kalenderLinkDeaktivieren,
   updateStammdaten,
+  emailAendernAnfordern,
+  emailAenderungAbbrechen,
   updateBenachrichtigungen,
   updateIcsFeedUrl,
   syncJetzt,
@@ -65,12 +70,15 @@ export function ProfilEinstellungenMenu({
   name: string;
   telefonnummer: string | null;
   email: string;
+  pendingEmail: string | null;
   wochenDigestAktiviert: boolean;
   terminErinnerungAktiviert: boolean;
   offeneSchiedsrichterErinnerungAktiviert: boolean;
   offeneZeitnehmerErinnerungAktiviert: boolean;
+  offeneDiensteBroadcastAktiviert: boolean;
   istSchiedsrichterwart: boolean;
   istZeitnehmerwart: boolean;
+  istDienstRolleninhaber: boolean;
   istSchiedsrichter: boolean;
   icsFeedUrl: string | null;
   letzterSyncAm: Date | null;
@@ -79,6 +87,8 @@ export function ProfilEinstellungenMenu({
   kalenderLinkErneuern: () => Promise<void>;
   kalenderLinkDeaktivieren: () => Promise<void>;
   updateStammdaten: (formData: FormData) => Promise<void>;
+  emailAendernAnfordern: (formData: FormData) => Promise<void>;
+  emailAenderungAbbrechen: () => Promise<void>;
   updateBenachrichtigungen: (formData: FormData) => Promise<void>;
   updateIcsFeedUrl: (formData: FormData) => Promise<void>;
   syncJetzt: () => Promise<void>;
@@ -106,7 +116,7 @@ export function ProfilEinstellungenMenu({
           </DropdownMenuItem>
           {istSchiedsrichter && (
             <DropdownMenuItem onClick={() => setOffen("ics")}>
-              ICS-Feed
+              HHV Funktionsträger ICS-Feed
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
@@ -205,6 +215,40 @@ export function ProfilEinstellungenMenu({
             <p className="text-sm text-muted-foreground">E-Mail: {email}</p>
             <SubmitButton>Speichern</SubmitButton>
           </form>
+
+          <div className="flex flex-col gap-2 border-t pt-4">
+            {pendingEmail ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Änderung zu <strong>{pendingEmail}</strong> ausstehend —
+                  Bestätigungslink wurde an diese Adresse geschickt.
+                </p>
+                <form action={emailAenderungAbbrechen}>
+                  <SubmitButton variant="ghost" size="sm">
+                    Änderung abbrechen
+                  </SubmitButton>
+                </form>
+              </>
+            ) : (
+              <form
+                action={emailAendernAnfordern}
+                className="flex flex-col gap-2"
+              >
+                <Label htmlFor="neueEmail">E-Mail-Adresse ändern</Label>
+                <Input
+                  id="neueEmail"
+                  name="neueEmail"
+                  type="email"
+                  placeholder="neue@adresse.de"
+                  required
+                />
+                <SubmitButton variant="outline" size="sm">
+                  Bestätigungslink anfordern
+                </SubmitButton>
+              </form>
+            )}
+          </div>
+
           <Link
             href="/profil/passwort-aendern"
             className="inline-block text-sm text-muted-foreground underline"
@@ -287,6 +331,24 @@ export function ProfilEinstellungenMenu({
                 />
               </div>
             )}
+            {istDienstRolleninhaber && (
+              <div className="flex items-center justify-between gap-3">
+                <Label
+                  htmlFor="offeneDiensteBroadcastAktiviert"
+                  className="font-normal"
+                >
+                  Anfrage, wenn deine Dienst-Rolle (Ordner/Kioskdienst/
+                  Kassierer/Zeitnehmer/Sekretär) kurzfristig noch gesucht
+                  wird
+                </Label>
+                <Switch
+                  key={String(offeneDiensteBroadcastAktiviert)}
+                  id="offeneDiensteBroadcastAktiviert"
+                  name="offeneDiensteBroadcastAktiviert"
+                  defaultChecked={offeneDiensteBroadcastAktiviert}
+                />
+              </div>
+            )}
             <SubmitButton className="w-full">Speichern</SubmitButton>
           </form>
         </DialogContent>
@@ -299,11 +361,14 @@ export function ProfilEinstellungenMenu({
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>ICS-Feed (Spielansetzungen)</DialogTitle>
+              <DialogTitle>HHV Funktionsträger ICS-Feed (Spielansetzungen)</DialogTitle>
               <DialogDescription>
                 Abo-Link deines Verbands hinterlegen, damit deine Einsätze
                 automatisch synchronisiert werden. Aktuelle Spielzeit:{" "}
-                <strong>Saison {saisonLabelText}</strong>.
+                <strong>Saison {saisonLabelText}</strong>.{" "}
+                <Link href="/hilfe#ics-feed" className="underline">
+                  Wo finde ich diesen Link?
+                </Link>
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-4">

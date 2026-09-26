@@ -78,6 +78,15 @@ export type RundenspielAenderung = {
   auswaertsMannschaft: string;
   verlegt: boolean;
   ergebnisNeu: boolean;
+  // Nur bei verlegt=true bzw. ergebnisNeu=true gefüllt (siehe
+  // rundenspielAenderungZeile in rundenspiel-benachrichtigung.ts) — der
+  // jeweils alte Termin bzw. das neu eingetragene Ergebnis, damit die
+  // Benachrichtigung zeigt WAS sich geändert hat statt nur DASS sich etwas
+  // geändert hat.
+  startAlt: Date;
+  ortAlt: string | null;
+  ergebnisHeim: number | null;
+  ergebnisAuswaerts: number | null;
 };
 
 // Eine bei einer Verlegung entfernte Zuordnung (siehe
@@ -233,6 +242,10 @@ export async function importiereRundenspielEreignisse(
               ort: ereignis.ort,
               heimMannschaft: ereignis.heimMannschaft,
               auswaertsMannschaft: ereignis.auswaertsMannschaft,
+              startAlt: bestehend.start,
+              ortAlt: bestehend.ort,
+              ergebnisHeim: ereignis.ergebnisHeim,
+              ergebnisAuswaerts: ereignis.ergebnisAuswaerts,
               ...aenderung,
             });
           }

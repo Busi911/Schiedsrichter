@@ -1,9 +1,17 @@
 import { count, desc, eq, isNotNull } from "drizzle-orm";
 import Link from "next/link";
 import { adminDb } from "@/db/admin";
-import { funktionstraegerRollen, users, vereine } from "@/db/schema";
+import { funktionstraegerRollen, users, vereine, warteliste } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { holeSystemEinstellungen } from "@/lib/system-einstellungen";
+import { betaVereinLimitSpeichern } from "./actions";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -12,6 +20,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/submit-button";
 import { formatDatum as formatDate } from "@/lib/format";
 
 export default async function SystemDashboardPage() {
@@ -23,7 +34,9 @@ export default async function SystemDashboardPage() {
     [{ value: vereineCount }],
     [{ value: nutzerCount }],
     [{ value: aktiveRollenCount }],
+    [{ value: wartelisteCount }],
     neuesteVereine,
+    systemEinstellungenZeile,
   ] = await Promise.all([
     adminDb.select({ value: count() }).from(vereine),
     adminDb.select({ value: count() }).from(users).where(isNotNull(users.vereinId)),
@@ -31,10 +44,12 @@ export default async function SystemDashboardPage() {
       .select({ value: count() })
       .from(funktionstraegerRollen)
       .where(eq(funktionstraegerRollen.aktiv, true)),
+    adminDb.select({ value: count() }).from(warteliste),
     adminDb.query.vereine.findMany({
       orderBy: (v) => [desc(v.erstelltAm)],
       limit: 5,
     }),
+    holeSystemEinstellungen(),
   ]);
 
   const admins = await adminDb
@@ -93,6 +108,37 @@ export default async function SystemDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="max-w-md">
+        <CardHeader>
+          <CardTitle className="text-base">Beta-Registrierung</CardTitle>
+          <CardDescription>
+            Vereine können sich unter /registrieren selbst anlegen, bis
+            diese Grenze erreicht ist — danach landen weitere Anfragen auf
+            der{" "}
+            <Link href="/system/warteliste" className="underline">
+              Warteliste ({wartelisteCount})
+            </Link>
+            .
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={betaVereinLimitSpeichern} className="flex items-end gap-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="betaVereinLimit">Maximale Vereinsanzahl</Label>
+              <Input
+                id="betaVereinLimit"
+                name="betaVereinLimit"
+                type="number"
+                min={0}
+                defaultValue={systemEinstellungenZeile.betaVereinLimit}
+                className="w-24"
+              />
+            </div>
+            <SubmitButton variant="outline">Speichern</SubmitButton>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

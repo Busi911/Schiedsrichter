@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
@@ -16,7 +16,8 @@ import {
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { SELBST_ANMELDBARE_TYPEN } from "@/lib/eigene-offene-dienste";
-import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
+import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
+import { pruefeEmailVerfuegbar } from "@/lib/email-aendern";
 import { sendMail } from "@/lib/mailer";
 import { holeOrdnerwarteEmails, ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { appUrl } from "@/lib/app-url";
@@ -28,10 +29,9 @@ import {
   pruefeKeineDoppelrolle,
 } from "@/lib/zuordnung";
 
-// Selbstverwaltung der eigenen Stammdaten (Name, Telefonnummer) — bewusst
-// OHNE E-Mail-Änderung, die bleibt Admin-Aufgabe (login-kritisch, siehe
-// updateFunktionstraeger in admin/actions.ts, das zusätzlich beide Adressen
-// informiert).
+// Selbstverwaltung der eigenen Stammdaten (Name, Telefonnummer) — die
+// E-Mail-Adresse (login-kritisch) läuft bewusst über einen eigenen Flow mit
+// Bestätigungslink, siehe emailAendernAnfordern unten.
 export async function updateStammdaten(formData: FormData) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
@@ -52,6 +52,109 @@ export async function updateStammdaten(formData: FormData) {
           typeof telefonnummer === "string" && telefonnummer.trim()
             ? telefonnummer.trim()
             : null,
+      })
+      .where(eq(users.id, userId))
+  );
+
+  revalidatePath("/profil");
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function emailAenderungBestaetigenInhalt(
+  neueEmail: string,
+  bestaetigungsUrl: string
+): EmailInhalt {
+  return {
+    ueberschrift: "E-Mail-Adresse bestätigen",
+    zeilen: [
+      `Du hast angefordert, dich künftig mit ${neueEmail} einzuloggen.`,
+      "Falls das nicht du warst, ignoriere diese Mail einfach — es ändert sich dann nichts.",
+    ],
+    cta: { text: "E-Mail-Adresse bestätigen", url: bestaetigungsUrl },
+  };
+}
+
+// Stößt eine E-Mail-Änderung an (siehe Kommentar bei updateStammdaten) — wird
+// erst nach Klick auf den Bestätigungslink in profil/email-bestaetigen/
+// [token]/actions.ts tatsächlich übernommen, damit nicht versehentlich ein
+// Tippfehler oder eine fremde Adresse als neuer Login landet, ohne dass
+// deren Besitzer zugestimmt hat (anders als beim Admin-Pendant
+// updateFunktionstraeger, das sofort ändert — der Admin trägt dort bereits
+// Verantwortung für die Richtigkeit).
+export async function emailAendernAnfordern(formData: FormData) {
+  const session = await requireSession();
+  const vereinId = session.user.vereinId!;
+  const userId = session.user.id;
+
+  const neueEmailRoh = formData.get("neueEmail");
+  if (typeof neueEmailRoh !== "string" || !neueEmailRoh.trim()) {
+    throw new Error("E-Mail-Adresse ist erforderlich.");
+  }
+  const neueEmail = neueEmailRoh.trim().toLowerCase();
+  if (!EMAIL_REGEX.test(neueEmail)) {
+    throw new Error("Das ist keine gültige E-Mail-Adresse.");
+  }
+
+  const ergebnis = await withTenant(vereinId, async (tx) => {
+    const bestehend = await tx.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+    if (!bestehend) throw new Error("Person nicht gefunden.");
+    if (neueEmail === bestehend.email) {
+      throw new Error("Das ist bereits deine aktuelle E-Mail-Adresse.");
+    }
+    await pruefeEmailVerfuegbar(tx, neueEmail, userId);
+
+    const token = crypto.randomUUID();
+    await tx
+      .update(users)
+      .set({
+        pendingEmail: neueEmail,
+        pendingEmailToken: token,
+        // 48h — großzügig genug für "Mail erst am nächsten Tag gesehen",
+        // aber kein dauerhaft gültiger Link, falls die Mail irgendwo liegen
+        // bleibt.
+        pendingEmailTokenAblaufAm: new Date(Date.now() + 48 * 60 * 60 * 1000),
+      })
+      .where(eq(users.id, userId));
+
+    return { token };
+  });
+
+  try {
+    const bestaetigungsUrl = `${appUrl()}/profil/email-bestaetigen/${ergebnis.token}`;
+    const inhalt = emailAenderungBestaetigenInhalt(neueEmail, bestaetigungsUrl);
+    await sendMail(
+      neueEmail,
+      "E-Mail-Adresse bestätigen",
+      emailAlsText(inhalt),
+      emailAlsHtml(inhalt)
+    );
+  } catch (err) {
+    console.error("Bestätigungs-Mail für E-Mail-Änderung fehlgeschlagen:", err);
+    throw new Error(
+      "Bestätigungs-Mail konnte nicht gesendet werden. Bitte später erneut versuchen."
+    );
+  }
+
+  revalidatePath("/profil");
+}
+
+// Bricht eine über emailAendernAnfordern gestartete, noch nicht bestätigte
+// Änderung ab (z.B. Tippfehler bemerkt, oder die Mail kam nie an).
+export async function emailAenderungAbbrechen() {
+  const session = await requireSession();
+  const vereinId = session.user.vereinId!;
+  const userId = session.user.id;
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .update(users)
+      .set({
+        pendingEmail: null,
+        pendingEmailToken: null,
+        pendingEmailTokenAblaufAm: null,
       })
       .where(eq(users.id, userId))
   );
@@ -95,6 +198,8 @@ export async function kalenderLinkDeaktivieren() {
 // terminerinnerungen.ts, schiedsrichterwart-erinnerung.ts) — Checkboxen
 // senden bei "aus" gar kein Feld, daher jeweils "on"-Vergleich statt eines
 // booleschen Werts.
+const DIENST_ROLLEN = ["ordner", "kioskdienst", "kassierer", "zeitnehmer", "sekretaer"] as const;
+
 export async function updateBenachrichtigungen(formData: FormData) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
@@ -103,18 +208,31 @@ export async function updateBenachrichtigungen(formData: FormData) {
   const wochenDigestAktiviert = formData.get("wochenDigestAktiviert") === "on";
   const terminErinnerungAktiviert = formData.get("terminErinnerungAktiviert") === "on";
 
-  // Der Schiedsrichterwart-Schalter erscheint im Formular nur, wenn die
-  // Person aktuell Schiedsrichterwart ist (siehe profil/page.tsx) — ohne
-  // diese Prüfung würde ein Absenden des Formulars ohne diesen Schalter
-  // (z.B. von jemandem ohne diese Rolle) das Feld stumm auf false
-  // zurücksetzen, statt es einfach unverändert zu lassen. Vor withTenant
-  // aufgerufen, damit istSchiedsrichterwart nicht in einer verschachtelten
-  // Transaktion läuft (es öffnet selbst eine eigene withTenant-Transaktion).
-  const [darfSchiedsrichterwartFeldAendern, darfZeitnehmerwartFeldAendern] =
-    await Promise.all([
-      istSchiedsrichterwart(vereinId, userId),
-      istZeitnehmerwart(vereinId, userId),
-    ]);
+  // Der Schiedsrichterwart-/Zeitnehmerwart-/Dienst-Rolle-Schalter erscheint
+  // im Formular nur, wenn die Person die jeweilige Rolle aktuell innehat
+  // (siehe profil/page.tsx) — ohne diese Prüfung würde ein Absenden des
+  // Formulars ohne diesen Schalter (z.B. von jemandem ohne diese Rolle)
+  // das Feld stumm auf false zurücksetzen, statt es einfach unverändert
+  // zu lassen. Vor withTenant aufgerufen, damit istSchiedsrichterwart/
+  // istZeitnehmerwart nicht in einer verschachtelten Transaktion laufen
+  // (sie öffnen selbst je eine eigene withTenant-Transaktion).
+  const [
+    darfSchiedsrichterwartFeldAendern,
+    darfZeitnehmerwartFeldAendern,
+    dienstRollen,
+  ] = await Promise.all([
+    istSchiedsrichterwart(vereinId, userId),
+    istZeitnehmerwart(vereinId, userId),
+    withTenant(vereinId, (tx) =>
+      tx.query.funktionstraegerRollen.findFirst({
+        where: and(
+          eq(funktionstraegerRollen.userId, userId),
+          eq(funktionstraegerRollen.aktiv, true),
+          inArray(funktionstraegerRollen.typ, DIENST_ROLLEN)
+        ),
+      })
+    ),
+  ]);
 
   const werteZumSpeichern: Partial<typeof users.$inferInsert> = {
     wochenDigestAktiviert,
@@ -127,6 +245,10 @@ export async function updateBenachrichtigungen(formData: FormData) {
   if (darfZeitnehmerwartFeldAendern) {
     werteZumSpeichern.offeneZeitnehmerErinnerungAktiviert =
       formData.get("offeneZeitnehmerErinnerungAktiviert") === "on";
+  }
+  if (dienstRollen) {
+    werteZumSpeichern.offeneDiensteBroadcastAktiviert =
+      formData.get("offeneDiensteBroadcastAktiviert") === "on";
   }
 
   await withTenant(vereinId, (tx) =>

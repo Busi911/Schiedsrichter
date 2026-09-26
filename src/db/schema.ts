@@ -91,6 +91,18 @@ export const syncStatusEnum = pgEnum("sync_status", [
   "fehler",
 ]);
 
+// Welche Ablauf-Erinnerungsstufe zu einer Lizenz (funktionstraeger_rolle.
+// lizenz_gueltig_bis) zuletzt versendet wurde — siehe lizenz-erinnerung.ts.
+// Reihenfolge der Werte entspricht der Dringlichkeit, gepflegt in
+// LIZENZ_ERINNERUNG_STUFEN dort (Reihenfolge hier ohne fachliche Bedeutung,
+// nur als DB-Enum-Deklaration).
+export const lizenzErinnerungStufeEnum = pgEnum("lizenz_erinnerung_stufe", [
+  "60_tage",
+  "30_tage",
+  "7_tage",
+  "abgelaufen",
+]);
+
 // Feinere Unterscheidung innerhalb "kein Pflichtspiel" (pflichtspiel = false,
 // siehe termine.pflichtspiel) — welche der beiden nuLiga-Rundenspiel-Import
 // erkennt anhand unterschiedlicher Signale (Rohtext-Präfix bzw. Rundenturnier-
@@ -106,11 +118,47 @@ export const freundschaftsTypEnum = pgEnum("freundschafts_typ", [
 // Mandant / Vereinsstruktur
 // ---------------------------------------------------------------------------
 
+// Singleton (genau eine Zeile, siehe Migration) für vereinsübergreifende
+// Systemkonfiguration, aktuell nur das Beta-Limit für die
+// Selbstregistrierung (siehe /registrieren, vom Systemadmin einstellbar
+// unter /system). Eigene Tabelle statt Env-Variable, weil der Systemadmin
+// das zur Laufzeit ändern können soll, nicht nur beim Deploy.
+export const systemEinstellungen = pgTable("system_einstellungen", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  betaVereinLimit: integer("beta_verein_limit").notNull().default(3),
+});
+
+// Anfragen, die eintreffen, nachdem das Beta-Limit (systemEinstellungen.
+// betaVereinLimit) bereits ausgeschöpft ist (siehe vereinSelbstRegistrieren
+// in app/registrieren/actions.ts) — Systemadmin sieht/bearbeitet sie unter
+// /system/warteliste und kann von dort aus manuell freischalten (legt dann
+// denselben Verein+Admin-Datensatz an wie eine reguläre Registrierung).
+export const warteliste = pgTable("warteliste", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinsname: text("vereinsname").notNull(),
+  adminName: text("admin_name").notNull(),
+  adminEmail: text("admin_email").notNull(),
+  erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+});
+
 export const vereine = pgTable("verein", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   adresse: text("adresse"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+  // Zustimmung zum Auftragsverarbeitungsvertrag (Art. 28 DSGVO, siehe
+  // /admin/avv) — erzwungen beim ersten Login des Vereinsadmins (siehe
+  // erzwingeAvvZustimmungFallsNoetig in lib/session.ts). null = noch nicht
+  // zugestimmt. avvAkzeptiertVersion hält fest, WELCHE Fassung akzeptiert
+  // wurde (siehe AVV_VERSION in lib/avv.ts) — ändert sich der Text künftig
+  // inhaltlich, muss erneut zugestimmt werden. Name/E-Mail des
+  // zustimmenden Admins bewusst als Schnappschuss-Text statt FK auf user,
+  // damit der Nachweis auch nach einem späteren Account-Wechsel erhalten
+  // bleibt.
+  avvAkzeptiertAm: timestamp("avv_akzeptiert_am", { mode: "date" }),
+  avvAkzeptiertVersion: text("avv_akzeptiert_version"),
+  avvAkzeptiertVonName: text("avv_akzeptiert_von_name"),
+  avvAkzeptiertVonEmail: text("avv_akzeptiert_von_email"),
   // Dienste-Bedarf (Ordner/Kioskdienst) pro Termin-Typ. Gilt bewusst NICHT
   // für spiel_ics: das sind die persönlichen Einsätze des Schiedsrichters
   // (oft bei fremden Vereinen), nicht Termine, bei denen der eigene Verein
@@ -174,6 +222,19 @@ export const vereine = pgTable("verein", {
   rundenspielAenderungenBenachrichtigungAktiviert: boolean(
     "rundenspiel_aenderungen_benachrichtigung_aktiviert"
   )
+    .notNull()
+    .default(false),
+  // Opt-in für den Vereinsadmin: bei unbesetztem Ordner-/Kioskdienst-/
+  // Kassierer-/Zeitnehmer-/Sekretär-Bedarf (3-Tage-Fenster wie in
+  // dienste-erinnerung.ts) zusätzlich ALLE aktiven Inhaber der betroffenen
+  // Rolle per Mail fragen, statt nur die Admins zu informieren (siehe
+  // sendeOffeneDiensteBroadcast in lib/dienste-broadcast.ts). Default
+  // false wie rundenspielAenderungenBenachrichtigungAktiviert oben — ein
+  // zusätzlicher Mail-Kanal an die ganze Personengruppe ist kein
+  // Verhalten, das jeder Verein automatisch will. Einzelne Personen
+  // können zusätzlich für sich selbst abschalten, siehe
+  // users.offeneDiensteBroadcastAktiviert.
+  offeneDiensteBroadcastAktiviert: boolean("offene_dienste_broadcast_aktiviert")
     .notNull()
     .default(false),
   // Öffentlicher, login-freier Link für Zeitnehmer/Sekretär-
@@ -284,10 +345,18 @@ export const users = pgTable("user", {
   // anlegen, siehe /system/vereine. Löst den SETUP_SECRET-Bootstrap für den
   // Regelbetrieb ab (der bleibt als Notfall-Fallback bestehen).
   istSystemAdmin: boolean("ist_system_admin").notNull().default(false),
-  // Selbstverwaltung durch die Person selbst (siehe /profil) — bewusst ohne
-  // E-Mail-Änderung, die bleibt Admin-Aufgabe (login-kritisch, siehe
-  // updateFunktionstraeger in admin/actions.ts).
+  // Selbstverwaltung durch die Person selbst (siehe /profil).
   telefonnummer: text("telefonnummer"),
+  // Selbst angestoßene E-Mail-Änderung (siehe emailAendernAnfordern in
+  // profil/actions.ts): neue Adresse wird erst nach Bestätigung über einen
+  // Link an genau diese Adresse in `email` übernommen (login-kritisch,
+  // daher Bestätigung statt sofortiger Änderung wie beim Admin-Pendant
+  // updateFunktionstraeger). null = keine Änderung ausstehend.
+  pendingEmail: text("pending_email"),
+  pendingEmailToken: text("pending_email_token").unique(),
+  pendingEmailTokenAblaufAm: timestamp("pending_email_token_ablauf_am", {
+    mode: "date",
+  }),
   // Passwort-Login als Alternative zum Magic-Link (siehe src/lib/passwort.ts)
   // — "salt:hash"-Format (scrypt), null = kein Passwort gesetzt, dann geht
   // nur Magic-Link. Bei Neuanlage vergibt der Admin ein Einmal-Passwort
@@ -316,6 +385,14 @@ export const users = pgTable("user", {
   offeneZeitnehmerErinnerungAktiviert: boolean(
     "offene_zeitnehmer_erinnerung_aktiviert"
   )
+    .notNull()
+    .default(true),
+  // Persönliches Opt-out für den Rollen-Broadcast bei unbesetztem Dienst
+  // (siehe vereine.offeneDiensteBroadcastAktiviert oben, das den Kanal erst
+  // pro Verein aktivieren muss) — Default true, damit der Vereins-Schalter
+  // ohne weiteres Zutun tatsächlich alle Rolleninhaber erreicht; wer die
+  // Mail nicht will, schaltet sie individuell auf /profil ab.
+  offeneDiensteBroadcastAktiviert: boolean("offene_dienste_broadcast_aktiviert")
     .notNull()
     .default(true),
   // Persönlicher Kalender-Abo-Link (ICS-Feed, siehe lib/kalender-ics.ts) —
@@ -394,6 +471,17 @@ export const funktionstraegerRollen = pgTable("funktionstraeger_rolle", {
   // der Historie von Zuordnungen erhalten). Inaktive Rollen tauchen nicht
   // mehr in Zuordnung/Selbst-Anmeldung auf.
   aktiv: boolean("aktiv").notNull().default(true),
+  // Ablaufdatum der Verbands-Lizenz — nur bei typ 'schiedsrichter',
+  // 'zeitnehmer' oder 'sekretaer' fachlich sinnvoll (siehe
+  // LIZENZ_ROLLEN in lizenz-erinnerung.ts), UI blendet das Feld sonst aus.
+  // null = keine Lizenz hinterlegt (kein Ablauf-Tracking für diese Rolle).
+  lizenzGueltigBis: timestamp("lizenz_gueltig_bis", { mode: "date" }),
+  // Höchste bereits versendete Erinnerungsstufe für lizenzGueltigBis (siehe
+  // lizenz-erinnerung.ts) — verhindert tägliches Doppelversenden innerhalb
+  // desselben Fensters. Wird beim Setzen/Ändern von lizenzGueltigBis wieder
+  // auf null zurückgesetzt (neue/verlängerte Lizenz, siehe
+  // updateFunktionstraegerLizenz in admin/actions.ts).
+  lizenzErinnerungStufe: lizenzErinnerungStufeEnum("lizenz_erinnerung_stufe"),
 });
 
 export const schiedsrichterProfile = pgTable("schiedsrichter_profil", {
@@ -582,5 +670,24 @@ export const benachrichtigungen = pgTable("benachrichtigung", {
     .references(() => users.id, { onDelete: "cascade" }),
   typ: text("typ").notNull(),
   versendetAm: timestamp("versendet_am", { mode: "date" }),
+});
+
+// Freitext-Feedback aus dem Header (siehe FeedbackDialog) — Vereine testen
+// die App gerade aktiv, daher ein niedrigschwelliger Kanal direkt aus jeder
+// eingeloggten Seite statt eines externen Formulars. Wird vom Systemadmin
+// vereinsübergreifend eingesehen (siehe /system/feedback), daher trotz
+// eigenem vereinId regulär tenant-isoliert wie mannschaft (Schreiben läuft
+// über withTenant, Lesen für /system/feedback über adminDb).
+export const produktFeedback = pgTable("produkt_feedback", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  seite: text("seite").notNull(),
+  nachricht: text("nachricht").notNull(),
+  erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 

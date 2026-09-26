@@ -1,12 +1,16 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { eq } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
+import { withTenant } from "@/db";
+import { mannschaften } from "@/db/schema";
 import {
   holeSchiedsrichterEinsatzZahlen,
   istSchiedsrichterwart,
 } from "@/lib/schiedsrichterwart";
 import { holeTermineMitZuordnungen } from "@/lib/zuordnung";
 import { berechneBesetzung, brauchtSchiedsrichterVomVerein } from "@/lib/besetzung";
+import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import {
   angesetzteNamenPassenZu,
   schiedsrichterKuerzelPasstZu,
@@ -33,6 +37,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DisclosureSummary } from "@/components/disclosure-summary";
+import { MannschaftFilterLeiste } from "@/components/mannschaft-filter-leiste";
+import { MonatsgruppenListe } from "@/components/monatsgruppen-liste";
+import { gruppiereNachMonat, jetzt } from "@/lib/monats-gruppierung";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +56,7 @@ const TYP_LABEL: Record<string, string> = {
 export default async function SchiedsrichterwartPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ filter?: string; mannschaft?: string }>;
 }) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
@@ -62,13 +69,18 @@ export default async function SchiedsrichterwartPage({
     notFound();
   }
 
-  const { filter } = await searchParams;
+  const { filter, mannschaft: mannschaftFilter } = await searchParams;
   const nurOffene = filter === "offen";
 
-  const [schiedsrichterListeRoh, termineMitZuordnungen] = await Promise.all([
-    holeSchiedsrichterEinsatzZahlen(vereinId),
-    holeTermineMitZuordnungen(vereinId),
-  ]);
+  const [schiedsrichterListeRoh, termineMitZuordnungen, alleMannschaften] =
+    await Promise.all([
+      holeSchiedsrichterEinsatzZahlen(vereinId),
+      holeTermineMitZuordnungen(vereinId),
+      withTenant(vereinId, (tx) =>
+        tx.query.mannschaften.findMany({ where: eq(mannschaften.vereinId, vereinId) })
+      ),
+    ]);
+  const mannschaftenSortiert = sortiereMannschaften(alleMannschaften);
   // Aufsteigend nach Einsätzen — wer am wenigsten gepfiffen hat, steht oben.
   // Für die faire Verteilung (die eigentliche Aufgabe des Warts) ist das die
   // naheliegendere Reihenfolge als alphabetisch nach Name.
@@ -128,12 +140,47 @@ export default async function SchiedsrichterwartPage({
     .sort(
       (a, b) => Number(a.besetzung.schiriErfuellt) - Number(b.besetzung.schiriErfuellt)
     );
-  const offeneAnzahl = alleRelevantenTermine.filter(
+  // Nur Mannschaften als Filter anbieten, die auch mindestens einen
+  // relevanten Termin haben — sonst führte ein Klick nur zu "Keine
+  // anstehenden Termine" (gleiches Prinzip wie in zeitnehmerwart/page.tsx).
+  const mannschaftenMitTerminen = new Set(
+    alleRelevantenTermine.map((t) => t.mannschaftId).filter((id): id is string => !!id)
+  );
+  const anzeigbareMannschaften = mannschaftenSortiert.filter((m) =>
+    mannschaftenMitTerminen.has(m.id)
+  );
+  const terminePerMannschaft = mannschaftFilter
+    ? alleRelevantenTermine.filter((t) => t.mannschaftId === mannschaftFilter)
+    : alleRelevantenTermine;
+  const offeneAnzahl = terminePerMannschaft.filter(
     (t) => !t.besetzung.schiriErfuellt
   ).length;
   const relevanteTermine = nurOffene
-    ? alleRelevantenTermine.filter((t) => !t.besetzung.schiriErfuellt)
-    : alleRelevantenTermine;
+    ? terminePerMannschaft.filter((t) => !t.besetzung.schiriErfuellt)
+    : terminePerMannschaft;
+  const monatsGruppen = gruppiereNachMonat(
+    relevanteTermine,
+    (t) => t.start,
+    (t) => !t.besetzung.schiriErfuellt,
+    jetzt()
+  );
+
+  // Baut die Termine-Filter-URL unter Beibehaltung des jeweils anderen,
+  // unabhängigen Filters (offen/Mannschaft lassen sich kombinieren) —
+  // analog zu terminFilterHref in zeitnehmerwart/page.tsx.
+  function terminFilterHref(overrides: {
+    nurOffene?: boolean;
+    mannschaftId?: string | null;
+  }) {
+    const naechsteOffen = overrides.nurOffene ?? nurOffene;
+    const naechsteMannschaft =
+      overrides.mannschaftId !== undefined ? overrides.mannschaftId : mannschaftFilter;
+    const params = new URLSearchParams();
+    if (naechsteOffen) params.set("filter", "offen");
+    if (naechsteMannschaft) params.set("mannschaft", naechsteMannschaft);
+    const qs = params.toString();
+    return qs ? `?${qs}` : "/profil/schiedsrichterwart";
+  }
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
@@ -163,7 +210,11 @@ export default async function SchiedsrichterwartPage({
         <CardContent>
           {schiedsrichterListe.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Keine aktiven Schiedsrichter im Verein.
+              Keine aktiven Schiedsrichter im Verein.{" "}
+              <Link href="/admin/funktionstraeger" className="underline">
+                Jetzt anlegen
+              </Link>
+              .
             </p>
           ) : (
             <Table>
@@ -202,10 +253,10 @@ export default async function SchiedsrichterwartPage({
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base">
-              Termine ({offeneAnzahl} offen von {alleRelevantenTermine.length})
+              Termine ({offeneAnzahl} offen von {terminePerMannschaft.length})
             </CardTitle>
             <Link
-              href={nurOffene ? "/profil/schiedsrichterwart" : "?filter=offen"}
+              href={terminFilterHref({ nurOffene: !nurOffene })}
               className="text-xs text-muted-foreground underline"
             >
               {nurOffene ? "Alle anzeigen" : "Nur offene anzeigen"}
@@ -219,14 +270,19 @@ export default async function SchiedsrichterwartPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          {relevanteTermine.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {nurOffene
+          <MannschaftFilterLeiste
+            mannschaften={anzeigbareMannschaften}
+            aktuelleMannschaftId={mannschaftFilter ?? null}
+            hrefFuer={(mannschaftId) => terminFilterHref({ mannschaftId })}
+          />
+          <MonatsgruppenListe
+            gruppen={monatsGruppen}
+            leerTextOhneFilter={
+              nurOffene
                 ? "Keine offenen Termine — alles besetzt."
-                : "Keine anstehenden Termine mit Schiedsrichter-Bedarf."}
-            </p>
-          ) : (
-            relevanteTermine.map((t) => {
+                : "Keine anstehenden Termine mit Schiedsrichter-Bedarf."
+            }
+            renderItem={(t) => {
               const typLabel =
                 t.typ === "rundenspiel"
                   ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
@@ -483,8 +539,8 @@ export default async function SchiedsrichterwartPage({
                   )}
                 </div>
               );
-            })
-          )}
+            }}
+          />
         </CardContent>
       </Card>
     </div>

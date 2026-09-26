@@ -19,6 +19,8 @@ import {
 import { monatsBereich, parseMonatParam } from "@/lib/kalender";
 import { holeEigeneKalenderEintraege } from "@/lib/eigener-kalender";
 import {
+  emailAenderungAbbrechen,
+  emailAendernAnfordern,
   kalenderLinkDeaktivieren,
   kalenderLinkErneuern,
   selbstAbmelden,
@@ -39,6 +41,7 @@ import {
 } from "@/components/ui/card";
 import { Logo } from "@/components/logo";
 import { MonatsKalender } from "@/components/monats-kalender";
+import { FeedbackDialog } from "@/components/feedback-dialog";
 import { ProfilEinstellungenMenu } from "@/components/profil-einstellungen-menu";
 import { SubmitButton } from "@/components/submit-button";
 import { saisonLabel, saisonSortKey } from "@/lib/saison";
@@ -84,11 +87,13 @@ export default async function ProfilPage({
         columns: {
           name: true,
           email: true,
+          pendingEmail: true,
           telefonnummer: true,
           wochenDigestAktiviert: true,
           terminErinnerungAktiviert: true,
           offeneSchiedsrichterErinnerungAktiviert: true,
           offeneZeitnehmerErinnerungAktiviert: true,
+          offeneDiensteBroadcastAktiviert: true,
           kalenderToken: true,
         },
       });
@@ -177,6 +182,11 @@ export default async function ProfilPage({
   const istOrdnerwart = rollen.some(
     (r) => r.typ === "ordnerwart" && r.aktiv
   );
+  const istDienstRolleninhaber = rollen.some(
+    (r) =>
+      r.aktiv &&
+      ["ordner", "kioskdienst", "kassierer", "zeitnehmer", "sekretaer"].includes(r.typ)
+  );
   const eigeneTypen = rollen
     .filter((r) => r.aktiv)
     .map((r) => r.typ)
@@ -254,7 +264,7 @@ export default async function ProfilPage({
                 render={<Link href="/profil/ordnerwart" />}
                 nativeButton={false}
               >
-                Ordnerwart
+                {TYP_LABEL.ordnerwart}
               </Button>
             )}
             <ProfilEinstellungenMenu
@@ -263,6 +273,7 @@ export default async function ProfilPage({
               name={eigeneStammdaten?.name ?? ""}
               telefonnummer={eigeneStammdaten?.telefonnummer ?? null}
               email={eigeneStammdaten?.email ?? session.user.email ?? ""}
+              pendingEmail={eigeneStammdaten?.pendingEmail ?? null}
               wochenDigestAktiviert={eigeneStammdaten?.wochenDigestAktiviert ?? true}
               terminErinnerungAktiviert={eigeneStammdaten?.terminErinnerungAktiviert ?? true}
               offeneSchiedsrichterErinnerungAktiviert={
@@ -271,8 +282,12 @@ export default async function ProfilPage({
               offeneZeitnehmerErinnerungAktiviert={
                 eigeneStammdaten?.offeneZeitnehmerErinnerungAktiviert ?? true
               }
+              offeneDiensteBroadcastAktiviert={
+                eigeneStammdaten?.offeneDiensteBroadcastAktiviert ?? true
+              }
               istSchiedsrichterwart={istSchiedsrichterwart}
               istZeitnehmerwart={istZeitnehmerwart}
+              istDienstRolleninhaber={istDienstRolleninhaber}
               istSchiedsrichter={istSchiedsrichter}
               icsFeedUrl={profil?.icsFeedUrl ?? null}
               letzterSyncAm={profil?.letzterSyncAm ?? null}
@@ -281,10 +296,13 @@ export default async function ProfilPage({
               kalenderLinkErneuern={kalenderLinkErneuern}
               kalenderLinkDeaktivieren={kalenderLinkDeaktivieren}
               updateStammdaten={updateStammdaten}
+              emailAendernAnfordern={emailAendernAnfordern}
+              emailAenderungAbbrechen={emailAenderungAbbrechen}
               updateBenachrichtigungen={updateBenachrichtigungen}
               updateIcsFeedUrl={updateIcsFeedUrl}
               syncJetzt={syncJetzt}
             />
+            <FeedbackDialog />
             <form
               action={async () => {
                 "use server";

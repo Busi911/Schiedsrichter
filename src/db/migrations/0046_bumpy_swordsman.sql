@@ -1,0 +1,2 @@
+ALTER TABLE "user" ADD COLUMN "offene_dienste_broadcast_aktiviert" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "verein" ADD COLUMN "offene_dienste_broadcast_aktiviert" boolean DEFAULT false NOT NULL;

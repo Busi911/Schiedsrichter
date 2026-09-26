@@ -31,7 +31,6 @@ import {
   zeitnehmerZuordnungEntfernen,
 } from "./actions";
 import { appUrl } from "@/lib/app-url";
-import { LinkSpinner } from "@/components/link-spinner";
 import {
   Card,
   CardContent,
@@ -48,8 +47,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { DisclosureSummary } from "@/components/disclosure-summary";
+import { MannschaftFilterLeiste } from "@/components/mannschaft-filter-leiste";
+import { MonatsgruppenListe } from "@/components/monatsgruppen-liste";
+import { gruppiereNachMonat, jetzt } from "@/lib/monats-gruppierung";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -220,6 +221,12 @@ export default async function ZeitnehmerwartPage({
   const relevanteTermine = nurOffene
     ? terminePerMannschaft.filter((t) => !t.besetzung.zeitnehmerSekretaerErfuellt)
     : terminePerMannschaft;
+  const monatsGruppen = gruppiereNachMonat(
+    relevanteTermine,
+    (t) => t.start,
+    (t) => !t.besetzung.zeitnehmerSekretaerErfuellt,
+    jetzt()
+  );
 
   // Baut die Termine-Filter-URL unter Beibehaltung des jeweils anderen,
   // unabhängigen Filters (offen/Mannschaft lassen sich kombinieren).
@@ -561,7 +568,11 @@ export default async function ZeitnehmerwartPage({
         <CardContent>
           {zeitnehmerListe.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Keine aktiven Zeitnehmer/Sekretäre im Verein.
+              Keine aktiven Zeitnehmer/Sekretäre im Verein.{" "}
+              <Link href="/admin/funktionstraeger" className="underline">
+                Jetzt anlegen
+              </Link>
+              .
             </p>
           ) : (
             <Table>
@@ -615,37 +626,15 @@ export default async function ZeitnehmerwartPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          {anzeigbareMannschaften.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={!mannschaftFilter ? "default" : "outline"}
-                size="sm"
-                render={<Link href={terminFilterHref({ mannschaftId: null })} />}
-                nativeButton={false}
-              >
-                Alle Mannschaften
-                <LinkSpinner />
-              </Button>
-              {anzeigbareMannschaften.map((m) => (
-                <Button
-                  key={m.id}
-                  variant={mannschaftFilter === m.id ? "default" : "outline"}
-                  size="sm"
-                  render={<Link href={terminFilterHref({ mannschaftId: m.id })} />}
-                  nativeButton={false}
-                >
-                  {m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name}
-                  <LinkSpinner />
-                </Button>
-              ))}
-            </div>
-          )}
-          {relevanteTermine.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Keine anstehenden Termine mit Zeitnehmer-/Sekretär-Bedarf.
-            </p>
-          ) : (
-            relevanteTermine.map((t) => {
+          <MannschaftFilterLeiste
+            mannschaften={anzeigbareMannschaften}
+            aktuelleMannschaftId={mannschaftFilter ?? null}
+            hrefFuer={(mannschaftId) => terminFilterHref({ mannschaftId })}
+          />
+          <MonatsgruppenListe
+            gruppen={monatsGruppen}
+            leerTextOhneFilter="Keine anstehenden Termine mit Zeitnehmer-/Sekretär-Bedarf."
+            renderItem={(t) => {
               const typLabel =
                 t.typ === "rundenspiel"
                   ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
@@ -976,8 +965,8 @@ export default async function ZeitnehmerwartPage({
                   )}
                 </div>
               );
-            })
-          )}
+            }}
+          />
         </CardContent>
       </Card>
     </div>

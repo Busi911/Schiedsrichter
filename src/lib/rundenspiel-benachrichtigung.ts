@@ -6,19 +6,32 @@ import type { EntfernteZuordnungBeiVerlegung, RundenspielAenderung } from "./run
 import { sendMail } from "./mailer";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
 import { formatDatumZeitLang } from "./format";
+import { formatErgebnis } from "./termin-label";
 import { appUrl } from "./app-url";
 import { zuordnungEntferntWegenVerlegungInhalt } from "./zuordnung";
 
-function aenderungsArt(a: RundenspielAenderung): string {
-  if (a.verlegt && a.ergebnisNeu) return "verlegt, Ergebnis eingetragen";
-  if (a.verlegt) return "verlegt";
-  return "Ergebnis eingetragen";
+// Zeigt konkret WAS sich geändert hat statt nur DASS — alter/neuer Termin
+// bei einer Verlegung, das eingetragene Ergebnis bei einem neuen Ergebnis
+// (siehe startAlt/ortAlt/ergebnisHeim/ergebnisAuswaerts in
+// RundenspielAenderung, rundenspiel-sync.ts).
+function aenderungsDetails(a: RundenspielAenderung): string {
+  const teile: string[] = [];
+  if (a.verlegt) {
+    const altZusatz = [formatDatumZeitLang(a.startAlt), a.ortAlt].filter(Boolean).join(" · ");
+    const neuZusatz = [formatDatumZeitLang(a.start), a.ort].filter(Boolean).join(" · ");
+    teile.push(`verlegt von ${altZusatz} auf ${neuZusatz}`);
+  }
+  if (a.ergebnisNeu) {
+    const ergebnis = formatErgebnis(a.ergebnisHeim, a.ergebnisAuswaerts);
+    teile.push(ergebnis ? `Ergebnis eingetragen: ${ergebnis}` : "Ergebnis eingetragen");
+  }
+  return teile.join(", ");
 }
 
 export function rundenspielAenderungZeile(a: RundenspielAenderung): string {
   const spiel = `${a.heimMannschaft} – ${a.auswaertsMannschaft}`;
   const zusatz = [formatDatumZeitLang(a.start), a.ort].filter(Boolean).join(" · ");
-  return `${spiel} (${zusatz}) — ${aenderungsArt(a)}`;
+  return `${spiel} (${zusatz}) — ${aenderungsDetails(a)}`;
 }
 
 export function rundenspielAenderungenInhalt(

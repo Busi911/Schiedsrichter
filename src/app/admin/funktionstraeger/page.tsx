@@ -70,6 +70,7 @@ export default async function FunktionstraegerPage({
           userId: funktionstraegerRollen.userId,
           typ: funktionstraegerRollen.typ,
           aktiv: funktionstraegerRollen.aktiv,
+          lizenzGueltigBis: funktionstraegerRollen.lizenzGueltigBis,
           name: users.name,
           email: users.email,
           letzterLoginAm: users.letzterLoginAm,

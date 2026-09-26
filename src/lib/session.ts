@@ -1,6 +1,9 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
+import { withTenant } from "@/db";
+import { vereine } from "@/db/schema";
 
 // Erzwingt die Passwort-Änderung nach einem Einmal-Passwort (siehe
 // mussPasswortAendern in db/schema.ts), bevor irgendeine andere Seite
@@ -22,6 +25,25 @@ export async function requireSession() {
   return session;
 }
 
+// Erzwingt die AVV-Zustimmung (Art. 28 DSGVO, siehe /admin/avv) beim ersten
+// Login des VOLLEN Vereinsadmins — nur er vertritt den Verein rechtlich,
+// eine "nur lesend"-Admin-Rolle wird hier bewusst NICHT gefragt (siehe
+// istAdminLesend-Ausnahme in requireAdmin unten). /admin/avv selbst prüft
+// die Session direkt über auth() statt requireAdmin(), sonst gäbe es hier
+// eine Redirect-Schleife (analog zu erzwingePasswortAenderungFallsNoetig
+// oben).
+async function erzwingeAvvZustimmungFallsNoetig(vereinId: string) {
+  const verein = await withTenant(vereinId, (tx) =>
+    tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+      columns: { avvAkzeptiertAm: true },
+    })
+  );
+  if (!verein?.avvAkzeptiertAm) {
+    redirect("/admin/avv");
+  }
+}
+
 // Lässt sowohl volle Admins als auch "nur lesend"-Admins durch (siehe
 // istAdminLesend in db/schema.ts) — beide sehen dieselben /admin-Seiten.
 // Für schreibende Server-Actions reicht das NICHT, siehe
@@ -30,6 +52,9 @@ export async function requireAdmin() {
   const session = await requireSession();
   if (!session.user.istAdmin && !session.user.istAdminLesend) {
     redirect("/profil");
+  }
+  if (session.user.istAdmin) {
+    await erzwingeAvvZustimmungFallsNoetig(session.user.vereinId!);
   }
   return session;
 }

@@ -9,6 +9,14 @@ export function Footer() {
   return (
     <footer className="mt-auto border-t bg-background px-6 py-4">
       <p className="text-center text-xs text-muted-foreground">
+        <Link href="/registrieren" className="underline">
+          Verein registrieren
+        </Link>
+        {" · "}
+        <Link href="/hilfe" className="underline">
+          Hilfe
+        </Link>
+        {" · "}
         <Link href="/datenschutz" className="underline">
           Datenschutz
         </Link>
