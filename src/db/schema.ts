@@ -284,10 +284,18 @@ export const users = pgTable("user", {
   // anlegen, siehe /system/vereine. Löst den SETUP_SECRET-Bootstrap für den
   // Regelbetrieb ab (der bleibt als Notfall-Fallback bestehen).
   istSystemAdmin: boolean("ist_system_admin").notNull().default(false),
-  // Selbstverwaltung durch die Person selbst (siehe /profil) — bewusst ohne
-  // E-Mail-Änderung, die bleibt Admin-Aufgabe (login-kritisch, siehe
-  // updateFunktionstraeger in admin/actions.ts).
+  // Selbstverwaltung durch die Person selbst (siehe /profil).
   telefonnummer: text("telefonnummer"),
+  // Selbst angestoßene E-Mail-Änderung (siehe emailAendernAnfordern in
+  // profil/actions.ts): neue Adresse wird erst nach Bestätigung über einen
+  // Link an genau diese Adresse in `email` übernommen (login-kritisch,
+  // daher Bestätigung statt sofortiger Änderung wie beim Admin-Pendant
+  // updateFunktionstraeger). null = keine Änderung ausstehend.
+  pendingEmail: text("pending_email"),
+  pendingEmailToken: text("pending_email_token").unique(),
+  pendingEmailTokenAblaufAm: timestamp("pending_email_token_ablauf_am", {
+    mode: "date",
+  }),
   // Passwort-Login als Alternative zum Magic-Link (siehe src/lib/passwort.ts)
   // — "salt:hash"-Format (scrypt), null = kein Passwort gesetzt, dann geht
   // nur Magic-Link. Bei Neuanlage vergibt der Admin ein Einmal-Passwort

@@ -254,7 +254,7 @@ export default async function ProfilPage({
                 render={<Link href="/profil/ordnerwart" />}
                 nativeButton={false}
               >
-                Ordnerwart
+                {TYP_LABEL.ordnerwart}
               </Button>
             )}
             <ProfilEinstellungenMenu

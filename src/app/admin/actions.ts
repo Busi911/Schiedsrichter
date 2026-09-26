@@ -21,6 +21,7 @@ import { vergebeEinmalPasswortFallsNoetig } from "@/lib/passwort";
 import { sendMail } from "@/lib/mailer";
 import { appUrl } from "@/lib/app-url";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
+import { emailGeaendertInhalt, pruefeEmailVerfuegbar } from "@/lib/email-aendern";
 import { willkommensInhalt } from "@/lib/willkommens-mail";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { istTurnierBerechtigt } from "@/lib/turnier-zugriff";
@@ -821,26 +822,6 @@ export async function funktionstraegerRollenAktivieren(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
-function emailGeaendertInhalt(
-  vereinName: string,
-  neueEmail: string,
-  istNeueAdresse: boolean
-): EmailInhalt {
-  return {
-    vereinName,
-    ueberschrift: "Deine E-Mail-Adresse wurde geändert.",
-    zeilen: istNeueAdresse
-      ? [`Du kannst dich ab sofort mit ${neueEmail} einloggen.`]
-      : [
-          `Dein Zugang läuft jetzt über ${neueEmail}.`,
-          "Falls das nicht du warst bzw. dir diese Änderung nicht bekannt vorkommt, melde dich bitte beim Vereinsadmin.",
-        ],
-    cta: istNeueAdresse
-      ? { text: "Zum Login", url: `${appUrl()}/login` }
-      : undefined,
-  };
-}
-
 // Name/E-Mail einer bestehenden Person bearbeiten. Bei E-Mail-Änderung geht
 // eine Info sowohl an die neue als auch an die alte Adresse raus, damit ein
 // versehentlicher/unbefugter Wechsel auffällt.
@@ -870,21 +851,7 @@ export async function updateFunktionstraeger(formData: FormData) {
     if (!bestehend) throw new Error("Person nicht gefunden.");
 
     if (neueEmail !== bestehend.email) {
-      const belegt = await tx.query.users.findFirst({
-        where: eq(users.email, neueEmail),
-      });
-      if (belegt) {
-        if (belegt.vereinId !== null) {
-          throw new Error(
-            "Diese E-Mail-Adresse wird bereits von einem anderen Zugang verwendet."
-          );
-        }
-        // vereinId === null: keine echte Zuordnung, sondern nur eine
-        // verwaiste Zeile aus einem Magic-Link-Login-Versuch (siehe
-        // Kommentar bei createFunktionstraeger oben) — im Weg räumen statt
-        // fälschlich als Kollision zu blockieren.
-        await tx.delete(users).where(eq(users.id, belegt.id));
-      }
+      await pruefeEmailVerfuegbar(tx, neueEmail, userId);
     }
 
     const alteEmail = bestehend.email;

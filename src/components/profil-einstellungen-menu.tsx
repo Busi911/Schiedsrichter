@@ -42,6 +42,7 @@ export function ProfilEinstellungenMenu({
   name,
   telefonnummer,
   email,
+  pendingEmail,
   wochenDigestAktiviert,
   terminErinnerungAktiviert,
   offeneSchiedsrichterErinnerungAktiviert,
@@ -56,6 +57,8 @@ export function ProfilEinstellungenMenu({
   kalenderLinkErneuern,
   kalenderLinkDeaktivieren,
   updateStammdaten,
+  emailAendernAnfordern,
+  emailAenderungAbbrechen,
   updateBenachrichtigungen,
   updateIcsFeedUrl,
   syncJetzt,
@@ -65,6 +68,7 @@ export function ProfilEinstellungenMenu({
   name: string;
   telefonnummer: string | null;
   email: string;
+  pendingEmail: string | null;
   wochenDigestAktiviert: boolean;
   terminErinnerungAktiviert: boolean;
   offeneSchiedsrichterErinnerungAktiviert: boolean;
@@ -79,6 +83,8 @@ export function ProfilEinstellungenMenu({
   kalenderLinkErneuern: () => Promise<void>;
   kalenderLinkDeaktivieren: () => Promise<void>;
   updateStammdaten: (formData: FormData) => Promise<void>;
+  emailAendernAnfordern: (formData: FormData) => Promise<void>;
+  emailAenderungAbbrechen: () => Promise<void>;
   updateBenachrichtigungen: (formData: FormData) => Promise<void>;
   updateIcsFeedUrl: (formData: FormData) => Promise<void>;
   syncJetzt: () => Promise<void>;
@@ -205,6 +211,40 @@ export function ProfilEinstellungenMenu({
             <p className="text-sm text-muted-foreground">E-Mail: {email}</p>
             <SubmitButton>Speichern</SubmitButton>
           </form>
+
+          <div className="flex flex-col gap-2 border-t pt-4">
+            {pendingEmail ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Änderung zu <strong>{pendingEmail}</strong> ausstehend —
+                  Bestätigungslink wurde an diese Adresse geschickt.
+                </p>
+                <form action={emailAenderungAbbrechen}>
+                  <SubmitButton variant="ghost" size="sm">
+                    Änderung abbrechen
+                  </SubmitButton>
+                </form>
+              </>
+            ) : (
+              <form
+                action={emailAendernAnfordern}
+                className="flex flex-col gap-2"
+              >
+                <Label htmlFor="neueEmail">E-Mail-Adresse ändern</Label>
+                <Input
+                  id="neueEmail"
+                  name="neueEmail"
+                  type="email"
+                  placeholder="neue@adresse.de"
+                  required
+                />
+                <SubmitButton variant="outline" size="sm">
+                  Bestätigungslink anfordern
+                </SubmitButton>
+              </form>
+            )}
+          </div>
+
           <Link
             href="/profil/passwort-aendern"
             className="inline-block text-sm text-muted-foreground underline"
