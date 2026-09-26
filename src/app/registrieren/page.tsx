@@ -15,6 +15,12 @@ import { RegistrierenFormular } from "./formular";
 
 export const metadata = { title: "Verein registrieren – HandballerPate" };
 
+// Ohne Session/cookies()-Zugriff hätte Next.js diese Seite sonst statisch
+// vorgerendert (kein Login-Zwang, der das automatisch dynamisch machen
+// würde) — die "noch X Plätze frei"-Zahl wäre dann für die gesamte
+// Deploy-Lebensdauer eingefroren statt bei jedem Aufruf aktuell.
+export const dynamic = "force-dynamic";
+
 // Rein informativ ("noch X Plätze frei") — der tatsächliche
 // Limit-Vergleich, der über Registrierung vs. Warteliste entscheidet,
 // läuft nochmal serverseitig in der Action selbst (siehe Kommentar dort),
