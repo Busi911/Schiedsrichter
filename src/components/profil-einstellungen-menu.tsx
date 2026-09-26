@@ -365,7 +365,10 @@ export function ProfilEinstellungenMenu({
               <DialogDescription>
                 Abo-Link deines Verbands hinterlegen, damit deine Einsätze
                 automatisch synchronisiert werden. Aktuelle Spielzeit:{" "}
-                <strong>Saison {saisonLabelText}</strong>.
+                <strong>Saison {saisonLabelText}</strong>.{" "}
+                <Link href="/hilfe#ics-feed" className="underline">
+                  Wo finde ich diesen Link?
+                </Link>
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-4">

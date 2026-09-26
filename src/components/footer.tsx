@@ -13,6 +13,10 @@ export function Footer() {
           Verein registrieren
         </Link>
         {" · "}
+        <Link href="/hilfe" className="underline">
+          Hilfe
+        </Link>
+        {" · "}
         <Link href="/datenschutz" className="underline">
           Datenschutz
         </Link>

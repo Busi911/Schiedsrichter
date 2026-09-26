@@ -362,6 +362,12 @@ export default async function EinstellungenPage({
                 <code>...courtInfo?federation=HHV&amp;location=30402</code>{" "}
                 ist die Hallen-ID <code>30402</code>.
               </p>
+              <p className="mt-2">
+                <Link href="/hilfe" className="underline">
+                  Mehr dazu (inkl. Unterschied zur handball.net-Team-ID ab
+                  der 3. Liga)
+                </Link>
+              </p>
             </div>
             <form
               action={nuligaEinstellungenSpeichern}
