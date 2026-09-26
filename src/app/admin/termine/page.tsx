@@ -6,8 +6,6 @@ import { mannschaften, termine } from "@/db/schema";
 import { spielDuplikatVerknuepfen } from "../actions";
 import { findeSpielDuplikate } from "@/lib/duplikat-erkennung";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
-import { formatMannschaft } from "@/lib/dashboard";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import {
@@ -20,21 +18,9 @@ import {
 } from "@/components/ui/card";
 import { NeuerTerminDialog } from "@/components/neuer-termin-dialog";
 import { RundenspieleListe } from "@/components/rundenspiele-liste";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TestspieleListe } from "@/components/testspiele-liste";
 import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
-
-const TYP_LABEL: Record<string, string> = {
-  testspiel: "Freundschaftsspiel",
-  turnier: "Turnier",
-};
 
 const QUELL_TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
@@ -121,6 +107,8 @@ async function TestspieleTab({
         mannschaftName: mannschaften.name,
         mannschaftAltersklasse: mannschaften.altersklasse,
         kategorie: termine.kategorie,
+        ergebnisHeim: termine.ergebnisHeim,
+        ergebnisAuswaerts: termine.ergebnisAuswaerts,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
@@ -155,45 +143,7 @@ async function TestspieleTab({
             Noch keine Termine angelegt.
           </p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Datum</TableHead>
-                <TableHead>Typ</TableHead>
-                <TableHead>Mannschaft</TableHead>
-                <TableHead>Ort</TableHead>
-                <TableHead>Beschreibung</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {liste.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-medium">
-                    {formatDateTime(t.start)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      {TYP_LABEL[t.typ] ?? t.typ}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatMannschaft(t) ?? "—"}
-                  </TableCell>
-                  <TableCell>{t.ort ?? "—"}</TableCell>
-                  <TableCell>{t.beschreibung ?? "—"}</TableCell>
-                  <TableCell className="text-right">
-                    <Link
-                      href={`/admin/termine/${t.id}`}
-                      className="text-xs text-muted-foreground underline"
-                    >
-                      Bearbeiten
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <TestspieleListe liste={liste} istAdmin={istAdmin} />
         )}
       </CardContent>
     </Card>
@@ -218,6 +168,8 @@ async function RundenspieleTab({
         heimMannschaftName: termine.heimMannschaftName,
         auswaertsMannschaftName: termine.auswaertsMannschaftName,
         kategorie: termine.kategorie,
+        ergebnisHeim: termine.ergebnisHeim,
+        ergebnisAuswaerts: termine.ergebnisAuswaerts,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))

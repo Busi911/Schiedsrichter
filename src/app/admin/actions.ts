@@ -1500,6 +1500,45 @@ export async function updateTerminInline(formData: FormData) {
   revalidatePath("/admin/termine");
 }
 
+// Ergebnis-Eintragung für ein eigenständiges Freundschaftsspiel (typ
+// "testspiel") — anders als bei turnier_spiel (siehe updateTurnierSpiel/
+// turnier-spielplan.tsx) gibt es hier keinen Spielplan-Kontext, daher eine
+// eigene, schlanke Action statt die vorhandene Turnier-Logik zu verbiegen.
+// Rundenspiele (Hallenspielplan) bekommen ihr Ergebnis automatisch vom
+// nuLiga-Sync (siehe rundenspiel-sync.ts) und werden hier bewusst NICHT
+// editierbar angeboten — eine manuelle Eintragung würde beim nächsten Sync
+// ohnehin wieder überschrieben.
+export async function updateTestspielErgebnis(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const terminId = formData.get("terminId");
+  if (typeof terminId !== "string" || !terminId) {
+    throw new Error("Termin fehlt.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    const bestehend = await tx.query.termine.findFirst({
+      where: and(
+        eq(termine.id, terminId),
+        eq(termine.vereinId, vereinId),
+        eq(termine.typ, "testspiel")
+      ),
+    });
+    if (!bestehend) throw new Error("Termin nicht gefunden.");
+
+    await tx
+      .update(termine)
+      .set({
+        ergebnisHeim: parseErgebnisWert(formData.get("ergebnisHeim")),
+        ergebnisAuswaerts: parseErgebnisWert(formData.get("ergebnisAuswaerts")),
+      })
+      .where(eq(termine.id, terminId));
+  });
+
+  revalidatePath("/admin/termine");
+}
+
 export async function deleteTermin(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
