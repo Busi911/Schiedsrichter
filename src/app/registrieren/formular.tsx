@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { vereinRegistrieren } from "./actions";
 
@@ -55,6 +56,20 @@ export function RegistrierenFormular() {
       <div className="flex flex-col gap-2">
         <Label htmlFor="adminEmail">Deine E-Mail-Adresse</Label>
         <Input id="adminEmail" name="adminEmail" type="email" required />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="adresse">Vereinsadresse</Label>
+        <Textarea
+          id="adresse"
+          name="adresse"
+          required
+          rows={2}
+          placeholder={"Straße Hausnummer\nPLZ Ort"}
+        />
+        <p className="text-xs text-muted-foreground">
+          Brauchen wir für spätere Rechnungen — einmal hier eintragen statt
+          separat nachfragen.
+        </p>
       </div>
       {ergebnis && "fehler" in ergebnis && (
         <p className="text-sm text-destructive">{ergebnis.fehler}</p>

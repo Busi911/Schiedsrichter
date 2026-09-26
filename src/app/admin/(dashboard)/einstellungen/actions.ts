@@ -17,6 +17,29 @@ function parseAnzahl(formData: FormData, feld: string, min = 0): number {
   return zahl;
 }
 
+// Freitext statt Straße/PLZ/Ort getrennt — reicht für die aktuelle Nutzung
+// (Anzeige/Kontakt), eine strukturierte Aufteilung lässt sich bei Bedarf
+// nachrüsten, sobald z.B. eine automatische Rechnungsstellung sie
+// tatsächlich braucht.
+export async function vereinsdatenSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const adresse = formData.get("adresse");
+  if (typeof adresse !== "string") {
+    throw new Error("Ungültige Adresse.");
+  }
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .update(vereine)
+      .set({ adresse: adresse.trim() || null })
+      .where(eq(vereine.id, vereinId))
+  );
+
+  revalidatePath("/admin/einstellungen");
+}
+
 export async function dienstBedarfSpeichern(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;

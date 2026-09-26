@@ -15,14 +15,23 @@ import { pruefeEmailVerfuegbar } from "./email-aendern";
 export async function legeVereinMitAdminAn(
   vereinsname: string,
   adminName: string,
-  adminEmail: string
+  adminEmail: string,
+  // Optional (nicht bei /system/vereine bzw. der Warteliste-Freischaltung
+  // abgefragt) — früher oder später für Rechnungen benötigt, daher schon
+  // bei der Selbstregistrierung (siehe /registrieren) erfasst, aber auch
+  // nachträglich unter /admin/einstellungen pflegbar, falls hier leer.
+  adresse?: string
 ): Promise<string> {
   const neueEmail = adminEmail.trim().toLowerCase();
   const vereinId = crypto.randomUUID();
 
   await withTenant(vereinId, async (tx) => {
     await pruefeEmailVerfuegbar(tx, neueEmail, "__neu__");
-    await tx.insert(vereine).values({ id: vereinId, name: vereinsname.trim() });
+    await tx.insert(vereine).values({
+      id: vereinId,
+      name: vereinsname.trim(),
+      ...(adresse?.trim() ? { adresse: adresse.trim() } : {}),
+    });
     await tx.insert(users).values({
       email: neueEmail,
       name: adminName.trim(),

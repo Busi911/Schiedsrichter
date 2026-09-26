@@ -21,6 +21,7 @@ export async function vereinRegistrieren(
   const vereinsname = formData.get("vereinsname");
   const adminName = formData.get("adminName");
   const adminEmail = formData.get("adminEmail");
+  const adresse = formData.get("adresse");
 
   if (
     typeof vereinsname !== "string" ||
@@ -28,7 +29,9 @@ export async function vereinRegistrieren(
     typeof adminName !== "string" ||
     !adminName.trim() ||
     typeof adminEmail !== "string" ||
-    !adminEmail.trim()
+    !adminEmail.trim() ||
+    typeof adresse !== "string" ||
+    !adresse.trim()
   ) {
     return { fehler: "Bitte alle Felder ausfüllen." };
   }
@@ -46,7 +49,7 @@ export async function vereinRegistrieren(
   }
 
   try {
-    await legeVereinMitAdminAn(vereinsname, adminName, adminEmail);
+    await legeVereinMitAdminAn(vereinsname, adminName, adminEmail, adresse);
   } catch (err) {
     return {
       fehler:

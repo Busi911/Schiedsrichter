@@ -179,39 +179,67 @@ export function FunktionstraegerBearbeitenDialog({
                   </span>
                 ))}
             </div>
-            {p.rollen
-              .filter(
+            {(() => {
+              // Zeitnehmer und Sekretär sind dieselbe Verbandslizenz (siehe
+              // updateFunktionstraegerLizenz in admin/actions.ts) — hat
+              // dieselbe Person beide aktiven Rollen, hier bewusst nur EINE
+              // gemeinsame Zeile statt zwei augenscheinlich unabhängiger
+              // Ablaufdaten, die ohnehin synchron gehalten werden.
+              const lizenzRollen = p.rollen.filter(
                 (r) => r.aktiv && (LIZENZ_ROLLEN as readonly string[]).includes(r.typ)
-              )
-              .map((r) => (
-                <form
-                  key={r.rolleId}
-                  action={updateFunktionstraegerLizenz}
-                  className="flex items-center gap-2 text-xs"
-                >
-                  <input type="hidden" name="rolleId" value={r.rolleId} />
-                  <Label
-                    htmlFor={`lizenz-${r.rolleId}`}
-                    className="font-normal text-muted-foreground"
-                  >
-                    {TYP_LABEL[r.typ] ?? r.typ}-Lizenz gültig bis
-                  </Label>
-                  <Input
-                    id={`lizenz-${r.rolleId}`}
-                    name="lizenzGueltigBis"
-                    type="date"
-                    defaultValue={
-                      r.lizenzGueltigBis
-                        ? r.lizenzGueltigBis.toISOString().slice(0, 10)
-                        : ""
-                    }
-                    className="h-7 w-36"
-                  />
-                  <SubmitButton variant="ghost" size="xs">
-                    Speichern
-                  </SubmitButton>
-                </form>
-              ))}
+              );
+              const gezeigt = new Set<string>();
+              return lizenzRollen
+                .filter((r) => {
+                  if (gezeigt.has(r.typ)) return false;
+                  gezeigt.add(r.typ);
+                  if (r.typ === "zeitnehmer") gezeigt.add("sekretaer");
+                  if (r.typ === "sekretaer") gezeigt.add("zeitnehmer");
+                  return true;
+                })
+                .map((r) => {
+                  const partnerTyp =
+                    r.typ === "zeitnehmer"
+                      ? "sekretaer"
+                      : r.typ === "sekretaer"
+                        ? "zeitnehmer"
+                        : null;
+                  const hatPartner =
+                    !!partnerTyp && lizenzRollen.some((x) => x.typ === partnerTyp);
+                  const label = hatPartner
+                    ? "Zeitnehmer/Sekretär"
+                    : (TYP_LABEL[r.typ] ?? r.typ);
+                  return (
+                    <form
+                      key={r.rolleId}
+                      action={updateFunktionstraegerLizenz}
+                      className="flex items-center gap-2 text-xs"
+                    >
+                      <input type="hidden" name="rolleId" value={r.rolleId} />
+                      <Label
+                        htmlFor={`lizenz-${r.rolleId}`}
+                        className="font-normal text-muted-foreground"
+                      >
+                        {label}-Lizenz gültig bis
+                      </Label>
+                      <Input
+                        id={`lizenz-${r.rolleId}`}
+                        name="lizenzGueltigBis"
+                        type="date"
+                        defaultValue={
+                          r.lizenzGueltigBis
+                            ? r.lizenzGueltigBis.toISOString().slice(0, 10)
+                            : ""
+                        }
+                        className="h-7 w-36"
+                      />
+                      <SubmitButton variant="ghost" size="xs">
+                        Speichern
+                      </SubmitButton>
+                    </form>
+                  );
+                });
+            })()}
             {(() => {
               const inaktiveRollen = p.rollen.filter((r) => !r.aktiv);
               if (inaktiveRollen.length === 0) return null;

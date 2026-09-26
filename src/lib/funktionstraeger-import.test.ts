@@ -93,6 +93,33 @@ describe("parseFunktionstraegerExcel", () => {
     expect(zeilen).toHaveLength(2);
   });
 
+  it("parst die optionale Lizenz-Spalte (deutsches und ISO-Datumsformat)", async () => {
+    const buffer = await buildWorkbook(
+      ["Name", "E-Mail", "Rolle", "Lizenz gültig bis"],
+      [
+        ["Deutsch", "deutsch@example.org", "Zeitnehmer", "31.12.2026"],
+        ["Iso", "iso@example.org", "Sekretär", "2026-12-31"],
+      ]
+    );
+
+    const { zeilen, fehler } = await parseFunktionstraegerExcel(buffer);
+    expect(fehler).toHaveLength(0);
+    expect(zeilen[0].lizenzGueltigBis).toEqual(new Date(2026, 11, 31));
+    expect(zeilen[1].lizenzGueltigBis).toEqual(new Date(2026, 11, 31));
+  });
+
+  it("legt die Person trotzdem an, wenn die Lizenz-Spalte unlesbar ist (kein Import-Fehler)", async () => {
+    const buffer = await buildWorkbook(
+      ["Name", "E-Mail", "Rolle", "Lizenz gültig bis"],
+      [["Jemand", "jemand@example.org", "Schiedsrichter", "irgendwann"]]
+    );
+
+    const { zeilen, fehler } = await parseFunktionstraegerExcel(buffer);
+    expect(fehler).toHaveLength(0);
+    expect(zeilen).toHaveLength(1);
+    expect(zeilen[0].lizenzGueltigBis).toBeNull();
+  });
+
   it("meldet einen Fehler, wenn Pflichtspalten in der Kopfzeile fehlen", async () => {
     const buffer = await buildWorkbook(
       ["Name", "Telefon"],
