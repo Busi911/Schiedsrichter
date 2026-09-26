@@ -51,6 +51,12 @@ const FEATURES = [
   },
 ];
 
+// Zeigt bei jedem Aufruf die aktuelle Beta-Platzzahl (siehe unten) — ohne
+// diese Direktive würde Next.js die Seite statisch vorrendern (kein
+// erzwungener cookies()-Zugriff wie auf eingeloggten Seiten) und die Zahl
+// für die gesamte Deploy-Lebensdauer einfrieren.
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const session = await auth();
 

@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { formatMannschaft } from "@/lib/dashboard";
+import { formatMannschaft } from "@/lib/mannschaft-label";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { formatErgebnis } from "@/lib/termin-label";
 
