@@ -19,6 +19,8 @@ import {
 import { monatsBereich, parseMonatParam } from "@/lib/kalender";
 import { holeEigeneKalenderEintraege } from "@/lib/eigener-kalender";
 import {
+  emailAenderungAbbrechen,
+  emailAendernAnfordern,
   kalenderLinkDeaktivieren,
   kalenderLinkErneuern,
   selbstAbmelden,
@@ -84,6 +86,7 @@ export default async function ProfilPage({
         columns: {
           name: true,
           email: true,
+          pendingEmail: true,
           telefonnummer: true,
           wochenDigestAktiviert: true,
           terminErinnerungAktiviert: true,
@@ -263,6 +266,7 @@ export default async function ProfilPage({
               name={eigeneStammdaten?.name ?? ""}
               telefonnummer={eigeneStammdaten?.telefonnummer ?? null}
               email={eigeneStammdaten?.email ?? session.user.email ?? ""}
+              pendingEmail={eigeneStammdaten?.pendingEmail ?? null}
               wochenDigestAktiviert={eigeneStammdaten?.wochenDigestAktiviert ?? true}
               terminErinnerungAktiviert={eigeneStammdaten?.terminErinnerungAktiviert ?? true}
               offeneSchiedsrichterErinnerungAktiviert={
@@ -281,6 +285,8 @@ export default async function ProfilPage({
               kalenderLinkErneuern={kalenderLinkErneuern}
               kalenderLinkDeaktivieren={kalenderLinkDeaktivieren}
               updateStammdaten={updateStammdaten}
+              emailAendernAnfordern={emailAendernAnfordern}
+              emailAenderungAbbrechen={emailAenderungAbbrechen}
               updateBenachrichtigungen={updateBenachrichtigungen}
               updateIcsFeedUrl={updateIcsFeedUrl}
               syncJetzt={syncJetzt}
