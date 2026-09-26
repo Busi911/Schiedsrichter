@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 const NAV_ITEMS = [
   { href: "/system", label: "Übersicht", exact: true },
   { href: "/system/vereine", label: "Vereine" },
+  { href: "/system/warteliste", label: "Warteliste" },
   { href: "/system/feedback", label: "Feedback" },
 ];
 
