@@ -582,11 +582,25 @@ export function findeMannschaft(
   return treffer.length === 1 ? treffer[0].id : null;
 }
 
+// Ein einzelnes Spiel hinter einem Unbekannte-Mannschaften-Vorschlag (siehe
+// unten) — nur zur Anzeige (aufklappbar in /admin/mannschaften), damit der
+// Admin vor dem Anlegen sieht, um welche Art von Begegnungen es sich
+// handelt (Ligaspiel vs. Freundschaftsspiel/Turnier, siehe
+// rundenspielTypLabel in lib/termin-label.ts), statt nur eine nackte Anzahl
+// zu sehen.
+export type UnbekanntesSpiel = {
+  gegner: string;
+  start: Date;
+  pflichtspiel: boolean | null;
+  freundschaftsTyp: "freundschaftsspiel" | "turnier" | null;
+};
+
 export type UnbekannteMannschaft = {
   normalisiert: string;
   anzeigeName: string;
   kategorie: string | null;
   anzahlSpiele: number;
+  spiele: UnbekanntesSpiel[];
 };
 
 // Fasst Heimnamen aus noch nicht verknüpften Rundenspielen zu Vorschlägen
@@ -598,12 +612,16 @@ export type UnbekannteMannschaft = {
 // bleiben. Bewusst nur Heimnamen: der Export enthält alle Spiele an der
 // EIGENEN Halle, die eigenen Mannschaften stehen dort also immer als
 // Heimmannschaft — der Auswärtsname ist immer ein fremder Verein und wird
-// deshalb ignoriert.
+// deshalb ignoriert (nur als gegner-Anzeige in spiele oben verwendet).
 export function gruppiereUnbekannteMannschaften(
   eintraege: {
     heimMannschaftName: string | null;
     mannschaftId: string | null;
     kategorie?: string | null;
+    auswaertsMannschaftName?: string | null;
+    start?: Date;
+    pflichtspiel?: boolean | null;
+    freundschaftsTyp?: "freundschaftsspiel" | "turnier" | null;
   }[]
 ): UnbekannteMannschaft[] {
   const gruppen = new Map<string, UnbekannteMannschaft>();
@@ -613,16 +631,32 @@ export function gruppiereUnbekannteMannschaften(
     if (roh) {
       const kategorie = e.kategorie ?? null;
       const key = `${normalisiereMannschaftsname(roh)}::${kategorie ?? ""}`;
+      const spiel: UnbekanntesSpiel | null = e.start
+        ? {
+            gegner: e.auswaertsMannschaftName ?? "unbekannt",
+            start: e.start,
+            pflichtspiel: e.pflichtspiel ?? null,
+            freundschaftsTyp: e.freundschaftsTyp ?? null,
+          }
+        : null;
       const bestehend = gruppen.get(key);
-      if (bestehend) bestehend.anzahlSpiele++;
-      else
+      if (bestehend) {
+        bestehend.anzahlSpiele++;
+        if (spiel) bestehend.spiele.push(spiel);
+      } else {
         gruppen.set(key, {
           normalisiert: normalisiereMannschaftsname(roh),
           anzeigeName: roh,
           kategorie,
           anzahlSpiele: 1,
+          spiele: spiel ? [spiel] : [],
         });
+      }
     }
   }
-  return [...gruppen.values()].sort((a, b) => b.anzahlSpiele - a.anzahlSpiele);
+  const ergebnis = [...gruppen.values()];
+  for (const g of ergebnis) {
+    g.spiele.sort((a, b) => a.start.getTime() - b.start.getTime());
+  }
+  return ergebnis.sort((a, b) => b.anzahlSpiele - a.anzahlSpiele);
 }

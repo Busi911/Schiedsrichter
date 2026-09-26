@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import Link from "next/link";
 import { ChevronRightIcon } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
@@ -32,6 +33,8 @@ import {
 import { MannschaftenTabelle } from "@/components/mannschaften-tabelle";
 import { NeueMannschaftDialog } from "@/components/neue-mannschaft-dialog";
 import { SubmitButton } from "@/components/submit-button";
+import { formatDatum } from "@/lib/format";
+import { rundenspielTypLabel } from "@/lib/termin-label";
 
 const BEDARF_ROLLEN = [
   { wert: "ordner", label: "Ordner" },
@@ -117,6 +120,22 @@ export default async function MannschaftenPage({
         </Alert>
       )}
 
+      {session.user.istAdmin && liste.length === 0 && unbekannteMannschaften.length === 0 && (
+        <div className="max-w-2xl rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-sm">
+          <strong>Kommt euer Verein aus Hessen und spielt über den HHV?</strong>{" "}
+          Dann lohnt es sich, zuerst unter{" "}
+          <Link href="/admin/einstellungen" className="underline">
+            Einstellungen → nuLiga Automatischer Import
+          </Link>{" "}
+          die Hallen-ID(s) einzutragen, statt Mannschaften hier von Hand
+          anzulegen — der Hallenspielplan zieht dann automatisch, und die
+          eigenen Mannschaften tauchen anschließend hier zum Anlegen per
+          Klick auf, statt sie von Hand eintippen zu müssen. Für andere
+          Landesverbände (noch kein nuLiga-Import) bzw. ab der 3. Liga
+          (handball.net) bitte direkt unten manuell anlegen.
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Alle Mannschaften</CardTitle>
@@ -152,27 +171,54 @@ export default async function MannschaftenPage({
               Mannschaften tauchen hier zwangsläufig mit auf und sollten
               per &bdquo;Ablehnen&ldquo; entfernt werden, statt sie zu
               &uuml;berspringen (sonst erscheinen sie bei jedem weiteren
-              Import erneut).
+              Import erneut). Zum Unterscheiden lässt sich jeder Vorschlag
+              unten aufklappen und zeigt die einzelnen Begegnungen dahinter.
             </div>
             <div className="flex flex-col divide-y">
               {unbekannteMannschaften.map((m) => (
-                <form
+                <div
                   key={`${m.normalisiert}::${m.kategorie ?? ""}`}
-                  action={mannschaftAusRundenspielAnlegen}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
+                  className="flex flex-wrap items-start justify-between gap-2 py-2 first:pt-0 last:pb-0"
                 >
-                  <input type="hidden" name="name" value={m.anzeigeName} />
-                  <input type="hidden" name="kategorie" value={m.kategorie ?? ""} />
-                  <span className="text-sm">
-                    {m.anzeigeName}
-                    {m.kategorie && (
-                      <span className="text-muted-foreground"> ({m.kategorie})</span>
-                    )}{" "}
-                    <span className="text-xs text-muted-foreground">
-                      ({m.anzahlSpiele} {m.anzahlSpiele === 1 ? "Spiel" : "Spiele"})
-                    </span>
-                  </span>
-                  <div className="flex items-center gap-2">
+                  <details className="group min-w-0 flex-1">
+                    <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                      <span className="inline-flex items-center gap-1.5 text-sm">
+                        <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
+                        <span>
+                          {m.anzeigeName}
+                          {m.kategorie && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              ({m.kategorie})
+                            </span>
+                          )}{" "}
+                          <span className="text-xs text-muted-foreground">
+                            ({m.anzahlSpiele}{" "}
+                            {m.anzahlSpiele === 1 ? "Spiel" : "Spiele"})
+                          </span>
+                        </span>
+                      </span>
+                    </summary>
+                    <div className="mt-1.5 flex flex-col gap-0.5 pl-5 text-xs text-muted-foreground">
+                      {m.spiele.length === 0 ? (
+                        <span>Keine Spieldetails verfügbar.</span>
+                      ) : (
+                        m.spiele.map((s, i) => (
+                          <span key={i}>
+                            {formatDatum(s.start)} ·{" "}
+                            {rundenspielTypLabel(s.pflichtspiel, s.freundschaftsTyp)}{" "}
+                            gg. {s.gegner}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </details>
+                  <form
+                    action={mannschaftAusRundenspielAnlegen}
+                    className="flex shrink-0 items-center gap-2"
+                  >
+                    <input type="hidden" name="name" value={m.anzeigeName} />
+                    <input type="hidden" name="kategorie" value={m.kategorie ?? ""} />
                     <SubmitButton
                       formAction={unbekannteMannschaftAblehnen}
                       variant="ghost"
@@ -183,8 +229,8 @@ export default async function MannschaftenPage({
                     <SubmitButton variant="outline" size="sm">
                       Als Mannschaft anlegen
                     </SubmitButton>
-                  </div>
-                </form>
+                  </form>
+                </div>
               ))}
             </div>
           </CardContent>

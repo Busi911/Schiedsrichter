@@ -23,8 +23,12 @@ export async function holeUnbekannteMannschaften(
       tx
         .select({
           heimMannschaftName: termine.heimMannschaftName,
+          auswaertsMannschaftName: termine.auswaertsMannschaftName,
           mannschaftId: termine.mannschaftId,
           kategorie: termine.kategorie,
+          start: termine.start,
+          pflichtspiel: termine.pflichtspiel,
+          freundschaftsTyp: termine.freundschaftsTyp,
         })
         .from(termine)
         .where(and(eq(termine.vereinId, vereinId), eq(termine.typ, "rundenspiel"))),
