@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
 import {
   Card,
@@ -32,8 +34,8 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ error?: string; passwortGeaendert?: string; redirect?: string }>;
 }) {
-  const { error, passwortGeaendert, redirect } = await searchParams;
-  const redirectTo = sichererRedirect(redirect);
+  const { error, passwortGeaendert, redirect: redirectParam } = await searchParams;
+  const redirectTo = sichererRedirect(redirectParam);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
@@ -73,11 +75,26 @@ export default async function LoginPage({
           <form
             action={async (formData) => {
               "use server";
-              await signIn("credentials", {
-                email: formData.get("email"),
-                password: formData.get("password"),
-                redirectTo,
-              });
+              // Auth.js leitet bei falschen Zugangsdaten NUR dann automatisch
+              // mit ?error=... um, wenn es selbst die Route bedient
+              // (eingebautes /api/auth/signin) — hier wird signIn() aber aus
+              // einer eigenen Server Action heraus aufgerufen, dafür wirft
+              // Auth.js den Fehler stattdessen (siehe Doku-Kommentar zu
+              // CredentialsSignin in @auth/core/errors.d.ts, Fall 2). Ohne
+              // diesen Fang landete ein falsches Passwort bisher als harter
+              // 500/Server-Fehler statt als die unten vorgesehene Meldung.
+              try {
+                await signIn("credentials", {
+                  email: formData.get("email"),
+                  password: formData.get("password"),
+                  redirectTo,
+                });
+              } catch (err) {
+                if (err instanceof AuthError) {
+                  redirect(`/login?error=${err.type}`);
+                }
+                throw err;
+              }
             }}
             className="flex flex-col gap-4"
           >
@@ -117,11 +134,17 @@ export default async function LoginPage({
               formAction={async (formData) => {
                 "use server";
                 const email = formData.get("email");
-                if (typeof email === "string" && email) {
+                if (typeof email !== "string" || !email) return;
+                try {
                   await signIn("nodemailer", {
                     email,
                     redirectTo: "/profil/passwort-aendern",
                   });
+                } catch (err) {
+                  if (err instanceof AuthError) {
+                    redirect(`/login?error=${err.type}`);
+                  }
+                  throw err;
                 }
               }}
               className="text-center text-xs text-muted-foreground underline"
@@ -150,8 +173,14 @@ export default async function LoginPage({
             action={async (formData) => {
               "use server";
               const email = formData.get("email");
-              if (typeof email === "string" && email) {
+              if (typeof email !== "string" || !email) return;
+              try {
                 await signIn("nodemailer", { email, redirectTo });
+              } catch (err) {
+                if (err instanceof AuthError) {
+                  redirect(`/login?error=${err.type}`);
+                }
+                throw err;
               }
             }}
             className="flex flex-col gap-4"
