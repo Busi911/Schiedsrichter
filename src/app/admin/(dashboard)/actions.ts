@@ -2017,7 +2017,7 @@ export async function ignorierteMannschaftReaktivieren(formData: FormData) {
 
 const MANNSCHAFT_BEDARF_ROLLEN = ["ordner", "kioskdienst", "kassierer", "zeitnehmer"] as const;
 
-// Admin-Pendant zu ordnerMannschaftenBedarfSetzen (profil/ordnerwart/actions.ts)
+// Admin-Pendant zu ordnerMannschaftBedarfUmschalten (profil/ordnerwart/actions.ts)
 // und zeitnehmerMannschaftBedarfUmschalten (profil/zeitnehmerwart/actions.ts) —
 // dort jeweils nur für Inhaber der passenden Wart-Rolle nutzbar. Gibt dem
 // Vereinsadmin (der nicht zwingend selbst eine dieser Wart-Rollen hat) eine
