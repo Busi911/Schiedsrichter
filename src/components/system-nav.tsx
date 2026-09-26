@@ -16,7 +16,10 @@ export function SystemNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-wrap gap-1">
+    // Auf Mobile wraps diese Nav (kein Hamburger-Menü wie im Admin-Bereich,
+    // siehe admin-nav.tsx) als eigene Zeile unter das Logo — links gepackt
+    // wirkte das mit viel Leerraum rechts unbalanciert.
+    <nav className="flex flex-wrap justify-center gap-1 md:justify-start">
       {NAV_ITEMS.map((item) => {
         const active = item.exact
           ? pathname === item.href

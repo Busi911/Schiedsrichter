@@ -89,3 +89,25 @@ Nach jeder Änderung an RLS-Policies (migrations/0001, 0006, 0012, 0026,
 statt sich nur auf Code-Review zu verlassen. `"user"` hat bewusst KEINE
 RLS (siehe Kommentar in 0001) — jede neue Query gegen `users` MUSS
 `eq(users.vereinId, vereinId)` (oder Äquivalent) selbst mitbringen.
+
+## Mobile-Optimierung
+
+Die App wird überwiegend auf dem Handy genutzt — jede neue Seite/Komponente
+muss auch bei ~375–390px Breite geprüft werden, nicht nur auf Desktop.
+Zwei wiederkehrende Muster:
+
+- **Header (Logo/Name + Aktionsleiste + Nav)**: wrapped die Aktionsleiste
+  auf Mobile in eine eigene Zeile (kein Platz neben dem Logo), wirkt sie
+  links gepackt mit Leerraum rechts unbalanciert — dort `justify-center
+  md:justify-start` setzen (Referenz: `admin/(dashboard)/layout.tsx`,
+  `profil/page.tsx`, `system/layout.tsx`/`system-nav.tsx`). Ein einzelner
+  Logout-Button gehört auf Mobile mit in die oberste Zeile neben den Namen
+  (`md:hidden` dort, `hidden md:block` an seiner sonstigen Stelle) statt
+  als eigene, einsame Zeile.
+- **Dichte Desktop-Layouts** (z.B. Monatsgitter-Kalender) lieber auf Mobile
+  durch eine eigene, einfachere Ansicht ersetzen (`hidden md:block` +
+  Mobile-Alternative) statt sie zu verkleinern — siehe
+  `components/monats-kalender.tsx` (Agenda-Liste statt Gitter unter `md`).
+
+Tabellen brauchen keine Sonderbehandlung: `components/ui/table.tsx`
+wrapped bereits jede Tabelle in `overflow-x-auto`.

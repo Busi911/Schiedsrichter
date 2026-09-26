@@ -226,7 +226,12 @@ export default async function ProfilPage({
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Auf Mobile wraps diese Zeile (bis zu 7 Buttons je nach Rollen)
+              als eigene Zeile unter das Logo — links gepackt wirkte das mit
+              viel Leerraum rechts unbalanciert (gleiches Muster wie im
+              Admin-Header, siehe dort). Auf Desktop steht sie ohnehin am
+              rechten Rand (justify-between am äußeren Header-Container). */}
+          <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
             {(session.user.istAdmin || session.user.istAdminLesend) && (
               <Button
                 variant="outline"
