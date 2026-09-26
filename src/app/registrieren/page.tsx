@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { count } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
+import { mitColdStartRetry } from "@/db/retry";
 import { vereine } from "@/db/schema";
 import { holeSystemEinstellungen } from "@/lib/system-einstellungen";
 import {
@@ -27,7 +28,9 @@ export const dynamic = "force-dynamic";
 // nicht auf Basis dieser beim Rendern berechneten Zahl.
 export default async function RegistrierenPage() {
   const { betaVereinLimit } = await holeSystemEinstellungen();
-  const [{ value: vereineCount }] = await adminDb.select({ value: count() }).from(vereine);
+  const [{ value: vereineCount }] = await mitColdStartRetry(() =>
+    adminDb.select({ value: count() }).from(vereine)
+  );
   const freiePlaetze = Math.max(betaVereinLimit - vereineCount, 0);
 
   return (

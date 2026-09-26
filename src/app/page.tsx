@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { auth } from "@/auth";
 import { adminDb } from "@/db/admin";
+import { mitColdStartRetry } from "@/db/retry";
 import { vereine } from "@/db/schema";
 import { holeSystemEinstellungen } from "@/lib/system-einstellungen";
 import { Badge } from "@/components/ui/badge";
@@ -68,7 +69,9 @@ export default async function Home() {
   }
 
   const { betaVereinLimit } = await holeSystemEinstellungen();
-  const [{ value: vereineCount }] = await adminDb.select({ value: count() }).from(vereine);
+  const [{ value: vereineCount }] = await mitColdStartRetry(() =>
+    adminDb.select({ value: count() }).from(vereine)
+  );
   const freiePlaetze = Math.max(betaVereinLimit - vereineCount, 0);
 
   return (
