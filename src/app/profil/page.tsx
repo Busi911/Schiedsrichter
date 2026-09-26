@@ -42,6 +42,7 @@ import {
 import { Logo } from "@/components/logo";
 import { MonatsKalender } from "@/components/monats-kalender";
 import { FeedbackDialog } from "@/components/feedback-dialog";
+import { HilfeLink } from "@/components/hilfe-link";
 import { ProfilEinstellungenMenu } from "@/components/profil-einstellungen-menu";
 import { SubmitButton } from "@/components/submit-button";
 import { saisonLabel, saisonSortKey } from "@/lib/saison";
@@ -307,6 +308,7 @@ export default async function ProfilPage({
               updateIcsFeedUrl={updateIcsFeedUrl}
               syncJetzt={syncJetzt}
             />
+            <HilfeLink />
             <FeedbackDialog />
             <form
               action={async () => {

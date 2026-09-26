@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { AdminNav } from "@/components/admin-nav";
 import { FeedbackDialog } from "@/components/feedback-dialog";
+import { HilfeLink } from "@/components/hilfe-link";
 import { Logo } from "@/components/logo";
 
 // Eigenes PWA-Icon/App-Name für den Admin-Bereich, damit "Zum Home-Bildschirm
@@ -119,6 +120,7 @@ export default async function AdminLayout({
             >
               Mein Profil
             </Button>
+            <HilfeLink />
             <FeedbackDialog />
             <form
               action={async () => {
