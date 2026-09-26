@@ -390,6 +390,27 @@ keine Testdatenbank nötig. Da `"server-only"` kein echtes npm-Paket ist
 (Next.js löst es intern auf), aliast `vitest.config.mts` es auf ein leeres
 Stub-Modul (`test/server-only-stub.ts`).
 
+### Mandantentrennung (RLS) gegenprüfen
+
+`src/db/tenant-isolation.test.ts` ist die einzige Ausnahme, die eine echte
+Postgres-Instanz braucht — er prüft direkt gegen die DB, dass Verein A
+niemals Daten von Verein B sehen oder anlegen kann (siehe migrations/0001).
+Ohne `TEST_DATABASE_URL`/`TEST_DATABASE_ADMIN_URL` wird er übersprungen,
+`npm test` bleibt also auch ohne lokale DB grün. Zum Ausführen: eine
+Postgres-Instanz mit allen Migrationen aus `src/db/migrations` (in
+Journal-Reihenfolge) anlegen, dann analog zu Schritt 2/3 oben eine
+Owner-Rolle (bypassrls) und `app_user` (ohne bypassrls, Passwort setzen)
+einrichten und
+
+```bash
+TEST_DATABASE_ADMIN_URL="postgres://<owner>:<pw>@localhost:5432/<db>" \
+TEST_DATABASE_URL="postgres://app_user:<pw>@localhost:5432/<db>" \
+npx vitest run src/db/tenant-isolation.test.ts
+```
+
+Nach jeder Änderung an den RLS-Policies (migrations/0001, 0006, 0012, 0026,
+0043) sollte dieser Test erneut laufen.
+
 ## Design (shadcn/ui)
 
 Die Oberfläche nutzt [shadcn/ui](https://ui.shadcn.com) im "Nova"-Stil auf
