@@ -26,17 +26,38 @@ export default async function SystemLayout({
   return (
     <div className="min-h-screen">
       <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Logo className="size-8 shrink-0 text-primary" />
-            <div>
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Systemadmin
-              </p>
-              <p className="font-heading text-lg font-semibold">
-                {session.user.name ?? session.user.email}
-              </p>
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
+          {/* Logout auf Mobile direkt neben dem Namen (gleiche Zeile) statt
+              als eigene, dort einsam links stehende Zeile weiter unten —
+              gleiches Prinzip wie im Admin-Header, siehe dort. */}
+          <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-start">
+            <div className="flex items-center gap-3">
+              <Logo className="size-8 shrink-0 text-primary" />
+              <div>
+                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  Systemadmin
+                </p>
+                <p className="font-heading text-lg font-semibold">
+                  {session.user.name ?? session.user.email}
+                </p>
+              </div>
             </div>
+            <form
+              action={async () => {
+                "use server";
+                await signOut({ redirectTo: "/login" });
+              }}
+              className="md:hidden"
+            >
+              <SubmitButton
+                variant="outline"
+                size="icon-sm"
+                aria-label="Logout"
+                pendingText=""
+              >
+                <LogOutIcon />
+              </SubmitButton>
+            </form>
           </div>
           <SystemNav />
           <form
@@ -44,6 +65,7 @@ export default async function SystemLayout({
               "use server";
               await signOut({ redirectTo: "/login" });
             }}
+            className="hidden md:block"
           >
             <SubmitButton
               variant="outline"

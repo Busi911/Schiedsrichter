@@ -163,11 +163,23 @@ export function ProfilEinstellungenMenu({
             )}
             <div className="flex flex-wrap gap-2">
               <form action={kalenderLinkErneuern}>
-                <SubmitButton variant="outline" size="sm">
-                  {kalenderAboLink
-                    ? "Link neu generieren (alter Link wird ungültig)"
-                    : "Aktivieren"}
-                </SubmitButton>
+                {/* Langer Label-Text erzwang auf schmalen Bildschirmen
+                    horizontales Scrollen der ganzen Seite (Button-
+                    Basisklasse ist whitespace-nowrap) — siehe gleicher
+                    Kommentar in profil/zeitnehmerwart/page.tsx. */}
+                {kalenderAboLink ? (
+                  <ConfirmSubmitButton
+                    confirmText="Neuen Link generieren? Der bisherige Link funktioniert danach nicht mehr."
+                    variant="outline"
+                    size="sm"
+                  >
+                    Link neu generieren
+                  </ConfirmSubmitButton>
+                ) : (
+                  <SubmitButton variant="outline" size="sm">
+                    Aktivieren
+                  </SubmitButton>
+                )}
               </form>
               {kalenderAboLink && (
                 <form action={kalenderLinkDeaktivieren}>

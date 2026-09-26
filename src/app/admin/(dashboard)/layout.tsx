@@ -86,7 +86,11 @@ export default async function AdminLayout({
             </form>
           </div>
           <AdminNav />
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Auf Mobile eine eigene, sonst leer wirkende Zeile (Nav ist dort
+              hinter dem Hamburger versteckt) — dort zentriert statt wie auf
+              Desktop (wo sie neben der Nav steht) am linken Rand mit viel
+              Leerraum rechts danach. */}
+          <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
             {offeneDiensteAnzahl > 0 && (
               <Link href="/admin/dienste">
                 <Badge variant="warning">{offeneDiensteAnzahl} Dienste offen</Badge>
