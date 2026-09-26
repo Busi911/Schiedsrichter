@@ -1,6 +1,6 @@
 "use client";
 
-import { deleteTermin, updateTermin } from "@/app/admin/actions";
+import { deleteTermin, updateTermin } from "@/app/admin/(dashboard)/actions";
 import { toDatetimeLocalWert } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";

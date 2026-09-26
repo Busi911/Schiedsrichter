@@ -7,6 +7,8 @@ const publicRoutes = [
   "/setup",
   "/datenschutz",
   "/impressum",
+  "/hilfe",
+  "/registrieren",
 ];
 
 export default auth((req) => {
@@ -30,7 +32,12 @@ export default auth((req) => {
     // Öffentlicher ICS-Kalender-Feed (Kenntnis des Tokens ist die
     // Berechtigung) — Kalender-Apps rufen das anonym ab, ohne Login-Session,
     // siehe src/app/kalender/[token]/route.ts.
-    pathname.startsWith("/kalender/");
+    pathname.startsWith("/kalender/") ||
+    // Öffentliche, login-freie Bestätigung einer E-Mail-Adressänderung
+    // (Kenntnis des Tokens ist die Berechtigung, der Link wird oft in einem
+    // separaten Mail-Client/Tab ohne aktive Session geöffnet) — siehe
+    // src/app/profil/email-bestaetigen/[token]/page.tsx.
+    pathname.startsWith("/profil/email-bestaetigen/");
 
   if (!isLoggedIn && !isPublicRoute) {
     return Response.redirect(new URL("/login", req.nextUrl));

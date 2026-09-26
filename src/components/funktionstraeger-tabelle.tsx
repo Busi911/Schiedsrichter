@@ -12,7 +12,7 @@ import {
   rollenHinzufuegenMehrfach,
   updateFunktionstraeger,
   updateFunktionstraegerLizenz,
-} from "@/app/admin/actions";
+} from "@/app/admin/(dashboard)/actions";
 import { LIZENZ_ROLLEN } from "@/lib/lizenz-rollen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

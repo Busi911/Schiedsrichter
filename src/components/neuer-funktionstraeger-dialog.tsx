@@ -1,6 +1,6 @@
 "use client";
 
-import { createFunktionstraeger } from "@/app/admin/actions";
+import { createFunktionstraeger } from "@/app/admin/(dashboard)/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

@@ -9,12 +9,12 @@ import {
   tagKey,
   type TurnierBalken,
 } from "@/lib/kalender";
-import { updateTerminInline } from "@/app/admin/actions";
+import { updateTerminInline } from "@/app/admin/(dashboard)/actions";
 import {
   externeZuordnung,
   zuordnen,
   zuordnungEntfernen,
-} from "@/app/admin/zuordnung/actions";
+} from "@/app/admin/(dashboard)/zuordnung/actions";
 import {
   Dialog,
   DialogContent,
