@@ -318,11 +318,24 @@ export default async function ZeitnehmerwartPage({
           )}
           <div className="flex flex-wrap gap-2">
             <form action={zeitnehmerSelbstanmeldungLinkErneuern}>
-              <SubmitButton variant="outline" size="sm">
-                {verein?.zeitnehmerSelbstanmeldungToken
-                  ? "Link neu generieren (alter Link wird ungültig)"
-                  : "Aktivieren"}
-              </SubmitButton>
+              {/* Langer Label-Text ("Link neu generieren (alter Link wird
+                  ungültig)") erzwang auf schmalen Bildschirmen (Button-
+                  Basisklasse ist whitespace-nowrap) horizontales Scrollen
+                  der ganzen Seite — die Warnung gehört ohnehin eher in eine
+                  Rückfrage als ins Label, siehe Deaktivieren-Button unten. */}
+              {verein?.zeitnehmerSelbstanmeldungToken ? (
+                <ConfirmSubmitButton
+                  confirmText="Neuen Link generieren? Der bisherige Link funktioniert danach nicht mehr."
+                  variant="outline"
+                  size="sm"
+                >
+                  Link neu generieren
+                </ConfirmSubmitButton>
+              ) : (
+                <SubmitButton variant="outline" size="sm">
+                  Aktivieren
+                </SubmitButton>
+              )}
             </form>
             {verein?.zeitnehmerSelbstanmeldungToken && (
               <form action={zeitnehmerSelbstanmeldungDeaktivieren}>

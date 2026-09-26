@@ -111,3 +111,12 @@ Zwei wiederkehrende Muster:
 
 Tabellen brauchen keine Sonderbehandlung: `components/ui/table.tsx`
 wrapped bereits jede Tabelle in `overflow-x-auto`.
+
+- **Lange Button-Labels**: `Button`/`SubmitButton`/`ConfirmSubmitButton`
+  sind `whitespace-nowrap` (siehe `buttonVariants` in `ui/button.tsx`) —
+  ein langes Label (z.B. eine Warnung im Text statt in einer Rückfrage)
+  wrappt dadurch NICHT, sondern zwingt die ganze Seite auf schmalen
+  Bildschirmen zum horizontalen Scrollen. Warnungen gehören deshalb in
+  `confirmText` von `ConfirmSubmitButton`, nicht ins sichtbare Label
+  (Beispiel/Fix: "Link neu generieren (alter Link wird ungültig)" →
+  kurzes Label + `confirmText`, siehe `profil/zeitnehmerwart/page.tsx`).
