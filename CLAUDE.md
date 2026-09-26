@@ -79,3 +79,13 @@ Nutzer-facing Hilfetexte (z.B. Hallen-ID vs. Team-ID) leben unter
 `/hilfe` (öffentlich, login-frei). Weitere Artikel als zusätzliche
 Sections auf derselben Seite ergänzen, statt vorschnell eine
 Mehrseiten-Struktur aufzubauen.
+
+## Mandantentrennung (RLS)
+
+`src/db/tenant-isolation.test.ts` prüft direkt gegen echtes Postgres, dass
+Verein A nie Daten von Verein B sehen/anlegen kann (siehe README "Tests").
+Nach jeder Änderung an RLS-Policies (migrations/0001, 0006, 0012, 0026,
+0043) oder an neuen `adminDb`/`users`-Zugriffen diesen Test laufen lassen
+statt sich nur auf Code-Review zu verlassen. `"user"` hat bewusst KEINE
+RLS (siehe Kommentar in 0001) — jede neue Query gegen `users` MUSS
+`eq(users.vereinId, vereinId)` (oder Äquivalent) selbst mitbringen.
