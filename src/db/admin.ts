@@ -15,4 +15,13 @@ if (!process.env.DATABASE_ADMIN_URL) {
 // (withTenant) verwenden, sonst ist die Mandantentrennung wirkungslos.
 const pool = new Pool({ connectionString: process.env.DATABASE_ADMIN_URL });
 
+// Siehe identischer Kommentar in db/index.ts: ohne diesen Listener stürzt
+// ein Netzwerkfehler auf einer gerade ungenutzten Pool-Verbindung den
+// kompletten Node-Prozess ab (unhandled "error"-Event einer EventEmitter),
+// und reißt dabei JEDE gerade laufende Anfrage auf dieser Instanz mit —
+// betraf u.a. adminDb-Zugriffe auf der öffentlichen Startseite/Registrierung.
+pool.on("error", (err: Error) => {
+  console.error("Pool-Fehler auf einer inaktiven DB-Verbindung (adminDb):", err);
+});
+
 export const adminDb = drizzle(pool, { schema });
