@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { AdminNav } from "@/components/admin-nav";
+import { FeedbackDialog } from "@/components/feedback-dialog";
 import { Logo } from "@/components/logo";
 
 // Eigenes PWA-Icon/App-Name für den Admin-Bereich, damit "Zum Home-Bildschirm
@@ -114,6 +115,7 @@ export default async function AdminLayout({
             >
               Mein Profil
             </Button>
+            <FeedbackDialog />
             <form
               action={async () => {
                 "use server";
