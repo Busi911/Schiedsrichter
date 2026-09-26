@@ -330,6 +330,13 @@
       "when": 1790423862738,
       "tag": "0046_bumpy_swordsman",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790452786065,
+      "tag": "0047_known_timeslip",
+      "breakpoints": true
     }
   ]
 }

@@ -288,6 +288,51 @@ export const mannschaften = pgTable("mannschaft", {
     .default(false),
 });
 
+// Trainingshallen des Vereins (Stammdaten, siehe /admin/trainingsplan) — eine
+// eigene Tabelle statt fester Slots wie bei nuligaHalle1Id/2Id/3Id oben, da
+// es hier um beliebig viele, frei benannte Hallen für die Trainingsplanung
+// geht, nicht um die (max. drei) Liga-Spielstätten für den nuLiga-Import.
+export const hallen = pgTable("halle", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
+});
+
+// Ein wiederkehrender wöchentlicher Trainingstermin einer Mannschaft in
+// einer Halle (siehe /admin/trainingsplan) — bewusst OHNE konkretes Datum,
+// da rein die wöchentliche Wiederholung geplant wird (kein Kalenderjahr,
+// keine Ferien-/Feiertags-Ausnahmen). Eine Mannschaft kann beliebig viele
+// Einträge in unterschiedlichen Hallen haben (z.B. montags Halle A,
+// mittwochs Halle B) — hier bewusst KEINE feste Mannschaft-Halle-Zuordnung.
+// startMinuten/endMinuten sind Minuten seit Mitternacht (0-1439 bzw.
+// 15-1440), beide Vielfache von 15 (Raster siehe TrainingsplanGrid) — als
+// Minuten statt time-Spalte, da die Grid-Berechnung (Pixel <-> Zeit) ohnehin
+// in Minuten rechnet und so ohne Zeitzone-/Datums-Fallstricke auskommt.
+export const trainingszeiten = pgTable("trainingszeit", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  mannschaftId: uuid("mannschaft_id")
+    .notNull()
+    .references(() => mannschaften.id, { onDelete: "cascade" }),
+  halleId: uuid("halle_id")
+    .notNull()
+    .references(() => hallen.id, { onDelete: "cascade" }),
+  // 0 = Montag … 6 = Sonntag, gleiche Konvention wie monatsGitter in
+  // lib/kalender.ts.
+  wochentag: integer("wochentag").notNull(),
+  startMinuten: integer("start_minuten").notNull(),
+  endMinuten: integer("end_minuten").notNull(),
+  // Freie Hex-Farbe statt Enum — feste Auswahl-Palette lebt bewusst nur im
+  // UI (TrainingsplanGrid), damit sie sich ohne Migration erweitern lässt.
+  farbe: text("farbe").notNull().default("#3b82f6"),
+  erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
+});
+
 // Vom Admin bewusst übersprungene Vorschläge aus "Unbekannte Mannschaften"
 // (siehe gruppiereUnbekannteMannschaften in rundenspiel-import.ts) — meist
 // Mannschaften anderer Vereine, die an der eigenen Halle spielen und nie
