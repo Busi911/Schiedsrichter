@@ -4,6 +4,7 @@ import { requireSystemAdmin } from "@/lib/session";
 import { signOut } from "@/auth";
 import { SubmitButton } from "@/components/submit-button";
 import { SystemNav } from "@/components/system-nav";
+import { HilfeLink } from "@/components/hilfe-link";
 import { Logo } from "@/components/logo";
 
 // Eigenes PWA-Icon/App-Name für den Systemadmin-Bereich, siehe Kommentar bei
@@ -42,12 +43,33 @@ export default async function SystemLayout({
                 </p>
               </div>
             </div>
+            <div className="flex items-center gap-2 md:hidden">
+              <HilfeLink />
+              <form
+                action={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/login" });
+                }}
+              >
+                <SubmitButton
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Logout"
+                  pendingText=""
+                >
+                  <LogOutIcon />
+                </SubmitButton>
+              </form>
+            </div>
+          </div>
+          <SystemNav />
+          <div className="hidden items-center gap-2 md:flex">
+            <HilfeLink />
             <form
               action={async () => {
                 "use server";
                 await signOut({ redirectTo: "/login" });
               }}
-              className="md:hidden"
             >
               <SubmitButton
                 variant="outline"
@@ -59,23 +81,6 @@ export default async function SystemLayout({
               </SubmitButton>
             </form>
           </div>
-          <SystemNav />
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/login" });
-            }}
-            className="hidden md:block"
-          >
-            <SubmitButton
-              variant="outline"
-              size="icon-sm"
-              aria-label="Logout"
-              pendingText=""
-            >
-              <LogOutIcon />
-            </SubmitButton>
-          </form>
         </div>
       </header>
       <main className="mx-auto max-w-6xl p-6">{children}</main>
