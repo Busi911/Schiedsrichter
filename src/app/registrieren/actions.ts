@@ -8,6 +8,7 @@ import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { willkommensInhalt } from "@/lib/willkommens-mail";
+import { benachrichtigeSystemAdminsUeberRegistrierung } from "@/lib/system-admin-benachrichtigung";
 
 // Öffentlich, login-frei erreichbar (siehe page.tsx) — daher der Zähler-
 // Vergleich ERST HIER, direkt vor dem Insert, statt nur auf einem beim
@@ -65,6 +66,12 @@ export async function vereinRegistrieren(
   } catch (err) {
     console.error("Willkommens-Mail nach Selbstregistrierung fehlgeschlagen:", err);
   }
+
+  await benachrichtigeSystemAdminsUeberRegistrierung(
+    vereinsname.trim(),
+    adminName.trim(),
+    email
+  );
 
   return { ergebnis: "registriert" };
 }

@@ -9,6 +9,7 @@ import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { willkommensInhalt } from "@/lib/willkommens-mail";
+import { benachrichtigeSystemAdminsUeberRegistrierung } from "@/lib/system-admin-benachrichtigung";
 
 // Legt aus einem Warteliste-Eintrag denselben Verein+Admin-Datensatz an
 // wie eine reguläre Registrierung (siehe legeVereinMitAdminAn) und
@@ -42,6 +43,12 @@ export async function wartelisteFreischalten(formData: FormData) {
   } catch (err) {
     console.error("Willkommens-Mail nach Warteliste-Freischaltung fehlgeschlagen:", err);
   }
+
+  await benachrichtigeSystemAdminsUeberRegistrierung(
+    eintrag.vereinsname,
+    eintrag.adminName,
+    eintrag.adminEmail
+  );
 
   revalidatePath("/system/warteliste");
   revalidatePath("/system/vereine");
