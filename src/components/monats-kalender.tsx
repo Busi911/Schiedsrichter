@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   monatKey,
   monatsGitter,
@@ -9,6 +10,7 @@ import {
   tagKey,
   type TurnierBalken,
 } from "@/lib/kalender";
+import { jetzt } from "@/lib/monats-gruppierung";
 import { updateTerminInline } from "@/app/admin/(dashboard)/actions";
 import {
   externeZuordnung,
@@ -36,9 +38,18 @@ import {
   formatMonatJahr,
   formatWochentagDatum,
   toDatetimeLocalWert,
+  ZEITZONE,
 } from "@/lib/format";
 
 const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+// Für das Monats-<select> in der Desktop-Kopfzeile (siehe unten) — einmalig
+// pro Modul statt pro Render berechnet, da unabhängig von Props/State.
+const MONATE_LANG = Array.from({ length: 12 }, (_, i) =>
+  new Intl.DateTimeFormat("de-DE", { month: "long", timeZone: ZEITZONE }).format(
+    new Date(Date.UTC(2000, i, 1))
+  )
+);
 
 // Ab wie vielen Terminen an einem Tag im Gitter (Desktop) "+N weitere" statt
 // aller Zeilen gezeigt wird — an Spieltagen mit laufendem Turnier (Balken +
@@ -154,6 +165,8 @@ export function MonatsKalender({
   basisPfad: string;
   schreibzugriff?: boolean;
 }) {
+  const router = useRouter();
+
   // Welche Tage (tagKey) im Gitter über MAX_SICHTBARE_EINTRAEGE hinaus
   // ausgeklappt sind — pro Tag statt global, damit "+N weitere" auf einem
   // Tag nicht versehentlich auch andere Tage aufklappt.
@@ -174,9 +187,16 @@ export function MonatsKalender({
   const naechsterMonat =
     monatNull === 11 ? { jahr: jahr + 1, monatNull: 0 } : { jahr, monatNull: monatNull + 1 };
   const monatsName = formatMonatJahr(jahr, monatNull);
-  const heute = new Date();
+  const heute = jetzt();
   const istAktuellerMonat =
     jahr === heute.getFullYear() && monatNull === heute.getMonth();
+  // Direktauswahl auf Desktop (siehe Monats-/Jahres-<select> unten) statt
+  // nur Vor-/Zurück-Blättern — v.a. bei einem größeren Sprung (z.B. drei
+  // Monate voraus) sonst umständlich. Jahresspanne bewusst statisch statt
+  // dynamisch aus vorhandenen Terminen berechnet (unnötiger Aufwand für
+  // eine Komfortfunktion; ein Jahr zurück/zwei voraus deckt die relevante
+  // Spielzeit plus Planungsvorlauf ab).
+  const JAHRE = Array.from({ length: 4 }, (_, i) => heute.getFullYear() - 1 + i);
 
   // Gemeinsamer Modal-Inhalt für einen Turnier-Balken, unabhängig davon, ob
   // der Auslöser die Grid-Leiste (Desktop) oder die Agenda-Zeile (Mobile,
@@ -547,7 +567,47 @@ export function MonatsKalender({
           ← Vorheriger Monat
         </Link>
         <div className="flex items-center gap-3">
-          <p className="font-heading text-lg font-medium capitalize">{monatsName}</p>
+          <p className="font-heading text-lg font-medium capitalize md:hidden">
+            {monatsName}
+          </p>
+          {/* Direktauswahl statt reinem Vor-/Zurück-Blättern — nur ab md,
+              auf Mobile bleibt die schlichte Textzeile oben (kein Platz für
+              zwei zusätzliche <select>-Felder neben den Blättern-Links,
+              siehe Mobile-Optimierung in CLAUDE.md). */}
+          <div className="hidden items-center gap-1.5 md:flex">
+            <select
+              aria-label="Monat"
+              value={monatNull}
+              onChange={(e) =>
+                router.push(
+                  `${basisPfad}?monat=${monatKey(jahr, Number(e.target.value))}`
+                )
+              }
+              className="h-7 rounded-md border border-input bg-transparent px-1.5 text-sm capitalize outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+            >
+              {MONATE_LANG.map((name, i) => (
+                <option key={i} value={i}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Jahr"
+              value={jahr}
+              onChange={(e) =>
+                router.push(
+                  `${basisPfad}?monat=${monatKey(Number(e.target.value), monatNull)}`
+                )
+              }
+              className="h-7 rounded-md border border-input bg-transparent px-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+            >
+              {JAHRE.map((j) => (
+                <option key={j} value={j}>
+                  {j}
+                </option>
+              ))}
+            </select>
+          </div>
           {!istAktuellerMonat && (
             <Link
               href={`${basisPfad}?monat=${monatKey(heute.getFullYear(), heute.getMonth())}`}
@@ -570,7 +630,11 @@ export function MonatsKalender({
           0.7rem) kaum noch treffsicher antippbar. Darunter (siehe Agenda
           weiter unten) stattdessen eine vollbreite Tagesliste. */}
       <div className="hidden overflow-x-auto md:block">
-      <div className="min-w-[640px] overflow-hidden rounded-lg border bg-border text-xs">
+      {/* max-w-4xl: ohne Obergrenze zog sich das 7-Spalten-Gitter auf breiten
+          Desktop-Monitoren über die gesamte verfügbare Breite, ohne dass die
+          (kurzen, ohnehin abgeschnittenen) Einträge davon profitiert hätten —
+          nur mehr Leerraum pro Zelle statt besserer Lesbarkeit. */}
+      <div className="mx-auto min-w-[640px] max-w-4xl overflow-hidden rounded-lg border bg-border text-xs">
         <div className="grid grid-cols-7 gap-px bg-border">
           {WOCHENTAGE.map((w) => (
             <div
