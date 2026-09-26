@@ -26,11 +26,20 @@ export function MonatsgruppenListe<T>({
         <details
           key={gruppe.schluessel}
           open={gruppe.standardOffen}
-          className="group rounded-lg border"
+          // Benannte Gruppe (group/monat statt group) — sonst "leckt" der
+          // offene Zustand dieses äußeren <details> in JEDEN unbenannten
+          // group-open:-Klassennamen innerhalb der gerenderten Termine
+          // (z.B. die eigenen Auf-/Zuklapp-Umschalter für "Ersetzen"/
+          // "Bedarf"/"Weitere Person hinzufügen" in den *wart/page.tsx-
+          // Dateien) — Tailwinds group-open: bindet an JEDEN Vorfahren mit
+          // Klasse "group", nicht nur den nächsten. Zeigte sich als Buttons,
+          // die fälschlich dauerhaft "Schließen" statt ihres eigentlichen
+          // Labels anzeigten, sobald die Monatsgruppe selbst aufgeklappt war.
+          className="group/monat rounded-lg border"
         >
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
             <span className="flex items-center gap-2">
-              <ChevronRightIcon className="size-3.5 text-muted-foreground transition-transform group-open:rotate-90" />
+              <ChevronRightIcon className="size-3.5 text-muted-foreground transition-transform group-open/monat:rotate-90" />
               {gruppe.label}
             </span>
             <span className="text-xs font-normal text-muted-foreground">
