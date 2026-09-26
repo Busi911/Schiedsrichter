@@ -123,6 +123,19 @@ export const vereine = pgTable("verein", {
   name: text("name").notNull(),
   adresse: text("adresse"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+  // Zustimmung zum Auftragsverarbeitungsvertrag (Art. 28 DSGVO, siehe
+  // /admin/avv) — erzwungen beim ersten Login des Vereinsadmins (siehe
+  // erzwingeAvvZustimmungFallsNoetig in lib/session.ts). null = noch nicht
+  // zugestimmt. avvAkzeptiertVersion hält fest, WELCHE Fassung akzeptiert
+  // wurde (siehe AVV_VERSION in lib/avv.ts) — ändert sich der Text künftig
+  // inhaltlich, muss erneut zugestimmt werden. Name/E-Mail des
+  // zustimmenden Admins bewusst als Schnappschuss-Text statt FK auf user,
+  // damit der Nachweis auch nach einem späteren Account-Wechsel erhalten
+  // bleibt.
+  avvAkzeptiertAm: timestamp("avv_akzeptiert_am", { mode: "date" }),
+  avvAkzeptiertVersion: text("avv_akzeptiert_version"),
+  avvAkzeptiertVonName: text("avv_akzeptiert_von_name"),
+  avvAkzeptiertVonEmail: text("avv_akzeptiert_von_email"),
   // Dienste-Bedarf (Ordner/Kioskdienst) pro Termin-Typ. Gilt bewusst NICHT
   // für spiel_ics: das sind die persönlichen Einsätze des Schiedsrichters
   // (oft bei fremden Vereinen), nicht Termine, bei denen der eigene Verein

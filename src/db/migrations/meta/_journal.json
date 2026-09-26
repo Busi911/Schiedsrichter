@@ -309,6 +309,13 @@
       "when": 1790422154490,
       "tag": "0043_unique_excalibur",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1790422601069,
+      "tag": "0044_unknown_serpent_society",
+      "breakpoints": true
     }
   ]
 }

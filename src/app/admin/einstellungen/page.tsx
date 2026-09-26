@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
@@ -410,6 +411,20 @@ export default async function EinstellungenPage({
                 </SubmitButton>
               )}
             </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Rechtliches</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-1 text-sm">
+            <Link href="/admin/avv" className="underline">
+              Auftragsverarbeitungsvertrag (AVV) ansehen
+            </Link>
+            <Link href="/datenschutz" className="underline">
+              Datenschutzerklärung
+            </Link>
           </CardContent>
         </Card>
       </div>
