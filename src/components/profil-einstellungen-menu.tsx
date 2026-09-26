@@ -106,7 +106,7 @@ export function ProfilEinstellungenMenu({
           </DropdownMenuItem>
           {istSchiedsrichter && (
             <DropdownMenuItem onClick={() => setOffen("ics")}>
-              ICS-Feed
+              HHV Funktionsträger ICS-Feed
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
@@ -299,7 +299,7 @@ export function ProfilEinstellungenMenu({
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>ICS-Feed (Spielansetzungen)</DialogTitle>
+              <DialogTitle>HHV Funktionsträger ICS-Feed (Spielansetzungen)</DialogTitle>
               <DialogDescription>
                 Abo-Link deines Verbands hinterlegen, damit deine Einsätze
                 automatisch synchronisiert werden. Aktuelle Spielzeit:{" "}
