@@ -26,5 +26,6 @@ export function willkommensInhalt(
           `Melde dich mit deiner E-Mail-Adresse (${email}) an — du bekommst dort einen Login-Link per E-Mail zugeschickt.`,
         ],
     cta: { text: "Jetzt einloggen", url: `${appUrl()}/login` },
+    kleingedrucktes: `Infos zur Datenverarbeitung: ${appUrl()}/datenschutz`,
   };
 }
