@@ -55,7 +55,7 @@ export default async function TerminePage({
 }) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
-  const tab: Tab = (await searchParams).tab === "rundenspiele" ? "rundenspiele" : "testspiele";
+  const tab: Tab = (await searchParams).tab === "testspiele" ? "testspiele" : "rundenspiele";
 
   return (
     <div className="flex flex-col gap-6">
@@ -69,18 +69,6 @@ export default async function TerminePage({
 
       <div className="flex w-fit gap-1 rounded-lg border bg-muted p-1">
         <Link
-          href="/admin/termine?tab=testspiele"
-          className={cn(
-            buttonVariants({
-              variant: tab === "testspiele" ? "secondary" : "ghost",
-              size: "sm",
-            }),
-            tab === "testspiele" && "shadow-sm"
-          )}
-        >
-          Freundschaftsspiele &amp; Turniere
-        </Link>
-        <Link
           href="/admin/termine?tab=rundenspiele"
           className={cn(
             buttonVariants({
@@ -91,6 +79,18 @@ export default async function TerminePage({
           )}
         >
           Hallenspielplan
+        </Link>
+        <Link
+          href="/admin/termine?tab=testspiele"
+          className={cn(
+            buttonVariants({
+              variant: tab === "testspiele" ? "secondary" : "ghost",
+              size: "sm",
+            }),
+            tab === "testspiele" && "shadow-sm"
+          )}
+        >
+          Freundschaftsspiele &amp; Turniere
         </Link>
       </div>
 
