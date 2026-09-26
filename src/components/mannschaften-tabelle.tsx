@@ -5,7 +5,7 @@ import {
   deleteMannschaften,
   updateMannschaft,
   deleteMannschaft,
-} from "@/app/admin/actions";
+} from "@/app/admin/(dashboard)/actions";
 import { Button } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";

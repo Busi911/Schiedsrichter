@@ -28,7 +28,7 @@ const FEATURES = [
   {
     icon: RefreshCwIcon,
     titel: "Hallenspielplan automatisch synchron",
-    text: "Liga-Pflichtspiele kommen automatisch aus nuLiga bzw. handball.net (ab 3. Liga) — inklusive Ergebnissen und Verlegungen.",
+    text: "Ab der 3. Liga automatisch über handball.net, verbandsunabhängig — inklusive Ergebnissen und Verlegungen. Der automatische nuLiga-Import darunter ist aktuell auf den HHV beschränkt, weitere Landesverbände sind manuell nutzbar.",
   },
   {
     icon: ClipboardCheckIcon,

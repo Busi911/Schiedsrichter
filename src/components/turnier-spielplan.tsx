@@ -6,7 +6,7 @@ import {
   deleteTurnierSpiel,
   turnierSpieleVertauschen,
   updateTurnierSpiel,
-} from "@/app/admin/actions";
+} from "@/app/admin/(dashboard)/actions";
 import { gruppiereProTag } from "@/lib/kalender";
 import {
   formatDatumZeit as formatDateTime,

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { signIn } from "@/auth";
 import {
   Card,
@@ -36,6 +37,18 @@ export default async function LoginPage({
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
+      {/* /login hat (anders als fast jede andere Seite) keinen
+          umschließenden Header — ohne diesen Link gäbe es keine Möglichkeit,
+          von hier aus zurück auf die Startseite zu kommen außer über den
+          Browser-Zurück-Button. */}
+      <div className="w-full max-w-sm">
+        <Link
+          href="/"
+          className="text-sm text-muted-foreground underline"
+        >
+          ← Zur Startseite
+        </Link>
+      </div>
       <div className="flex w-full max-w-sm flex-col items-center gap-1 text-center">
         <Logo className="mb-1 size-10 text-primary" />
         <h1 className="text-xl font-semibold">Login</h1>

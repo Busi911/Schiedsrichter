@@ -1,6 +1,6 @@
 "use client";
 
-import { createMannschaft } from "@/app/admin/actions";
+import { createMannschaft } from "@/app/admin/(dashboard)/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

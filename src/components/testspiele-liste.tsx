@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { updateTestspielErgebnis } from "@/app/admin/actions";
+import { updateTestspielErgebnis } from "@/app/admin/(dashboard)/actions";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

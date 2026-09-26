@@ -42,6 +42,19 @@ export default async function AvvPage() {
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
       <div>
+        {/* Diese Seite liegt bewusst AUSSERHALB von admin/(dashboard)/layout.tsx
+            (siehe Kommentar oben) und hat deshalb keine geerbte Navigation
+            mehr — hier daher ein eigener Link zurück, nur sinnvoll klickbar
+            wenn die Zustimmung schon erteilt ist (sonst liefe man gegen den
+            AVV-Zwang in requireAdmin() erneut hierher zurück). */}
+        {bereitsAkzeptiert && (
+          <Link
+            href="/admin"
+            className="text-sm text-muted-foreground underline"
+          >
+            ← Zurück zum Admin-Bereich
+          </Link>
+        )}
         <h1 className="font-heading text-2xl font-semibold">
           Auftragsverarbeitungsvertrag (AVV)
         </h1>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createTermin } from "@/app/admin/actions";
+import { createTermin } from "@/app/admin/(dashboard)/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
