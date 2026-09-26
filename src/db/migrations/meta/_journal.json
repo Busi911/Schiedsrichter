@@ -316,6 +316,20 @@
       "when": 1790422601069,
       "tag": "0044_unknown_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790423554370,
+      "tag": "0045_bizarre_moon_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1790423862738,
+      "tag": "0046_bumpy_swordsman",
+      "breakpoints": true
     }
   ]
 }

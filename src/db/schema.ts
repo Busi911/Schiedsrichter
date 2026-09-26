@@ -118,6 +118,29 @@ export const freundschaftsTypEnum = pgEnum("freundschafts_typ", [
 // Mandant / Vereinsstruktur
 // ---------------------------------------------------------------------------
 
+// Singleton (genau eine Zeile, siehe Migration) für vereinsübergreifende
+// Systemkonfiguration, aktuell nur das Beta-Limit für die
+// Selbstregistrierung (siehe /registrieren, vom Systemadmin einstellbar
+// unter /system). Eigene Tabelle statt Env-Variable, weil der Systemadmin
+// das zur Laufzeit ändern können soll, nicht nur beim Deploy.
+export const systemEinstellungen = pgTable("system_einstellungen", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  betaVereinLimit: integer("beta_verein_limit").notNull().default(3),
+});
+
+// Anfragen, die eintreffen, nachdem das Beta-Limit (systemEinstellungen.
+// betaVereinLimit) bereits ausgeschöpft ist (siehe vereinSelbstRegistrieren
+// in app/registrieren/actions.ts) — Systemadmin sieht/bearbeitet sie unter
+// /system/warteliste und kann von dort aus manuell freischalten (legt dann
+// denselben Verein+Admin-Datensatz an wie eine reguläre Registrierung).
+export const warteliste = pgTable("warteliste", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinsname: text("vereinsname").notNull(),
+  adminName: text("admin_name").notNull(),
+  adminEmail: text("admin_email").notNull(),
+  erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+});
+
 export const vereine = pgTable("verein", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -199,6 +222,19 @@ export const vereine = pgTable("verein", {
   rundenspielAenderungenBenachrichtigungAktiviert: boolean(
     "rundenspiel_aenderungen_benachrichtigung_aktiviert"
   )
+    .notNull()
+    .default(false),
+  // Opt-in für den Vereinsadmin: bei unbesetztem Ordner-/Kioskdienst-/
+  // Kassierer-/Zeitnehmer-/Sekretär-Bedarf (3-Tage-Fenster wie in
+  // dienste-erinnerung.ts) zusätzlich ALLE aktiven Inhaber der betroffenen
+  // Rolle per Mail fragen, statt nur die Admins zu informieren (siehe
+  // sendeOffeneDiensteBroadcast in lib/dienste-broadcast.ts). Default
+  // false wie rundenspielAenderungenBenachrichtigungAktiviert oben — ein
+  // zusätzlicher Mail-Kanal an die ganze Personengruppe ist kein
+  // Verhalten, das jeder Verein automatisch will. Einzelne Personen
+  // können zusätzlich für sich selbst abschalten, siehe
+  // users.offeneDiensteBroadcastAktiviert.
+  offeneDiensteBroadcastAktiviert: boolean("offene_dienste_broadcast_aktiviert")
     .notNull()
     .default(false),
   // Öffentlicher, login-freier Link für Zeitnehmer/Sekretär-
@@ -349,6 +385,14 @@ export const users = pgTable("user", {
   offeneZeitnehmerErinnerungAktiviert: boolean(
     "offene_zeitnehmer_erinnerung_aktiviert"
   )
+    .notNull()
+    .default(true),
+  // Persönliches Opt-out für den Rollen-Broadcast bei unbesetztem Dienst
+  // (siehe vereine.offeneDiensteBroadcastAktiviert oben, das den Kanal erst
+  // pro Verein aktivieren muss) — Default true, damit der Vereins-Schalter
+  // ohne weiteres Zutun tatsächlich alle Rolleninhaber erreicht; wer die
+  // Mail nicht will, schaltet sie individuell auf /profil ab.
+  offeneDiensteBroadcastAktiviert: boolean("offene_dienste_broadcast_aktiviert")
     .notNull()
     .default(true),
   // Persönlicher Kalender-Abo-Link (ICS-Feed, siehe lib/kalender-ics.ts) —
