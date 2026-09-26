@@ -22,6 +22,7 @@ import { sendMail } from "@/lib/mailer";
 import { appUrl } from "@/lib/app-url";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
 import { emailGeaendertInhalt, pruefeEmailVerfuegbar } from "@/lib/email-aendern";
+import { LIZENZ_ROLLEN } from "@/lib/lizenz-rollen";
 import { willkommensInhalt } from "@/lib/willkommens-mail";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { istTurnierBerechtigt } from "@/lib/turnier-zugriff";
@@ -665,6 +666,54 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
       console.error("Willkommens-Mail konnte nicht gesendet werden:", err);
     }
   }
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
+// Setzt/ändert/entfernt das Lizenz-Ablaufdatum einer Rolle (siehe
+// funktionstraegerRollen.lizenzGueltigBis in db/schema.ts, nur bei
+// LIZENZ_ROLLEN fachlich sinnvoll — UI blendet das Feld sonst aus, hier
+// zusätzlich serverseitig geprüft). Setzt lizenzErinnerungStufe IMMER
+// zurück, auch bei gleichem Datum: einfacher als ein Vergleich mit dem
+// bisherigen Wert, und eine erneute Bestätigung "ja, das Datum stimmt
+// noch" soll ohnehin wie eine Verlängerung behandelt werden (nächste
+// Erinnerung erst wieder ab 60 Tage vor DIESEM Ablauf).
+export async function updateFunktionstraegerLizenz(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const rolleId = formData.get("rolleId");
+  const gueltigBisRoh = formData.get("lizenzGueltigBis");
+  if (typeof rolleId !== "string" || !rolleId) {
+    throw new Error("Rolle fehlt.");
+  }
+  if (typeof gueltigBisRoh !== "string") {
+    throw new Error("Ungültiges Datum.");
+  }
+  const gueltigBis = gueltigBisRoh ? new Date(gueltigBisRoh) : null;
+  if (gueltigBisRoh && Number.isNaN(gueltigBis?.getTime())) {
+    throw new Error("Ungültiges Datum.");
+  }
+
+  await withTenant(vereinId, async (tx) => {
+    const rolle = await tx
+      .select({ typ: funktionstraegerRollen.typ })
+      .from(funktionstraegerRollen)
+      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+      .where(
+        and(eq(funktionstraegerRollen.id, rolleId), eq(users.vereinId, vereinId))
+      )
+      .then((r) => r[0]);
+    if (!rolle) throw new Error("Rolle nicht gefunden.");
+    if (!(LIZENZ_ROLLEN as readonly string[]).includes(rolle.typ)) {
+      throw new Error("Für diese Rolle ist kein Lizenz-Ablaufdatum vorgesehen.");
+    }
+
+    await tx
+      .update(funktionstraegerRollen)
+      .set({ lizenzGueltigBis: gueltigBis, lizenzErinnerungStufe: null })
+      .where(eq(funktionstraegerRollen.id, rolleId));
+  });
 
   revalidatePath("/admin/funktionstraeger");
 }

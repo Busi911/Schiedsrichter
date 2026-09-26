@@ -11,13 +11,16 @@ import {
   rolleHinzufuegen,
   rollenHinzufuegenMehrfach,
   updateFunktionstraeger,
+  updateFunktionstraegerLizenz,
 } from "@/app/admin/actions";
+import { LIZENZ_ROLLEN } from "@/lib/lizenz-rollen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DisclosureSummary } from "@/components/disclosure-summary";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
 import {
   Table,
@@ -50,6 +53,7 @@ type Rolle = {
   typ: string;
   aktiv: boolean;
   mannschaftName: string | null;
+  lizenzGueltigBis: Date | null;
 };
 type Person = {
   userId: string;
@@ -452,6 +456,41 @@ export function FunktionstraegerTabelle({
                             </span>
                           ))}
                       </div>
+                      {p.rollen
+                        .filter(
+                          (r) =>
+                            r.aktiv &&
+                            (LIZENZ_ROLLEN as readonly string[]).includes(r.typ)
+                        )
+                        .map((r) => (
+                          <form
+                            key={r.rolleId}
+                            action={updateFunktionstraegerLizenz}
+                            className="flex items-center gap-2 text-xs"
+                          >
+                            <input type="hidden" name="rolleId" value={r.rolleId} />
+                            <Label
+                              htmlFor={`lizenz-${r.rolleId}`}
+                              className="font-normal text-muted-foreground"
+                            >
+                              {TYP_LABEL[r.typ] ?? r.typ}-Lizenz gültig bis
+                            </Label>
+                            <Input
+                              id={`lizenz-${r.rolleId}`}
+                              name="lizenzGueltigBis"
+                              type="date"
+                              defaultValue={
+                                r.lizenzGueltigBis
+                                  ? r.lizenzGueltigBis.toISOString().slice(0, 10)
+                                  : ""
+                              }
+                              className="h-7 w-36"
+                            />
+                            <SubmitButton variant="ghost" size="xs">
+                              Speichern
+                            </SubmitButton>
+                          </form>
+                        ))}
                       {(() => {
                         const inaktiveRollen = p.rollen.filter((r) => !r.aktiv);
                         if (inaktiveRollen.length === 0) return null;
