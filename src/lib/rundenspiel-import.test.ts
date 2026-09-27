@@ -773,15 +773,47 @@ describe("gruppiereUnbekannteMannschaften", () => {
     expect(jugend?.anzahlSpiele).toBe(1);
   });
 
-  it("ignoriert Auswärtsnamen (immer ein fremder Verein, nicht relevant für eigene Mannschaften)", () => {
-    // Die Funktion nimmt bewusst nur heimMannschaftName entgegen — ein
-    // Auswärtsname kann hier gar nicht mehr übergeben werden, das ist Teil
-    // des Vertrags, nicht nur ein Laufzeitverhalten.
+  it("ignoriert Auswärtsnamen für Gruppierung/Anzeigename (immer ein fremder Verein)", () => {
+    // auswaertsMannschaftName fließt NUR in die spiele-Liste ein (siehe
+    // Test unten) — für Gruppierung und anzeigeName bleibt ausschließlich
+    // heimMannschaftName maßgeblich, ein Auswärtsname ist immer ein fremder
+    // Verein und würde sonst fälschlich als eigene Mannschaft vorgeschlagen.
     const vorschlaege = gruppiereUnbekannteMannschaften([
-      { heimMannschaftName: "Eigene Mannschaft", mannschaftId: null },
+      {
+        heimMannschaftName: "Eigene Mannschaft",
+        mannschaftId: null,
+        auswaertsMannschaftName: "Fremder Verein",
+      },
     ]);
     expect(vorschlaege).toHaveLength(1);
     expect(vorschlaege[0].anzeigeName).toBe("Eigene Mannschaft");
+  });
+
+  it("sammelt die einzelnen Begegnungen sortiert nach Datum, für die Aufklapp-Ansicht", () => {
+    const vorschlaege = gruppiereUnbekannteMannschaften([
+      {
+        heimMannschaftName: "Eigene Mannschaft",
+        mannschaftId: null,
+        auswaertsMannschaftName: "TV Später",
+        start: new Date("2026-09-20T15:00:00Z"),
+        pflichtspiel: true,
+        freundschaftsTyp: null,
+      },
+      {
+        heimMannschaftName: "Eigene Mannschaft",
+        mannschaftId: null,
+        auswaertsMannschaftName: "TV Früher",
+        start: new Date("2026-09-06T15:00:00Z"),
+        pflichtspiel: false,
+        freundschaftsTyp: "turnier",
+      },
+    ]);
+    expect(vorschlaege[0].spiele.map((s) => s.gegner)).toEqual([
+      "TV Früher",
+      "TV Später",
+    ]);
+    expect(vorschlaege[0].spiele[0].freundschaftsTyp).toBe("turnier");
+    expect(vorschlaege[0].spiele[1].pflichtspiel).toBe(true);
   });
 });
 

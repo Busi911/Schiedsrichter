@@ -670,6 +670,17 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
   revalidatePath("/admin/funktionstraeger");
 }
 
+// Zeitnehmer und Sekretär sind in der Praxis dieselbe Verbandslizenz (keine
+// zwei getrennten Prüfungen) — hat dieselbe Person beide Rollen, gilt ein
+// gepflegtes Ablaufdatum für beide zugleich (siehe
+// updateFunktionstraegerLizenz unten und die zusammengefasste Anzeige in
+// funktionstraeger-bearbeiten-dialog.tsx).
+function partnerLizenzTyp(typ: string): "zeitnehmer" | "sekretaer" | null {
+  if (typ === "zeitnehmer") return "sekretaer";
+  if (typ === "sekretaer") return "zeitnehmer";
+  return null;
+}
+
 // Setzt/ändert/entfernt das Lizenz-Ablaufdatum einer Rolle (siehe
 // funktionstraegerRollen.lizenzGueltigBis in db/schema.ts, nur bei
 // LIZENZ_ROLLEN fachlich sinnvoll — UI blendet das Feld sonst aus, hier
@@ -697,7 +708,7 @@ export async function updateFunktionstraegerLizenz(formData: FormData) {
 
   await withTenant(vereinId, async (tx) => {
     const rolle = await tx
-      .select({ typ: funktionstraegerRollen.typ })
+      .select({ typ: funktionstraegerRollen.typ, userId: funktionstraegerRollen.userId })
       .from(funktionstraegerRollen)
       .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
       .where(
@@ -709,10 +720,19 @@ export async function updateFunktionstraegerLizenz(formData: FormData) {
       throw new Error("Für diese Rolle ist kein Lizenz-Ablaufdatum vorgesehen.");
     }
 
+    const partnerTyp = partnerLizenzTyp(rolle.typ);
+
     await tx
       .update(funktionstraegerRollen)
       .set({ lizenzGueltigBis: gueltigBis, lizenzErinnerungStufe: null })
-      .where(eq(funktionstraegerRollen.id, rolleId));
+      .where(
+        partnerTyp
+          ? and(
+              eq(funktionstraegerRollen.userId, rolle.userId),
+              inArray(funktionstraegerRollen.typ, [rolle.typ, partnerTyp])
+            )
+          : eq(funktionstraegerRollen.id, rolleId)
+      );
   });
 
   revalidatePath("/admin/funktionstraeger");
@@ -1294,6 +1314,15 @@ export async function funktionstraegerImportieren(formData: FormData) {
         typ: zeile.typ,
         mannschaftId,
         aktiv: sofortAktiv,
+        // Nur bei den Rollen übernehmen, die fachlich ein Lizenz-
+        // Ablaufdatum kennen (siehe LIZENZ_ROLLEN) — bei anderen Rollen
+        // (z.B. trainer) würde eine versehentlich mitgelieferte Lizenz-
+        // Spalte sonst sinnlos in der DB landen, ohne dass die UI sie
+        // je zeigt.
+        ...((LIZENZ_ROLLEN as readonly string[]).includes(zeile.typ) &&
+        zeile.lizenzGueltigBis
+          ? { lizenzGueltigBis: zeile.lizenzGueltigBis }
+          : {}),
       });
       angelegt++;
     }

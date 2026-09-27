@@ -3,7 +3,12 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
-import { dienstBedarfSpeichern, nuligaEinstellungenSpeichern } from "./actions";
+import {
+  dienstBedarfSpeichern,
+  nuligaEinstellungenSpeichern,
+  vereinsdatenSpeichern,
+} from "./actions";
+import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -66,6 +71,31 @@ export default async function EinstellungenPage({
           )}
         </Alert>
       )}
+
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>Vereinsdaten</CardTitle>
+          <CardDescription>
+            Wird aktuell nur informativ hinterlegt (z.B. für spätere
+            Rechnungen) — bislang nirgends in der App sichtbar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={vereinsdatenSpeichern} className="flex flex-col gap-2">
+            <Label htmlFor="verein-adresse">Adresse</Label>
+            <Textarea
+              id="verein-adresse"
+              name="adresse"
+              rows={2}
+              defaultValue={verein?.adresse ?? ""}
+              placeholder={"Straße Hausnummer\nPLZ Ort"}
+            />
+            <SubmitButton size="sm" className="self-start" pendingText="Wird gespeichert…">
+              Speichern
+            </SubmitButton>
+          </form>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

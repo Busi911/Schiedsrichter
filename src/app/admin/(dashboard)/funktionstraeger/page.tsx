@@ -288,9 +288,15 @@ export default async function FunktionstraegerPage({
           <CardDescription>
             Kopfzeile mit den Spalten <strong>Name</strong>,{" "}
             <strong>E-Mail</strong>, <strong>Rolle</strong> (Schiedsrichter,
-            Zeitnehmer, Sekretär, Trainer, Ordner oder Kioskdienst) und
+            Zeitnehmer, Sekretär, Trainer, Ordner oder Kioskdienst),
             optional <strong>Mannschaft</strong> (nur bei Trainer, muss einer
-            bestehenden Mannschaft entsprechen). Bereits vorhandene
+            bestehenden Mannschaft entsprechen) und optional{" "}
+            <strong>Lizenz gültig bis</strong> (nur bei Schiedsrichter/
+            Zeitnehmer/Sekretär, Format TT.MM.JJJJ — praktisch für die
+            Erstanlage, statt das Ablaufdatum hinterher für jede Person
+            einzeln nachzutragen; Zeitnehmer- und Sekretär-Lizenz sind
+            dieselbe, es reicht also eine der beiden Zeilen mit Datum, falls
+            eine Person beide Rollen bekommt). Bereits vorhandene
             Personen/Rollen werden übersprungen, nicht dupliziert. Für
             mehrere Rollen pro Person einfach mehrere Zeilen mit derselben
             E-Mail-Adresse verwenden.
