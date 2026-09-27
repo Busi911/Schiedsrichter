@@ -7,7 +7,6 @@ const publicRoutes = [
   "/setup",
   "/datenschutz",
   "/impressum",
-  "/hilfe",
   "/registrieren",
 ];
 

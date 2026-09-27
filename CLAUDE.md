@@ -75,10 +75,16 @@ Ausnahme: für alles mit Vereinsbezug bleibt `withTenant` Pflicht.
 
 ## Hilfe-Artikel
 
-Nutzer-facing Hilfetexte (z.B. Hallen-ID vs. Team-ID) leben unter
-`/hilfe` (öffentlich, login-frei). Weitere Artikel als zusätzliche
-Sections auf derselben Seite ergänzen, statt vorschnell eine
-Mehrseiten-Struktur aufzubauen.
+Nutzer-facing Hilfetexte (z.B. Hallen-ID vs. Team-ID, Dienste-Bedarf,
+Funktionsträger-Zuordnung) leben unter `/hilfe` — nur im eingeloggten
+Zustand erreichbar (nicht in `publicRoutes` in `src/proxy.ts`, siehe
+`hilfe/page.tsx`), damit der Footer-Link anonyme Besucher nicht auf eine
+Login-Wand schickt. Weitere Artikel als zusätzliche Sections auf
+derselben Seite ergänzen, statt vorschnell eine Mehrseiten-Struktur
+aufzubauen. Der Zurück-Button oben führt über `components/zurueck-
+button.tsx` (Browser-Historie statt fest verdrahtetem Linkziel) zur
+vorherigen Seite zurück, egal von wo aus `/hilfe` verlinkt wurde — bei
+weiteren Hilfe-Seiten dasselbe Muster verwenden.
 
 ## Mandantentrennung (RLS)
 
