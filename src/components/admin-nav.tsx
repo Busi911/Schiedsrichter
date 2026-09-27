@@ -27,6 +27,7 @@ const VERWALTUNG_ITEMS = [
   { href: "/admin/mannschaften", label: "Mannschaften" },
   { href: "/admin/funktionstraeger", label: "Funktionsträger" },
   { href: "/admin/dienste", label: "Offene Dienste" },
+  { href: "/admin/trainingsplan", label: "Trainingsplan" },
   { href: "/admin/auswertung", label: "Auswertung & Export" },
   { href: "/admin/einstellungen", label: "Einstellungen" },
 ];
