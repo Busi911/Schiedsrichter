@@ -11,6 +11,7 @@ const verlegung: RundenspielAenderung = {
   ort: "Halle 2",
   heimMannschaft: "TV Musterstadt",
   auswaertsMannschaft: "Gastverein",
+  kategorie: null,
   verlegt: true,
   ergebnisNeu: false,
   startAlt: new Date("2026-09-01T18:00:00Z"),
@@ -35,6 +36,11 @@ describe("rundenspielAenderungZeile", () => {
     expect(zeile).toContain("Halle 2");
     expect(zeile).toContain("verlegt von");
     expect(zeile).not.toContain("Ergebnis eingetragen");
+  });
+
+  it("hängt die Kategorie an, wenn bekannt (z.B. um gleichnamige Mannschaften unterschiedlicher Klasse zu unterscheiden)", () => {
+    const zeile = rundenspielAenderungZeile({ ...verlegung, kategorie: "mJC" });
+    expect(zeile).toContain("TV Musterstadt – Gastverein (mJC)");
   });
 
   it("beschreibt ein neu eingetragenes Ergebnis mit dem Endstand", () => {

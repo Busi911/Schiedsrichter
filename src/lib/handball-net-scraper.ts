@@ -212,7 +212,15 @@ export function parseHandballNetMatch(
     start: `${datum.date}T${datum.time}:00${berlinOffset(datum.date)}`,
     title: `${home} – ${away}`,
     gameNumber: gameNumber ?? null,
-    category: null,
+    // handball.net liefert (anders als nuLiga) kein eigenes, sauberes
+    // Kategorie-Feld (Alters-/Geschlechtsklasse) — nur den vollen
+    // Wettbewerbsnamen (competition.name, siehe league unten), der die
+    // Klasse meist als Freitext enthält (z.B. "3. Liga Männer"). Für
+    // kategorie (siehe RohEreignis in rundenspiel-import.ts) reicht das:
+    // dient dort nur der Anzeige und dem Auseinanderhalten gleichnamiger
+    // Mannschaften unterschiedlicher Klassen, kein exaktes Kürzel-Matching
+    // wie bei nuLiga nötig.
+    category: league ?? null,
     league: league ?? null,
     home,
     away,

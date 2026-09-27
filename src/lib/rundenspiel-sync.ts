@@ -76,6 +76,11 @@ export type RundenspielAenderung = {
   ort: string | null;
   heimMannschaft: string;
   auswaertsMannschaft: string;
+  // Jugendklasse bzw. Männer/Frauen (siehe RundenspielEreignis.kategorie) —
+  // hilft bei gleichnamigen Mannschaften unterschiedlicher Klassen zu
+  // erkennen, welches konkrete Spiel gemeint ist (siehe
+  // rundenspielAenderungZeile in rundenspiel-benachrichtigung.ts).
+  kategorie: string | null;
   verlegt: boolean;
   ergebnisNeu: boolean;
   // Nur bei verlegt=true bzw. ergebnisNeu=true gefüllt (siehe
@@ -242,6 +247,7 @@ export async function importiereRundenspielEreignisse(
               ort: ereignis.ort,
               heimMannschaft: ereignis.heimMannschaft,
               auswaertsMannschaft: ereignis.auswaertsMannschaft,
+              kategorie: ereignis.kategorie,
               startAlt: bestehend.start,
               ortAlt: bestehend.ort,
               ergebnisHeim: ereignis.ergebnisHeim,

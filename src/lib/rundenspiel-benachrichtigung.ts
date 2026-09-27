@@ -29,7 +29,9 @@ function aenderungsDetails(a: RundenspielAenderung): string {
 }
 
 export function rundenspielAenderungZeile(a: RundenspielAenderung): string {
-  const spiel = `${a.heimMannschaft} – ${a.auswaertsMannschaft}`;
+  const spiel = a.kategorie
+    ? `${a.heimMannschaft} – ${a.auswaertsMannschaft} (${a.kategorie})`
+    : `${a.heimMannschaft} – ${a.auswaertsMannschaft}`;
   const zusatz = [formatDatumZeitLang(a.start), a.ort].filter(Boolean).join(" · ");
   return `${spiel} (${zusatz}) — ${aenderungsDetails(a)}`;
 }

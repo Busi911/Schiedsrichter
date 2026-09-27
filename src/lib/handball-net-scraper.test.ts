@@ -47,6 +47,10 @@ describe("parseHandballNetMatch", () => {
       start: "2026-08-29T19:00:00+02:00",
       title: "HSG DUTENHOFEN MÜNCHHOLZHAUSEN II – HLZ FRIESENHEIM/HOCHDORF II",
       gameNumber: "2627DHB3LERMC0102",
+      // Kein eigenes Kategorie-Feld bei handball.net (anders als nuLiga) —
+      // category übernimmt deshalb den Wettbewerbsnamen, der die Klasse
+      // meist als Freitext enthält (siehe Kommentar in parseHandballNetMatch).
+      category: "3. Liga Männer",
       league: "3. Liga Männer",
       home: "HSG DUTENHOFEN MÜNCHHOLZHAUSEN II",
       away: "HLZ FRIESENHEIM/HOCHDORF II",
