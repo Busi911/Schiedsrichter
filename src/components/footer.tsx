@@ -25,10 +25,14 @@ export async function Footer() {
             {" · "}
           </>
         )}
-        <Link href="/hilfe" className="underline">
-          Hilfe
-        </Link>
-        {" · "}
+        {eingeloggt && (
+          <>
+            <Link href="/hilfe" className="underline">
+              Hilfe
+            </Link>
+            {" · "}
+          </>
+        )}
         <Link href="/datenschutz" className="underline">
           Datenschutz
         </Link>

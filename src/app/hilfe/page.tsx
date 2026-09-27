@@ -1,16 +1,27 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { ZurueckButton } from "@/components/zurueck-button";
 
 export const metadata = {
   title: "Hilfe: Hallen-ID, Team-ID & Schiedsrichter-Kalender – HandballerPate",
 };
 
-export default function HilfePage() {
+// Nur im eingeloggten Zustand erreichbar (siehe publicRoutes in
+// src/proxy.ts) — Vereins-Funktionsträger UND System-Admins sollen den
+// Link im Header sehen (siehe hilfe-link.tsx-Verwendung u.a. in
+// system/layout.tsx), daher hier bewusst nur ein einfacher auth()-Check
+// statt requireSession() (das zwingend eine vereinId voraussetzt, die
+// System-Admins nicht haben).
+export default async function HilfePage() {
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/login");
+  }
+
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
       <div>
-        <Link href="/login" className="text-sm text-muted-foreground underline">
-          ← Zurück zum Login
-        </Link>
+        <ZurueckButton fallbackHref="/profil" />
       </div>
 
       <h1 className="font-heading text-2xl font-semibold">
@@ -93,6 +104,87 @@ export default function HilfePage() {
           ein. Ab dann werden alle eure Einsätze automatisch mit
           HandballerPate synchronisiert — ihr müsst nichts mehr manuell
           eintragen.
+        </p>
+      </section>
+
+      <section id="bedarf" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">
+          Wie wird der Bedarf pro Rolle festgelegt?
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Für eigene Veranstaltungen — Freundschaftsspiel, Turnier und
+          Rundenspiel — legt ihr unter{" "}
+          <strong>Einstellungen → Dienste-Bedarf pro Termin</strong> fest,
+          wie viele Ordner, Kioskdienst-, Kassierer- und Zeitnehmer/
+          Sekretär-Helfer ihr braucht. Der Bedarf gilt getrennt je
+          Veranstaltungsart, ein Turnier braucht in der Regel mehr Helfer als
+          ein normales Rundenspiel. Zeitnehmer und Sekretär haben dabei immer
+          genau einen Platz pro Termin, Ordner/Kioskdienst/Kassierer können je
+          nach eingetragenem Bedarf auch mehrfach besetzt werden.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Braucht eine einzelne Mannschaft grundsätzlich keinen eigenen
+          Helfer (z.B. manche Jugend-Mannschaften ohne eigenes Publikum),
+          lässt sich der Bedarf pro Rolle und Mannschaft auf den
+          Wart-Seiten (<strong>Zeitnehmerwart</strong> bzw.{" "}
+          <strong>Ordnerwart</strong>, Abschnitt „Bedarf pro Mannschaft“)
+          komplett abschalten — das wirkt auf alle Termine dieser
+          Mannschaft, auch bereits bestehende offene. Für einzelne Termine
+          lässt sich der Zeitnehmer/Sekretär-Bedarf zusätzlich individuell
+          überschreiben, z.B. wenn bei einem persönlichen
+          Schiedsrichter-Einsatz (ICS-Feed, siehe oben) ausnahmsweise doch
+          ein Zeitnehmer mitfahren soll.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Der Schiedsrichter ist ein Sonderfall ohne eigenen Bedarfswert:
+          Bei echten Ligaspielen (Pflichtspielen) stellt der Verband über
+          nuLiga/handball.net automatisch den Schiedsrichter — hier gibt es
+          nichts einzustellen, und HandballerPate bietet dafür auch keine
+          eigene Zuordnung an. Nur bei Freundschaftsspielen, Turnierspielen
+          und Rundenspielen, die <strong>kein</strong> Pflichtspiel sind,
+          ordnet der Verein selbst (max. 2 Personen als Gespann) einen
+          Schiedsrichter zu.
+        </p>
+      </section>
+
+      <section id="zuordnung" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">
+          Wie werden Funktionsträger einem Termin zugeordnet?
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Es gibt zwei Wege, jemanden einem Termin zuzuordnen:
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>1. Manuell durch den zuständigen Wart:</strong> Der
+          Schiedsrichterwart, Zeitnehmerwart bzw. Ordnerwart wählt auf seiner
+          Profil-Seite bei jedem offenen Termin eine bereits angelegte
+          Person aus einem Dropdown aus. Hat die Person (noch) keinen
+          eigenen HandballerPate-Account, funktioniert{" "}
+          <strong>„Ohne Login zuordnen“</strong> als Fallback — dafür reicht
+          ein Name, ganz ohne Account.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>2. Öffentliche Selbsteintragung:</strong> Zeitnehmerwart
+          und Ordnerwart können auf ihrer jeweiligen Seite unter{" "}
+          <strong>„Öffentliche Selbsteintragung“</strong> einen login-freien
+          Link aktivieren — für Zeitnehmer/Sekretär als{" "}
+          <code className="text-xs">/zeitnehmer-eintragen/…</code>, für
+          Ordner/Kioskdienst/Kassierer als{" "}
+          <code className="text-xs">/ordner-eintragen/…</code>. Diesen Link
+          teilt ihr z.B. mit den Eltern eines Kaders; dort wählt jede Person
+          selbst aus den Terminen ihrer Mannschaft und trägt sich (nur mit
+          Namen, ganz ohne HandballerPate-Login) direkt ein. Der Name wird
+          automatisch mit bereits angelegten Funktionsträgern abgeglichen;
+          bei Unsicherheit landet der Eintrag beim zuständigen Wart zur
+          Bestätigung, bevor er als endgültige Zuordnung zählt.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Für Schiedsrichter gibt es keine öffentliche Selbsteintragung —
+          die Zuordnung läuft ausschließlich über den Schiedsrichterwart
+          bzw. kommt für echte Ligaspiele direkt vom Verband (siehe oben).
+          Jede Zuordnung lässt sich vom zuständigen Wart jederzeit wieder
+          entfernen oder ersetzen (Umbesetzung), z.B. wenn jemand
+          kurzfristig ausfällt.
         </p>
       </section>
     </main>

@@ -406,6 +406,16 @@ export function MonatsKalender({
                 : Object.entries(ZUORDENBARE_TYP_LABEL).filter(
                     ([value]) => value !== "schiedsrichter"
                   );
+              // Sind bereits alle in Frage kommenden Rollen voll (siehe
+              // volleRollen oben), gibt es nichts mehr zuzuordnen — weder
+              // "Person wählen…" noch der "Ohne Login"-Fallback sollen dann
+              // noch erscheinen, sonst wirkt ein vollständig besetztes Spiel
+              // (Badge "Besetzung vollständig") trotzdem so, als fehle noch
+              // jemand.
+              const alleRollenVoll = auswaehlbareRollen.every(
+                ([value]) => e.volleRollen?.includes(value) ?? false
+              );
+              if (alleRollenVoll) return null;
               const zuordnenForm = (
                 <div className="flex flex-col gap-2">
                   {auswaehlbarePersonen.length > 0 && (
