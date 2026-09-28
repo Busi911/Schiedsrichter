@@ -50,6 +50,11 @@ async function main() {
         rundenspielOrdnerBedarf: 2,
         rundenspielKioskdienstBedarf: 1,
         rundenspielZeitnehmerBedarf: 1,
+        // Sichtbarer Zeitraum ab 15 Uhr statt Standard 7 Uhr — kompakteres
+        // Grid im Produkttour-Screenshot, da an diesem Demo-Verein ohnehin
+        // nur ab Nachmittag trainiert wird (siehe trainingszeiten unten).
+        trainingsplanStartMinuten: 15 * 60,
+        trainingsplanEndMinuten: 21 * 60,
       })
       .returning();
 
@@ -94,14 +99,26 @@ async function main() {
 
     const mannschaftsDaten = [
       { name: "1. Herren", altersklasse: "Herren" },
+      { name: "2. Herren", altersklasse: "Herren" },
       { name: "1. Damen", altersklasse: "Damen" },
+      { name: "2. Damen", altersklasse: "Damen" },
+      { name: "männliche A-Jugend", altersklasse: "mA" },
       { name: "männliche B-Jugend", altersklasse: "mB" },
+      { name: "weibliche B-Jugend", altersklasse: "wB" },
       { name: "weibliche C-Jugend", altersklasse: "wC" },
+      { name: "männliche D-Jugend", altersklasse: "mD" },
     ];
     const angelegteMannschaften = [];
+    const mannschaftIdNach = new Map<string, string>();
     for (const m of mannschaftsDaten) {
       const [row] = await tx.insert(mannschaften).values({ vereinId, ...m }).returning();
       angelegteMannschaften.push(row);
+      mannschaftIdNach.set(m.name, row.id);
+    }
+    function mannschaftId(name: string): string {
+      const id = mannschaftIdNach.get(name);
+      if (!id) throw new Error(`Unbekannte Mannschaft: ${name}`);
+      return id;
     }
 
     // Trainer den Mannschaften zuordnen
@@ -109,12 +126,12 @@ async function main() {
       {
         userId: angelegteUser["michael.schaefer@demo.handballerpate.de"],
         typ: "trainer",
-        mannschaftId: angelegteMannschaften[0].id,
+        mannschaftId: mannschaftId("1. Herren"),
       },
       {
         userId: angelegteUser["sabine.klein@demo.handballerpate.de"],
         typ: "trainer",
-        mannschaftId: angelegteMannschaften[1].id,
+        mannschaftId: mannschaftId("1. Damen"),
       },
       {
         userId: angelegteUser["thomas.bauer@demo.handballerpate.de"],
@@ -149,12 +166,18 @@ async function main() {
       .returning();
     const [halle2] = await tx.insert(hallen).values({ vereinId, name: "Turnhalle Schulzentrum" }).returning();
 
+    // Deutlich dichter belegter Wochenplan (Produkttour-Screenshot) — vor
+    // allem Halle 1, da das die beim Öffnen der Seite voreingestellte Halle
+    // ist. Zwei Abteile parallel an möglichst vielen Wochentagen, damit das
+    // Grid auf den ersten Blick nach echtem Spielbetrieb aussieht statt nach
+    // ein paar vereinzelten Blöcken.
     await tx.insert(trainingszeiten).values([
+      // Montag
       {
         vereinId,
-        mannschaftId: angelegteMannschaften[0].id,
+        mannschaftId: mannschaftId("1. Herren"),
         halleId: halle1.id,
-        wochentag: 1,
+        wochentag: 0,
         startMinuten: 18 * 60 + 30,
         endMinuten: 20 * 60,
         farbe: "#3b82f6",
@@ -162,26 +185,132 @@ async function main() {
       },
       {
         vereinId,
-        mannschaftId: angelegteMannschaften[1].id,
+        mannschaftId: mannschaftId("weibliche C-Jugend"),
         halleId: halle1.id,
-        wochentag: 3,
+        wochentag: 0,
+        startMinuten: 17 * 60,
+        endMinuten: 18 * 60 + 15,
+        farbe: "#f59e0b",
+        abteilNummer: 2,
+      },
+      // Dienstag
+      {
+        vereinId,
+        mannschaftId: mannschaftId("männliche B-Jugend"),
+        halleId: halle1.id,
+        wochentag: 1,
+        startMinuten: 17 * 60,
+        endMinuten: 18 * 60 + 30,
+        farbe: "#22c55e",
+        abteilNummer: 1,
+      },
+      {
+        vereinId,
+        mannschaftId: mannschaftId("weibliche B-Jugend"),
+        halleId: halle1.id,
+        wochentag: 1,
+        startMinuten: 18 * 60 + 30,
+        endMinuten: 20 * 60,
+        farbe: "#a855f7",
+        abteilNummer: 2,
+      },
+      // Mittwoch
+      {
+        vereinId,
+        mannschaftId: mannschaftId("1. Damen"),
+        halleId: halle1.id,
+        wochentag: 2,
         startMinuten: 19 * 60,
         endMinuten: 20 * 60 + 30,
         farbe: "#ec4899",
+        abteilNummer: 1,
+      },
+      {
+        vereinId,
+        mannschaftId: mannschaftId("2. Herren"),
+        halleId: halle1.id,
+        wochentag: 2,
+        startMinuten: 17 * 60 + 30,
+        endMinuten: 19 * 60,
+        farbe: "#0ea5e9",
         abteilNummer: 2,
       },
       {
         vereinId,
-        mannschaftId: angelegteMannschaften[2].id,
+        mannschaftId: mannschaftId("männliche D-Jugend"),
+        halleId: halle1.id,
+        wochentag: 2,
+        startMinuten: 16 * 60,
+        endMinuten: 17 * 60,
+        farbe: "#84cc16",
+        abteilNummer: 2,
+      },
+      // Donnerstag
+      {
+        vereinId,
+        mannschaftId: mannschaftId("männliche A-Jugend"),
+        halleId: halle1.id,
+        wochentag: 3,
+        startMinuten: 18 * 60,
+        endMinuten: 19 * 60 + 30,
+        farbe: "#14b8a6",
+        abteilNummer: 1,
+      },
+      {
+        vereinId,
+        mannschaftId: mannschaftId("2. Damen"),
+        halleId: halle1.id,
+        wochentag: 3,
+        startMinuten: 19 * 60 + 30,
+        endMinuten: 21 * 60,
+        farbe: "#f43f5e",
+        abteilNummer: 2,
+      },
+      // Freitag
+      {
+        vereinId,
+        mannschaftId: mannschaftId("1. Herren"),
+        halleId: halle1.id,
+        wochentag: 4,
+        startMinuten: 18 * 60,
+        endMinuten: 19 * 60 + 30,
+        farbe: "#3b82f6",
+        abteilNummer: 1,
+      },
+      {
+        vereinId,
+        mannschaftId: mannschaftId("weibliche C-Jugend"),
+        halleId: halle1.id,
+        wochentag: 4,
+        startMinuten: 16 * 60 + 30,
+        endMinuten: 17 * 60 + 45,
+        farbe: "#f59e0b",
+        abteilNummer: 2,
+      },
+      // Samstag Nachmittag (z.B. Jugend)
+      {
+        vereinId,
+        mannschaftId: mannschaftId("männliche D-Jugend"),
+        halleId: halle1.id,
+        wochentag: 5,
+        startMinuten: 15 * 60,
+        endMinuten: 16 * 60,
+        farbe: "#84cc16",
+        abteilNummer: 1,
+      },
+      // Halle 2 — etwas dünner belegt, wie im echten Verein üblich
+      {
+        vereinId,
+        mannschaftId: mannschaftId("1. Damen"),
         halleId: halle2.id,
         wochentag: 2,
         startMinuten: 17 * 60,
         endMinuten: 18 * 60 + 30,
-        farbe: "#22c55e",
+        farbe: "#ec4899",
       },
       {
         vereinId,
-        mannschaftId: angelegteMannschaften[3].id,
+        mannschaftId: mannschaftId("weibliche C-Jugend"),
         halleId: halle2.id,
         wochentag: 4,
         startMinuten: 16 * 60,
@@ -198,7 +327,7 @@ async function main() {
         ende: tageAb(heute, 4, 16, 30),
         ort: "Sporthalle Musterstadt",
         beschreibung: "TSV Musterstadt - HSG Nachbarstadt",
-        mannschaftId: angelegteMannschaften[0].id,
+        mannschaftId: mannschaftId("1. Herren"),
         pflichtspiel: true,
         heimMannschaftName: "TSV Musterstadt",
         auswaertsMannschaftName: "HSG Nachbarstadt",
@@ -209,7 +338,7 @@ async function main() {
         ende: tageAb(heute, 6, 18, 30),
         ort: "Sporthalle Musterstadt",
         beschreibung: "TSV Musterstadt - TV Bergheim",
-        mannschaftId: angelegteMannschaften[1].id,
+        mannschaftId: mannschaftId("1. Damen"),
         pflichtspiel: true,
         heimMannschaftName: "TSV Musterstadt",
         auswaertsMannschaftName: "TV Bergheim",
@@ -220,7 +349,7 @@ async function main() {
         ende: tageAb(heute, 9, 12, 30),
         ort: "Turnhalle Schulzentrum",
         beschreibung: "Testspiel gegen SG Talblick",
-        mannschaftId: angelegteMannschaften[2].id,
+        mannschaftId: mannschaftId("männliche B-Jugend"),
       },
       {
         typ: "turnier" as const,
@@ -228,7 +357,7 @@ async function main() {
         ende: tageAb(heute, 14, 17, 0),
         ort: "Sporthalle Musterstadt",
         beschreibung: "Jugend-Hallenturnier",
-        mannschaftId: angelegteMannschaften[3].id,
+        mannschaftId: mannschaftId("weibliche C-Jugend"),
       },
       {
         typ: "spiel_ics" as const,
@@ -244,7 +373,7 @@ async function main() {
         ende: tageAb(heute, -3, 16, 30),
         ort: "Sporthalle Musterstadt",
         beschreibung: "TSV Musterstadt - SG Waldstadt",
-        mannschaftId: angelegteMannschaften[0].id,
+        mannschaftId: mannschaftId("1. Herren"),
         pflichtspiel: true,
         heimMannschaftName: "TSV Musterstadt",
         auswaertsMannschaftName: "SG Waldstadt",
