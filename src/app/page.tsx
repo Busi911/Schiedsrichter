@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { count } from "drizzle-orm";
 import {
@@ -20,6 +19,7 @@ import { holeSystemEinstellungen } from "@/lib/system-einstellungen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
+import { ProdukttourBild } from "@/components/produkttour-bild";
 
 const FEATURES = [
   {
@@ -221,15 +221,12 @@ export default async function Home() {
                       i % 2 === 1 ? "order-1 md:order-2" : "order-1"
                     }
                   >
-                    <div className="overflow-hidden rounded-lg border shadow-sm">
-                      <Image
-                        src={eintrag.bild}
-                        alt={eintrag.titel}
-                        width={eintrag.breite}
-                        height={eintrag.hoehe}
-                        className="h-auto w-full"
-                      />
-                    </div>
+                    <ProdukttourBild
+                      src={eintrag.bild}
+                      alt={eintrag.titel}
+                      breite={eintrag.breite}
+                      hoehe={eintrag.hoehe}
+                    />
                   </div>
                   <div
                     className={
