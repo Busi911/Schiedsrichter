@@ -12,22 +12,29 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LabeledSelect } from "@/components/labeled-select";
 import { SubmitButton } from "@/components/submit-button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { cn } from "@/lib/utils";
 import {
   halleAnlegen,
+  halleBearbeiten,
   halleLoeschen,
-  halleUmbenennen,
 } from "@/app/admin/(dashboard)/trainingsplan/actions";
 import { TrainingsplanWoche } from "@/components/trainingsplan-woche";
 import {
   TrainingszeitDialog,
   type TrainingszeitEintrag,
 } from "@/components/trainingszeit-dialog";
-import { formatUhrzeit, WOCHENTAGE_LABEL } from "@/lib/trainingsplan";
+import {
+  ABTEIL_ANZAHL_OPTIONEN,
+  abteilLabel,
+  formatUhrzeit,
+  WOCHENTAGE_LABEL,
+  type HalleMitAbteilen,
+} from "@/lib/trainingsplan";
 
-type Halle = { id: string; name: string };
+type Halle = { id: string; name: string } & HalleMitAbteilen;
 type Mannschaft = { id: string; label: string };
 
 type DialogZustand =
@@ -67,28 +74,75 @@ function NeueHalleDialog() {
   );
 }
 
-function HalleUmbenennenDialog({ halle }: { halle: Halle }) {
+const ABTEIL_NAMEN_FELDER = [
+  "abteil1Name",
+  "abteil2Name",
+  "abteil3Name",
+  "abteil4Name",
+] as const;
+
+// Name UND optionale Unterteilung in bis zu 4 Abteile (z.B. per
+// Hallentrenn-Vorhang) in einem Dialog — die Anzahl-Auswahl blendet die
+// passende Zahl Namensfelder live ein/aus (Client-State), gespeichert wird
+// aber erst gemeinsam beim Absenden (siehe halleBearbeiten).
+function HalleBearbeitenDialog({ halle }: { halle: Halle }) {
   const [open, setOpen] = useState(false);
+  const [abteilAnzahl, setAbteilAnzahl] = useState(halle.abteilAnzahl);
+  const abteilNamen = [
+    halle.abteil1Name,
+    halle.abteil2Name,
+    halle.abteil3Name,
+    halle.abteil4Name,
+  ];
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="ghost" size="sm" />}>
-        Umbenennen
+        Bearbeiten
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Halle umbenennen</DialogTitle>
+          <DialogTitle>Halle bearbeiten</DialogTitle>
         </DialogHeader>
-        <form action={halleUmbenennen} className="flex flex-col gap-3">
+        <form action={halleBearbeiten} className="flex flex-col gap-3">
           <input type="hidden" name="halleId" value={halle.id} />
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="halle-umbenennen-name">Name</Label>
+            <Label htmlFor="halle-bearbeiten-name">Name</Label>
             <Input
-              id="halle-umbenennen-name"
+              id="halle-bearbeiten-name"
               name="name"
               required
               defaultValue={halle.name}
             />
           </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="halle-bearbeiten-abteilanzahl">
+              Unterteilt in Abteile (z.B. per Hallentrenn-Vorhang)
+            </Label>
+            <LabeledSelect
+              id="halle-bearbeiten-abteilanzahl"
+              name="abteilAnzahl"
+              defaultValue={String(halle.abteilAnzahl)}
+              onValueChange={(value) => setAbteilAnzahl(Number(value))}
+              options={ABTEIL_ANZAHL_OPTIONEN.map((n) => ({
+                value: String(n),
+                label: n === 0 ? "Keine Unterteilung" : `${n} Abteile`,
+              }))}
+            />
+          </div>
+          {Array.from({ length: abteilAnzahl }, (_, i) => i + 1).map((n) => (
+            <div key={n} className="flex flex-col gap-1.5">
+              <Label htmlFor={`halle-bearbeiten-abteil-${n}`}>
+                Name Abteil {n} (optional)
+              </Label>
+              <Input
+                id={`halle-bearbeiten-abteil-${n}`}
+                name={ABTEIL_NAMEN_FELDER[n - 1]}
+                placeholder={`Abteil ${n}`}
+                defaultValue={abteilNamen[n - 1] ?? ""}
+              />
+            </div>
+          ))}
           <DialogFooter>
             <SubmitButton pendingText="Wird gespeichert…">Speichern</SubmitButton>
           </DialogFooter>
@@ -107,10 +161,12 @@ function HalleUmbenennenDialog({ halle }: { halle: Halle }) {
 function MobileAgenda({
   trainingszeiten,
   mannschaftLabelZuId,
+  halle,
   onBearbeiten,
 }: {
   trainingszeiten: TrainingszeitEintrag[];
   mannschaftLabelZuId: Map<string, string>;
+  halle: HalleMitAbteilen;
   onBearbeiten: (eintrag: TrainingszeitEintrag) => void;
 }) {
   if (trainingszeiten.length === 0) {
@@ -147,6 +203,12 @@ function MobileAgenda({
                   />
                   <span className="truncate">
                     {mannschaftLabelZuId.get(t.mannschaftId) ?? "?"}
+                    {t.abteilNummer != null && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {abteilLabel(halle, t.abteilNummer)}
+                      </span>
+                    )}
                   </span>
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">
@@ -227,7 +289,7 @@ export function TrainingsplanGrid({
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-medium">{halleAktiv.name}</h3>
             <div className="flex gap-1">
-              <HalleUmbenennenDialog halle={halleAktiv} />
+              <HalleBearbeitenDialog halle={halleAktiv} />
               <form action={halleLoeschen}>
                 <input type="hidden" name="halleId" value={halleAktiv.id} />
                 <ConfirmSubmitButton
@@ -251,6 +313,7 @@ export function TrainingsplanGrid({
               <div className="hidden md:block">
                 <TrainingsplanWoche
                   halleId={halleAktiv.id}
+                  halle={halleAktiv}
                   mannschaften={mannschaften}
                   trainingszeiten={zeitenAktiv}
                   gridStartMinuten={gridStartMinuten}
@@ -263,6 +326,7 @@ export function TrainingsplanGrid({
                 <MobileAgenda
                   trainingszeiten={zeitenAktiv}
                   mannschaftLabelZuId={mannschaftLabelZuId}
+                  halle={halleAktiv}
                   onBearbeiten={(eintrag) => setDialog({ modus: "bearbeiten", eintrag })}
                 />
                 <Button

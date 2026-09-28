@@ -46,6 +46,7 @@ export function LabeledSelect({
   required,
   placeholder,
   options,
+  onValueChange,
 }: {
   id?: string;
   name: string;
@@ -53,9 +54,25 @@ export function LabeledSelect({
   required?: boolean;
   placeholder?: string;
   options: LabeledSelectOption[];
+  // Optional — nur nötig, wenn ein Elternteil auf die Auswahl reagieren
+  // muss (z.B. TrainingszeitDialog, das je nach gewählter Halle ein
+  // weiteres Feld ein-/ausblendet). Ohne diesen Fall bleibt die Auswahl wie
+  // bisher unkontrolliert (nur defaultValue).
+  onValueChange?: (value: string) => void;
 }) {
   return (
-    <Select name={name} defaultValue={defaultValue} required={required}>
+    <Select
+      name={name}
+      defaultValue={defaultValue}
+      required={required}
+      onValueChange={(value) => {
+        // base-ui erlaubt hier generisch auch null (löschbare Selects) —
+        // unsere Optionsliste hat aber immer einen Wert, kommt praktisch
+        // nie vor. onValueChange hier bewusst einfach bei string halten,
+        // statt das null-Handling jedem Aufrufer aufzubürden.
+        if (value != null) onValueChange?.(value);
+      }}
+    >
       <SelectTrigger id={id} className="w-full">
         <SelectValue placeholder={placeholder}>
           {(value: string) => {
