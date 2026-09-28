@@ -58,7 +58,7 @@ await fullShot("_kalender-full.png");
 // im sichtbaren Bereich liegen (Grid startet oberhalb des Folds).
 await page.goto(`${BASE}/admin/trainingsplan`, { waitUntil: "networkidle" });
 await page.waitForTimeout(400);
-await page.mouse.wheel(0, 560);
+await page.mouse.wheel(0, 680);
 await page.waitForTimeout(300);
 await fullShot("_trainingsplan-full.png");
 
@@ -76,7 +76,7 @@ const CROPS = [
   { in: "_uebersicht-full.png", out: "uebersicht.png", crop: { left: 0, top: 0, width: 1440, height: 530 } },
   { in: "_funktionstraeger-full.png", out: "funktionstraeger.png", crop: { left: 0, top: 0, width: 1440, height: 830 } },
   { in: "_kalender-full.png", out: "kalender.png", crop: { left: 0, top: 0, width: 1440, height: 525 } },
-  { in: "_trainingsplan-full.png", out: "trainingsplan.png", crop: { left: 0, top: 0, width: 1000, height: 830 } },
+  { in: "_trainingsplan-full.png", out: "trainingsplan.png", crop: { left: 0, top: 0, width: 1040, height: 800 } },
   { in: "_dienste-full.png", out: "dienste.png", crop: { left: 0, top: 0, width: 1440, height: 860 } },
 ];
 
