@@ -1,0 +1,25 @@
+diff --git a/src/db/admin.ts b/src/db/admin.ts
+index 2119b14..714fa38 100644
+--- a/src/db/admin.ts
++++ b/src/db/admin.ts
+@@ -1,6 +1,6 @@
+ import "server-only";
+-import { Pool } from "@neondatabase/serverless";
+-import { drizzle } from "drizzle-orm/neon-serverless";
++import { Pool } from "pg";
++import { drizzle } from "drizzle-orm/node-postgres";
+ import * as schema from "./schema";
+ 
+ if (!process.env.DATABASE_ADMIN_URL) {
+diff --git a/src/db/index.ts b/src/db/index.ts
+index a96eb55..5093421 100644
+--- a/src/db/index.ts
++++ b/src/db/index.ts
+@@ -1,5 +1,5 @@
+-import { Pool } from "@neondatabase/serverless";
+-import { drizzle } from "drizzle-orm/neon-serverless";
++import { Pool } from "pg";
++import { drizzle } from "drizzle-orm/node-postgres";
+ import { sql } from "drizzle-orm";
+ import * as schema from "./schema";
+ import { mitColdStartRetry } from "./retry";

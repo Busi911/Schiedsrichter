@@ -36,7 +36,14 @@ export default auth((req) => {
     // (Kenntnis des Tokens ist die Berechtigung, der Link wird oft in einem
     // separaten Mail-Client/Tab ohne aktive Session geöffnet) — siehe
     // src/app/profil/email-bestaetigen/[token]/page.tsx.
-    pathname.startsWith("/profil/email-bestaetigen/");
+    pathname.startsWith("/profil/email-bestaetigen/") ||
+    // Statische Produkttour-Screenshots auf der (öffentlichen) Startseite —
+    // ohne diese Ausnahme leitet die Middleware auch anonyme Bild-Requests
+    // unter public/produkttour auf /login um (der Matcher unten schließt nur
+    // _next/static/_next/image/favicon.ico aus, nicht beliebige
+    // public/-Assets), und die Bilder blieben für nicht eingeloggte
+    // Besucher:innen unsichtbar.
+    pathname.startsWith("/produkttour/");
 
   if (!isLoggedIn && !isPublicRoute) {
     return Response.redirect(new URL("/login", req.nextUrl));
