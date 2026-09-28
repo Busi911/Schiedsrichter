@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { count } from "drizzle-orm";
 import {
   CalendarClockIcon,
+  CalendarDaysIcon,
   ClipboardCheckIcon,
   MailCheckIcon,
   MessageCircleIcon,
@@ -39,6 +40,11 @@ const FEATURES = [
     icon: CalendarClockIcon,
     titel: "Persönlicher Kalender",
     text: "Jeder Funktionsträger sieht seine eigenen Einsätze und kann sie als Kalender-Abo in Apple/Google/Outlook einbinden.",
+  },
+  {
+    icon: CalendarDaysIcon,
+    titel: "Trainingsplan je Halle",
+    text: "Wöchentliche Trainingszeiten für alle Mannschaften und Hallen per Drag & Drop planen — inklusive geteilter Hallen mit bis zu vier benennbaren Abteilen.",
   },
   {
     icon: MailCheckIcon,

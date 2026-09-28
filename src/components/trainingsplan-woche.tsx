@@ -7,12 +7,14 @@ import {
   trainingszeitVerschieben,
 } from "@/app/admin/(dashboard)/trainingsplan/actions";
 import {
+  abteilLabel,
   begrenze,
   formatUhrzeit,
   platziereZeitbloecke,
   rundeAufRaster,
   standardFarbeFuerMannschaft,
   WOCHENTAGE_LABEL_KURZ,
+  type HalleMitAbteilen,
 } from "@/lib/trainingsplan";
 import type { TrainingszeitEintrag } from "@/components/trainingszeit-dialog";
 
@@ -48,6 +50,7 @@ type Vorschau = { wochentag: number; startMinuten: number; endMinuten: number };
 // Bearbeiten-Dialog dieselben Aktionen ohne Ziehen.
 export function TrainingsplanWoche({
   halleId,
+  halle,
   mannschaften,
   trainingszeiten,
   gridStartMinuten,
@@ -56,6 +59,10 @@ export function TrainingsplanWoche({
   onSlotClick,
 }: {
   halleId: string;
+  // Für das Abteil-Label im Block (siehe abteilLabel) — nur die Halle des
+  // gerade aktiven Tabs, TrainingsplanGrid rendert diese Komponente ja
+  // ohnehin pro Halle neu.
+  halle: HalleMitAbteilen;
   mannschaften: Mannschaft[];
   trainingszeiten: TrainingszeitEintrag[];
   // Sichtbares Zeitfenster des Grids, vom Verein einstellbar (siehe
@@ -348,6 +355,11 @@ export function TrainingsplanWoche({
                         {formatUhrzeit(block.startMinuten)}–
                         {formatUhrzeit(block.endMinuten)}
                       </span>
+                      {block.abteilNummer != null && (
+                        <span className="truncate opacity-90">
+                          {abteilLabel(halle, block.abteilNummer)}
+                        </span>
+                      )}
                       <div
                         onPointerDown={(e) => {
                           e.preventDefault();

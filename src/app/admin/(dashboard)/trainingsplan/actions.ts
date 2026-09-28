@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
-import { withTenant } from "@/db";
+import { withTenant, type db } from "@/db";
 import { hallen, trainingszeiten, vereine } from "@/db/schema";
 import { begrenze, rundeAufRaster } from "@/lib/trainingsplan";
 
@@ -30,7 +30,20 @@ export async function halleAnlegen(formData: FormData) {
   revalidatePath("/admin/trainingsplan");
 }
 
-export async function halleUmbenennen(formData: FormData) {
+// Liest bis zu 4 optionale Abteil-Namen aus dem Formular — leere Felder
+// werden zu null (Fallback "Abteil N" übernimmt dann die UI), nicht zu
+// leeren Strings, damit ein späteres "Feld wieder freigelassen" den
+// vorherigen Namen sauber löscht statt einen leeren Namen zu speichern.
+function parseAbteilName(formData: FormData, feld: string): string | null {
+  const roh = formData.get(feld);
+  return typeof roh === "string" && roh.trim() ? roh.trim() : null;
+}
+
+// Name UND Abteil-Unterteilung in einem Formular/einer Aktion, da beide im
+// selben "Halle bearbeiten"-Dialog gepflegt werden (siehe
+// HalleBearbeitenDialog) — separate Speichern-Buttons dafür wären nur
+// zusätzliche Klicks ohne eigenen Nutzen.
+export async function halleBearbeiten(formData: FormData) {
   const { vereinId } = (await requireAdminSchreibzugriff()).user;
   const halleId = parseHalleId(formData);
 
@@ -39,12 +52,43 @@ export async function halleUmbenennen(formData: FormData) {
     throw new Error("Name ist erforderlich.");
   }
 
-  await withTenant(vereinId!, (tx) =>
-    tx
+  const abteilAnzahl = Number(formData.get("abteilAnzahl") ?? 0);
+  if (!Number.isInteger(abteilAnzahl) || abteilAnzahl < 0 || abteilAnzahl > 4) {
+    throw new Error("Ungültige Anzahl Abteile (0-4).");
+  }
+
+  await withTenant(vereinId!, async (tx) => {
+    await tx
       .update(hallen)
-      .set({ name: name.trim() })
-      .where(and(eq(hallen.id, halleId), eq(hallen.vereinId, vereinId!)))
-  );
+      .set({
+        name: name.trim(),
+        abteilAnzahl,
+        // Namen von Abteilen jenseits der neuen Anzahl explizit löschen —
+        // sonst würde ein später wieder erhöhtes abteilAnzahl den alten,
+        // eigentlich schon "entfernten" Namen unerwartet wieder aufleben
+        // lassen.
+        abteil1Name: abteilAnzahl >= 1 ? parseAbteilName(formData, "abteil1Name") : null,
+        abteil2Name: abteilAnzahl >= 2 ? parseAbteilName(formData, "abteil2Name") : null,
+        abteil3Name: abteilAnzahl >= 3 ? parseAbteilName(formData, "abteil3Name") : null,
+        abteil4Name: abteilAnzahl >= 4 ? parseAbteilName(formData, "abteil4Name") : null,
+      })
+      .where(and(eq(hallen.id, halleId), eq(hallen.vereinId, vereinId!)));
+
+    // Trainingszeiten, deren zugewiesenes Abteil durch eine verkleinerte
+    // Anzahl nicht mehr existiert, verlieren die Zuweisung — sonst würde im
+    // Grid/der Agenda ein Abteil-Label für ein gar nicht mehr vorhandenes
+    // Abteil auftauchen.
+    await tx
+      .update(trainingszeiten)
+      .set({ abteilNummer: null })
+      .where(
+        and(
+          eq(trainingszeiten.halleId, halleId),
+          eq(trainingszeiten.vereinId, vereinId!),
+          gt(trainingszeiten.abteilNummer, abteilAnzahl)
+        )
+      );
+  });
 
   revalidatePath("/admin/trainingsplan");
 }
@@ -90,6 +134,40 @@ function parseZeitfenster(formData: FormData): {
   return { wochentag: wochentagRoh, startMinuten, endMinuten };
 }
 
+// Leer/nicht gesetzt = kein Abteil zugewiesen (null) — z.B. bei einer nicht
+// unterteilten Halle, oder wenn der Wart es bewusst offenlässt. Der
+// eigentliche Abgleich gegen die Anzahl Abteile DIESER Halle passiert erst
+// in trainingszeitAnlegen/-Aktualisieren (dort ist die Halle bereits
+// bekannt) — hier nur das grobe 1-4-Format.
+function parseAbteilNummerRoh(formData: FormData): number | null {
+  const roh = formData.get("abteilNummer");
+  if (roh === null || roh === "") return null;
+  const zahl = Number(roh);
+  if (!Number.isInteger(zahl) || zahl < 1 || zahl > 4) {
+    throw new Error("Ungültiges Abteil.");
+  }
+  return zahl;
+}
+
+// Wirft, wenn ein gewünschtes Abteil die Anzahl Abteile der Halle
+// übersteigt — verhindert, dass ein manipuliertes Formular (das
+// TrainingszeitDialog bietet im UI ohnehin nur gültige Optionen an) ein gar
+// nicht existierendes Abteil zuweist.
+async function pruefeAbteilNummer(
+  tx: typeof db,
+  halleId: string,
+  abteilNummer: number | null
+) {
+  if (abteilNummer == null) return;
+  const halle = await tx.query.hallen.findFirst({
+    where: eq(hallen.id, halleId),
+    columns: { abteilAnzahl: true },
+  });
+  if (!halle || abteilNummer > halle.abteilAnzahl) {
+    throw new Error("Dieses Abteil gibt es in der gewählten Halle nicht (mehr).");
+  }
+}
+
 export async function trainingszeitAnlegen(formData: FormData) {
   const { vereinId } = (await requireAdminSchreibzugriff()).user;
 
@@ -99,22 +177,25 @@ export async function trainingszeitAnlegen(formData: FormData) {
   }
   const halleId = parseHalleId(formData);
   const { wochentag, startMinuten, endMinuten } = parseZeitfenster(formData);
+  const abteilNummer = parseAbteilNummerRoh(formData);
   const farbe = formData.get("farbe");
   if (farbe !== null && (typeof farbe !== "string" || !/^#[0-9a-fA-F]{6}$/.test(farbe))) {
     throw new Error("Ungültige Farbe.");
   }
 
-  await withTenant(vereinId!, (tx) =>
-    tx.insert(trainingszeiten).values({
+  await withTenant(vereinId!, async (tx) => {
+    await pruefeAbteilNummer(tx, halleId, abteilNummer);
+    await tx.insert(trainingszeiten).values({
       vereinId: vereinId!,
       mannschaftId,
       halleId,
       wochentag,
       startMinuten,
       endMinuten,
+      abteilNummer,
       ...(typeof farbe === "string" ? { farbe } : {}),
-    })
-  );
+    });
+  });
 
   revalidatePath("/admin/trainingsplan");
 }
@@ -160,17 +241,19 @@ export async function trainingszeitAktualisieren(formData: FormData) {
   }
   const halleId = parseHalleId(formData);
   const { wochentag, startMinuten, endMinuten } = parseZeitfenster(formData);
+  const abteilNummer = parseAbteilNummerRoh(formData);
   const farbe = formData.get("farbe");
   if (typeof farbe !== "string" || !/^#[0-9a-fA-F]{6}$/.test(farbe)) {
     throw new Error("Ungültige Farbe.");
   }
 
-  await withTenant(vereinId!, (tx) =>
-    tx
+  await withTenant(vereinId!, async (tx) => {
+    await pruefeAbteilNummer(tx, halleId, abteilNummer);
+    await tx
       .update(trainingszeiten)
-      .set({ mannschaftId, halleId, wochentag, startMinuten, endMinuten, farbe })
-      .where(and(eq(trainingszeiten.id, id), eq(trainingszeiten.vereinId, vereinId!)))
-  );
+      .set({ mannschaftId, halleId, wochentag, startMinuten, endMinuten, farbe, abteilNummer })
+      .where(and(eq(trainingszeiten.id, id), eq(trainingszeiten.vereinId, vereinId!)));
+  });
 
   revalidatePath("/admin/trainingsplan");
 }

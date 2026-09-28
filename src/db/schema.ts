@@ -311,6 +311,19 @@ export const hallen = pgTable("halle", {
     .notNull()
     .references(() => vereine.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  // Optionale Unterteilung einer Halle in bis zu 4 gleichzeitig nutzbare
+  // Abteile (z.B. per Hallentrenn-Vorhang) — 0 = keine Unterteilung. Feste
+  // Slots statt einer eigenen Kind-Tabelle, analog zu nuligaHalle1Id/2Id/3Id
+  // oben: die Obergrenze ist klein und fest (siehe TrainingszeitDialog), ein
+  // eigenes Tabellen-/FK-Geflecht wäre hier unverhältnismäßig. Jedes Abteil
+  // ist optional benennbar (abteilNName), sonst zeigt die UI "Abteil N" als
+  // Fallback. trainingszeiten.abteilNummer referenziert die Nummer (1-4),
+  // nicht diese Namensspalten direkt.
+  abteilAnzahl: integer("abteil_anzahl").notNull().default(0),
+  abteil1Name: text("abteil_1_name"),
+  abteil2Name: text("abteil_2_name"),
+  abteil3Name: text("abteil_3_name"),
+  abteil4Name: text("abteil_4_name"),
   erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
 });
 
@@ -343,6 +356,14 @@ export const trainingszeiten = pgTable("trainingszeit", {
   // Freie Hex-Farbe statt Enum — feste Auswahl-Palette lebt bewusst nur im
   // UI (TrainingsplanGrid), damit sie sich ohne Migration erweitern lässt.
   farbe: text("farbe").notNull().default("#3b82f6"),
+  // Welches Abteil der Halle (1-4, siehe hallen.abteilAnzahl) dieses
+  // Training belegt — null, wenn die Halle nicht unterteilt ist oder das
+  // Abteil (noch) nicht zugewiesen wurde. Rein informativ (Anzeige-Label im
+  // Grid/Agenda), erzwingt keine Positions-/Konflikt-Logik: mehrere
+  // gleichzeitige Trainings derselben Halle werden unabhängig davon schon
+  // heute nebeneinander statt als Konflikt dargestellt (siehe
+  // platziereZeitbloecke).
+  abteilNummer: integer("abteil_nummer"),
   erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
 });
 

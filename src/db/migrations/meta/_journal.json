@@ -344,6 +344,13 @@
       "when": 1790571415610,
       "tag": "0048_small_wind_dancer",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1790574525747,
+      "tag": "0049_fancy_franklin_storm",
+      "breakpoints": true
     }
   ]
 }

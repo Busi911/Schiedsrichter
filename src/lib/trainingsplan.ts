@@ -63,6 +63,36 @@ export function formatUhrzeit(minuten: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+// Optionale Unterteilung einer Halle (z.B. per Hallentrenn-Vorhang) — siehe
+// hallen.abteilAnzahl/abteilNName in db/schema.ts. Nur diese Teilmenge der
+// Halle-Felder, damit Komponenten nicht die komplette Drizzle-Zeile
+// durchreichen müssen, nur um ein Abteil-Label zu berechnen.
+export type HalleMitAbteilen = {
+  abteilAnzahl: number;
+  abteil1Name: string | null;
+  abteil2Name: string | null;
+  abteil3Name: string | null;
+  abteil4Name: string | null;
+};
+
+// 0 = keine Unterteilung — dazwischenliegende Werte (1) sind sinnlos (eine
+// Halle "in 1 Teil" zu unterteilen entspricht keiner Unterteilung), daher
+// hier bewusst nicht Teil der UI-Auswahl (siehe HalleBearbeitenDialog).
+export const ABTEIL_ANZAHL_OPTIONEN = [0, 2, 3, 4] as const;
+
+// Anzeigename eines Abteils: der vom Verein vergebene Name, sonst Fallback
+// "Abteil N" — damit ein Abteil auch ohne eigenen Namen sofort benutzbar
+// ist (siehe "ggf. benennen"-Wunsch, Namensvergabe ist rein optional).
+export function abteilLabel(halle: HalleMitAbteilen, nummer: number): string {
+  const name = [
+    halle.abteil1Name,
+    halle.abteil2Name,
+    halle.abteil3Name,
+    halle.abteil4Name,
+  ][nummer - 1];
+  return name ?? `Abteil ${nummer}`;
+}
+
 export type ZeitBlock = {
   id: string;
   startMinuten: number;

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 import {
   Dialog,
   DialogContent,
@@ -14,9 +15,11 @@ import { SubmitButton } from "@/components/submit-button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { cn } from "@/lib/utils";
 import {
+  abteilLabel,
   formatUhrzeit,
   TRAININGSFARBEN,
   WOCHENTAGE_LABEL,
+  type HalleMitAbteilen,
 } from "@/lib/trainingsplan";
 import {
   trainingszeitAktualisieren,
@@ -32,10 +35,31 @@ export type TrainingszeitEintrag = {
   startMinuten: number;
   endMinuten: number;
   farbe: string;
+  // null = kein Abteil zugewiesen (auch bei unterteilter Halle möglich,
+  // siehe abteilNummer-Kommentar in db/schema.ts).
+  abteilNummer: number | null;
 };
 
 function minutenZuZeitwert(minuten: number): string {
   return formatUhrzeit(minuten);
+}
+
+// Schließt den Dialog automatisch, sobald das umgebende <form> eine
+// Übermittlung (egal ob Speichern oder Löschen, beide teilen sich dieselbe
+// <form>-pending-Historie über formAction) beendet hat — ohne das würde der
+// Dialog nach z.B. "Löschen" einfach offen stehenbleiben und dabei auf eine
+// inzwischen nicht mehr existierende Trainingszeit zeigen. Muss innerhalb
+// des <form> gerendert werden, useFormStatus liest sonst nichts.
+function SchliesseNachSpeichern({ onFertig }: { onFertig: () => void }) {
+  const { pending } = useFormStatus();
+  const warPending = useRef(false);
+  useEffect(() => {
+    if (warPending.current && !pending) {
+      onFertig();
+    }
+    warPending.current = pending;
+  }, [pending, onFertig]);
+  return null;
 }
 
 // Formular zum Anlegen ODER Bearbeiten einer Trainingszeit — dieselbe
@@ -56,7 +80,7 @@ export function TrainingszeitDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mannschaften: { id: string; label: string }[];
-  hallen: { id: string; name: string }[];
+  hallen: ({ id: string; name: string } & HalleMitAbteilen)[];
   // Bearbeiten eines bestehenden Eintrags …
   eintrag?: TrainingszeitEintrag;
   // … ODER Neuanlage mit vorausgefüllten Werten (z.B. aus einem Klick auf
@@ -70,10 +94,14 @@ export function TrainingszeitDialog({
 }) {
   const bearbeiten = !!eintrag;
   const [farbe, setFarbe] = useState(eintrag?.farbe ?? TRAININGSFARBEN[0]);
+  const [halleIdAuswahl, setHalleIdAuswahl] = useState(
+    eintrag?.halleId ?? vorgabe?.halleId ?? hallen[0]?.id ?? ""
+  );
 
   if (mannschaften.length === 0 || hallen.length === 0) return null;
 
-  const halleId = eintrag?.halleId ?? vorgabe?.halleId ?? hallen[0].id;
+  const halleId = halleIdAuswahl;
+  const halleAusgewaehlt = hallen.find((h) => h.id === halleId) ?? hallen[0];
   const wochentag = eintrag?.wochentag ?? vorgabe?.wochentag ?? 0;
   const startMinuten = eintrag?.startMinuten ?? vorgabe?.startMinuten ?? 17 * 60;
   const endMinuten = eintrag?.endMinuten ?? vorgabe?.endMinuten ?? 18 * 60;
@@ -107,6 +135,7 @@ export function TrainingszeitDialog({
           className="flex flex-col gap-3"
         >
           {bearbeiten && <input type="hidden" name="id" value={eintrag.id} />}
+          <SchliesseNachSpeichern onFertig={() => onOpenChange(false)} />
           <input type="hidden" name="farbe" value={farbe} />
           <input type="hidden" name="startMinuten" />
           <input type="hidden" name="endMinuten" />
@@ -129,9 +158,41 @@ export function TrainingszeitDialog({
               name="halleId"
               required
               defaultValue={halleId}
+              onValueChange={setHalleIdAuswahl}
               options={hallen.map((h) => ({ value: h.id, label: h.name }))}
             />
           </div>
+
+          {halleAusgewaehlt.abteilAnzahl > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="tz-abteil">Abteil</Label>
+              <LabeledSelect
+                // Remount bei Hallenwechsel (siehe onValueChange oben) —
+                // sonst könnte eine bereits getroffene Abteil-Auswahl nach
+                // einem Hallenwechsel unsichtbar "hängen bleiben" und einen
+                // in der neuen Halle gar nicht mehr existierenden Wert
+                // übermitteln (serverseitig zwar abgefangen, siehe
+                // pruefeAbteilNummer, aber ein verwirrendes UI-Verhalten).
+                key={halleAusgewaehlt.id}
+                id="tz-abteil"
+                name="abteilNummer"
+                // Kein required — ein Abteil zuzuweisen bleibt optional,
+                // auch wenn die Halle unterteilt ist (siehe abteilNummer in
+                // db/schema.ts).
+                defaultValue={
+                  eintrag?.abteilNummer != null ? String(eintrag.abteilNummer) : undefined
+                }
+                placeholder="Kein bestimmtes Abteil"
+                options={Array.from(
+                  { length: halleAusgewaehlt.abteilAnzahl },
+                  (_, i) => i + 1
+                ).map((n) => ({
+                  value: String(n),
+                  label: abteilLabel(halleAusgewaehlt, n),
+                }))}
+              />
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="tz-wochentag">Wochentag</Label>
