@@ -248,6 +248,19 @@ export const vereine = pgTable("verein", {
   // Kioskdienst (siehe /ordner-eintragen/[token]) — vom Ordnerwart
   // aktivierbar.
   ordnerSelbstanmeldungToken: text("ordner_selbstanmeldung_token").unique(),
+  // Sichtbares Zeitfenster des Trainingsplan-Wochenrasters (siehe
+  // TrainingsplanWoche) — als Minuten seit Mitternacht statt fester Stunden
+  // gespeichert, konsistent mit trainingszeiten.startMinuten/endMinuten,
+  // auch wenn die Einstellungsseite dafür nur volle Stunden anbietet. Ohne
+  // diese Einstellung war das Grid bei jedem Verein fest 7-22 Uhr hoch,
+  // unabhängig davon, wann tatsächlich trainiert wird. Default entspricht
+  // dem bisherigen festen Verhalten.
+  trainingsplanStartMinuten: integer("trainingsplan_start_minuten")
+    .notNull()
+    .default(7 * 60),
+  trainingsplanEndMinuten: integer("trainingsplan_end_minuten")
+    .notNull()
+    .default(22 * 60),
 });
 
 export const mannschaften = pgTable("mannschaft", {

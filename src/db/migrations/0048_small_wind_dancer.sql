@@ -1,0 +1,2 @@
+ALTER TABLE "verein" ADD COLUMN "trainingsplan_start_minuten" integer DEFAULT 420 NOT NULL;--> statement-breakpoint
+ALTER TABLE "verein" ADD COLUMN "trainingsplan_end_minuten" integer DEFAULT 1320 NOT NULL;
