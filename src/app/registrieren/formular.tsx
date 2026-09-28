@@ -5,7 +5,6 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { vereinRegistrieren } from "./actions";
 
@@ -58,19 +57,23 @@ export function RegistrierenFormular() {
         <Input id="adminEmail" name="adminEmail" type="email" required />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="adresse">Vereinsadresse</Label>
-        <Textarea
-          id="adresse"
-          name="adresse"
-          required
-          rows={2}
-          placeholder={"Straße Hausnummer\nPLZ Ort"}
-        />
-        <p className="text-xs text-muted-foreground">
-          Brauchen wir für spätere Rechnungen — einmal hier eintragen statt
-          separat nachfragen.
-        </p>
+        <Label htmlFor="strasse">Straße und Hausnummer</Label>
+        <Input id="strasse" name="strasse" required />
       </div>
+      <div className="flex gap-3">
+        <div className="flex w-28 flex-col gap-2">
+          <Label htmlFor="plz">PLZ</Label>
+          <Input id="plz" name="plz" required inputMode="numeric" />
+        </div>
+        <div className="flex flex-1 flex-col gap-2">
+          <Label htmlFor="ort">Ort</Label>
+          <Input id="ort" name="ort" required />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Brauchen wir für spätere Rechnungen — einmal hier eintragen statt
+        separat nachfragen.
+      </p>
       {ergebnis && "fehler" in ergebnis && (
         <p className="text-sm text-destructive">{ergebnis.fehler}</p>
       )}

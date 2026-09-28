@@ -144,7 +144,12 @@ export const warteliste = pgTable("warteliste", {
 export const vereine = pgTable("verein", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  adresse: text("adresse"),
+  // Strukturiert statt eines einzelnen Freitext-Felds (frühere Spalte
+  // "adresse") — einfacher zu validieren/anzuzeigen als ein Textblock, in
+  // dem Straße/PLZ/Ort nicht maschinenlesbar getrennt sind.
+  strasse: text("strasse"),
+  plz: text("plz"),
+  ort: text("ort"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
   // Zustimmung zum Auftragsverarbeitungsvertrag (Art. 28 DSGVO, siehe
   // /admin/avv) — erzwungen beim ersten Login des Vereinsadmins (siehe

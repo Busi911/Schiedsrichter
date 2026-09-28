@@ -8,7 +8,6 @@ import {
   nuligaEinstellungenSpeichern,
   vereinsdatenSpeichern,
 } from "./actions";
-import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -21,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SubmitButton } from "@/components/submit-button";
+import { VereinLoeschenDialog } from "@/components/verein-loeschen-dialog";
 
 export default async function EinstellungenPage({
   searchParams,
@@ -81,15 +81,30 @@ export default async function EinstellungenPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={vereinsdatenSpeichern} className="flex flex-col gap-2">
-            <Label htmlFor="verein-adresse">Adresse</Label>
-            <Textarea
-              id="verein-adresse"
-              name="adresse"
-              rows={2}
-              defaultValue={verein?.adresse ?? ""}
-              placeholder={"Straße Hausnummer\nPLZ Ort"}
-            />
+          <form action={vereinsdatenSpeichern} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="strasse">Straße und Hausnummer</Label>
+              <Input
+                id="strasse"
+                name="strasse"
+                defaultValue={verein?.strasse ?? ""}
+              />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex w-28 flex-col gap-2">
+                <Label htmlFor="plz">PLZ</Label>
+                <Input
+                  id="plz"
+                  name="plz"
+                  inputMode="numeric"
+                  defaultValue={verein?.plz ?? ""}
+                />
+              </div>
+              <div className="flex flex-1 flex-col gap-2">
+                <Label htmlFor="ort">Ort</Label>
+                <Input id="ort" name="ort" defaultValue={verein?.ort ?? ""} />
+              </div>
+            </div>
             <SubmitButton size="sm" className="self-start" pendingText="Wird gespeichert…">
               Speichern
             </SubmitButton>
@@ -493,6 +508,21 @@ export default async function EinstellungenPage({
           </CardContent>
         </Card>
       </div>
+
+      {session.user.istAdmin && verein && (
+        <Card className="max-w-2xl border-destructive/50">
+          <CardHeader>
+            <CardTitle>Gefahrenzone</CardTitle>
+            <CardDescription>
+              Löscht den gesamten Verein samt aller Funktionsträger,
+              Mannschaften, Termine und Historie — unwiderruflich.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <VereinLoeschenDialog vereinsname={verein.name} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

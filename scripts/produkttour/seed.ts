@@ -38,7 +38,9 @@ async function main() {
       .values({
         id: vereinId,
         name: "TSV Musterstadt Handball",
-        adresse: "Sporthallenweg 3, 65183 Musterstadt",
+        strasse: "Sporthallenweg 3",
+        plz: "65183",
+        ort: "Musterstadt",
         avvAkzeptiertAm: heute,
         avvAkzeptiertVersion: "1.0",
         avvAkzeptiertVonName: "Anna Admin",

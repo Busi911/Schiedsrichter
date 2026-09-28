@@ -20,7 +20,7 @@ export async function legeVereinMitAdminAn(
   // abgefragt) — früher oder später für Rechnungen benötigt, daher schon
   // bei der Selbstregistrierung (siehe /registrieren) erfasst, aber auch
   // nachträglich unter /admin/einstellungen pflegbar, falls hier leer.
-  adresse?: string
+  adresse?: { strasse: string; plz: string; ort: string }
 ): Promise<string> {
   const neueEmail = adminEmail.trim().toLowerCase();
   const vereinId = crypto.randomUUID();
@@ -30,7 +30,13 @@ export async function legeVereinMitAdminAn(
     await tx.insert(vereine).values({
       id: vereinId,
       name: vereinsname.trim(),
-      ...(adresse?.trim() ? { adresse: adresse.trim() } : {}),
+      ...(adresse
+        ? {
+            strasse: adresse.strasse.trim(),
+            plz: adresse.plz.trim(),
+            ort: adresse.ort.trim(),
+          }
+        : {}),
     });
     await tx.insert(users).values({
       email: neueEmail,
