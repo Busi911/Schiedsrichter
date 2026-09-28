@@ -8,6 +8,7 @@ import {
 } from "@/app/admin/(dashboard)/trainingsplan/actions";
 import {
   begrenze,
+  formatUhrzeit,
   platziereZeitbloecke,
   rundeAufRaster,
   standardFarbeFuerMannschaft,
@@ -15,15 +16,7 @@ import {
 } from "@/lib/trainingsplan";
 import type { TrainingszeitEintrag } from "@/components/trainingszeit-dialog";
 
-// Sichtbares Zeitfenster des Grids — Trainingsbetrieb findet praktisch immer
-// innerhalb dieser Spanne statt; ein Eintrag außerhalb (theoretisch über den
-// Bearbeiten-Dialog möglich, dessen Zeitfelder keine Grenze haben) würde am
-// Rand abgeschnitten dargestellt statt das Grid unnötig in die Höhe zu
-// treiben.
-const GRID_START_MINUTEN = 7 * 60;
-const GRID_END_MINUTEN = 22 * 60;
 const PX_PRO_MINUTE = 1.1;
-const GRID_HOEHE = (GRID_END_MINUTEN - GRID_START_MINUTEN) * PX_PRO_MINUTE;
 
 type Mannschaft = { id: string; label: string };
 
@@ -57,12 +50,21 @@ export function TrainingsplanWoche({
   halleId,
   mannschaften,
   trainingszeiten,
+  gridStartMinuten,
+  gridEndMinuten,
   onBlockClick,
   onSlotClick,
 }: {
   halleId: string;
   mannschaften: Mannschaft[];
   trainingszeiten: TrainingszeitEintrag[];
+  // Sichtbares Zeitfenster des Grids, vom Verein einstellbar (siehe
+  // TrainingsplanGrid) — ein Eintrag außerhalb (theoretisch über den
+  // Bearbeiten-Dialog möglich, dessen Zeitfelder keine Grenze haben) würde
+  // am Rand abgeschnitten dargestellt statt das Grid unnötig in die Höhe zu
+  // treiben.
+  gridStartMinuten: number;
+  gridEndMinuten: number;
   onBlockClick: (eintrag: TrainingszeitEintrag) => void;
   onSlotClick: (vorgabe: {
     halleId: string;
@@ -71,6 +73,11 @@ export function TrainingsplanWoche({
     endMinuten: number;
   }) => void;
 }) {
+  // Lokale Alias-Konstanten statt die Props überall im Rechenteil unten
+  // umzubenennen — hält den Diff zum vormals modulweiten Fixwert klein.
+  const GRID_START_MINUTEN = gridStartMinuten;
+  const GRID_END_MINUTEN = gridEndMinuten;
+  const GRID_HOEHE = (GRID_END_MINUTEN - GRID_START_MINUTEN) * PX_PRO_MINUTE;
   const [, startTransition] = useTransition();
   const [dragZustand, setDragZustand] = useState<DragZustand | null>(null);
   const [vorschau, setVorschau] = useState<Vorschau | null>(null);
@@ -254,7 +261,7 @@ export function TrainingsplanWoche({
             {WOCHENTAGE_LABEL_KURZ.map((label) => (
               <div
                 key={label}
-                className="w-28 shrink-0 border-b py-1 text-center text-xs font-medium"
+                className="w-32 shrink-0 border-b py-1 text-center text-xs font-medium"
               >
                 {label}
               </div>
@@ -296,7 +303,7 @@ export function TrainingsplanWoche({
                       endMinuten: start + 60,
                     });
                   }}
-                  className="relative w-28 shrink-0 border-l"
+                  className="relative w-32 shrink-0 border-l"
                   style={{ height: GRID_HOEHE }}
                 >
                   {stunden.map((h) => (
@@ -331,11 +338,15 @@ export function TrainingsplanWoche({
                         backgroundColor: block.farbe,
                       }}
                     >
-                      <span className="truncate font-medium">
+                      <span
+                        className="truncate font-medium"
+                        title={mannschaftLabelZuId.get(block.mannschaftId) ?? "?"}
+                      >
                         {mannschaftLabelZuId.get(block.mannschaftId) ?? "?"}
                       </span>
                       <span className="truncate opacity-90">
-                        {block.endMinuten - block.startMinuten} min
+                        {formatUhrzeit(block.startMinuten)}–
+                        {formatUhrzeit(block.endMinuten)}
                       </span>
                       <div
                         onPointerDown={(e) => {

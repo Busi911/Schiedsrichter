@@ -170,10 +170,17 @@ export function TrainingsplanGrid({
   hallen,
   mannschaften,
   trainingszeiten,
+  gridStartMinuten,
+  gridEndMinuten,
 }: {
   hallen: Halle[];
   mannschaften: Mannschaft[];
   trainingszeiten: TrainingszeitEintrag[];
+  // Sichtbares Zeitfenster des Wochenrasters (siehe TrainingsplanWoche),
+  // vom Verein unter /admin/trainingsplan einstellbar (siehe
+  // vereine.trainingsplanStartMinuten/-EndMinuten) statt fest codiert.
+  gridStartMinuten: number;
+  gridEndMinuten: number;
 }) {
   const [halleAktivId, setHalleAktivId] = useState<string | null>(
     hallen[0]?.id ?? null
@@ -246,6 +253,8 @@ export function TrainingsplanGrid({
                   halleId={halleAktiv.id}
                   mannschaften={mannschaften}
                   trainingszeiten={zeitenAktiv}
+                  gridStartMinuten={gridStartMinuten}
+                  gridEndMinuten={gridEndMinuten}
                   onBlockClick={(eintrag) => setDialog({ modus: "bearbeiten", eintrag })}
                   onSlotClick={(vorgabe) => setDialog({ modus: "neu", vorgabe })}
                 />

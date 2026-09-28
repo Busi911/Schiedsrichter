@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
-import { hallen, trainingszeiten } from "@/db/schema";
+import { hallen, trainingszeiten, vereine } from "@/db/schema";
 import { begrenze, rundeAufRaster } from "@/lib/trainingsplan";
 
 function parseHalleId(formData: FormData): string {
@@ -170,6 +170,44 @@ export async function trainingszeitAktualisieren(formData: FormData) {
       .update(trainingszeiten)
       .set({ mannschaftId, halleId, wochentag, startMinuten, endMinuten, farbe })
       .where(and(eq(trainingszeiten.id, id), eq(trainingszeiten.vereinId, vereinId!)))
+  );
+
+  revalidatePath("/admin/trainingsplan");
+}
+
+// Sichtbares Zeitfenster des Wochenrasters (siehe TrainingsplanWoche) — nur
+// volle Stunden (0-23), gespeichert als Minuten seit Mitternacht
+// (vereine.trainingsplanStartMinuten/-EndMinuten) konsistent mit den
+// Trainingszeiten selbst. Bestehende Trainingszeiten außerhalb des neuen
+// Fensters bleiben unangetastet, werden im Grid nur am Rand abgeschnitten
+// dargestellt (siehe GRID_START_MINUTEN-Kommentar in TrainingsplanWoche).
+export async function trainingsplanZeitfensterSpeichern(formData: FormData) {
+  const { vereinId } = (await requireAdminSchreibzugriff()).user;
+
+  const startStunde = Number(formData.get("startStunde"));
+  const endStunde = Number(formData.get("endStunde"));
+  if (
+    !Number.isInteger(startStunde) ||
+    !Number.isInteger(endStunde) ||
+    startStunde < 0 ||
+    startStunde > 23 ||
+    endStunde < 1 ||
+    endStunde > 24 ||
+    endStunde <= startStunde
+  ) {
+    throw new Error(
+      "Ungültiges Zeitfenster — die Endzeit muss nach der Startzeit liegen."
+    );
+  }
+
+  await withTenant(vereinId!, (tx) =>
+    tx
+      .update(vereine)
+      .set({
+        trainingsplanStartMinuten: startStunde * 60,
+        trainingsplanEndMinuten: endStunde * 60,
+      })
+      .where(eq(vereine.id, vereinId!))
   );
 
   revalidatePath("/admin/trainingsplan");
