@@ -168,6 +168,19 @@ export function TrainingsplanWoche({
       setDragZustand(null);
       setVorschau(null);
       vorschauRef.current = null;
+
+      // Ein reiner Klick (kein Ziehen) auf einen bestehenden Block soll den
+      // Bearbeiten-Dialog öffnen (siehe onPointerDown am Block unten) — das
+      // muss VOR dem "kein Vorschau-Update"-Abbruch geprüft werden: bei
+      // einem schnellen, präzisen Klick (v.a. auf Touch-Geräten üblich)
+      // feuert oft gar kein pointermove zwischen down und up, wodurch
+      // vorschauRef.current nie gesetzt wird — sonst würde der Dialog nie
+      // aufgehen, ohne dass es einen sichtbaren Fehler gibt.
+      if (zustand.modus === "verschieben" && !zustand.bewegt) {
+        onBlockClick(zustand.block);
+        return;
+      }
+
       if (!v) return;
 
       if (zustand.modus === "neu") {
@@ -185,10 +198,6 @@ export function TrainingsplanWoche({
       }
 
       if (zustand.modus === "verschieben") {
-        if (!zustand.bewegt) {
-          onBlockClick(zustand.block);
-          return;
-        }
         const fd = new FormData();
         fd.set("id", zustand.block.id);
         fd.set("wochentag", String(v.wochentag));
@@ -257,8 +266,9 @@ export function TrainingsplanWoche({
         ))}
       </div>
       <p className="text-xs text-muted-foreground">
-        Mannschaft auf einen Wochentag ziehen, um ein Training anzulegen — an
-        der unteren Kante eines Trainings ziehen, um die Dauer zu ändern.
+        Mannschaft auf einen Wochentag ziehen, um ein Training anzulegen — auf
+        ein bestehendes Training klicken, um es zu bearbeiten, an der unteren
+        Kante ziehen, um die Dauer zu ändern.
       </p>
 
       <div className="flex overflow-x-auto rounded-lg border">
