@@ -1,0 +1,111 @@
+name: Produkttour-Screenshots neu erzeugen
+
+# Manueller Trigger, absichtlich kein push/pull_request: das hier startet
+# einen echten Next.js-Dev-Server gegen eine Wegwerf-Postgres-Instanz mit
+# Demo-Daten und erzeugt Screenshots — soll nicht bei jedem Commit
+# mitlaufen, sondern nur, wenn sich sichtbar etwas an den gezeigten Seiten
+# geändert hat (siehe scripts/produkttour/README.md).
+on:
+  workflow_dispatch: {}
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: handballpate
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Vor der Migration zeigen beide noch auf die privilegierte
+      # postgres-Rolle — DATABASE_URL wird nach "drizzle-kit migrate" (legt
+      # app_user an) auf die eingeschränkte Rolle umgestellt, siehe unten
+      # und README.md#lokales-setup.
+      DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/handballpate?sslmode=disable
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/handballpate?sslmode=disable
+      AUTH_SECRET: produkttour-ci-secret-nicht-fuer-produktion
+      SETUP_SECRET: produkttour-ci-secret-nicht-fuer-produktion
+      CRON_SECRET: produkttour-ci-secret-nicht-fuer-produktion
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      SMTP_FROM: "HandballerPate <no-reply@example.org>"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Chromium für Playwright installieren
+        run: npx playwright install --with-deps chromium
+
+      - name: Schema migrieren (legt u.a. app_user an)
+        run: npx drizzle-kit migrate
+
+      - name: app_user-Passwort setzen, Singleton-Zeile seeden
+        run: |
+          sudo apt-get update -y >/dev/null
+          sudo apt-get install -y postgresql-client >/dev/null
+          psql "$DATABASE_ADMIN_URL" -c "ALTER ROLE app_user WITH PASSWORD 'produkttour_ci';"
+          psql "$DATABASE_ADMIN_URL" -c "INSERT INTO system_einstellungen (beta_verein_limit) VALUES (50);"
+
+      - name: DATABASE_URL auf app_user umstellen
+        run: echo "DATABASE_URL=postgres://app_user:produkttour_ci@localhost:5432/handballpate?sslmode=disable" >> "$GITHUB_ENV"
+
+      - name: Lokalen Postgres-Treiber aktivieren (nur für diesen CI-Lauf)
+        # @neondatabase/serverless spricht nur mit einem echten Neon-Endpunkt
+        # (WebSocket-Proxy) — für diesen Job reicht das nicht, daher hier
+        # temporär auf den normalen node-postgres-Treiber umschalten, VOR dem
+        # Seed-Skript (das denselben src/db-Code importiert) und dem
+        # Dev-Server. Wird am Ende des Jobs zwingend wieder verworfen (siehe
+        # letzter Schritt), damit nichts davon in den Branch einfließt.
+        run: git apply scripts/produkttour/local-pg-driver.patch
+
+      - name: Demo-Verein + Beispieldaten seeden
+        run: npm run produkttour:seed
+
+      - name: Dev-Server starten
+        run: |
+          npm run dev > /tmp/nextdev.log 2>&1 &
+          echo $! > /tmp/nextdev.pid
+          timeout 60 bash -c 'until curl -sf http://localhost:3000/login >/dev/null; do sleep 1; done'
+
+      - name: Screenshots erzeugen
+        run: npm run produkttour:screenshot
+
+      - name: Dev-Server stoppen
+        if: always()
+        run: kill "$(cat /tmp/nextdev.pid)" 2>/dev/null || true
+
+      - name: Dev-Server-Log bei Fehler anzeigen
+        if: failure()
+        run: cat /tmp/nextdev.log || true
+
+      - name: Treiber-Patch verwerfen
+        if: always()
+        run: git checkout -- src/db/index.ts src/db/admin.ts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: produkttour-screenshots
+          path: public/produkttour/*.png
+          retention-days: 14

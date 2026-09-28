@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { count } from "drizzle-orm";
 import {
@@ -55,6 +56,49 @@ const FEATURES = [
     icon: ShieldCheckIcon,
     titel: "Datenschutz & DSGVO",
     text: "Mandantengetrennte Datenhaltung, Auftragsverarbeitungsvertrag und Datenschutzerklärung von Anfang an mit dabei.",
+  },
+];
+
+// Screenshots mit Beispieldaten (Demo-Verein, keine echten Nutzerdaten) aus
+// src/app/page.tsx-Produkttour — bei sichtbaren UI-Änderungen an den
+// gezeigten Seiten (Übersicht, Funktionsträger, Kalender, Trainingsplan,
+// Offene Dienste) neu erstellen, sonst veraltet die Tour optisch gegenüber
+// der echten App.
+const PRODUKTTOUR = [
+  {
+    bild: "/produkttour/uebersicht.png",
+    breite: 1440,
+    hoehe: 530,
+    titel: "Alles auf einen Blick",
+    text: "Die Admin-Übersicht zeigt sofort, welche Termine noch Schiedsrichter oder Zeitnehmer brauchen — und die letzten Ergebnisse aus dem Hallenspielplan.",
+  },
+  {
+    bild: "/produkttour/funktionstraeger.png",
+    breite: 1440,
+    hoehe: 830,
+    titel: "Funktionsträger zentral verwalten",
+    text: "Alle Schiedsrichter, Zeitnehmer, Sekretäre, Trainer, Ordner, Kioskdienste und Kassierer mit ihren Rollen an einem Ort — inklusive Excel-Import.",
+  },
+  {
+    bild: "/produkttour/kalender.png",
+    breite: 1440,
+    hoehe: 525,
+    titel: "Kalender mit Besetzungsstatus",
+    text: "Grün oder rot auf den ersten Blick: welche Spiele vollständig besetzt sind und wo noch Personal fehlt, direkt in der Monatsübersicht.",
+  },
+  {
+    bild: "/produkttour/trainingsplan.png",
+    breite: 1000,
+    hoehe: 830,
+    titel: "Trainingsplan je Halle",
+    text: "Wöchentliche Trainingszeiten für alle Mannschaften und Hallen per Drag & Drop planen — inklusive geteilter Hallen mit mehreren Abteilen.",
+  },
+  {
+    bild: "/produkttour/dienste.png",
+    breite: 1440,
+    hoehe: 860,
+    titel: "Offene Dienste fair verteilen",
+    text: "Wer hat schon wie oft gepfiffen oder Kiosk/Ordnerdienst übernommen? Die Statistik zeigt die Verteilung, offene Termine sind sofort sichtbar.",
   },
 ];
 
@@ -149,6 +193,58 @@ export default async function Home() {
                   <f.icon className="size-6 text-primary" />
                   <p className="font-heading font-medium">{f.titel}</p>
                   <p className="text-sm text-muted-foreground">{f.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t">
+          <div className="mx-auto max-w-5xl px-6 py-16">
+            <div className="mx-auto flex max-w-2xl flex-col items-center gap-2 text-center">
+              <h2 className="font-heading text-2xl font-semibold">
+                So sieht HandballerPate in der Praxis aus
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Mit Beispieldaten eines fiktiven Vereins — kein Login nötig,
+                um dir ein Bild zu machen.
+              </p>
+            </div>
+            <div className="mt-10 flex flex-col gap-14">
+              {PRODUKTTOUR.map((eintrag, i) => (
+                <div
+                  key={eintrag.bild}
+                  className="grid items-center gap-6 md:grid-cols-2 md:gap-10"
+                >
+                  <div
+                    className={
+                      i % 2 === 1 ? "order-1 md:order-2" : "order-1"
+                    }
+                  >
+                    <div className="overflow-hidden rounded-lg border shadow-sm">
+                      <Image
+                        src={eintrag.bild}
+                        alt={eintrag.titel}
+                        width={eintrag.breite}
+                        height={eintrag.hoehe}
+                        className="h-auto w-full"
+                      />
+                    </div>
+                  </div>
+                  <div
+                    className={
+                      i % 2 === 1
+                        ? "order-2 flex flex-col gap-2 md:order-1"
+                        : "order-2 flex flex-col gap-2"
+                    }
+                  >
+                    <h3 className="font-heading text-lg font-medium">
+                      {eintrag.titel}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {eintrag.text}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
