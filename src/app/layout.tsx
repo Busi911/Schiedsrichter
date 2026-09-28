@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { Footer } from "@/components/footer";
 import { ServiceWorkerRegistrar } from "@/components/sw-register";
 import "./globals.css";
@@ -12,6 +12,15 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Eigenständige Schrift für Überschriften (font-heading, siehe globals.css)
+// statt derselben Schrift wie der Fließtext — sonst hebt sich die App
+// optisch kaum von einem generischen Admin-Template ab.
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-heading-google",
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -40,7 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="de"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col overflow-x-hidden bg-muted/40">
         <ServiceWorkerRegistrar />

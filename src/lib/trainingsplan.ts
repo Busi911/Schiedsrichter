@@ -23,15 +23,18 @@ export const RASTER_MINUTEN = 15;
 // unterscheidbar UND untereinander harmonisch bleiben. In der DB liegt
 // trotzdem nur ein freier Hex-String (trainingszeiten.farbe), damit sich die
 // Palette später ohne Migration erweitern lässt.
+// Bewusst auf ähnliche Sättigung/Helligkeit abgestimmt (statt Tailwinds
+// Standardfarben unverändert zu übernehmen) — wirkt als ein zusammen
+// designtes Farbschema statt als zufällig gemischte Regenbogenpalette.
 export const TRAININGSFARBEN = [
-  "#3b82f6", // blau
-  "#ef4444", // rot
-  "#22c55e", // grün
-  "#f59e0b", // orange
-  "#a855f7", // violett
-  "#ec4899", // pink
-  "#14b8a6", // türkis
-  "#78716c", // grau
+  "#4C6EF5", // indigo
+  "#38A3C9", // sky
+  "#2F9E86", // teal
+  "#3FAE7A", // grün
+  "#77AE3C", // oliv
+  "#E2A03D", // amber
+  "#E2645F", // koralle
+  "#9B7BEA", // violett
 ] as const;
 
 // Deterministische Standardfarbe für eine neu per Drag angelegte
