@@ -19,6 +19,7 @@ import {
   istBesetzungVollstaendig,
 } from "@/lib/besetzung";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { standardFarbeFuerMannschaft } from "@/lib/trainingsplan";
 import { holeOrdnerEinsatzZahlen, ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
@@ -354,12 +355,12 @@ export async function holeAdminKalenderDaten(
         t.handballNetSchiedsrichter
           ? {
               id: `handball-net-schiedsrichter-${t.id}`,
-              label: `handball.net-Ansetzung: ${t.handballNetSchiedsrichter}${nochNichtZugeordnet}`,
+              label: `${ROLLE_LABEL.schiedsrichter} (handball.net-Ansetzung): ${t.handballNetSchiedsrichter}${nochNichtZugeordnet}`,
               entfernbar: false,
             }
           : {
               id: `nuliga-kuerzel-${t.id}`,
-              label: `nuLiga-Ansetzung: ${t.nuligaSchiedsrichterKuerzel}${nochNichtZugeordnet}`,
+              label: `${ROLLE_LABEL.schiedsrichter} (nuLiga-Ansetzung): ${t.nuligaSchiedsrichterKuerzel}${nochNichtZugeordnet}`,
               entfernbar: false,
             }
       );
@@ -367,7 +368,7 @@ export async function holeAdminKalenderDaten(
     if (t.handballNetZeitnehmer && !hatEigenenZeitnehmer) {
       besetzungsDetails.push({
         id: `handball-net-zeitnehmer-${t.id}`,
-        label: `handball.net-Ansetzung: ${t.handballNetZeitnehmer} (noch nicht zugeordnet)`,
+        label: `Zeitnehmer/Sekretär (handball.net-Ansetzung): ${t.handballNetZeitnehmer} (noch nicht zugeordnet)`,
         entfernbar: false,
       });
     }
@@ -447,6 +448,7 @@ export async function holeAdminKalenderDaten(
       ort: t.ort,
       besetzungsDetails,
       mannschaftLabel: formatMannschaft(t),
+      farbe: t.mannschaftId ? standardFarbeFuerMannschaft(t.mannschaftId) : null,
       ergebnis: formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts),
       bearbeitenHref: BEARBEITBARE_TYPEN.includes(t.typ)
         ? `/admin/termine/${t.typ === "turnier_spiel" ? t.turnierId : t.id}`
