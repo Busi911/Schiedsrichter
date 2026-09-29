@@ -3,11 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CalendarIcon, CheckCircle2, Trophy } from "lucide-react";
 import {
   monatKey,
   monatsGitter,
-  platziereBalken,
   tagKey,
   type TurnierBalken,
 } from "@/lib/kalender";
@@ -52,10 +51,9 @@ const MONATE_LANG = Array.from({ length: 12 }, (_, i) =>
   )
 );
 
-// Ab wie vielen Terminen an einem Tag im Gitter (Desktop) "+N weitere" statt
-// aller Zeilen gezeigt wird — an Spieltagen mit laufendem Turnier (Balken +
-// jedes Einzelspiel als eigener Eintrag, siehe holeAdminKalenderDaten) sonst
-// eine unlesbare Wand aus winzigem Text.
+// Ab wie vielen Terminen an einem Tag im Gitter (Desktop wie Mobile-Punkte)
+// eine Kurzfassung statt aller Zeilen gezeigt wird — die vollständige Liste
+// steht ohnehin in der Detailspalte/-liste des ausgewählten Tages.
 const MAX_SICHTBARE_EINTRAEGE = 3;
 
 const ZUORDENBARE_TYP_LABEL: Record<string, string> = {
@@ -122,11 +120,11 @@ export type KalenderEintrag = {
   ergebnis?: string | null;
 };
 
-// Mehrtägiger Balken (z.B. Turnier-Container) — zieht sich als durchgehende
-// Leiste über seine Tage, statt wie ein normaler Eintrag nur am Starttag zu
-// erscheinen. Bewusst kein Besetzungs-Konzept (siehe KalenderEintrag) — ein
-// Turnier-Container selbst ist kein zu besetzendes Ereignis, das sind seine
-// Einzelspiele.
+// Mehrtägiger Balken (z.B. Turnier-Container) — im Gitter nur noch als
+// kurzer Hinweis-Chip an jedem betroffenen Tag markiert (siehe
+// TAGE_MIT_BALKEN unten), die eigentliche Bearbeiten-Aktion (siehe
+// balkenDialogInhalt) läuft über denselben Eintrag in der Detailspalte/
+// -liste des ausgewählten Tages wie ein normaler Termin.
 export type { TurnierBalken };
 
 // Balken mit den Feldern, die das Schnell-Bearbeiten-Formular im Modal
@@ -175,27 +173,14 @@ export function MonatsKalender({
 }) {
   const router = useRouter();
 
-  // Welche Tage (tagKey) im Gitter über MAX_SICHTBARE_EINTRAEGE hinaus
-  // ausgeklappt sind — pro Tag statt global, damit "+N weitere" auf einem
-  // Tag nicht versehentlich auch andere Tage aufklappt.
-  const [ausgeklappteTage, setAusgeklappteTage] = useState<Set<string>>(
-    () => new Set()
-  );
-
   const wochen = monatsGitter(jahr, monatNull);
-  const balkenProWoche = platziereBalken(wochen, mehrtaegigeEintraege);
-  const maxLanesGesamt = Math.max(
-    0,
-    ...balkenProWoche.map((woche) =>
-      woche.reduce((max, b) => Math.max(max, b.lane + 1), 0)
-    )
-  );
   const vorherigerMonat =
     monatNull === 0 ? { jahr: jahr - 1, monatNull: 11 } : { jahr, monatNull: monatNull - 1 };
   const naechsterMonat =
     monatNull === 11 ? { jahr: jahr + 1, monatNull: 0 } : { jahr, monatNull: monatNull + 1 };
   const monatsName = formatMonatJahr(jahr, monatNull);
   const heute = jetzt();
+  const heuteKey = tagKey(heute);
   const istAktuellerMonat =
     jahr === heute.getFullYear() && monatNull === heute.getMonth();
   // Direktauswahl auf Desktop (siehe Monats-/Jahres-<select> unten) statt
@@ -206,11 +191,49 @@ export function MonatsKalender({
   // Spielzeit plus Planungsvorlauf ab).
   const JAHRE = Array.from({ length: 4 }, (_, i) => heute.getFullYear() - 1 + i);
 
-  // Gemeinsamer Modal-Inhalt für einen Turnier-Balken, unabhängig davon, ob
-  // der Auslöser die Grid-Leiste (Desktop) oder die Agenda-Zeile (Mobile,
-  // siehe unten) ist — idPrefix hält die Formular-Feld-IDs eindeutig, falls
-  // derselbe Balken (unsichtbar) in beiden Darstellungen im DOM landet.
-  function balkenDialogInhalt(b: TurnierBalkenBearbeitbar, idPrefix: string) {
+  // Nur echte Tage dieses Monats sind auswählbar — Auffüll-Tage aus dem
+  // Vor-/Folgemonat (siehe monatsGitter) haben keine geladenen Termine
+  // (eintraegeProTag deckt nur den angezeigten Monat ab, siehe
+  // monatsBereich in lib/kalender.ts) und würden in der Detailspalte
+  // fälschlich leer bzw. unvollständig wirken.
+  const tageDesMonats = wochen.flat().filter((t) => t.imMonat);
+
+  function tagHatInhalt(key: string): boolean {
+    return (
+      (eintraegeProTag.get(key)?.length ?? 0) > 0 ||
+      mehrtaegigeEintraege.some((b) => b.startTag <= key && key <= b.endTag)
+    );
+  }
+
+  // Vorbelegung der Detailspalte: im aktuellen Monat der heutige Tag, sonst
+  // (z.B. nach "Nächster Monat") der erste Tag mit Terminen, damit die
+  // Detailspalte nicht einfach leer beim 1. des Monats landet, obwohl der
+  // Monat durchaus Termine hat.
+  function ermittleStandardTag(): string {
+    if (istAktuellerMonat) return heuteKey;
+    const ersterMitInhalt = tageDesMonats.find((t) => tagHatInhalt(tagKey(t.datum)));
+    return tagKey((ersterMitInhalt ?? tageDesMonats[0]).datum);
+  }
+
+  const monatSchluessel = monatKey(jahr, monatNull);
+  // Vorbelegung während des Renderns statt in einem Effect angepasst (siehe
+  // "Adjusting state when a prop changes" in der React-Doku) — vermeidet
+  // einen zusätzlichen Render-Durchlauf nach dem Mount. Nur beim
+  // Monatswechsel (vorherigerMonatSchluessel weicht ab) neu vorbelegt: eine
+  // Aktion in der Detailspalte (z.B. Zuordnen/Entfernen) lässt
+  // eintraegeProTag per Server-Revalidierung neu referenzieren, soll die
+  // Auswahl innerhalb desselben Monats aber nicht zurücksetzen.
+  const [vorherigerMonatSchluessel, setVorherigerMonatSchluessel] = useState(monatSchluessel);
+  const [ausgewaehlterTag, setAusgewaehlterTag] = useState(ermittleStandardTag);
+  if (monatSchluessel !== vorherigerMonatSchluessel) {
+    setVorherigerMonatSchluessel(monatSchluessel);
+    setAusgewaehlterTag(ermittleStandardTag());
+  }
+
+  // Gemeinsamer Modal-Inhalt für einen Turnier-Balken — sowohl vom
+  // Gitter-Hinweis-Chip als auch aus der Detailspalte/-liste des
+  // ausgewählten Tages aufrufbar.
+  function balkenDialogInhalt(b: TurnierBalkenBearbeitbar) {
     return (
       <>
         <DialogHeader>
@@ -223,11 +246,11 @@ export function MonatsKalender({
             <input type="hidden" name="typ" value="turnier" />
             <div className="flex gap-2">
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label htmlFor={`${idPrefix}-start-${b.id}`} className="text-xs">
+                <Label htmlFor={`start-${b.id}`} className="text-xs">
                   Beginn
                 </Label>
                 <Input
-                  id={`${idPrefix}-start-${b.id}`}
+                  id={`start-${b.id}`}
                   name="start"
                   type="datetime-local"
                   defaultValue={toDatetimeLocalWert(b.start)}
@@ -236,11 +259,11 @@ export function MonatsKalender({
                 />
               </div>
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label htmlFor={`${idPrefix}-ende-${b.id}`} className="text-xs">
+                <Label htmlFor={`ende-${b.id}`} className="text-xs">
                   Ende
                 </Label>
                 <Input
-                  id={`${idPrefix}-ende-${b.id}`}
+                  id={`ende-${b.id}`}
                   name="ende"
                   type="datetime-local"
                   defaultValue={b.ende ? toDatetimeLocalWert(b.ende) : ""}
@@ -249,22 +272,22 @@ export function MonatsKalender({
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${idPrefix}-titel-${b.id}`} className="text-xs">
+              <Label htmlFor={`titel-${b.id}`} className="text-xs">
                 Titel
               </Label>
               <Input
-                id={`${idPrefix}-titel-${b.id}`}
+                id={`titel-${b.id}`}
                 name="beschreibung"
                 defaultValue={b.label}
                 className="h-8 text-sm"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${idPrefix}-ort-${b.id}`} className="text-xs">
+              <Label htmlFor={`ort-${b.id}`} className="text-xs">
                 Ort
               </Label>
               <Input
-                id={`${idPrefix}-ort-${b.id}`}
+                id={`ort-${b.id}`}
                 name="ort"
                 defaultValue={b.ort ?? ""}
                 className="h-8 text-sm"
@@ -327,11 +350,9 @@ export function MonatsKalender({
     );
   }
 
-  // Gemeinsamer Modal-Inhalt für einen einzelnen Termin-Eintrag, ebenfalls
-  // sowohl vom Grid- als auch vom Agenda-Auslöser genutzt. Anders als beim
-  // Turnier-Balken gibt es hier keine expliziten Feld-IDs, die kollidieren
-  // könnten (LabeledSelect erzeugt seine IDs intern), daher kein idPrefix
-  // nötig.
+  // Gemeinsamer Modal-Inhalt für einen einzelnen Termin-Eintrag, aus der
+  // Detailspalte (Desktop) bzw. Detailliste (Mobile) des ausgewählten Tages
+  // aufgerufen.
   function eintragDialogInhalt(e: KalenderEintrag) {
     return (
       <>
@@ -549,31 +570,106 @@ export function MonatsKalender({
     );
   }
 
-  // Agenda-Ansicht für Mobile (siehe unten): jeder Tag des Monats mit
-  // mindestens einem Balken oder Termin, jeweils mit vollbreiten statt
-  // winzig-schmalen Zeilen — kein horizontales Scrollen und deutlich
-  // größere Touch-Targets als im Gitter.
-  const heuteKey = tagKey(heute);
-  const tageMitInhalt = wochen
-    .flat()
-    .filter((tag) => tag.imMonat)
-    .map((tag) => {
-      const key = tagKey(tag.datum);
-      return {
-        tag,
-        key,
-        // Tageweise statt uhrzeitgenau (Termine tragen in der Agenda keine
-        // rohe Uhrzeit als Date, nur den formatierten String) — reicht als
-        // "Minimum"-Abgrenzung völlig aus und behandelt einen bereits
-        // gelaufenen Termin von heute bewusst noch nicht als vergangen.
-        istVergangen: key < heuteKey,
-        balkenHeute: mehrtaegigeEintraege.filter(
-          (b) => b.startTag <= key && key <= b.endTag
-        ),
-        eintraege: eintraegeProTag.get(key) ?? [],
-      };
-    })
-    .filter(({ balkenHeute, eintraege }) => balkenHeute.length > 0 || eintraege.length > 0);
+  // Gemeinsamer Inhalt der Detailspalte (Desktop, rechts neben dem Gitter)
+  // bzw. Detailliste (Mobile, unter dem kompakten Gitter) für den aktuell
+  // ausgewählten Tag — alles, was an diesem Tag stattfindet: Turnier-Balken,
+  // die diesen Tag überspannen, zuerst, danach die normalen Termine in
+  // Start-Reihenfolge.
+  function tagesDetailInhalt(tagDatum: Date, kompakt: boolean) {
+    const key = tagKey(tagDatum);
+    const balkenHeute = mehrtaegigeEintraege.filter(
+      (b) => b.startTag <= key && key <= b.endTag
+    );
+    const eintraege = eintraegeProTag.get(key) ?? [];
+    const anzahl = balkenHeute.length + eintraege.length;
+
+    if (anzahl === 0) {
+      return (
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-8 text-center">
+          <div className="flex size-9 items-center justify-center rounded-full bg-primary/10">
+            <CalendarIcon className="size-4 text-primary" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Keine Termine an diesem Tag.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`flex flex-col ${kompakt ? "gap-1.5" : "gap-2"}`}>
+        {balkenHeute.map((b) => (
+          <Dialog key={b.id}>
+            <DialogTrigger
+              render={
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-left text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                />
+              }
+            >
+              <Trophy className="size-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate">{b.label}</span>
+            </DialogTrigger>
+            <DialogContent>{balkenDialogInhalt(b)}</DialogContent>
+          </Dialog>
+        ))}
+        {eintraege.map((e) => (
+          <Dialog key={e.id}>
+            <DialogTrigger
+              render={
+                <button
+                  type="button"
+                  className="flex flex-col gap-1 rounded-lg border p-3 text-left hover:bg-muted/60"
+                />
+              }
+            >
+              <span className="flex items-center gap-2">
+                {e.farbe && (
+                  <span
+                    className="size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: e.farbe }}
+                  />
+                )}
+                {e.zeit && <span className="text-sm font-semibold">{e.zeit}</span>}
+                {e.ergebnis ? (
+                  <span className="ml-auto shrink-0 text-sm font-semibold">
+                    {e.ergebnis}
+                  </span>
+                ) : (
+                  e.besetzung && (
+                    <span
+                      className={`ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                        e.besetzung === "vollstaendig"
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                          : "bg-destructive/15 text-destructive"
+                      }`}
+                    >
+                      {e.besetzung === "vollstaendig" ? (
+                        <CheckCircle2 className="size-3" />
+                      ) : (
+                        <AlertCircle className="size-3" />
+                      )}
+                      {e.besetzung === "vollstaendig" ? "Vollständig" : "Offen"}
+                    </span>
+                  )
+                )}
+              </span>
+              <span className="truncate text-sm font-medium">{e.label}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {e.typLabel}
+                {e.ort ? ` · ${e.ort}` : ""}
+              </span>
+            </DialogTrigger>
+            <DialogContent>{eintragDialogInhalt(e)}</DialogContent>
+          </Dialog>
+        ))}
+      </div>
+    );
+  }
+
+  const ausgewaehltesDatum =
+    wochen.flat().find((t) => tagKey(t.datum) === ausgewaehlterTag)?.datum ?? heute;
 
   return (
     <div className="flex flex-col gap-3">
@@ -643,260 +739,198 @@ export function MonatsKalender({
         </Link>
       </div>
 
-      {/* Ab md aufwärts das klassische Monatsgitter — auf dem Handy waren die
-          Zellen darin sowohl zum horizontalen Scrollen als auch (bei Text ab
-          0.7rem) kaum noch treffsicher antippbar. Darunter (siehe Agenda
-          weiter unten) stattdessen eine vollbreite Tagesliste. */}
-      <div className="hidden overflow-x-auto md:block">
-      {/* max-w-4xl: ohne Obergrenze zog sich das 7-Spalten-Gitter auf breiten
-          Desktop-Monitoren über die gesamte verfügbare Breite, ohne dass die
-          (kurzen, ohnehin abgeschnittenen) Einträge davon profitiert hätten —
-          nur mehr Leerraum pro Zelle statt besserer Lesbarkeit. */}
-      <div className="mx-auto min-w-[640px] max-w-4xl overflow-hidden rounded-lg border bg-border text-xs">
-        <div className="grid grid-cols-7 gap-px bg-border">
-          {WOCHENTAGE.map((w) => (
-            <div
-              key={w}
-              className="bg-muted px-2 py-1 text-center font-medium text-muted-foreground"
-            >
-              {w}
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-col gap-px bg-border">
-          {wochen.map((woche, wocheIdx) => {
-            const balken = balkenProWoche[wocheIdx];
-            // Jede Tageszelle bekommt denselben Vorsprung (Anzahl Balken-
-            // Zeilen der GESAMTEN Monatsansicht, nicht nur dieser Woche) —
-            // sonst würde die Kartenhöhe von Woche zu Woche springen, je
-            // nachdem wie viele Balken gerade laufen.
-            return (
+      {/* Ab md: Gitter über die volle verfügbare Breite + Detailspalte für
+          den ausgewählten Tag daneben. Unter md (siehe weiter unten) ein
+          kompaktes Punkt-Gitter mit der Detailliste darunter statt daneben —
+          nebeneinander wäre auf Handy-Breite für beides zu schmal. */}
+      <div className="hidden md:flex md:items-start md:gap-5">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div className="grid grid-cols-7 gap-1.5">
+            {WOCHENTAGE.map((w) => (
               <div
-                key={wocheIdx}
-                className="grid grid-cols-7 gap-px bg-border"
-                style={{
-                  // Fixe Höhe statt "auto" für die Datumszeile: die
-                  // Tageszelle (Hintergrund-Div) spannt "1 / -1" über ALLE
-                  // Zeilen dieser Woche — bei einem CSS-Grid-Item, das über
-                  // mehrere Zeilen spannt, zählt sein Platzbedarf für die
-                  // Größe der einzelnen "auto"-Zeile NICHT verlässlich mit,
-                  // sobald die übrigen Zeilen (Turnier-Balken-Lanes + Termin-
-                  // Zeile) den Gesamtbedarf schon allein decken. Ergebnis:
-                  // sonst kollabiert die Datumszeile auf ~0 Höhe und die
-                  // Tageszahl verschwindet hinter dem Balken.
-                  //
-                  // Die letzte Zeile (Termine des Tages) dagegen bewusst
-                  // "auto" statt "1fr": deren Inhalt spannt NICHT über
-                  // mehrere Zeilen (anders als die Hintergrund-Zelle oben),
-                  // zählt für die Größenberechnung dieser einen Zeile also
-                  // ganz normal mit. "1fr" hätte hier ohne definierte
-                  // Container-Höhe kaum Platz bekommen — an Tagen mit
-                  // mehreren Terminen liefen die Einträge dadurch übereinander
-                  // statt die Zelle wachsen zu lassen. Höhe ist hier bewusst
-                  // nicht begrenzt, ein langer Tag darf die ganze Woche höher
-                  // machen.
-                  gridTemplateRows: `1.4rem repeat(${maxLanesGesamt}, 1.1rem) auto`,
-                }}
+                key={w}
+                className="pb-0.5 text-center text-xs font-medium text-muted-foreground"
               >
-                {woche.map((tag, tagIdx) => {
-                  const key = tagKey(tag.datum);
-                  return (
-                    <div
-                      key={key}
-                      className={`bg-background px-1.5 pt-1.5 ${tag.imMonat ? "" : "opacity-40"} ${
-                        tag.heute ? "bg-primary/5 ring-1 ring-inset ring-primary" : ""
-                      }`}
-                      style={{ gridColumn: tagIdx + 1, gridRow: "1 / -1" }}
-                    >
-                      <p
-                        className={`text-right text-[0.7rem] ${
-                          tag.heute ? "font-bold text-primary" : "text-muted-foreground"
-                        }`}
-                      >
-                        {tag.heute ? (
-                          <span className="inline-flex size-4 items-center justify-center rounded-full bg-primary text-[0.65rem] text-primary-foreground">
-                            {tag.datum.getDate()}
-                          </span>
-                        ) : (
-                          tag.datum.getDate()
-                        )}
-                      </p>
-                    </div>
-                  );
-                })}
-
-                {balken.map((b) => (
-                  <Dialog key={b.id}>
-                    <DialogTrigger
-                      render={
-                        <button
-                          type="button"
-                          className="mx-px min-w-0 truncate rounded bg-primary px-1.5 text-left text-[0.7rem] font-medium text-primary-foreground hover:bg-primary/90"
-                        />
-                      }
-                      style={{
-                        gridColumn: `${b.startSpalte} / span ${b.spannweite}`,
-                        gridRow: b.lane + 2,
-                      }}
-                    >
-                      {b.label}
-                    </DialogTrigger>
-                    <DialogContent>{balkenDialogInhalt(b, "g")}</DialogContent>
-                  </Dialog>
-                ))}
-
-                {woche.map((tag, tagIdx) => {
+                {w}
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {wochen.map((woche, wocheIdx) => (
+              <div key={wocheIdx} className="grid grid-cols-7 gap-1.5">
+                {woche.map((tag) => {
                   const key = tagKey(tag.datum);
                   const eintraege = eintraegeProTag.get(key) ?? [];
-                  const ausgeklappt = ausgeklappteTage.has(key);
-                  const sichtbareEintraege =
-                    ausgeklappt || eintraege.length <= MAX_SICHTBARE_EINTRAEGE
-                      ? eintraege
-                      : eintraege.slice(0, MAX_SICHTBARE_EINTRAEGE);
+                  const balkenHeute = mehrtaegigeEintraege.filter(
+                    (b) => b.startTag <= key && key <= b.endTag
+                  );
+                  const sichtbareEintraege = eintraege.slice(0, MAX_SICHTBARE_EINTRAEGE);
                   const versteckt = eintraege.length - sichtbareEintraege.length;
+                  const ausgewaehlt = key === ausgewaehlterTag;
                   return (
-                    <div
-                      key={`entries-${key}`}
-                      className="flex min-w-0 flex-col gap-0.5 px-1.5 pb-1.5"
-                      style={{ gridColumn: tagIdx + 1, gridRow: maxLanesGesamt + 2 }}
+                    <button
+                      type="button"
+                      key={key}
+                      disabled={!tag.imMonat}
+                      onClick={() => setAusgewaehlterTag(key)}
+                      aria-current={tag.heute ? "date" : undefined}
+                      aria-pressed={ausgewaehlt}
+                      aria-label={formatWochentagDatum(tag.datum)}
+                      className={`flex min-h-28 flex-col items-stretch gap-1 rounded-xl border p-1.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
+                        !tag.imMonat
+                          ? "cursor-default border-transparent opacity-40"
+                          : ausgewaehlt
+                            ? "border-primary bg-secondary"
+                            : "border-border bg-background hover:bg-muted/60"
+                      }`}
                     >
+                      {tag.heute ? (
+                        <span className="inline-flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                          {tag.datum.getDate()}
+                        </span>
+                      ) : (
+                        <span
+                          className={`px-0.5 text-xs ${ausgewaehlt ? "font-semibold text-primary" : "text-muted-foreground"}`}
+                        >
+                          {tag.datum.getDate()}
+                        </span>
+                      )}
+                      {balkenHeute.map((b) => (
+                        <span
+                          key={b.id}
+                          className="flex items-center gap-1 truncate rounded-md bg-primary px-1.5 py-0.5 text-[11px] font-medium text-primary-foreground"
+                        >
+                          <Trophy className="size-2.5 shrink-0" />
+                          <span className="truncate">{b.label}</span>
+                        </span>
+                      ))}
                       {sichtbareEintraege.map((e) => (
-                        <Dialog key={e.id}>
-                          <DialogTrigger
-                            render={
-                              <button
-                                type="button"
-                                className="flex w-full items-center gap-1 truncate rounded-md bg-secondary px-1.5 py-0.5 text-left text-secondary-foreground hover:bg-secondary/70"
-                              />
-                            }
-                          >
-                            {e.farbe && (
-                              <span
-                                className="size-1.5 shrink-0 rounded-full"
-                                style={{ backgroundColor: e.farbe }}
-                              />
-                            )}
-                            {e.zeit && <span className="font-medium">{e.zeit} </span>}
-                            <span className="truncate">{e.label}</span>
-                            {/* Ein bereits abgepfiffenes Spiel (Ergebnis erfasst) braucht
-                                keinen Besetzungs-Hinweis mehr — der ist dann ohnehin
-                                hinfällig. */}
-                            {e.ergebnis ? (
-                              <span className="ml-auto shrink-0 font-medium">
-                                {e.ergebnis}
-                              </span>
+                        <span
+                          key={e.id}
+                          className="flex items-center gap-1 truncate rounded-md bg-muted px-1.5 py-0.5 text-[11px]"
+                        >
+                          {e.farbe && (
+                            <span
+                              className="size-1.5 shrink-0 rounded-full"
+                              style={{ backgroundColor: e.farbe }}
+                            />
+                          )}
+                          {e.zeit && <span className="shrink-0 font-medium">{e.zeit}</span>}
+                          <span className="min-w-0 flex-1 truncate">{e.label}</span>
+                          {e.ergebnis ? (
+                            <span className="shrink-0 font-medium">{e.ergebnis}</span>
+                          ) : (
+                            e.besetzung &&
+                            (e.besetzung === "vollstaendig" ? (
+                              <CheckCircle2 className="size-2.5 shrink-0 text-emerald-600" />
                             ) : (
-                              e.besetzung &&
-                              (e.besetzung === "vollstaendig" ? (
-                                <CheckCircle2 className="ml-auto size-2.5 shrink-0 text-emerald-600" />
-                              ) : (
-                                <AlertCircle className="ml-auto size-2.5 shrink-0 text-destructive" />
-                              ))
-                            )}
-                          </DialogTrigger>
-                          <DialogContent>{eintragDialogInhalt(e)}</DialogContent>
-                        </Dialog>
+                              <AlertCircle className="size-2.5 shrink-0 text-destructive" />
+                            ))
+                          )}
+                        </span>
                       ))}
                       {versteckt > 0 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setAusgeklappteTage((bisherige) => {
-                              const naechste = new Set(bisherige);
-                              naechste.add(key);
-                              return naechste;
-                            })
-                          }
-                          className="w-full rounded px-1 py-0.5 text-left text-muted-foreground hover:bg-muted hover:underline"
-                        >
+                        <span className="px-0.5 text-[10.5px] font-medium text-muted-foreground">
                           +{versteckt} weitere
-                        </button>
+                        </span>
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
-            );
-          })}
+            ))}
+          </div>
+        </div>
+
+        {/* Detailspalte: alle Termine des ausgewählten Tages */}
+        <div className="w-72 shrink-0 rounded-xl border bg-background p-4">
+          <div className="mb-3 flex flex-col gap-0.5">
+            <p className="text-xs font-medium text-muted-foreground">
+              {ausgewaehlterTag === heuteKey ? "Heute" : "Ausgewählter Tag"}
+            </p>
+            <h2 className="font-heading text-base font-semibold capitalize">
+              {formatWochentagDatum(ausgewaehltesDatum)}
+            </h2>
+          </div>
+          {tagesDetailInhalt(ausgewaehltesDatum, false)}
         </div>
       </div>
-      </div>
 
-      {/* Unter md: Agenda statt Gitter, siehe tageMitInhalt oben. */}
+      {/* Unter md: kompaktes Punkt-Gitter (ein Monat auf einen Blick, wie
+          bei Google/Apple Kalender) + Detailliste des ausgewählten Tages
+          darunter — bisher zeigte Mobile hier gar kein Gitter, sondern nur
+          eine lange Liste aller Tage mit Terminen im Monat. */}
       <div className="flex flex-col gap-4 md:hidden">
-        {tageMitInhalt.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Keine Termine in diesem Monat.
-          </p>
-        )}
-        {tageMitInhalt.map(({ tag, key, istVergangen, balkenHeute, eintraege }) => (
-          <div
-            key={key}
-            className={`flex flex-col gap-1.5 ${istVergangen ? "opacity-50" : ""}`}
-          >
-            <p
-              className={`flex items-center gap-2 text-sm font-medium capitalize ${
-                tag.heute ? "text-primary" : ""
-              }`}
-            >
-              {formatWochentagDatum(tag.datum)}
-              {tag.heute && (
-                <span className="rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] font-normal text-primary-foreground">
-                  Heute
-                </span>
-              )}
-            </p>
-            <div className="flex flex-col gap-1.5 rounded-lg border bg-background p-1.5">
-              {balkenHeute.map((b) => (
-                <Dialog key={b.id}>
-                  <DialogTrigger
-                    render={
-                      <button
-                        type="button"
-                        className="w-full truncate rounded-md bg-primary px-3 py-2.5 text-left text-sm font-medium text-primary-foreground active:bg-primary/90"
-                      />
-                    }
+        <div className="grid grid-cols-7 gap-0.5 text-center">
+          {WOCHENTAGE.map((w) => (
+            <span key={w} className="text-[10.5px] font-medium text-muted-foreground">
+              {w}
+            </span>
+          ))}
+        </div>
+        <div className="flex flex-col gap-1">
+          {wochen.map((woche, wocheIdx) => (
+            <div key={wocheIdx} className="grid grid-cols-7 gap-1">
+              {woche.map((tag) => {
+                const key = tagKey(tag.datum);
+                const eintraege = eintraegeProTag.get(key) ?? [];
+                const balkenHeute = mehrtaegigeEintraege.filter(
+                  (b) => b.startTag <= key && key <= b.endTag
+                );
+                const punkte = [
+                  ...balkenHeute.map(() => "var(--primary)"),
+                  ...eintraege.map((e) => e.farbe ?? "var(--muted-foreground)"),
+                ].slice(0, 3);
+                const ausgewaehlt = key === ausgewaehlterTag;
+                return (
+                  <button
+                    type="button"
+                    key={key}
+                    disabled={!tag.imMonat}
+                    onClick={() => setAusgewaehlterTag(key)}
+                    aria-current={tag.heute ? "date" : undefined}
+                    aria-pressed={ausgewaehlt}
+                    aria-label={formatWochentagDatum(tag.datum)}
+                    className={`flex h-11 flex-col items-center justify-center gap-0.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
+                      !tag.imMonat
+                        ? "cursor-default opacity-30"
+                        : ausgewaehlt
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                    }`}
                   >
-                    {b.label}
-                  </DialogTrigger>
-                  <DialogContent>{balkenDialogInhalt(b, "m")}</DialogContent>
-                </Dialog>
-              ))}
-              {eintraege.map((e) => (
-                <Dialog key={e.id}>
-                  <DialogTrigger
-                    render={
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-2 rounded-md bg-secondary px-3 py-2.5 text-left text-sm text-secondary-foreground active:bg-secondary/70"
-                      />
-                    }
-                  >
-                    {e.farbe && (
-                      <span
-                        className="size-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: e.farbe }}
-                      />
-                    )}
-                    {e.zeit && <span className="shrink-0 font-medium">{e.zeit}</span>}
-                    <span className="min-w-0 flex-1 truncate">{e.label}</span>
-                    {e.ergebnis ? (
-                      <span className="shrink-0 font-medium">{e.ergebnis}</span>
-                    ) : (
-                      e.besetzung &&
-                      (e.besetzung === "vollstaendig" ? (
-                        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
-                      ) : (
-                        <AlertCircle className="size-3.5 shrink-0 text-destructive" />
-                      ))
-                    )}
-                  </DialogTrigger>
-                  <DialogContent>{eintragDialogInhalt(e)}</DialogContent>
-                </Dialog>
-              ))}
+                    <span
+                      className={`text-[13px] ${tag.heute && !ausgewaehlt ? "font-bold text-primary" : "font-medium"}`}
+                    >
+                      {tag.datum.getDate()}
+                    </span>
+                    <span className="flex h-1 items-center gap-0.5">
+                      {punkte.map((farbe, i) => (
+                        <span
+                          key={i}
+                          className="size-1 rounded-full"
+                          style={{
+                            backgroundColor: ausgewaehlt ? "currentColor" : farbe,
+                          }}
+                        />
+                      ))}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-medium text-muted-foreground">
+            {ausgewaehlterTag === heuteKey ? "Heute" : "Ausgewählter Tag"}
+          </p>
+          <h2 className="font-heading text-base font-semibold capitalize">
+            {formatWochentagDatum(ausgewaehltesDatum)}
+          </h2>
+        </div>
+        {tagesDetailInhalt(ausgewaehltesDatum, true)}
       </div>
     </div>
   );

@@ -3,7 +3,6 @@ import { requireAdmin } from "@/lib/session";
 import { parseMonatParam } from "@/lib/kalender";
 import { holeAdminKalenderDaten } from "@/lib/admin-kalender";
 import { MonatsKalender } from "@/components/monats-kalender";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function AdminKalenderPage({
   searchParams,
@@ -34,24 +33,17 @@ export default async function AdminKalenderPage({
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Übersicht</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MonatsKalender
-            jahr={jahr}
-            monatNull={monatNull}
-            eintraegeProTag={eintraegeProTag}
-            mehrtaegigeEintraege={mehrtaegigeEintraege}
-            mannschaftsListe={mannschaftsListe}
-            trainerListe={trainerListe}
-            zuordenbarePersonen={zuordenbarePersonen}
-            basisPfad="/admin/kalender"
-            schreibzugriff={session.user.istAdmin}
-          />
-        </CardContent>
-      </Card>
+      <MonatsKalender
+        jahr={jahr}
+        monatNull={monatNull}
+        eintraegeProTag={eintraegeProTag}
+        mehrtaegigeEintraege={mehrtaegigeEintraege}
+        mannschaftsListe={mannschaftsListe}
+        trainerListe={trainerListe}
+        zuordenbarePersonen={zuordenbarePersonen}
+        basisPfad="/admin/kalender"
+        schreibzugriff={session.user.istAdmin}
+      />
     </div>
   );
 }
