@@ -82,7 +82,7 @@ const PRODUKTTOUR = [
   {
     bild: "/produkttour/kalender.png",
     breite: 1440,
-    hoehe: 525,
+    hoehe: 600,
     titel: "Kalender mit Besetzungsstatus",
     text: "Auf den ersten Blick: welche Spiele vollständig besetzt sind und wo noch Personal fehlt — mit Farbe je Mannschaft und Tagesdetails neben dem Monatsgitter.",
   },
