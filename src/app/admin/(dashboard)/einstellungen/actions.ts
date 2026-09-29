@@ -7,6 +7,7 @@ import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
+import { signOut } from "@/auth";
 
 function parseAnzahl(formData: FormData, feld: string, min = 0): number {
   const roh = formData.get(feld);
@@ -17,23 +18,29 @@ function parseAnzahl(formData: FormData, feld: string, min = 0): number {
   return zahl;
 }
 
-// Freitext statt Straße/PLZ/Ort getrennt — reicht für die aktuelle Nutzung
-// (Anzeige/Kontakt), eine strukturierte Aufteilung lässt sich bei Bedarf
-// nachrüsten, sobald z.B. eine automatische Rechnungsstellung sie
-// tatsächlich braucht.
 export async function vereinsdatenSpeichern(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
-  const adresse = formData.get("adresse");
-  if (typeof adresse !== "string") {
+  const strasse = formData.get("strasse");
+  const plz = formData.get("plz");
+  const ort = formData.get("ort");
+  if (
+    typeof strasse !== "string" ||
+    typeof plz !== "string" ||
+    typeof ort !== "string"
+  ) {
     throw new Error("Ungültige Adresse.");
   }
 
   await withTenant(vereinId, (tx) =>
     tx
       .update(vereine)
-      .set({ adresse: adresse.trim() || null })
+      .set({
+        strasse: strasse.trim() || null,
+        plz: plz.trim() || null,
+        ort: ort.trim() || null,
+      })
       .where(eq(vereine.id, vereinId))
   );
 
@@ -176,4 +183,40 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
 
   revalidatePath("/admin/einstellungen");
   redirect(`/admin/einstellungen?${params.toString()}`);
+}
+
+// Gefahrenzone: löscht den kompletten Verein UNWIDERRUFLICH — alle
+// abhängigen Daten (Funktionsträger, Mannschaften, Hallen, Trainingszeiten,
+// Termine, Zuordnungen, ...) hängen per onDelete: cascade an vereine.id
+// (siehe db/schema.ts) und verschwinden mit einem einzigen DELETE
+// automatisch mit, inklusive der eigenen user-Zeile des ausführenden
+// Admins. Deshalb danach zwingend signOut() statt nur redirect() — die
+// bestehende JWT-Session verweist sonst auf einen nicht mehr existierenden
+// User. Der Vereinsname muss zur Bestätigung exakt eingetippt werden (siehe
+// VereinLoeschenDialog), ein einfaches window.confirm() reicht bei diesem
+// Ausmaß an Datenverlust nicht.
+export async function vereinLoeschen(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const bestaetigterName = formData.get("bestaetigterVereinsname");
+  const verein = await withTenant(vereinId, (tx) =>
+    tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+      columns: { name: true },
+    })
+  );
+  if (
+    typeof bestaetigterName !== "string" ||
+    !verein ||
+    bestaetigterName !== verein.name
+  ) {
+    throw new Error("Vereinsname stimmt nicht überein — nichts gelöscht.");
+  }
+
+  await withTenant(vereinId, (tx) =>
+    tx.delete(vereine).where(eq(vereine.id, vereinId))
+  );
+
+  await signOut({ redirectTo: "/" });
 }
