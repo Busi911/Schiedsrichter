@@ -84,7 +84,7 @@ const PRODUKTTOUR = [
     breite: 1440,
     hoehe: 525,
     titel: "Kalender mit Besetzungsstatus",
-    text: "Grün oder rot auf den ersten Blick: welche Spiele vollständig besetzt sind und wo noch Personal fehlt, direkt in der Monatsübersicht.",
+    text: "Auf den ersten Blick: welche Spiele vollständig besetzt sind und wo noch Personal fehlt — mit Farbe je Mannschaft und Tagesdetails neben dem Monatsgitter.",
   },
   {
     bild: "/produkttour/trainingsplan.png",

@@ -6,10 +6,12 @@ sie reproduziert, wenn sich an den gezeigten Seiten sichtbar etwas
 ändert:
 
 - **Automatisch (empfohlen):** GitHub Actions → "Produkttour-Screenshots
-  neu erzeugen" → "Run workflow". Lädt die neuen PNGs am Ende als
-  Workflow-Artifact hoch (`public/produkttour`) — danach lokal
-  herunterladen, in `public/produkttour/` ersetzen und normal committen.
-  Der Workflow committet/pusht nichts von sich aus.
+  neu erzeugen" → "Run workflow". Erzeugt die neuen PNGs, committet sie direkt in den Branch, auf dem
+  der Workflow gestartet wurde (Commit "Produkttour-Screenshots neu
+  erzeugt", nur wenn sich Bilder geändert haben), und lädt sie zusätzlich
+  als Workflow-Artifact hoch (`public/produkttour`). Gilt der Branch als
+  geschützt (Pull-Request-Pflicht), schlägt der Push-Schritt fehl — dann
+  Artifact herunterladen und die PNGs manuell per PR einchecken.
 - **Lokal**, gegen eine **wegwerfbare** lokale Postgres-Instanz (niemals
   gegen die echte/produktive Datenbank — der erzeugte Demo-Verein würde
   sonst live gegen das Beta-Vereinslimit zählen):

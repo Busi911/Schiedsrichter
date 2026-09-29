@@ -8,6 +8,11 @@ name: Produkttour-Screenshots neu erzeugen
 on:
   workflow_dispatch: {}
 
+# contents: write, damit der letzte Schritt die neuen Screenshots direkt
+# in den Branch zurückcommitten kann, auf dem der Workflow gestartet wurde.
+permissions:
+  contents: write
+
 jobs:
   screenshots:
     runs-on: ubuntu-latest
@@ -109,3 +114,15 @@ jobs:
           name: produkttour-screenshots
           path: public/produkttour/*.png
           retention-days: 14
+
+      - name: Neue Screenshots einchecken
+        run: |
+          git add public/produkttour/*.png
+          if git diff --cached --quiet; then
+            echo "Keine Änderungen an den Screenshots."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Produkttour-Screenshots neu erzeugt"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
