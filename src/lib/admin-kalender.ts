@@ -354,12 +354,12 @@ export async function holeAdminKalenderDaten(
         t.handballNetSchiedsrichter
           ? {
               id: `handball-net-schiedsrichter-${t.id}`,
-              label: `handball.net-Ansetzung: ${t.handballNetSchiedsrichter}${nochNichtZugeordnet}`,
+              label: `${ROLLE_LABEL.schiedsrichter} (handball.net-Ansetzung): ${t.handballNetSchiedsrichter}${nochNichtZugeordnet}`,
               entfernbar: false,
             }
           : {
               id: `nuliga-kuerzel-${t.id}`,
-              label: `nuLiga-Ansetzung: ${t.nuligaSchiedsrichterKuerzel}${nochNichtZugeordnet}`,
+              label: `${ROLLE_LABEL.schiedsrichter} (nuLiga-Ansetzung): ${t.nuligaSchiedsrichterKuerzel}${nochNichtZugeordnet}`,
               entfernbar: false,
             }
       );
@@ -367,7 +367,7 @@ export async function holeAdminKalenderDaten(
     if (t.handballNetZeitnehmer && !hatEigenenZeitnehmer) {
       besetzungsDetails.push({
         id: `handball-net-zeitnehmer-${t.id}`,
-        label: `handball.net-Ansetzung: ${t.handballNetZeitnehmer} (noch nicht zugeordnet)`,
+        label: `Zeitnehmer/Sekretär (handball.net-Ansetzung): ${t.handballNetZeitnehmer} (noch nicht zugeordnet)`,
         entfernbar: false,
       });
     }
