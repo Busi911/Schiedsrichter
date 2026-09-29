@@ -8,14 +8,16 @@ import {
   funktionstraegerRollen,
   termine,
   terminZuordnungen,
-  users,
   vereine,
 } from "@/db/schema";
 import {
+  loeseIdentitaetPerEmailAuf,
   mehrfachZuordnungsMailInhalt,
   neueSelbstregistrierungInhalt,
   pruefeBesetzungsgrenze,
   pruefeKeineDoppelrolle,
+  sendeMailAnAlle,
+  type SelbstEintragenIdentitaet,
   zuordnungFehlgeschlagenInhalt,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
@@ -28,7 +30,6 @@ import { requireSession } from "@/lib/session";
 import type { MehrfachEintragErgebnis } from "@/components/mehrfachauswahl";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
-import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { appUrl } from "@/lib/app-url";
 import { formatDatumZeit } from "@/lib/format";
 
@@ -162,52 +163,7 @@ export async function zeitnehmerSelbstEintragenOeffentlich(formData: FormData) {
 // Next.js als Fehler beim Rendern der (durch revalidatePath aktualisierten)
 // Server Components behandelt und dabei auf "Minified React error #441"
 // ohne Klartext reduziert.
-type Identitaet =
-  | { art: "userId"; userId: string; email: string }
-  | { art: "extern"; externerName: string; matchVorschlagUserId: string | null };
-
-// Siehe loeseIdentitaetPerEmailAuf in ordner-eintragen/[token]/actions.ts —
-// identisches Muster, nur für zeitnehmer/sekretaer statt ORDNER_ROLLEN.
-async function loeseIdentitaetPerEmailAuf(
-  vereinId: string,
-  email: string,
-  name: string,
-  rolle: ZeitnehmerRolle
-): Promise<{ identitaet: Identitaet; warNeuRegistriert: boolean }> {
-  return withTenant(vereinId, async (tx) => {
-    let user = await tx.query.users.findFirst({ where: eq(users.email, email) });
-    if (user && user.vereinId !== vereinId) {
-      throw new Error(
-        "Diese E-Mail-Adresse ist bereits einem anderen Verein zugeordnet."
-      );
-    }
-    if (!user) {
-      [user] = await tx
-        .insert(users)
-        .values({ email, name, vereinId })
-        .returning();
-    }
-
-    const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
-      where: and(
-        eq(funktionstraegerRollen.userId, user.id),
-        eq(funktionstraegerRollen.typ, rolle)
-      ),
-    });
-    let warNeuRegistriert = false;
-    if (!vorhandeneRolle) {
-      await tx
-        .insert(funktionstraegerRollen)
-        .values({ userId: user.id, typ: rolle, aktiv: false });
-      warNeuRegistriert = true;
-    }
-
-    return {
-      identitaet: { art: "userId" as const, userId: user.id, email: user.email },
-      warNeuRegistriert,
-    };
-  });
-}
+type Identitaet = SelbstEintragenIdentitaet;
 
 // Siehe ordnerSelbstEintragenMehrfachOeffentlich in
 // ordner-eintragen/[token]/actions.ts für die ausführliche Begründung des
@@ -388,21 +344,12 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
           url: `${appUrl()}/admin/funktionstraeger?suche=${encodeURIComponent(eingegebeneEmail)}`,
         }),
       };
-      for (const wart of zeitnehmerwarte) {
-        try {
-          await sendMail(
-            wart.email,
-            "Neue Selbstregistrierung wartet auf Freischaltung",
-            emailAlsText(inhalt),
-            emailAlsHtml(inhalt)
-          );
-        } catch (err) {
-          console.error(
-            "Registrierungs-Mail an Zeitnehmerwart konnte nicht gesendet werden:",
-            err
-          );
-        }
-      }
+      await sendeMailAnAlle(
+        zeitnehmerwarte,
+        "Neue Selbstregistrierung wartet auf Freischaltung",
+        inhalt,
+        "Registrierungs-Mail an Zeitnehmerwart konnte nicht gesendet werden"
+      );
     }
   }
 
@@ -421,21 +368,12 @@ export async function zeitnehmerSelbstEintragenMehrfachOeffentlich(
           url: `${appUrl()}/profil/zeitnehmerwart`,
         }),
       };
-      for (const wart of zeitnehmerwarte) {
-        try {
-          await sendMail(
-            wart.email,
-            "Selbsteintragung fehlgeschlagen",
-            emailAlsText(inhalt),
-            emailAlsHtml(inhalt)
-          );
-        } catch (err) {
-          console.error(
-            "Fehlschlags-Mail an Zeitnehmerwart konnte nicht gesendet werden:",
-            err
-          );
-        }
-      }
+      await sendeMailAnAlle(
+        zeitnehmerwarte,
+        "Selbsteintragung fehlgeschlagen",
+        inhalt,
+        "Fehlschlags-Mail an Zeitnehmerwart konnte nicht gesendet werden"
+      );
     }
   }
 
