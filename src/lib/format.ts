@@ -116,3 +116,26 @@ export function toDatetimeLocalWert(d: Date): string {
   const teil = (typ: string) => teile.find((t) => t.type === typ)?.value ?? "";
   return `${teil("year")}-${teil("month")}-${teil("day")}T${teil("hour")}:${teil("minute")}`;
 }
+
+// Gruppiert bereits sortierte Termine nach Kalendertag in Europe/Berlin
+// (Reihenfolge der Eingabe bleibt erhalten) — für die Mobile-Ansichten der
+// Termin-Listen, wo eine Tages-Überschrift statt einer Datumsspalte pro Zeile
+// mehr Übersicht bringt.
+export function gruppiereNachTag<T extends { start: Date }>(
+  liste: T[]
+): { tag: string; start: Date; eintraege: T[] }[] {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZEITZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const gruppen: { tag: string; start: Date; eintraege: T[] }[] = [];
+  for (const eintrag of liste) {
+    const tag = fmt.format(eintrag.start);
+    const letzte = gruppen[gruppen.length - 1];
+    if (letzte && letzte.tag === tag) letzte.eintraege.push(eintrag);
+    else gruppen.push({ tag, start: eintrag.start, eintraege: [eintrag] });
+  }
+  return gruppen;
+}

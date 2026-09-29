@@ -17,7 +17,12 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatMannschaft } from "@/lib/mannschaft-label";
-import { formatDatumZeit as formatDateTime } from "@/lib/format";
+import {
+  formatDatumZeit as formatDateTime,
+  formatWochentagDatum,
+  formatZeit,
+  gruppiereNachTag,
+} from "@/lib/format";
 import { formatErgebnis } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
@@ -54,11 +59,13 @@ export function TestspieleListe({
   istAdmin: boolean;
 }) {
   const [jetzt] = useState(() => new Date());
-  const [zeitraum, setZeitraum] = useState<"anstehend" | "vergangen">("anstehend");
+  const [zeitraum, setZeitraum] = useState<"anstehend" | "vergangen">(
+    "anstehend",
+  );
 
   const gefiltert = useMemo(() => {
     const gefilterteListe = liste.filter((t) =>
-      zeitraum === "anstehend" ? t.start >= jetzt : t.start < jetzt
+      zeitraum === "anstehend" ? t.start >= jetzt : t.start < jetzt,
     );
     return zeitraum === "anstehend"
       ? gefilterteListe.sort((a, b) => a.start.getTime() - b.start.getTime())
@@ -76,7 +83,7 @@ export function TestspieleListe({
               variant: zeitraum === "anstehend" ? "secondary" : "ghost",
               size: "xs",
             }),
-            zeitraum === "anstehend" && "shadow-sm"
+            zeitraum === "anstehend" && "shadow-sm",
           )}
         >
           Anstehend
@@ -89,7 +96,7 @@ export function TestspieleListe({
               variant: zeitraum === "vergangen" ? "secondary" : "ghost",
               size: "xs",
             }),
-            zeitraum === "vergangen" && "shadow-sm"
+            zeitraum === "vergangen" && "shadow-sm",
           )}
         >
           Vergangene Spiele
@@ -103,76 +110,156 @@ export function TestspieleListe({
             : "Noch keine vergangenen Termine."}
         </p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Datum</TableHead>
-              <TableHead>Typ</TableHead>
-              <TableHead>Mannschaft</TableHead>
-              <TableHead>Ort</TableHead>
-              <TableHead>Beschreibung</TableHead>
-              <TableHead>Ergebnis</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {gefiltert.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell className="font-medium">
-                  {formatDateTime(t.start)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{TYP_LABEL[t.typ] ?? t.typ}</Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {formatMannschaft(t) ?? "—"}
-                </TableCell>
-                <TableCell>{t.ort ?? "—"}</TableCell>
-                <TableCell>{t.beschreibung ?? "—"}</TableCell>
-                <TableCell>
-                  {t.typ === "testspiel" && istAdmin ? (
-                    <form
-                      action={updateTestspielErgebnis}
-                      className="flex items-center gap-1"
-                    >
-                      <input type="hidden" name="terminId" value={t.id} />
-                      <Input
-                        name="ergebnisHeim"
-                        type="number"
-                        min={0}
-                        defaultValue={t.ergebnisHeim ?? ""}
-                        placeholder="—"
-                        className="h-7 w-14"
-                      />
-                      <span className="text-muted-foreground">:</span>
-                      <Input
-                        name="ergebnisAuswaerts"
-                        type="number"
-                        min={0}
-                        defaultValue={t.ergebnisAuswaerts ?? ""}
-                        placeholder="—"
-                        className="h-7 w-14"
-                      />
-                      <SubmitButton variant="ghost" size="xs">
-                        Speichern
-                      </SubmitButton>
-                    </form>
-                  ) : (
-                    (formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts) ?? "—")
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Link
-                    href={`/admin/termine/${t.id}`}
-                    className="text-xs text-muted-foreground underline"
-                  >
-                    Bearbeiten
-                  </Link>
-                </TableCell>
-              </TableRow>
+        <>
+          <div className="flex flex-col gap-4 md:hidden">
+            {gruppiereNachTag(gefiltert).map((g) => (
+              <section key={g.tag} className="flex flex-col gap-2">
+                <h3 className="text-sm font-semibold">
+                  {formatWochentagDatum(g.start)}
+                </h3>
+                <ul className="flex flex-col divide-y rounded-lg border">
+                  {g.eintraege.map((t) => (
+                    <li key={t.id} className="flex flex-col gap-1 p-3 text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium">
+                          {formatZeit(t.start)} Uhr
+                        </span>
+                        <Badge variant="secondary">
+                          {TYP_LABEL[t.typ] ?? t.typ}
+                        </Badge>
+                      </div>
+                      {t.beschreibung && <span>{t.beschreibung}</span>}
+                      <span className="text-xs text-muted-foreground">
+                        {[formatMannschaft(t), t.ort]
+                          .filter(Boolean)
+                          .join(" · ") || "—"}
+                      </span>
+                      {t.typ === "testspiel" && istAdmin ? (
+                        <form
+                          action={updateTestspielErgebnis}
+                          className="flex items-center gap-1"
+                        >
+                          <input type="hidden" name="terminId" value={t.id} />
+                          <Input
+                            name="ergebnisHeim"
+                            type="number"
+                            min={0}
+                            defaultValue={t.ergebnisHeim ?? ""}
+                            placeholder="—"
+                            className="h-7 w-14"
+                          />
+                          <span className="text-muted-foreground">:</span>
+                          <Input
+                            name="ergebnisAuswaerts"
+                            type="number"
+                            min={0}
+                            defaultValue={t.ergebnisAuswaerts ?? ""}
+                            placeholder="—"
+                            className="h-7 w-14"
+                          />
+                          <SubmitButton variant="ghost" size="xs">
+                            Speichern
+                          </SubmitButton>
+                        </form>
+                      ) : (
+                        formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts) && (
+                          <span className="font-medium">
+                            Ergebnis:{" "}
+                            {formatErgebnis(
+                              t.ergebnisHeim,
+                              t.ergebnisAuswaerts,
+                            )}
+                          </span>
+                        )
+                      )}
+                      <Link
+                        href={`/admin/termine/${t.id}`}
+                        className="text-xs text-muted-foreground underline"
+                      >
+                        Bearbeiten
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </TableBody>
-        </Table>
+          </div>
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Datum</TableHead>
+                  <TableHead>Typ</TableHead>
+                  <TableHead>Mannschaft</TableHead>
+                  <TableHead>Ort</TableHead>
+                  <TableHead>Beschreibung</TableHead>
+                  <TableHead>Ergebnis</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {gefiltert.map((t) => (
+                  <TableRow key={t.id}>
+                    <TableCell className="font-medium">
+                      {formatDateTime(t.start)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {TYP_LABEL[t.typ] ?? t.typ}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatMannschaft(t) ?? "—"}
+                    </TableCell>
+                    <TableCell>{t.ort ?? "—"}</TableCell>
+                    <TableCell>{t.beschreibung ?? "—"}</TableCell>
+                    <TableCell>
+                      {t.typ === "testspiel" && istAdmin ? (
+                        <form
+                          action={updateTestspielErgebnis}
+                          className="flex items-center gap-1"
+                        >
+                          <input type="hidden" name="terminId" value={t.id} />
+                          <Input
+                            name="ergebnisHeim"
+                            type="number"
+                            min={0}
+                            defaultValue={t.ergebnisHeim ?? ""}
+                            placeholder="—"
+                            className="h-7 w-14"
+                          />
+                          <span className="text-muted-foreground">:</span>
+                          <Input
+                            name="ergebnisAuswaerts"
+                            type="number"
+                            min={0}
+                            defaultValue={t.ergebnisAuswaerts ?? ""}
+                            placeholder="—"
+                            className="h-7 w-14"
+                          />
+                          <SubmitButton variant="ghost" size="xs">
+                            Speichern
+                          </SubmitButton>
+                        </form>
+                      ) : (
+                        (formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts) ??
+                        "—")
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Link
+                        href={`/admin/termine/${t.id}`}
+                        className="text-xs text-muted-foreground underline"
+                      >
+                        Bearbeiten
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </div>
   );
