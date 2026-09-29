@@ -8,12 +8,14 @@ import {
   funktionstraegerRollen,
   termine,
   terminZuordnungen,
-  users,
   vereine,
 } from "@/db/schema";
 import {
+  loeseIdentitaetPerEmailAuf,
   mehrfachZuordnungsMailInhalt,
   neueSelbstregistrierungInhalt,
+  sendeMailAnAlle,
+  type SelbstEintragenIdentitaet,
   zuordnungFehlgeschlagenInhalt,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
@@ -28,7 +30,6 @@ import { findeNamensVorschlag } from "@/lib/namens-abgleich";
 import { requireSession } from "@/lib/session";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
-import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { appUrl } from "@/lib/app-url";
 import { formatDatumZeit } from "@/lib/format";
 import type { MehrfachEintragErgebnis } from "@/components/mehrfachauswahl";
@@ -145,65 +146,9 @@ export async function ordnerSelbstEintragenOeffentlich(formData: FormData) {
   revalidatePath("/admin/kalender");
 }
 
-// Wer die eingegebene Person letztlich IST, für den Rest der Funktion
-// unten einheitlich behandelt — "userId" entweder aus einem Namensabgleich-
-// Treffer (siehe findeNamensVorschlag) oder, wenn eine E-Mail angegeben
-// wurde, aus einem definitiv aufgelösten Konto (siehe loeseIdentitaetAuf
-// unten); "extern" ist der bisherige Fallback ohne Konto/E-Mail.
-type Identitaet =
-  | { art: "userId"; userId: string; email: string }
-  | { art: "extern"; externerName: string; matchVorschlagUserId: string | null };
-
-// Löst die E-Mail-Variante der Identität auf: bestehendes Konto (im
-// eigenen Verein) wiederverwenden oder neu anlegen, dann die Rolle
-// anlegen — bewusst INAKTIV (siehe funktionstraegerRollen.aktiv in
-// db/schema.ts), damit sich nicht jeder mit einer beliebigen E-Mail-Adresse
-// ungeprüft selbst zum aktiven Funktionsträger macht. Ein Wart muss die
-// Person erst freischalten (siehe /admin/funktionstraeger), genau wie beim
-// manuellen Anlegen ohne "sofort aktivieren" (createFunktionstraeger in
-// admin/actions.ts). warNeuRegistriert = true nur, wenn die Rolle dabei neu
-// angelegt wurde (nicht bei einer bereits bekannten, ggf. schon aktiven
-// Person) — steuert unten die Benachrichtigung an den Ordnerwart.
-async function loeseIdentitaetPerEmailAuf(
-  vereinId: string,
-  email: string,
-  name: string,
-  rolle: OrdnerRolle
-): Promise<{ identitaet: Identitaet; warNeuRegistriert: boolean }> {
-  return withTenant(vereinId, async (tx) => {
-    let user = await tx.query.users.findFirst({ where: eq(users.email, email) });
-    if (user && user.vereinId !== vereinId) {
-      throw new Error(
-        "Diese E-Mail-Adresse ist bereits einem anderen Verein zugeordnet."
-      );
-    }
-    if (!user) {
-      [user] = await tx
-        .insert(users)
-        .values({ email, name, vereinId })
-        .returning();
-    }
-
-    const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
-      where: and(
-        eq(funktionstraegerRollen.userId, user.id),
-        eq(funktionstraegerRollen.typ, rolle)
-      ),
-    });
-    let warNeuRegistriert = false;
-    if (!vorhandeneRolle) {
-      await tx
-        .insert(funktionstraegerRollen)
-        .values({ userId: user.id, typ: rolle, aktiv: false });
-      warNeuRegistriert = true;
-    }
-
-    return {
-      identitaet: { art: "userId" as const, userId: user.id, email: user.email },
-      warNeuRegistriert,
-    };
-  });
-}
+// Siehe SelbstEintragenIdentitaet/loeseIdentitaetPerEmailAuf in
+// lib/zuordnung.ts (gemeinsam mit zeitnehmer-eintragen genutzt).
+type Identitaet = SelbstEintragenIdentitaet;
 
 // Mehrfach-Variante von ordnerSelbstEintragenOeffentlich oben — siehe
 // zeitnehmerSelbstEintragenMehrfachOeffentlich für die ausführliche
@@ -387,21 +332,12 @@ export async function ordnerSelbstEintragenMehrfachOeffentlich(
           url: `${appUrl()}/admin/funktionstraeger?suche=${encodeURIComponent(eingegebeneEmail)}`,
         }),
       };
-      for (const wart of ordnerwarte) {
-        try {
-          await sendMail(
-            wart.email,
-            "Neue Selbstregistrierung wartet auf Freischaltung",
-            emailAlsText(inhalt),
-            emailAlsHtml(inhalt)
-          );
-        } catch (err) {
-          console.error(
-            "Registrierungs-Mail an Ordnerwart konnte nicht gesendet werden:",
-            err
-          );
-        }
-      }
+      await sendeMailAnAlle(
+        ordnerwarte,
+        "Neue Selbstregistrierung wartet auf Freischaltung",
+        inhalt,
+        "Registrierungs-Mail an Ordnerwart konnte nicht gesendet werden"
+      );
     }
   }
 
@@ -415,21 +351,12 @@ export async function ordnerSelbstEintragenMehrfachOeffentlich(
           url: `${appUrl()}/profil/ordnerwart`,
         }),
       };
-      for (const wart of ordnerwarte) {
-        try {
-          await sendMail(
-            wart.email,
-            "Selbsteintragung fehlgeschlagen",
-            emailAlsText(inhalt),
-            emailAlsHtml(inhalt)
-          );
-        } catch (err) {
-          console.error(
-            "Fehlschlags-Mail an Ordnerwart konnte nicht gesendet werden:",
-            err
-          );
-        }
-      }
+      await sendeMailAnAlle(
+        ordnerwarte,
+        "Selbsteintragung fehlgeschlagen",
+        inhalt,
+        "Fehlschlags-Mail an Ordnerwart konnte nicht gesendet werden"
+      );
     }
   }
 
