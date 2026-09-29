@@ -1,6 +1,6 @@
 import { and, eq, inArray, or } from "drizzle-orm";
 import Link from "next/link";
-import { LogOutIcon } from "lucide-react";
+import { CalendarIcon, LogOutIcon } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
@@ -463,9 +463,21 @@ export default async function ProfilPage({
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
             {eigeneTermine.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Keine Termine vorhanden.
-              </p>
+              <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-10 text-center">
+                <div className="flex size-11 items-center justify-center rounded-full bg-primary/10">
+                  <CalendarIcon className="size-5 text-primary" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-medium">
+                    Noch keine Termine in dieser Saison
+                  </p>
+                  <p className="max-w-xs text-sm text-muted-foreground">
+                    Sobald du für ein Spiel als Schiedsrichter, Zeitnehmer
+                    oder in einer anderen Rolle eingetragen bist, erscheint
+                    es hier.
+                  </p>
+                </div>
+              </div>
             )}
             {(() => {
               const jetzt = new Date();

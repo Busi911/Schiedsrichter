@@ -19,6 +19,7 @@ import {
   istBesetzungVollstaendig,
 } from "@/lib/besetzung";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { standardFarbeFuerMannschaft } from "@/lib/trainingsplan";
 import { holeOrdnerEinsatzZahlen, ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
@@ -447,6 +448,7 @@ export async function holeAdminKalenderDaten(
       ort: t.ort,
       besetzungsDetails,
       mannschaftLabel: formatMannschaft(t),
+      farbe: t.mannschaftId ? standardFarbeFuerMannschaft(t.mannschaftId) : null,
       ergebnis: formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts),
       bearbeitenHref: BEARBEITBARE_TYPEN.includes(t.typ)
         ? `/admin/termine/${t.typ === "turnier_spiel" ? t.turnierId : t.id}`

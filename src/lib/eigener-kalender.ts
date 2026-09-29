@@ -12,6 +12,7 @@ import {
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
 import { bedarfFuer } from "@/lib/dienste";
 import { formatMannschaft } from "@/lib/dashboard";
+import { standardFarbeFuerMannschaft } from "@/lib/trainingsplan";
 import { tagKey } from "@/lib/kalender";
 import { formatZeit } from "@/lib/format";
 import { formatErgebnis, rundenspielTypLabel } from "@/lib/termin-label";
@@ -86,6 +87,7 @@ export async function holeEigeneKalenderEintraege(
           hatIcsSchiedsrichter: termine.icsSchiedsrichterId,
           ergebnisHeim: termine.ergebnisHeim,
           ergebnisAuswaerts: termine.ergebnisAuswaerts,
+          mannschaftId: termine.mannschaftId,
           mannschaftName: mannschaften.name,
           mannschaftAltersklasse: mannschaften.altersklasse,
           kategorie: termine.kategorie,
@@ -176,6 +178,7 @@ export async function holeEigeneKalenderEintraege(
       ort: t.ort,
       besetzungsDetails,
       mannschaftLabel: formatMannschaft(t),
+      farbe: t.mannschaftId ? standardFarbeFuerMannschaft(t.mannschaftId) : null,
       ergebnis: formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts),
     });
     eintraegeProTag.set(key, liste);

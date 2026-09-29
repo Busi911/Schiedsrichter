@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import {
   monatKey,
   monatsGitter,
@@ -84,6 +85,13 @@ export type KalenderEintrag = {
   // entsprechenden Optionen im "Person wählen…"-Dropdown werden dafür
   // ausgegraut, weil eine weitere Zuordnung ohnehin abgelehnt würde.
   volleRollen?: string[];
+  // Deterministische Mannschaftsfarbe (siehe standardFarbeFuerMannschaft in
+  // lib/trainingsplan.ts) — dieselbe Palette wie im Trainingsplan, damit ein
+  // Termin auf einen Blick derselben Mannschaft zuzuordnen ist, unabhängig
+  // davon, ob er im Trainingsplan oder im Kalender auftaucht. null/undefined
+  // (z.B. Turnier ohne Mannschaft, persönlicher ICS-Import) lässt den
+  // Farbpunkt einfach weg.
+  farbe?: string | null;
   // Bei echten Ligaspielen (Rundenspiel mit pflichtspiel = true) stellt der
   // Verband den Schiedsrichter — der Verein ordnet hier keinen zu (siehe
   // brauchtSchiedsrichterVomVerein in lib/besetzung.ts). Default true (siehe
@@ -758,28 +766,32 @@ export function MonatsKalender({
                             render={
                               <button
                                 type="button"
-                                className="flex w-full items-center gap-1 truncate rounded bg-secondary px-1 py-0.5 text-left text-secondary-foreground hover:bg-secondary/70"
+                                className="flex w-full items-center gap-1 truncate rounded-md bg-secondary px-1.5 py-0.5 text-left text-secondary-foreground hover:bg-secondary/70"
                               />
                             }
                           >
-                            {/* Ein bereits abgepfiffenes Spiel (Ergebnis erfasst) braucht
-                                keinen Besetzungs-Hinweis mehr — der ist dann ohnehin
-                                hinfällig. */}
-                            {e.besetzung && !e.ergebnis && (
+                            {e.farbe && (
                               <span
-                                className={`inline-block size-1.5 shrink-0 rounded-full ${
-                                  e.besetzung === "vollstaendig"
-                                    ? "bg-emerald-500"
-                                    : "bg-destructive"
-                                }`}
+                                className="size-1.5 shrink-0 rounded-full"
+                                style={{ backgroundColor: e.farbe }}
                               />
                             )}
                             {e.zeit && <span className="font-medium">{e.zeit} </span>}
                             <span className="truncate">{e.label}</span>
-                            {e.ergebnis && (
+                            {/* Ein bereits abgepfiffenes Spiel (Ergebnis erfasst) braucht
+                                keinen Besetzungs-Hinweis mehr — der ist dann ohnehin
+                                hinfällig. */}
+                            {e.ergebnis ? (
                               <span className="ml-auto shrink-0 font-medium">
                                 {e.ergebnis}
                               </span>
+                            ) : (
+                              e.besetzung &&
+                              (e.besetzung === "vollstaendig" ? (
+                                <CheckCircle2 className="ml-auto size-2.5 shrink-0 text-emerald-600" />
+                              ) : (
+                                <AlertCircle className="ml-auto size-2.5 shrink-0 text-destructive" />
+                              ))
                             )}
                           </DialogTrigger>
                           <DialogContent>{eintragDialogInhalt(e)}</DialogContent>
@@ -860,19 +872,23 @@ export function MonatsKalender({
                       />
                     }
                   >
-                    {e.besetzung && !e.ergebnis && (
+                    {e.farbe && (
                       <span
-                        className={`inline-block size-2 shrink-0 rounded-full ${
-                          e.besetzung === "vollstaendig"
-                            ? "bg-emerald-500"
-                            : "bg-destructive"
-                        }`}
+                        className="size-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: e.farbe }}
                       />
                     )}
                     {e.zeit && <span className="shrink-0 font-medium">{e.zeit}</span>}
                     <span className="min-w-0 flex-1 truncate">{e.label}</span>
-                    {e.ergebnis && (
+                    {e.ergebnis ? (
                       <span className="shrink-0 font-medium">{e.ergebnis}</span>
+                    ) : (
+                      e.besetzung &&
+                      (e.besetzung === "vollstaendig" ? (
+                        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
+                      ) : (
+                        <AlertCircle className="size-3.5 shrink-0 text-destructive" />
+                      ))
                     )}
                   </DialogTrigger>
                   <DialogContent>{eintragDialogInhalt(e)}</DialogContent>
