@@ -467,6 +467,23 @@ Vorschläge zum Abstimmen, keine getroffenen Entscheidungen.
   bisher Spiele/Hallenbelegung, **keine Tabellen**. Ob nuLiga und handball.net
   die Tabelle stabil abrufbar liefern, ist noch zu prüfen (Landesverband/Liga
   pro Mannschaft; nuLiga bisher fest auf HHV verdrahtet).
+  - **Ansatz nuLiga (HHV), Hinweis aus der Abstimmung — noch nicht
+    geprüft:** Es gibt eine Vereinsseite anhand der nuLiga-Vereins-ID, die
+    alle Mannschaften des Vereins auflistet, z.B.
+    `https://hhv-handball.liga.nu/cgi-bin/WebObjects/nuLigaHBDE.woa/wa/clubTeams?club=69723`.
+    Von den Mannschaften dort aus sollen die jeweilige Tabelle und ggf. der
+    Spielplan erreichbar sein. Damit würde eine einzige Vereins-ID reichen
+    (statt Hallen-IDs bzw. je Mannschaft eine ID), um alle Mannschaften mit
+    Tabelle/Spielplan/Ergebnissen anzubinden. Offen: neues Verein-Feld für
+    die nuLiga-Vereins-ID (neben den bisherigen Hallen-IDs in
+    `/admin/einstellungen`); Aufbau des HTML der Mannschaftsseiten (Link-
+    Struktur zu Tabelle/Spielplan, Saison-/Staffel-Parameter); ob die Seiten
+    ohne Login abrufbar sind und ob die Nutzungsbedingungen von nuLiga das
+    automatische Abrufen erlauben; andere Landesverbände hätten eine andere
+    Domain (siehe Hinweis oben). Vorgehen: zuerst die Seiten testweise
+    abrufen und das Format dokumentieren, dann den Scraper erweitern.
+  - **Ansatz handball.net (ab der 3. Liga):** Mannschaften mit
+    `handballNetTeamId` — Tabelle auf der Team-Seite prüfen.
 - **Welche Spiele:** Für den öffentlichen Spielplan zählen die Spiele der
   *eigenen Mannschaften* (Mannschaft mit Liga-Anbindung), nicht die
   Hallenbelegung fremder Mannschaften, die für Ordner-/Kioskdienst importiert
@@ -508,8 +525,8 @@ Vorschläge zum Abstimmen, keine getroffenen Entscheidungen.
 **Grober Ablauf**
 
 1. Entscheidungen zu "angebunden", Datenquelle Tabelle und Umfang klären.
-2. Machbarkeit Tabelle (nuLiga/handball.net) prüfen, Datenmodell +
-   Sync ergänzen.
+2. Machbarkeit Tabelle prüfen (nuLiga `clubTeams`-Seite mit Vereins-ID
+   und handball.net), Datenmodell + Sync ergänzen.
 3. Öffentliche Seiten (Vereinsliste, Mannschaft mit Tabelle/Ergebnisse/
    Spielplan), Schalter in den Einstellungen, Routen freigeben.
 4. Tests (Isolation, Datenschutz), Datenschutzerklärung, Startseite verlinken.
