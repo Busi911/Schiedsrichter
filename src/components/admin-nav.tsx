@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDownIcon } from "lucide-react";
@@ -13,6 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Nur Desktop (ab md) — mobil übernimmt die Bottom-Bar aus
+// admin-bottom-nav.tsx, deren Punkte mit den Listen hier übereinstimmen
+// müssen.
+//
 // Häufig gebrauchte Punkte bleiben direkt sichtbar, seltener genutzte
 // (Stammdaten-Pflege, Auswertungen) wandern unter das "Verwaltung"-Dropdown
 // — sonst wächst die Leiste mit jedem neuen Admin-Bereich flach weiter und
@@ -32,8 +35,6 @@ const VERWALTUNG_ITEMS = [
   { href: "/admin/einstellungen", label: "Einstellungen" },
 ];
 
-const ALLE_ITEMS = [...PRIMARY_ITEMS, ...VERWALTUNG_ITEMS];
-
 function istAktiv(
   pathname: string | null,
   item: { href: string; exact?: boolean }
@@ -45,60 +46,10 @@ function istAktiv(
 
 export function AdminNav() {
   const pathname = usePathname();
-  const [offen, setOffen] = useState(false);
   const verwaltungAktiv = VERWALTUNG_ITEMS.some((item) => istAktiv(pathname, item));
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOffen((o) => !o)}
-        aria-expanded={offen}
-        aria-label={offen ? "Menü schließen" : "Menü öffnen"}
-        className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "md:hidden")}
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="size-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
-          {offen ? (
-            <path d="M6 6l12 12M18 6L6 18" />
-          ) : (
-            <path d="M4 7h16M4 12h16M4 17h16" />
-          )}
-        </svg>
-      </button>
-
-      {/* Mobile: alle Punkte flach in einer Liste hinter dem Hamburger-Menü
-          — dort stört die Länge nicht, da sie ohnehin eingeklappt ist. */}
-      <nav
-        className={cn(
-          "w-full flex-col gap-1 md:hidden",
-          offen ? "flex" : "hidden"
-        )}
-      >
-        {ALLE_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setOffen(false)}
-            className={cn(
-              buttonVariants({
-                variant: istAktiv(pathname, item) ? "secondary" : "ghost",
-                size: "sm",
-              }),
-              "justify-start"
-            )}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-
       {/* Desktop: häufige Punkte direkt, seltenere unter "Verwaltung". */}
       <nav className="hidden md:flex md:flex-row md:flex-wrap md:items-center md:gap-1">
         {PRIMARY_ITEMS.map((item) => (

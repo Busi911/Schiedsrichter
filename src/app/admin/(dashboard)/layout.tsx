@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { AdminNav } from "@/components/admin-nav";
+import { AdminBottomNav } from "@/components/admin-bottom-nav";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { HilfeLink } from "@/components/hilfe-link";
 import { Logo } from "@/components/logo";
@@ -142,6 +143,13 @@ export default async function AdminLayout({
         </div>
       </header>
       <main className="mx-auto max-w-screen-2xl p-6">{children}</main>
+      <AdminBottomNav
+        offeneDiensteAnzahl={offeneDiensteAnzahl}
+        logoutAction={async () => {
+          "use server";
+          await signOut({ redirectTo: "/login" });
+        }}
+      />
     </div>
   );
 }

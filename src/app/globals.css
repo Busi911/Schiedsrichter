@@ -145,3 +145,11 @@
     @apply font-sans;
   }
 }
+/* Platz für die fixierte Bottom-Navigation (siehe admin-bottom-nav.tsx) —
+   am <body> statt am Seiten-Container, damit auch der Footer darunter noch
+   über der Leiste erreichbar bleibt. */
+@media (max-width: 767px) {
+  body:has([data-bottom-nav]) {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
