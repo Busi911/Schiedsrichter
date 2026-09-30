@@ -16,7 +16,10 @@ import {
   UsersIcon,
   UsersRoundIcon,
   BarChart3Icon,
+  Building2Icon,
   ClipboardCheckIcon,
+  ListOrderedIcon,
+  MessageSquareIcon,
   HandHelpingIcon,
   KeyRoundIcon,
   ShieldIcon,
@@ -47,6 +50,9 @@ const ICONS = {
   admin: ShieldIcon,
   wart: ClipboardCheckIcon,
   passwort: KeyRoundIcon,
+  vereine: Building2Icon,
+  warteliste: ListOrderedIcon,
+  feedback: MessageSquareIcon,
 } satisfies Record<string, LucideIcon>;
 
 export type BottomNavIcon = keyof typeof ICONS;

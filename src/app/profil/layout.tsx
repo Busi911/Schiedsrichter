@@ -53,10 +53,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {};
 }
 
-// Bottom-Navigation (nur mobil) nur, wenn es neben /profil selbst überhaupt
-// etwas anzusteuern gibt — Admin-Bereich und/oder eine Wart-Rolle (Admins
-// haben Zugriff auf alle Wart-Bereiche, siehe profil/page.tsx). Eine Person
-// ohne diese Rollen hätte sonst eine Leiste mit nur einem Tab.
+// Bottom-Navigation (nur mobil) für alle eingeloggten Personen, damit sie
+// überall gleich aussieht — zusätzliche Tabs je nach Rolle: Admin-Bereich
+// und/oder Wart-Rollen (Admins haben Zugriff auf alle Wart-Bereiche, siehe
+// profil/page.tsx). Ohne solche Rollen steht neben Profil der Hilfe-Tab.
 export default async function ProfilLayout({
   children,
 }: {
@@ -91,7 +91,8 @@ export default async function ProfilLayout({
   if (ordnerwart) {
     tabs.push({ href: "/profil/ordnerwart", label: "Ordner", icon: "wart" });
   }
-  if (tabs.length === 1) return children;
+  const nurProfil = tabs.length === 1;
+  if (nurProfil) tabs.push({ href: "/hilfe", label: "Hilfe", icon: "hilfe" });
 
   return (
     <>
@@ -100,7 +101,7 @@ export default async function ProfilLayout({
         tabs={tabs}
         mehrItems={[
           { href: "/profil/passwort-aendern", label: "Passwort ändern", icon: "passwort" },
-          { href: "/hilfe", label: "Hilfe", icon: "hilfe" },
+          ...(nurProfil ? [] : [{ href: "/hilfe", label: "Hilfe", icon: "hilfe" } as const]),
         ]}
         logoutAction={async () => {
           "use server";

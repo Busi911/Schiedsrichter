@@ -4,6 +4,7 @@ import { requireSystemAdmin } from "@/lib/session";
 import { signOut } from "@/auth";
 import { SubmitButton } from "@/components/submit-button";
 import { SystemNav } from "@/components/system-nav";
+import { BottomNav } from "@/components/bottom-nav";
 import { HilfeLink } from "@/components/hilfe-link";
 import { Logo } from "@/components/logo";
 
@@ -84,6 +85,20 @@ export default async function SystemLayout({
         </div>
       </header>
       <main className="mx-auto max-w-6xl p-6">{children}</main>
+      <BottomNav
+        // Muss mit NAV_ITEMS in system-nav.tsx übereinstimmen (Desktop-Pendant).
+        tabs={[
+          { href: "/system", label: "Übersicht", icon: "home", exact: true },
+          { href: "/system/vereine", label: "Vereine", icon: "vereine" },
+          { href: "/system/warteliste", label: "Warteliste", icon: "warteliste" },
+          { href: "/system/feedback", label: "Feedback", icon: "feedback" },
+        ]}
+        mehrItems={[{ href: "/hilfe", label: "Hilfe", icon: "hilfe" }]}
+        logoutAction={async () => {
+          "use server";
+          await signOut({ redirectTo: "/login" });
+        }}
+      />
     </div>
   );
 }
