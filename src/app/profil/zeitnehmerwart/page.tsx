@@ -51,6 +51,7 @@ import { DisclosureSummary } from "@/components/disclosure-summary";
 import { MannschaftFilterLeiste } from "@/components/mannschaft-filter-leiste";
 import { MonatsgruppenListe } from "@/components/monatsgruppen-liste";
 import { gruppiereNachMonat, jetzt } from "@/lib/monats-gruppierung";
+import { SelbsteintragungLink } from "@/components/selbsteintragung-link";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -294,7 +295,7 @@ export default async function ZeitnehmerwartPage({
         </p>
       </div>
 
-      <Card>
+      <Card className="border-primary/40 bg-primary/5">
         <CardHeader>
           <CardTitle className="text-base">Öffentliche Selbsteintragung</CardTitle>
           <CardDescription>
@@ -307,10 +308,10 @@ export default async function ZeitnehmerwartPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {verein?.zeitnehmerSelbstanmeldungToken ? (
-            <p className="break-all rounded-lg border bg-muted/40 p-3 text-sm">
-              {appUrl()}/zeitnehmer-eintragen/
-              {verein.zeitnehmerSelbstanmeldungToken}
-            </p>
+            <SelbsteintragungLink
+              url={`${appUrl()}/zeitnehmer-eintragen/${verein.zeitnehmerSelbstanmeldungToken}`}
+              teilText="Trag dich hier als Zeitnehmer/Sekretär ein:"
+            />
           ) : (
             <p className="text-sm text-muted-foreground">
               Noch nicht aktiviert.
