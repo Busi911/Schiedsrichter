@@ -3,9 +3,10 @@
 Verwaltungsplattform für Handball-Vereine: Funktionsträger (Schiedsrichter,
 Zeitnehmer, Sekretäre, Trainer, Ordner, Kioskdienst), Terminverwaltung inkl.
 ICS-Feed-Sync für Schiedsrichter, und perspektivisch Spielzuordnung,
-Selbst-Anmeldung und eine einfache Zuschussberechnung. Details und Roadmap
-siehe Planungsdokument im `.claude/plans`-Verzeichnis der Konversation, in der
-dieses Projekt aufgesetzt wurde.
+Selbst-Anmeldung und eine einfache Zuschussberechnung. Geplante Erweiterungen
+siehe Abschnitt "Roadmap" weiter unten; das ursprüngliche Planungsdokument
+lag im `.claude/plans`-Verzeichnis der Konversation, in der dieses Projekt
+aufgesetzt wurde.
 
 Tech-Stack: Next.js 16 (App Router) auf Vercel, Neon.tech (Postgres) mit
 Drizzle ORM, Auth.js (Magic-Link-Login), SMTP-Mailversand (Nodemailer).
@@ -438,6 +439,81 @@ ergänzt werden:
   React als "uncontrolled component ändert sich nach Initialisierung"
   gewarnt — beheben mit `key={...}`, um einen echten Remount zu erzwingen
   (siehe `Switch` in `src/app/admin/zuschuesse/page.tsx`).
+
+## Roadmap
+
+### Öffentlicher Bereich ("Vereine & Mannschaften", ohne Login)
+
+**Idee:** Ein vom Vereins-Login getrennter, für alle offener Zugang. Jede
+Person (auch ohne Konto) sieht eine Liste aller angebundenen Vereine, wählt
+einen aus und sieht dessen Mannschaften mit aktueller **Tabelle**,
+**Spielplan** und **Ergebnissen** — ähnlich wie in gängigen Handball-Apps
+(Vereinsliste mit Favoriten-Stern und "+" zum Hinzufügen; pro Mannschaft die
+Tabs Tabelle / Ergebnisse / Spielplan, optional Kader; Filter "Nur eigene
+Spiele"). Der bisherige Bereich für Funktionsträger/Admins bleibt davon
+unberührt; die Startseite verweist künftig auf beide Zugänge.
+
+**Status:** nur definiert, noch nichts umgesetzt. Alle Punkte unten sind
+Vorschläge zum Abstimmen, keine getroffenen Entscheidungen.
+
+**Offene Fragen vorab**
+
+- **"Angebunden":** Vorschlag: nur Vereine, die das selbst einschalten
+  (Verein-weiter Schalter in `/admin/einstellungen`, Default aus — analog zum
+  Muster "Zwei-Ebenen-Benachrichtigungen" in `CLAUDE.md`, hier nur die
+  Verein-Ebene). Nicht automatisch alle Vereine.
+- **Datenquelle Tabelle:** Die vorhandenen Scraper
+  (`src/lib/nuliga-scraper.ts`, `src/lib/handball-net-scraper.ts`) holen
+  bisher Spiele/Hallenbelegung, **keine Tabellen**. Ob nuLiga und handball.net
+  die Tabelle stabil abrufbar liefern, ist noch zu prüfen (Landesverband/Liga
+  pro Mannschaft; nuLiga bisher fest auf HHV verdrahtet).
+- **Welche Spiele:** Für den öffentlichen Spielplan zählen die Spiele der
+  *eigenen Mannschaften* (Mannschaft mit Liga-Anbindung), nicht die
+  Hallenbelegung fremder Mannschaften, die für Ordner-/Kioskdienst importiert
+  wird (`termin.typ = 'rundenspiel'`, siehe Abschnitt "Rundenspiele").
+  Vorschlag: pro Mannschaft `handballNetTeamId` bzw. nuLiga-Zuordnung
+  nutzen und die Tabelle ebenfalls dort abholen.
+- **Kader/Torschützen:** Personenbezogen, daher zunächst **nicht** im Umfang
+  (DSGVO, `/datenschutz` ist ein Entwurf). Erst nach juristischer Prüfung und
+  nur mit Einwilligung bzw. opt-in.
+
+**Technische Leitplanken**
+
+- Neue login-freie Routen (z.B. `/vereine`, `/vereine/[slug]`,
+  `/vereine/[slug]/[mannschaft]`) in `publicRoutes` bzw. als Präfix in
+  `src/proxy.ts` freigeben; bestehendes Muster: `/turnier/`, `/kalender/`.
+- Lesezugriff ohne Session läuft über `adminDb` mit **explizitem** Filter auf
+  den freigeschalteten Verein (kein `withTenant` ohne Session) — Ausnahme
+  analog zu den öffentlichen Token-Seiten. Nach dem Bau
+  `src/db/tenant-isolation.test.ts` ergänzen bzw. laufen lassen und prüfen,
+  dass keine nicht freigeschalteten Vereine und keine internen Daten
+  (Zuordnungen, Personen, Schiedsrichter-Besetzung, E-Mails) ausgeliefert
+  werden.
+- Nur aufbereitete, öffentliche Felder ausliefern (Datum, Halle, Teams,
+  Ergebnis, Tabelle). **Keine** Funktionsträger-Namen, auch wenn
+  handball.net sie anzeigt.
+- Tabelle cachen (z.B. beim täglichen Sync in der DB ablegen statt bei jedem
+  Aufruf beim Verband abzufragen); Sync-Fehler dürfen die Seite nicht kaputt
+  machen (letzten Stand mit Zeitstempel zeigen).
+- Mobile first (~375–390px, siehe "Mobile-Optimierung" in `CLAUDE.md`); die
+  Mannschafts-Ansicht nutzt die vorhandene Bottom-Navigation
+  (`src/components/bottom-nav.tsx`) mit Tabs Tabelle / Ergebnisse /
+  Spielplan. Favoriten ("Meine Vereine") zunächst lokal im Browser
+  (`localStorage`, mit try/catch), kein Konto nötig.
+- SEO/Teilen: sprechende URLs pro Verein/Mannschaft, Open-Graph-Metadaten.
+- Rechtliches: `/datenschutz` um den öffentlichen Bereich ergänzen (Entwurf-
+  Warnhinweis beibehalten, siehe `CLAUDE.md`); Impressum/Verantwortlichkeit
+  für den öffentlichen Bereich klären.
+
+**Grober Ablauf**
+
+1. Entscheidungen zu "angebunden", Datenquelle Tabelle und Umfang klären.
+2. Machbarkeit Tabelle (nuLiga/handball.net) prüfen, Datenmodell +
+   Sync ergänzen.
+3. Öffentliche Seiten (Vereinsliste, Mannschaft mit Tabelle/Ergebnisse/
+   Spielplan), Schalter in den Einstellungen, Routen freigeben.
+4. Tests (Isolation, Datenschutz), Datenschutzerklärung, Startseite verlinken.
+5. Später: Kader/Torschützen, Favoriten mit Konto, Push bei Ergebnissen.
 
 ## Bekannte offene Punkte
 
