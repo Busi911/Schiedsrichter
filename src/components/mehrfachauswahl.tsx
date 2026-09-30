@@ -87,7 +87,19 @@ export function TerminMehrfachAuswahl({
   // umfasst (z.B. bei "Alle" mit vielen Mannschaften) — bei nur einem Tag
   // wäre eine einzelne, immer gleiche Überschrift nur Rauschen (siehe
   // gleiches Prinzip in turnier-spielplan.tsx).
-  const mehrtaegig = new Set(termine.map((t) => t.tag)).size > 1;
+  // "Offene zuerst" zeigt die Termine mit noch freier Besetzung oben (stabil,
+  // also innerhalb der Gruppen weiter nach Datum) — bei vielen Terminen
+  // (z.B. "Alle" Mannschaften) sonst mühsam, die noch offenen zwischen den
+  // bereits vollständigen zu suchen. In dieser Ansicht gibt es keine
+  // Tages-Überschriften, da die Reihenfolge nicht mehr chronologisch ist
+  // (das Datum steht in jeder Karte selbst).
+  const [sortierung, setSortierung] = useState<"datum" | "offen">("datum");
+  const anzeigeTermine =
+    sortierung === "offen"
+      ? [...termine].sort((a, b) => Number(a.vollstaendig) - Number(b.vollstaendig))
+      : termine;
+  const mehrtaegig =
+    sortierung === "datum" && new Set(termine.map((t) => t.tag)).size > 1;
 
   // Schnittmenge der noch offenen Rollen über alle aktuell ausgewählten
   // Termine — bei nur einem Termin einfach dessen eigene offeneRollen. Das
@@ -167,81 +179,28 @@ export function TerminMehrfachAuswahl({
         </Alert>
       )}
 
-      {ausgewaehlt.size > 0 && (
-        <form
-          action={submitActionState}
-          className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 p-3"
+      <div className="flex w-fit gap-1 rounded-lg border bg-muted p-1 text-xs">
+        <Button
+          type="button"
+          variant={sortierung === "datum" ? "secondary" : "ghost"}
+          size="xs"
+          onClick={() => setSortierung("datum")}
         >
-          <input type="hidden" name="token" value={token} />
-          {[...ausgewaehlt].map((id) => (
-            <input key={id} type="hidden" name="terminIds" value={id} />
-          ))}
-          <span className="text-xs text-muted-foreground">
-            {ausgewaehlt.size} {ausgewaehlt.size === 1 ? "Termin" : "Termine"}{" "}
-            ausgewählt
-          </span>
-          {rolleOptionenGefiltert.length === 0 ? (
-            // Kein gemeinsames Absenden möglich, wenn die ausgewählten
-            // Termine keine gemeinsam noch offene Rolle mehr haben (z.B.
-            // einer braucht nur noch einen Zeitnehmer, ein anderer nur noch
-            // einen Sekretär) — Hinweis statt einem Rollen-Dropdown ohne
-            // Optionen.
-            <span className="text-xs text-destructive">
-              Für die ausgewählte Kombination gibt es keine gemeinsame offene
-              Rolle mehr — bitte Auswahl anpassen oder Termine einzeln
-              eintragen.
-            </span>
-          ) : (
-            <>
-              {eingeloggtAls ? (
-                <span className="text-sm">
-                  Eintragen als <strong>{eingeloggtAls}</strong>
-                </span>
-              ) : (
-                <>
-                  <Input
-                    name="name"
-                    placeholder="Dein Name"
-                    required
-                    className="h-8 min-w-48 flex-1"
-                  />
-                  {zeigeEmailFeld && (
-                    <Input
-                      name="email"
-                      type="email"
-                      placeholder="E-Mail (optional, für eigenen Zugang)"
-                      className="h-8 min-w-56 flex-1"
-                    />
-                  )}
-                </>
-              )}
-              <div className="w-36">
-                <LabeledSelect
-                  name="rolle"
-                  placeholder="Rolle…"
-                  options={rolleOptionenGefiltert}
-                  required
-                />
-              </div>
-              <SubmitButton size="sm" pendingText="Wird eingetragen…">
-                Für alle eintragen
-              </SubmitButton>
-            </>
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setAusgewaehlt(new Set())}
-          >
-            Auswahl zurücksetzen
-          </Button>
-        </form>
-      )}
+          Nach Datum
+        </Button>
+        <Button
+          type="button"
+          variant={sortierung === "offen" ? "secondary" : "ghost"}
+          size="xs"
+          onClick={() => setSortierung("offen")}
+        >
+          Offene zuerst
+        </Button>
+      </div>
 
-      {termine.map((t, i) => (
+      {anzeigeTermine.map((t, i) => (
         <div key={t.id} className="flex flex-col gap-3">
-          {mehrtaegig && (i === 0 || termine[i - 1].tag !== t.tag) && (
+          {mehrtaegig && (i === 0 || anzeigeTermine[i - 1].tag !== t.tag) && (
             <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
               {t.tagLabel}
             </p>
@@ -305,6 +264,86 @@ export function TerminMehrfachAuswahl({
           </Card>
         </div>
       ))}
+      {ausgewaehlt.size > 0 && (
+        // Klebt am unteren Bildschirmrand, solange die Liste darüber noch im
+        // Bild ist — bei vielen ausgewählten Terminen muss man sonst zum
+        // Absenden wieder ganz nach oben scrollen (Hauptnutzung: Handy).
+        // Steht deshalb NACH der Liste (sticky bottom bezieht sich auf den
+        // Container; am Listenende sitzt es einfach an seiner normalen Stelle).
+        <form
+          action={submitActionState}
+          className="sticky bottom-3 z-20 flex flex-col gap-2 rounded-lg border bg-background p-3 shadow-lg"
+        >
+          <input type="hidden" name="token" value={token} />
+          {[...ausgewaehlt].map((id) => (
+            <input key={id} type="hidden" name="terminIds" value={id} />
+          ))}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-medium">
+              {ausgewaehlt.size} {ausgewaehlt.size === 1 ? "Termin" : "Termine"}{" "}
+              ausgewählt
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => setAusgewaehlt(new Set())}
+            >
+              Zurücksetzen
+            </Button>
+          </div>
+          {rolleOptionenGefiltert.length === 0 ? (
+            // Kein gemeinsames Absenden möglich, wenn die ausgewählten
+            // Termine keine gemeinsam noch offene Rolle mehr haben (z.B.
+            // einer braucht nur noch einen Zeitnehmer, ein anderer nur noch
+            // einen Sekretär) — Hinweis statt einem Rollen-Dropdown ohne
+            // Optionen.
+            <span className="text-xs text-destructive">
+              Für die ausgewählte Kombination gibt es keine gemeinsame offene
+              Rolle mehr — bitte Auswahl anpassen oder Termine einzeln
+              eintragen.
+            </span>
+          ) : (
+            <>
+              {eingeloggtAls ? (
+                <span className="text-sm">
+                  Eintragen als <strong>{eingeloggtAls}</strong>
+                </span>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Input
+                    name="name"
+                    placeholder="Dein Name"
+                    required
+                    className="h-8"
+                  />
+                  {zeigeEmailFeld && (
+                    <Input
+                      name="email"
+                      type="email"
+                      placeholder="E-Mail (optional, für eigenen Zugang)"
+                      className="h-8"
+                    />
+                  )}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1 sm:w-36 sm:flex-none">
+                  <LabeledSelect
+                    name="rolle"
+                    placeholder="Rolle…"
+                    options={rolleOptionenGefiltert}
+                    required
+                  />
+                </div>
+                <SubmitButton size="sm" pendingText="Wird eingetragen…">
+                  Für alle eintragen
+                </SubmitButton>
+              </div>
+            </>
+          )}
+        </form>
+      )}
     </div>
   );
 }
