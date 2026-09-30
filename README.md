@@ -515,6 +515,72 @@ Vorschläge zum Abstimmen, keine getroffenen Entscheidungen.
 4. Tests (Isolation, Datenschutz), Datenschutzerklärung, Startseite verlinken.
 5. Später: Kader/Torschützen, Favoriten mit Konto, Push bei Ergebnissen.
 
+### Stand der Abstimmung (30.09.2026)
+
+Sammelstelle für alles, was in den letzten Arbeitsschritten besprochen wurde,
+noch offen ist oder bewusst *nicht* umgesetzt wurde. Beim Weiterarbeiten
+hier abhaken bzw. entfernen.
+
+**Umgesetzt und live (`main`)**
+
+- `/admin/termine` mobil: Liste nach Tag gruppiert (Desktop-Tabelle
+  unverändert).
+- Produkttour-Screenshots: der Workflow "Produkttour-Screenshots neu
+  erzeugen" (manuell startbar) committet geänderte Bilder selbst zurück in
+  den Branch, auf dem er läuft; Kalender-Zuschnitt 1440×600, Text angepasst.
+- Mail "Termin geändert" an eingetragene Personen mit Login, wenn bei einem
+  **manuellen** Termin (Freundschaftsspiel/Turnier) Zeit oder Ort geändert
+  wird. Zuordnungen bleiben bewusst bestehen (nur benachrichtigen, nicht
+  austragen). Der echte Mailversand wurde noch nicht ausprobiert.
+
+**Offene Pull Requests (warten auf Merge und Test am Handy)**
+
+- #163 — Eintragen-Leiste auf `/zeitnehmer-eintragen/…` und
+  `/ordner-eintragen/…` klebt am unteren Rand; Umschalter "Nach Datum"
+  (Standard) / "Offene zuerst". Zu prüfen: Sticky-Verhalten mit Tastatur und
+  Safari-Leiste.
+- #164 — Bottom-Navigation (`src/components/bottom-nav.tsx`) mobil für
+  Admin (Übersicht, Kalender, Termine, Training, Mehr), `/profil`
+  (rollenabhängig; ohne Rollen Profil + Hilfe) und `/system`. Zu prüfen:
+  iPhone-Safe-Area, Mehr-Menü, Logout daraus, Rollen-Kombinationen auf
+  `/profil`.
+- #165 — diese Roadmap.
+
+**Besprochen und entschieden**
+
+- Bottom-Navigation: "Training" (statt Dienste) ist der vierte Admin-Tab,
+  "Offene Dienste" liegt unter Mehr, der Zähler offener Dienste steht als
+  Badge am Mehr-Tab. Alle eingeloggten Personen bekommen die Leiste, nicht
+  nur Admins. Desktop-Navigation bleibt unverändert.
+- Bei manuell geänderten Terminen werden Eingetragene **nicht** ausgetragen
+  (anders als beim automatischen Sync des Hallenspielplans).
+- Beim Sync-Fall (Hallenspielplan, nuLiga/handball.net) bleibt es beim
+  bisherigen Verhalten: Funktionsträger außer Schiedsrichtern werden bei
+  Verlegung ausgetragen und per Mail informiert; Admin-Sammelmail nur mit
+  Opt-in (`/admin/einstellungen`, Default aus).
+
+**Noch zu entscheiden / bewusst nicht gebaut**
+
+- Sammelmail an Admins bei Änderung manueller Termine — nicht gebaut, da
+  zunächst nur die Eingetragenen informiert werden sollten.
+- Mails bei geänderten ICS-Terminen (`spiel_ics`, persönlicher Feed eines
+  Schiedsrichters) — nicht gebaut, weil niemand sonst darauf eingetragen
+  ist; bei Bedarf neu entscheiden.
+- Schiedsrichter bei Ligaspielen bleiben bei einer Sync-Verlegung
+  eingetragen und bekommen **keine** Mail (der Verband setzt sie an);
+  Trainer und Spieler werden bei Verlegungen generell nicht informiert.
+  Soll sich das ändern?
+- Standard der Sortierung auf den Eintragen-Seiten (#163): aktuell
+  "Nach Datum"; "Offene zuerst" wäre als Standard denkbar.
+- Bottom-Navigation: `/hilfe` liegt außerhalb der Layouts und zeigt keine
+  Leiste (dort gibt es den Zurück-Button). Ggf. angleichen.
+- Workflow "Produkttour-Screenshots": der Push-Schritt scheitert, sobald
+  `main` per Branch-Schutz nur noch über Pull Requests änderbar ist — dann
+  automatisch einen PR erzeugen lassen statt direkt zu pushen.
+- Lokal meldet `tsc` einen Fehler `Cannot find name 'LayoutProps'` in
+  `src/app/layout.tsx` (auch ohne Änderungen, vermutlich fehlende von Next
+  erzeugte Typen); in CI/Build unauffällig, bei Gelegenheit klären.
+
 ## Bekannte offene Punkte
 
 - `drizzle-kit` zieht transitiv eine veraltete `esbuild`-Version (moderate,
