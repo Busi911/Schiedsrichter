@@ -533,7 +533,7 @@ hier abhaken bzw. entfernen.
   wird. Zuordnungen bleiben bewusst bestehen (nur benachrichtigen, nicht
   austragen). Der echte Mailversand wurde noch nicht ausprobiert.
 
-**Offene Pull Requests (warten auf Merge und Test am Handy)**
+**Gemergt, aber noch nicht am Handy geprüft** (Stand 30.09.2026)
 
 - #163 — Eintragen-Leiste auf `/zeitnehmer-eintragen/…` und
   `/ordner-eintragen/…` klebt am unteren Rand; Umschalter "Nach Datum"
