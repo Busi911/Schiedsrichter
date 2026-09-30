@@ -138,6 +138,32 @@ export function zuordnungEntferntWegenVerlegungInhalt(
   };
 }
 
+// Für manuell angelegte Termine (Freundschaftsspiele/Turniere), deren Zeit
+// oder Ort der Admin nachträglich ändert (siehe aktualisiereTerminFelder in
+// admin/(dashboard)/actions.ts). Anders als beim Sync-Fall oben
+// (zuordnungEntferntWegenVerlegungInhalt) bleibt die Zuordnung hier
+// bestehen — die Person wird nur informiert und kann sich bei Bedarf selbst
+// über /profil abmelden. `rollen` sind alle Rollen dieser Person am Termin
+// (eine Mail pro Person statt pro Zuordnung).
+export function terminVerlegtInhalt(
+  rollen: string[],
+  alt: { start: Date; ort: string | null },
+  neu: { start: Date; ort: string | null; beschreibung: string | null }
+): EmailInhalt {
+  const rollenLabel = rollen.map((r) => ZUORDNUNGS_ROLLE_LABEL[r] ?? r).join(" / ");
+  const zeilen: EmailZeile[] = [];
+  const altText = [formatDatumZeitLang(alt.start), alt.ort].filter(Boolean).join(" · ");
+  const neuText = [formatDatumZeitLang(neu.start), neu.ort].filter(Boolean).join(" · ");
+  zeilen.push(`Bisher: ${altText}`);
+  zeilen.push({ text: `Neu: ${neuText}`, stark: true });
+  if (neu.beschreibung) zeilen.push(neu.beschreibung);
+  return {
+    ueberschrift: `Ein Termin wurde geändert — du bist weiterhin als ${rollenLabel} eingeteilt.`,
+    zeilen,
+    kleingedrucktes: "Kannst du zum neuen Termin nicht? Dann melde dich bitte über dein Profil ab.",
+  };
+}
+
 // Analog zu zuordnungsMailInhalt oben, aber für mehrere Termine auf einmal
 // (siehe zeitnehmerSelbstEintragenMehrfachOeffentlich in
 // zeitnehmer-eintragen/[token]/actions.ts) — EINE Mail mit einer Zeile pro

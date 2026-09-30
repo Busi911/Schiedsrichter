@@ -4,6 +4,7 @@ import {
   zuordnungEntferntInhalt,
   zuordnungEntferntWegenVerlegungInhalt,
   zuordnungFehlgeschlagenInhalt,
+  terminVerlegtInhalt,
   zuordnungsMailInhalt,
 } from "./zuordnung";
 import { zeileText } from "./email-layout";
@@ -179,5 +180,35 @@ describe("zuordnungFehlgeschlagenInhalt", () => {
       { text: "Zur Ordner-/Kioskdienst-Übersicht", url: "https://example.org/profil/ordnerwart" }
     );
     expect(inhalt.cta?.url).toContain("/profil/ordnerwart");
+  });
+});
+
+describe("terminVerlegtInhalt", () => {
+  const alt = { start: new Date("2026-09-01T18:00:00+02:00"), ort: "Halle 1" };
+  const neu = {
+    start: new Date("2026-09-02T19:30:00+02:00"),
+    ort: "Halle 2",
+    beschreibung: "Herren 1 vs. Herren 2",
+  };
+
+  it("nennt alten und neuen Termin samt Rolle und dass die Zuordnung bleibt", () => {
+    const inhalt = terminVerlegtInhalt(["zeitnehmer"], alt, neu);
+    expect(inhalt.ueberschrift).toContain("Zeitnehmer");
+    expect(inhalt.ueberschrift).toContain("weiterhin");
+    const texte = inhalt.zeilen.map(zeileText);
+    expect(texte.some((t) => t.startsWith("Bisher:") && t.includes("Halle 1"))).toBe(true);
+    expect(texte.some((t) => t.startsWith("Neu:") && t.includes("Halle 2"))).toBe(true);
+    expect(texte).toContain("Herren 1 vs. Herren 2");
+  });
+
+  it("fasst mehrere Rollen einer Person zusammen", () => {
+    const inhalt = terminVerlegtInhalt(["zeitnehmer", "sekretaer"], alt, neu);
+    expect(inhalt.ueberschrift).toContain("Zeitnehmer / Sekretär");
+  });
+
+  it("lässt den Ort weg, wenn keiner gesetzt ist", () => {
+    const inhalt = terminVerlegtInhalt(["zeitnehmer"], { ...alt, ort: null }, { ...neu, ort: null });
+    const texte = inhalt.zeilen.map(zeileText);
+    expect(texte.find((t) => t.startsWith("Neu:"))).not.toContain("·");
   });
 });
