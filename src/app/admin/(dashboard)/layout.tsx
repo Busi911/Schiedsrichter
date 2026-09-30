@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { AdminNav } from "@/components/admin-nav";
-import { AdminBottomNav } from "@/components/admin-bottom-nav";
+import { BottomNav } from "@/components/bottom-nav";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { HilfeLink } from "@/components/hilfe-link";
 import { Logo } from "@/components/logo";
@@ -143,8 +143,29 @@ export default async function AdminLayout({
         </div>
       </header>
       <main className="mx-auto max-w-screen-2xl p-6">{children}</main>
-      <AdminBottomNav
-        offeneDiensteAnzahl={offeneDiensteAnzahl}
+      <BottomNav
+        // Muss mit PRIMARY_ITEMS/VERWALTUNG_ITEMS in admin-nav.tsx
+        // übereinstimmen (Desktop-Pendant).
+        tabs={[
+          { href: "/admin", label: "Übersicht", icon: "home", exact: true },
+          { href: "/admin/kalender", label: "Kalender", icon: "kalender" },
+          { href: "/admin/termine", label: "Termine", icon: "termine" },
+          { href: "/admin/trainingsplan", label: "Training", icon: "training" },
+        ]}
+        mehrItems={[
+          {
+            href: "/admin/dienste",
+            label: "Offene Dienste",
+            icon: "dienste",
+            badge: offeneDiensteAnzahl,
+          },
+          { href: "/admin/mannschaften", label: "Mannschaften", icon: "mannschaften" },
+          { href: "/admin/funktionstraeger", label: "Funktionsträger", icon: "funktionstraeger" },
+          { href: "/admin/auswertung", label: "Auswertung & Export", icon: "auswertung" },
+          { href: "/admin/einstellungen", label: "Einstellungen", icon: "einstellungen" },
+          { href: "/profil", label: "Mein Profil", icon: "profil" },
+          { href: "/hilfe", label: "Hilfe", icon: "hilfe" },
+        ]}
         logoutAction={async () => {
           "use server";
           await signOut({ redirectTo: "/login" });
