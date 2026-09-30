@@ -24,6 +24,7 @@ import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout
 import { emailGeaendertInhalt, pruefeEmailVerfuegbar } from "@/lib/email-aendern";
 import { LIZENZ_ROLLEN } from "@/lib/lizenz-rollen";
 import { willkommensInhalt } from "@/lib/willkommens-mail";
+import { terminVerlegtInhalt } from "@/lib/zuordnung";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { istTurnierBerechtigt } from "@/lib/turnier-zugriff";
 import { generiereOeffentlichenToken } from "@/lib/token";
@@ -1446,7 +1447,7 @@ async function aktualisiereTerminFelder(
     throw new Error("Start ist erforderlich.");
   }
 
-  await withTenant(vereinId, async (tx) => {
+  const verlegung = await withTenant(vereinId, async (tx) => {
     const bestehend = await tx.query.termine.findFirst({
       where: and(eq(termine.id, terminId), eq(termine.vereinId, vereinId)),
     });
@@ -1477,17 +1478,57 @@ async function aktualisiereTerminFelder(
       if (istAktiverTrainer) geprueftesVerantwortlicherId = turnierVerantwortlicherId;
     }
 
+    const neuStart = parseBerlinDatumZeit(start);
+    const neuOrt = typeof ort === "string" && ort.trim() ? ort.trim() : null;
+    const neueBeschreibung =
+      typeof beschreibung === "string" && beschreibung.trim() ? beschreibung.trim() : null;
+
+    // Nur Zeit/Ort lösen eine Benachrichtigung aus (nicht z.B. eine geänderte
+    // Beschreibung) — die eingetragenen Personen bleiben dabei bewusst
+    // zugeordnet, anders als beim automatischen Sync (dort werden sie
+    // ausgetragen, siehe importiereRundenspielEreignisse).
+    let benachrichtigung: {
+      alt: { start: Date; ort: string | null };
+      neu: { start: Date; ort: string | null; beschreibung: string | null };
+      empfaenger: { email: string; rollen: string[] }[];
+      vereinName: string;
+    } | null = null;
+    if (bestehend.start.getTime() !== neuStart.getTime() || (bestehend.ort ?? null) !== neuOrt) {
+      const zuordnungen = await tx.query.terminZuordnungen.findMany({
+        where: eq(terminZuordnungen.terminId, terminId),
+      });
+      const userIds = [...new Set(zuordnungen.flatMap((z) => (z.userId ? [z.userId] : [])))];
+      if (userIds.length > 0) {
+        const personen = await tx
+          .select({ id: users.id, email: users.email })
+          .from(users)
+          .where(and(eq(users.vereinId, vereinId), inArray(users.id, userIds)));
+        const empfaenger = personen.map((p) => ({
+          email: p.email,
+          rollen: zuordnungen
+            .filter((z) => z.userId === p.id)
+            .map((z) => z.funktionstraegerTyp),
+        }));
+        const vereinRow = await tx.query.vereine.findFirst({
+          where: (v, { eq }) => eq(v.id, vereinId),
+        });
+        benachrichtigung = {
+          alt: { start: bestehend.start, ort: bestehend.ort },
+          neu: { start: neuStart, ort: neuOrt, beschreibung: neueBeschreibung },
+          empfaenger,
+          vereinName: vereinRow?.name ?? "deinem Verein",
+        };
+      }
+    }
+
     await tx
       .update(termine)
       .set({
         typ: typ as (typeof TERMIN_TYPEN)[number],
-        start: parseBerlinDatumZeit(start),
+        start: neuStart,
         ende: typeof ende === "string" && ende ? parseBerlinDatumZeit(ende) : null,
-        ort: typeof ort === "string" && ort.trim() ? ort.trim() : null,
-        beschreibung:
-          typeof beschreibung === "string" && beschreibung.trim()
-            ? beschreibung.trim()
-            : null,
+        ort: neuOrt,
+        beschreibung: neueBeschreibung,
         mannschaftId:
           typeof mannschaftId === "string" && mannschaftId
             ? mannschaftId
@@ -1499,7 +1540,28 @@ async function aktualisiereTerminFelder(
         turnierVerantwortlicherId: geprueftesVerantwortlicherId,
       })
       .where(eq(termine.id, terminId));
+
+    return benachrichtigung;
   });
+
+  if (verlegung) {
+    for (const e of verlegung.empfaenger) {
+      const inhalt: EmailInhalt = {
+        vereinName: verlegung.vereinName,
+        ...terminVerlegtInhalt(e.rollen, verlegung.alt, verlegung.neu),
+      };
+      try {
+        await sendMail(
+          e.email,
+          "Termin geändert",
+          emailAlsText(inhalt),
+          emailAlsHtml(inhalt)
+        );
+      } catch (err) {
+        console.error("Termin-geändert-Mail konnte nicht gesendet werden:", err);
+      }
+    }
+  }
 
   return { terminId, typ };
 }
