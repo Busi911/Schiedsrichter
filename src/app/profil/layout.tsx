@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth";
+import { BottomNav, type BottomNavItem } from "@/components/bottom-nav";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
 import { istOrdnerwart } from "@/lib/ordnerwart";
@@ -52,10 +53,61 @@ export async function generateMetadata(): Promise<Metadata> {
   return {};
 }
 
-export default function ProfilLayout({
+// Bottom-Navigation (nur mobil) für alle eingeloggten Personen, damit sie
+// überall gleich aussieht — zusätzliche Tabs je nach Rolle: Admin-Bereich
+// und/oder Wart-Rollen (Admins haben Zugriff auf alle Wart-Bereiche, siehe
+// profil/page.tsx). Ohne solche Rollen steht neben Profil der Hilfe-Tab.
+export default async function ProfilLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  const session = await auth();
+  const vereinId = session?.user?.vereinId;
+  if (!session?.user || !vereinId) return children;
+
+  const userId = session.user.id;
+  const istAdmin = session.user.istAdmin;
+  const [schiriwart, zeitnehmerwart, ordnerwart] = istAdmin
+    ? [true, true, true]
+    : await Promise.all([
+        istSchiedsrichterwart(vereinId, userId),
+        istZeitnehmerwart(vereinId, userId),
+        istOrdnerwart(vereinId, userId),
+      ]);
+
+  const tabs: BottomNavItem[] = [
+    { href: "/profil", label: "Profil", icon: "profil", exact: true },
+  ];
+  if (istAdmin || session.user.istAdminLesend) {
+    tabs.push({ href: "/admin", label: "Admin", icon: "admin" });
+  }
+  if (schiriwart) {
+    tabs.push({ href: "/profil/schiedsrichterwart", label: "Schiris", icon: "wart" });
+  }
+  if (zeitnehmerwart) {
+    tabs.push({ href: "/profil/zeitnehmerwart", label: "Zeitnehmer", icon: "wart" });
+  }
+  if (ordnerwart) {
+    tabs.push({ href: "/profil/ordnerwart", label: "Ordner", icon: "wart" });
+  }
+  const nurProfil = tabs.length === 1;
+  if (nurProfil) tabs.push({ href: "/hilfe", label: "Hilfe", icon: "hilfe" });
+
+  return (
+    <>
+      {children}
+      <BottomNav
+        tabs={tabs}
+        mehrItems={[
+          { href: "/profil/passwort-aendern", label: "Passwort ändern", icon: "passwort" },
+          ...(nurProfil ? [] : [{ href: "/hilfe", label: "Hilfe", icon: "hilfe" } as const]),
+        ]}
+        logoutAction={async () => {
+          "use server";
+          await signOut({ redirectTo: "/login" });
+        }}
+      />
+    </>
+  );
 }
