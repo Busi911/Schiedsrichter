@@ -51,6 +51,7 @@ import { DisclosureSummary } from "@/components/disclosure-summary";
 import { MannschaftFilterLeiste } from "@/components/mannschaft-filter-leiste";
 import { MonatsgruppenListe } from "@/components/monatsgruppen-liste";
 import { gruppiereNachMonat, jetzt } from "@/lib/monats-gruppierung";
+import { WeitereOptionen } from "@/components/weitere-optionen";
 import { SelbsteintragungLink } from "@/components/selbsteintragung-link";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
@@ -317,7 +318,7 @@ export default async function ZeitnehmerwartPage({
               Noch nicht aktiviert.
             </p>
           )}
-          <div className="flex flex-wrap gap-2">
+          <WeitereOptionen eingeklappt={!!verein?.zeitnehmerSelbstanmeldungToken}>
             <form action={zeitnehmerSelbstanmeldungLinkErneuern}>
               {/* Langer Label-Text ("Link neu generieren (alter Link wird
                   ungültig)") erzwang auf schmalen Bildschirmen (Button-
@@ -349,7 +350,7 @@ export default async function ZeitnehmerwartPage({
                 </ConfirmSubmitButton>
               </form>
             )}
-          </div>
+          </WeitereOptionen>
         </CardContent>
       </Card>
 

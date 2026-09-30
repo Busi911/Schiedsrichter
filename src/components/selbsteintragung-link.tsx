@@ -28,13 +28,30 @@ export function SelbsteintragungLink({
   );
 
   async function kopieren() {
+    let erfolg = false;
     try {
       await navigator.clipboard.writeText(url);
+      erfolg = true;
+    } catch {
+      // Ältere/eingebettete Browser ohne Clipboard-API: über ein temporäres
+      // Textfeld kopieren.
+      try {
+        const feld = document.createElement("textarea");
+        feld.value = url;
+        feld.setAttribute("readonly", "");
+        feld.style.position = "fixed";
+        feld.style.opacity = "0";
+        document.body.appendChild(feld);
+        feld.select();
+        erfolg = document.execCommand("copy");
+        document.body.removeChild(feld);
+      } catch {
+        // Der Link steht weiterhin sichtbar (und per Tipp markierbar) darüber.
+      }
+    }
+    if (erfolg) {
       setKopiert(true);
       setTimeout(() => setKopiert(false), 2000);
-    } catch {
-      // Zwischenablage nicht verfügbar (z.B. unsicherer Kontext) — der Link
-      // steht zum manuellen Markieren weiterhin sichtbar darüber.
     }
   }
 

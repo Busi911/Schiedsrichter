@@ -44,6 +44,7 @@ import { DisclosureSummary } from "@/components/disclosure-summary";
 import { MannschaftFilterLeiste } from "@/components/mannschaft-filter-leiste";
 import { MonatsgruppenListe } from "@/components/monatsgruppen-liste";
 import { gruppiereNachMonat, jetzt } from "@/lib/monats-gruppierung";
+import { WeitereOptionen } from "@/components/weitere-optionen";
 import { SelbsteintragungLink } from "@/components/selbsteintragung-link";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
@@ -267,7 +268,7 @@ export default async function OrdnerwartPage({
               Noch nicht aktiviert.
             </p>
           )}
-          <div className="flex flex-wrap gap-2">
+          <WeitereOptionen eingeklappt={!!verein?.ordnerSelbstanmeldungToken}>
             <form action={ordnerSelbstanmeldungLinkErneuern}>
               {/* Langer Label-Text erzwang auf schmalen Bildschirmen
                   horizontales Scrollen der ganzen Seite (Button-Basisklasse
@@ -298,7 +299,7 @@ export default async function OrdnerwartPage({
                 </ConfirmSubmitButton>
               </form>
             )}
-          </div>
+          </WeitereOptionen>
         </CardContent>
       </Card>
 
