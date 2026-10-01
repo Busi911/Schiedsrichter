@@ -27,6 +27,7 @@ import { Switch } from "@/components/ui/switch";
 import { SubmitButton } from "@/components/submit-button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { VereinLoeschenDialog } from "@/components/verein-loeschen-dialog";
+import { LigaAutoWeiter } from "@/components/liga-auto-weiter";
 
 // Der erste Sync der öffentlichen Vereinsseite fragt nuLiga bewusst langsam
 // ab (siehe lib/nuliga/client.ts) und braucht dafür mehr als das Standard-
@@ -46,6 +47,8 @@ export default async function EinstellungenPage({
     ligaNeu?: string;
     ligaAnfragen?: string;
     ligaMeldungen?: string;
+    ligaWeiter?: string;
+    ligaRunde?: string;
   }>;
 }) {
   const session = await requireAdmin();
@@ -153,6 +156,13 @@ export default async function EinstellungenPage({
                 <p key={m}>{m}</p>
               ))}
             </AlertDescription>
+          )}
+          {nuligaErgebnis.ligaWeiter === "1" && ligaVerein && session.user.istAdmin && (
+            <LigaAutoWeiter
+              aktion={oeffentlicheSeiteSpeichern}
+              clubId={ligaVerein.nuligaClubId}
+              runde={Number(nuligaErgebnis.ligaRunde) || 1}
+            />
           )}
         </Alert>
       )}

@@ -228,6 +228,10 @@ export async function vereinLoeschen(formData: FormData) {
 // Öffentliche Vereinsseite (/verein/[slug]): nuLiga-Vereins-ID hinterlegen
 // und sofort synchronisieren. Mannschaften/Spielpläne/Tabellen kommen aus
 // nuLiga (siehe src/lib/nuliga) und werden danach per Cron aktuell gehalten.
+// Höchstzahl automatischer Folgeläufe (je ~45 s): schützt vor Endlosschleifen,
+// falls ein Lauf wider Erwarten nie vollständig wird.
+const MAX_AUTO_RUNDEN = 6;
+
 export async function oeffentlicheSeiteSpeichern(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
@@ -258,12 +262,20 @@ export async function oeffentlicheSeiteSpeichern(formData: FormData) {
   });
 
   const meldungen = [...struktur.meldungen, ...(spiele?.meldungen ?? [])];
+  const rundeRoh = Number(formData.get("runde"));
+  const runde = Number.isInteger(rundeRoh) && rundeRoh >= 0 ? Math.min(rundeRoh, MAX_AUTO_RUNDEN) : 0;
+  const weiter = (struktur.unvollstaendig || !!spiele?.unvollstaendig) && runde + 1 < MAX_AUTO_RUNDEN;
   const params = new URLSearchParams({
     ligaStatus: spiele?.status ?? struktur.status,
     ligaNeu: String(struktur.neu + (spiele?.neu ?? 0)),
     ligaAnfragen: String(struktur.anfragen + (spiele?.anfragen ?? 0)),
   });
   if (meldungen.length) params.set("ligaMeldungen", meldungen.slice(0, 8).join(" | "));
+  // Unvollständig (Zeitlimit): die Seite macht nach kurzer Pause selbst weiter.
+  if (weiter) {
+    params.set("ligaWeiter", "1");
+    params.set("ligaRunde", String(runde + 1));
+  }
   revalidatePath("/admin/einstellungen");
   redirect(`/admin/einstellungen?${params.toString()}`);
 }

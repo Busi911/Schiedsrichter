@@ -215,6 +215,7 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync: Zeitlimit (Postgres)", () => {
     const r1 = await synchronisiereStruktur(id, { db, holeHtml, frist: abgelaufen });
     expect(anfragen.filter((u) => u.includes("/groupPage"))).toHaveLength(0);
     expect(r1.status).toBe("teilweise");
+    expect(r1.unvollstaendig).toBe(true); // Auslöser für das automatische Weiterladen
     expect(r1.meldungen.some((m) => m.includes("Zeitlimit"))).toBe(true);
     const verein = () => db.query.ligaVereine.findFirst({ where: eq(schema.ligaVereine.id, id) });
     expect((await verein())?.strukturSynchronisiertAm).toBeNull(); // bleibt fällig
@@ -223,7 +224,8 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync: Zeitlimit (Postgres)", () => {
     ).toHaveLength(7);
 
     // Fortsetzung ohne Zeitlimit lädt die Tabelle nach
-    await synchronisiereStruktur(id, { db, holeHtml });
+    const r2 = await synchronisiereStruktur(id, { db, holeHtml });
+    expect(r2.unvollstaendig).toBe(false); // nur Fehler einzelner Gruppen, nicht das Zeitlimit
     expect(anfragen.filter((u) => u.includes("/groupPage")).length).toBeGreaterThan(0);
     expect((await verein())?.strukturSynchronisiertAm).not.toBeNull();
 
