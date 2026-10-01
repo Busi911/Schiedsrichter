@@ -5,6 +5,8 @@ import {
   STRUKTUR_INTERVALL_MINUTEN,
   spieleIntervallMinuten,
 } from "./sync-hilfen";
+import type { HoleJson } from "@/lib/handball-net/client";
+import { synchronisiereHandballNet } from "@/lib/handball-net/sync";
 import {
   synchronisiereSpiele,
   synchronisiereStruktur,
@@ -58,6 +60,7 @@ export type FaelligeErgebnis = {
   slug: string;
   struktur?: string;
   spiele?: string;
+  handballNet?: string;
 }[];
 
 // Vom Cron aufgerufen (beliebig oft): entscheidet pro Verein, was fällig ist
@@ -65,7 +68,7 @@ export type FaelligeErgebnis = {
 // ~6 Std. `budgetMs` begrenzt die Laufzeit (Serverless-Timeout): bleibt
 // etwas liegen, kommt es beim nächsten Aufruf dran.
 export async function synchronisiereFaellige(
-  opt: SyncOptionen & { budgetMs?: number; nurVereinId?: string }
+  opt: SyncOptionen & { budgetMs?: number; nurVereinId?: string; holeJson?: HoleJson }
 ): Promise<FaelligeErgebnis> {
   const { db, jetzt = new Date(), budgetMs = 45_000 } = opt;
   const start = Date.now();
@@ -78,19 +81,34 @@ export async function synchronisiereFaellige(
   for (const v of vereine) {
     if (Date.now() - start > budgetMs) break;
     const eintrag: FaelligeErgebnis[number] = { ligaVereinId: v.id, slug: v.slug };
-    try {
-      if (faellig(v.strukturSynchronisiertAm, STRUKTUR_INTERVALL_MINUTEN, jetzt)) {
-        eintrag.struktur = (await synchronisiereStruktur(v.id, { ...opt, jetzt, frist })).status;
+    // Jede Quelle für sich: ein Fehler/Ausfall einer Quelle betrifft die andere nicht.
+    const spieltagsnah = await istSpieltagsnah(db, v.id, jetzt);
+    const intervall = spieleIntervallMinuten(spieltagsnah);
+    if (v.nuligaClubId) {
+      try {
+        if (faellig(v.strukturSynchronisiertAm, STRUKTUR_INTERVALL_MINUTEN, jetzt)) {
+          eintrag.struktur = (await synchronisiereStruktur(v.id, { ...opt, jetzt, frist })).status;
+        }
+        if (
+          eintrag.struktur !== "fehler" &&
+          (eintrag.struktur !== undefined || faellig(v.spieleSynchronisiertAm, intervall, jetzt))
+        ) {
+          eintrag.spiele = (await synchronisiereSpiele(v.id, { ...opt, jetzt, frist })).status;
+        }
+      } catch (err) {
+        eintrag.struktur = `fehler: ${err instanceof Error ? err.message : String(err)}`;
       }
-      const intervall = spieleIntervallMinuten(await istSpieltagsnah(db, v.id, jetzt));
-      if (
-        eintrag.struktur !== "fehler" &&
-        (eintrag.struktur !== undefined || faellig(v.spieleSynchronisiertAm, intervall, jetzt))
-      ) {
-        eintrag.spiele = (await synchronisiereSpiele(v.id, { ...opt, jetzt, frist })).status;
+    }
+    if (opt.holeJson && (v.handballNetClubId || v.handballNetTeamIds)) {
+      try {
+        if (faellig(v.handballNetSynchronisiertAm, intervall, jetzt)) {
+          eintrag.handballNet = (
+            await synchronisiereHandballNet(v.id, { db, holeJson: opt.holeJson, jetzt, frist })
+          ).status;
+        }
+      } catch (err) {
+        eintrag.handballNet = `fehler: ${err instanceof Error ? err.message : String(err)}`;
       }
-    } catch (err) {
-      eintrag.struktur = `fehler: ${err instanceof Error ? err.message : String(err)}`;
     }
     ergebnis.push(eintrag);
   }

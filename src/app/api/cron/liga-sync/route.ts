@@ -1,5 +1,6 @@
 import { adminDb } from "@/db/admin";
 import { pruefeCronSecret } from "@/lib/cron-auth";
+import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { synchronisiereFaellige } from "@/lib/nuliga/sync-cron";
 
@@ -17,6 +18,7 @@ export async function GET(request: Request) {
   const ergebnisse = await synchronisiereFaellige({
     db: adminDb,
     holeHtml: holeNuligaHtml,
+    holeJson: holeHandballNetApi,
     budgetMs: 40_000,
   });
   return Response.json({ synchronisiert: ergebnisse.length, ergebnisse });

@@ -400,6 +400,13 @@
       "when": 1790835755184,
       "tag": "0056_liga_logo_farbton",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1790836729983,
+      "tag": "0057_liga_handball_net_quelle",
+      "breakpoints": true
     }
   ]
 }
