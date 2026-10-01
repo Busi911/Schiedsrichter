@@ -1,5 +1,6 @@
 import "server-only";
 import nodemailer from "nodemailer";
+import { istEmpfaengerGesperrt } from "./treuhand";
 
 let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
@@ -23,6 +24,12 @@ export async function sendMail(
   text: string,
   html?: string
 ) {
+  // Vereine im Vorbereitungs-Modus (Systemadmin richtet im Hintergrund ein,
+  // siehe lib/treuhand.ts) verschicken noch keine Mails.
+  if (await istEmpfaengerGesperrt(to)) {
+    console.info("Mail unterdrückt (Verein im Vorbereitungs-Modus):", subject);
+    return;
+  }
   await getTransporter().sendMail({
     from: process.env.SMTP_FROM,
     to,

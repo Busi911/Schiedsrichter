@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { auth } from "@/auth";
+import { holeKontextSession } from "@/lib/session";
 import { adminDb } from "@/db/admin";
 import { vereine } from "@/db/schema";
 import {
@@ -10,7 +10,7 @@ import {
 import { terminAlsPdf } from "@/lib/termin-pdf";
 
 export async function GET(request: Request) {
-  const session = await auth();
+  const session = await holeKontextSession();
   if (
     !session?.user?.vereinId ||
     (!session.user.istAdmin && !session.user.istAdminLesend)

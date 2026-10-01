@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
 import { signOut } from "@/auth";
+import { treuhandBeenden } from "@/app/system/vereine/actions";
 import { holeOffenePosten, holeOffeneSchiedsrichterAnzahl } from "@/lib/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,23 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen">
+      {session.user.treuhand && (
+        <div className="border-b bg-amber-100 px-6 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+          <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-2">
+            <p>
+              <strong>Treuhänder-Zugriff</strong>{" "}
+              {session.user.treuhand === "einrichtung"
+                ? `Du richtest ${verein?.name ?? "den Verein"} im Hintergrund ein (nicht sichtbar, keine Mails).`
+                : `Support-Zugriff auf ${verein?.name ?? "den Verein"}, vom Verein freigegeben.`}
+            </p>
+            <form action={treuhandBeenden}>
+              <SubmitButton size="sm" variant="outline" pendingText="Wechselt…">
+                Zurück ins System
+              </SubmitButton>
+            </form>
+          </div>
+        </div>
+      )}
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-screen-2xl flex-col gap-3 px-6 py-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
           {/* Oben: Vereinsname + Logout auf gleicher Höhe, wie bei jedem

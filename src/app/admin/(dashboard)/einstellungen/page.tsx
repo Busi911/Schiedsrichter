@@ -1,4 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
+import { holeProtokoll, supportFreigabeAktiv } from "@/lib/treuhand";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
@@ -8,6 +9,7 @@ import {
   dienstBedarfSpeichern,
   logoEntfernen,
   mannschaftsnamenSpeichern,
+  supportZugriffSetzen,
   logoHochladen,
   oeffentlicheSeiteEntfernen,
   oeffentlicheSeiteSpeichern,
@@ -34,6 +36,15 @@ import { LigaAutoWeiter } from "@/components/liga-auto-weiter";
 // ab (siehe lib/nuliga/client.ts) und braucht dafür mehr als das Standard-
 // Zeitlimit einer Server Action.
 export const maxDuration = 60;
+
+const PROTOKOLL_LABEL: Record<string, string> = {
+  vorbereitet: "Verein vorbereitet",
+  einrichtung_gestartet: "Einrichtung durch den Systemadmin",
+  uebergeben: "An den Vereinsadmin übergeben",
+  support_freigegeben: "Support-Zugriff freigegeben",
+  support_widerrufen: "Support-Zugriff widerrufen",
+  support_zugriff: "Support-Zugriff genutzt",
+};
 
 export default async function EinstellungenPage({
   searchParams,
@@ -70,6 +81,9 @@ export default async function EinstellungenPage({
         columns: { aktualisiertAm: true },
       })
     : null;
+
+  const protokoll = await holeProtokoll(vereinId, 8);
+  const supportAktiv = supportFreigabeAktiv(verein?.supportZugriffBis ?? null);
 
   const ligaMannschaftsListe = ligaVerein
     ? await adminDb.query.ligaMannschaften.findMany({
@@ -176,6 +190,59 @@ export default async function EinstellungenPage({
           )}
         </Alert>
       )}
+
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>Support-Zugriff</CardTitle>
+          <CardDescription>
+            Standardmäßig kommt niemand vom HandballerPate-Support in euren Verein. Wenn ihr Hilfe
+            braucht, könnt ihr den Zugriff ausdrücklich und befristet freigeben und jederzeit
+            wieder widerrufen. Jeder Zugriff wird unten protokolliert.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-sm">
+            {supportAktiv
+              ? `Freigegeben bis ${verein!.supportZugriffBis!.toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "medium", timeStyle: "short" })}.`
+              : "Aktuell nicht freigegeben."}
+          </p>
+          {session.user.istAdmin && !session.user.treuhand && (
+            <div className="flex flex-wrap gap-2">
+              {[1, 3, 7].map((tage) => (
+                <form key={tage} action={supportZugriffSetzen}>
+                  <input type="hidden" name="tage" value={tage} />
+                  <SubmitButton size="sm" variant="outline" pendingText="Wird gespeichert…">
+                    {tage === 1 ? "1 Tag freigeben" : `${tage} Tage freigeben`}
+                  </SubmitButton>
+                </form>
+              ))}
+              {supportAktiv && (
+                <form action={supportZugriffSetzen}>
+                  <input type="hidden" name="tage" value="widerrufen" />
+                  <SubmitButton size="sm" variant="outline" pendingText="Wird widerrufen…">
+                    Jetzt widerrufen
+                  </SubmitButton>
+                </form>
+              )}
+            </div>
+          )}
+          {protokoll.length > 0 && (
+            <div className="flex flex-col gap-1 border-t pt-3">
+              <h3 className="text-sm font-medium">Protokoll</h3>
+              <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
+                {protokoll.map((p) => (
+                  <li key={p.id}>
+                    {p.zeitpunkt.toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" })}{" "}
+                    · {PROTOKOLL_LABEL[p.aktion] ?? p.aktion}
+                    {p.akteur ? ` (${p.akteur})` : ""}
+                    {p.details ? ` · ${p.details}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="max-w-2xl">
         <CardHeader>

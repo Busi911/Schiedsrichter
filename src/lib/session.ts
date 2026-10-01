@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
+import { holeTreuhandKontext } from "@/lib/treuhand";
 
 // Erzwingt die Passwort-Änderung nach einem Einmal-Passwort (siehe
 // mussPasswortAendern in db/schema.ts), bevor irgendeine andere Seite
@@ -16,8 +17,26 @@ function erzwingePasswortAenderungFallsNoetig(mussPasswortAendern: boolean) {
   }
 }
 
-export async function requireSession() {
+// Session mit Vereinskontext: Ein Systemadmin hat keine vereinId. Arbeitet er
+// als Treuhänder (Einrichtung) oder mit Support-Freigabe in einem Verein
+// (siehe lib/treuhand.ts), bekommt er hier für genau diesen Verein die
+// Rechte eines vollen Vereinsadmins. Der Kontext liegt in der DB, nicht im
+// JWT — Übergabe und Widerruf wirken daher sofort.
+export async function holeKontextSession() {
   const session = await auth();
+  if (session?.user?.istSystemAdmin && !session.user.vereinId) {
+    const kontext = await holeTreuhandKontext(session.user.id);
+    if (kontext) {
+      session.user.vereinId = kontext.vereinId;
+      session.user.istAdmin = true;
+      session.user.treuhand = kontext.art;
+    }
+  }
+  return session;
+}
+
+export async function requireSession() {
+  const session = await holeKontextSession();
   if (!session?.user?.vereinId) {
     redirect("/login");
   }
@@ -53,7 +72,8 @@ export async function requireAdmin() {
   if (!session.user.istAdmin && !session.user.istAdminLesend) {
     redirect("/profil");
   }
-  if (session.user.istAdmin) {
+  // Die AVV muss der Vereinsadmin selbst zustimmen — nicht der Treuhänder.
+  if (session.user.istAdmin && !session.user.treuhand) {
     await erzwingeAvvZustimmungFallsNoetig(session.user.vereinId!);
   }
   return session;

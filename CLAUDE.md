@@ -198,3 +198,23 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   `/api/liga/favoriten`. `public/sw.js` cached NUR öffentliche Seitenaufrufe
   (`/verein/…`, `/meine`) und `/api/liga/…` (network first) — nie
   Admin/Profil/Login. Die Farbüberschreibung gilt nur unter `.fan`.
+
+## Treuhand: Verein einrichten, übergeben, Support-Zugriff
+
+Der Systemadmin kann einen Verein im Hintergrund einrichten
+(`/system/vereine` → „Verein vorbereiten"): `vereine.status = 'vorbereitung'`
+(öffentlich unsichtbar, `sendMail` unterdrückt Mails an dessen Personen, siehe
+`istEmpfaengerGesperrt`). Er arbeitet dann per Kontextwechsel im Admin-Bereich
+des Vereins (Tabelle `treuhand_zugriff`, aufgelöst in
+`holeKontextSession`/`requireSession` aus `lib/session.ts`, NICHT im JWT, daher
+wirken Übergabe/Widerruf sofort; `session.user.treuhand` ist dann gesetzt, die
+AVV-Pflicht entfällt für ihn). „Übergeben" legt den Vereinsadmin an, setzt
+`status = 'aktiv'` und löscht jeden Treuhand-Zugriff (`lib/treuhand.ts`,
+`uebergebeVerein`). Späterer Zugriff nur mit Support-Freigabe des
+Vereinsadmins (`vereine.support_zugriff_bis`, 1/3/7 Tage, jederzeit widerrufbar;
+ein Systemadmin im Treuhand-Kontext kann sie nie selbst erteilen). Alles wird in
+`verein_protokoll` festgehalten und im Verein unter Einstellungen angezeigt.
+`treuhand_zugriff`/`verein_protokoll` sind systemweit ohne RLS, `app_user` hat
+KEINEN Zugriff (nur `adminDb`). Neue Seiten, die Vereine auflisten, müssen
+`status = 'aktiv'` filtern; auf neue Mail-Wege greift die Sperre automatisch,
+solange sie über `sendMail` laufen.
