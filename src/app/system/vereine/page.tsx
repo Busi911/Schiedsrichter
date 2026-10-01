@@ -74,12 +74,14 @@ export default async function SystemVereinePage() {
               </TableHeader>
               <TableBody>
                 {alleVereine.map((v) => {
-                  const admin = admins.find((a) => a.vereinId === v.id);
+                  const vereinsAdmins = admins.filter((a) => a.vereinId === v.id);
                   return (
                     <TableRow key={v.id}>
                       <TableCell className="font-medium">{v.name}</TableCell>
                       <TableCell>
-                        {admin ? (admin.name ?? admin.email) : "—"}
+                        {vereinsAdmins.length > 0
+                          ? vereinsAdmins.map((a) => a.name ?? a.email).join(", ")
+                          : "—"}
                       </TableCell>
                       <TableCell>
                         {v.status === "vorbereitung" ? (
