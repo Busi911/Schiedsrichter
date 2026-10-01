@@ -2,9 +2,12 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
-import { vereine } from "@/db/schema";
+import { adminDb } from "@/db/admin";
+import { ligaVereine, vereine } from "@/db/schema";
 import {
   dienstBedarfSpeichern,
+  oeffentlicheSeiteEntfernen,
+  oeffentlicheSeiteSpeichern,
   nuligaEinstellungenSpeichern,
   vereinsdatenSpeichern,
 } from "./actions";
@@ -20,7 +23,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SubmitButton } from "@/components/submit-button";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { VereinLoeschenDialog } from "@/components/verein-loeschen-dialog";
+
+// Der erste Sync der öffentlichen Vereinsseite fragt nuLiga bewusst langsam
+// ab (siehe lib/nuliga/client.ts) und braucht dafür mehr als das Standard-
+// Zeitlimit einer Server Action.
+export const maxDuration = 60;
 
 export default async function EinstellungenPage({
   searchParams,
@@ -31,6 +40,10 @@ export default async function EinstellungenPage({
     nuligaEntfernt?: string;
     nuligaFehler?: string;
     nuligaDiagnose?: string;
+    ligaStatus?: string;
+    ligaNeu?: string;
+    ligaAnfragen?: string;
+    ligaMeldungen?: string;
   }>;
 }) {
   const session = await requireAdmin();
@@ -40,6 +53,10 @@ export default async function EinstellungenPage({
   const verein = await withTenant(vereinId, (tx) =>
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
   );
+
+  const ligaVerein = await adminDb.query.ligaVereine.findFirst({
+    where: eq(ligaVereine.vereinId, vereinId),
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -109,6 +126,90 @@ export default async function EinstellungenPage({
               Speichern
             </SubmitButton>
           </form>
+        </CardContent>
+      </Card>
+
+      {nuligaErgebnis.ligaStatus !== undefined && (
+        <Alert
+          variant={nuligaErgebnis.ligaStatus === "fehler" ? "destructive" : "default"}
+          className="max-w-2xl"
+        >
+          <AlertTitle>
+            Öffentliche Vereinsseite: Synchronisation {nuligaErgebnis.ligaStatus} (
+            {nuligaErgebnis.ligaNeu ?? 0} neu, {nuligaErgebnis.ligaAnfragen ?? 0} nuLiga-Abrufe)
+          </AlertTitle>
+          {nuligaErgebnis.ligaMeldungen && (
+            <AlertDescription>
+              {nuligaErgebnis.ligaMeldungen.split(" | ").map((m) => (
+                <p key={m}>{m}</p>
+              ))}
+            </AlertDescription>
+          )}
+        </Alert>
+      )}
+
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>Öffentliche Vereinsseite</CardTitle>
+          <CardDescription>
+            Zeigt Mannschaften, Spielpläne, Ergebnisse und Tabellen eures Vereins
+            aus nuLiga auf einer öffentlichen Seite (ohne Login, für Suchmaschinen
+            auffindbar). Es werden nur öffentliche Sportdaten übernommen — keine
+            Personen.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {ligaVerein && (
+            <p className="text-sm">
+              Eure Seite:{" "}
+              <Link href={`/verein/${ligaVerein.slug}`} className="underline">
+                /verein/{ligaVerein.slug}
+              </Link>
+              {ligaVerein.spieleSynchronisiertAm && (
+                <span className="text-muted-foreground">
+                  {" "}
+                  · zuletzt aktualisiert{" "}
+                  {ligaVerein.spieleSynchronisiertAm.toLocaleString("de-DE", {
+                    timeZone: "Europe/Berlin",
+                  })}
+                </span>
+              )}
+            </p>
+          )}
+          <form action={oeffentlicheSeiteSpeichern} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nuligaClubId">nuLiga-Vereins-ID</Label>
+              <Input
+                id="nuligaClubId"
+                name="nuligaClubId"
+                inputMode="numeric"
+                placeholder="z.B. 69723"
+                defaultValue={ligaVerein?.nuligaClubId ?? ""}
+                disabled={!session.user.istAdmin}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Die Zahl hinter <code>club=</code> in der Adresse eurer Vereinsseite auf nuLiga
+                (z.B. <code>…clubTeams?club=69723</code>).
+              </p>
+            </div>
+            {session.user.istAdmin && (
+              <SubmitButton size="sm" className="self-start" pendingText="Lädt von nuLiga… (bis ca. 1 Minute)">
+                {ligaVerein ? "Jetzt aktualisieren" : "Speichern & Seite erstellen"}
+              </SubmitButton>
+            )}
+          </form>
+          {ligaVerein && session.user.istAdmin && (
+            <form action={oeffentlicheSeiteEntfernen}>
+              <ConfirmSubmitButton
+                variant="outline"
+                size="sm"
+                confirmText="Öffentliche Vereinsseite wirklich entfernen? Favoriten dazu gehen verloren."
+              >
+                Seite entfernen
+              </ConfirmSubmitButton>
+            </form>
+          )}
         </CardContent>
       </Card>
 

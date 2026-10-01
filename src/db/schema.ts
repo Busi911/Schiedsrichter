@@ -1,7 +1,11 @@
+import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   boolean,
+  check,
+  date,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -775,3 +779,244 @@ export const produktFeedback = pgTable("produkt_feedback", {
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 
+
+// ---------------------------------------------------------------------------
+// Öffentliche Vereins-/Mannschaftsseiten (/verein/[slug], siehe src/lib/nuliga)
+// ---------------------------------------------------------------------------
+//
+// Alle liga_*-Tabellen sind — wie system_einstellungen/warteliste — bewusst
+// OHNE verein_id/RLS: sie enthalten ausschließlich öffentliche Sportdaten
+// (Mannschaften, Tabellen, Spiele) und werden anonym gelesen. Geschrieben
+// wird nur über adminDb (Sync, siehe lib/nuliga/sync). Die einzige Brücke
+// zum Mandanten ist liga_verein.verein_id (nur registrierte Vereine haben
+// eine öffentliche Seite). Personenbezogene nuLiga-Angaben
+// (Mannschaftsverantwortliche, Schiedsrichter) haben hier bewusst keine
+// Spalte.
+
+export const ligaSyncStatusEnum = pgEnum("liga_sync_status", [
+  "erfolgreich",
+  "teilweise",
+  "fehler",
+]);
+
+export const ligaSpielStatusEnum = pgEnum("liga_spiel_status", [
+  "geplant",
+  "verlegt",
+  "abgesagt",
+  "nicht_angetreten",
+  "gespielt",
+]);
+
+export const ligaKategorieEnum = pgEnum("liga_kategorie", [
+  "herren",
+  "damen",
+  "jugend_maennlich",
+  "jugend_weiblich",
+  "kinder",
+  "sonstige",
+]);
+
+export const ligaVereine = pgTable(
+  "liga_verein",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Der registrierte Verein (Mandant), zu dem diese öffentliche Seite
+    // gehört — Löschen des Vereins entfernt auch die öffentliche Seite.
+    vereinId: uuid("verein_id")
+      .notNull()
+      .unique()
+      .references(() => vereine.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull().unique(),
+    // Name laut nuLiga (kann vom Vereinsnamen in der App abweichen).
+    name: text("name").notNull(),
+    // Landesverband (Schlüssel in lib/nuliga/verbaende.ts) — vorbereitet für
+    // mehrere nuLiga-Instanzen.
+    verband: text("verband").notNull().default("HHV"),
+    nuligaClubId: text("nuliga_club_id").notNull(),
+    strukturSynchronisiertAm: timestamp("struktur_synchronisiert_am", { mode: "date" }),
+    spieleSynchronisiertAm: timestamp("spiele_synchronisiert_am", { mode: "date" }),
+    syncStatus: ligaSyncStatusEnum("sync_status"),
+    erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("liga_verein_verband_club_idx").on(t.verband, t.nuligaClubId)]
+);
+
+// Eine nuLiga-Spielgruppe (Liga/Staffel) einer Saison — zentrale Einheit:
+// Tabelle und Spiele hängen an der Gruppe, nicht an einer Mannschaft.
+export const ligaGruppen = pgTable(
+  "liga_gruppe",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    verband: text("verband").notNull().default("HHV"),
+    nuligaGroupId: text("nuliga_group_id").notNull(),
+    championship: text("championship").notNull(),
+    saison: text("saison"),
+    ligaName: text("liga_name").notNull(),
+    geschlecht: text("geschlecht"),
+    altersklasse: text("altersklasse"),
+    spielklasse: text("spielklasse"),
+    gruppe: text("gruppe"),
+    istMeldeliste: boolean("ist_meldeliste").notNull().default(false),
+    tabelleSynchronisiertAm: timestamp("tabelle_synchronisiert_am", { mode: "date" }),
+  },
+  (t) => [uniqueIndex("liga_gruppe_verband_gruppe_idx").on(t.verband, t.nuligaGroupId)]
+);
+
+// Alle Teams einer Gruppe samt Tabellenstand (auch Gegner anderer Vereine —
+// nötig für die Tabelle und zur Auflösung von Heim/Gast).
+export const ligaTabellenzeilen = pgTable(
+  "liga_tabellenzeile",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gruppeId: uuid("gruppe_id")
+      .notNull()
+      .references(() => ligaGruppen.id, { onDelete: "cascade" }),
+    nuligaTeamtableId: text("nuliga_teamtable_id").notNull(),
+    name: text("name").notNull(),
+    rang: integer("rang").notNull(),
+    spiele: integer("spiele"),
+    siege: integer("siege"),
+    unentschieden: integer("unentschieden"),
+    niederlagen: integer("niederlagen"),
+    torePlus: integer("tore_plus"),
+    toreMinus: integer("tore_minus"),
+    punktePlus: integer("punkte_plus"),
+    punkteMinus: integer("punkte_minus"),
+  },
+  (t) => [uniqueIndex("liga_tabellenzeile_gruppe_team_idx").on(t.gruppeId, t.nuligaTeamtableId)]
+);
+
+// Stabile Identität einer Mannschaft über Saisons hinweg (Schlüssel aus der
+// Normalisierung, siehe lib/nuliga/normalisierung.ts) — NICHT der
+// angezeigte Name und keine nuLiga-ID.
+export const ligaMannschaften = pgTable(
+  "liga_mannschaft",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ligaVereinId: uuid("liga_verein_id")
+      .notNull()
+      .references(() => ligaVereine.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    schluessel: text("schluessel").notNull(),
+    name: text("name").notNull(),
+    kategorie: ligaKategorieEnum("kategorie").notNull(),
+    geschlecht: text("geschlecht"),
+    altersklasse: text("altersklasse"),
+    untergruppe: text("untergruppe"),
+    nummer: integer("nummer").notNull().default(1),
+    aktiv: boolean("aktiv").notNull().default(true),
+  },
+  (t) => [
+    uniqueIndex("liga_mannschaft_verein_slug_idx").on(t.ligaVereinId, t.slug),
+    uniqueIndex("liga_mannschaft_verein_schluessel_idx").on(t.ligaVereinId, t.schluessel),
+  ]
+);
+
+// Die Mannschaft in einer Gruppe einer Saison. teamtable-ID ist erst nach
+// dem Abgleich mit der Gruppentabelle bekannt (clubTeams liefert nur die
+// Gruppe).
+export const ligaTeilnahmen = pgTable(
+  "liga_teilnahme",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    mannschaftId: uuid("mannschaft_id")
+      .notNull()
+      .references(() => ligaMannschaften.id, { onDelete: "cascade" }),
+    gruppeId: uuid("gruppe_id")
+      .notNull()
+      .references(() => ligaGruppen.id, { onDelete: "cascade" }),
+    saison: text("saison").notNull(),
+    nuligaTeamtableId: text("nuliga_teamtable_id"),
+    // Roh-Name laut clubTeams (z.B. "männliche Jugend D II") für Diagnose.
+    nuligaName: text("nuliga_name").notNull(),
+    // Stand laut clubTeams, falls die Tabellenzeile nicht zugeordnet werden
+    // konnte — die Mannschaft bleibt dann trotzdem mit Rang/Punkten sichtbar.
+    rang: integer("rang"),
+    punktePlus: integer("punkte_plus"),
+    punkteMinus: integer("punkte_minus"),
+    aktiv: boolean("aktiv").notNull().default(true),
+    synchronisiertAm: timestamp("synchronisiert_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("liga_teilnahme_mannschaft_gruppe_idx").on(t.mannschaftId, t.gruppeId)]
+);
+
+export const ligaSpiele = pgTable(
+  "liga_spiel",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gruppeId: uuid("gruppe_id")
+      .notNull()
+      .references(() => ligaGruppen.id, { onDelete: "cascade" }),
+    spielnummer: integer("spielnummer").notNull(),
+    meetingId: text("meeting_id"),
+    datum: date("datum", { mode: "string" }).notNull(),
+    uhrzeit: text("uhrzeit"),
+    beginn: timestamp("beginn", { mode: "date", withTimezone: true }),
+    urspruenglicherBeginn: timestamp("urspruenglicher_beginn", {
+      mode: "date",
+      withTimezone: true,
+    }),
+    halleName: text("halle_name"),
+    halleNummer: text("halle_nummer"),
+    halleNuligaId: text("halle_nuliga_id"),
+    heimName: text("heim_name").notNull(),
+    gastName: text("gast_name").notNull(),
+    heimTeamtableId: text("heim_teamtable_id"),
+    gastTeamtableId: text("gast_teamtable_id"),
+    toreHeim: integer("tore_heim"),
+    toreGast: integer("tore_gast"),
+    halbzeitHeim: integer("halbzeit_heim"),
+    halbzeitGast: integer("halbzeit_gast"),
+    ergebnisBestaetigt: boolean("ergebnis_bestaetigt").notNull().default(false),
+    status: ligaSpielStatusEnum("status").notNull().default("geplant"),
+    synchronisiertAm: timestamp("synchronisiert_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("liga_spiel_gruppe_nummer_idx").on(t.gruppeId, t.spielnummer)]
+);
+
+// Protokoll jedes Sync-Laufs (Fehler nachvollziehbar, siehe lib/nuliga/sync).
+export const ligaSyncLaeufe = pgTable("liga_sync_lauf", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ligaVereinId: uuid("liga_verein_id")
+    .notNull()
+    .references(() => ligaVereine.id, { onDelete: "cascade" }),
+  art: text("art").notNull(), // "struktur" | "spiele"
+  gestartetAm: timestamp("gestartet_am", { mode: "date" }).notNull().defaultNow(),
+  dauerMs: integer("dauer_ms"),
+  anfragen: integer("anfragen").notNull().default(0),
+  neu: integer("neu").notNull().default(0),
+  aktualisiert: integer("aktualisiert").notNull().default(0),
+  status: ligaSyncStatusEnum("status").notNull(),
+  meldungen: jsonb("meldungen").$type<string[]>().notNull().default([]),
+});
+
+// Favoriten eingeloggter Nutzer: ein ganzer Verein ODER eine einzelne
+// Mannschaft — unabhängig voneinander (genau eine der beiden Spalten).
+export const favoriten = pgTable(
+  "favorit",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    ligaVereinId: uuid("liga_verein_id").references(() => ligaVereine.id, {
+      onDelete: "cascade",
+    }),
+    ligaMannschaftId: uuid("liga_mannschaft_id").references(() => ligaMannschaften.id, {
+      onDelete: "cascade",
+    }),
+    erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      "favorit_genau_ein_ziel",
+      sql`(${t.ligaVereinId} IS NOT NULL)::int + (${t.ligaMannschaftId} IS NOT NULL)::int = 1`
+    ),
+    uniqueIndex("favorit_user_verein_idx")
+      .on(t.userId, t.ligaVereinId)
+      .where(sql`${t.ligaVereinId} IS NOT NULL`),
+    uniqueIndex("favorit_user_mannschaft_idx")
+      .on(t.userId, t.ligaMannschaftId)
+      .where(sql`${t.ligaMannschaftId} IS NOT NULL`),
+  ]
+);

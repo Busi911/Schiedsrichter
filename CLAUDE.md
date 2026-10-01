@@ -126,3 +126,34 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   `confirmText` von `ConfirmSubmitButton`, nicht ins sichtbare Label
   (Beispiel/Fix: "Link neu generieren (alter Link wird ungültig)" →
   kurzes Label + `confirmText`, siehe `profil/zeitnehmerwart/page.tsx`).
+
+## Öffentliche Vereinsseiten (`/verein/[slug]`, nuLiga-Sync)
+
+- Daten kommen aus nuLiga (Parser + Sync in `src/lib/nuliga/`, Persistenz in
+  den `liga_*`-Tabellen, öffentliche Abfragen in `lib/liga-oeffentlich.ts`).
+  Die `liga_*`-Tabellen sind wie `system_einstellungen` bewusst OHNE
+  `verein_id`/RLS (nur öffentliche Sportdaten, anonym gelesen, Schreiben nur
+  über `adminDb`). Einzige Brücke zum Mandanten: `liga_verein.verein_id` —
+  nur registrierte Vereine mit hinterlegter nuLiga-Vereins-ID haben eine Seite.
+- **Datenschutz:** Die Parser-Typen (`nuliga/types.ts`) sind eine Whitelist.
+  nuLiga zeigt in denselben Seiten Mannschaftsverantwortliche,
+  Schiedsrichter (Name/Kürzel) und Kalender-Tokens — die dürfen nie
+  persistiert werden. Ein Ergebnis wird nur aus einem `…MeetingReport`-Link
+  gelesen, nie aus dem übrigen Inhalt der Ergebnis-Spalte. Neue Felder nur mit
+  Test, dass die Platzhalter-Namen aus `__fixtures__/README.md` nicht
+  auftauchen. Fixtures nie ungekürzt/mit echten Namen einchecken.
+- **Teamidentität:** nie über den angezeigten Namen. Stabil sind
+  `liga_mannschaft.schluessel` (Normalisierung, saisonübergreifend) und die
+  nuLiga-IDs `group`/`teamtable` (je Saison). Ein Spiel ist eindeutig über
+  `(gruppe, spielnummer)`.
+- **Sync:** idempotent, fehlertolerant (unlesbare Seite löscht nichts),
+  strikt sequenziell mit Mindestabstand (`nuliga/client.ts`). Cron
+  `/api/cron/liga-sync` entscheidet je Verein selbst, was fällig ist
+  (`sync-cron.ts`); er läuft aktuell täglich (`vercel.json`) — auf einem
+  Plan mit häufigeren Crons (z.B. `*/30 * * * *`) werden Spiele am Spieltag
+  automatisch öfter aktualisiert.
+- Der HHV hat dem automatischen Abruf zugestimmt (Zusage schriftlich
+  ablegen). Weitere Landesverbände: Eintrag in `nuliga/verbaende.ts`.
+- DB-Integrationstests (`nuliga/sync.test.ts`, `liga-oeffentlich.test.ts`)
+  laufen nur mit `TEST_DATABASE_ADMIN_URL` (siehe `tenant-isolation.test.ts`);
+  `fileParallelism` ist deshalb ausgeschaltet.

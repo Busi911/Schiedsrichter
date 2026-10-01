@@ -8,6 +8,8 @@ const publicRoutes = [
   "/datenschutz",
   "/impressum",
   "/registrieren",
+  "/sitemap.xml",
+  "/robots.txt",
 ];
 
 export default auth((req) => {
@@ -17,6 +19,9 @@ export default auth((req) => {
     publicRoutes.includes(pathname) ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/cron/") ||
+    // Öffentliche Vereins-/Mannschaftsseiten (nur öffentliche Sportdaten aus
+    // nuLiga, indexierbar) — siehe src/app/verein/[slug]/page.tsx.
+    pathname.startsWith("/verein/") ||
     // Öffentliche, login-freie Lese-Ansicht (Kenntnis des Tokens ist die
     // Berechtigung) — siehe src/app/turnier/[token]/page.tsx.
     pathname.startsWith("/turnier/") ||

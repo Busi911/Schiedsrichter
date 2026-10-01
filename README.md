@@ -453,8 +453,15 @@ Tabs Tabelle / Ergebnisse / Spielplan, optional Kader; Filter "Nur eigene
 Spiele"). Der bisherige Bereich für Funktionsträger/Admins bleibt davon
 unberührt; die Startseite verweist künftig auf beide Zugänge.
 
-**Status:** nur definiert, noch nichts umgesetzt. Alle Punkte unten sind
-Vorschläge zum Abstimmen, keine getroffenen Entscheidungen.
+**Status:** Erste Version umgesetzt unter `/verein/[slug]` (Branch
+`claude/oeffentliche-vereinsseiten`): nuLiga-Sync (`src/lib/nuliga/`),
+Vereins- und Mannschaftsseiten (Übersicht/Spielplan/Ergebnisse/Tabelle),
+Favoriten für eingeloggte Konten, Sitemap/robots. Abweichungen von den
+Vorschlägen unten: Seite entsteht, sobald ein Admin in
+`/admin/einstellungen` die nuLiga-Vereins-ID hinterlegt (kein Systemadmin-
+Import beliebiger Vereine); Favoriten liegen in der DB (nicht localStorage);
+URL `/verein/…` statt `/vereine/…`. Der Rest der Liste unten gilt weiter als
+Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
 
 **Offene Fragen vorab**
 

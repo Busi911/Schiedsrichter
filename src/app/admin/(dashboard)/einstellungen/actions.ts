@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
-import { vereine } from "@/db/schema";
+import { adminDb } from "@/db/admin";
+import { ligaVereine, vereine } from "@/db/schema";
+import { holeNuligaHtml } from "@/lib/nuliga/client";
+import { legeLigaVereinAn, synchronisiereVollstaendig } from "@/lib/nuliga/sync";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
 import { signOut } from "@/auth";
 
@@ -219,4 +222,53 @@ export async function vereinLoeschen(formData: FormData) {
   );
 
   await signOut({ redirectTo: "/" });
+}
+
+// Öffentliche Vereinsseite (/verein/[slug]): nuLiga-Vereins-ID hinterlegen
+// und sofort synchronisieren. Mannschaften/Spielpläne/Tabellen kommen aus
+// nuLiga (siehe src/lib/nuliga) und werden danach per Cron aktuell gehalten.
+export async function oeffentlicheSeiteSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+
+  const roh = formData.get("nuligaClubId");
+  const clubId = typeof roh === "string" ? roh.trim() : "";
+  if (!/^\d{1,10}$/.test(clubId)) {
+    throw new Error("Die nuLiga-Vereins-ID besteht nur aus Ziffern (z.B. 69723).");
+  }
+
+  const verein = await withTenant(vereinId, (tx) =>
+    tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { name: true } })
+  );
+  if (!verein) throw new Error("Verein nicht gefunden.");
+
+  const { id } = await legeLigaVereinAn(adminDb, {
+    vereinId,
+    nuligaClubId: clubId,
+    name: verein.name,
+  });
+  const { struktur, spiele } = await synchronisiereVollstaendig(id, {
+    db: adminDb,
+    holeHtml: holeNuligaHtml,
+  });
+
+  const meldungen = [...struktur.meldungen, ...(spiele?.meldungen ?? [])];
+  const params = new URLSearchParams({
+    ligaStatus: spiele?.status ?? struktur.status,
+    ligaNeu: String(struktur.neu + (spiele?.neu ?? 0)),
+    ligaAnfragen: String(struktur.anfragen + (spiele?.anfragen ?? 0)),
+  });
+  if (meldungen.length) params.set("ligaMeldungen", meldungen.slice(0, 8).join(" | "));
+  revalidatePath("/admin/einstellungen");
+  redirect(`/admin/einstellungen?${params.toString()}`);
+}
+
+export async function oeffentlicheSeiteEntfernen() {
+  const session = await requireAdminSchreibzugriff();
+  // Löscht die gesamte öffentliche Seite (Mannschaften, Teilnahmen,
+  // Favoriten per Cascade); Gruppen/Spiele bleiben als öffentliche
+  // Sportdaten bestehen, solange andere Vereine sie nutzen.
+  await adminDb.delete(ligaVereine).where(eq(ligaVereine.vereinId, session.user.vereinId!));
+  revalidatePath("/admin/einstellungen");
+  redirect("/admin/einstellungen");
 }

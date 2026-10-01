@@ -15,5 +15,9 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    // Die DB-Integrationstests (tenant-isolation, nuLiga-Sync) teilen sich
+    // eine Postgres-Instanz und räumen globale Tabellen auf — parallele
+    // Testdateien würden sich gegenseitig die Daten löschen.
+    fileParallelism: false,
   },
 });

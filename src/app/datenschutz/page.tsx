@@ -115,6 +115,25 @@ export default function DatenschutzPage() {
       </section>
 
       <section className="flex flex-col gap-2">
+        <h2 className="font-heading text-lg font-medium">
+          Öffentliche Vereins- und Mannschaftsseiten
+        </h2>
+        <p className="text-sm">
+          Vereine können eine öffentliche Seite mit Mannschaften, Spielplänen,
+          Ergebnissen und Tabellen freischalten (/verein/…). Die Sportdaten
+          stammen aus dem öffentlichen Spielbetrieb des jeweiligen
+          Landesverbands (nuLiga, z.B. Hessischer Handball-Verband) und werden
+          regelmäßig abgeglichen. Übernommen werden nur Vereine, Mannschaften,
+          Wettbewerbe, Termine, Spielorte, Ergebnisse und Tabellen —
+          keine Mannschaftsverantwortlichen, Schiedsrichter oder sonstigen
+          Personen. Der Besuch dieser Seiten erfordert kein Konto. Wer
+          eingeloggt ist, kann Vereine und Mannschaften als Favoriten
+          markieren; gespeichert wird dabei nur die Zuordnung zu deinem Konto,
+          die du jederzeit wieder entfernen kannst.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">Cookies</h2>
         <p className="text-sm text-muted-foreground">
           Es wird ausschließlich ein technisch notwendiges Session-Cookie
