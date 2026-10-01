@@ -37,6 +37,28 @@ describe("hallenplan-abgleich", () => {
     expect(normalisiereName("HSG Test")).not.toBe(normalisiereName("HSG Test 2"));
   });
 
+  it("gleicht Spielgemeinschaften mit und ohne Schrägstrich ab (Rodgau/Nieder-Roden)", () => {
+    expect(normalisiereName("HSG RODGAU NIEDER-RODEN")).toBe(normalisiereName("HSG Rodgau/Nieder-Roden"));
+    expect(normalisiereName("HSG DUTENHOFEN MÜNCHHOLZHAUSEN II")).toBe(
+      normalisiereName("HSG Dutenhofen/Münchholzhausen II")
+    );
+    // andere Mannschaftsnummer bzw. anderer Verein bleibt verschieden
+    expect(normalisiereName("HSG DUTENHOFEN MÜNCHHOLZHAUSEN II")).not.toBe(
+      normalisiereName("HSG Dutenhofen/Münchholzhausen")
+    );
+    expect(normalisiereName("HSG Rodgau/Nieder-Roden")).not.toBe(normalisiereName("HSG Rodgau/Bachgau"));
+  });
+
+  it("ordnet das Spiel aus dem Hallenplan trotz anderer Schreibweise sicher zu", () => {
+    const t = termin({
+      icsUid: "rundenspiel:30359:HSG DUTENHOFEN MÜNCHHOLZHAUSEN II:HSG RODGAU NIEDER-RODEN:4711",
+      heim: "HSG DUTENHOFEN MÜNCHHOLZHAUSEN II",
+      gast: "HSG RODGAU NIEDER-RODEN",
+    });
+    const s = spiel({ heimName: "HSG Dutenhofen/Münchholzhausen II", gastName: "HSG Rodgau/Nieder-Roden" });
+    expect(gleicheAb([t], [s])[0]).toMatchObject({ status: "sicher", spielIds: ["s1"] });
+  });
+
   it("liest die Spielnummer nur aus der Nummern-Variante der UID", () => {
     expect(spielnummerAusUid("rundenspiel:1:A:B:4711")).toBe(4711);
     expect(spielnummerAusUid("rundenspiel:1:2026-10-17:14:00:A:B")).toBeNull();

@@ -46,29 +46,24 @@ const ROEMISCH: Record<string, string> = {
 // - "HSG Test II" und "HSG Test 2" (römisch/arabisch),
 // - "TSF Heuchelheim 1" und "TSF Heuchelheim" (erste Mannschaft ohne Nummer),
 // - "mJSG Bieber/Heuchelheim" und "mJSG Heuchelheim/Bieber" (Reihenfolge der
-//   Spielgemeinschafts-Partner ist je Quelle verschieden).
+//   Spielgemeinschafts-Partner ist je Quelle verschieden),
+// - "HSG RODGAU NIEDER-RODEN" und "HSG Rodgau/Nieder-Roden" (eine Quelle
+//   schreibt die Partner mit Schrägstrich, die andere nur mit Leerzeichen).
+// Dafür wird der Name in Wörter zerlegt (Schrägstrich, Leerzeichen und Bindestrich
+// trennen gleich), die Nummer vereinheitlicht und die Wörter sortiert.
 export function normalisiereName(name: string | null): string {
   if (!name) return "";
   const teile = slugify(name).split("-").filter(Boolean);
   const letzte = teile[teile.length - 1];
   if (teile.length > 1 && letzte && ROEMISCH[letzte]) teile[teile.length - 1] = ROEMISCH[letzte];
   if (teile.length > 1 && teile[teile.length - 1] === "1") teile.pop();
-  // Partner einer Spielgemeinschaft ("a/b") sortieren: slugify macht "/" zu "-",
-  // daher vor dem Slugify am Original trennen.
-  const hatSchraegstrich = name.includes("/");
-  if (!hatSchraegstrich) return teile.join("-");
-  const [vorne, ...rest] = name.trim().split(/\s+/);
-  const ohneNummer = rest.join(" ");
-  const nummer = ohneNummer.match(/\s+(VI|V|IV|III|II|I|\d{1,2})$/i)?.[1] ?? "";
-  const kern = nummer ? ohneNummer.slice(0, ohneNummer.length - nummer.length).trim() : ohneNummer;
-  const nr = nummer ? (ROEMISCH[nummer.toLowerCase()] ?? nummer) : "";
-  // Präfix (z.B. "mJSG") kann ohne Leerzeichen am ersten Partner hängen: Wörter
-  // mit "/" sind die Partner, alles davor ist Präfix.
-  const wortTeile = (vorne + " " + kern).trim().split(/\s+/);
-  const idx = wortTeile.findIndex((w) => w.includes("/"));
-  const praefix = wortTeile.slice(0, Math.max(idx, 0)).join(" ");
-  const partner = wortTeile.slice(Math.max(idx, 0)).join(" ").split("/").map((x) => slugify(x)).sort();
-  return [slugify(praefix), ...partner, nr && nr !== "1" ? nr : ""].filter(Boolean).join("-");
+  return teile.sort().join("-");
+}
+
+// Hallennamen: Wortreihenfolge bleibt erhalten (Teilstring-Vergleich, z.B.
+// "Sporthalle Heuchelheim" in "Sporthalle Heuchelheim, Musterstr. 1").
+function normalisiereHalle(name: string | null): string {
+  return name ? slugify(name) : "";
 }
 
 // Spielnummer aus der Termin-UID (siehe bildeUid in rundenspiel-import.ts):
@@ -203,10 +198,10 @@ export function istEigeneHalle(
   eigene: { ids: string[]; namen: string[] }
 ): boolean {
   if (spiel.quelle === "nuliga" && spiel.halleNuligaId && eigene.ids.includes(spiel.halleNuligaId)) return true;
-  const name = normalisiereName(spiel.halleName);
+  const name = normalisiereHalle(spiel.halleName);
   if (!name) return false;
   return eigene.namen.some((n) => {
-    const gesucht = normalisiereName(n);
+    const gesucht = normalisiereHalle(n);
     return gesucht !== "" && name.includes(gesucht);
   });
 }
@@ -242,8 +237,8 @@ export function vergleicheVerknuepftes(
 // "Sporthalle X, Musterstraße 1"): gleich gilt, wenn einer der normalisierten
 // Namen im anderen enthalten ist. Fehlt eine Seite, gilt es nicht als Abweichung.
 export function ortWeichtAb(terminOrt: string | null, halleName: string | null): boolean {
-  const a = normalisiereName(terminOrt);
-  const b = normalisiereName(halleName);
+  const a = normalisiereHalle(terminOrt);
+  const b = normalisiereHalle(halleName);
   if (!a || !b) return false;
   return !(a.includes(b) || b.includes(a));
 }
