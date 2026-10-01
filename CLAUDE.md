@@ -190,9 +190,11 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   deren clubTeams und legt die gefilterten Mannschaften unter dem eigenen
   `liga_verein` an (Filter rein in `nuliga/zusatzquellen.ts`); der Spiele-Sync
   braucht dafür keine Änderung. Ist eine Zusatzquelle nicht lesbar, wird nichts
-  deaktiviert. Bei handball.net gibt es das Pendant über manuelle Team-IDs
-  (`handball_net_team_ids`): sie werden immer übernommen, auch wenn das Team zu
-  einem anderen Verein gehört (`teamUebernehmen`).
+  deaktiviert. Bei handball.net gibt es zwei Wege: manuelle Team-IDs
+  (`handball_net_team_ids`, immer übernommen, auch wenn das Team zu einem anderen
+  Verein gehört, `teamUebernehmen`) und dieselbe Zusatzquelle mit
+  `handball_net_club_id` (Teamliste des Partnervereins, gefiltert über
+  Kategorie/Namensteil, `passtZumHnetFilter`).
 - **Freundschaftsspiele/Turniere (nuLiga „… FS …“):** In der Vereinsliste
   stehen sie als eigene Mini-Gruppen (ein Spiel, Spielnummer 0, Tabelle ohne
   Aussage). `synchronisiereFreundschaftsspiele` (`nuliga/sync.ts`) lädt sie bei

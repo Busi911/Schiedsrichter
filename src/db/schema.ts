@@ -911,7 +911,9 @@ export const ligaVereinZusatzquellen = pgTable(
     ligaVereinId: uuid("liga_verein_id")
       .notNull()
       .references(() => ligaVereine.id, { onDelete: "cascade" }),
-    nuligaClubId: text("nuliga_club_id").notNull(),
+    // Genau eine der beiden Vereins-IDs ist gesetzt: nuLiga-Verein ODER handball.net-Verein.
+    nuligaClubId: text("nuliga_club_id"),
+    handballNetClubId: text("handball_net_club_id"),
     // Freies Label für die Anzeige in den Einstellungen (z.B. "KSG Bieber").
     bezeichnung: text("bezeichnung"),
     // Kommagetrennte liga_kategorie-Werte, leer = alle Kategorien.
@@ -921,7 +923,10 @@ export const ligaVereinZusatzquellen = pgTable(
     nameEnthaelt: text("name_enthaelt"),
     erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("liga_zusatzquelle_verein_club_idx").on(t.ligaVereinId, t.nuligaClubId)]
+  (t) => [
+    uniqueIndex("liga_zusatzquelle_verein_club_idx").on(t.ligaVereinId, t.nuligaClubId),
+    uniqueIndex("liga_zusatzquelle_verein_hnet_idx").on(t.ligaVereinId, t.handballNetClubId),
+  ]
 );
 
 // Eine nuLiga-Spielgruppe (Liga/Staffel) einer Saison — zentrale Einheit:

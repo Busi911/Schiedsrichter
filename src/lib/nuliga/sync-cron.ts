@@ -6,7 +6,7 @@ import {
   spieleIntervallMinuten,
 } from "./sync-hilfen";
 import type { HoleJson } from "@/lib/handball-net/client";
-import { synchronisiereHandballNet } from "@/lib/handball-net/sync";
+import { hatHandballNetQuelle, synchronisiereHandballNet } from "@/lib/handball-net/sync";
 import {
   synchronisiereFreundschaftsspiele,
   synchronisiereSpiele,
@@ -102,7 +102,7 @@ export async function synchronisiereFaellige(
         eintrag.struktur = `fehler: ${err instanceof Error ? err.message : String(err)}`;
       }
     }
-    if (opt.holeJson && (v.handballNetClubId || v.handballNetTeamIds)) {
+    if (opt.holeJson && (await hatHandballNetQuelle(db, v))) {
       try {
         if (faellig(v.handballNetSynchronisiertAm, intervall, jetzt)) {
           eintrag.handballNet = (

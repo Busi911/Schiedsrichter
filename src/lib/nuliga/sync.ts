@@ -402,9 +402,11 @@ export async function synchronisiereStruktur(
   // Je Zusatzquelle: Bezeichnung -> übernommene Mannschaftsnamen (für die Meldung)
   const zusatzUebernommen = new Map<string, string[]>();
   let zusatzFehler = false;
-  const zusatzquellen = await db.query.ligaVereinZusatzquellen.findMany({
-    where: eq(ligaVereinZusatzquellen.ligaVereinId, ligaVereinId),
-  });
+  const zusatzquellen = (
+    await db.query.ligaVereinZusatzquellen.findMany({
+      where: and(eq(ligaVereinZusatzquellen.ligaVereinId, ligaVereinId), isNotNull(ligaVereinZusatzquellen.nuligaClubId)),
+    })
+  ).flatMap((z) => (z.nuligaClubId ? [{ ...z, nuligaClubId: z.nuligaClubId }] : []));
   for (const z of zusatzquellen) {
     const bezeichnung = z.bezeichnung || z.nuligaClubId;
     if (lauf.fristAbgelaufen()) {
@@ -707,10 +709,10 @@ export async function synchronisiereSpiele(
   const zusatzClubIds = new Set(
     (
       await db.query.ligaVereinZusatzquellen.findMany({
-        where: eq(ligaVereinZusatzquellen.ligaVereinId, ligaVereinId),
+        where: and(eq(ligaVereinZusatzquellen.ligaVereinId, ligaVereinId), isNotNull(ligaVereinZusatzquellen.nuligaClubId)),
         columns: { nuligaClubId: true },
       })
-    ).map((z) => z.nuligaClubId)
+    ).flatMap((z) => (z.nuligaClubId ? [z.nuligaClubId] : []))
   );
   const heute = tagKey(jetzt);
   const gruppenMitNeuemErgebnis = new Set<string>();

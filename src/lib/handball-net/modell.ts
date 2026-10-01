@@ -1,3 +1,4 @@
+import { parseKategorien } from "@/lib/nuliga/zusatzquellen";
 import { berlinOffset } from "@/lib/format";
 import { normalisiereMannschaft, type NormalisierteMannschaft } from "@/lib/nuliga/normalisierung";
 import type { SpielStatus } from "@/lib/nuliga/types";
@@ -362,4 +363,18 @@ export function teamUebernehmen(
 ): boolean {
   if (manuelleTeamIds.includes(teamId)) return true;
   return !(vereinClubId && teamClubId && teamClubId !== vereinClubId);
+}
+
+// Filter einer Zusatzquelle (Partnerverein bei handball.net, z.B. eine
+// Jugendspielgemeinschaft in der Jugendbundesliga): Kategorie (wie bei nuLiga,
+// liga_kategorie) und optional ein Namensteil im Team- oder Vereinsnamen.
+export function passtZumHnetFilter(
+  team: HnetTeam,
+  filter: { kategorien: string; nameEnthaelt: string | null }
+): boolean {
+  const kategorien = parseKategorien(filter.kategorien);
+  if (kategorien.length > 0 && !kategorien.includes(normalisiereHnetTeam(team).kategorie)) return false;
+  const teil = filter.nameEnthaelt?.trim().toLowerCase();
+  if (teil && !`${team.name} ${team.clubName ?? ""}`.toLowerCase().includes(teil)) return false;
+  return true;
 }

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { ligaVereine } from "@/db/schema";
 import type { HoleJson } from "@/lib/handball-net/client";
-import { synchronisiereHandballNet } from "@/lib/handball-net/sync";
+import { hatHandballNetQuelle, synchronisiereHandballNet } from "@/lib/handball-net/sync";
 import { synchronisiereVollstaendig, type HoleHtml, type LigaDb } from "@/lib/nuliga/sync";
 
 export type QuellenSyncErgebnis = {
@@ -48,7 +48,7 @@ export async function synchronisiereAlleQuellen(
     }
   }
 
-  if (verein.handballNetClubId || verein.handballNetTeamIds) {
+  if (await hatHandballNetQuelle(opt.db, verein)) {
     try {
       const r = await synchronisiereHandballNet(ligaVereinId, opt);
       ergebnis.neu += r.neu;
