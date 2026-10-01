@@ -6,6 +6,7 @@ import { chromium } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const SUCHE = process.env.VEREIN ?? "Heuchelheim";
+const CLUB_ID = process.env.CLUB_ID ?? "";
 const BASIS = "https://www.handball.net";
 mkdirSync("out", { recursive: true });
 const api = [];
@@ -18,10 +19,10 @@ page.on("response", async (r) => {
   if (!u.includes("/api/")) return;
   let body = "";
   try {
-    body = (await r.text()).slice(0, 400).replace(/\s+/g, " ");
+    body = (await r.text()).slice(0, /press\/config|federations|news/.test(u) ? 200 : 1500).replace(/\s+/g, " ");
   } catch {}
   api.push({ status: r.status(), url: u, body });
-  console.log(`API ${r.status()} ${u}\n    ${body.slice(0, 200)}`);
+  console.log(`API ${r.status()} ${u}\n    ${body}`);
 });
 
 async function offen(url, name) {
@@ -46,9 +47,11 @@ const links = async (muster) =>
     [...new Map(as.map((a) => [a.href, (a.textContent ?? "").trim().replace(/\s+/g, " ")])).entries()]
   );
 
-// 1. Verein suchen
-await offen(`${BASIS}/buscar/${encodeURIComponent(SUCHE)}`, "01-suche");
-let vereine = await links("/club/");
+// 1. Verein suchen (oder direkt per ID)
+let vereine = [];
+if (CLUB_ID) vereine = [[`${BASIS}/club/${CLUB_ID}`, `TSF Heuchelheim (ID ${CLUB_ID})`]];
+else await offen(`${BASIS}/buscar/${encodeURIComponent(SUCHE)}`, "01-suche");
+if (!CLUB_ID) vereine = await links("/club/");
 console.log("Vereinslinks:", JSON.stringify(vereine.slice(0, 15)));
 if (vereine.length === 0) {
   await offen(`${BASIS}/spielbetrieb/vereine`, "01b-vereine");
@@ -59,7 +62,7 @@ if (vereine.length === 0) {
   vereine = await links("/club/");
   console.log("Vereinslinks (Vereinsliste):", JSON.stringify(vereine.slice(0, 15)));
 }
-const treffer = vereine.find(([, t]) => /heuchelheim/i.test(t)) ?? vereine[0];
+const treffer = vereine.find(([, t]) => /^TSF Heuchelheim/i.test(t)) ?? vereine[0];
 if (!treffer) {
   console.log("KEIN VEREIN GEFUNDEN");
   writeFileSync("out/api.json", JSON.stringify(api, null, 1));
@@ -79,6 +82,7 @@ console.log("Teamlinks:", JSON.stringify(teams.slice(0, 30)));
 const kandidaten = [
   `/api/new/teams?club_id=${clubId}`,
   `/api/new/teams?club_id=${clubId}&season_id=2627`,
+  `/api/new/teams?club_id=${clubId}&season_id=2627&per_page=100`,
   `/api/new/teams/clubs/${clubId}/teams`,
   `/api/new/teams/clubs/${clubId}/teams?season_id=2627`,
   `/api/new/clubs/${clubId}/teams`,

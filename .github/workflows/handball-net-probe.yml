@@ -34,6 +34,7 @@ jobs:
         working-directory: scripts/handball-net-probe
         env:
           VEREIN: ${{ github.event.inputs.verein || 'Heuchelheim' }}
+          CLUB_ID: 18rmntb
         run: node probe.mjs
       - uses: actions/upload-artifact@v4
         if: always()
