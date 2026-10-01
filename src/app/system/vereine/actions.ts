@@ -13,6 +13,7 @@ import {
   uebergebeVerein,
   vereinVorbereiten as vereinVorbereitenLib,
 } from "@/lib/treuhand";
+import { erzeugeVorschauLink, widerrufeVorschauLink } from "@/lib/verein-vorschau";
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { uebergabeInhalt } from "@/lib/uebergabe-mail";
@@ -100,4 +101,20 @@ export async function vereinUebergeben(formData: FormData) {
   }
   revalidatePath("/system/vereine");
   redirect("/system/vereine");
+}
+
+// Geheimer Vorschau-Link für einen Verein in Vorbereitung (Demo für Dritte).
+export async function vorschauLinkErzeugen(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const vereinId = text(formData, "vereinId");
+  const [v] = await adminDb.select({ status: vereine.status }).from(vereine).where(eq(vereine.id, vereinId));
+  if (v?.status !== "vorbereitung") throw new Error("Nur für Vereine in Vorbereitung.");
+  await erzeugeVorschauLink(vereinId, Number(text(formData, "tage")), session.user.email ?? session.user.id);
+  revalidatePath("/system/vereine");
+}
+
+export async function vorschauLinkWiderrufen(formData: FormData) {
+  const session = await requireSystemAdmin();
+  await widerrufeVorschauLink(text(formData, "linkId"), session.user.email ?? session.user.id);
+  revalidatePath("/system/vereine");
 }

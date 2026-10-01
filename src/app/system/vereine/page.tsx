@@ -1,6 +1,6 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt, isNull } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { users } from "@/db/schema";
+import { ligaVereine, users, vereinVorschauLinks } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
 import {
   Card,
@@ -14,6 +14,8 @@ import { VereinVorbereitenDialog } from "@/components/verein-vorbereiten-dialog"
 import { VereinUebergebenDialog } from "@/components/verein-uebergeben-dialog";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
+import { appUrl } from "@/lib/app-url";
+import { VorschauLinks } from "@/components/vorschau-links";
 import { supportFreigabeAktiv } from "@/lib/treuhand";
 import { treuhandStarten } from "./actions";
 import {
@@ -38,6 +40,18 @@ export default async function SystemVereinePage() {
     .select({ vereinId: users.vereinId, name: users.name, email: users.email })
     .from(users)
     .where(eq(users.istAdmin, true));
+
+  const slugs = new Map(
+    (await adminDb.select({ vereinId: ligaVereine.vereinId, slug: ligaVereine.slug }).from(ligaVereine)).map((z) => [
+      z.vereinId,
+      z.slug,
+    ])
+  );
+  const vorschauLinks = await adminDb
+    .select()
+    .from(vereinVorschauLinks)
+    .where(and(isNull(vereinVorschauLinks.widerrufenAm), gt(vereinVorschauLinks.gueltigBis, new Date())));
+  const basisUrl = appUrl();
 
   return (
     <div className="flex flex-col gap-6">
@@ -119,6 +133,14 @@ export default async function SystemVereinePage() {
                             </span>
                           )}
                         </div>
+                        {v.status === "vorbereitung" && (
+                          <VorschauLinks
+                            vereinId={v.id}
+                            slug={slugs.get(v.id) ?? null}
+                            basisUrl={basisUrl}
+                            links={vorschauLinks.filter((l) => l.vereinId === v.id)}
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
                   );

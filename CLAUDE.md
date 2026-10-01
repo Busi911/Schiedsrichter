@@ -245,3 +245,15 @@ ein Systemadmin im Treuhand-Kontext kann sie nie selbst erteilen). Alles wird in
 KEINEN Zugriff (nur `adminDb`). Neue Seiten, die Vereine auflisten, müssen
 `status = 'aktiv'` filtern; auf neue Mail-Wege greift die Sperre automatisch,
 solange sie über `sendMail` laufen.
+
+**Vorschau-Link für Vereine in Vorbereitung:** Für eine Demo (z.B. an
+Interessenten) erzeugt der Systemadmin unter `/system/vereine` einen geheimen
+Link `/verein/[slug]/vorschau/[token]` (1/3/7 Tage, widerrufbar, Tabelle
+`verein_vorschau_link`, nur `adminDb`). Die Route setzt ein httpOnly-Cookie
+`hp_vorschau` (Pfad nur dieser Verein) und leitet um; `holeVerein`/`holeVorschau`
+(`lib/liga-oeffentlich.ts`) prüfen es bei JEDEM Aufruf (Ablauf/Widerruf wirken
+sofort). Die Vorschau ist bewusst eingeschränkt: Banner „Vorschau“, `noindex`,
+Manifest = 404 (nicht installierbar), höchstens `VORSCHAU_MAX` (5) Einträge je
+Liste/Tab (`begrenzt` aus `ladeVereinsDaten`/`ladeTeam`). Der einrichtende
+Systemadmin im Treuhand-Kontext sieht weiter alles ungekürzt. Neue Listen auf
+öffentlichen Vereinsseiten müssen `begrenzt` beachten.

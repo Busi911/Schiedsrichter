@@ -5,6 +5,7 @@ import { sammleVereinsSpiele } from "@/lib/liga-spiele-hilfen";
 import { BereichsKopf } from "@/components/liga/bereichs-kopf";
 import { GefilterteListe } from "@/components/liga/gefilterte-liste";
 import { formatTagKopf, SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
+import { VORSCHAU_MAX } from "@/lib/verein-vorschau-konstanten";
 import { ladeVereinsDaten } from "../laden";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -22,8 +23,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function NaechsteSpieleSeite({ params }: Props) {
   const { slug } = await params;
-  const { verein, mannschaften } = await ladeVereinsDaten(slug);
-  const { anstehend } = sammleVereinsSpiele(mannschaften, new Date());
+  const { verein, mannschaften, begrenzt } = await ladeVereinsDaten(slug);
+  const { anstehend: alleAnstehend } = sammleVereinsSpiele(mannschaften, new Date());
+  const anstehend = begrenzt ? alleAnstehend.slice(0, VORSCHAU_MAX) : alleAnstehend;
 
   return (
     <div className="space-y-5 pb-20 md:pb-0">

@@ -439,6 +439,19 @@ export const treuhandZugriffe = pgTable("treuhand_zugriff", {
   gestartetAm: timestamp("gestartet_am", { mode: "date" }).notNull().defaultNow(),
 });
 
+// Geheime Vorschau-Links für Vereine im Vorbereitungs-Modus (Demo für
+// Interessenten): befristet, widerrufbar, nur über adminDb.
+export const vereinVorschauLinks = pgTable("verein_vorschau_link", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+  gueltigBis: timestamp("gueltig_bis", { mode: "date" }).notNull(),
+  widerrufenAm: timestamp("widerrufen_am", { mode: "date" }),
+});
+
 // Nachweis, wer wann in einem Verein tätig war und wann übergeben wurde.
 export const vereinProtokoll = pgTable("verein_protokoll", {
   id: uuid("id").primaryKey().defaultRandom(),

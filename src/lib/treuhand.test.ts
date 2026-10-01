@@ -15,6 +15,10 @@ vi.mock("@/db/admin", () => ({ adminDb: testDb }));
 vi.mock("server-only", () => ({}));
 // Anonymer Besucher: keine Session
 vi.mock("@/auth", () => ({ auth: async () => null }));
+let vorschauCookie: string | undefined;
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: (n: string) => (n === "hp_vorschau" && vorschauCookie ? { value: vorschauCookie } : undefined) }),
+}));
 vi.mock("react", async (orig) => ({ ...(await orig<typeof import("react")>()), cache: <T>(f: T) => f }));
 
 describe.skipIf(!ADMIN_URL)("Treuhand (Postgres)", () => {
@@ -135,6 +139,45 @@ describe.skipIf(!ADMIN_URL)("Treuhand (Postgres)", () => {
     await t.uebergebeVerein(sysAdminId, vereinId, "Admin Zwei", `zwei-${vereinId}@example.invalid`);
     expect((await holeAlleVereine()).some((v) => v.slug === "geheimer-verein-test")).toBe(true);
     expect((await holeVerein("geheimer-verein-test"))?.id).toBeDefined();
+  });
+
+  it("Vorschau-Link öffnet einen Verein in Vorbereitung nur befristet, widerrufbar und nur für diesen Verein", async () => {
+    const t = await import("./treuhand");
+    const v = await import("./verein-vorschau");
+    const { holeVerein, holeVorschau } = await import("./liga-oeffentlich");
+    const vereinId = await t.vereinVorbereiten(sysAdminId, "Vorschau Verein");
+    const anderer = await t.vereinVorbereiten(sysAdminId, "Anderer Vorschau Verein");
+    angelegt.push(vereinId, anderer);
+    await testDb.insert(schema.ligaVereine).values([
+      { vereinId, slug: "vorschau-verein-test", name: "Vorschau Verein", nuligaClubId: "999991" },
+      { vereinId: anderer, slug: "anderer-vorschau-test", name: "Anderer", nuligaClubId: "999992" },
+    ]);
+    const token = await v.erzeugeVorschauLink(vereinId, 1, "test");
+    vorschauCookie = undefined;
+    expect(await holeVerein("vorschau-verein-test")).toBeUndefined();
+
+    vorschauCookie = token;
+    const lv = await holeVerein("vorschau-verein-test");
+    expect(lv?.id).toBeDefined();
+    expect((await holeVorschau(vereinId))?.art).toBe("link");
+    // gilt nicht für einen anderen Verein
+    expect(await holeVerein("anderer-vorschau-test")).toBeUndefined();
+
+    // abgelaufen
+    await testDb
+      .update(schema.vereinVorschauLinks)
+      .set({ gueltigBis: new Date(Date.now() - 1000) })
+      .where(eq(schema.vereinVorschauLinks.token, token));
+    expect(await holeVerein("vorschau-verein-test")).toBeUndefined();
+
+    // widerrufen
+    const token2 = await v.erzeugeVorschauLink(vereinId, 3, "test");
+    vorschauCookie = token2;
+    expect(await holeVerein("vorschau-verein-test")).toBeDefined();
+    const [l] = await v.holeAktiveVorschauLinks(vereinId);
+    await v.widerrufeVorschauLink(l.id, "test");
+    expect(await holeVerein("vorschau-verein-test")).toBeUndefined();
+    vorschauCookie = undefined;
   });
 
   it("Vereine im Vorbereitungs-Modus zählen nicht zum Beta-Limit, erst ab der Übergabe", async () => {

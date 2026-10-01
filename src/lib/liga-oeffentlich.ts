@@ -49,15 +49,34 @@ export type MannschaftAnsicht = {
 };
 
 // Vereine im Vorbereitungs-Modus (Systemadmin richtet sie im Hintergrund ein,
-// siehe lib/treuhand.ts) sind öffentlich nicht erreichbar — nur der
-// einrichtende Systemadmin selbst darf sich die Seite ansehen.
-async function darfVorschauSehen(vereinId: string): Promise<boolean> {
+// siehe lib/treuhand.ts) sind öffentlich nicht erreichbar. Sehen dürfen die
+// Seite nur (a) der einrichtende Systemadmin selbst (voller Umfang) und
+// (b) Besucher mit gültigem, geheimem Vorschau-Link (eingeschränkte Demo,
+// siehe lib/verein-vorschau.ts).
+export type VorschauModus = { art: "treuhand" | "link"; bis: Date | null };
+
+async function ermittleVorschau(vereinId: string): Promise<VorschauModus | null> {
   const { auth } = await import("@/auth");
   const { holeTreuhandKontext } = await import("./treuhand");
   const session = await auth();
-  if (!session?.user?.istSystemAdmin) return false;
-  return (await holeTreuhandKontext(session.user.id))?.vereinId === vereinId;
+  if (session?.user?.istSystemAdmin && (await holeTreuhandKontext(session.user.id))?.vereinId === vereinId) {
+    return { art: "treuhand", bis: null };
+  }
+  const { cookies } = await import("next/headers");
+  const { pruefeVorschauToken, VORSCHAU_COOKIE } = await import("./verein-vorschau");
+  const token = (await cookies()).get(VORSCHAU_COOKIE)?.value;
+  const link = await pruefeVorschauToken(token);
+  return link?.vereinId === vereinId ? { art: "link", bis: link.gueltigBis } : null;
 }
+
+// null = Verein ist regulär öffentlich (kein Vorschau-Modus).
+export const holeVorschau = cache(async (vereinId: string): Promise<VorschauModus | null> => {
+  const [verein] = await mitColdStartRetry(() =>
+    adminDb.select({ status: vereine.status }).from(vereine).where(eq(vereine.id, vereinId))
+  );
+  if (verein?.status !== "vorbereitung") return null;
+  return ermittleVorschau(vereinId);
+});
 
 export const holeVerein = cache(async (slug: string) => {
   const ligaVerein = await mitColdStartRetry(() =>
@@ -67,7 +86,7 @@ export const holeVerein = cache(async (slug: string) => {
   const [verein] = await mitColdStartRetry(() =>
     adminDb.select({ status: vereine.status }).from(vereine).where(eq(vereine.id, ligaVerein.vereinId))
   );
-  if (verein?.status === "vorbereitung" && !(await darfVorschauSehen(ligaVerein.vereinId))) {
+  if (verein?.status === "vorbereitung" && !(await ermittleVorschau(ligaVerein.vereinId))) {
     return undefined;
   }
   return ligaVerein;
