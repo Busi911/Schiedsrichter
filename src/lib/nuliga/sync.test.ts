@@ -448,6 +448,16 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync: Zusatzquelle (Partnerverein, Postgres)
     await pool.end();
   });
 
+  const eigenOhneDII = fixture("club-teams.html").replace(/<tr>\s*<td>männliche Jugend D II<\/td>[\s\S]*?<\/tr>/, "");
+  const holeHtmlMitTabelle: HoleHtml = async (url) => {
+    const p = paramsAusUrl(url);
+    if (url.includes("/clubTeams")) {
+      return p.get("club") === "999" ? partner : eigenOhneDII;
+    }
+    if (url.includes("/groupPage") && p.get("group") === "492633") return fixture("group-page.html");
+    throw new Error("HTTP 503");
+  };
+
   const slugs = async (id: string) =>
     (
       await db.query.ligaMannschaften.findMany({
@@ -485,6 +495,25 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync: Zusatzquelle (Partnerverein, Postgres)
     expect(r2.status).toBe("teilweise");
     expect(r2.meldungen.some((m) => m.includes("nicht deaktiviert"))).toBe(true);
     expect(await slugs(id)).toContain("maennliche-e");
+
+    // Namensteil, der NUR in der Gruppentabelle steht (nicht in der Vereinsliste
+    // des Partnervereins): "Bieber" steckt in "mJSG Heuchelheim/Bieber II".
+    await db.delete(schema.ligaVereinZusatzquellen).where(eq(schema.ligaVereinZusatzquellen.ligaVereinId, id));
+    await db.insert(schema.ligaVereinZusatzquellen).values({
+      ligaVereinId: id,
+      nuligaClubId: "999",
+      bezeichnung: "Partner-JSG",
+      kategorien: "jugend_maennlich",
+      nameEnthaelt: "Bieber",
+    });
+    const rJsg = await synchronisiereStruktur(id, { db, holeHtml: holeHtmlMitTabelle });
+    expect(rJsg.meldungen.some((m) => m.includes("Zusatzquelle Partner-JSG: 1 Mannschaft(en) übernommen"))).toBe(true);
+    expect(await slugs(id)).toContain("maennliche-d-2");
+
+    // Namensteil, der nirgends vorkommt: nichts wird übernommen, mit erklärender Meldung
+    await db.update(schema.ligaVereinZusatzquellen).set({ nameEnthaelt: "Nirgendwo" }).where(eq(schema.ligaVereinZusatzquellen.ligaVereinId, id));
+    const rKein = await synchronisiereStruktur(id, { db, holeHtml: holeHtmlMitTabelle });
+    expect(rKein.meldungen.some((m) => m.includes("Zusatzquelle Partner-JSG: 0 Mannschaft(en)"))).toBe(true);
 
     // Zusatzquelle entfernt: die Mannschaft wird beim nächsten Lauf deaktiviert
     partnerLesbar = true;

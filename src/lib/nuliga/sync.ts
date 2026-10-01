@@ -385,9 +385,20 @@ export async function synchronisiereStruktur(
   // Eintraege: Mannschaften des eigenen Vereins plus die gefilterten
   // Mannschaften der Zusatzquellen (z.B. Spielgemeinschaft unter dem
   // Partnerverein). vereinsname dient dem Abgleich mit der Gruppentabelle.
-  const eintraege: { team: (typeof club.daten.teams)[number]; vereinsname: string }[] = club.daten.teams
+  type Eintrag = {
+    team: (typeof club.daten.teams)[number];
+    vereinsname: string;
+    // Nur Zusatzquellen: Namensteil, der erst gegen den Namen in der
+    // Gruppentabelle geprüft wird (dort steht der Spielgemeinschaftsname, in
+    // der Vereinsliste des Partnervereins oft nicht), und die Quelle für die Meldung.
+    pruefeName?: string;
+    quelle?: string;
+  };
+  const eintraege: Eintrag[] = club.daten.teams
     .filter((t) => t.regulaer && t.saison === saison)
     .map((team) => ({ team, vereinsname }));
+  // Je Zusatzquelle: Bezeichnung -> übernommene Mannschaftsnamen (für die Meldung)
+  const zusatzUebernommen = new Map<string, string[]>();
   let zusatzFehler = false;
   const zusatzquellen = await db.query.ligaVereinZusatzquellen.findMany({
     where: eq(ligaVereinZusatzquellen.ligaVereinId, ligaVereinId),
@@ -402,17 +413,29 @@ export async function synchronisiereStruktur(
       const zHtml = await lauf.hole(baueNuligaUrl(verein.verband, "clubTeams", { club: z.nuligaClubId }));
       const zClub = parseClubTeams(zHtml);
       for (const w of zClub.warnungen) lauf.warn(`Zusatzquelle ${bezeichnung}: ${w}`);
-      const gewaehlt = zClub.daten.teams.filter(
-        (t) => t.regulaer && t.saison === saison && passtZumZusatzFilter(t, z)
-      );
-      lauf.warn(
-        `Zusatzquelle ${bezeichnung}: ${gewaehlt.length} Mannschaft(en) übernommen` +
-          (gewaehlt.length
-            ? ` (${gewaehlt.map((t) => t.mannschaftsname).join(", ")})`
-            : ` – Filter prüfen: ${beschreibeZusatzVerein(zClub.daten.teams, saison, z)}`)
+      const saisonTeams = zClub.daten.teams.filter((t) => t.regulaer && t.saison === saison);
+      // Kategorie (und Namensteil in der Vereinsliste) sofort; der Namensteil
+      // wird sonst später gegen den Namen in der Gruppentabelle geprüft.
+      const kategorieTreffer = saisonTeams.filter((t) =>
+        passtZumZusatzFilter(t, { kategorien: z.kategorien, nameEnthaelt: null })
       );
       const zName = zClub.daten.vereinsname ?? bezeichnung;
-      for (const team of gewaehlt) eintraege.push({ team, vereinsname: zName });
+      zusatzUebernommen.set(bezeichnung, []);
+      for (const team of kategorieTreffer) {
+        const inListe = passtZumZusatzFilter(team, z);
+        eintraege.push({
+          team,
+          vereinsname: zName,
+          quelle: bezeichnung,
+          pruefeName: !inListe && z.nameEnthaelt ? z.nameEnthaelt : undefined,
+        });
+      }
+      if (kategorieTreffer.length === 0) {
+        lauf.warn(
+          `Zusatzquelle ${bezeichnung}: 0 Mannschaft(en) übernommen – Filter prüfen: ` +
+            beschreibeZusatzVerein(zClub.daten.teams, saison, z)
+        );
+      }
     } catch (err) {
       zusatzFehler = true;
       lauf.fehler(`Zusatzquelle ${bezeichnung}: ${fehlertext(err)}`);
@@ -462,14 +485,25 @@ export async function synchronisiereStruktur(
   // Mannschaften + Teilnahmen
   const gesehen: string[] = [];
   const belegteSchluessel = new Set<string>();
-  for (const { team, vereinsname: quellenName } of eintraege) {
+  for (const { team, vereinsname: quellenName, pruefeName, quelle } of eintraege) {
     const norm = normalisiereMannschaft(team.mannschaftsname, team.ligaName);
     if (norm.entfaellt) continue;
+    if (pruefeName) {
+      const g = gruppen.get(team.gruppenId)!;
+      const tt = ermittleTeamtable(
+        { rang: team.rang, punkte: team.punkte, nummer: norm.nummer },
+        g.tabelle,
+        quellenName
+      );
+      const tabellenName = g.tabelle.find((z) => z.teamtableId === tt)?.mannschaft ?? "";
+      if (!tabellenName.toLowerCase().includes(pruefeName.trim().toLowerCase())) continue;
+    }
     if (belegteSchluessel.has(norm.schluessel)) {
       lauf.warn(`Doppelte Mannschaft "${team.mannschaftsname}" übersprungen`);
       continue;
     }
     belegteSchluessel.add(norm.schluessel);
+    if (quelle) zusatzUebernommen.get(quelle)?.push(team.mannschaftsname);
     const gruppe = gruppen.get(team.gruppenId)!;
 
     let mannschaft = await db.query.ligaMannschaften.findFirst({
@@ -564,6 +598,16 @@ export async function synchronisiereStruktur(
         .returning({ id: ligaTeilnahmen.id });
       lauf.neu++;
       gesehen.push(neu.id);
+    }
+  }
+
+  for (const [quelleName, namen] of zusatzUebernommen) {
+    if (namen.length > 0) {
+      lauf.warn(`Zusatzquelle ${quelleName}: ${namen.length} Mannschaft(en) übernommen (${namen.join(", ")})`);
+    } else if (!lauf.meldungen.some((m) => m.startsWith(`Zusatzquelle ${quelleName}: 0 Mannschaft`))) {
+      lauf.warn(
+        `Zusatzquelle ${quelleName}: 0 Mannschaft(en) übernommen – die Kategorie passt, aber kein Name in der Gruppentabelle enthält den Namensteil`
+      );
     }
   }
 
