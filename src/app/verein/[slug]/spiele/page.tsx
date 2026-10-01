@@ -34,6 +34,7 @@ export default async function NaechsteSpieleSeite({ params }: Props) {
           id: e.spiel.id,
           tag: formatTagKopf(e.spiel.datum),
           gruppe: e.gruppe,
+          mannschaftIds: e.mannschaftIds,
           knoten: (
             <SpielKarte
               spiel={e.spiel}

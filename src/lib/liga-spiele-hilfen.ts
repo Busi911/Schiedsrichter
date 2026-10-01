@@ -59,9 +59,12 @@ export type VereinsSpiel = {
   // Teamtable der ersten eigenen Mannschaft (für Hervorhebung und Ausgang).
   eigenTeamtable: string | null;
   gruppe: SpielGruppe;
+  // IDs der beteiligten eigenen Mannschaften (für den Favoriten-Filter).
+  mannschaftIds: string[];
 };
 
 type MannschaftSpiele = {
+  id: string;
   name: string;
   kategorie: (typeof ligaMannschaften.$inferSelect)["kategorie"];
   teamtableId: string | null;
@@ -84,8 +87,10 @@ export function sammleVereinsSpiele(
         teams: [],
         eigenTeamtable: m.teamtableId,
         gruppe: spielGruppe(m.kategorie),
+        mannschaftIds: [],
       };
       eintrag.teams.push(m.name);
+      eintrag.mannschaftIds.push(m.id);
       alle.set(s.id, eintrag);
     }
   }

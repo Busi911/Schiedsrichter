@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useFavoriten } from "@/lib/liga-favoriten-lokal";
 import { cn } from "@/lib/utils";
 
 export type ListenEintrag = {
@@ -8,6 +9,8 @@ export type ListenEintrag = {
   // Überschrift der Tagesgruppe, z.B. "Sonntag, 27.09."
   tag: string;
   gruppe: "herren" | "damen" | "jugend" | "kinder";
+  // IDs der beteiligten eigenen Mannschaften (für „Favoriten“)
+  mannschaftIds: string[];
   // Serverseitig gerenderte Karte
   knoten: ReactNode;
 };
@@ -21,10 +24,28 @@ const FILTER: { gruppe: ListenEintrag["gruppe"]; label: string }[] = [
 
 // Liste nach Tagen gruppiert, mit Filter-Chips (nur für vorhandene Gruppen).
 // Die Karten werden serverseitig gerendert, hier nur ausgewählt.
+type Filter = ListenEintrag["gruppe"] | "favoriten" | "alle";
+
 export function GefilterteListe({ eintraege, leerText }: { eintraege: ListenEintrag[]; leerText: string }) {
-  const [filter, setFilter] = useState<ListenEintrag["gruppe"] | null>(null);
+  const favoriten = useFavoriten();
+  const istFavorit = (e: ListenEintrag) => e.mannschaftIds.some((id) => favoriten.mannschaften.includes(id));
+  const hatFavoriten = eintraege.some(istFavorit);
+  // Ohne eigene Auswahl: Favoriten, sobald auf diesem Gerät welche gemerkt sind.
+  const [auswahl, setAuswahl] = useState<Filter | null>(null);
+  const filter: Filter = auswahl ?? (hatFavoriten ? "favoriten" : "alle");
+
+  // Browser bitten, die gemerkten Favoriten nicht automatisch zu löschen.
+  useEffect(() => {
+    if (favoriten.mannschaften.length > 0) void navigator.storage?.persist?.().catch(() => {});
+  }, [favoriten.mannschaften.length]);
+
   const vorhanden = FILTER.filter((f) => eintraege.some((e) => e.gruppe === f.gruppe));
-  const sichtbar = filter ? eintraege.filter((e) => e.gruppe === filter) : eintraege;
+  const sichtbar =
+    filter === "alle"
+      ? eintraege
+      : filter === "favoriten"
+        ? eintraege.filter(istFavorit)
+        : eintraege.filter((e) => e.gruppe === filter);
 
   const tage: { tag: string; eintraege: ListenEintrag[] }[] = [];
   for (const e of sichtbar) {
@@ -43,9 +64,19 @@ export function GefilterteListe({ eintraege, leerText }: { eintraege: ListenEint
 
   return (
     <div className="space-y-4">
-      {vorhanden.length > 1 && (
+      {(vorhanden.length > 1 || hatFavoriten) && (
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label="Filter">
-          <button type="button" className={chip(filter === null)} aria-pressed={filter === null} onClick={() => setFilter(null)}>
+          {hatFavoriten && (
+            <button
+              type="button"
+              className={chip(filter === "favoriten")}
+              aria-pressed={filter === "favoriten"}
+              onClick={() => setAuswahl("favoriten")}
+            >
+              ★ Favoriten
+            </button>
+          )}
+          <button type="button" className={chip(filter === "alle")} aria-pressed={filter === "alle"} onClick={() => setAuswahl("alle")}>
             Alle
           </button>
           {vorhanden.map((f) => (
@@ -54,7 +85,7 @@ export function GefilterteListe({ eintraege, leerText }: { eintraege: ListenEint
               type="button"
               className={chip(filter === f.gruppe)}
               aria-pressed={filter === f.gruppe}
-              onClick={() => setFilter(f.gruppe)}
+              onClick={() => setAuswahl(f.gruppe)}
             >
               {f.label}
             </button>
