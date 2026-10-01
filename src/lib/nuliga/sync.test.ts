@@ -415,3 +415,81 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync: zurückgezogene Mannschaft (Postgres)"
     expect(aktive.every((t) => !t.aktiv)).toBe(true);
   });
 });
+
+describe.skipIf(!ADMIN_URL)("nuLiga-Sync: Zusatzquelle (Partnerverein, Postgres)", () => {
+  const pool = new Pool({ connectionString: ADMIN_URL });
+  const db = drizzle(pool, { schema });
+  const vereinId = randomUUID();
+
+  // Eigener Verein: ohne die männliche E-Jugend (die läuft unter dem Partner).
+  const ohneEJugend = fixture("club-teams.html").replace(/<tr>\s*<td>männliche Jugend E<\/td>[\s\S]*?<\/tr>/, "");
+  // Partnerverein: hat u.a. dieselben Mannschaften — gefiltert wird nur die E-Jugend.
+  const partner = fixture("club-teams.html");
+  let partnerLesbar = true;
+  const holeHtml: HoleHtml = async (url) => {
+    if (url.includes("/clubTeams")) {
+      if (paramsAusUrl(url).get("club") === "999") {
+        if (!partnerLesbar) throw new Error("HTTP 503");
+        return partner;
+      }
+      return ohneEJugend;
+    }
+    throw new Error("HTTP 503"); // keine Gruppen/Portraits nötig
+  };
+
+  beforeAll(async () => {
+    await db.delete(schema.ligaVereine);
+    await db.delete(schema.ligaGruppen);
+    await db.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim" });
+  });
+  afterAll(async () => {
+    await db.delete(schema.vereine).where(eq(schema.vereine.id, vereinId));
+    await db.delete(schema.ligaGruppen);
+    await pool.end();
+  });
+
+  const slugs = async (id: string) =>
+    (
+      await db.query.ligaMannschaften.findMany({
+        where: eq(schema.ligaMannschaften.ligaVereinId, id),
+      })
+    )
+      .filter((m) => m.aktiv)
+      .map((m) => m.slug)
+      .sort();
+
+  it("übernimmt nur gefilterte Mannschaften des Partnervereins und bleibt bei Lesefehlern sicher", async () => {
+    const { id } = await legeLigaVereinAn(db, { vereinId, nuligaClubId: "69723", name: "TSF Heuchelheim" });
+    expect(await slugs(id)).toEqual([]);
+
+    await synchronisiereStruktur(id, { db, holeHtml });
+    expect(await slugs(id)).not.toContain("maennliche-e");
+
+    // Zusatzquelle: nur männliche Jugend, Name enthält "Jugend E"
+    await db.insert(schema.ligaVereinZusatzquellen).values({
+      ligaVereinId: id,
+      nuligaClubId: "999",
+      bezeichnung: "Partnerverein",
+      kategorien: "jugend_maennlich",
+      nameEnthaelt: "Jugend E",
+    });
+    const r = await synchronisiereStruktur(id, { db, holeHtml });
+    expect(r.meldungen.some((m) => m.includes("Zusatzquelle Partnerverein: 1 Mannschaft(en) übernommen"))).toBe(true);
+    const nachher = await slugs(id);
+    expect(nachher).toContain("maennliche-e");
+    expect(nachher).toHaveLength(7); // 6 eigene + 1 vom Partner, nichts weiter vom Partnerverein
+
+    // Partner nicht lesbar: nichts wird deaktiviert, der Lauf meldet es
+    partnerLesbar = false;
+    const r2 = await synchronisiereStruktur(id, { db, holeHtml });
+    expect(r2.status).toBe("teilweise");
+    expect(r2.meldungen.some((m) => m.includes("nicht deaktiviert"))).toBe(true);
+    expect(await slugs(id)).toContain("maennliche-e");
+
+    // Zusatzquelle entfernt: die Mannschaft wird beim nächsten Lauf deaktiviert
+    partnerLesbar = true;
+    await db.delete(schema.ligaVereinZusatzquellen).where(eq(schema.ligaVereinZusatzquellen.ligaVereinId, id));
+    await synchronisiereStruktur(id, { db, holeHtml });
+    expect(await slugs(id)).not.toContain("maennliche-e");
+  });
+});

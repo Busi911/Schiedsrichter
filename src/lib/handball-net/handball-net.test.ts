@@ -24,6 +24,7 @@ import {
   parseTeam,
   saisonLabel,
   schoenerTeamname,
+  teamUebernehmen,
 } from "./modell";
 
 const ADMIN_URL = process.env.TEST_DATABASE_ADMIN_URL;
@@ -399,3 +400,21 @@ describe.skipIf(!ADMIN_URL)("nuLiga und handball.net gemeinsam (Postgres)", () =
     expect(aktiv2.length).toBe(aktiv1.length);
   });
 });
+
+describe("teamUebernehmen (Spielgemeinschaften unter einem Partnerverein)", () => {
+  it("übernimmt Teams des eigenen Vereins und Teams ohne Vereinszuordnung", () => {
+    expect(teamUebernehmen("c1", "c1", [], "10")).toBe(true);
+    expect(teamUebernehmen(null, "c1", [], "10")).toBe(true);
+    expect(teamUebernehmen("c2", null, [], "10")).toBe(true);
+  });
+
+  it("überspringt fremde Teams, die nur über die Vereins-ID gefunden wurden", () => {
+    expect(teamUebernehmen("c2", "c1", [], "10")).toBe(false);
+    expect(teamUebernehmen("c2", "c1", ["11"], "10")).toBe(false);
+  });
+
+  it("übernimmt ein manuell hinterlegtes Team auch von einem Partnerverein", () => {
+    expect(teamUebernehmen("c2", "c1", ["10", "11"], "10")).toBe(true);
+  });
+});
+
