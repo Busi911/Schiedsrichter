@@ -73,20 +73,21 @@ export async function synchronisiereFaellige(
     where: opt.nurVereinId ? eq(ligaVereine.id, opt.nurVereinId) : sql`true`,
   });
   const ergebnis: FaelligeErgebnis = [];
+  const frist = start + budgetMs;
 
   for (const v of vereine) {
     if (Date.now() - start > budgetMs) break;
     const eintrag: FaelligeErgebnis[number] = { ligaVereinId: v.id, slug: v.slug };
     try {
       if (faellig(v.strukturSynchronisiertAm, STRUKTUR_INTERVALL_MINUTEN, jetzt)) {
-        eintrag.struktur = (await synchronisiereStruktur(v.id, { ...opt, jetzt })).status;
+        eintrag.struktur = (await synchronisiereStruktur(v.id, { ...opt, jetzt, frist })).status;
       }
       const intervall = spieleIntervallMinuten(await istSpieltagsnah(db, v.id, jetzt));
       if (
         eintrag.struktur !== "fehler" &&
         (eintrag.struktur !== undefined || faellig(v.spieleSynchronisiertAm, intervall, jetzt))
       ) {
-        eintrag.spiele = (await synchronisiereSpiele(v.id, { ...opt, jetzt })).status;
+        eintrag.spiele = (await synchronisiereSpiele(v.id, { ...opt, jetzt, frist })).status;
       }
     } catch (err) {
       eintrag.struktur = `fehler: ${err instanceof Error ? err.message : String(err)}`;

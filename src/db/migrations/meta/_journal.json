@@ -372,6 +372,13 @@
       "when": 1790832099643,
       "tag": "0052_liga_vereinsseiten",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1790833672087,
+      "tag": "0053_liga_teilnahme_spiele_zeitstempel",
+      "breakpoints": true
     }
   ]
 }

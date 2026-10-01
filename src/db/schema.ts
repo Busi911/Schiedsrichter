@@ -936,6 +936,9 @@ export const ligaTeilnahmen = pgTable(
     punkteMinus: integer("punkte_minus"),
     aktiv: boolean("aktiv").notNull().default(true),
     synchronisiertAm: timestamp("synchronisiert_am", { mode: "date" }).notNull().defaultNow(),
+    // Wann zuletzt der Spielplan dieser Mannschaft geladen wurde — macht den
+    // Spiele-Sync fortsetzbar (Zeitlimit) und fair (ältester zuerst).
+    spieleSynchronisiertAm: timestamp("spiele_synchronisiert_am", { mode: "date" }),
   },
   (t) => [uniqueIndex("liga_teilnahme_mannschaft_gruppe_idx").on(t.mannschaftId, t.gruppeId)]
 );
