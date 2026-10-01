@@ -7,7 +7,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   const { slug } = await params;
   const verein = await holeVerein(slug);
   if (!verein) return new Response("Not found", { status: 404 });
-  const cache = (await holeVorschau(verein.id)) ? "private, no-store" : "public, max-age=3600";
+  const cache = (await holeVorschau(verein.vereinId)) ? "private, no-store" : "public, max-age=3600";
   return Response.json(vereinsManifest(verein, await holeVereinsDesign(verein.id)), {
     headers: {
       "Content-Type": "application/manifest+json",

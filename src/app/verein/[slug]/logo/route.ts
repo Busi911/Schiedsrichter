@@ -8,7 +8,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   const png = verein ? await holeLogoPng(verein.id) : null;
   if (!png) return new Response("Not found", { status: 404 });
   // Vorschau-Verein (Zugriff hängt am Cookie): nie im gemeinsamen Cache ablegen.
-  const cache = (await holeVorschau(verein!.id)) ? "private, no-store" : "public, max-age=86400";
+  const cache = (await holeVorschau(verein!.vereinId)) ? "private, no-store" : "public, max-age=86400";
   return new Response(new Uint8Array(png), {
     headers: { "Content-Type": "image/png", "Cache-Control": cache },
   });

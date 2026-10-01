@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const v = (await holeVereinsDesign(verein.id)).logoVersion ?? "";
   // Vorschau (Verein noch in Vorbereitung): funktioniert wie die echte Seite,
   // wird aber nicht von Suchmaschinen indexiert.
-  const vorschau = await holeVorschau(verein.id);
+  const vorschau = await holeVorschau(verein.vereinId);
   return {
     ...(vorschau && { robots: { index: false, follow: false } }),
     manifest: `/verein/${verein.slug}/manifest.webmanifest`,
@@ -45,7 +45,7 @@ export default async function VereinsHuelle({
   if (!verein) notFound();
 
   const { logoVersion, farbton } = await holeVereinsDesign(verein.id);
-  const vorschau = await holeVorschau(verein.id);
+  const vorschau = await holeVorschau(verein.vereinId);
 
   return (
     <>

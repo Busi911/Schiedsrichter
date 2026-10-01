@@ -15,7 +15,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
 
   const px = Number(groesse);
   // Vorschau-Verein (Zugriff hängt am Cookie): nie im gemeinsamen Cache ablegen.
-  const cache = (await holeVorschau(verein.id)) ? "private, no-store" : "public, max-age=86400";
+  const cache = (await holeVorschau(verein.vereinId)) ? "private, no-store" : "public, max-age=86400";
   const logo = await holeLogoPng(verein.id);
   if (logo) {
     const png = await baueLogoIcon(logo, px);
