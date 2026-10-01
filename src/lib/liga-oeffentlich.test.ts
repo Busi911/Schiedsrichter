@@ -91,4 +91,18 @@ describe.skipIf(!ADMIN_URL)("öffentliche Abfragen (Postgres)", () => {
     const tabelle = await holeTabelle(d2.gruppeId);
     expect(tabelle.map((z) => z.rang)).toEqual([1, 2, 3, 4]);
   });
+
+  it("zeigt den vom Verein vergebenen Namen und behält ihn beim Sync", async () => {
+    const { holeMannschaften } = await import("./liga-oeffentlich");
+    await testDb
+      .update(schema.ligaMannschaften)
+      .set({ anzeigenameEigen: "Männer 1" })
+      .where(eq(schema.ligaMannschaften.slug, "maenner"));
+    await synchronisiereStruktur(ligaVereinId, { db: testDb, holeHtml, jetzt: new Date("2026-10-02T10:00:00Z") });
+    const maenner = (await holeMannschaften(ligaVereinId)).find((m) => m.slug === "maenner")!;
+    expect(maenner.name).toBe("Männer 1");
+    // Standardname aus der Quelle bleibt gespeichert
+    const roh = await testDb.query.ligaMannschaften.findFirst({ where: eq(schema.ligaMannschaften.slug, "maenner") });
+    expect(roh?.name).toBe("Männer");
+  });
 });

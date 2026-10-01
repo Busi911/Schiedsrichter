@@ -913,6 +913,10 @@ export const ligaMannschaften = pgTable(
     slug: text("slug").notNull(),
     schluessel: text("schluessel").notNull(),
     name: text("name").notNull(),
+    // Vom Verein vergebener Anzeigename (Admin → Öffentliche Vereinsseite);
+    // überschreibt name auf den öffentlichen Seiten und bleibt bei jedem
+    // Sync erhalten. null = Name aus der Quelle.
+    anzeigenameEigen: text("anzeigename_eigen"),
     kategorie: ligaKategorieEnum("kategorie").notNull(),
     geschlecht: text("geschlecht"),
     altersklasse: text("altersklasse"),

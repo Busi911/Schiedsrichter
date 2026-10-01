@@ -1,12 +1,13 @@
-import { eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaVereine, ligaVereinLogos, vereine } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, ligaVereinLogos, vereine } from "@/db/schema";
 import {
   dienstBedarfSpeichern,
   logoEntfernen,
+  mannschaftsnamenSpeichern,
   logoHochladen,
   oeffentlicheSeiteEntfernen,
   oeffentlicheSeiteSpeichern,
@@ -69,6 +70,13 @@ export default async function EinstellungenPage({
         columns: { aktualisiertAm: true },
       })
     : null;
+
+  const ligaMannschaftsListe = ligaVerein
+    ? await adminDb.query.ligaMannschaften.findMany({
+        where: and(eq(ligaMannschaften.ligaVereinId, ligaVerein.id), eq(ligaMannschaften.aktiv, true)),
+        orderBy: [asc(ligaMannschaften.kategorie), asc(ligaMannschaften.altersklasse), asc(ligaMannschaften.nummer)],
+      })
+    : [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -174,9 +182,12 @@ export default async function EinstellungenPage({
           <CardTitle>Öffentliche Vereinsseite</CardTitle>
           <CardDescription>
             Zeigt Mannschaften, Spielpläne, Ergebnisse und Tabellen eures Vereins
-            aus nuLiga auf einer öffentlichen Seite (ohne Login, für Suchmaschinen
+            aus nuLiga und handball.net auf einer öffentlichen Seite (ohne Login, für Suchmaschinen
             auffindbar). Es werden nur öffentliche Sportdaten übernommen — keine
-            Personen.
+            Personen.{" "}
+            <Link href="/hilfe#oeffentliche-seite" className="font-medium underline">
+              Anleitung: So richtet ihr die öffentliche Seite ein
+            </Link>
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -292,6 +303,38 @@ export default async function EinstellungenPage({
                 </>
               )}
             </div>
+          )}
+          {ligaVerein && ligaMannschaftsListe.length > 0 && (
+            <form action={mannschaftsnamenSpeichern} className="flex flex-col gap-3 border-t pt-4">
+              <div>
+                <h3 className="text-sm font-medium">Namen der Mannschaften</h3>
+                <p className="text-xs text-muted-foreground">
+                  Standard ist der Name aus der Quelle (nuLiga/handball.net). Hier könnt ihr ihn
+                  für die öffentliche Seite anpassen, z.B. „Männer II“ zu „Männer 1“. Leer lassen
+                  = Standardname. Die Adresse der Mannschaftsseite ändert sich dabei nicht.
+                </p>
+              </div>
+              {ligaMannschaftsListe.map((m) => (
+                <div key={m.id} className="flex flex-col gap-1.5">
+                  <Label htmlFor={`name_${m.id}`} className="text-xs font-normal text-muted-foreground">
+                    Standard: {m.name}
+                  </Label>
+                  <Input
+                    id={`name_${m.id}`}
+                    name={`name_${m.id}`}
+                    defaultValue={m.anzeigenameEigen ?? ""}
+                    placeholder={m.name}
+                    maxLength={60}
+                    disabled={!session.user.istAdmin}
+                  />
+                </div>
+              ))}
+              {session.user.istAdmin && (
+                <SubmitButton size="sm" className="self-start" pendingText="Wird gespeichert…">
+                  Namen speichern
+                </SubmitButton>
+              )}
+            </form>
           )}
           {ligaVerein && session.user.istAdmin && (
             <form action={oeffentlicheSeiteEntfernen}>

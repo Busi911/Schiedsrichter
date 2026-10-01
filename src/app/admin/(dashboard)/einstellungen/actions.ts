@@ -2,11 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaVereine, ligaVereinLogos, vereine } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, ligaVereinLogos, vereine } from "@/db/schema";
 import { ermittleFarbton, LogoFehler, verarbeiteLogo } from "@/lib/liga-logo";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { legeLigaVereinAn } from "@/lib/nuliga/sync";
@@ -354,5 +354,32 @@ export async function logoEntfernen() {
     await adminDb.delete(ligaVereinLogos).where(eq(ligaVereinLogos.ligaVereinId, ligaVerein.id));
   }
   revalidatePath("/admin/einstellungen");
+  redirect("/admin/einstellungen");
+}
+
+// Anzeigenamen der Mannschaften auf der öffentlichen Seite anpassen. Leer =
+// Name aus der Quelle (nuLiga/handball.net). Der Slug (die Adresse der
+// Mannschaftsseite) bleibt unverändert, damit Links und Favoriten nicht brechen.
+export async function mannschaftsnamenSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const ligaVerein = await adminDb.query.ligaVereine.findFirst({
+    where: eq(ligaVereine.vereinId, session.user.vereinId!),
+    columns: { id: true },
+  });
+  if (!ligaVerein) throw new Error("Keine öffentliche Vereinsseite vorhanden.");
+
+  for (const [schluessel, wert] of formData.entries()) {
+    if (!schluessel.startsWith("name_") || typeof wert !== "string") continue;
+    const id = schluessel.slice("name_".length);
+    if (!/^[0-9a-f-]{36}$/i.test(id)) continue;
+    const name = wert.replace(/\s+/g, " ").trim().slice(0, 60);
+    // Nur Mannschaften dieses Vereins (liga_* hat keine RLS).
+    await adminDb
+      .update(ligaMannschaften)
+      .set({ anzeigenameEigen: name === "" ? null : name })
+      .where(and(eq(ligaMannschaften.id, id), eq(ligaMannschaften.ligaVereinId, ligaVerein.id)));
+  }
+  revalidatePath("/admin/einstellungen");
+  revalidatePath("/verein", "layout");
   redirect("/admin/einstellungen");
 }

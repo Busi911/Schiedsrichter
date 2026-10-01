@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { Fragment } from "react";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
@@ -47,7 +48,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDatumZeit as formatDateTime } from "@/lib/format";
+import {
+  formatDatumZeit as formatDateTime,
+  formatWochentagDatum,
+  formatZeit,
+  gruppiereNachTag,
+} from "@/lib/format";
 import { formatErgebnis, rundenspielTypLabel } from "@/lib/termin-label";
 
 const TYP_LABEL: Record<string, string> = {
@@ -339,37 +345,46 @@ export default async function AdminDashboardPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Termin</TableHead>
+                    <TableHead>Zeit</TableHead>
                     <TableHead>Typ</TableHead>
                     <TableHead>Mannschaft</TableHead>
                     <TableHead>Ergebnis</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {letzteErgebnisse.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-medium">
-                        {formatDateTime(t.start)}
-                        {kuerzeBeschreibung(t) && (
-                          <span className="block text-xs font-normal text-muted-foreground">
-                            {kuerzeBeschreibung(t)}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {t.typ === "rundenspiel"
-                            ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
-                            : (TYP_LABEL[t.typ] ?? t.typ)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatMannschaft(t) ?? "—"}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts)}
-                      </TableCell>
-                    </TableRow>
+                  {gruppiereNachTag(letzteErgebnisse).map((g) => (
+                    <Fragment key={g.tag}>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableCell colSpan={4} className="py-1.5 text-xs font-semibold">
+                          {formatWochentagDatum(g.start)}
+                        </TableCell>
+                      </TableRow>
+                      {g.eintraege.map((t) => (
+                        <TableRow key={t.id}>
+                          <TableCell className="font-medium">
+                            {formatZeit(t.start)} Uhr
+                            {kuerzeBeschreibung(t) && (
+                              <span className="block text-xs font-normal text-muted-foreground">
+                                {kuerzeBeschreibung(t)}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {t.typ === "rundenspiel"
+                                ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp)
+                                : (TYP_LABEL[t.typ] ?? t.typ)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {formatMannschaft(t) ?? "—"}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>

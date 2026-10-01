@@ -100,7 +100,8 @@ async function ermittleTeamIds(
     let gefunden = false;
     for (const pfad of kandidaten) {
       try {
-        const liste = datenArray(await holeJson(pfad));
+        // seitenweise (die API liefert standardmäßig nur 25 Teams)
+        const liste = await holeAlleSeiten(holeJson, pfad);
         const treffer = liste
           .map(parseTeam)
           .filter((t): t is HnetTeam => t !== null && (t.clubId === null || t.clubId === clubId));
@@ -252,6 +253,7 @@ export async function synchronisiereHandballNet(
   const tabellenDieserLauf = new Set<string>(); // Phasen, deren Tabelle schon geladen wurde
   const gesehen: string[] = [];
   const gesehenTeams = new Set<string>();
+  let ohneWettbewerb = 0;
 
   for (const teamId of teamIds) {
     gesehenTeams.add(teamId);
@@ -276,7 +278,9 @@ export async function synchronisiereHandballNet(
         )
       );
       if (wettbewerbe.length === 0) {
-        warn(`${team.name}: keine Wettbewerbe in Saison ${label}`);
+        // Z.B. Mannschaften, die nur in nuLiga (Landesverband) spielen, aber
+        // bei handball.net geführt werden — kein Fehler, nur eine Sammelmeldung.
+        ohneWettbewerb++;
         continue;
       }
 
@@ -308,6 +312,10 @@ export async function synchronisiereHandballNet(
     } catch (err) {
       fehler(`Team ${teamId}: ${err instanceof Error ? err.message : String(err)}`);
     }
+  }
+
+  if (ohneWettbewerb > 0) {
+    warn(`handball.net: ${ohneWettbewerb} Mannschaft(en) ohne DHB-Wettbewerb in Saison ${label} übersprungen (spielen im Landesverband)`);
   }
 
   // Teilnahmen von Teams, die nicht mehr aufgeführt sind, deaktivieren (nie

@@ -414,6 +414,13 @@
       "when": 1790840664390,
       "tag": "0058_liga_zurueckgezogen",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1790841404134,
+      "tag": "0059_liga_anzeigename_eigen",
+      "breakpoints": true
     }
   ]
 }

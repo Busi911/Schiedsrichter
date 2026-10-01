@@ -20,7 +20,15 @@ import { saisonLabel } from "@/lib/saison";
 // werden nur die öffentlichen Sportdaten der liga_*-Tabellen — keine
 // Mandanten-/Personendaten.
 
-export type SpielAnsicht = typeof ligaSpiele.$inferSelect;
+import type { SpielAnsicht } from "./liga-spiele-hilfen";
+export {
+  hatErgebnis,
+  istAnstehend,
+  istVergangen,
+  sortiereChronologisch,
+  type SpielAnsicht,
+} from "./liga-spiele-hilfen";
+import { hatErgebnis, istAnstehend, sortiereChronologisch } from "./liga-spiele-hilfen";
 
 export type MannschaftAnsicht = {
   id: string;
@@ -39,34 +47,6 @@ export type MannschaftAnsicht = {
   spiele: SpielAnsicht[]; // alle Spiele der Mannschaft, chronologisch
   naechstesSpiel: SpielAnsicht | null;
 };
-
-const ERGEBNIS_STATI = new Set(["gespielt", "nicht_angetreten"]);
-
-export function hatErgebnis(s: SpielAnsicht): boolean {
-  return s.toreHeim !== null && s.toreGast !== null;
-}
-
-// Bereits gespielt = Ergebnis vorhanden bzw. gewertet. Alles andere mit
-// Datum ab heute gilt als anstehend (abgesagte Spiele bleiben sichtbar, mit
-// Status-Hinweis, bis ein neuer Termin feststeht).
-export function istVergangen(s: SpielAnsicht): boolean {
-  return hatErgebnis(s) || ERGEBNIS_STATI.has(s.status);
-}
-
-export function istAnstehend(s: SpielAnsicht, jetzt: Date): boolean {
-  if (istVergangen(s)) return false;
-  return s.datum >= tagKey(jetzt);
-}
-
-export function sortiereChronologisch<T extends SpielAnsicht>(spiele: T[]): T[] {
-  return [...spiele].sort(
-    (a, b) =>
-      a.datum.localeCompare(b.datum) ||
-      (a.uhrzeit ?? "99:99").localeCompare(b.uhrzeit ?? "99:99") ||
-      (a.spielnummer ?? 0) - (b.spielnummer ?? 0) ||
-      (a.spielcode ?? "").localeCompare(b.spielcode ?? "")
-  );
-}
 
 export const holeVerein = cache(async (slug: string) =>
   mitColdStartRetry(() =>
@@ -169,7 +149,7 @@ export const holeMannschaften = cache(async (ligaVereinId: string): Promise<Mann
       return {
         id: m.id,
         slug: m.slug,
-        name: m.name,
+        name: m.anzeigenameEigen ?? m.name,
         kategorie: m.kategorie,
         altersklasse: m.altersklasse,
         nummer: m.nummer,

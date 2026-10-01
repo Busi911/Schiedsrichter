@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { FanKopf, FanTheme } from "@/components/liga/fan-rahmen";
+import { VereinsNav } from "@/components/liga/vereins-nav";
 import { holeVereinsDesign, holeVerein } from "@/lib/liga-oeffentlich";
 import { vereinsFarbton, vereinsInitialen } from "@/lib/liga-pwa";
 import { saisonLabel } from "@/lib/saison";
@@ -49,6 +50,7 @@ export default async function VereinsHuelle({
         initialen={vereinsInitialen(verein.name)}
         logoUrl={logoVersion ? `/verein/${verein.slug}/logo?v=${logoVersion}` : undefined}
       />
+      <VereinsNav basis={`/verein/${verein.slug}`} />
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">{children}</main>
     </>
   );
