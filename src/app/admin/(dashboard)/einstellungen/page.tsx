@@ -684,8 +684,8 @@ export default async function EinstellungenPage({
             <CardDescription>
               Bis zu drei Hallen-IDs eintragen (leere Felder werden
               übersprungen) — dieselben Angaben wie im bisherigen manuellen
-              Export-Workflow. Bei aktiviertem Import lädt der Verein montags
-              und donnerstags automatisch neue Spiele in den Hallenspielplan; nach dem
+              Export-Workflow. Bei aktiviertem Import lädt der Verein täglich
+              automatisch neue Spiele in den Hallenspielplan; nach dem
               Speichern läuft sofort ein erster Sync.
             </CardDescription>
           </CardHeader>
@@ -759,7 +759,7 @@ export default async function EinstellungenPage({
               </div>
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="nuligaAutoImportAktiviert" className="font-normal">
-                  Automatischer Import aktiv (Mo + Do)
+                  Automatischer Import aktiv (täglich)
                 </Label>
                 <Switch
                   key={String(verein?.nuligaAutoImportAktiviert ?? false)}
