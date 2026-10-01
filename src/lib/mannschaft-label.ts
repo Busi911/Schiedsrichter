@@ -18,5 +18,19 @@ export function formatMannschaft(t: {
       ? `${t.mannschaftName} (${t.mannschaftAltersklasse})`
       : t.mannschaftName;
   }
-  return t.kategorie ?? null;
+  return t.kategorie ? lesbareKategorie(t.kategorie) : null;
+}
+
+// nuLiga-Kürzel ("M", "F", "MJE", "WJD") lesbar machen. Alles, was nicht
+// genau so aussieht, bleibt unverändert.
+export function lesbareKategorie(roh: string): string {
+  const k = roh.trim();
+  if (k === "M") return "Männer";
+  if (k === "F") return "Frauen";
+  const jugend = /^([MW])J([A-E])$/i.exec(k);
+  if (jugend) {
+    const art = jugend[1].toUpperCase() === "M" ? "männliche" : "weibliche";
+    return `${art} ${jugend[2].toUpperCase()}-Jugend`;
+  }
+  return roh;
 }
