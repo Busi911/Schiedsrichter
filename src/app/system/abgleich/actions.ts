@@ -7,6 +7,8 @@ import { adminDb } from "@/db/admin";
 import { eq } from "drizzle-orm";
 import { vereine } from "@/db/schema";
 import { schreibeProtokoll } from "@/lib/treuhand";
+import { vergleicheAnsetzung } from "@/lib/ansetzung-vergleich";
+import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { verknuepfeHallenplanTermine } from "@/lib/hallenplan-verknuepfung";
 
@@ -63,4 +65,26 @@ export async function ligaUebernahmeSchalten(formData: FormData) {
     aktiv ? "Automatische Übernahme künftiger Heimspiele eingeschaltet" : "Automatische Übernahme ausgeschaltet"
   );
   revalidatePath("/system/abgleich");
+}
+
+// Nur lesend: vergleicht das angesetzte Schiedsrichter-Kürzel der öffentlichen nuLiga-Daten
+// mit dem der Hallenplan-Termine (Vorstufe, bevor der neue Weg die Ansetzung übernimmt).
+export async function ansetzungVergleichen(formData: FormData) {
+  await requireSystemAdmin();
+  const vereinId = formData.get("vereinId");
+  if (typeof vereinId !== "string" || !vereinId) throw new Error("Verein fehlt.");
+  const r = await vergleicheAnsetzung(vereinId, holeNuligaHtml);
+  const params = new URLSearchParams({
+    verein: vereinId,
+    av: "1",
+    avg: String(r.geprueft),
+    avgl: String(r.gleich),
+    avv: String(r.verschieden),
+    avh: String(r.nurHallenplan),
+    avo: String(r.nurOeffentlich),
+    avl: String(r.beideLeer),
+    avf: String(r.gruppenFehler),
+    avb: JSON.stringify(r.beispiele),
+  });
+  redirect(`/system/abgleich?${params.toString()}`);
 }

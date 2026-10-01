@@ -3,9 +3,12 @@ import { berechneHallenplanAbgleich } from "@/lib/hallenplan-abgleich-laden";
 import { formatDatumZeit } from "@/lib/format";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Badge } from "@/components/ui/badge";
-import { hallenplanVerknuepfen, ligaSpieleUebernehmen, ligaUebernahmeSchalten } from "./actions";
+import { ansetzungVergleichen, hallenplanVerknuepfen, ligaSpieleUebernehmen, ligaUebernahmeSchalten } from "./actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+// Der Ansetzungs-Vergleich lädt Gruppenseiten von nuLiga (mit Mindestabstand) — braucht Zeit.
+export const maxDuration = 60;
 
 const STATUS_LABEL = {
   unklar: "Unklar",
@@ -17,7 +20,7 @@ const STATUS_LABEL = {
 export default async function AbgleichPage({
   searchParams,
 }: {
-  searchParams: Promise<{ verein?: string; neu?: string; schon?: string; dup?: string; zv?: string; zn?: string; ueb?: string; uebdup?: string; uebdupd?: string; uebzeit?: string }>;
+  searchParams: Promise<{ verein?: string; neu?: string; schon?: string; dup?: string; zv?: string; zn?: string; ueb?: string; uebdup?: string; uebdupd?: string; uebzeit?: string; av?: string; avg?: string; avgl?: string; avv?: string; avh?: string; avo?: string; avl?: string; avf?: string; avb?: string }>;
 }) {
   await requireSystemAdmin();
   const ergebnisInfo = await searchParams;
@@ -132,6 +135,11 @@ export default async function AbgleichPage({
                       ` Dazu ${t.freundschaftGesamt} Freundschaftsspiele/Turniere, die erwartbar keine öffentliche Entsprechung haben.`}
                   </p>
                 )}
+                <p className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  <strong>Hinweis:</strong> Freundschaftsspiele und Turniere kommen vorerst nur über den Hallenplan-Import
+                  (Hallen-ID). Die öffentlichen Liga-Daten decken sie noch nicht ab (zukünftiges Feature) — die Hallen-ID
+                  bleibt dafür nötig.
+                </p>
                 <ul className="list-disc space-y-1 pl-5">
                   <li>
                     <strong>{t.verknuepfbar}</strong> Termine würden mit dem öffentlichen Spiel verknüpft, davon{" "}
@@ -240,6 +248,44 @@ export default async function AbgleichPage({
                       {v.uebernahmeAktiv ? "Ausschalten" : "Einschalten"}
                     </ConfirmSubmitButton>
                   </form>
+                  <form action={ansetzungVergleichen} className="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="vereinId" value={v.vereinId} />
+                    <ConfirmSubmitButton
+                      size="sm"
+                      variant="outline"
+                      pendingText="Vergleicht… (bis ca. 1 Minute)"
+                      confirmText={`Angesetzte Schiedsrichter von ${v.vereinName} aus den öffentlichen nuLiga-Seiten mit den Hallenplan-Terminen vergleichen? Es wird nur gelesen, nichts gespeichert oder geändert. Dauert bis ca. 1 Minute.`}
+                    >
+                      Ansetzung vergleichen (nuLiga)
+                    </ConfirmSubmitButton>
+                  </form>
+                  {ergebnisInfo.verein === v.vereinId && ergebnisInfo.av === "1" && (
+                    <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                      <p>
+                        Verglichen: <strong>{ergebnisInfo.avg}</strong> verknüpfte nuLiga-Termine — gleich:{" "}
+                        <strong>{ergebnisInfo.avgl}</strong>, verschieden: <strong>{ergebnisInfo.avv}</strong>, nur im
+                        Hallenplan: <strong>{ergebnisInfo.avh}</strong>, nur öffentlich:{" "}
+                        <strong>{ergebnisInfo.avo}</strong>, beide ohne Ansetzung: <strong>{ergebnisInfo.avl}</strong>.
+                        {Number(ergebnisInfo.avf) > 0 && ` ${ergebnisInfo.avf} Gruppenseite(n) nicht ladbar.`}
+                      </p>
+                      {(() => {
+                        try {
+                          const bsp = JSON.parse(ergebnisInfo.avb ?? "[]") as { termin: string; hallenplan: string | null; oeffentlich: string | null }[];
+                          return bsp.length > 0 ? (
+                            <ul className="mt-1 list-disc pl-4">
+                              {bsp.map((b, i) => (
+                                <li key={i}>
+                                  {b.termin}: Hallenplan „{b.hallenplan ?? "—"}“ · öffentlich „{b.oeffentlich ?? "—"}“
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null;
+                        } catch {
+                          return null;
+                        }
+                      })()}
+                    </div>
+                  )}
                   {t.neuAnzulegenGesamt > 0 && (
                     <form action={ligaSpieleUebernehmen}>
                       <input type="hidden" name="vereinId" value={v.vereinId} />
