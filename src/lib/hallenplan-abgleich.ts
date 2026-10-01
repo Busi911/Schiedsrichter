@@ -17,6 +17,7 @@ export type AbgleichSpiel = {
   id: string;
   spielnummer: number | null;
   datum: string; // YYYY-MM-DD (Berliner Tag)
+  uhrzeit: string | null; // "HH:MM" (Berliner Zeit), nur Tie-Breaker
   heimName: string;
   gastName: string;
 };
@@ -33,13 +34,33 @@ const ROEMISCH: Record<string, string> = {
   i: "1", ii: "2", iii: "3", iv: "4", v: "5", vi: "6", vii: "7", viii: "8", ix: "9", x: "10",
 };
 
-// "HSG Dutenhofen/Münchholzhausen II" und "… 2" sollen gleich vergleichen.
+// Vergleichsform eines Mannschaftsnamens. Gleich vergleichen sollen:
+// - "HSG Test II" und "HSG Test 2" (römisch/arabisch),
+// - "TSF Heuchelheim 1" und "TSF Heuchelheim" (erste Mannschaft ohne Nummer),
+// - "mJSG Bieber/Heuchelheim" und "mJSG Heuchelheim/Bieber" (Reihenfolge der
+//   Spielgemeinschafts-Partner ist je Quelle verschieden).
 export function normalisiereName(name: string | null): string {
   if (!name) return "";
   const teile = slugify(name).split("-").filter(Boolean);
   const letzte = teile[teile.length - 1];
   if (teile.length > 1 && letzte && ROEMISCH[letzte]) teile[teile.length - 1] = ROEMISCH[letzte];
-  return teile.join("-");
+  if (teile.length > 1 && teile[teile.length - 1] === "1") teile.pop();
+  // Partner einer Spielgemeinschaft ("a/b") sortieren: slugify macht "/" zu "-",
+  // daher vor dem Slugify am Original trennen.
+  const hatSchraegstrich = name.includes("/");
+  if (!hatSchraegstrich) return teile.join("-");
+  const [vorne, ...rest] = name.trim().split(/\s+/);
+  const ohneNummer = rest.join(" ");
+  const nummer = ohneNummer.match(/\s+(VI|V|IV|III|II|I|\d{1,2})$/i)?.[1] ?? "";
+  const kern = nummer ? ohneNummer.slice(0, ohneNummer.length - nummer.length).trim() : ohneNummer;
+  const nr = nummer ? (ROEMISCH[nummer.toLowerCase()] ?? nummer) : "";
+  // Präfix (z.B. "mJSG") kann ohne Leerzeichen am ersten Partner hängen: Wörter
+  // mit "/" sind die Partner, alles davor ist Präfix.
+  const wortTeile = (vorne + " " + kern).trim().split(/\s+/);
+  const idx = wortTeile.findIndex((w) => w.includes("/"));
+  const praefix = wortTeile.slice(0, Math.max(idx, 0)).join(" ");
+  const partner = wortTeile.slice(Math.max(idx, 0)).join(" ").split("/").map((x) => slugify(x)).sort();
+  return [slugify(praefix), ...partner, nr && nr !== "1" ? nr : ""].filter(Boolean).join("-");
 }
 
 // Spielnummer aus der Termin-UID (siehe bildeUid in rundenspiel-import.ts):
@@ -58,6 +79,19 @@ const berlinTag = new Intl.DateTimeFormat("en-CA", {
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
+});
+
+const MAX_VERLEGUNG_TAGE = 60;
+
+function tageAbstand(a: string, b: string): number {
+  return Math.abs(Date.parse(`${a}T12:00:00Z`) - Date.parse(`${b}T12:00:00Z`)) / 86_400_000;
+}
+
+const berlinUhr = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
 });
 
 export function gleicheMannschaften(t: AbgleichTermin, s: AbgleichSpiel): boolean {
@@ -84,6 +118,7 @@ export function gleicheAb(termine: AbgleichTermin[], spiele: AbgleichSpiel[]): A
   return termine.map((t) => {
     const nummer = spielnummerAusUid(t.icsUid);
     const tag = berlinTag.format(t.start);
+    const uhr = berlinUhr.format(t.start);
     const sicher = spiele.filter(
       (s) =>
         gleicheMannschaften(t, s) &&
@@ -91,13 +126,23 @@ export function gleicheAb(termine: AbgleichTermin[], spiele: AbgleichSpiel[]): A
     );
     if (sicher.length === 1) return { terminId: t.id, status: "sicher", spielIds: [sicher[0].id] };
     if (sicher.length > 1) {
+      // Gleiche Mannschaftsnamen an einem Tag (z.B. zwei Altersklassen einer
+      // Spielgemeinschaft gegen denselben Gegner): die Uhrzeit entscheidet.
+      const gleicheUhr = sicher.filter((s) => s.uhrzeit === uhr);
+      if (gleicheUhr.length === 1) {
+        return { terminId: t.id, status: "sicher", spielIds: [gleicheUhr[0].id] };
+      }
       return { terminId: t.id, status: "mehrdeutig", spielIds: sicher.map((s) => s.id) };
     }
+    // Vage: gleiche Mannschaften an einem anderen Tag (z.B. verlegt) oder mit
+    // vertauschtem Heimrecht bei gleicher Spielnummer. Nur Spielnummer + Tag
+    // reicht NICHT (Spielnummern sind nur je Gruppe eindeutig).
+    // Gleiche Mannschaften zählen nur als Kandidat, wenn das Spiel zeitlich
+    // nah liegt (verlegt) — Hin-/Rückspiel oder Vorsaison sind keine Verlegung.
     const vage = spiele.filter(
       (s) =>
-        gleicheMannschaften(t, s) ||
-        (nummer !== null && s.spielnummer === nummer && gleicheMannschaftenVertauscht(t, s)) ||
-        (nummer !== null && s.spielnummer === nummer && s.datum === tag)
+        (gleicheMannschaften(t, s) && tageAbstand(tag, s.datum) <= MAX_VERLEGUNG_TAGE) ||
+        (nummer !== null && s.spielnummer === nummer && gleicheMannschaftenVertauscht(t, s))
     );
     if (vage.length > 0) return { terminId: t.id, status: "unklar", spielIds: vage.map((s) => s.id) };
     return { terminId: t.id, status: "kein_treffer", spielIds: [] };

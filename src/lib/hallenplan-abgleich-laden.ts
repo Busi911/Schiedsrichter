@@ -4,6 +4,13 @@ import { adminDb } from "@/db/admin";
 import { ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine, termine, vereine } from "@/db/schema";
 import { gleicheAb, type AbgleichErgebnis } from "@/lib/hallenplan-abgleich";
 
+const berlinUhr = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
 export type VereinsAbgleich = {
   vereinId: string;
   vereinName: string;
@@ -82,6 +89,7 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
         id: s.id,
         spielnummer: s.spielnummer,
         datum: s.datum,
+        uhrzeit: s.uhrzeit ?? (s.beginn ? berlinUhr.format(s.beginn) : null),
         heimName: s.heimName,
         gastName: s.gastName,
       }))
