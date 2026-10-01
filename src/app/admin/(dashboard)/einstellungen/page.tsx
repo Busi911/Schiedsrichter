@@ -182,9 +182,12 @@ export default async function EinstellungenPage({
           <CardTitle>Öffentliche Vereinsseite</CardTitle>
           <CardDescription>
             Zeigt Mannschaften, Spielpläne, Ergebnisse und Tabellen eures Vereins
-            aus nuLiga auf einer öffentlichen Seite (ohne Login, für Suchmaschinen
+            aus nuLiga und handball.net auf einer öffentlichen Seite (ohne Login, für Suchmaschinen
             auffindbar). Es werden nur öffentliche Sportdaten übernommen — keine
-            Personen.
+            Personen.{" "}
+            <Link href="/hilfe#oeffentliche-seite" className="font-medium underline">
+              Anleitung: So richtet ihr die öffentliche Seite ein
+            </Link>
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

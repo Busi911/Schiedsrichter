@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { ZurueckButton } from "@/components/zurueck-button";
 
 export const metadata = {
-  title: "Hilfe: Hallen-ID, Team-ID & Schiedsrichter-Kalender – HandballerPate",
+  title: "Hilfe: Öffentliche Vereinsseite, Hallen-ID & Team-ID – HandballerPate",
 };
 
 // Nur im eingeloggten Zustand erreichbar (siehe publicRoutes in
@@ -25,8 +25,114 @@ export default async function HilfePage() {
       </div>
 
       <h1 className="font-heading text-2xl font-semibold">
-        Hilfe: Hallen-ID, Team-ID &amp; Schiedsrichter-Kalender
+        Hilfe: Öffentliche Vereinsseite, Hallen-ID &amp; Team-ID
       </h1>
+
+      <section id="oeffentliche-seite" className="flex flex-col gap-3 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">
+          Öffentliche Vereinsseite einrichten
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Jeder Verein bekommt eine öffentliche Seite ohne Login:{" "}
+          <strong>letzte Ergebnisse</strong>, <strong>nächste Spiele</strong>{" "}
+          und alle <strong>Mannschaften</strong> mit Tabellenplatz, Spielplan und
+          Tabelle. Spieler, Eltern und Fans finden sie in der Vereinssuche auf
+          der Startseite, können Mannschaften auf ihrem Handy merken und die
+          Seite als App installieren. Es werden nur öffentliche Sportdaten
+          übernommen, keine Personen.
+        </p>
+
+        <h3 className="text-sm font-medium">1. Einrichten</h3>
+        <p className="text-sm text-muted-foreground">
+          Unter <strong>Einstellungen → Öffentliche Vereinsseite</strong> tragt
+          ihr die Vereins-ID eurer Quelle ein und klickt auf{" "}
+          <strong>Speichern &amp; Seite erstellen</strong>. Beide Quellen lassen
+          sich kombinieren, dann stehen alle Mannschaften zusammen auf einer Seite:
+        </p>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+          <li>
+            <strong>nuLiga-Vereins-ID</strong> (Landesverband, z.B. Kreis- bis
+            Oberliga): die Zahl hinter <code className="text-xs">club=</code> in
+            der Adresse eurer Vereinsseite auf nuLiga, z.B.{" "}
+            <code className="text-xs">…clubTeams?club=69723</code>.
+          </li>
+          <li>
+            <strong>handball.net-Vereins-ID</strong> (DHB-Wettbewerbe wie 3. Liga,
+            Jugendbundesliga): auf handball.net euren Verein suchen und die Adresse
+            ansehen, der Teil hinter <code className="text-xs">/club/</code> ist die
+            ID, z.B. <code className="text-xs">handball.net/club/18rmntb</code>.
+          </li>
+          <li>
+            <strong>handball.net-Team-IDs</strong> (optional): nur nötig, wenn eine
+            Mannschaft nicht automatisch gefunden wird. Die Zahl hinter{" "}
+            <code className="text-xs">/team/</code> in der Adresse der Mannschaft,
+            mehrere durch Komma getrennt.
+          </li>
+        </ul>
+        <p className="text-sm text-muted-foreground">
+          Das erste Laden kann etwas dauern. Reicht eine Minute nicht aus, lädt
+          die Seite nach einer kurzen Pause automatisch weiter. Danach hält
+          HandballerPate die Daten selbst aktuell, am Spieltag öfter als sonst.
+          Mit <strong>Jetzt aktualisieren</strong> holt ihr sofort den neuesten Stand.
+        </p>
+
+        <h3 className="text-sm font-medium">2. Namen der Mannschaften anpassen</h3>
+        <p className="text-sm text-muted-foreground">
+          Standard ist der Name aus der Quelle. Unter{" "}
+          <strong>Namen der Mannschaften</strong> könnt ihr für jede Mannschaft
+          einen eigenen Namen vergeben, z.B. aus „Männer II“ „Männer 1“. Lasst
+          das Feld leer, gilt wieder der Standardname. Der eigene Name bleibt bei
+          jeder Aktualisierung erhalten. Die Adresse der Mannschaftsseite ändert
+          sich dadurch nicht, bestehende Links und gemerkte Favoriten funktionieren
+          weiter.
+        </p>
+
+        <h3 className="text-sm font-medium">3. Logo und Farbe</h3>
+        <p className="text-sm text-muted-foreground">
+          Das Logo (PNG, JPEG oder WebP, höchstens 5 MB, am besten quadratisch)
+          erscheint im Kopf der Seite und als Icon der App. Die Farbe der Seite
+          wird aus dem Logo abgeleitet, ohne Logo gibt es eine Standardfarbe.
+        </p>
+
+        <h3 className="text-sm font-medium">Eine Mannschaft fehlt oder ist leer?</h3>
+        <p className="text-sm text-muted-foreground">
+          Nach dem Aktualisieren erscheinen unter dem Ergebnis Hinweise. Die
+          häufigsten Ursachen:
+        </p>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+          <li>
+            <strong>Zurückgezogen:</strong> Steht in der Tabelle „zurückgezogen
+            am …“, nimmt die Mannschaft nicht teil und wird ausgeblendet.
+          </li>
+          <li>
+            <strong>Spielplan noch nicht veröffentlicht:</strong> Der Verband hat
+            noch keine Spiele angesetzt. Sobald sie da sind, erscheinen sie
+            automatisch.
+          </li>
+          <li>
+            <strong>Meldeliste:</strong> Mannschaften, die nur gemeldet, aber noch
+            keiner Staffel zugeteilt sind, haben noch keinen Spielplan.
+          </li>
+          <li>
+            <strong>DHB-Mannschaft fehlt:</strong> handball.net-Vereins-ID prüfen
+            oder die Team-ID der Mannschaft manuell eintragen.
+          </li>
+        </ul>
+        <p className="text-sm text-muted-foreground">
+          Gut zu wissen: Die Tabelle von handball.net-Mannschaften wird aus den
+          Spielergebnissen berechnet (2 Punkte für einen Sieg, 1 für ein
+          Unentschieden). Den direkten Vergleich bei Punktgleichheit
+          berücksichtigt sie nicht, daher kann die Reihenfolge dort vom
+          offiziellen Stand abweichen.
+        </p>
+
+        <h3 className="text-sm font-medium">Seite entfernen</h3>
+        <p className="text-sm text-muted-foreground">
+          Mit <strong>Seite entfernen</strong> verschwindet die öffentliche Seite
+          eures Vereins samt eigenen Namen und Logo. Eure Vereinsdaten in
+          HandballerPate bleiben davon unberührt.
+        </p>
+      </section>
 
       <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">
