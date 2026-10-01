@@ -39,7 +39,8 @@ export default async function AbgleichPage() {
                 <TableHead>Unklar</TableHead>
                 <TableHead>Mehrdeutig</TableHead>
                 <TableHead>Kein Treffer</TableHead>
-                <TableHead>Nur öffentlich</TableHead>
+                <TableHead>Nur öffentlich: Heim</TableHead>
+                <TableHead>Nur öffentlich: Auswärts</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -57,15 +58,25 @@ export default async function AbgleichPage() {
                   <TableCell>{v.anzahl.sicher}</TableCell>
                   <TableCell>{v.anzahl.unklar}</TableCell>
                   <TableCell>{v.anzahl.mehrdeutig}</TableCell>
-                  <TableCell>{v.anzahl.kein_treffer}</TableCell>
-                  <TableCell>{v.nurOeffentlich}</TableCell>
+                  <TableCell>
+                    {v.anzahl.kein_treffer}
+                    {v.keinTrefferFreundschaft > 0 && (
+                      <span className="block text-xs text-muted-foreground">
+                        davon {v.keinTrefferFreundschaft} Freundschaft/Turnier
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>{v.nurOeffentlichHeim}</TableCell>
+                  <TableCell>{v.nurOeffentlichAuswaerts}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
           <p className="mt-3 text-xs text-muted-foreground">
-            „Nur öffentlich“: Liga-Spiele eigener Mannschaften ohne Hallenplan-Termin (würden bei der
-            Zusammenführung neu angelegt).
+            „Nur öffentlich“: Liga-Spiele eigener Mannschaften ohne Hallenplan-Termin. Auswärtsspiele stehen
+            nie im eigenen Hallenplan (unproblematisch); Heimspiele würden bei der Zusammenführung neu
+            angelegt. „Kein Treffer“ ohne Freundschaft/Turnier sind meist Spiele anderer Vereine in
+            eurer Halle oder Liga-Daten, die (noch) fehlen.
           </p>
         </CardContent>
       </Card>
@@ -96,6 +107,7 @@ export default async function AbgleichPage() {
                         {formatDatumZeit(a.start)}
                         <span className="block text-xs text-muted-foreground">
                           {a.heim} – {a.gast}
+                          {a.pflichtspiel === false ? " · Freundschaft/Turnier" : ""}
                         </span>
                       </TableCell>
                       <TableCell>
