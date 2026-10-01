@@ -880,6 +880,23 @@ export default async function EinstellungenPage({
                   defaultValue={verein?.nuligaHalle3Id ?? ""}
                 />
               </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="eigeneHallenNamen">Namen eurer Spielhallen (optional)</Label>
+                <textarea
+                  id="eigeneHallenNamen"
+                  name="eigeneHallenNamen"
+                  rows={2}
+                  maxLength={500}
+                  placeholder={"z.B. Sporthalle Heuchelheim\nHalle am Seebach"}
+                  defaultValue={verein?.eigeneHallenNamen ?? ""}
+                  className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Eine Halle pro Zeile (ein Teil des Namens reicht). Damit erkennen wir auch bei Quellen ohne
+                  nuLiga-Hallen-ID (z.B. handball.net), ob ein Spiel in einer eurer Hallen stattfindet — nur
+                  für diese Spiele wird später eine Einteilung angelegt.
+                </p>
+              </div>
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="nuligaAutoImportAktiviert" className="font-normal">
                   Automatischer Import aktiv (täglich)

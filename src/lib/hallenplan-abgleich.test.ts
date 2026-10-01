@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gleicheAb, normalisiereName, parseKategorie, spielnummerAusUid } from "./hallenplan-abgleich";
+import { gleicheAb, istEigeneHalle, normalisiereName, parseHallenNamen, parseKategorie, spielnummerAusUid } from "./hallenplan-abgleich";
 
 const termin = (over = {}) => ({
   id: "t1",
@@ -125,5 +125,23 @@ describe("hallenplan-abgleich", () => {
     const r = gleicheAb([termin()], [spiel({ heimName: "Ganz Anders" })]);
     expect(r[0].status).toBe("kein_treffer");
     expect(gleicheAb([termin()], [spiel({ heimName: "X", gastName: "Y", spielnummer: 1, datum: "2026-01-01" })])[0].status).toBe("kein_treffer");
+  });
+});
+
+describe("eigene Hallen", () => {
+  const eigene = { ids: ["30402"], namen: parseHallenNamen("Sporthalle Heuchelheim\nHalle am Seebach, Turnhalle X") };
+  it("liest Hallennamen zeilen-/kommagetrennt", () => {
+    expect(parseHallenNamen("A\nB, C;D")).toEqual(["A", "B", "C", "D"]);
+    expect(parseHallenNamen(null)).toEqual([]);
+  });
+  it("nuLiga: erkennt die Halle über die ID, handball.net nicht (andere ID-Welt)", () => {
+    expect(istEigeneHalle({ halleNuligaId: "30402", halleName: null, quelle: "nuliga" }, eigene)).toBe(true);
+    expect(istEigeneHalle({ halleNuligaId: "30402", halleName: null, quelle: "handball_net" }, eigene)).toBe(false);
+  });
+  it("erkennt die Halle über den Namen (Teilstring, egal welche Quelle)", () => {
+    expect(istEigeneHalle({ halleNuligaId: "abc", halleName: "Sporthalle Heuchelheim", quelle: "handball_net" }, eigene)).toBe(true);
+    expect(istEigeneHalle({ halleNuligaId: null, halleName: "Halle am Seebach (Bieber)", quelle: "nuliga" }, eigene)).toBe(true);
+    expect(istEigeneHalle({ halleNuligaId: null, halleName: "Sporthalle Lollar", quelle: "nuliga" }, eigene)).toBe(false);
+    expect(istEigeneHalle({ halleNuligaId: null, halleName: null, quelle: "nuliga" }, eigene)).toBe(false);
   });
 });

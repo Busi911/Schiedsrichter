@@ -228,6 +228,10 @@ export const vereine = pgTable("verein", {
   nuligaHalle1Id: text("nuliga_halle_1_id"),
   nuligaHalle2Id: text("nuliga_halle_2_id"),
   nuligaHalle3Id: text("nuliga_halle_3_id"),
+  // Namen der eigenen Spielhallen (eine pro Zeile oder kommagetrennt): damit
+  // lässt sich auch bei Quellen ohne nuLiga-Hallen-ID (handball.net) erkennen,
+  // ob ein Spiel in einer eigenen Halle stattfindet. Teilstring-Vergleich.
+  eigeneHallenNamen: text("eigene_hallen_namen"),
   nuligaAutoImportAktiviert: boolean("nuliga_auto_import_aktiviert")
     .notNull()
     .default(false),
