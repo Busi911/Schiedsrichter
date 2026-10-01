@@ -74,6 +74,8 @@ export type VereinsAbgleich = {
   vereinId: string;
   vereinName: string;
   hatLigaVerein: boolean;
+  // Liga-Sync-Cron legt fehlende künftige Heimspiele selbst an.
+  uebernahmeAktiv: boolean;
   termineGesamt: number;
   // Termine, die bereits mit einem öffentlichen Spiel verknüpft sind.
   bereitsVerknuepft: number;
@@ -121,6 +123,7 @@ type VereinsZeile = {
   halle2: string | null;
   halle3: string | null;
   hallenNamen: string | null;
+  uebernahmeAktiv: boolean;
 };
 
 const alleVereinsZeilen = (): Promise<VereinsZeile[]> =>
@@ -132,6 +135,7 @@ const alleVereinsZeilen = (): Promise<VereinsZeile[]> =>
       halle2: vereine.nuligaHalle2Id,
       halle3: vereine.nuligaHalle3Id,
       hallenNamen: vereine.eigeneHallenNamen,
+      uebernahmeAktiv: vereine.ligaUebernahmeAktiv,
     })
     .from(vereine);
 
@@ -342,6 +346,7 @@ async function berechneFuerVerein(
     vereinId: v.id,
     vereinName: v.name,
     hatLigaVerein: !!ligaVerein,
+    uebernahmeAktiv: v.uebernahmeAktiv,
     termineGesamt: hallenTermine.length,
     bereitsVerknuepft: hallenTermine.filter((t) => t.ligaSpielId).length,
     verknuepfte: hallenTermine

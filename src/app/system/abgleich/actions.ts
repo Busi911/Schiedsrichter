@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSystemAdmin } from "@/lib/session";
+import { adminDb } from "@/db/admin";
+import { eq } from "drizzle-orm";
+import { vereine } from "@/db/schema";
+import { schreibeProtokoll } from "@/lib/treuhand";
 import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { verknuepfeHallenplanTermine } from "@/lib/hallenplan-verknuepfung";
 
@@ -43,4 +47,20 @@ export async function ligaSpieleUebernehmen(formData: FormData) {
     zn: String(r.zuordnungenNachher),
   });
   redirect(`/system/abgleich?${params.toString()}`);
+}
+
+// Schaltet je Verein, ob der Liga-Sync-Cron fehlende künftige Heimspiele selbst anlegt.
+export async function ligaUebernahmeSchalten(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const vereinId = formData.get("vereinId");
+  if (typeof vereinId !== "string" || !vereinId) throw new Error("Verein fehlt.");
+  const aktiv = formData.get("aktiv") === "1";
+  await adminDb.update(vereine).set({ ligaUebernahmeAktiv: aktiv }).where(eq(vereine.id, vereinId));
+  await schreibeProtokoll(
+    vereinId,
+    aktiv ? "liga_uebernahme_an" : "liga_uebernahme_aus",
+    session.user.email ?? session.user.id,
+    aktiv ? "Automatische Übernahme künftiger Heimspiele eingeschaltet" : "Automatische Übernahme ausgeschaltet"
+  );
+  revalidatePath("/system/abgleich");
 }

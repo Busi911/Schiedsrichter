@@ -235,6 +235,9 @@ export const vereine = pgTable("verein", {
   nuligaAutoImportAktiviert: boolean("nuliga_auto_import_aktiviert")
     .notNull()
     .default(false),
+  // Vom Systemadmin je Verein geschaltet (/system/abgleich): der Liga-Sync-Cron legt
+  // dann fehlende künftige Heimspiele still als Termine an (lib/liga-uebernahme.ts).
+  ligaUebernahmeAktiv: boolean("liga_uebernahme_aktiv").notNull().default(false),
   // Opt-in für den Vereinsadmin: E-Mail bei geänderten Spielen (Zeit/Ort
   // verlegt) bzw. neu eingetragenen Ergebnissen im Hallenspielplan, siehe
   // rundenspiel-benachrichtigung.ts. Default false, da nicht jeder Verein

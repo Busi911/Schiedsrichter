@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ADD COLUMN "liga_uebernahme_aktiv" boolean DEFAULT false NOT NULL;

@@ -3,7 +3,7 @@ import { berechneHallenplanAbgleich } from "@/lib/hallenplan-abgleich-laden";
 import { formatDatumZeit } from "@/lib/format";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Badge } from "@/components/ui/badge";
-import { hallenplanVerknuepfen, ligaSpieleUebernehmen } from "./actions";
+import { hallenplanVerknuepfen, ligaSpieleUebernehmen, ligaUebernahmeSchalten } from "./actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -221,6 +221,25 @@ export default async function AbgleichPage({
                       {ergebnisInfo.zv === ergebnisInfo.zn ? " — unverändert." : " — ABWEICHUNG, bitte prüfen."}
                     </p>
                   )}
+                  <form action={ligaUebernahmeSchalten} className="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="vereinId" value={v.vereinId} />
+                    <input type="hidden" name="aktiv" value={v.uebernahmeAktiv ? "0" : "1"} />
+                    <Badge variant={v.uebernahmeAktiv ? "default" : "outline"}>
+                      Automatische Übernahme: {v.uebernahmeAktiv ? "an" : "aus"}
+                    </Badge>
+                    <ConfirmSubmitButton
+                      size="sm"
+                      variant="outline"
+                      pendingText="Speichert…"
+                      confirmText={
+                        v.uebernahmeAktiv
+                          ? `Automatische Übernahme für ${v.vereinName} ausschalten?`
+                          : `Für ${v.vereinName} künftige Heimspiele ab jetzt automatisch (nach jedem Liga-Sync) anlegen? Still, ohne Mails, es wird nichts geändert oder gelöscht.`
+                      }
+                    >
+                      {v.uebernahmeAktiv ? "Ausschalten" : "Einschalten"}
+                    </ConfirmSubmitButton>
+                  </form>
                   {t.neuAnzulegenGesamt > 0 && (
                     <form action={ligaSpieleUebernehmen}>
                       <input type="hidden" name="vereinId" value={v.vereinId} />
