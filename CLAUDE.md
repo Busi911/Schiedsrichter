@@ -157,3 +157,11 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
 - DB-Integrationstests (`nuliga/sync.test.ts`, `liga-oeffentlich.test.ts`)
   laufen nur mit `TEST_DATABASE_ADMIN_URL` (siehe `tenant-isolation.test.ts`);
   `fileParallelism` ist deshalb ausgeschaltet.
+- **Fan-Web-App (öffentlich):** Favoriten liegen NUR im Browser
+  (`lib/liga-favoriten-lokal.ts`, localStorage, kein Konto, keine DB-Tabelle).
+  Jeder Verein ist eine installierbare Web-App mit eigenem Namen, Farbe und
+  Icon (`/verein/[slug]/manifest.webmanifest`, `/verein/[slug]/icon/[größe]`,
+  Helfer in `lib/liga-pwa.ts`); `/meine` zeigt die Favoriten über
+  `/api/liga/favoriten`. `public/sw.js` cached NUR öffentliche Seitenaufrufe
+  (`/verein/…`, `/meine`) und `/api/liga/…` (network first) — nie
+  Admin/Profil/Login. Die Farbüberschreibung gilt nur unter `.fan`.

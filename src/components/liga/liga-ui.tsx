@@ -118,15 +118,7 @@ export function StandHinweis({ stand }: { stand: Date | null }) {
   );
 }
 
-export function MannschaftsKarte({
-  basis,
-  m,
-  favorit,
-}: {
-  basis: string;
-  m: MannschaftAnsicht;
-  favorit: boolean | null;
-}) {
+export function MannschaftsKarte({ basis, m }: { basis: string; m: MannschaftAnsicht }) {
   const n = m.naechstesSpiel;
   const gegner = n
     ? n.heimTeamtableId === m.teamtableId
@@ -144,7 +136,6 @@ export function MannschaftsKarte({
         <FavoritStern
           typ="mannschaft"
           id={m.id}
-          aktiv={favorit}
           label={m.name}
           className="relative z-10 -mt-1 -mr-2"
         />

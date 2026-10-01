@@ -379,6 +379,20 @@
       "when": 1790833672087,
       "tag": "0053_liga_teilnahme_spiele_zeitstempel",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1790834284502,
+      "tag": "0054_favoriten_entfernt",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1790834740060,
+      "tag": "0055_liga_verein_logo",
+      "breakpoints": true
     }
   ]
 }

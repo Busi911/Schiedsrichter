@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { auth } from "@/auth";
 import { appUrl } from "@/lib/app-url";
-import { saisonLabel } from "@/lib/saison";
 import {
   gruppiereMannschaften,
-  holeFavoritenIds,
   holeMannschaften,
   holeVerein,
   istAnstehend,
@@ -14,6 +11,8 @@ import {
 } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "@/components/liga/favorit-stern";
 import { MannschaftsKarte, SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
+import { FavoritenBereich } from "@/components/liga/favoriten-bereich";
+import { InstallHinweis } from "@/components/liga/installieren";
 import { Badge } from "@/components/ui/badge";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -35,9 +34,7 @@ export default async function VereinsSeite({ params }: Props) {
   const verein = await holeVerein(slug);
   if (!verein) notFound();
 
-  const [mannschaften, session] = await Promise.all([holeMannschaften(verein.id), auth()]);
-  const favoriten = await holeFavoritenIds(session?.user?.id);
-  const eingeloggt = !!session?.user?.id;
+  const mannschaften = await holeMannschaften(verein.id);
 
   const jetzt = new Date();
   // Nächste Spiele vereinsübergreifend (ein Spiel zweier eigener Teams nur einmal).
@@ -71,19 +68,11 @@ export default async function VereinsSeite({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      <section className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-2xl font-bold sm:text-3xl">{verein.name}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Saison {saisonLabel(jetzt)}</p>
-        </div>
-        <FavoritStern
-          typ="verein"
-          id={verein.id}
-          aktiv={eingeloggt ? favoriten.vereine.has(verein.id) : null}
-          label={verein.name}
-          className="mt-1 shrink-0"
-        />
-      </section>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-heading text-lg font-semibold">Mannschaften &amp; Spielplan</h1>
+        <FavoritStern typ="verein" id={verein.id} label={verein.name} className="shrink-0" />
+      </div>
+      <InstallHinweis appName={verein.name} />
 
       {mannschaften.length === 0 ? (
         <p className="rounded-xl bg-background p-6 text-sm text-muted-foreground ring-1 ring-foreground/[0.06]">
@@ -91,6 +80,12 @@ export default async function VereinsSeite({ params }: Props) {
         </p>
       ) : (
         <>
+          <FavoritenBereich
+            karten={Object.fromEntries(
+              mannschaften.map((m) => [m.id, <MannschaftsKarte key={m.id} basis={basis} m={m} />])
+            )}
+          />
+
           <section className="space-y-3">
             <h2 className="font-heading text-lg font-semibold">Nächste Spiele</h2>
             {naechste.length === 0 ? (
@@ -113,12 +108,7 @@ export default async function VereinsSeite({ params }: Props) {
                 </h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {g.mannschaften.map((m) => (
-                    <MannschaftsKarte
-                      key={m.id}
-                      basis={basis}
-                      m={m}
-                      favorit={eingeloggt ? favoriten.mannschaften.has(m.id) : null}
-                    />
+                    <MannschaftsKarte key={m.id} basis={basis} m={m} />
                   ))}
                 </div>
               </div>

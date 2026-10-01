@@ -4,11 +4,11 @@ import { and, asc, eq, inArray, or } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { mitColdStartRetry } from "@/db/retry";
 import {
-  favoriten,
   ligaGruppen,
   ligaMannschaften,
   ligaSpiele,
   ligaTabellenzeilen,
+  ligaVereinLogos,
   ligaTeilnahmen,
   ligaVereine,
 } from "@/db/schema";
@@ -72,6 +72,33 @@ export const holeVerein = cache(async (slug: string) =>
     adminDb.query.ligaVereine.findFirst({ where: eq(ligaVereine.slug, slug) })
   )
 );
+
+// Nur der Zeitstempel (dient als Cache-Buster in der Bild-URL) — das Bild
+// selbst wird erst von den Logo-/Icon-Routen geladen.
+export const holeLogoVersion = cache(async (ligaVereinId: string): Promise<number | null> => {
+  const zeile = await mitColdStartRetry(() =>
+    adminDb.query.ligaVereinLogos.findFirst({
+      where: eq(ligaVereinLogos.ligaVereinId, ligaVereinId),
+      columns: { aktualisiertAm: true },
+    })
+  );
+  return zeile ? zeile.aktualisiertAm.getTime() : null;
+});
+
+export const holeLogoPng = async (ligaVereinId: string): Promise<Buffer | null> => {
+  const zeile = await mitColdStartRetry(() =>
+    adminDb.query.ligaVereinLogos.findFirst({ where: eq(ligaVereinLogos.ligaVereinId, ligaVereinId) })
+  );
+  return zeile?.png ?? null;
+};
+
+export const holeAlleVereine = async () =>
+  mitColdStartRetry(() =>
+    adminDb.query.ligaVereine.findMany({
+      columns: { id: true, name: true, slug: true },
+      orderBy: [asc(ligaVereine.name)],
+    })
+  );
 
 export const holeAlleVereineFuerSitemap = async () =>
   mitColdStartRetry(() =>
@@ -172,18 +199,6 @@ export const holeGruppe = cache(async (gruppeId: string) =>
     adminDb.query.ligaGruppen.findFirst({ where: eq(ligaGruppen.id, gruppeId) })
   )
 );
-
-// Favoriten des Nutzers (null/leer bei anonymen Besuchern).
-export async function holeFavoritenIds(userId: string | undefined) {
-  if (!userId) return { vereine: new Set<string>(), mannschaften: new Set<string>() };
-  const zeilen = await mitColdStartRetry(() =>
-    adminDb.query.favoriten.findMany({ where: eq(favoriten.userId, userId) })
-  );
-  return {
-    vereine: new Set(zeilen.map((z) => z.ligaVereinId).filter((x): x is string => !!x)),
-    mannschaften: new Set(zeilen.map((z) => z.ligaMannschaftId).filter((x): x is string => !!x)),
-  };
-}
 
 // Heimbilanz aus Sicht der Mannschaft: "S" | "U" | "N" für die letzten Spiele.
 export function formKurve(m: MannschaftAnsicht, anzahl = 5): ("S" | "U" | "N")[] {

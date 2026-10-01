@@ -25,7 +25,6 @@ const fixture = (n: string) =>
 
 describe.skipIf(!ADMIN_URL)("öffentliche Abfragen (Postgres)", () => {
   const vereinId = randomUUID();
-  const userId = randomUUID();
   const portrait = fixture("team-portrait.html").replaceAll("2208495", "2242017").replaceAll("491948", "492633");
   const holeHtml: HoleHtml = async (url) => {
     if (url.includes("/clubTeams")) return fixture("club-teams.html");
@@ -38,7 +37,6 @@ describe.skipIf(!ADMIN_URL)("öffentliche Abfragen (Postgres)", () => {
   beforeAll(async () => {
     await testDb.delete(schema.ligaGruppen);
     await testDb.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim" });
-    await testDb.insert(schema.users).values({ id: userId, email: `${userId}@test.invalid` });
     const { id } = await legeLigaVereinAn(testDb, { vereinId, nuligaClubId: "69723", name: "TSF Heuchelheim" });
     ligaVereinId = id;
     const jetzt = new Date("2026-10-01T10:00:00Z");
@@ -46,7 +44,6 @@ describe.skipIf(!ADMIN_URL)("öffentliche Abfragen (Postgres)", () => {
     await synchronisiereSpiele(id, { db: testDb, holeHtml, jetzt });
   });
   afterAll(async () => {
-    await testDb.delete(schema.users).where(eq(schema.users.id, userId));
     await testDb.delete(schema.vereine).where(eq(schema.vereine.id, vereinId));
     await testDb.delete(schema.ligaGruppen);
     await pool.end();
@@ -76,26 +73,20 @@ describe.skipIf(!ADMIN_URL)("öffentliche Abfragen (Postgres)", () => {
     expect(maenner.spiele).toEqual([]);
   });
 
+  it("speichert/liest das Vereinslogo und liefert die Version nur bei vorhandenem Logo", async () => {
+    const { holeLogoPng, holeLogoVersion } = await import("./liga-oeffentlich");
+    expect(await holeLogoVersion(ligaVereinId)).toBeNull();
+    expect(await holeLogoPng(ligaVereinId)).toBeNull();
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+    await testDb.insert(schema.ligaVereinLogos).values({ ligaVereinId, png });
+    expect(Buffer.compare((await holeLogoPng(ligaVereinId))!, png)).toBe(0);
+    expect(await holeLogoVersion(ligaVereinId)).toBeGreaterThan(0);
+  });
+
   it("liefert die Gruppentabelle sortiert nach Rang", async () => {
     const { holeMannschaften, holeTabelle } = await import("./liga-oeffentlich");
     const d2 = (await holeMannschaften(ligaVereinId)).find((m) => m.slug === "maennliche-d-2")!;
     const tabelle = await holeTabelle(d2.gruppeId);
     expect(tabelle.map((z) => z.rang)).toEqual([1, 2, 3, 4]);
-  });
-
-  it("Favoriten: Verein und Mannschaft unabhängig, nie beides in einer Zeile", async () => {
-    const { holeMannschaften, holeFavoritenIds } = await import("./liga-oeffentlich");
-    const m = (await holeMannschaften(ligaVereinId))[0];
-    await testDb.insert(schema.favoriten).values({ userId, ligaVereinId });
-    await testDb.insert(schema.favoriten).values({ userId, ligaMannschaftId: m.id });
-    const f = await holeFavoritenIds(userId);
-    expect(f.vereine.has(ligaVereinId)).toBe(true);
-    expect(f.mannschaften.has(m.id)).toBe(true);
-    // Doppelter Favorit und "beides gesetzt" werden von der DB abgelehnt
-    await expect(testDb.insert(schema.favoriten).values({ userId, ligaVereinId })).rejects.toThrow();
-    await expect(
-      testDb.insert(schema.favoriten).values({ userId, ligaVereinId, ligaMannschaftId: m.id })
-    ).rejects.toThrow();
-    expect((await holeFavoritenIds(undefined)).vereine.size).toBe(0);
   });
 });
