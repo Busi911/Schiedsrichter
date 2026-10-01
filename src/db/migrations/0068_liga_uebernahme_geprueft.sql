@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ADD COLUMN "liga_uebernahme_geprueft_am" timestamp;

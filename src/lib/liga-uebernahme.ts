@@ -153,23 +153,36 @@ export async function uebernehmeLigaSpiele(
   return { angelegt, uebersprungenOhneZeit, doppelteEntfernt, doppelteMitDiensten, zuordnungenVorher, zuordnungenNachher };
 }
 
-// Vom Liga-Sync-Cron aufgerufen: nur Vereine mit eingeschalteter Übernahme (Default
-// aus) und — wenn angegeben — nur die, deren Liga-Verein gerade synchronisiert wurde.
-// Fehler eines Vereins stoppen die anderen nicht.
-export async function uebernehmeFuerAktiveVereine(nurLigaVereinIds?: string[], jetzt = new Date()) {
+// Vom eigenen Übernahme-Cron aufgerufen (/api/cron/liga-uebernahme): alle Vereine mit
+// eingeschalteter Übernahme (Default aus), die am längsten nicht geprüften zuerst.
+// `frist` (ms-Zeitstempel) begrenzt die Laufzeit — was liegen bleibt, kommt im
+// nächsten Lauf als Erstes dran. Fehler eines Vereins stoppen die anderen nicht.
+export async function uebernehmeFuerAktiveVereine(
+  opt: { nurLigaVereinIds?: string[]; jetzt?: Date; frist?: number } = {}
+) {
   const aktive = await adminDb
     .select({ vereinId: vereine.id, ligaVereinId: ligaVereine.id })
     .from(vereine)
     .innerJoin(ligaVereine, eq(ligaVereine.vereinId, vereine.id))
-    .where(eq(vereine.ligaUebernahmeAktiv, true));
+    .where(eq(vereine.ligaUebernahmeAktiv, true))
+    .orderBy(sql`${vereine.ligaUebernahmeGeprueftAm} asc nulls first`);
   const ergebnis: { vereinId: string; angelegt?: number; fehler?: string }[] = [];
+  let uebrig = 0;
   for (const a of aktive) {
-    if (nurLigaVereinIds && !nurLigaVereinIds.includes(a.ligaVereinId)) continue;
+    if (opt.nurLigaVereinIds && !opt.nurLigaVereinIds.includes(a.ligaVereinId)) continue;
+    if (opt.frist !== undefined && Date.now() > opt.frist) {
+      uebrig++;
+      continue;
+    }
     try {
-      ergebnis.push({ vereinId: a.vereinId, angelegt: (await uebernehmeLigaSpiele(a.vereinId, CRON_AKTEUR, jetzt)).angelegt });
+      ergebnis.push({
+        vereinId: a.vereinId,
+        angelegt: (await uebernehmeLigaSpiele(a.vereinId, CRON_AKTEUR, opt.jetzt)).angelegt,
+      });
     } catch (err) {
       ergebnis.push({ vereinId: a.vereinId, fehler: err instanceof Error ? err.message : String(err) });
     }
+    await adminDb.update(vereine).set({ ligaUebernahmeGeprueftAm: new Date() }).where(eq(vereine.id, a.vereinId));
   }
-  return ergebnis;
+  return { ergebnis, uebrig };
 }

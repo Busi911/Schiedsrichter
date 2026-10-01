@@ -477,6 +477,13 @@
       "when": 1790880644429,
       "tag": "0067_liga_uebernahme_aktiv",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1790881330638,
+      "tag": "0068_liga_uebernahme_geprueft",
+      "breakpoints": true
     }
   ]
 }

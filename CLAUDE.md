@@ -286,9 +286,11 @@ alles unter `/system/abgleich` (nur Systemadmin):
    Zeit/Ort bestehender Termine (Verlegungen) behandelt weiter der Hallenplan-
    Import. Ansetzung/Dienste liegen nur in privaten Terminen, nie in `liga_*`.
    Automatisch: Schalter `vereine.liga_uebernahme_aktiv` (Default aus, je Verein
-   unter `/system/abgleich`, nur Systemadmin); der Liga-Sync-Cron ruft nach dem
-   Sync eines Vereins `uebernehmeFuerAktiveVereine` auf (Protokolleintrag nur bei
-   Änderung). Noch offen: Ergebnis-Übernahme, Verlegungen aus den öffentlichen Daten.
+   unter `/system/abgleich`, nur Systemadmin); der eigene Cron `/api/cron/liga-uebernahme` (stündlich,
+   :30; NICHT im Liga-Sync-Cron — dessen 60-s-Limit reicht dafür nicht) ruft
+   `uebernehmeFuerAktiveVereine` auf: am längsten ungeprüfte Vereine zuerst
+   (`liga_uebernahme_geprueft_am`), Frist 45 s, Rest im nächsten Lauf
+   (Protokolleintrag nur bei Änderung). Noch offen: Ergebnis-Übernahme, Verlegungen aus den öffentlichen Daten.
    **Geplantes Aufräumen nach erfolgreichem Pilot (TSF Heuchelheim):** Standard von
    `liga_uebernahme_aktiv` auf an, bestehende Vereine per Migration einschalten,
    Schalter nur als Notbremse behalten; danach die Einstellungen aufräumen
