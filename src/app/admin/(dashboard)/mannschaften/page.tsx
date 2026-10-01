@@ -136,7 +136,7 @@ export default async function MannschaftenPage({
         </div>
       )}
 
-      <Card>
+      <Card className={liste.length === 0 ? "max-w-2xl" : undefined}>
         <CardHeader>
           <CardTitle>Alle Mannschaften</CardTitle>
           {session.user.istAdmin && (
