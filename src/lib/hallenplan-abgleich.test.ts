@@ -6,6 +6,7 @@ import {
   parseHallenNamen,
   parseKategorie,
   spielnummerAusUid,
+  ortWeichtAb,
   vergleicheVerknuepftes,
 } from "./hallenplan-abgleich";
 
@@ -176,5 +177,17 @@ describe("vergleicheVerknuepftes", () => {
     const spiel = { datum: "2026-10-03", uhrzeit: "18:00", toreHeim: 30, toreGast: 25 };
     expect(vergleicheVerknuepftes({ start, ergebnisHeim: null, ergebnisAuswaerts: null }, spiel).ergebnisNeu).toBe(true);
     expect(vergleicheVerknuepftes({ start, ergebnisHeim: 30, ergebnisAuswaerts: 25 }, spiel).ergebnisNeu).toBe(false);
+  });
+});
+
+describe("ortWeichtAb", () => {
+  it("gleiche Halle trotz anderer Schreibweise ist keine Abweichung", () => {
+    expect(ortWeichtAb("Sporthalle Heuchelheim", "Sporthalle Heuchelheim, Musterstr. 1")).toBe(false);
+    expect(ortWeichtAb("SPORTHALLE DUTENHOFEN", "Sporthalle Dutenhofen")).toBe(false);
+  });
+  it("andere Halle ist eine Abweichung; fehlende Angabe nicht", () => {
+    expect(ortWeichtAb("Sporthalle Heuchelheim", "Großsporthalle Biebertal")).toBe(true);
+    expect(ortWeichtAb(null, "Sporthalle X")).toBe(false);
+    expect(ortWeichtAb("Sporthalle X", null)).toBe(false);
   });
 });

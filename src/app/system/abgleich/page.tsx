@@ -136,6 +136,16 @@ export default async function AbgleichPage({
                     {t.zeitAbweichungen.length > 0 && " (siehe unten — würde als Verlegung gelten)"}.
                   </li>
                   <li>
+                    Bei <strong>{t.ortAbweichungen}</strong> verknüpften Terminen schreibt der Hallenplan die Halle anders
+                    als die öffentlichen Daten
+                    {t.ortAbweichungen > 0 && " (der Ort würde bei der Übernahme NICHT überschrieben)"}.
+                    {t.ortBeispiele.length > 0 && (
+                      <span className="block text-xs text-muted-foreground">
+                        {t.ortBeispiele.map((o) => `${o.anzahl}× „${o.hallenplan}“ → „${o.oeffentlich}“`).join(" · ")}
+                      </span>
+                    )}
+                  </li>
+                  <li>
                     <strong>{t.neuAnzulegenGesamt}</strong> Heimspiele in eigener Halle ohne Termin würden neu
                     angelegt.
                   </li>

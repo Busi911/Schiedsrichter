@@ -236,3 +236,14 @@ export function vergleicheVerknuepftes(
       spiel.toreGast !== null,
   };
 }
+
+// Weicht der Ort des Hallenplan-Termins vom Hallennamen des öffentlichen
+// Spiels ab? Die Quellen schreiben Hallen verschieden ("Sporthalle X" vs.
+// "Sporthalle X, Musterstraße 1"): gleich gilt, wenn einer der normalisierten
+// Namen im anderen enthalten ist. Fehlt eine Seite, gilt es nicht als Abweichung.
+export function ortWeichtAb(terminOrt: string | null, halleName: string | null): boolean {
+  const a = normalisiereName(terminOrt);
+  const b = normalisiereName(halleName);
+  if (!a || !b) return false;
+  return !(a.includes(b) || b.includes(a));
+}

@@ -15,6 +15,7 @@ import {
   gleicheAb,
   istEigeneHalle,
   parseHallenNamen,
+  ortWeichtAb,
   vergleicheVerknuepftes,
   type AbgleichErgebnis,
 } from "@/lib/hallenplan-abgleich";
@@ -36,6 +37,11 @@ export type Trockenlauf = {
   // handball.net gemeldete Schiedsrichter/Zeitnehmer) — sie liegt nur im
   // privaten Termin und muss bei der Zusammenführung erhalten bleiben.
   verknuepfbarMitAnsetzung: number;
+  // Ort (Hallenname) weicht ab — häufigste Paare Hallenplan → öffentlich. Der
+  // bisherige Import wertet einen anderen Ort als Verlegung (Zuordnungen weg,
+  // Mails), deshalb darf die Zusammenführung den Ort nicht überschreiben.
+  ortAbweichungen: number;
+  ortBeispiele: { hallenplan: string; oeffentlich: string; anzahl: number }[];
   // Öffentliche Zeit weicht vom Hallenplan ab (Verlegung?) — würde den Termin
   // verschieben (und Zuordnungen außer Schiri entfernen, siehe rundenspiel-sync.ts).
   zeitAbweichungen: {
@@ -119,6 +125,7 @@ async function berechneFuerVerein(
     .select({
       id: termine.id,
       start: termine.start,
+      ort: termine.ort,
       icsUid: termine.icsUid,
       heim: termine.heimMannschaftName,
       gast: termine.auswaertsMannschaftName,
@@ -260,6 +267,20 @@ async function berechneFuerVerein(
       });
     }
   }
+  let ortAbweichungen = 0;
+  const ortPaare = new Map<string, { hallenplan: string; oeffentlich: string; anzahl: number }>();
+  for (const { termin, spiel } of sicherePaare) {
+    if (!ortWeichtAb(termin.ort, spiel.halleName)) continue;
+    ortAbweichungen++;
+    const schluessel = `${termin.ort}|${spiel.halleName}`;
+    const e = ortPaare.get(schluessel) ?? {
+      hallenplan: termin.ort ?? "—",
+      oeffentlich: spiel.halleName ?? "—",
+      anzahl: 0,
+    };
+    e.anzahl++;
+    ortPaare.set(schluessel, e);
+  }
   const neuAnzulegenAlle = heimUnverknuepft
     .filter((s) => istEigeneHalle(s, eigene))
     .sort((a, b) => a.datum.localeCompare(b.datum) || (a.uhrzeit ?? "").localeCompare(b.uhrzeit ?? ""));
@@ -272,6 +293,8 @@ async function berechneFuerVerein(
     ).length,
     zeitAbweichungen: zeitAbweichungen.sort((a, b) => a.start.getTime() - b.start.getTime()),
     ergebnisNeu,
+    ortAbweichungen,
+    ortBeispiele: [...ortPaare.values()].sort((a, b) => b.anzahl - a.anzahl).slice(0, 5),
     neuAnzulegen: neuAnzulegenAlle.slice(0, 30).map((s) => ({
       datum: s.datum,
       uhrzeit: s.uhrzeit ?? (s.beginn ? berlinUhr.format(s.beginn) : null),
