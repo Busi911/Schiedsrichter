@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -149,14 +148,6 @@ export default async function Home() {
 
       <main className="flex-1">
         <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-16 text-center">
-          <Image
-            src="/brand/logo-gross.png"
-            alt="HandballerPate.de"
-            width={900}
-            height={634}
-            priority
-            className="h-auto w-64 sm:w-80"
-          />
           <Badge variant="secondary">Beta · 100% kostenlos</Badge>
           <h1 className="font-heading text-4xl font-semibold text-balance sm:text-5xl">
             Die Vereinsverwaltung für euren Handballspielbetrieb
