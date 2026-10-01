@@ -289,4 +289,9 @@ alles unter `/system/abgleich` (nur Systemadmin):
    unter `/system/abgleich`, nur Systemadmin); der Liga-Sync-Cron ruft nach dem
    Sync eines Vereins `uebernehmeFuerAktiveVereine` auf (Protokolleintrag nur bei
    Änderung). Noch offen: Ergebnis-Übernahme, Verlegungen aus den öffentlichen Daten.
+   **Geplantes Aufräumen nach erfolgreichem Pilot (TSF Heuchelheim):** Standard von
+   `liga_uebernahme_aktiv` auf an, bestehende Vereine per Migration einschalten,
+   Schalter nur als Notbremse behalten; danach die Einstellungen aufräumen
+   (Hallen-ID-/nuLiga-Import-Schalter, "täglich"-Texte, Hilfe-Artikel an die
+   Zusammenführung anpassen, nicht mehr gebrauchte Abgleich-Knöpfe).
    Die Hallen-ID bleibt als Zusatzquelle (u.a. für Freundschaftsspiele/Turniere).
