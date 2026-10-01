@@ -26,6 +26,8 @@ export type VereinsAbgleich = {
   nurOeffentlichHeimEigeneHalle: number;
   nurOeffentlichHeimAndereHalle: number;
   nurOeffentlichHeimHalleUnbekannt: number;
+  // Hallen der Heimspiele, die nicht zu den eigenen gehören (häufigste zuerst).
+  andereHallenNamen: { name: string; anzahl: number }[];
   nurOeffentlichAuswaerts: number;
   // Kein Treffer, davon Freundschaftsspiele/Turniere (ohne Spielnummer, nicht in der Liga).
   keinTrefferFreundschaft: number;
@@ -135,6 +137,11 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
     };
     const heimEigeneHalle = heimUnverknuepft.filter((s) => istEigeneHalle(s, eigene)).length;
     const heimHalleUnbekannt = heimUnverknuepft.filter((s) => !s.halleNuligaId && !s.halleName).length;
+    const andereHallen = new Map<string, number>();
+    for (const s of heimUnverknuepft) {
+      if (istEigeneHalle(s, eigene) || !s.halleName) continue;
+      andereHallen.set(s.halleName, (andereHallen.get(s.halleName) ?? 0) + 1);
+    }
     const nurOeffentlichHeim = heimUnverknuepft.length;
 
     const nachId = new Map(hallenTermine.map((t) => [t.id, t]));
@@ -168,6 +175,10 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
       nurOeffentlichHeimEigeneHalle: heimEigeneHalle,
       nurOeffentlichHeimAndereHalle: nurOeffentlichHeim - heimEigeneHalle - heimHalleUnbekannt,
       nurOeffentlichHeimHalleUnbekannt: heimHalleUnbekannt,
+      andereHallenNamen: [...andereHallen]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6)
+        .map(([name, anzahl]) => ({ name, anzahl })),
       nurOeffentlichAuswaerts: unverknuepft.length - nurOeffentlichHeim,
       keinTrefferFreundschaft: abgleich.filter(
         (a) => a.status === "kein_treffer" && nachId.get(a.terminId)!.pflichtspiel === false

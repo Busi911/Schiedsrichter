@@ -70,6 +70,11 @@ export default async function AbgleichPage() {
                   <TableCell>{v.nurOeffentlichHeimEigeneHalle}</TableCell>
                   <TableCell>
                     {v.nurOeffentlichHeimAndereHalle + v.nurOeffentlichHeimHalleUnbekannt}
+                    {v.andereHallenNamen.length > 0 && (
+                      <span className="block max-w-56 text-xs font-normal whitespace-normal text-muted-foreground">
+                        {v.andereHallenNamen.map((h) => `${h.name} (${h.anzahl})`).join(", ")}
+                      </span>
+                    )}
                     {v.nurOeffentlichHeimHalleUnbekannt > 0 && (
                       <span className="block text-xs text-muted-foreground">
                         davon {v.nurOeffentlichHeimHalleUnbekannt} ohne Hallenangabe
