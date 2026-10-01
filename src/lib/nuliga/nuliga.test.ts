@@ -269,3 +269,18 @@ describe("parseSpielTabellen: Sonderfälle", () => {
     expect(spiele[2]).toMatchObject({ uhrzeit: null, beginn: null, datum: "2026-09-28" });
   });
 });
+
+describe("parseGroupPage: zurückgezogene Mannschaft", () => {
+  it("erkennt 'zurückgezogen am …' statt Statistik", () => {
+    const html = `<html><body><table class="result-set">
+      <tr><th>Rang</th><th>Mannschaft</th><th>Begegnungen</th><th>S</th><th>U</th><th>N</th><th>Tore</th><th>+/-</th><th>Punkte</th></tr>
+      <tr><td>1</td><td><a href="/x/teamPortrait?teamtable=11&amp;group=5">TSV Beispiel</a></td><td>3</td><td>3</td><td>0</td><td>0</td><td>88:67</td><td>+21</td><td>6:0</td></tr>
+      <tr><td>10</td><td><a href="/x/teamPortrait?teamtable=22&amp;group=5">HSG Muster II</a></td><td colspan="6">zurückgezogen am 09.07.2026</td></tr>
+    </table></body></html>`;
+    const { daten } = parseGroupPage(html);
+    expect(daten.tabelle.map((z) => [z.mannschaft, z.teamtableId, z.zurueckgezogen])).toEqual([
+      ["TSV Beispiel", "11", false],
+      ["HSG Muster II", "22", true],
+    ]);
+  });
+});

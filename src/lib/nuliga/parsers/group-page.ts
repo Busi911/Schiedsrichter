@@ -66,6 +66,7 @@ export function parseGroupPage(html: string): ParseErgebnis<GruppenSeite> {
         niederlagen: zahl(idx.n),
         tore: idx.tore >= 0 ? parseDoppelwert(z[idx.tore]?.text ?? "") : null,
         punkte: idx.punkte >= 0 ? parseDoppelwert(z[idx.punkte]?.text ?? "") : null,
+        zurueckgezogen: /zurückgezogen/i.test(z.map((c) => c.text).join(" ")),
       });
     }
   }

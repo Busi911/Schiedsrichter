@@ -369,3 +369,49 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync: robuster Spiele-Import (Postgres)", ()
     expect(s5?.toreHeim).toBe(33); // wieder auf den Stand von nuLiga gebracht
   });
 });
+
+describe.skipIf(!ADMIN_URL)("nuLiga-Sync: zurückgezogene Mannschaft (Postgres)", () => {
+  const pool = new Pool({ connectionString: ADMIN_URL });
+  const db = drizzle(pool, { schema });
+  const vereinId = randomUUID();
+  // In der Gruppentabelle steht die mJSG-II-Zeile als "zurückgezogen am …"
+  const gruppe = fixture("group-page.html").replace(
+    /(teamtable=2242017[^>]*>[^<]*<\/a><\/td>)(?:<td[^>]*>[^<]*<\/td>){7}/,
+    '$1<td colspan="7">zurückgezogen am 09.07.2026</td>'
+  );
+  const portrait = fixture("team-portrait.html").replaceAll("2208495", "2242017").replaceAll("491948", "492633");
+  const holeHtml: HoleHtml = async (url) => {
+    const p = paramsAusUrl(url);
+    if (url.includes("/clubTeams")) return fixture("club-teams.html");
+    if (url.includes("/groupPage") && p.get("group") === "492633") return gruppe;
+    if (url.includes("/teamPortrait")) return portrait;
+    throw new Error("HTTP 503");
+  };
+  beforeAll(async () => {
+    await db.delete(schema.ligaVereine);
+    await db.delete(schema.ligaGruppen);
+    await db.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim" });
+  });
+  afterAll(async () => {
+    await db.delete(schema.vereine).where(eq(schema.vereine.id, vereinId));
+    await db.delete(schema.ligaVereine);
+    await db.delete(schema.ligaGruppen);
+    await pool.end();
+  });
+
+  it("blendet die Mannschaft aus und meldet es", async () => {
+    expect(gruppe).toContain("zurückgezogen am 09.07.2026");
+    const { id } = await legeLigaVereinAn(db, { vereinId, nuligaClubId: "69723", name: "TSF Heuchelheim" });
+    const r = await synchronisiereStruktur(id, { db, holeHtml });
+    expect(r.meldungen.some((m) => m.includes("zurückgezogen – wird nicht angezeigt"))).toBe(true);
+    const zeile = await db.query.ligaTabellenzeilen.findFirst({
+      where: eq(schema.ligaTabellenzeilen.nuligaTeamtableId, "2242017"),
+    });
+    expect(zeile?.zurueckgezogen).toBe(true);
+    const aktive = await db.query.ligaTeilnahmen.findMany({
+      where: eq(schema.ligaTeilnahmen.nuligaTeamtableId, "2242017"),
+    });
+    expect(aktive.length).toBeGreaterThan(0);
+    expect(aktive.every((t) => !t.aktiv)).toBe(true);
+  });
+});
