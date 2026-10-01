@@ -526,8 +526,9 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
 - SEO/Teilen: sprechende URLs pro Verein/Mannschaft, Open-Graph-Metadaten.
 - Rechtliches: `/datenschutz` enthält einen Abschnitt zu den öffentlichen
   Vereins- und Mannschaftsseiten sowie zu Zugriffsdaten (Server-Protokolle,
-  IP-Adresse) auch ohne Konto (Entwurf-Warnhinweis bleibt, siehe
-  `CLAUDE.md`). **Offen:** juristische Prüfung der Texte; Impressum nennt
+  IP-Adresse) auch ohne Konto (der frühere Entwurf-Warnhinweis auf der Seite
+  wurde auf Wunsch entfernt, die Texte sind aber nicht juristisch geprüft).
+  **Offen:** juristische Prüfung der Texte; Impressum nennt
   DeWe Consulting UG als Betreiber — zu klären, ob für den öffentlichen
   Bereich (und die dort angezeigten Verbandsdaten) etwas ergänzt werden
   muss; ob die Nutzungsbedingungen von nuLiga/HHV die automatische

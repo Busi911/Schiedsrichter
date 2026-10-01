@@ -15,13 +15,6 @@ export default function DatenschutzPage() {
         Datenschutzerklärung
       </h1>
 
-      <p className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-400">
-        Diese Erklärung beschreibt die tatsächlich eingesetzten technischen
-        Dienste (Stand dieser Version) und ist automatisiert erstellt — sie
-        ersetzt keine rechtliche Prüfung. Bitte vor produktivem Einsatz von
-        einem Anwalt bzw. Datenschutzbeauftragten gegenprüfen lassen.
-      </p>
-
       <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">Verantwortlicher</h2>
         <p className="text-sm text-muted-foreground">
