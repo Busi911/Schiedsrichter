@@ -4,6 +4,7 @@ import { FanKopf, FanTheme } from "@/components/liga/fan-rahmen";
 import { VereinsNav } from "@/components/liga/vereins-nav";
 import { holeVereinsDesign, holeVerein, holeVorschau } from "@/lib/liga-oeffentlich";
 import { vereinsFarbton, vereinsInitialen } from "@/lib/liga-pwa";
+import { formatDatum } from "@/lib/format";
 import { saisonLabel } from "@/lib/saison";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -14,11 +15,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const verein = await holeVerein(slug);
   if (!verein) return {};
   const v = (await holeVereinsDesign(verein.id)).logoVersion ?? "";
-  // Vorschau (Verein noch in Vorbereitung): nicht indexieren, nicht installierbar.
-  if (await holeVorschau(verein.id)) {
-    return { robots: { index: false, follow: false }, icons: { icon: `/verein/${verein.slug}/icon/192?v=${v}` } };
-  }
+  // Vorschau (Verein noch in Vorbereitung): funktioniert wie die echte Seite,
+  // wird aber nicht von Suchmaschinen indexiert.
+  const vorschau = await holeVorschau(verein.id);
   return {
+    ...(vorschau && { robots: { index: false, follow: false } }),
     manifest: `/verein/${verein.slug}/manifest.webmanifest`,
     icons: {
       icon: `/verein/${verein.slug}/icon/192?v=${v}`,
@@ -50,10 +51,10 @@ export default async function VereinsHuelle({
     <>
       {vorschau && (
         <div className="bg-amber-100 px-4 py-2 text-center text-xs text-amber-950 dark:bg-amber-950 dark:text-amber-100">
-          <strong>Vorschau</strong> – so könnte die Seite aussehen.{" "}
-          {vorschau.art === "link"
-            ? "Eingeschränkte Ansicht, noch nicht öffentlich nutzbar."
-            : "Der Verein ist noch in Vorbereitung."}
+          <strong>Vorschau</strong> –{" "}
+          {vorschau.bis
+            ? `dieser Zugang ist zeitlich begrenzt (bis ${formatDatum(vorschau.bis)}).`
+            : "der Verein ist noch in Vorbereitung."}
         </div>
       )}
       <FanTheme hue={farbton ?? vereinsFarbton(verein.slug)} />

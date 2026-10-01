@@ -1,4 +1,5 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { adminDb } from "@/db/admin";
 import { mitColdStartRetry } from "@/db/retry";
 import { ligaMannschaften, ligaVereine, vereine as vereineTabelle } from "@/db/schema";
@@ -9,6 +10,7 @@ import {
   sortiereChronologisch,
   type SpielAnsicht,
 } from "@/lib/liga-oeffentlich";
+import { pruefeVorschauToken, VORSCHAU_COOKIE } from "@/lib/verein-vorschau";
 
 // Öffentliche Daten zu den auf dem Gerät gemerkten Favoriten (die IDs kommen
 // aus dem localStorage des Browsers). Liefert nur öffentliche Sportdaten.
@@ -45,6 +47,10 @@ export async function GET(request: Request) {
         })
       )
     : [];
+  // Verein in Vorbereitung, für den der Besucher einen gültigen Vorschau-Link
+  // eingelöst hat (Cookie): funktioniert wie ein öffentlicher Verein.
+  const vorschauVereinId =
+    (await pruefeVorschauToken((await cookies()).get(VORSCHAU_COOKIE)?.value))?.vereinId ?? null;
   const noetigeVereine = [...new Set([...vereinIds, ...zeilen.map((z) => z.ligaVereinId)])];
   const vereine = noetigeVereine.length
     ? (
@@ -53,8 +59,17 @@ export async function GET(request: Request) {
             .select({ v: ligaVereine })
             .from(ligaVereine)
             .innerJoin(vereineTabelle, eq(vereineTabelle.id, ligaVereine.vereinId))
-            // Vereine im Vorbereitungs-Modus sind nicht öffentlich.
-            .where(and(inArray(ligaVereine.id, noetigeVereine), eq(vereineTabelle.status, "aktiv")))
+            // Vereine im Vorbereitungs-Modus sind nicht öffentlich — außer mit
+            // gültigem Vorschau-Link (nur dieser eine Verein).
+            .where(
+              and(
+                inArray(ligaVereine.id, noetigeVereine),
+                or(
+                  eq(vereineTabelle.status, "aktiv"),
+                  vorschauVereinId ? eq(vereineTabelle.id, vorschauVereinId) : undefined
+                )
+              )
+            )
         )
       ).map((r) => r.v)
     : [];
@@ -101,8 +116,15 @@ export async function GET(request: Request) {
     }
   }
 
+  // Enthält die Antwort einen Vorschau-Verein, darf sie nicht im gemeinsamen
+  // Cache landen (die URL ist für alle gleich, der Zugriff hängt am Cookie).
+  const mitVorschau = !!vorschauVereinId && vereine.some((v) => v.vereinId === vorschauVereinId);
   return Response.json(
     { mannschaften, vereine: vereineAntwort },
-    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
+    {
+      headers: {
+        "Cache-Control": mitVorschau ? "private, no-store" : "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    }
   );
 }
