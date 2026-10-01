@@ -433,7 +433,6 @@ export default async function EinstellungenPage({
                             type="checkbox"
                             name="zusatzKategorie"
                             value={wert}
-                            defaultChecked={wert === "jugend_weiblich"}
                           />
                           {label}
                         </label>
