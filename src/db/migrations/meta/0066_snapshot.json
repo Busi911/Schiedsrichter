@@ -1,0 +1,3401 @@
+{
+  "id": "1d9d4e6f-e161-4064-bdca-543b7770cf31",
+  "prevId": "8a2930af-945c-4333-87d9-524efc487337",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.account": {
+      "name": "account",
+      "schema": "",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "providerAccountId": {
+          "name": "providerAccountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token_type": {
+          "name": "token_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_state": {
+          "name": "session_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "account_userId_user_id_fk": {
+          "name": "account_userId_user_id_fk",
+          "tableFrom": "account",
+          "tableTo": "user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "account_provider_providerAccountId_pk": {
+          "name": "account_provider_providerAccountId_pk",
+          "columns": [
+            "provider",
+            "providerAccountId"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.benachrichtigung": {
+      "name": "benachrichtigung",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "termin_id": {
+          "name": "termin_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "typ": {
+          "name": "typ",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "versendet_am": {
+          "name": "versendet_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "benachrichtigung_termin_id_termin_id_fk": {
+          "name": "benachrichtigung_termin_id_termin_id_fk",
+          "tableFrom": "benachrichtigung",
+          "tableTo": "termin",
+          "columnsFrom": [
+            "termin_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "benachrichtigung_user_id_user_id_fk": {
+          "name": "benachrichtigung_user_id_user_id_fk",
+          "tableFrom": "benachrichtigung",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.funktionstraeger_rolle": {
+      "name": "funktionstraeger_rolle",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "typ": {
+          "name": "typ",
+          "type": "funktionstraeger_typ",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mannschaft_id": {
+          "name": "mannschaft_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aktiv": {
+          "name": "aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "lizenz_gueltig_bis": {
+          "name": "lizenz_gueltig_bis",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lizenz_erinnerung_stufe": {
+          "name": "lizenz_erinnerung_stufe",
+          "type": "lizenz_erinnerung_stufe",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "funktionstraeger_rolle_user_id_user_id_fk": {
+          "name": "funktionstraeger_rolle_user_id_user_id_fk",
+          "tableFrom": "funktionstraeger_rolle",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "funktionstraeger_rolle_mannschaft_id_mannschaft_id_fk": {
+          "name": "funktionstraeger_rolle_mannschaft_id_mannschaft_id_fk",
+          "tableFrom": "funktionstraeger_rolle",
+          "tableTo": "mannschaft",
+          "columnsFrom": [
+            "mannschaft_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.halle": {
+      "name": "halle",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "verein_id": {
+          "name": "verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "abteil_anzahl": {
+          "name": "abteil_anzahl",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "abteil_1_name": {
+          "name": "abteil_1_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "abteil_2_name": {
+          "name": "abteil_2_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "abteil_3_name": {
+          "name": "abteil_3_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "abteil_4_name": {
+          "name": "abteil_4_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "halle_verein_id_verein_id_fk": {
+          "name": "halle_verein_id_verein_id_fk",
+          "tableFrom": "halle",
+          "tableTo": "verein",
+          "columnsFrom": [
+            "verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ics_sync_log": {
+      "name": "ics_sync_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "schiedsrichter_id": {
+          "name": "schiedsrichter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "synchronisiert_am": {
+          "name": "synchronisiert_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "neu_count": {
+          "name": "neu_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "aktualisiert_count": {
+          "name": "aktualisiert_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "entfernt_count": {
+          "name": "entfernt_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "status": {
+          "name": "status",
+          "type": "sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fehlermeldung": {
+          "name": "fehlermeldung",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ics_sync_log_schiedsrichter_id_user_id_fk": {
+          "name": "ics_sync_log_schiedsrichter_id_user_id_fk",
+          "tableFrom": "ics_sync_log",
+          "tableTo": "user",
+          "columnsFrom": [
+            "schiedsrichter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ignorierte_mannschaft": {
+      "name": "ignorierte_mannschaft",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "verein_id": {
+          "name": "verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "normalisierter_name": {
+          "name": "normalisierter_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kategorie": {
+          "name": "kategorie",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ignorierte_mannschaft_verein_name_kategorie_idx": {
+          "name": "ignorierte_mannschaft_verein_name_kategorie_idx",
+          "columns": [
+            {
+              "expression": "verein_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "normalisierter_name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kategorie",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ignorierte_mannschaft_verein_id_verein_id_fk": {
+          "name": "ignorierte_mannschaft_verein_id_verein_id_fk",
+          "tableFrom": "ignorierte_mannschaft",
+          "tableTo": "verein",
+          "columnsFrom": [
+            "verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.liga_gruppe": {
+      "name": "liga_gruppe",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "verband": {
+          "name": "verband",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'HHV'"
+        },
+        "quelle": {
+          "name": "quelle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nuliga'"
+        },
+        "nuliga_group_id": {
+          "name": "nuliga_group_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "championship": {
+          "name": "championship",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "saison": {
+          "name": "saison",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "liga_name": {
+          "name": "liga_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "geschlecht": {
+          "name": "geschlecht",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "altersklasse": {
+          "name": "altersklasse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spielklasse": {
+          "name": "spielklasse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gruppe": {
+          "name": "gruppe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ist_meldeliste": {
+          "name": "ist_meldeliste",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "ist_freundschaft": {
+          "name": "ist_freundschaft",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "tabelle_synchronisiert_am": {
+          "name": "tabelle_synchronisiert_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "liga_gruppe_verband_gruppe_idx": {
+          "name": "liga_gruppe_verband_gruppe_idx",
+          "columns": [
+            {
+              "expression": "verband",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "nuliga_group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.liga_mannschaft": {
+      "name": "liga_mannschaft",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "liga_verein_id": {
+          "name": "liga_verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "schluessel": {
+          "name": "schluessel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anzeigename_eigen": {
+          "name": "anzeigename_eigen",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kategorie": {
+          "name": "kategorie",
+          "type": "liga_kategorie",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "geschlecht": {
+          "name": "geschlecht",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "altersklasse": {
+          "name": "altersklasse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "untergruppe": {
+          "name": "untergruppe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nummer": {
+          "name": "nummer",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "aktiv": {
+          "name": "aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "liga_mannschaft_verein_slug_idx": {
+          "name": "liga_mannschaft_verein_slug_idx",
+          "columns": [
+            {
+              "expression": "liga_verein_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "liga_mannschaft_verein_schluessel_idx": {
+          "name": "liga_mannschaft_verein_schluessel_idx",
+          "columns": [
+            {
+              "expression": "liga_verein_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "schluessel",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "liga_mannschaft_liga_verein_id_liga_verein_id_fk": {
+          "name": "liga_mannschaft_liga_verein_id_liga_verein_id_fk",
+          "tableFrom": "liga_mannschaft",
+          "tableTo": "liga_verein",
+          "columnsFrom": [
+            "liga_verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.liga_spiel": {
+      "name": "liga_spiel",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "gruppe_id": {
+          "name": "gruppe_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spielnummer": {
+          "name": "spielnummer",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spielcode": {
+          "name": "spielcode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quelle": {
+          "name": "quelle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nuliga'"
+        },
+        "externe_id": {
+          "name": "externe_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "meeting_id": {
+          "name": "meeting_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "datum": {
+          "name": "datum",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uhrzeit": {
+          "name": "uhrzeit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "beginn": {
+          "name": "beginn",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "urspruenglicher_beginn": {
+          "name": "urspruenglicher_beginn",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "halle_name": {
+          "name": "halle_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "halle_nummer": {
+          "name": "halle_nummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "halle_nuliga_id": {
+          "name": "halle_nuliga_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heim_name": {
+          "name": "heim_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gast_name": {
+          "name": "gast_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "heim_teamtable_id": {
+          "name": "heim_teamtable_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gast_teamtable_id": {
+          "name": "gast_teamtable_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tore_heim": {
+          "name": "tore_heim",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tore_gast": {
+          "name": "tore_gast",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "halbzeit_heim": {
+          "name": "halbzeit_heim",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "halbzeit_gast": {
+          "name": "halbzeit_gast",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ergebnis_bestaetigt": {
+          "name": "ergebnis_bestaetigt",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "ist_freundschaft": {
+          "name": "ist_freundschaft",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "status": {
+          "name": "status",
+          "type": "liga_spiel_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'geplant'"
+        },
+        "synchronisiert_am": {
+          "name": "synchronisiert_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "liga_spiel_gruppe_nummer_idx": {
+          "name": "liga_spiel_gruppe_nummer_idx",
+          "columns": [
+            {
+              "expression": "gruppe_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "spielnummer",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "liga_spiel_gruppe_code_idx": {
+          "name": "liga_spiel_gruppe_code_idx",
+          "columns": [
+            {
+              "expression": "gruppe_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "spielcode",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "liga_spiel_gruppe_id_liga_gruppe_id_fk": {
+          "name": "liga_spiel_gruppe_id_liga_gruppe_id_fk",
+          "tableFrom": "liga_spiel",
+          "tableTo": "liga_gruppe",
+          "columnsFrom": [
+            "gruppe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.liga_sync_lauf": {
+      "name": "liga_sync_lauf",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "liga_verein_id": {
+          "name": "liga_verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "art": {
+          "name": "art",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gestartet_am": {
+          "name": "gestartet_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "dauer_ms": {
+          "name": "dauer_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "anfragen": {
+          "name": "anfragen",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "neu": {
+          "name": "neu",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "aktualisiert": {
+          "name": "aktualisiert",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "status": {
+          "name": "status",
+          "type": "liga_sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meldungen": {
+          "name": "meldungen",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "liga_sync_lauf_liga_verein_id_liga_verein_id_fk": {
+          "name": "liga_sync_lauf_liga_verein_id_liga_verein_id_fk",
+          "tableFrom": "liga_sync_lauf",
+          "tableTo": "liga_verein",
+          "columnsFrom": [
+            "liga_verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.liga_tabellenzeile": {
+      "name": "liga_tabellenzeile",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "gruppe_id": {
+          "name": "gruppe_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nuliga_teamtable_id": {
+          "name": "nuliga_teamtable_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rang": {
+          "name": "rang",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spiele": {
+          "name": "spiele",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "siege": {
+          "name": "siege",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unentschieden": {
+          "name": "unentschieden",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "niederlagen": {
+          "name": "niederlagen",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tore_plus": {
+          "name": "tore_plus",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tore_minus": {
+          "name": "tore_minus",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "punkte_plus": {
+          "name": "punkte_plus",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "punkte_minus": {
+          "name": "punkte_minus",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zurueckgezogen": {
+          "name": "zurueckgezogen",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {
+        "liga_tabellenzeile_gruppe_team_idx": {
+          "name": "liga_tabellenzeile_gruppe_team_idx",
+          "columns": [
+            {
+              "expression": "gruppe_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "nuliga_teamtable_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "liga_tabellenzeile_gruppe_id_liga_gruppe_id_fk": {
+          "name": "liga_tabellenzeile_gruppe_id_liga_gruppe_id_fk",
+          "tableFrom": "liga_tabellenzeile",
+          "tableTo": "liga_gruppe",
+          "columnsFrom": [
+            "gruppe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.liga_teilnahme": {
+      "name": "liga_teilnahme",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "mannschaft_id": {
+          "name": "mannschaft_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gruppe_id": {
+          "name": "gruppe_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "saison": {
+          "name": "saison",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nuliga_teamtable_id": {
+          "name": "nuliga_teamtable_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nuliga_name": {
+          "name": "nuliga_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rang": {
+          "name": "rang",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "punkte_plus": {
+          "name": "punkte_plus",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "punkte_minus": {
+          "name": "punkte_minus",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aktiv": {
+          "name": "aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "synchronisiert_am": {
+          "name": "synchronisiert_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "spiele_synchronisiert_am": {
+          "name": "spiele_synchronisiert_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "liga_teilnahme_mannschaft_gruppe_idx": {
+          "name": "liga_teilnahme_mannschaft_gruppe_idx",
+          "columns": [
+            {
+              "expression": "mannschaft_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "gruppe_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "liga_teilnahme_mannschaft_id_liga_mannschaft_id_fk": {
+          "name": "liga_teilnahme_mannschaft_id_liga_mannschaft_id_fk",
+          "tableFrom": "liga_teilnahme",
+          "tableTo": "liga_mannschaft",
+          "columnsFrom": [
+            "mannschaft_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "liga_teilnahme_gruppe_id_liga_gruppe_id_fk": {
+          "name": "liga_teilnahme_gruppe_id_liga_gruppe_id_fk",
+          "tableFrom": "liga_teilnahme",
+          "tableTo": "liga_gruppe",
+          "columnsFrom": [
+            "gruppe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.liga_verein_logo": {
+      "name": "liga_verein_logo",
+      "schema": "",
+      "columns": {
+        "liga_verein_id": {
+          "name": "liga_verein_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "png": {
+          "name": "png",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "farbton": {
+          "name": "farbton",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aktualisiert_am": {
+          "name": "aktualisiert_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "liga_verein_logo_liga_verein_id_liga_verein_id_fk": {
+          "name": "liga_verein_logo_liga_verein_id_liga_verein_id_fk",
+          "tableFrom": "liga_verein_logo",
+          "tableTo": "liga_verein",
+          "columnsFrom": [
+            "liga_verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.liga_verein_zusatzquelle": {
+      "name": "liga_verein_zusatzquelle",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "liga_verein_id": {
+          "name": "liga_verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nuliga_club_id": {
+          "name": "nuliga_club_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handball_net_club_id": {
+          "name": "handball_net_club_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bezeichnung": {
+          "name": "bezeichnung",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kategorien": {
+          "name": "kategorien",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "name_enthaelt": {
+          "name": "name_enthaelt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "liga_zusatzquelle_verein_club_idx": {
+          "name": "liga_zusatzquelle_verein_club_idx",
+          "columns": [
+            {
+              "expression": "liga_verein_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "nuliga_club_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "liga_zusatzquelle_verein_hnet_idx": {
+          "name": "liga_zusatzquelle_verein_hnet_idx",
+          "columns": [
+            {
+              "expression": "liga_verein_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "handball_net_club_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "liga_verein_zusatzquelle_liga_verein_id_liga_verein_id_fk": {
+          "name": "liga_verein_zusatzquelle_liga_verein_id_liga_verein_id_fk",
+          "tableFrom": "liga_verein_zusatzquelle",
+          "tableTo": "liga_verein",
+          "columnsFrom": [
+            "liga_verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.liga_verein": {
+      "name": "liga_verein",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "verein_id": {
+          "name": "verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verband": {
+          "name": "verband",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'HHV'"
+        },
+        "nuliga_club_id": {
+          "name": "nuliga_club_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handball_net_club_id": {
+          "name": "handball_net_club_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handball_net_team_ids": {
+          "name": "handball_net_team_ids",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handball_net_synchronisiert_am": {
+          "name": "handball_net_synchronisiert_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "struktur_synchronisiert_am": {
+          "name": "struktur_synchronisiert_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spiele_synchronisiert_am": {
+          "name": "spiele_synchronisiert_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sync_status": {
+          "name": "sync_status",
+          "type": "liga_sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "liga_verein_verband_club_idx": {
+          "name": "liga_verein_verband_club_idx",
+          "columns": [
+            {
+              "expression": "verband",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "nuliga_club_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "liga_verein_handball_net_club_idx": {
+          "name": "liga_verein_handball_net_club_idx",
+          "columns": [
+            {
+              "expression": "handball_net_club_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "liga_verein_verein_id_verein_id_fk": {
+          "name": "liga_verein_verein_id_verein_id_fk",
+          "tableFrom": "liga_verein",
+          "tableTo": "verein",
+          "columnsFrom": [
+            "verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "liga_verein_verein_id_unique": {
+          "name": "liga_verein_verein_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "verein_id"
+          ]
+        },
+        "liga_verein_slug_unique": {
+          "name": "liga_verein_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mannschaft": {
+      "name": "mannschaft",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "verein_id": {
+          "name": "verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "altersklasse": {
+          "name": "altersklasse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handball_net_team_id": {
+          "name": "handball_net_team_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ordner_bedarf_deaktiviert": {
+          "name": "ordner_bedarf_deaktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "kioskdienst_bedarf_deaktiviert": {
+          "name": "kioskdienst_bedarf_deaktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "zeitnehmer_bedarf_deaktiviert": {
+          "name": "zeitnehmer_bedarf_deaktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "kassierer_bedarf_deaktiviert": {
+          "name": "kassierer_bedarf_deaktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mannschaft_verein_id_verein_id_fk": {
+          "name": "mannschaft_verein_id_verein_id_fk",
+          "tableFrom": "mannschaft",
+          "tableTo": "verein",
+          "columnsFrom": [
+            "verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.produkt_feedback": {
+      "name": "produkt_feedback",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "verein_id": {
+          "name": "verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seite": {
+          "name": "seite",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nachricht": {
+          "name": "nachricht",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "produkt_feedback_verein_id_verein_id_fk": {
+          "name": "produkt_feedback_verein_id_verein_id_fk",
+          "tableFrom": "produkt_feedback",
+          "tableTo": "verein",
+          "columnsFrom": [
+            "verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "produkt_feedback_user_id_user_id_fk": {
+          "name": "produkt_feedback_user_id_user_id_fk",
+          "tableFrom": "produkt_feedback",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.schiedsrichter_profil": {
+      "name": "schiedsrichter_profil",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "lizenznummer": {
+          "name": "lizenznummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ics_feed_url": {
+          "name": "ics_feed_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "letzter_sync_am": {
+          "name": "letzter_sync_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "letzter_sync_status": {
+          "name": "letzter_sync_status",
+          "type": "sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'noch_nie'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "schiedsrichter_profil_user_id_user_id_fk": {
+          "name": "schiedsrichter_profil_user_id_user_id_fk",
+          "tableFrom": "schiedsrichter_profil",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.session": {
+      "name": "session",
+      "schema": "",
+      "columns": {
+        "sessionToken": {
+          "name": "sessionToken",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires": {
+          "name": "expires",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "session_userId_user_id_fk": {
+          "name": "session_userId_user_id_fk",
+          "tableFrom": "session",
+          "tableTo": "user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.system_einstellungen": {
+      "name": "system_einstellungen",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "beta_verein_limit": {
+          "name": "beta_verein_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.termin_zuordnung": {
+      "name": "termin_zuordnung",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "termin_id": {
+          "name": "termin_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "externer_name": {
+          "name": "externer_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "match_vorschlag_user_id": {
+          "name": "match_vorschlag_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "funktionstraeger_typ": {
+          "name": "funktionstraeger_typ",
+          "type": "funktionstraeger_typ",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quelle": {
+          "name": "quelle",
+          "type": "zuordnung_quelle",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "abmeldung_angefragt_am": {
+          "name": "abmeldung_angefragt_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "termin_zuordnung_termin_id_termin_id_fk": {
+          "name": "termin_zuordnung_termin_id_termin_id_fk",
+          "tableFrom": "termin_zuordnung",
+          "tableTo": "termin",
+          "columnsFrom": [
+            "termin_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "termin_zuordnung_user_id_user_id_fk": {
+          "name": "termin_zuordnung_user_id_user_id_fk",
+          "tableFrom": "termin_zuordnung",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "termin_zuordnung_match_vorschlag_user_id_user_id_fk": {
+          "name": "termin_zuordnung_match_vorschlag_user_id_user_id_fk",
+          "tableFrom": "termin_zuordnung",
+          "tableTo": "user",
+          "columnsFrom": [
+            "match_vorschlag_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.termin": {
+      "name": "termin",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "verein_id": {
+          "name": "verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "typ": {
+          "name": "typ",
+          "type": "termin_typ",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start": {
+          "name": "start",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ende": {
+          "name": "ende",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ort": {
+          "name": "ort",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "beschreibung": {
+          "name": "beschreibung",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quelle": {
+          "name": "quelle",
+          "type": "termin_quelle",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "erstellt_von": {
+          "name": "erstellt_von",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mannschaft_id": {
+          "name": "mannschaft_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ics_uid": {
+          "name": "ics_uid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ics_schiedsrichter_id": {
+          "name": "ics_schiedsrichter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "turnier_id": {
+          "name": "turnier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "freigabe_token": {
+          "name": "freigabe_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heim_mannschaft_name": {
+          "name": "heim_mannschaft_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "auswaerts_mannschaft_name": {
+          "name": "auswaerts_mannschaft_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kategorie": {
+          "name": "kategorie",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pflichtspiel": {
+          "name": "pflichtspiel",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "freundschafts_typ": {
+          "name": "freundschafts_typ",
+          "type": "freundschafts_typ",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "turnier_verantwortlicher_id": {
+          "name": "turnier_verantwortlicher_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ergebnis_heim": {
+          "name": "ergebnis_heim",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ergebnis_auswaerts": {
+          "name": "ergebnis_auswaerts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nuliga_schiedsrichter_kuerzel": {
+          "name": "nuliga_schiedsrichter_kuerzel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handball_net_schiedsrichter": {
+          "name": "handball_net_schiedsrichter",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handball_net_zeitnehmer": {
+          "name": "handball_net_zeitnehmer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zeitnehmer_bedarf_override": {
+          "name": "zeitnehmer_bedarf_override",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duplikat_gemeldet_am": {
+          "name": "duplikat_gemeldet_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "liga_spiel_id": {
+          "name": "liga_spiel_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "termin_verein_id_verein_id_fk": {
+          "name": "termin_verein_id_verein_id_fk",
+          "tableFrom": "termin",
+          "tableTo": "verein",
+          "columnsFrom": [
+            "verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "termin_erstellt_von_user_id_fk": {
+          "name": "termin_erstellt_von_user_id_fk",
+          "tableFrom": "termin",
+          "tableTo": "user",
+          "columnsFrom": [
+            "erstellt_von"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "termin_mannschaft_id_mannschaft_id_fk": {
+          "name": "termin_mannschaft_id_mannschaft_id_fk",
+          "tableFrom": "termin",
+          "tableTo": "mannschaft",
+          "columnsFrom": [
+            "mannschaft_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "termin_ics_schiedsrichter_id_user_id_fk": {
+          "name": "termin_ics_schiedsrichter_id_user_id_fk",
+          "tableFrom": "termin",
+          "tableTo": "user",
+          "columnsFrom": [
+            "ics_schiedsrichter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "termin_turnier_id_termin_id_fk": {
+          "name": "termin_turnier_id_termin_id_fk",
+          "tableFrom": "termin",
+          "tableTo": "termin",
+          "columnsFrom": [
+            "turnier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "termin_turnier_verantwortlicher_id_user_id_fk": {
+          "name": "termin_turnier_verantwortlicher_id_user_id_fk",
+          "tableFrom": "termin",
+          "tableTo": "user",
+          "columnsFrom": [
+            "turnier_verantwortlicher_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "termin_liga_spiel_id_liga_spiel_id_fk": {
+          "name": "termin_liga_spiel_id_liga_spiel_id_fk",
+          "tableFrom": "termin",
+          "tableTo": "liga_spiel",
+          "columnsFrom": [
+            "liga_spiel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "termin_freigabe_token_unique": {
+          "name": "termin_freigabe_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "freigabe_token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.trainingszeit": {
+      "name": "trainingszeit",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "verein_id": {
+          "name": "verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mannschaft_id": {
+          "name": "mannschaft_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "halle_id": {
+          "name": "halle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wochentag": {
+          "name": "wochentag",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_minuten": {
+          "name": "start_minuten",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_minuten": {
+          "name": "end_minuten",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "farbe": {
+          "name": "farbe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'#3b82f6'"
+        },
+        "abteil_nummer": {
+          "name": "abteil_nummer",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "trainingszeit_verein_id_verein_id_fk": {
+          "name": "trainingszeit_verein_id_verein_id_fk",
+          "tableFrom": "trainingszeit",
+          "tableTo": "verein",
+          "columnsFrom": [
+            "verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "trainingszeit_mannschaft_id_mannschaft_id_fk": {
+          "name": "trainingszeit_mannschaft_id_mannschaft_id_fk",
+          "tableFrom": "trainingszeit",
+          "tableTo": "mannschaft",
+          "columnsFrom": [
+            "mannschaft_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "trainingszeit_halle_id_halle_id_fk": {
+          "name": "trainingszeit_halle_id_halle_id_fk",
+          "tableFrom": "trainingszeit",
+          "tableTo": "halle",
+          "columnsFrom": [
+            "halle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.treuhand_zugriff": {
+      "name": "treuhand_zugriff",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "system_admin_user_id": {
+          "name": "system_admin_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verein_id": {
+          "name": "verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "art": {
+          "name": "art",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gestartet_am": {
+          "name": "gestartet_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "treuhand_zugriff_system_admin_user_id_user_id_fk": {
+          "name": "treuhand_zugriff_system_admin_user_id_user_id_fk",
+          "tableFrom": "treuhand_zugriff",
+          "tableTo": "user",
+          "columnsFrom": [
+            "system_admin_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "treuhand_zugriff_verein_id_verein_id_fk": {
+          "name": "treuhand_zugriff_verein_id_verein_id_fk",
+          "tableFrom": "treuhand_zugriff",
+          "tableTo": "verein",
+          "columnsFrom": [
+            "verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "treuhand_zugriff_system_admin_user_id_unique": {
+          "name": "treuhand_zugriff_system_admin_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "system_admin_user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user": {
+      "name": "user",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "emailVerified": {
+          "name": "emailVerified",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "verein_id": {
+          "name": "verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ist_admin": {
+          "name": "ist_admin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "ist_admin_lesend": {
+          "name": "ist_admin_lesend",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "ist_system_admin": {
+          "name": "ist_system_admin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "telefonnummer": {
+          "name": "telefonnummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pending_email": {
+          "name": "pending_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pending_email_token": {
+          "name": "pending_email_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pending_email_token_ablauf_am": {
+          "name": "pending_email_token_ablauf_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "muss_passwort_aendern": {
+          "name": "muss_passwort_aendern",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "wochen_digest_aktiviert": {
+          "name": "wochen_digest_aktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "termin_erinnerung_aktiviert": {
+          "name": "termin_erinnerung_aktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "offene_schiedsrichter_erinnerung_aktiviert": {
+          "name": "offene_schiedsrichter_erinnerung_aktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "offene_zeitnehmer_erinnerung_aktiviert": {
+          "name": "offene_zeitnehmer_erinnerung_aktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "offene_dienste_broadcast_aktiviert": {
+          "name": "offene_dienste_broadcast_aktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "kalender_token": {
+          "name": "kalender_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "letzter_login_am": {
+          "name": "letzter_login_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_verein_id_verein_id_fk": {
+          "name": "user_verein_id_verein_id_fk",
+          "tableFrom": "user",
+          "tableTo": "verein",
+          "columnsFrom": [
+            "verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_email_unique": {
+          "name": "user_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        },
+        "user_pending_email_token_unique": {
+          "name": "user_pending_email_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "pending_email_token"
+          ]
+        },
+        "user_kalender_token_unique": {
+          "name": "user_kalender_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "kalender_token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.verein_protokoll": {
+      "name": "verein_protokoll",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "verein_id": {
+          "name": "verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aktion": {
+          "name": "aktion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "akteur": {
+          "name": "akteur",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "details": {
+          "name": "details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zeitpunkt": {
+          "name": "zeitpunkt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "verein_protokoll_verein_id_verein_id_fk": {
+          "name": "verein_protokoll_verein_id_verein_id_fk",
+          "tableFrom": "verein_protokoll",
+          "tableTo": "verein",
+          "columnsFrom": [
+            "verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.verein_vorschau_link": {
+      "name": "verein_vorschau_link",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "verein_id": {
+          "name": "verein_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "gueltig_bis": {
+          "name": "gueltig_bis",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "widerrufen_am": {
+          "name": "widerrufen_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "verein_vorschau_link_verein_id_verein_id_fk": {
+          "name": "verein_vorschau_link_verein_id_verein_id_fk",
+          "tableFrom": "verein_vorschau_link",
+          "tableTo": "verein",
+          "columnsFrom": [
+            "verein_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "verein_vorschau_link_token_unique": {
+          "name": "verein_vorschau_link_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.verein": {
+      "name": "verein",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "strasse": {
+          "name": "strasse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "plz": {
+          "name": "plz",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ort": {
+          "name": "ort",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'aktiv'"
+        },
+        "uebergeben_am": {
+          "name": "uebergeben_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "support_zugriff_bis": {
+          "name": "support_zugriff_bis",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avv_akzeptiert_am": {
+          "name": "avv_akzeptiert_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avv_akzeptiert_version": {
+          "name": "avv_akzeptiert_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avv_akzeptiert_von_name": {
+          "name": "avv_akzeptiert_von_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avv_akzeptiert_von_email": {
+          "name": "avv_akzeptiert_von_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "testspiel_ordner_bedarf": {
+          "name": "testspiel_ordner_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "testspiel_kioskdienst_bedarf": {
+          "name": "testspiel_kioskdienst_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "turnier_ordner_bedarf": {
+          "name": "turnier_ordner_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "turnier_kioskdienst_bedarf": {
+          "name": "turnier_kioskdienst_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "rundenspiel_ordner_bedarf": {
+          "name": "rundenspiel_ordner_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "rundenspiel_kioskdienst_bedarf": {
+          "name": "rundenspiel_kioskdienst_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "testspiel_kassierer_bedarf": {
+          "name": "testspiel_kassierer_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "turnier_kassierer_bedarf": {
+          "name": "turnier_kassierer_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "rundenspiel_kassierer_bedarf": {
+          "name": "rundenspiel_kassierer_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "testspiel_zeitnehmer_bedarf": {
+          "name": "testspiel_zeitnehmer_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "turnier_zeitnehmer_bedarf": {
+          "name": "turnier_zeitnehmer_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "rundenspiel_zeitnehmer_bedarf": {
+          "name": "rundenspiel_zeitnehmer_bedarf",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "nuliga_halle_1_id": {
+          "name": "nuliga_halle_1_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nuliga_halle_2_id": {
+          "name": "nuliga_halle_2_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nuliga_halle_3_id": {
+          "name": "nuliga_halle_3_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "eigene_hallen_namen": {
+          "name": "eigene_hallen_namen",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nuliga_auto_import_aktiviert": {
+          "name": "nuliga_auto_import_aktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "rundenspiel_aenderungen_benachrichtigung_aktiviert": {
+          "name": "rundenspiel_aenderungen_benachrichtigung_aktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "offene_dienste_broadcast_aktiviert": {
+          "name": "offene_dienste_broadcast_aktiviert",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "zeitnehmer_selbstanmeldung_token": {
+          "name": "zeitnehmer_selbstanmeldung_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ordner_selbstanmeldung_token": {
+          "name": "ordner_selbstanmeldung_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trainingsplan_start_minuten": {
+          "name": "trainingsplan_start_minuten",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 420
+        },
+        "trainingsplan_end_minuten": {
+          "name": "trainingsplan_end_minuten",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1320
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "verein_zeitnehmer_selbstanmeldung_token_unique": {
+          "name": "verein_zeitnehmer_selbstanmeldung_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "zeitnehmer_selbstanmeldung_token"
+          ]
+        },
+        "verein_ordner_selbstanmeldung_token_unique": {
+          "name": "verein_ordner_selbstanmeldung_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "ordner_selbstanmeldung_token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.verificationToken": {
+      "name": "verificationToken",
+      "schema": "",
+      "columns": {
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires": {
+          "name": "expires",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "verificationToken_identifier_token_pk": {
+          "name": "verificationToken_identifier_token_pk",
+          "columns": [
+            "identifier",
+            "token"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.warteliste": {
+      "name": "warteliste",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "vereinsname": {
+          "name": "vereinsname",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "admin_name": {
+          "name": "admin_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "admin_email": {
+          "name": "admin_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.freundschafts_typ": {
+      "name": "freundschafts_typ",
+      "schema": "public",
+      "values": [
+        "freundschaftsspiel",
+        "turnier"
+      ]
+    },
+    "public.funktionstraeger_typ": {
+      "name": "funktionstraeger_typ",
+      "schema": "public",
+      "values": [
+        "schiedsrichter",
+        "zeitnehmer",
+        "sekretaer",
+        "trainer",
+        "ordner",
+        "kioskdienst",
+        "kassierer",
+        "schiedsrichterwart",
+        "zeitnehmerwart",
+        "ordnerwart"
+      ]
+    },
+    "public.liga_kategorie": {
+      "name": "liga_kategorie",
+      "schema": "public",
+      "values": [
+        "herren",
+        "damen",
+        "jugend_maennlich",
+        "jugend_weiblich",
+        "kinder",
+        "sonstige"
+      ]
+    },
+    "public.liga_spiel_status": {
+      "name": "liga_spiel_status",
+      "schema": "public",
+      "values": [
+        "geplant",
+        "verlegt",
+        "abgesagt",
+        "nicht_angetreten",
+        "gespielt"
+      ]
+    },
+    "public.liga_sync_status": {
+      "name": "liga_sync_status",
+      "schema": "public",
+      "values": [
+        "erfolgreich",
+        "teilweise",
+        "fehler"
+      ]
+    },
+    "public.lizenz_erinnerung_stufe": {
+      "name": "lizenz_erinnerung_stufe",
+      "schema": "public",
+      "values": [
+        "60_tage",
+        "30_tage",
+        "7_tage",
+        "abgelaufen"
+      ]
+    },
+    "public.sync_status": {
+      "name": "sync_status",
+      "schema": "public",
+      "values": [
+        "noch_nie",
+        "erfolgreich",
+        "fehler"
+      ]
+    },
+    "public.termin_quelle": {
+      "name": "termin_quelle",
+      "schema": "public",
+      "values": [
+        "ics_feed",
+        "manuell",
+        "rundenspiel_import"
+      ]
+    },
+    "public.termin_typ": {
+      "name": "termin_typ",
+      "schema": "public",
+      "values": [
+        "spiel_ics",
+        "testspiel",
+        "turnier",
+        "turnier_spiel",
+        "rundenspiel"
+      ]
+    },
+    "public.zuordnung_quelle": {
+      "name": "zuordnung_quelle",
+      "schema": "public",
+      "values": [
+        "zugeordnet_durch_admin",
+        "selbst_angemeldet",
+        "selbst_eingetragen_oeffentlich",
+        "handball_net_uebernommen"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

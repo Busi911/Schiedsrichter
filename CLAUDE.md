@@ -264,3 +264,23 @@ abhängen (Favoriten-API mit Vorschau-Verein), dürfen nie im gemeinsamen Cache
 landen (`private, no-store`). Der Verein bleibt ohne Link 404 und taucht nicht
 in Suche/Sitemap auf. Der einrichtende Systemadmin im Treuhand-Kontext sieht
 die Seite ebenfalls.
+
+## Hallenplan + öffentliche Liga-Daten zusammenführen (in Arbeit)
+
+Ziel: Hallen-ID-Import und öffentlicher Liga-Sync liefern EINE Termin-Wahrheit,
+ohne eingetragene Dienste (Funktionsträger) zu verlieren. Vorgehen in Stufen,
+alles unter `/system/abgleich` (nur Systemadmin):
+1. **Bericht + Trockenlauf** (`hallenplan-abgleich*.ts`): nur lesend.
+2. **Verknüpfen** (`hallenplan-verknuepfung.ts`, `termin.liga_spiel_id`): speichert
+   NUR den Verweis Termin → `liga_spiel` für sicher zugeordnete Termine. Ändert
+   nichts sonst, löscht nichts, idempotent; Spiele, die mehrere Termine
+   beanspruchen (Duplikate), bleiben unverknüpft. Test: Zuordnungen/Termin
+   unverändert.
+3. **Übernehmen** (noch NICHT gebaut): Schalter je Verein (Default aus), Termine
+   aus der öffentlichen Quelle aktualisieren/anlegen — nur künftige Spiele neu,
+   Zuordnungen und Ansetzung (Schiri-Kürzel, handball.net-Schiedsrichter/Zeitnehmer;
+   personenbezogen, NUR im privaten Termin, NIE in `liga_*`) bleiben erhalten,
+   nichts wird gelöscht (das Aufräumen verwaister Hallenplan-Termine darf
+   verknüpfte/nur im Hallenplan vorhandene Termine nie löschen — Löschen
+   kaskadiert auf `termin_zuordnung`), Sicherungskopie vor der Aktivierung.
+   Die Hallen-ID bleibt als Zusatzquelle (u.a. für Freundschaftsspiele/Turniere).
