@@ -163,7 +163,12 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
           }),
         };
       })
-      .sort((x, y) => x.start.getTime() - y.start.getTime());
+      // Pflichtspiele zuerst (die sind prüfenswert), Freundschaften/Turniere danach.
+      .sort(
+        (x, y) =>
+          Number(x.pflichtspiel === false) - Number(y.pflichtspiel === false) ||
+          x.start.getTime() - y.start.getTime()
+      );
 
     ergebnis.push({
       vereinId: v.id,
