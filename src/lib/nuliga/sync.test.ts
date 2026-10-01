@@ -72,6 +72,34 @@ describe("sync-hilfen", () => {
     ).toBeNull();
   });
 
+  it("erkennt echte nuLiga-Abkürzungen (HSG Dutenh./Münchholzh. II)", () => {
+    // Tabelle der weiblichen C-Jugend Bezirksklasse Gr.1 (Namen wie bei nuLiga)
+    const namen = [
+      "TV Homberg II",
+      "TSV Griedel II",
+      "HSG Dutenh./Münchholzh. II",
+      "HSG Hungen/Lich III",
+      "HSG Lumdatal III",
+      "JSG Lahntal II",
+    ];
+    const tabelle = namen.map((mannschaft, i) => ({
+      rang: i + 1,
+      mannschaft,
+      teamtableId: `t${i}`,
+      spiele: 2,
+      siege: 1,
+      unentschieden: 0,
+      niederlagen: 1,
+      tore: null,
+      punkte: { plus: 2, minus: 2 },
+    }));
+    const verein = "HSG Dutenhofen/Münchholzhausen";
+    expect(ermittleTeamtable({ rang: 7, punkte: null, nummer: 2 }, tabelle, verein)).toBe("t2");
+    // Nummer 3 ("Hungen/Lich III") darf nicht auf die II zeigen
+    expect(ermittleTeamtable({ rang: 7, punkte: null, nummer: 3 }, tabelle, "HSG Hungen/Lich")).toBe("t3");
+    expect(ermittleTeamtable({ rang: 7, punkte: null, nummer: 1 }, tabelle, verein)).toBeNull();
+  });
+
   it("findet den eigenen Namen im Portrait (in jedem Spiel enthalten)", () => {
     const spiele = [
       { heim: "SG X", gast: "A" },
