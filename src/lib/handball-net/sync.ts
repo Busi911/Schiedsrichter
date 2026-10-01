@@ -15,6 +15,7 @@ import { spielGeaendert, type SpielFelder } from "@/lib/nuliga/sync-hilfen";
 import type { HoleJson } from "./client";
 import {
   berechneTabelle,
+  parseOffizielleTabelle,
   normalisiereHnetTeam,
   parsePhasen,
   parseSaisons,
@@ -503,14 +504,24 @@ async function verarbeitePhase(k: PhaseKontext): Promise<string | null> {
   if (phase.hatTabelle && !k.tabellenDieserLauf.has(phase.id) && !tabelleFrisch) {
     k.tabellenDieserLauf.add(phase.id);
     try {
-      const alle = parseSpiele(
-        await holeAlleSeiten(hole, `/api/new/matches?phase_id=${encodeURIComponent(phase.id)}&date_from=${von}&date_to=${bis}`)
-      );
-      if (alle.length === 0) {
-        warn(`${ligaName}: keine Phasenspiele für die Tabelle gefunden`);
-      } else {
-        tabelle = berechneTabelle(alle);
-        warn(`${ligaName}: Tabelle aus Spielergebnissen berechnet (ohne direkten Vergleich)`);
+      // Erst die offizielle Tabelle (inkl. direktem Vergleich), sonst berechnen.
+      try {
+        tabelle = parseOffizielleTabelle(
+          await hole(`/api/new/standings?phase_id=${encodeURIComponent(phase.id)}`)
+        );
+      } catch {
+        tabelle = null;
+      }
+      if (!tabelle) {
+        const alle = parseSpiele(
+          await holeAlleSeiten(hole, `/api/new/matches?phase_id=${encodeURIComponent(phase.id)}&date_from=${von}&date_to=${bis}`)
+        );
+        if (alle.length === 0) {
+          warn(`${ligaName}: keine Phasenspiele für die Tabelle gefunden`);
+        } else {
+          tabelle = berechneTabelle(alle);
+          warn(`${ligaName}: Tabelle aus Spielergebnissen berechnet (ohne direkten Vergleich)`);
+        }
       }
     } catch (err) {
       warn(`${ligaName}: Tabelle nicht berechenbar (${err instanceof Error ? err.message : String(err)})`);
