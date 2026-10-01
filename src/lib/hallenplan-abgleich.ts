@@ -97,6 +97,15 @@ export function parseKategorie(
   return null;
 }
 
+// Gegenstück zu parseKategorie: der Kategorie-Text, wie ihn der Hallenplan-Import
+// für einen Termin speichert ("mJC", "wJB", "Mä/männl.", "Fr/weibl."). null, wenn
+// die Gruppe kein eindeutiges Geschlecht hat.
+export function kategorieText(geschlecht: string | null, altersklasse: string | null): string | null {
+  if (geschlecht !== "m" && geschlecht !== "w") return null;
+  if (altersklasse) return `${geschlecht}J${altersklasse}`;
+  return geschlecht === "m" ? "Mä/männl." : "Fr/weibl.";
+}
+
 // Passen Altersklasse/Geschlecht von Termin und Liga-Spiel zusammen? Fehlt auf
 // einer Seite die Information, gilt keine Einschränkung — widersprechen sie
 // sich sicher (z.B. mJC gegen mJD), ist es nie dasselbe Spiel.

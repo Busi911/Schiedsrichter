@@ -3,7 +3,7 @@ import { berechneHallenplanAbgleich } from "@/lib/hallenplan-abgleich-laden";
 import { formatDatumZeit } from "@/lib/format";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Badge } from "@/components/ui/badge";
-import { hallenplanVerknuepfen } from "./actions";
+import { hallenplanVerknuepfen, ligaSpieleUebernehmen } from "./actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -17,7 +17,7 @@ const STATUS_LABEL = {
 export default async function AbgleichPage({
   searchParams,
 }: {
-  searchParams: Promise<{ verein?: string; neu?: string; schon?: string; dup?: string; zv?: string; zn?: string }>;
+  searchParams: Promise<{ verein?: string; neu?: string; schon?: string; dup?: string; zv?: string; zn?: string; ueb?: string; uebdup?: string; uebdupd?: string; uebzeit?: string }>;
 }) {
   await requireSystemAdmin();
   const ergebnisInfo = await searchParams;
@@ -209,6 +209,29 @@ export default async function AbgleichPage({
                   <p className="text-xs text-muted-foreground">
                     Speichert nur den Verweis (kein Datenverlust möglich), kann beliebig oft wiederholt werden.
                   </p>
+                  {ergebnisInfo.verein === v.vereinId && ergebnisInfo.ueb !== undefined && (
+                    <p className="rounded-md border bg-muted/40 p-2 text-xs">
+                      Übernommen: <strong>{ergebnisInfo.ueb}</strong> Termine angelegt
+                      {Number(ergebnisInfo.uebdup) > 0 && `, ${ergebnisInfo.uebdup} leere Doppelgänger entfernt`}
+                      {Number(ergebnisInfo.uebdupd) > 0 && `, ${ergebnisInfo.uebdupd} Doppelgänger mit Diensten (bitte prüfen)`}
+                      {Number(ergebnisInfo.uebzeit) > 0 && `, ${ergebnisInfo.uebzeit} ohne Uhrzeit übersprungen`}. Kontrolle Dienste:
+                      vorher {ergebnisInfo.zv}, nachher {ergebnisInfo.zn}
+                      {ergebnisInfo.zv === ergebnisInfo.zn ? " — unverändert." : " — ABWEICHUNG, bitte prüfen."}
+                    </p>
+                  )}
+                  {t.neuAnzulegenGesamt > 0 && (
+                    <form action={ligaSpieleUebernehmen}>
+                      <input type="hidden" name="vereinId" value={v.vereinId} />
+                      <ConfirmSubmitButton
+                        size="sm"
+                        variant="outline"
+                        pendingText="Übernimmt…"
+                        confirmText={`Für ${v.vereinName} die fehlenden künftigen Heimspiele aus den öffentlichen Daten als Termine anlegen? Es werden keine Mails verschickt, bestehende Termine, Zeiten und Dienste bleiben unverändert, es wird nichts gelöscht.`}
+                      >
+                        Fehlende künftige Heimspiele übernehmen
+                      </ConfirmSubmitButton>
+                    </form>
+                  )}
                 </div>
                 {v.verknuepfte.length > 0 && (
                   <details className="rounded-lg border p-3">
