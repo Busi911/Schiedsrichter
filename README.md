@@ -468,28 +468,31 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
 - **"Angebunden":** **Entschieden (01.10.2026):** Die Seite entsteht,
   sobald ein Admin in `/admin/einstellungen` die nuLiga-Vereins-ID hinterlegt
   — kein zusätzlicher Verein-Schalter, kein Systemadmin-Import.
-- **Datenquelle Tabelle:** Die vorhandenen Scraper
-  (`src/lib/nuliga-scraper.ts`, `src/lib/handball-net-scraper.ts`) holen
-  bisher Spiele/Hallenbelegung, **keine Tabellen**. Ob nuLiga und handball.net
-  die Tabelle stabil abrufbar liefern, ist noch zu prüfen (Landesverband/Liga
-  pro Mannschaft; nuLiga bisher fest auf HHV verdrahtet).
-  - **Ansatz nuLiga (HHV), Hinweis aus der Abstimmung — noch nicht
-    geprüft:** Es gibt eine Vereinsseite anhand der nuLiga-Vereins-ID, die
-    alle Mannschaften des Vereins auflistet, z.B.
-    `https://hhv-handball.liga.nu/cgi-bin/WebObjects/nuLigaHBDE.woa/wa/clubTeams?club=69723`.
-    Von den Mannschaften dort aus sollen die jeweilige Tabelle und ggf. der
-    Spielplan erreichbar sein. Damit würde eine einzige Vereins-ID reichen
-    (statt Hallen-IDs bzw. je Mannschaft eine ID), um alle Mannschaften mit
-    Tabelle/Spielplan/Ergebnissen anzubinden. Offen: neues Verein-Feld für
-    die nuLiga-Vereins-ID (neben den bisherigen Hallen-IDs in
-    `/admin/einstellungen`); Aufbau des HTML der Mannschaftsseiten (Link-
-    Struktur zu Tabelle/Spielplan, Saison-/Staffel-Parameter); ob die Seiten
-    ohne Login abrufbar sind und ob die Nutzungsbedingungen von nuLiga das
-    automatische Abrufen erlauben; andere Landesverbände hätten eine andere
-    Domain (siehe Hinweis oben). Vorgehen: zuerst die Seiten testweise
-    abrufen und das Format dokumentieren, dann den Scraper erweitern.
-  - **Ansatz handball.net (ab der 3. Liga):** Mannschaften mit
-    `handballNetTeamId` — Tabelle auf der Team-Seite prüfen.
+- **Datenquelle Tabelle:** **Umgesetzt (Stand des Codes auf `main`, nach
+  Durchsicht der Quellen — nicht selbst gegen die Live-Seiten getestet):**
+  - **nuLiga (HHV):** Über die Vereins-ID (`clubTeams?club=<id>`, Parser
+    `src/lib/nuliga/parsers/club-teams.ts`) werden alle Mannschaften eines
+    Vereins gefunden; von dort aus werden Gruppenseite (Tabelle + Spielplan,
+    `parsers/group-page.ts`) und Mannschaftsportrait
+    (`parsers/team-portrait.ts`) gelesen. Sync in `src/lib/nuliga/sync.ts`
+    (Struktur und Spiele getrennt, idempotent, fehlertolerant), Cron
+    `/api/cron/liga-sync` über `sync-cron.ts` (spieltagsnah häufiger).
+    Tabellen liegen als `liga_tabellenzeile` in der DB (gecacht, kein Abruf
+    pro Seitenaufruf). nuLiga ist bisher nur für den HHV konfiguriert
+    (`src/lib/nuliga/verbaende.ts`; weitere Verbände = weiterer Eintrag).
+    Die Spalte "Mannschaftsverantwortlicher" wird bewusst nie gelesen
+    (Datenschutz). Zurückgezogene Mannschaften werden erkannt und
+    ausgeblendet (#178, #181).
+  - **handball.net (ab der 3. Liga):** Zweite Quelle über die JSON-API
+    (`src/lib/handball-net/`), Einstieg über die handball.net-Vereins-ID,
+    optional manuell ergänzte Team-IDs; die Tabelle wird dort aus den Spielen
+    berechnet (`berechneTabelle` in `modell.ts`). Unabhängig von nuLiga (ein
+    Ausfall betrifft die andere Quelle nicht).
+  - **Noch offen:** weitere Landesverbände (nuLiga-Domain je Verband); ob
+    handball.net- und nuLiga-Daten für denselben Verein sauber
+    zusammenlaufen (Dubletten); Verhalten bei geänderter HTML-Struktur
+    (Parser meldet Warnungen, löscht bei unlesbarer Seite nichts — echte
+    Seitenänderungen testweise abwarten).
 - **Welche Spiele:** Für den öffentlichen Spielplan zählen die Spiele der
   *eigenen Mannschaften* (Mannschaft mit Liga-Anbindung), nicht die
   Hallenbelegung fremder Mannschaften, die für Ordner-/Kioskdienst importiert
@@ -531,8 +534,9 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
   **Offen:** juristische Prüfung der Texte; Impressum nennt
   DeWe Consulting UG als Betreiber — zu klären, ob für den öffentlichen
   Bereich (und die dort angezeigten Verbandsdaten) etwas ergänzt werden
-  muss; ob die Nutzungsbedingungen von nuLiga/HHV die automatische
-  Übernahme der Sportdaten erlauben.
+  muss. Zu den Abrufen: Laut Kommentar im Code haben HHV (nuLiga) und DHB
+  (handball.net) dem automatischen Abruf zugestimmt — die Zustimmung ggf.
+  schriftlich ablegen; für weitere Verbände jeweils neu klären.
 
 **Grober Ablauf**
 
