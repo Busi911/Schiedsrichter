@@ -47,3 +47,30 @@ export function EinstellungsBereich({
     </details>
   );
 }
+
+// Einklappbarer Unterpunkt innerhalb eines EinstellungsBereichs (z.B. die
+// einzelnen Teile von "Öffentliche Vereinsseite").
+export function Unterbereich({
+  titel,
+  kurz,
+  offen = false,
+  children,
+}: {
+  titel: string;
+  kurz?: string;
+  offen?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details open={offen} className="group border-t pt-3">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">{titel}</span>
+          {kurz && <span className="block truncate text-xs text-muted-foreground">{kurz}</span>}
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="mt-3 flex flex-col gap-3">{children}</div>
+    </details>
+  );
+}

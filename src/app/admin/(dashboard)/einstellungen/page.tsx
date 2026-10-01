@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SubmitButton } from "@/components/submit-button";
-import { EinstellungsBereich } from "@/components/einstellungs-bereich";
+import { EinstellungsBereich, Unterbereich } from "@/components/einstellungs-bereich";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { VereinLoeschenDialog } from "@/components/verein-loeschen-dialog";
 import { LigaAutoWeiter } from "@/components/liga-auto-weiter";
@@ -315,6 +315,7 @@ export default async function EinstellungenPage({
               </ul>
             </details>
           )}
+          <Unterbereich titel="Quellen und Vereins-IDs" kurz="nuLiga, handball.net, Team-IDs — hier aktualisieren" offen>
           <form action={oeffentlicheSeiteSpeichern} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="nuligaClubId">nuLiga-Vereins-ID</Label>
@@ -369,16 +370,17 @@ export default async function EinstellungenPage({
               </SubmitButton>
             )}
           </form>
+          </Unterbereich>
           {ligaVerein && (
-            <div className="flex flex-col gap-3 border-t pt-4">
-              <div>
-                <h3 className="text-sm font-medium">Weitere nuLiga-Vereine (z.B. Spielgemeinschaft)</h3>
-                <p className="text-xs text-muted-foreground">
-                  Läuft eine Mannschaft in nuLiga unter einem Partnerverein (z.B. eine Jugendspielgemeinschaft),
-                  tragt hier dessen nuLiga-Vereins-ID ein. Übernommen werden nur die Mannschaften, die zum
-                  Filter passen — der Rest des Partnervereins nicht.
-                </p>
-              </div>
+            <Unterbereich
+              titel="Weitere nuLiga-Vereine (z.B. Spielgemeinschaft)"
+              kurz={zusatzquellen.length ? `${zusatzquellen.length} angebunden` : "Mannschaften aus einem Partnerverein übernehmen"}
+            >
+              <p className="text-xs text-muted-foreground">
+                Läuft eine Mannschaft in nuLiga unter einem Partnerverein (z.B. eine Jugendspielgemeinschaft),
+                tragt hier dessen nuLiga-Vereins-ID ein. Übernommen werden nur die Mannschaften, die zum
+                Filter passen — der Rest des Partnervereins nicht.
+              </p>
               {zusatzquellen.length > 0 && (
                 <ul className="flex flex-col gap-2">
                   {zusatzquellen.map((z) => (
@@ -456,17 +458,15 @@ export default async function EinstellungenPage({
                   </SubmitButton>
                 </form>
               )}
-            </div>
+            </Unterbereich>
           )}
           {ligaVerein && session.user.istAdmin && (
-            <form action={eigeneHallenNamenSpeichern} className="flex flex-col gap-3 border-t pt-4">
-              <div>
-                <h3 className="text-sm font-medium">Eure Spielhallen</h3>
-                <p className="text-xs text-muted-foreground">
-                  Damit erkennen wir, welche Spiele in einer eurer Hallen stattfinden (nur für diese wird später
-                  eine Einteilung angelegt) — unabhängig davon, ob die Spiele aus nuLiga oder handball.net kommen.
-                </p>
-              </div>
+            <Unterbereich titel="Eure Spielhallen" kurz={verein?.eigeneHallenNamen ? verein.eigeneHallenNamen.split(/\n|,/)[0].trim() + (verein.eigeneHallenNamen.split(/\n|,/).filter((x) => x.trim()).length > 1 ? " u.a." : "") : "Namen eurer Hallen für die Einteilung"}>
+            <form action={eigeneHallenNamenSpeichern} className="flex flex-col gap-3">
+              <p className="text-xs text-muted-foreground">
+                Damit erkennen wir, welche Spiele in einer eurer Hallen stattfinden (nur für diese wird später
+                eine Einteilung angelegt) — unabhängig davon, ob die Spiele aus nuLiga oder handball.net kommen.
+              </p>
               <textarea
                 id="eigeneHallenNamen"
                 name="eigeneHallenNamen"
@@ -484,9 +484,10 @@ export default async function EinstellungenPage({
                 Hallen speichern
               </SubmitButton>
             </form>
+            </Unterbereich>
           )}
           {ligaVerein && (
-            <div className="flex flex-col gap-3 border-t pt-4">
+            <Unterbereich titel="Logo" kurz={logo ? "Logo hinterlegt" : "Kein Logo"}>
               <div className="flex items-center gap-3">
                 {logo ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -528,10 +529,10 @@ export default async function EinstellungenPage({
                   )}
                 </>
               )}
-            </div>
+            </Unterbereich>
           )}
           {ligaVerein && ligaMannschaftsListe.length > 0 && (
-            <details className="group border-t pt-4">
+            <details className="group border-t pt-3">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
                 <span>
                   <span className="block text-sm font-medium">Namen der Mannschaften</span>
