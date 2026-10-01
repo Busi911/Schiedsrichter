@@ -161,7 +161,12 @@ export default function DatenschutzPage() {
         <h2 className="font-heading text-lg font-medium">Cookies</h2>
         <p className="text-sm text-muted-foreground">
           Es wird ausschließlich ein technisch notwendiges Session-Cookie
-          zur Anmeldung gesetzt. Es werden keine Tracking- oder
+          zur Anmeldung gesetzt. Wer auf den öffentlichen Vereinsseiten
+          Favoriten merkt (ohne Konto), dem wird zusätzlich ein technisch
+          notwendiges Cookie gesetzt, das nur die öffentlichen IDs der
+          gemerkten Vereine und Mannschaften enthält (bis zu 12 Monate), damit
+          die Favoriten auch dann erhalten bleiben, wenn der Browser seinen
+          lokalen Speicher bereinigt. Es werden keine Tracking- oder
           Marketing-Cookies verwendet.
         </p>
       </section>

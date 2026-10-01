@@ -26,6 +26,7 @@ export default auth((req) => {
     pathname.startsWith("/verein/") ||
     pathname.startsWith("/meine/") ||
     pathname.startsWith("/api/liga/") ||
+    pathname.startsWith("/api/fan/") ||
     // Öffentliche, login-freie Lese-Ansicht (Kenntnis des Tokens ist die
     // Berechtigung) — siehe src/app/turnier/[token]/page.tsx.
     pathname.startsWith("/turnier/") ||
