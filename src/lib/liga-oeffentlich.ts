@@ -171,10 +171,16 @@ export const holeMannschaften = cache(async (ligaVereinId: string): Promise<Mann
   });
 });
 
+// Zurückgezogene Mannschaften (nuLiga: "zurückgezogen am …" statt Statistik,
+// siehe ligaTabellenzeilen.zurueckgezogen) bleiben in der DB, damit der Sync
+// sie wiedererkennt — in der öffentlichen Tabelle erscheinen sie aber nicht.
 export const holeTabelle = cache(async (gruppeId: string) =>
   mitColdStartRetry(() =>
     adminDb.query.ligaTabellenzeilen.findMany({
-      where: eq(ligaTabellenzeilen.gruppeId, gruppeId),
+      where: and(
+        eq(ligaTabellenzeilen.gruppeId, gruppeId),
+        eq(ligaTabellenzeilen.zurueckgezogen, false)
+      ),
       orderBy: [asc(ligaTabellenzeilen.rang)],
     })
   )
