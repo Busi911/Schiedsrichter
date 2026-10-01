@@ -11,6 +11,8 @@ export type AbgleichTermin = {
   icsUid: string | null;
   heim: string | null;
   gast: string | null;
+  // Rohtext aus dem Hallenplan, z.B. "mJC", "wJD", "Mä/männl.", "Fr/weibl."
+  kategorie: string | null;
 };
 
 export type AbgleichSpiel = {
@@ -18,6 +20,10 @@ export type AbgleichSpiel = {
   spielnummer: number | null;
   datum: string; // YYYY-MM-DD (Berliner Tag)
   uhrzeit: string | null; // "HH:MM" (Berliner Zeit), nur Tie-Breaker
+  // Aus der Liga-Gruppe (liga_gruppe): "m" | "w" | "gemischt" | null,
+  // Altersklasse "A".."F" bzw. null (Erwachsene/unbekannt).
+  geschlecht: string | null;
+  altersklasse: string | null;
   heimName: string;
   gastName: string;
 };
@@ -81,6 +87,32 @@ const berlinTag = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
+// Geschlecht + Altersklasse aus dem Hallenplan-Kategorietext. null = nicht
+// auswertbar (dann gilt keine Einschränkung); altersklasse null = Erwachsene.
+export function parseKategorie(
+  kategorie: string | null
+): { geschlecht: "m" | "w"; altersklasse: string | null } | null {
+  if (!kategorie) return null;
+  const jugend = kategorie.trim().match(/^([mw])\s*J\s*([A-F])\b/i);
+  if (jugend) return { geschlecht: jugend[1].toLowerCase() as "m" | "w", altersklasse: jugend[2].toUpperCase() };
+  if (/^(mä|männ|her)/i.test(kategorie.trim())) return { geschlecht: "m", altersklasse: null };
+  if (/^(fr|frau|dam|weibl)/i.test(kategorie.trim())) return { geschlecht: "w", altersklasse: null };
+  return null;
+}
+
+// Passen Altersklasse/Geschlecht von Termin und Liga-Spiel zusammen? Fehlt auf
+// einer Seite die Information, gilt keine Einschränkung — widersprechen sie
+// sich sicher (z.B. mJC gegen mJD), ist es nie dasselbe Spiel.
+export function passtKategorie(t: AbgleichTermin, s: AbgleichSpiel): boolean {
+  const k = parseKategorie(t.kategorie);
+  if (!k) return true;
+  if (s.geschlecht === "m" || s.geschlecht === "w") {
+    if (s.geschlecht !== k.geschlecht) return false;
+    if (s.altersklasse !== k.altersklasse) return false;
+  }
+  return true;
+}
+
 const MAX_VERLEGUNG_TAGE = 60;
 
 function tageAbstand(a: string, b: string): number {
@@ -96,6 +128,7 @@ const berlinUhr = new Intl.DateTimeFormat("de-DE", {
 
 export function gleicheMannschaften(t: AbgleichTermin, s: AbgleichSpiel): boolean {
   return (
+    passtKategorie(t, s) &&
     normalisiereName(t.heim) !== "" &&
     normalisiereName(t.heim) === normalisiereName(s.heimName) &&
     normalisiereName(t.gast) === normalisiereName(s.gastName)
@@ -104,6 +137,7 @@ export function gleicheMannschaften(t: AbgleichTermin, s: AbgleichSpiel): boolea
 
 export function gleicheMannschaftenVertauscht(t: AbgleichTermin, s: AbgleichSpiel): boolean {
   return (
+    passtKategorie(t, s) &&
     normalisiereName(t.heim) !== "" &&
     normalisiereName(t.heim) === normalisiereName(s.gastName) &&
     normalisiereName(t.gast) === normalisiereName(s.heimName)

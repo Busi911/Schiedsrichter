@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gleicheAb, normalisiereName, spielnummerAusUid } from "./hallenplan-abgleich";
+import { gleicheAb, normalisiereName, parseKategorie, spielnummerAusUid } from "./hallenplan-abgleich";
 
 const termin = (over = {}) => ({
   id: "t1",
@@ -7,6 +7,7 @@ const termin = (over = {}) => ({
   icsUid: "rundenspiel:12345:HSG Test II:TV Gast:4711",
   heim: "HSG Test II",
   gast: "TV Gast",
+  kategorie: null as string | null,
   ...over,
 });
 const spiel = (over = {}) => ({
@@ -14,6 +15,8 @@ const spiel = (over = {}) => ({
   spielnummer: 4711,
   datum: "2026-10-17",
   uhrzeit: "14:00",
+  geschlecht: null as string | null,
+  altersklasse: null as string | null,
   heimName: "HSG Test 2",
   gastName: "TV Gast",
   ...over,
@@ -75,6 +78,35 @@ describe("hallenplan-abgleich", () => {
     const t = termin({ start: new Date("2026-05-16T10:50:00Z"), icsUid: "rundenspiel:1:2026-05-16:12:50:HSG Test II:TV Gast" });
     expect(gleicheAb([t], [spiel({ spielnummer: 128, datum: "2027-04-25" })])[0].status).toBe("kein_treffer");
     expect(gleicheAb([t], [spiel({ spielnummer: 128, datum: "2026-06-01" })])[0].status).toBe("unklar");
+  });
+
+  it("liest Geschlecht und Altersklasse aus dem Hallenplan-Kategorietext", () => {
+    expect(parseKategorie("mJC")).toEqual({ geschlecht: "m", altersklasse: "C" });
+    expect(parseKategorie("wJD")).toEqual({ geschlecht: "w", altersklasse: "D" });
+    expect(parseKategorie("Mä/männl.")).toEqual({ geschlecht: "m", altersklasse: null });
+    expect(parseKategorie("Fr/weibl.")).toEqual({ geschlecht: "w", altersklasse: null });
+    expect(parseKategorie("irgendwas")).toBeNull();
+    expect(parseKategorie(null)).toBeNull();
+  });
+
+  it("trennt gleichnamige Spiele verschiedener Altersklassen am selben Tag (auch bei gleicher Uhrzeit)", () => {
+    const t = termin({ kategorie: "mJD" });
+    const r = gleicheAb(
+      [t],
+      [
+        spiel({ id: "c", geschlecht: "m", altersklasse: "C" }),
+        spiel({ id: "d", geschlecht: "m", altersklasse: "D" }),
+      ]
+    );
+    expect(r[0]).toEqual({ terminId: "t1", status: "sicher", spielIds: ["d"] });
+  });
+
+  it("falsche Altersklasse oder falsches Geschlecht ist nie ein Treffer", () => {
+    const t = termin({ kategorie: "wJC" });
+    expect(gleicheAb([t], [spiel({ geschlecht: "m", altersklasse: "C" })])[0].status).toBe("kein_treffer");
+    expect(gleicheAb([t], [spiel({ geschlecht: "w", altersklasse: "B" })])[0].status).toBe("kein_treffer");
+    // unbekannte Liga-Altersklasse schränkt nicht ein
+    expect(gleicheAb([t], [spiel()])[0].status).toBe("sicher");
   });
 
   it("meldet mehrdeutig statt zu raten", () => {

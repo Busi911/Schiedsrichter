@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine, termine, vereine } from "@/db/schema";
+import { ligaGruppen, ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine, termine, vereine } from "@/db/schema";
 import { gleicheAb, type AbgleichErgebnis } from "@/lib/hallenplan-abgleich";
 
 const berlinUhr = new Intl.DateTimeFormat("de-DE", {
@@ -49,6 +49,7 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
         icsUid: termine.icsUid,
         heim: termine.heimMannschaftName,
         gast: termine.auswaertsMannschaftName,
+        kategorie: termine.kategorie,
         pflichtspiel: termine.pflichtspiel,
       })
       .from(termine)
@@ -83,6 +84,16 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
       }
     }
 
+    const gruppenInfo = new Map(
+      (spiele.length
+        ? await adminDb
+            .select({ id: ligaGruppen.id, geschlecht: ligaGruppen.geschlecht, altersklasse: ligaGruppen.altersklasse })
+            .from(ligaGruppen)
+            .where(inArray(ligaGruppen.id, [...new Set(spiele.map((s) => s.gruppeId))]))
+        : []
+      ).map((g) => [g.id, g])
+    );
+
     const abgleich = gleicheAb(
       hallenTermine,
       spiele.map((s) => ({
@@ -90,6 +101,8 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
         spielnummer: s.spielnummer,
         datum: s.datum,
         uhrzeit: s.uhrzeit ?? (s.beginn ? berlinUhr.format(s.beginn) : null),
+        geschlecht: gruppenInfo.get(s.gruppeId)?.geschlecht ?? null,
+        altersklasse: gruppenInfo.get(s.gruppeId)?.altersklasse ?? null,
         heimName: s.heimName,
         gastName: s.gastName,
       }))
