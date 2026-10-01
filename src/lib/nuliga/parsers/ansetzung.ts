@@ -1,4 +1,4 @@
-import { attribut, normalisiereSpaltenkopf, tabellen, textVon, zeilen, zellen } from "../html";
+import { normalisiereSpaltenkopf, tabellen, zeilen, zellen } from "../html";
 
 // Angesetzter Schiedsrichter je Spiel (nur Kürzel, z.B. "Must.") aus der Ergebnis-Spalte
 // noch nicht gespielter Spiele (<span title="Nachname Vorname">Kürzel</span>).
@@ -8,6 +8,13 @@ import { attribut, normalisiereSpaltenkopf, tabellen, textVon, zeilen, zellen } 
 // PRIVATEN Termin eines Vereins geschrieben werden (termin.nuliga_schiedsrichter_kuerzel),
 // nie in liga_*. Es wird nur das Kürzel gelesen, nicht der volle Name aus title.
 export type NuligaAnsetzung = { spielnummer: number; kuerzel: string };
+
+// Ein Kürzel: ein oder zwei Namen (Gespann, durch "/" getrennt), Buchstaben, Leerzeichen,
+// Punkt, Bindestrich/Apostroph — keine Ziffern (schließt Ergebnisse und Zeiten aus).
+// Kurze Nachnamen sind bei nuLiga unabgekürzt ohne Punkt ("Bock"), lange gekürzt ("Eike/Fisc.").
+const NAME = "[A-ZÄÖÜ][A-Za-zÄÖÜäöüß'’-]*(?: [A-ZÄÖÜ][A-Za-zÄÖÜäöüß'’-]*)?\\.?";
+const KUERZEL = new RegExp(`^${NAME}(?:\\/${NAME})?$`);
+const KEIN_KUERZEL = new Set(["NH", "NG"]); // Wertungscodes (nicht angetreten)
 
 export function parseAnsetzungen(html: string): NuligaAnsetzung[] {
   const ergebnis: NuligaAnsetzung[] = [];
@@ -25,10 +32,13 @@ export function parseAnsetzungen(html: string): NuligaAnsetzung[] {
       const nummer = z[nr]?.text.match(/^\d+$/)?.[0];
       const zelle = z[gast + 1];
       if (!nummer || !zelle || /MeetingReport/i.test(zelle.html)) continue;
-      const span = zelle.html.match(/<span\b([^>]*)>([\s\S]*?)<\/span>/i);
-      if (!span || !attribut(`<span ${span[1]}>`, "title")) continue;
-      const kuerzel = textVon(span[2]).trim();
-      if (kuerzel) ergebnis.push({ spielnummer: Number(nummer), kuerzel });
+      // Aufbau der Zelle ist je Fall verschieden (ein Element oder je Schiedsrichter eins):
+      // die Zelle muss einen Namen im title-Attribut tragen (= angesetzte Person), das
+      // Kürzel ist ihr sichtbarer Text. Den title (vollen Namen) lesen wir nie.
+      if (!/\btitle\s*=\s*"[^"]+"/i.test(zelle.html)) continue;
+      const kuerzel = zelle.text.replace(/[\s ]+/g, " ").replace(/ ?\/ ?/g, "/").trim();
+      if (!kuerzel || KEIN_KUERZEL.has(kuerzel.toUpperCase()) || !KUERZEL.test(kuerzel)) continue;
+      ergebnis.push({ spielnummer: Number(nummer), kuerzel });
     }
   }
   return ergebnis;
