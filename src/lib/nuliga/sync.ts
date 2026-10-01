@@ -13,7 +13,7 @@ import {
 } from "@/db/schema";
 import { tagKey } from "@/lib/kalender";
 import { parseClubTeams } from "./parsers/club-teams";
-import { passtZumZusatzFilter } from "./zusatzquellen";
+import { beschreibeZusatzVerein, passtZumZusatzFilter } from "./zusatzquellen";
 import { parseGroupPage } from "./parsers/group-page";
 import { parseTeamPortrait } from "./parsers/team-portrait";
 import { normalisiereMannschaft, parseLigaName, slugify } from "./normalisierung";
@@ -407,7 +407,9 @@ export async function synchronisiereStruktur(
       );
       lauf.warn(
         `Zusatzquelle ${bezeichnung}: ${gewaehlt.length} Mannschaft(en) übernommen` +
-          (gewaehlt.length ? ` (${gewaehlt.map((t) => t.mannschaftsname).join(", ")})` : " – Filter prüfen")
+          (gewaehlt.length
+            ? ` (${gewaehlt.map((t) => t.mannschaftsname).join(", ")})`
+            : ` – Filter prüfen: ${beschreibeZusatzVerein(zClub.daten.teams, saison, z)}`)
       );
       const zName = zClub.daten.vereinsname ?? bezeichnung;
       for (const team of gewaehlt) eintraege.push({ team, vereinsname: zName });
