@@ -7,7 +7,10 @@ export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const basis = appUrl();
-  const eintraege: MetadataRoute.Sitemap = [{ url: basis, changeFrequency: "monthly", priority: 0.5 }];
+  const eintraege: MetadataRoute.Sitemap = [
+    { url: basis, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${basis}/verein`, changeFrequency: "weekly", priority: 0.6 },
+  ];
   for (const v of await holeAlleVereineFuerSitemap()) {
     eintraege.push({
       url: `${basis}/verein/${v.slug}`,

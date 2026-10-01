@@ -17,6 +17,10 @@ export async function Footer() {
   return (
     <footer className="mt-auto border-t bg-background px-6 py-4">
       <p className="text-center text-xs text-muted-foreground">
+        <Link href="/verein" className="underline">
+          Vereine
+        </Link>
+        {" · "}
         {!eingeloggt && (
           <>
             <Link href="/registrieren" className="underline">

@@ -1,8 +1,6 @@
-import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   boolean,
-  check,
   date,
   integer,
   jsonb,
@@ -992,34 +990,3 @@ export const ligaSyncLaeufe = pgTable("liga_sync_lauf", {
   status: ligaSyncStatusEnum("status").notNull(),
   meldungen: jsonb("meldungen").$type<string[]>().notNull().default([]),
 });
-
-// Favoriten eingeloggter Nutzer: ein ganzer Verein ODER eine einzelne
-// Mannschaft — unabhängig voneinander (genau eine der beiden Spalten).
-export const favoriten = pgTable(
-  "favorit",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    ligaVereinId: uuid("liga_verein_id").references(() => ligaVereine.id, {
-      onDelete: "cascade",
-    }),
-    ligaMannschaftId: uuid("liga_mannschaft_id").references(() => ligaMannschaften.id, {
-      onDelete: "cascade",
-    }),
-    erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
-  },
-  (t) => [
-    check(
-      "favorit_genau_ein_ziel",
-      sql`(${t.ligaVereinId} IS NOT NULL)::int + (${t.ligaMannschaftId} IS NOT NULL)::int = 1`
-    ),
-    uniqueIndex("favorit_user_verein_idx")
-      .on(t.userId, t.ligaVereinId)
-      .where(sql`${t.ligaVereinId} IS NOT NULL`),
-    uniqueIndex("favorit_user_mannschaft_idx")
-      .on(t.userId, t.ligaMannschaftId)
-      .where(sql`${t.ligaMannschaftId} IS NOT NULL`),
-  ]
-);

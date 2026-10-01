@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { ChevronLeftIcon } from "lucide-react";
-import { auth } from "@/auth";
-import { holeFavoritenIds } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "@/components/liga/favorit-stern";
 import { TeamTabs } from "@/components/liga/team-tabs";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +14,6 @@ export default async function MannschaftsLayout({
 }) {
   const { slug, team } = await params;
   const { verein, m } = await ladeTeam(slug, team);
-  const session = await auth();
-  const favoriten = await holeFavoritenIds(session?.user?.id);
   const basis = `/verein/${verein.slug}`;
 
   return (
@@ -49,7 +45,6 @@ export default async function MannschaftsLayout({
           <FavoritStern
             typ="mannschaft"
             id={m.id}
-            aktiv={session?.user?.id ? favoriten.mannschaften.has(m.id) : null}
             label={m.name}
             className="mt-1 shrink-0"
           />

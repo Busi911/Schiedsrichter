@@ -58,7 +58,7 @@ export default async function TabellenSeite({ params }: Props) {
                 return (
                   <TableRow key={z.id} className={cn(eigen && "bg-primary/5 font-semibold")}>
                     <TableCell className="tabular-nums">{z.rang}</TableCell>
-                    <TableCell className="max-w-[10rem] truncate sm:max-w-none">{z.name}</TableCell>
+                    <TableCell className="max-w-[13rem] truncate sm:max-w-none">{z.name}</TableCell>
                     <TableCell className="text-right tabular-nums">{z.spiele ?? "–"}</TableCell>
                     <TableCell className="hidden text-right tabular-nums sm:table-cell">{z.siege ?? "–"}</TableCell>
                     <TableCell className="hidden text-right tabular-nums sm:table-cell">{z.unentschieden ?? "–"}</TableCell>
