@@ -2,6 +2,8 @@ import { eq } from "drizzle-orm";
 import { Fragment } from "react";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
+import { holeLigaErgebnisse } from "@/lib/liga-dashboard";
+import { formatTagKopf, SpielKarte } from "@/components/liga/liga-ui";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
 import {
@@ -91,12 +93,14 @@ export default async function AdminDashboardPage() {
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
   );
 
-  const [unbesetzteTermine, letzteErgebnisse, offeneSelbsteintragungen, offeneAbmeldeanfragen] =
+  const [unbesetzteTermine, letzteErgebnisse, ligaErgebnisse, offeneSelbsteintragungen, offeneAbmeldeanfragen] =
     await Promise.all([
       // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
       // den Link "Alle Termine" unten.
       holeUnbesetzteTermine(vereinId, 10),
       holeLetzteErgebnisse(vereinId, 10),
+      // Vollständiger: alle Mannschaften, auch Auswärtsspiele (öffentliche Liga-Daten).
+      holeLigaErgebnisse(vereinId, 15),
       // Über die öffentliche Selbsteintragung erfasste Personen, die noch
       // keiner angelegten Person zugeordnet wurden — Ordner/Kioskdienst/
       // Kassierer UND Zeitnehmer/Sekretär zusammen, statt zwischen den beiden
@@ -337,7 +341,38 @@ export default async function AdminDashboardPage() {
             <CardTitle className="text-base">Letzte Ergebnisse</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {letzteErgebnisse.length === 0 ? (
+            {ligaErgebnisse && ligaErgebnisse.ergebnisse.length > 0 ? (
+              <>
+                {ligaErgebnisse.ergebnisse
+                  .reduce<{ tag: string; eintraege: typeof ligaErgebnisse.ergebnisse }[]>((gruppen, e) => {
+                    const letzte = gruppen[gruppen.length - 1];
+                    if (letzte && letzte.tag === e.spiel.datum) letzte.eintraege.push(e);
+                    else gruppen.push({ tag: e.spiel.datum, eintraege: [e] });
+                    return gruppen;
+                  }, [])
+                  .map((g) => (
+                    <div key={g.tag} className="flex flex-col gap-2">
+                      <p className="mt-1 text-xs font-semibold">{formatTagKopf(g.tag)}</p>
+                      {g.eintraege.map((e) => (
+                        <SpielKarte
+                          key={e.spiel.id}
+                          spiel={e.spiel}
+                          eigenTeamtable={e.eigenTeamtable}
+                          teamLabel={e.teams.join(" · ")}
+                          nurUhrzeit
+                          mitAusgang
+                        />
+                      ))}
+                    </div>
+                  ))}
+                <Link
+                  href={`/verein/${ligaErgebnisse.slug}`}
+                  className="mt-1 text-xs text-muted-foreground underline"
+                >
+                  Alle Ergebnisse (öffentliche Vereinsseite)
+                </Link>
+              </>
+            ) : letzteErgebnisse.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Noch keine Ergebnisse erfasst.
               </p>
