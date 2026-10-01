@@ -1,0 +1,23 @@
+name: nuLiga-Freundschaftsspiel-Sonde
+
+# Einmalige Hilfs-Sonde (keine Produktfunktion): ruft nuLiga-Seiten zu
+# Freundschaftsspielen eines Vereins ab und gibt die Struktur im Log aus.
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [claude/fs-probe]
+
+permissions:
+  contents: read
+
+jobs:
+  sonde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Sonde
+        run: node scripts/fs-probe/probe.mjs
