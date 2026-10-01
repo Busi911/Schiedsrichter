@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   title: "HandballerPate",
   description: "Verwaltungsplattform für Funktionsträger im Handballverein",
   manifest: "/manifest.json",
-  // Favicon selbst kommt bereits automatisch aus src/app/icon.svg (Next.js
+  // Favicon selbst kommt bereits automatisch aus src/app/icon.png (Next.js
   // Metadata-File-Convention) — hier nur das Apple-Touch-Icon ergänzt, für
   // das es keine entsprechende Datei-Konvention mit diesem Namen gibt.
   icons: {

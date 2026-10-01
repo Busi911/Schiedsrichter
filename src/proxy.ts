@@ -53,7 +53,12 @@ export default auth((req) => {
     // _next/static/_next/image/favicon.ico aus, nicht beliebige
     // public/-Assets), und die Bilder blieben für nicht eingeloggte
     // Besucher:innen unsichtbar.
-    pathname.startsWith("/produkttour/");
+    pathname.startsWith("/produkttour/") ||
+    // Marken-Logos und App-Icons/Manifeste (Startseite, Login, Favicon,
+    // "Zum Home-Bildschirm") müssen auch ohne Login ladbar sein.
+    pathname.startsWith("/brand/") ||
+    pathname.startsWith("/icons/") ||
+    /^\/(icon|apple-touch-icon|manifest)[^/]*\.(png|svg|json|webmanifest)$/.test(pathname);
 
   if (!isLoggedIn && !isPublicRoute) {
     return Response.redirect(new URL("/login", req.nextUrl));
