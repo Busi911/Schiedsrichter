@@ -35,6 +35,7 @@ describe.skipIf(!ADMIN_URL)("öffentliche Abfragen (Postgres)", () => {
   let ligaVereinId: string;
 
   beforeAll(async () => {
+    await testDb.delete(schema.ligaVereine); // Reste früherer Läufe (gleiche Club-ID)
     await testDb.delete(schema.ligaGruppen);
     await testDb.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim" });
     const { id } = await legeLigaVereinAn(testDb, { vereinId, nuligaClubId: "69723", name: "TSF Heuchelheim" });
