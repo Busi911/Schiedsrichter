@@ -11,7 +11,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { VORSCHAU_MAX } from "@/lib/verein-vorschau-konstanten";
 import { ladeTeam } from "../laden";
 
 type Props = { params: Promise<{ slug: string; team: string }> };
@@ -28,9 +27,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TabellenSeite({ params }: Props) {
   const { slug, team } = await params;
-  const { verein, m, begrenzt } = await ladeTeam(slug, team);
-  const alleZeilen = m.istMeldeliste ? [] : await holeTabelle(m.gruppeId);
-  const tabelle = begrenzt ? alleZeilen.slice(0, VORSCHAU_MAX) : alleZeilen;
+  const { verein, m } = await ladeTeam(slug, team);
+  const tabelle = m.istMeldeliste ? [] : await holeTabelle(m.gruppeId);
 
   return (
     <div className="space-y-3">

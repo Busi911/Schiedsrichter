@@ -254,10 +254,13 @@ solange sie über `sendMail` laufen.
 Interessenten) erzeugt der Systemadmin unter `/system/vereine` einen geheimen
 Link `/verein/[slug]/vorschau/[token]` (1/3/7 Tage, widerrufbar, Tabelle
 `verein_vorschau_link`, nur `adminDb`). Die Route setzt ein httpOnly-Cookie
-`hp_vorschau` (Pfad nur dieser Verein) und leitet um; `holeVerein`/`holeVorschau`
-(`lib/liga-oeffentlich.ts`) prüfen es bei JEDEM Aufruf (Ablauf/Widerruf wirken
-sofort). Die Vorschau ist bewusst eingeschränkt: Banner „Vorschau“, `noindex`,
-Manifest = 404 (nicht installierbar), höchstens `VORSCHAU_MAX` (5) Einträge je
-Liste/Tab (`begrenzt` aus `ladeVereinsDaten`/`ladeTeam`). Der einrichtende
-Systemadmin im Treuhand-Kontext sieht weiter alles ungekürzt. Neue Listen auf
-öffentlichen Vereinsseiten müssen `begrenzt` beachten.
+`hp_vorschau` (Pfad "/", gilt nur für den einen Verein des Tokens) und leitet
+um; `holeVerein`/`holeVorschau` (`lib/liga-oeffentlich.ts`) und die
+Favoriten-API prüfen es bei JEDEM Aufruf (Ablauf/Widerruf wirken sofort).
+Die Vorschau ist **genauso funktional wie die echte Seite** (alle Listen,
+Mannschaften, Favoriten, installierbare Web-App) und nur zeitlich begrenzt;
+zusätzlich Banner mit Ablaufdatum und `noindex`. Antworten, die vom Cookie
+abhängen (Favoriten-API mit Vorschau-Verein), dürfen nie im gemeinsamen Cache
+landen (`private, no-store`). Der Verein bleibt ohne Link 404 und taucht nicht
+in Suche/Sitemap auf. Der einrichtende Systemadmin im Treuhand-Kontext sieht
+die Seite ebenfalls.

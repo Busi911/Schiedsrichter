@@ -5,7 +5,6 @@ import { BereichsKopf } from "@/components/liga/bereichs-kopf";
 import { FavoritenBereich } from "@/components/liga/favoriten-bereich";
 import { MannschaftsKarte, StandHinweis } from "@/components/liga/liga-ui";
 import { Badge } from "@/components/ui/badge";
-import { VORSCHAU_MAX } from "@/lib/verein-vorschau-konstanten";
 import { ladeVereinsDaten } from "../laden";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -23,8 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function MannschaftenSeite({ params }: Props) {
   const { slug } = await params;
-  const { verein, mannschaften: alleMannschaften, basis, begrenzt } = await ladeVereinsDaten(slug);
-  const mannschaften = begrenzt ? alleMannschaften.slice(0, VORSCHAU_MAX) : alleMannschaften;
+  const { verein, mannschaften, basis } = await ladeVereinsDaten(slug);
   const gruppen = gruppiereMannschaften(mannschaften);
 
   return (

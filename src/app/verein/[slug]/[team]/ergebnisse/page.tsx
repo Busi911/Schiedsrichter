@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { appUrl } from "@/lib/app-url";
 import { istVergangen } from "@/lib/liga-oeffentlich";
 import { SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
-import { VORSCHAU_MAX } from "@/lib/verein-vorschau-konstanten";
 import { ladeTeam } from "../laden";
 
 type Props = { params: Promise<{ slug: string; team: string }> };
@@ -19,9 +18,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Ergebnisse({ params }: Props) {
   const { slug, team } = await params;
-  const { verein, m, begrenzt } = await ladeTeam(slug, team);
-  const alle = m.spiele.filter(istVergangen).reverse();
-  const spiele = begrenzt ? alle.slice(0, VORSCHAU_MAX) : alle;
+  const { verein, m } = await ladeTeam(slug, team);
+  const spiele = m.spiele.filter(istVergangen).reverse();
 
   return (
     <div className="space-y-3">

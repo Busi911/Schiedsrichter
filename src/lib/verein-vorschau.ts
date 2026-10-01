@@ -7,10 +7,10 @@ import { schreibeProtokoll } from "@/lib/treuhand";
 
 // Vorschau für Vereine im Vorbereitungs-Modus: Der Systemadmin erzeugt einen
 // geheimen, befristeten und widerrufbaren Link. Wer ihn öffnet, bekommt ein
-// Cookie (nur für diesen Verein) und sieht eine eingeschränkte Demo-Ansicht
-// (max. VORSCHAU_MAX Einträge je Liste, keine installierbare App, noindex).
+// Cookie (für diesen einen Verein) und sieht die Seite wie die echte
+// (voll funktionsfähig wie die echte Seite, nur zeitlich begrenzt und noindex).
 import { VORSCHAU_TAGE } from "./verein-vorschau-konstanten";
-export { VORSCHAU_MAX, VORSCHAU_TAGE } from "./verein-vorschau-konstanten";
+export { VORSCHAU_TAGE } from "./verein-vorschau-konstanten";
 export const VORSCHAU_COOKIE = "hp_vorschau";
 
 

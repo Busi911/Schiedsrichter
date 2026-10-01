@@ -51,8 +51,8 @@ export type MannschaftAnsicht = {
 // Vereine im Vorbereitungs-Modus (Systemadmin richtet sie im Hintergrund ein,
 // siehe lib/treuhand.ts) sind öffentlich nicht erreichbar. Sehen dürfen die
 // Seite nur (a) der einrichtende Systemadmin selbst (voller Umfang) und
-// (b) Besucher mit gültigem, geheimem Vorschau-Link (eingeschränkte Demo,
-// siehe lib/verein-vorschau.ts).
+// (b) Besucher mit gültigem, geheimem Vorschau-Link (voll funktionsfähig,
+// nur zeitlich begrenzt, siehe lib/verein-vorschau.ts).
 export type VorschauModus = { art: "treuhand" | "link"; bis: Date | null };
 
 async function ermittleVorschau(vereinId: string): Promise<VorschauModus | null> {
