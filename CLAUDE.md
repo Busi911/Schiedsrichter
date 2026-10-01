@@ -186,7 +186,7 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   `pb-20 md:pb-0`). Listen kommen aus `lib/liga-spiele-hilfen.ts`
   (`sammleVereinsSpiele`, rein/testbar), Filter-Chips aus
   `gefilterte-liste.tsx`. Statische Segmente `spiele`/`mannschaften` haben
-  Vorrang vor `[team]`. Die Landingpage `/` zeigt die Vereinssuche ganz oben.
+  Vorrang vor `[team]`. Die Landingpage `/` zeigt die Vereinssuche zwischen Produkttour und Beta-Hinweis.
 - **Eigene Mannschaftsnamen:** `liga_mannschaft.anzeigename_eigen` (Admin →
   Einstellungen → Öffentliche Vereinsseite) überschreibt `name` nur in der
   Anzeige (`holeMannschaften`); der Sync fasst es nie an, der Slug bleibt stabil.

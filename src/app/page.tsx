@@ -125,7 +125,7 @@ export default async function Home() {
     adminDb.select({ value: count() }).from(vereine)
   );
   const freiePlaetze = Math.max(betaVereinLimit - vereineCount, 0);
-  // Vereine mit öffentlicher Seite (Spielpläne/Ergebnisse) — stehen ganz oben.
+  // Vereine mit öffentlicher Seite (Spielpläne/Ergebnisse) — stehen vor dem Beta-Hinweis.
   const vereineMitSeite = await holeAlleVereine();
 
   return (
@@ -153,34 +153,6 @@ export default async function Home() {
       </header>
 
       <main className="flex-1">
-        {/* Als Erstes die öffentlichen Vereinsseiten: Spielpläne, Ergebnisse
-            und Mannschaften ohne Login — für Spieler, Eltern und Fans. */}
-        <section className="border-b bg-muted/30">
-          <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10">
-            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-              <div>
-                <h2 className="font-heading text-2xl font-semibold">Spielpläne &amp; Ergebnisse</h2>
-                <p className="text-sm text-muted-foreground">
-                  Euren Verein finden: Mannschaften, nächste Spiele und Ergebnisse, ohne Login.
-                </p>
-              </div>
-              <div className="flex gap-3 text-sm">
-                <Link href="/verein" className="font-medium underline-offset-4 hover:underline">
-                  Alle Vereine
-                </Link>
-                <Link href="/meine" className="font-medium underline-offset-4 hover:underline">
-                  Meine Mannschaften
-                </Link>
-              </div>
-            </div>
-            {vereineMitSeite.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Noch keine Vereine freigeschaltet.</p>
-            ) : (
-              <Vereinsuche vereine={vereineMitSeite} />
-            )}
-          </div>
-        </section>
-
         <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-16 text-center">
           <Badge variant="secondary">Beta · 100% kostenlos</Badge>
           <h1 className="font-heading text-4xl font-semibold text-balance sm:text-5xl">
@@ -277,6 +249,34 @@ export default async function Home() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Die öffentlichen Vereinsseiten (vor dem Beta-Hinweis): Spielpläne, Ergebnisse
+            und Mannschaften ohne Login — für Spieler, Eltern und Fans. */}
+        <section className="border-b bg-muted/30">
+          <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10">
+            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+              <div>
+                <h2 className="font-heading text-2xl font-semibold">Spielpläne &amp; Ergebnisse</h2>
+                <p className="text-sm text-muted-foreground">
+                  Euren Verein finden: Mannschaften, nächste Spiele und Ergebnisse, ohne Login.
+                </p>
+              </div>
+              <div className="flex gap-3 text-sm">
+                <Link href="/verein" className="font-medium underline-offset-4 hover:underline">
+                  Alle Vereine
+                </Link>
+                <Link href="/meine" className="font-medium underline-offset-4 hover:underline">
+                  Meine Mannschaften
+                </Link>
+              </div>
+            </div>
+            {vereineMitSeite.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Noch keine Vereine freigeschaltet.</p>
+            ) : (
+              <Vereinsuche vereine={vereineMitSeite} />
+            )}
           </div>
         </section>
 
