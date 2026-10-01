@@ -210,3 +210,29 @@ export function istEigeneHalle(
     return gesucht !== "" && name.includes(gesucht);
   });
 }
+
+const berlinUhrKurz = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+// Unterschiede zwischen einem sicher verknüpften Hallenplan-Termin und dem
+// öffentlichen Spiel (Trockenlauf der Zusammenführung): weicht die Zeit ab
+// (Verlegung, die der Hallenplan noch nicht kennt), und kommt ein Ergebnis aus
+// den öffentlichen Daten dazu, das im Termin noch fehlt?
+export function vergleicheVerknuepftes(
+  termin: { start: Date; ergebnisHeim: number | null; ergebnisAuswaerts: number | null },
+  spiel: { datum: string; uhrzeit: string | null; toreHeim: number | null; toreGast: number | null }
+): { zeitAbweichung: boolean; ergebnisNeu: boolean } {
+  const tagAbweichung = berlinTag.format(termin.start) !== spiel.datum;
+  const uhrAbweichung = !!spiel.uhrzeit && berlinUhrKurz.format(termin.start) !== spiel.uhrzeit;
+  return {
+    zeitAbweichung: tagAbweichung || uhrAbweichung,
+    ergebnisNeu:
+      (termin.ergebnisHeim === null || termin.ergebnisAuswaerts === null) &&
+      spiel.toreHeim !== null &&
+      spiel.toreGast !== null,
+  };
+}

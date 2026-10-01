@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { gleicheAb, istEigeneHalle, normalisiereName, parseHallenNamen, parseKategorie, spielnummerAusUid } from "./hallenplan-abgleich";
+import {
+  gleicheAb,
+  istEigeneHalle,
+  normalisiereName,
+  parseHallenNamen,
+  parseKategorie,
+  spielnummerAusUid,
+  vergleicheVerknuepftes,
+} from "./hallenplan-abgleich";
 
 const termin = (over = {}) => ({
   id: "t1",
@@ -143,5 +151,30 @@ describe("eigene Hallen", () => {
     expect(istEigeneHalle({ halleNuligaId: null, halleName: "Halle am Seebach (Bieber)", quelle: "nuliga" }, eigene)).toBe(true);
     expect(istEigeneHalle({ halleNuligaId: null, halleName: "Sporthalle Lollar", quelle: "nuliga" }, eigene)).toBe(false);
     expect(istEigeneHalle({ halleNuligaId: null, halleName: null, quelle: "nuliga" }, eigene)).toBe(false);
+  });
+});
+
+describe("vergleicheVerknuepftes", () => {
+  const start = new Date("2026-10-03T16:00:00Z"); // 18:00 Berliner Zeit (Sommerzeit)
+  it("erkennt gleiche Zeit", () => {
+    expect(
+      vergleicheVerknuepftes(
+        { start, ergebnisHeim: null, ergebnisAuswaerts: null },
+        { datum: "2026-10-03", uhrzeit: "18:00", toreHeim: null, toreGast: null }
+      )
+    ).toEqual({ zeitAbweichung: false, ergebnisNeu: false });
+  });
+  it("erkennt eine andere Uhrzeit oder einen anderen Tag", () => {
+    const leer = { toreHeim: null, toreGast: null };
+    const t = { start, ergebnisHeim: null, ergebnisAuswaerts: null };
+    expect(vergleicheVerknuepftes(t, { datum: "2026-10-03", uhrzeit: "19:30", ...leer }).zeitAbweichung).toBe(true);
+    expect(vergleicheVerknuepftes(t, { datum: "2026-10-10", uhrzeit: "18:00", ...leer }).zeitAbweichung).toBe(true);
+    // ohne öffentliche Uhrzeit zählt nur der Tag
+    expect(vergleicheVerknuepftes(t, { datum: "2026-10-03", uhrzeit: null, ...leer }).zeitAbweichung).toBe(false);
+  });
+  it("meldet ein neues Ergebnis nur, wenn es im Termin noch fehlt", () => {
+    const spiel = { datum: "2026-10-03", uhrzeit: "18:00", toreHeim: 30, toreGast: 25 };
+    expect(vergleicheVerknuepftes({ start, ergebnisHeim: null, ergebnisAuswaerts: null }, spiel).ergebnisNeu).toBe(true);
+    expect(vergleicheVerknuepftes({ start, ergebnisHeim: 30, ergebnisAuswaerts: 25 }, spiel).ergebnisNeu).toBe(false);
   });
 });
