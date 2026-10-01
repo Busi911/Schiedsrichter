@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
-import { legeLigaVereinAn, synchronisiereSpiele, synchronisiereStruktur, type HoleHtml } from "./sync";
+import { fehlertext, legeLigaVereinAn, synchronisiereSpiele, synchronisiereStruktur, type HoleHtml } from "./sync";
 import { synchronisiereFaellige } from "./sync-cron";
 import { eigenerNameImPortrait, ermittleTeamtable, waehleSaison, spielGeaendert } from "./sync-hilfen";
 import { paramsAusUrl } from "./html";
@@ -301,5 +301,71 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync: Zeitlimit (Postgres)", () => {
     anfragen.length = 0;
     await synchronisiereSpiele(id, { db, holeHtml });
     expect(anfragen.filter((u) => u.includes("/teamPortrait"))).toHaveLength(0);
+  });
+});
+
+describe("fehlertext", () => {
+  it("nimmt die Ursache statt der langen SQL-Abfrage", () => {
+    const err = Object.assign(new Error('Failed query: insert into "x" values ($1) params: 1,2,3'), {
+      cause: { message: "duplicate key value", constraint: "liga_spiel_gruppe_nummer_idx" },
+    });
+    expect(fehlertext(err)).toBe("duplicate key value – Constraint liga_spiel_gruppe_nummer_idx");
+    expect(fehlertext(new Error('Failed query: select 1 params: a,b'))).toBe("Failed query: select 1");
+    expect(fehlertext("nur Text")).toBe("nur Text");
+  });
+});
+
+describe.skipIf(!ADMIN_URL)("nuLiga-Sync: robuster Spiele-Import (Postgres)", () => {
+  const pool = new Pool({ connectionString: ADMIN_URL });
+  const db = drizzle(pool, { schema });
+  const vereinId = randomUUID();
+  // Portrait, in dem zwei verschiedene Spiele dieselbe Spielnummer (20) tragen
+  const portrait = fixture("team-portrait.html")
+    .replaceAll("2208495", "2242017")
+    .replaceAll("491948", "492633")
+    .replace(/(<td class="center">\s*)28(\s*<\/td>)/, "$120$2");
+  const holeHtml: HoleHtml = async (url) => {
+    const p = paramsAusUrl(url);
+    if (url.includes("/clubTeams")) return fixture("club-teams.html");
+    if (url.includes("/groupPage") && p.get("group") === "492633") return fixture("group-page.html");
+    if (url.includes("/teamPortrait")) return portrait;
+    throw new Error("HTTP 503");
+  };
+
+  beforeAll(async () => {
+    await db.delete(schema.ligaVereine);
+    await db.delete(schema.ligaGruppen);
+    await db.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim" });
+  });
+  afterAll(async () => {
+    await db.delete(schema.vereine).where(eq(schema.vereine.id, vereinId));
+    await db.delete(schema.ligaVereine);
+    await db.delete(schema.ligaGruppen);
+    await pool.end();
+  });
+
+  it("fasst doppelte Spielnummern zusammen und scheitert nicht am eindeutigen Schlüssel", async () => {
+    const { id } = await legeLigaVereinAn(db, { vereinId, nuligaClubId: "69723", name: "TSF Heuchelheim" });
+    await synchronisiereStruktur(id, { db, holeHtml });
+    const r = await synchronisiereSpiele(id, { db, holeHtml });
+    expect(r.meldungen.some((m) => m.includes("doppelte Spielnummern"))).toBe(true);
+    expect(r.meldungen.some((m) => m.includes("Failed query"))).toBe(false);
+    expect((await db.query.ligaSpiele.findMany()).length).toBe(3);
+  });
+
+  it("aktualisiert ein zwischenzeitlich angelegtes Spiel statt zu scheitern (Upsert)", async () => {
+    const verein = (await db.query.ligaVereine.findFirst())!;
+    const gruppe = (await db.query.ligaGruppen.findFirst({ where: eq(schema.ligaGruppen.nuligaGroupId, "492633") }))!;
+    // Spiel 5 existiert bereits (anderer Lauf) mit abweichendem Stand
+    await db.update(schema.ligaSpiele).set({ status: "geplant", toreHeim: null, toreGast: null })
+      .where(eq(schema.ligaSpiele.spielnummer, 5));
+    // Teilnahme als "nie geladen" markieren und das Spiel aus dem Weg räumen, danach neu laden
+    await db.update(schema.ligaTeilnahmen).set({ spieleSynchronisiertAm: null });
+    const r = await synchronisiereSpiele(verein.id, { db, holeHtml });
+    expect(r.meldungen.some((m) => m.includes("Failed query"))).toBe(false);
+    const s5 = await db.query.ligaSpiele.findFirst({
+      where: (t, { and, eq: gleich }) => and(gleich(t.gruppeId, gruppe.id), gleich(t.spielnummer, 5)),
+    });
+    expect(s5?.toreHeim).toBe(33); // wieder auf den Stand von nuLiga gebracht
   });
 });

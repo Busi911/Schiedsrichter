@@ -64,6 +64,21 @@ export type SyncErgebnis = {
   unvollstaendig: boolean;
 };
 
+// Drizzle verpackt Datenbankfehler ("Failed query: <SQL> params: …"); die
+// eigentliche Ursache steckt in err.cause (z.B. verletzter Schlüssel). Für die
+// Meldung im Admin nur die Ursache (und ggf. Constraint) nehmen, nicht die
+// lange SQL-Abfrage mit allen Parametern.
+export function fehlertext(err: unknown): string {
+  const ursache = err instanceof Error ? (err as Error & { cause?: unknown }).cause : undefined;
+  if (ursache instanceof Error || (ursache && typeof ursache === "object")) {
+    const u = ursache as { message?: string; constraint?: string; detail?: string };
+    const teile = [u.message, u.constraint && `Constraint ${u.constraint}`, u.detail].filter(Boolean);
+    if (teile.length) return teile.join(" – ").slice(0, 300);
+  }
+  const text = err instanceof Error ? err.message : String(err);
+  return text.replace(/\s+params:[\s\S]*$/, "").slice(0, 300);
+}
+
 class Lauf {
   anfragen = 0;
   neu = 0;
@@ -306,7 +321,7 @@ async function aktualisiereGruppentabelle(
     );
     return daten.tabelle;
   } catch (err) {
-    lauf.fehler(`Gruppe ${gruppenId}: ${err instanceof Error ? err.message : String(err)}`);
+    lauf.fehler(`Gruppe ${gruppenId}: ${fehlertext(err)}`);
     return null;
   }
 }
@@ -348,7 +363,7 @@ export async function synchronisiereStruktur(
     );
     club = parseClubTeams(html);
   } catch (err) {
-    lauf.fehler(`clubTeams: ${err instanceof Error ? err.message : String(err)}`);
+    lauf.fehler(`clubTeams: ${fehlertext(err)}`);
     return protokolliere(db, ligaVereinId, "struktur", start, lauf, true);
   }
   for (const w of club.warnungen) lauf.warn(`clubTeams: ${w}`);
@@ -626,10 +641,17 @@ export async function synchronisiereSpiele(
       if (daten.clubId && daten.clubId !== verein.nuligaClubId) {
         lauf.warn(`${t.nuligaName}: Portrait gehört zu Verein ${daten.clubId} (Spielgemeinschaft?)`);
       }
-      const spiele = daten.spiele.filter((s) => s.spielnummer !== null);
-      if (spiele.length < daten.spiele.length) {
-        lauf.warn(`${t.nuligaName}: ${daten.spiele.length - spiele.length} Spiele ohne Spielnummer ignoriert`);
+      const mitNummer = daten.spiele.filter((s) => s.spielnummer !== null);
+      if (mitNummer.length < daten.spiele.length) {
+        lauf.warn(`${t.nuligaName}: ${daten.spiele.length - mitNummer.length} Spiele ohne Spielnummer ignoriert`);
       }
+      // Spielnummer ist je Gruppe eindeutig; taucht sie im Portrait doppelt auf,
+      // gilt der letzte Eintrag (statt am Schlüssel zu scheitern).
+      const eindeutig = new Map(mitNummer.map((s) => [s.spielnummer!, s]));
+      if (eindeutig.size < mitNummer.length) {
+        lauf.warn(`${t.nuligaName}: ${mitNummer.length - eindeutig.size} doppelte Spielnummern zusammengeführt`);
+      }
+      const spiele = [...eindeutig.values()];
       if (spiele.length === 0) {
         // nichts löschen, wenn Seite leer wirkt — aber sichtbar machen
         lauf.warn(`${t.nuligaName} (Gruppe ${g.nuligaGroupId}): Spielplan enthält keine Spiele`);
@@ -655,7 +677,16 @@ export async function synchronisiereSpiele(
         const felder = spielZuFeldern(s, namen);
         const alt = nachNummer.get(s.spielnummer!);
         if (!alt) {
-          await db.insert(ligaSpiele).values({ gruppeId: g.id, spielnummer: s.spielnummer!, ...felder });
+          // Upsert statt Insert: ein Spiel, das ein anderer (gleichzeitiger)
+          // Lauf oder das Portrait einer zweiten Mannschaft derselben Gruppe
+          // inzwischen angelegt hat, wird aktualisiert statt zu scheitern.
+          await db
+            .insert(ligaSpiele)
+            .values({ gruppeId: g.id, spielnummer: s.spielnummer!, ...felder })
+            .onConflictDoUpdate({
+              target: [ligaSpiele.gruppeId, ligaSpiele.spielnummer],
+              set: { ...felder, synchronisiertAm: new Date() },
+            });
           lauf.neu++;
           if (felder.toreHeim !== null) gruppenMitNeuemErgebnis.add(g.id);
         } else {
@@ -686,7 +717,7 @@ export async function synchronisiereSpiele(
         .set({ spieleSynchronisiertAm: new Date() })
         .where(eq(ligaTeilnahmen.id, t.id));
     } catch (err) {
-      lauf.fehler(`${t.nuligaName}: ${err instanceof Error ? err.message : String(err)}`);
+      lauf.fehler(`${t.nuligaName}: ${fehlertext(err)}`);
     }
   }
 
