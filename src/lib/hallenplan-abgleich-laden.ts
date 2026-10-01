@@ -57,6 +57,8 @@ export type Trockenlauf = {
   // Heimspiele in eigener Halle ohne Termin: würden neu angelegt.
   neuAnzulegen: { datum: string; uhrzeit: string | null; heim: string; gast: string; halle: string | null }[];
   neuAnzulegenGesamt: number;
+  // Heimspiele ohne Termin, die schon vorbei sind: werden nicht übernommen.
+  neuVergangen: number;
   // Nicht sicher zugeordnete Termine, die unberührt blieben (davon mit Zuordnungen).
   unberuehrt: number;
   // Ampel: Liga-Pflichtspiel-Termine (haben ein öffentliches Gegenstück) und
@@ -302,9 +304,11 @@ async function berechneFuerVerein(
     e.anzahl++;
     ortPaare.set(schluessel, e);
   }
-  const neuAnzulegenAlle = heimUnverknuepft
+  const heute = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date());
+  const neuOhneTermin = heimUnverknuepft
     .filter((s) => istEigeneHalle(s, eigene))
     .sort((a, b) => a.datum.localeCompare(b.datum) || (a.uhrzeit ?? "").localeCompare(b.uhrzeit ?? ""));
+  const neuAnzulegenAlle = neuOhneTermin.filter((sp) => sp.datum >= heute);
   const unberuehrteTermine = abgleich.filter((a) => a.status !== "sicher");
   const trockenlauf: Trockenlauf = {
     verknuepfbar: sicherePaare.length,
@@ -324,6 +328,7 @@ async function berechneFuerVerein(
       halle: s.halleName,
     })),
     neuAnzulegenGesamt: neuAnzulegenAlle.length,
+    neuVergangen: neuOhneTermin.length - neuAnzulegenAlle.length,
     pflichtGesamt: hallenTermine.filter((t) => t.pflichtspiel !== false).length,
     pflichtOffen: abgleich.filter(
       (a) => a.status !== "sicher" && nachId.get(a.terminId)!.pflichtspiel !== false
@@ -377,7 +382,7 @@ async function berechneFuerVerein(
   return {
     bericht,
     sichere: sicherePaare.map((p) => ({ terminId: p.termin.id, spielId: p.spiel.id })),
-    neuSpiele: neuAnzulegenAlle.map((spiel) => {
+    neuSpiele: neuOhneTermin.map((spiel) => {
       const g = gruppenInfo.get(spiel.gruppeId);
       return { spiel, kategorie: kategorieText(g?.geschlecht ?? null, g?.altersklasse ?? null) };
     }),

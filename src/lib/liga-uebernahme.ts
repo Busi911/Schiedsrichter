@@ -93,10 +93,21 @@ export async function uebernehmeLigaSpiele(
     where: eq(mannschaften.vereinId, vereinId),
     orderBy: [asc(mannschaften.name)],
   });
+  // Bereits von uns angelegte Termine (unabhängig davon, ob der Abgleich sie
+  // wiedererkennt): nie ein zweites Mal für dasselbe Spiel anlegen.
+  const vorhandeneUids = new Set(
+    (
+      await adminDb
+        .select({ uid: termine.icsUid })
+        .from(termine)
+        .where(and(eq(termine.vereinId, vereinId), like(termine.icsUid, `${LIGA_UID_PRAEFIX}%`)))
+    ).map((t) => t.uid)
+  );
   let angelegt = 0;
   let uebersprungenOhneZeit = 0;
   for (const { spiel, kategorie } of neuSpiele) {
     if (spiel.datum < heute) continue;
+    if (vorhandeneUids.has(`${LIGA_UID_PRAEFIX}${spiel.id}`)) continue;
     const start = spiel.beginn ?? (spiel.uhrzeit ? parseBerlinDatumZeit(`${spiel.datum}T${spiel.uhrzeit}`) : null);
     if (!start || Number.isNaN(start.getTime())) {
       uebersprungenOhneZeit++;

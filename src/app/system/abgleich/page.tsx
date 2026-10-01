@@ -162,8 +162,10 @@ export default async function AbgleichPage({
                     )}
                   </li>
                   <li>
-                    <strong>{t.neuAnzulegenGesamt}</strong> Heimspiele in eigener Halle ohne Termin würden neu
+                    <strong>{t.neuAnzulegenGesamt}</strong> künftige Heimspiele in eigener Halle ohne Termin würden neu
                     angelegt.
+                    {t.neuVergangen > 0 &&
+                      ` Dazu ${t.neuVergangen} bereits vergangene Heimspiele ohne Termin — die werden nicht übernommen (sie stehen auf der öffentlichen Vereinsseite).`}
                   </li>
                   <li>
                     <strong>{t.unberuehrt}</strong> Termine ohne sichere Zuordnung blieben unverändert (davon{" "}
