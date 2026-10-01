@@ -6,6 +6,7 @@ import { BereichsKopf } from "@/components/liga/bereichs-kopf";
 import { GefilterteListe } from "@/components/liga/gefilterte-liste";
 import { InstallHinweis } from "@/components/liga/installieren";
 import { formatTagKopf, SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
+import { VORSCHAU_MAX } from "@/lib/verein-vorschau-konstanten";
 import { ladeVereinsDaten } from "./laden";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -25,8 +26,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // Startseite des Vereins: die letzten Ergebnisse aller Mannschaften.
 export default async function ErgebnisseSeite({ params }: Props) {
   const { slug } = await params;
-  const { verein, mannschaften, basis } = await ladeVereinsDaten(slug);
-  const { ergebnisse } = sammleVereinsSpiele(mannschaften, new Date());
+  const { verein, mannschaften, basis, begrenzt } = await ladeVereinsDaten(slug);
+  const { ergebnisse: alleErgebnisse } = sammleVereinsSpiele(mannschaften, new Date());
+  const ergebnisse = begrenzt ? alleErgebnisse.slice(0, VORSCHAU_MAX) : alleErgebnisse;
 
   const jsonLd = {
     "@context": "https://schema.org",

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { FanKopf, FanTheme } from "@/components/liga/fan-rahmen";
 import { VereinsNav } from "@/components/liga/vereins-nav";
-import { holeVereinsDesign, holeVerein } from "@/lib/liga-oeffentlich";
+import { holeVereinsDesign, holeVerein, holeVorschau } from "@/lib/liga-oeffentlich";
 import { vereinsFarbton, vereinsInitialen } from "@/lib/liga-pwa";
 import { saisonLabel } from "@/lib/saison";
 
@@ -14,6 +14,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const verein = await holeVerein(slug);
   if (!verein) return {};
   const v = (await holeVereinsDesign(verein.id)).logoVersion ?? "";
+  // Vorschau (Verein noch in Vorbereitung): nicht indexieren, nicht installierbar.
+  if (await holeVorschau(verein.id)) {
+    return { robots: { index: false, follow: false }, icons: { icon: `/verein/${verein.slug}/icon/192?v=${v}` } };
+  }
   return {
     manifest: `/verein/${verein.slug}/manifest.webmanifest`,
     icons: {
@@ -40,9 +44,18 @@ export default async function VereinsHuelle({
   if (!verein) notFound();
 
   const { logoVersion, farbton } = await holeVereinsDesign(verein.id);
+  const vorschau = await holeVorschau(verein.id);
 
   return (
     <>
+      {vorschau && (
+        <div className="bg-amber-100 px-4 py-2 text-center text-xs text-amber-950 dark:bg-amber-950 dark:text-amber-100">
+          <strong>Vorschau</strong> – so könnte die Seite aussehen.{" "}
+          {vorschau.art === "link"
+            ? "Eingeschränkte Ansicht, noch nicht öffentlich nutzbar."
+            : "Der Verein ist noch in Vorbereitung."}
+        </div>
+      )}
       <FanTheme hue={farbton ?? vereinsFarbton(verein.slug)} />
       <FanKopf
         titel={verein.name}

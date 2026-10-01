@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { appUrl } from "@/lib/app-url";
 import { istAnstehend } from "@/lib/liga-oeffentlich";
 import { SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
+import { VORSCHAU_MAX } from "@/lib/verein-vorschau-konstanten";
 import { ladeTeam } from "../laden";
 
 type Props = { params: Promise<{ slug: string; team: string }> };
@@ -18,9 +19,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Spielplan({ params }: Props) {
   const { slug, team } = await params;
-  const { verein, m } = await ladeTeam(slug, team);
+  const { verein, m, begrenzt } = await ladeTeam(slug, team);
   const jetzt = new Date();
-  const spiele = m.spiele.filter((s) => istAnstehend(s, jetzt));
+  const alle = m.spiele.filter((s) => istAnstehend(s, jetzt));
+  const spiele = begrenzt ? alle.slice(0, VORSCHAU_MAX) : alle;
 
   return (
     <div className="space-y-3">
