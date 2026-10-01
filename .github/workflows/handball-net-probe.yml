@@ -1,0 +1,42 @@
+name: handball.net-Sonde
+
+# Einmalige Hilfs-Sonde (keine Produktfunktion): ruft handball.net für einen
+# Verein auf, protokolliert die API-Aufrufe der Seite und legt Screenshots als
+# Artefakt ab. Läuft manuell oder bei Push auf den Branch claude/handball-net-probe.
+on:
+  workflow_dispatch:
+    inputs:
+      verein:
+        description: Suchbegriff des Vereins
+        default: Heuchelheim
+  push:
+    branches: [claude/handball-net-probe]
+
+permissions:
+  contents: read
+
+jobs:
+  sonde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Playwright installieren
+        working-directory: scripts/handball-net-probe
+        run: |
+          npm init -y >/dev/null
+          npm install playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Sonde ausführen
+        working-directory: scripts/handball-net-probe
+        env:
+          VEREIN: ${{ github.event.inputs.verein || 'Heuchelheim' }}
+        run: node probe.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: handball-net-sonde
+          path: scripts/handball-net-probe/out
