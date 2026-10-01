@@ -1,0 +1,41 @@
+name: Vereinsseite abfragen
+
+# Hilfs-Workflow (keine Produktfunktion): ruft die öffentliche Vereinsseite
+# von einem GitHub-Runner ab und legt Screenshots + Text als Artefakt ab.
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: Vereins-Slug
+        default: tsf-heuchelheim
+  push:
+    branches: [claude/seite-abfragen]
+
+permissions:
+  contents: read
+
+jobs:
+  abfrage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Playwright installieren
+        working-directory: scripts/seite-abfragen
+        run: |
+          npm init -y >/dev/null
+          npm install playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Seiten abrufen
+        working-directory: scripts/seite-abfragen
+        env:
+          SLUG: ${{ github.event.inputs.slug || 'tsf-heuchelheim' }}
+        run: node abfrage.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vereinsseite
+          path: scripts/seite-abfragen/out
