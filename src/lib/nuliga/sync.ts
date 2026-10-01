@@ -1112,12 +1112,21 @@ export async function synchronisiereFreundschaftsspiele(
   return protokolliere(db, ligaVereinId, "freundschaft", start, lauf, false);
 }
 
+// ZUKÜNFTIGES FEATURE: Der automatische Abruf der Freundschaftsspiele/Turniere
+// ist vorerst abgeschaltet (zu aufwendig im Verhältnis zum Nutzen, siehe
+// CLAUDE.md). Bereits geladene Daten bleiben unverändert bestehen; der Code
+// ist vollständig vorhanden — zum Aktivieren auf true setzen.
+export const FREUNDSCHAFTSSPIELE_AKTIV = false;
+
 // Freundschaftsspiele hängen an den (eben aktualisierten) Mannschaften; ein
 // Fehler hier lässt alles andere unberührt.
 export async function synchronisiereFreundschaftsspieleSicher(
   ligaVereinId: string,
   opt: SyncOptionen
 ): Promise<SyncErgebnis> {
+  if (!FREUNDSCHAFTSSPIELE_AKTIV) {
+    return { status: "erfolgreich", anfragen: 0, neu: 0, aktualisiert: 0, meldungen: [], unvollstaendig: false };
+  }
   try {
     return await synchronisiereFreundschaftsspiele(ligaVereinId, opt);
   } catch (err) {
