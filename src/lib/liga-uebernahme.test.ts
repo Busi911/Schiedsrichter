@@ -57,7 +57,7 @@ describe.skipIf(!ADMIN_URL)("Liga-Übernahme (Postgres)", () => {
     const { uebernehmeLigaSpiele } = await import("./liga-uebernahme");
     const { berechneHallenplanAbgleich } = await import("./hallenplan-abgleich-laden");
     const vorher = (await berechneHallenplanAbgleich()).find((b) => b.vereinId === vereinId)!;
-    const erwartet = vorher.trockenlauf.neuAnzulegenGesamt;
+    const erwartet = vorher.trockenlauf.neuAnzulegenGesamt + vorher.trockenlauf.neuVergangen;
     expect(erwartet).toBeGreaterThan(0);
 
     // ein bestehender Hallenplan-Termin mit Dienst — muss unangetastet bleiben
