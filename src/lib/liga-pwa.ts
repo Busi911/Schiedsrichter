@@ -32,7 +32,9 @@ export function vereinsManifest(verein: { slug: string; name: string }, logoVers
   return {
     id: start,
     name: verein.name,
-    short_name: verein.name.length > 14 ? verein.name.slice(0, 13) + "…" : verein.name,
+    // Vollständiger Name: short_name ist nur ein Vorschlag, Betriebssysteme
+    // kürzen bei Bedarf selbst (mit eigener Darstellung der Kürzung).
+    short_name: verein.name,
     description: `Mannschaften, Spielplan und Ergebnisse des ${verein.name}`,
     lang: "de",
     start_url: `${start}?app=1`,

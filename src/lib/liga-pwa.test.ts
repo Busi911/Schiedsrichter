@@ -23,7 +23,10 @@ describe("Vereins-Web-App", () => {
     expect(m.name).toBe("TSF Heuchelheim");
     expect(m.start_url).toBe("/verein/tsf-heuchelheim?app=1");
     expect(m.icons.map((i) => i.src)).toContain("/verein/tsf-heuchelheim/icon/512");
-    expect(vereinsManifest({ slug: "x", name: "Sehr langer Vereinsname e.V." }).short_name.length).toBeLessThanOrEqual(14);
+    // Langer Name bleibt vollständig (kein "…"), Kürzen übernimmt das System
+    const lang = vereinsManifest({ slug: "x", name: "Sportvereinigung Musterstadt 1912 e.V." });
+    expect(lang.short_name).toBe("Sportvereinigung Musterstadt 1912 e.V.");
+    expect(lang.name).toBe(lang.short_name);
   });
 });
 
