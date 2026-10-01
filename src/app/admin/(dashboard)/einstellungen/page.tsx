@@ -18,6 +18,7 @@ import {
   nuligaEinstellungenSpeichern,
   vereinsdatenSpeichern,
 } from "./actions";
+import { ChevronDown } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -502,15 +503,22 @@ export default async function EinstellungenPage({
             </div>
           )}
           {ligaVerein && ligaMannschaftsListe.length > 0 && (
-            <form action={mannschaftsnamenSpeichern} className="flex flex-col gap-3 border-t pt-4">
-              <div>
-                <h3 className="text-sm font-medium">Namen der Mannschaften</h3>
-                <p className="text-xs text-muted-foreground">
-                  Standard ist der Name aus der Quelle (nuLiga/handball.net). Hier könnt ihr ihn
-                  für die öffentliche Seite anpassen, z.B. „Männer II“ zu „Männer 1“. Leer lassen
-                  = Standardname. Die Adresse der Mannschaftsseite ändert sich dabei nicht.
-                </p>
-              </div>
+            <details className="group border-t pt-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                <span>
+                  <span className="block text-sm font-medium">Namen der Mannschaften</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {ligaMannschaftsListe.length} Mannschaften · Anzeigenamen auf der öffentlichen Seite anpassen
+                  </span>
+                </span>
+                <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+              </summary>
+              <form action={mannschaftsnamenSpeichern} className="mt-3 flex flex-col gap-3">
+              <p className="text-xs text-muted-foreground">
+                Standard ist der Name aus der Quelle (nuLiga/handball.net). Hier könnt ihr ihn
+                für die öffentliche Seite anpassen, z.B. „Männer II“ zu „Männer 1“. Leer lassen
+                = Standardname. Die Adresse der Mannschaftsseite ändert sich dabei nicht.
+              </p>
               {ligaMannschaftsListe.map((m) => (
                 <div key={m.id} className="flex flex-col gap-1.5">
                   <Label htmlFor={`name_${m.id}`} className="text-xs font-normal text-muted-foreground">
@@ -531,7 +539,8 @@ export default async function EinstellungenPage({
                   Namen speichern
                 </SubmitButton>
               )}
-            </form>
+              </form>
+            </details>
           )}
           {ligaVerein && session.user.istAdmin && (
             <form action={oeffentlicheSeiteEntfernen}>

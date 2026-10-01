@@ -20,6 +20,12 @@ export type VereinsAbgleich = {
   // Liga-Spiele eigener Mannschaften ohne Hallenplan-Termin. Auswärtsspiele
   // stehen naturgemäß nie im eigenen Hallenplan und sind unproblematisch.
   nurOeffentlichHeim: number;
+  // davon: Heimspiele, deren Halle zu den eigenen Hallen-IDs gehört (nur die
+  // brauchen eine Einteilung) bzw. in anderen/unbekannten Hallen (z.B. die
+  // Partnerhalle einer Spielgemeinschaft).
+  nurOeffentlichHeimEigeneHalle: number;
+  nurOeffentlichHeimAndereHalle: number;
+  nurOeffentlichHeimHalleUnbekannt: number;
   nurOeffentlichAuswaerts: number;
   // Kein Treffer, davon Freundschaftsspiele/Turniere (ohne Spielnummer, nicht in der Liga).
   keinTrefferFreundschaft: number;
@@ -38,7 +44,15 @@ export type VereinsAbgleich = {
 // weder Termine noch Zuordnungen. Zeigt, wie viele Hallenplan-Termine sich
 // sicher einem Spiel der öffentlichen Liga-Daten zuordnen lassen.
 export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
-  const alleVereine = await adminDb.select({ id: vereine.id, name: vereine.name }).from(vereine);
+  const alleVereine = await adminDb
+    .select({
+      id: vereine.id,
+      name: vereine.name,
+      halle1: vereine.nuligaHalle1Id,
+      halle2: vereine.nuligaHalle2Id,
+      halle3: vereine.nuligaHalle3Id,
+    })
+    .from(vereine);
   const ergebnis: VereinsAbgleich[] = [];
 
   for (const v of alleVereine) {
@@ -111,9 +125,13 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
     for (const a of abgleich) anzahl[a.status]++;
     const verknuepft = new Set(abgleich.flatMap((a) => (a.status === "sicher" ? a.spielIds : [])));
     const unverknuepft = spiele.filter((s) => !verknuepft.has(s.id));
-    const nurOeffentlichHeim = unverknuepft.filter(
+    const heimUnverknuepft = unverknuepft.filter(
       (s) => s.heimTeamtableId && eigeneTeamIds.has(s.heimTeamtableId)
-    ).length;
+    );
+    const eigeneHallen = new Set([v.halle1, v.halle2, v.halle3].filter((h): h is string => !!h));
+    const heimEigeneHalle = heimUnverknuepft.filter((s) => s.halleNuligaId && eigeneHallen.has(s.halleNuligaId)).length;
+    const heimHalleUnbekannt = heimUnverknuepft.filter((s) => !s.halleNuligaId).length;
+    const nurOeffentlichHeim = heimUnverknuepft.length;
 
     const nachId = new Map(hallenTermine.map((t) => [t.id, t]));
     const spielNachId = new Map(spiele.map((s) => [s.id, s]));
@@ -143,6 +161,9 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
       termineGesamt: hallenTermine.length,
       anzahl,
       nurOeffentlichHeim,
+      nurOeffentlichHeimEigeneHalle: heimEigeneHalle,
+      nurOeffentlichHeimAndereHalle: nurOeffentlichHeim - heimEigeneHalle - heimHalleUnbekannt,
+      nurOeffentlichHeimHalleUnbekannt: heimHalleUnbekannt,
       nurOeffentlichAuswaerts: unverknuepft.length - nurOeffentlichHeim,
       keinTrefferFreundschaft: abgleich.filter(
         (a) => a.status === "kein_treffer" && nachId.get(a.terminId)!.pflichtspiel === false

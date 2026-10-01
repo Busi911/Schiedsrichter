@@ -39,7 +39,8 @@ export default async function AbgleichPage() {
                 <TableHead>Unklar</TableHead>
                 <TableHead>Mehrdeutig</TableHead>
                 <TableHead>Kein Treffer</TableHead>
-                <TableHead>Nur öffentlich: Heim</TableHead>
+                <TableHead>Nur öffentlich: Heim, eigene Halle</TableHead>
+                <TableHead>Heim, andere/unbekannte Halle</TableHead>
                 <TableHead>Nur öffentlich: Auswärts</TableHead>
               </TableRow>
             </TableHeader>
@@ -66,7 +67,15 @@ export default async function AbgleichPage() {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell>{v.nurOeffentlichHeim}</TableCell>
+                  <TableCell>{v.nurOeffentlichHeimEigeneHalle}</TableCell>
+                  <TableCell>
+                    {v.nurOeffentlichHeimAndereHalle + v.nurOeffentlichHeimHalleUnbekannt}
+                    {v.nurOeffentlichHeimHalleUnbekannt > 0 && (
+                      <span className="block text-xs text-muted-foreground">
+                        davon {v.nurOeffentlichHeimHalleUnbekannt} ohne Hallenangabe
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>{v.nurOeffentlichAuswaerts}</TableCell>
                 </TableRow>
               ))}
@@ -74,8 +83,9 @@ export default async function AbgleichPage() {
           </Table>
           <p className="mt-3 text-xs text-muted-foreground">
             „Nur öffentlich“: Liga-Spiele eigener Mannschaften ohne Hallenplan-Termin. Auswärtsspiele stehen
-            nie im eigenen Hallenplan (unproblematisch); Heimspiele würden bei der Zusammenführung neu
-            angelegt. „Kein Treffer“ ohne Freundschaft/Turnier sind meist Spiele anderer Vereine in
+            nie im eigenen Hallenplan (unproblematisch). Heimspiele in einer eigenen Halle würden bei der
+            Zusammenführung neu angelegt; Heimspiele in einer anderen Halle (z.B. der Partnerhalle einer
+            Spielgemeinschaft) brauchen keine Einteilung. „Kein Treffer“ ohne Freundschaft/Turnier sind meist Spiele anderer Vereine in
             eurer Halle oder Liga-Daten, die (noch) fehlen.
           </p>
         </CardContent>
