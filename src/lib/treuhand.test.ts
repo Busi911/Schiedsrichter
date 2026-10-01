@@ -136,4 +136,15 @@ describe.skipIf(!ADMIN_URL)("Treuhand (Postgres)", () => {
     expect((await holeAlleVereine()).some((v) => v.slug === "geheimer-verein-test")).toBe(true);
     expect((await holeVerein("geheimer-verein-test"))?.id).toBeDefined();
   });
+
+  it("Vereine im Vorbereitungs-Modus zählen nicht zum Beta-Limit, erst ab der Übergabe", async () => {
+    const t = await import("./treuhand");
+    const { zaehleVereineFuerBetaLimit } = await import("./system-einstellungen");
+    const vorher = await zaehleVereineFuerBetaLimit();
+    const vereinId = await t.vereinVorbereiten(sysAdminId, "Limit-Testverein");
+    angelegt.push(vereinId);
+    expect(await zaehleVereineFuerBetaLimit()).toBe(vorher);
+    await t.uebergebeVerein(sysAdminId, vereinId, "Admin Drei", `drei-${vereinId}@example.invalid`);
+    expect(await zaehleVereineFuerBetaLimit()).toBe(vorher + 1);
+  });
 });

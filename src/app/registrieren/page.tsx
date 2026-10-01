@@ -1,9 +1,5 @@
 import Link from "next/link";
-import { count } from "drizzle-orm";
-import { adminDb } from "@/db/admin";
-import { mitColdStartRetry } from "@/db/retry";
-import { vereine } from "@/db/schema";
-import { holeSystemEinstellungen } from "@/lib/system-einstellungen";
+import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import {
   Card,
   CardContent,
@@ -28,9 +24,7 @@ export const dynamic = "force-dynamic";
 // nicht auf Basis dieser beim Rendern berechneten Zahl.
 export default async function RegistrierenPage() {
   const { betaVereinLimit } = await holeSystemEinstellungen();
-  const [{ value: vereineCount }] = await mitColdStartRetry(() =>
-    adminDb.select({ value: count() }).from(vereine)
-  );
+  const vereineCount = await zaehleVereineFuerBetaLimit();
   const freiePlaetze = Math.max(betaVereinLimit - vereineCount, 0);
 
   return (

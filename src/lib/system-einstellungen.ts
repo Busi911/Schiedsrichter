@@ -1,6 +1,8 @@
 import "server-only";
 import { adminDb } from "@/db/admin";
 import { mitColdStartRetry } from "@/db/retry";
+import { count, eq } from "drizzle-orm";
+import { vereine } from "@/db/schema";
 
 // system_einstellungen ist als Singleton angelegt (siehe Migration
 // 0045: genau eine Zeile per INSERT DEFAULT VALUES). Fallback-Objekt nur
@@ -18,4 +20,14 @@ export async function holeSystemEinstellungen() {
     adminDb.query.systemEinstellungen.findFirst()
   );
   return zeile ?? { id: null, betaVereinLimit: 3 };
+}
+
+// Anzahl der Vereine, die das Beta-Limit belegen: nur aktive. Vereine im
+// Vorbereitungs-Modus (Systemadmin richtet sie im Hintergrund ein, siehe
+// lib/treuhand.ts) zählen erst ab der Übergabe mit.
+export async function zaehleVereineFuerBetaLimit(): Promise<number> {
+  const [{ value }] = await mitColdStartRetry(() =>
+    adminDb.select({ value: count() }).from(vereine).where(eq(vereine.status, "aktiv"))
+  );
+  return value;
 }

@@ -1,9 +1,9 @@
 import { count, desc, eq, isNotNull } from "drizzle-orm";
 import Link from "next/link";
 import { adminDb } from "@/db/admin";
-import { funktionstraegerRollen, users, vereine, warteliste } from "@/db/schema";
+import { funktionstraegerRollen, users, warteliste } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
-import { holeSystemEinstellungen } from "@/lib/system-einstellungen";
+import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import { betaVereinLimitSpeichern } from "./actions";
 import {
   Card,
@@ -38,7 +38,7 @@ export default async function SystemDashboardPage() {
     neuesteVereine,
     systemEinstellungenZeile,
   ] = await Promise.all([
-    adminDb.select({ value: count() }).from(vereine),
+    zaehleVereineFuerBetaLimit().then((value) => [{ value }]),
     adminDb.select({ value: count() }).from(users).where(isNotNull(users.vereinId)),
     adminDb
       .select({ value: count() })
