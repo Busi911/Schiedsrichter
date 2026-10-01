@@ -1,4 +1,6 @@
+import { Fragment } from "react";
 import { Badge } from "@/components/ui/badge";
+import { formatWochentagDatum, formatZeit, gruppiereNachTag } from "@/lib/format";
 import {
   Table,
   TableBody,
@@ -10,7 +12,7 @@ import {
 
 export type UnbesetzterTerminZeile = {
   terminId: string;
-  zeit: string;
+  start: Date;
   typLabel: string;
   ort: string | null;
   mannschaft: string | null;
@@ -37,25 +39,34 @@ export function UnbesetzteTermineTabelle({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {termine.map((t) => (
-          <TableRow key={t.terminId}>
-            <TableCell className="font-medium">
-              {t.zeit}
-              <span className="mt-0.5 flex flex-wrap items-center gap-1 text-xs font-normal text-muted-foreground">
-                <Badge variant="secondary">{t.typLabel}</Badge>
-                {t.ort}
-              </span>
-            </TableCell>
-            <TableCell className="text-muted-foreground">
-              {t.mannschaft ?? "—"}
-            </TableCell>
-            <TableCell>
-              <div className="flex flex-wrap gap-1">
-                {t.schiriOffen && <Badge variant="warning">Schiedsrichter</Badge>}
-                {t.zeitnehmerOffen && <Badge variant="warning">Zeitnehmer</Badge>}
-              </div>
-            </TableCell>
-          </TableRow>
+        {gruppiereNachTag(termine).map((g) => (
+          <Fragment key={g.tag}>
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableCell colSpan={3} className="py-1.5 text-xs font-semibold">
+                {formatWochentagDatum(g.start)}
+              </TableCell>
+            </TableRow>
+            {g.eintraege.map((t) => (
+              <TableRow key={t.terminId}>
+                <TableCell className="font-medium">
+                  {formatZeit(t.start)} Uhr
+                  <span className="mt-0.5 flex flex-wrap items-center gap-1 text-xs font-normal text-muted-foreground">
+                    <Badge variant="secondary">{t.typLabel}</Badge>
+                    {t.ort}
+                  </span>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {t.mannschaft ?? "—"}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {t.schiriOffen && <Badge variant="warning">Schiedsrichter</Badge>}
+                    {t.zeitnehmerOffen && <Badge variant="warning">Zeitnehmer</Badge>}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </Fragment>
         ))}
       </TableBody>
     </Table>
