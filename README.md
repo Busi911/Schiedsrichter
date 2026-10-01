@@ -589,6 +589,9 @@ hier abhaken bzw. entfernen.
   "Offene Dienste" liegt unter Mehr, der Zähler offener Dienste steht als
   Badge am Mehr-Tab. Alle eingeloggten Personen bekommen die Leiste, nicht
   nur Admins. Desktop-Navigation bleibt unverändert.
+- Eintragen-Seiten (`/zeitnehmer-eintragen`, `/ordner-eintragen`): Standard
+  der Sortierung ist "Offene zuerst" (Umschalter auf "Nach Datum" bleibt),
+  entschieden am 01.10.2026.
 - Bei manuell geänderten Terminen werden Eingetragene **nicht** ausgetragen
   (anders als beim automatischen Sync des Hallenspielplans).
 - Beim Sync-Fall (Hallenspielplan, nuLiga/handball.net) bleibt es beim
@@ -607,8 +610,6 @@ hier abhaken bzw. entfernen.
   eingetragen und bekommen **keine** Mail (der Verband setzt sie an);
   Trainer und Spieler werden bei Verlegungen generell nicht informiert.
   Soll sich das ändern?
-- Standard der Sortierung auf den Eintragen-Seiten (#163): aktuell
-  "Nach Datum"; "Offene zuerst" wäre als Standard denkbar.
 - Bottom-Navigation: `/hilfe` liegt außerhalb der Layouts und zeigt keine
   Leiste (dort gibt es den Zurück-Button). Ggf. angleichen.
 - Workflow "Produkttour-Screenshots": der Push-Schritt scheitert, sobald
