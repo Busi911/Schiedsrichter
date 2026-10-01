@@ -129,15 +129,21 @@ describe.skipIf(!ADMIN_URL)("Liga-Übernahme (Postgres)", () => {
     const eigene = async () => (await termineDesVereins()).filter((t) => t.icsUid?.startsWith("liga:")).length;
 
     // Default aus: nichts passiert
-    expect(await uebernehmeFuerAktiveVereine()).toEqual([]);
+    expect((await uebernehmeFuerAktiveVereine()).ergebnis).toEqual([]);
     expect(await eigene()).toBe(0);
 
     await testDb.update(schema.vereine).set({ ligaUebernahmeAktiv: true }).where(eq(schema.vereine.id, vereinId));
     // anderer Liga-Verein gerade synchronisiert: dieser Verein bleibt außen vor
-    expect(await uebernehmeFuerAktiveVereine([randomUUID()])).toEqual([]);
+    expect((await uebernehmeFuerAktiveVereine({ nurLigaVereinIds: [randomUUID()] })).ergebnis).toEqual([]);
     expect(await eigene()).toBe(0);
 
-    const r = await uebernehmeFuerAktiveVereine([ligaVereinId], new Date("2020-01-01T00:00:00Z"));
+    // Zeitnot: abgelaufene Frist → nichts geprüft, Verein bleibt für den nächsten Lauf übrig
+    const knapp = await uebernehmeFuerAktiveVereine({ jetzt: new Date("2020-01-01T00:00:00Z"), frist: Date.now() - 1 });
+    expect(knapp.ergebnis).toEqual([]);
+    expect(knapp.uebrig).toBe(1);
+    expect(await eigene()).toBe(0);
+
+    const { ergebnis: r } = await uebernehmeFuerAktiveVereine({ nurLigaVereinIds: [ligaVereinId], jetzt: new Date("2020-01-01T00:00:00Z") });
     expect(r).toHaveLength(1);
     expect(r[0].fehler).toBeUndefined();
     expect(r[0].angelegt).toBeGreaterThan(0);

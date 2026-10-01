@@ -238,6 +238,9 @@ export const vereine = pgTable("verein", {
   // Vom Systemadmin je Verein geschaltet (/system/abgleich): der Liga-Sync-Cron legt
   // dann fehlende künftige Heimspiele still als Termine an (lib/liga-uebernahme.ts).
   ligaUebernahmeAktiv: boolean("liga_uebernahme_aktiv").notNull().default(false),
+  // Zuletzt vom Übernahme-Cron geprüft: sorgt dafür, dass bei Zeitnot die am längsten
+  // nicht geprüften Vereine zuerst drankommen (rundenweise, nichts bleibt liegen).
+  ligaUebernahmeGeprueftAm: timestamp("liga_uebernahme_geprueft_am", { mode: "date" }),
   // Opt-in für den Vereinsadmin: E-Mail bei geänderten Spielen (Zeit/Ort
   // verlegt) bzw. neu eingetragenen Ergebnissen im Hallenspielplan, siehe
   // rundenspiel-benachrichtigung.ts. Default false, da nicht jeder Verein

@@ -5,6 +5,10 @@
       "schedule": "0 * * * *"
     },
     {
+      "path": "/api/cron/liga-uebernahme",
+      "schedule": "30 * * * *"
+    },
+    {
       "path": "/api/cron/ics-sync",
       "schedule": "0 4 * * *"
     },
