@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseKategorien, passtZumZusatzFilter } from "./zusatzquellen";
+import { beschreibeZusatzVerein, parseKategorien, passtZumZusatzFilter } from "./zusatzquellen";
 
 const team = (mannschaftsname: string, ligaName: string) => ({ mannschaftsname, ligaName });
 
@@ -32,5 +32,28 @@ describe("Zusatzquellen-Filter", () => {
     expect(
       passtZumZusatzFilter(team("entfällt: Jugend F - Maxi 2x3gg3", "Meldeliste"), { kategorien: "", nameEnthaelt: null })
     ).toBe(false);
+  });
+});
+
+describe("beschreibeZusatzVerein", () => {
+  const t = (mannschaftsname: string, ligaName: string, saison = "2026/27") => ({
+    mannschaftsname,
+    ligaName,
+    saison,
+    regulaer: true,
+  });
+  it("nennt Stufe, an der der Filter alles aussortiert", () => {
+    const teams = [t("weibliche Jugend B II", "weibliche B-Jugend Bezirksliga"), t("Männer", "Männer Liga")];
+    const text = beschreibeZusatzVerein(teams, "2026/27", { kategorien: "jugend_weiblich", nameEnthaelt: "Heuchelheim" });
+    expect(text).toContain("2 Mannschaften in Saison 2026/27");
+    expect(text).toContain("1 passen zur Kategorie");
+    expect(text).toContain("davon 0 zum Namensteil");
+    expect(text).toContain("weibliche Jugend B II / weibliche B-Jugend Bezirksliga");
+  });
+  it("erkennt eine fehlende Saison und eine leere Vereinsliste", () => {
+    expect(beschreibeZusatzVerein([t("Männer", "x", "2025/26")], "2026/27", { kategorien: "", nameEnthaelt: null })).toContain(
+      "keine reguläre Mannschaft in Saison 2026/27"
+    );
+    expect(beschreibeZusatzVerein([], "2026/27", { kategorien: "", nameEnthaelt: null })).toContain("leer");
   });
 });

@@ -433,7 +433,6 @@ export default async function EinstellungenPage({
                             type="checkbox"
                             name="zusatzKategorie"
                             value={wert}
-                            defaultChecked={wert === "jugend_weiblich"}
                           />
                           {label}
                         </label>
@@ -444,8 +443,10 @@ export default async function EinstellungenPage({
                     <Label htmlFor="zusatzNameEnthaelt">Name enthält (optional)</Label>
                     <Input id="zusatzNameEnthaelt" name="zusatzNameEnthaelt" placeholder="z.B. Heuchelheim" />
                     <p className="text-xs text-muted-foreground">
-                      Zusätzlicher Filter auf Mannschafts- oder Liganame, falls der Partnerverein weitere
-                      Mannschaften derselben Kategorie hat, die nicht zur Spielgemeinschaft gehören.
+                      Es reicht ein Teil des Namens (Groß-/Kleinschreibung egal). Geprüft wird gegen den Namen
+                      der Mannschaft in der Ligatabelle (dort steht z.B. „wJSG Bieber/Heuchelheim II“) sowie
+                      gegen Mannschafts- und Liganame. So werden nur die Mannschaften der Spielgemeinschaft
+                      übernommen, nicht weitere Mannschaften des Partnervereins.
                     </p>
                   </div>
                   <SubmitButton size="sm" className="self-start" pendingText="Lädt von nuLiga… (bis ca. 1 Minute)">

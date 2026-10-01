@@ -184,7 +184,9 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   Jugendspielgemeinschaft), trägt der Admin dessen nuLiga-Vereins-ID unter
   Einstellungen → Öffentliche Vereinsseite als Zusatzquelle ein
   (`liga_verein_zusatzquelle`, Filter über Kategorie und optional einen
-  Namensteil — nie der ganze Partnerverein). `synchronisiereStruktur` liest
+  Namensteil — nie der ganze Partnerverein; der Namensteil wird gegen Vereinsliste
+  UND den Namen in der Gruppentabelle geprüft, dort steht der Name der
+  Spielgemeinschaft). `synchronisiereStruktur` liest
   deren clubTeams und legt die gefilterten Mannschaften unter dem eigenen
   `liga_verein` an (Filter rein in `nuliga/zusatzquellen.ts`); der Spiele-Sync
   braucht dafür keine Änderung. Ist eine Zusatzquelle nicht lesbar, wird nichts

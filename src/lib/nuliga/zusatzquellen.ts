@@ -26,3 +26,39 @@ export function passtZumZusatzFilter(
   if (teil && !`${team.mannschaftsname} ${team.ligaName}`.toLowerCase().includes(teil)) return false;
   return true;
 }
+
+// Diagnosetext, wenn der Filter nichts trifft: was liefert die Vereinsliste
+// des Partnervereins überhaupt (Saison, Kategorien, Beispielnamen) und an
+// welcher Stufe fällt alles heraus? Nur öffentliche Mannschafts-/Liganamen.
+export function beschreibeZusatzVerein(
+  teams: { mannschaftsname: string; ligaName: string; saison: string | null; regulaer: boolean }[],
+  saison: string,
+  filter: ZusatzFilter
+): string {
+  if (teams.length === 0) return "Vereinsliste leer oder nicht lesbar";
+  const saisonTeams = teams.filter((t) => t.regulaer && t.saison === saison);
+  if (saisonTeams.length === 0) {
+    const saisons = [...new Set(teams.map((t) => t.saison ?? "?"))].join(", ");
+    return `${teams.length} Einträge, aber keine reguläre Mannschaft in Saison ${saison} (vorhanden: ${saisons})`;
+  }
+  const kategorien = parseKategorien(filter.kategorien);
+  const proKategorie = new Map<string, number>();
+  for (const t of saisonTeams) {
+    const k = normalisiereMannschaft(t.mannschaftsname, t.ligaName).kategorie;
+    proKategorie.set(k, (proKategorie.get(k) ?? 0) + 1);
+  }
+  const nachKategorie = saisonTeams.filter((t) =>
+    passtZumZusatzFilter(t, { kategorien: filter.kategorien, nameEnthaelt: null })
+  );
+  const beispiele = saisonTeams
+    .slice(0, 5)
+    .map((t) => `${t.mannschaftsname} / ${t.ligaName}`)
+    .join("; ");
+  return (
+    `${saisonTeams.length} Mannschaften in Saison ${saison} (` +
+    [...proKategorie].map(([k, n]) => `${k}: ${n}`).join(", ") +
+    `); ${kategorien.length ? `${nachKategorie.length} passen zur Kategorie` : "keine Kategorie gewählt"}` +
+    (filter.nameEnthaelt ? `, davon ${nachKategorie.filter((t) => passtZumZusatzFilter(t, filter)).length} zum Namensteil „${filter.nameEnthaelt}“` : "") +
+    `. Beispiele: ${beispiele}`
+  );
+}
