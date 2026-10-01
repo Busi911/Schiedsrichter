@@ -18,6 +18,8 @@ export async function hallenplanVerknuepfen(formData: FormData) {
     neu: String(r.verknuepft),
     schon: String(r.bereitsVerknuepft),
     dup: String(r.uebersprungenMehrfach),
+    zv: String(r.zuordnungenVorher),
+    zn: String(r.zuordnungenNachher),
   });
   redirect(`/system/abgleich?${params.toString()}`);
 }

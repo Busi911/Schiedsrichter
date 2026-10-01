@@ -17,7 +17,7 @@ const STATUS_LABEL = {
 export default async function AbgleichPage({
   searchParams,
 }: {
-  searchParams: Promise<{ verein?: string; neu?: string; schon?: string; dup?: string }>;
+  searchParams: Promise<{ verein?: string; neu?: string; schon?: string; dup?: string; zv?: string; zn?: string }>;
 }) {
   await requireSystemAdmin();
   const ergebnisInfo = await searchParams;
@@ -152,6 +152,21 @@ export default async function AbgleichPage({
                     <p className="text-green-700 dark:text-green-400">
                       Gerade verknüpft: {ergebnisInfo.neu} neu, {ergebnisInfo.schon} schon vorhanden
                       {Number(ergebnisInfo.dup) > 0 ? `, ${ergebnisInfo.dup} übersprungen (Duplikate im Hallenplan)` : ""}.
+                    </p>
+                  )}
+                  {ergebnisInfo.verein === v.vereinId && ergebnisInfo.zv !== undefined && (
+                    <p
+                      className={
+                        ergebnisInfo.zv === ergebnisInfo.zn
+                          ? "text-xs text-muted-foreground"
+                          : "text-xs font-medium text-destructive"
+                      }
+                    >
+                      Kontrolle Dienste (Zuordnungen aller Hallenplan-Termine): vorher {ergebnisInfo.zv}, nachher{" "}
+                      {ergebnisInfo.zn}
+                      {ergebnisInfo.zv === ergebnisInfo.zn
+                        ? " — unverändert."
+                        : " — ABWEICHUNG, die Verknüpfung ändert keine Zuordnungen: bitte prüfen, ob parallel jemand Dienste geändert hat."}
                     </p>
                   )}
                   <form action={hallenplanVerknuepfen}>
