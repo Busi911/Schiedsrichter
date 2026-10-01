@@ -32,6 +32,10 @@ export type Trockenlauf = {
   verknuepfbar: number;
   // Davon mit eingetragenen Funktionsträgern (Zuordnungen bleiben erhalten).
   verknuepfbarMitZuordnungen: number;
+  // Davon mit Ansetzung aus dem Hallenplan (Schiedsrichter-Kürzel bzw. von
+  // handball.net gemeldete Schiedsrichter/Zeitnehmer) — sie liegt nur im
+  // privaten Termin und muss bei der Zusammenführung erhalten bleiben.
+  verknuepfbarMitAnsetzung: number;
   // Öffentliche Zeit weicht vom Hallenplan ab (Verlegung?) — würde den Termin
   // verschieben (und Zuordnungen außer Schiri entfernen, siehe rundenspiel-sync.ts).
   zeitAbweichungen: {
@@ -111,6 +115,9 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
         pflichtspiel: termine.pflichtspiel,
         ergebnisHeim: termine.ergebnisHeim,
         ergebnisAuswaerts: termine.ergebnisAuswaerts,
+        srKuerzel: termine.nuligaSchiedsrichterKuerzel,
+        hnSchiedsrichter: termine.handballNetSchiedsrichter,
+        hnZeitnehmer: termine.handballNetZeitnehmer,
       })
       .from(termine)
       .where(and(eq(termine.vereinId, v.id), eq(termine.typ, "rundenspiel")));
@@ -248,6 +255,9 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
     const trockenlauf: Trockenlauf = {
       verknuepfbar: sicherePaare.length,
       verknuepfbarMitZuordnungen: sicherePaare.filter((p) => (zuordnungsAnzahl.get(p.termin.id) ?? 0) > 0).length,
+      verknuepfbarMitAnsetzung: sicherePaare.filter(
+        (p) => p.termin.srKuerzel || p.termin.hnSchiedsrichter || p.termin.hnZeitnehmer
+      ).length,
       zeitAbweichungen: zeitAbweichungen.sort((a, b) => a.start.getTime() - b.start.getTime()),
       ergebnisNeu,
       neuAnzulegen: neuAnzulegenAlle.slice(0, 30).map((s) => ({

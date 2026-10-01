@@ -116,6 +116,10 @@ export default async function AbgleichPage() {
                     Zuordnungen bleiben erhalten).
                   </li>
                   <li>
+                    <strong>{t.verknuepfbarMitAnsetzung}</strong> davon haben eine Ansetzung aus dem Hallenplan
+                    (Schiedsrichter/Zeitnehmer). Sie liegt nur im privaten Termin und bleibt unverändert.
+                  </li>
+                  <li>
                     Bei <strong>{t.ergebnisNeu}</strong> verknüpften Terminen käme ein Ergebnis aus den öffentlichen
                     Daten dazu.
                   </li>
