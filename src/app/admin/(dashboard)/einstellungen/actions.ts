@@ -12,6 +12,7 @@ import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { legeLigaVereinAn } from "@/lib/nuliga/sync";
 import { synchronisiereAlleQuellen } from "@/lib/liga-sync-quellen";
 import { setzeSupportFreigabe } from "@/lib/treuhand";
+import { benachrichtigeSystemAdminsUeberSupportFreigabe } from "@/lib/system-admin-benachrichtigung";
 import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
 import { signOut } from "@/auth";
@@ -513,11 +514,16 @@ export async function supportZugriffSetzen(formData: FormData) {
   }
   const roh = formData.get("tage");
   const tage = roh === "widerrufen" ? null : Number(roh);
-  await setzeSupportFreigabe(
-    session.user.vereinId!,
-    tage,
-    session.user.name ?? session.user.email ?? "Vereinsadmin"
-  );
+  const akteur = session.user.name ?? session.user.email ?? "Vereinsadmin";
+  const bis = await setzeSupportFreigabe(session.user.vereinId!, tage, akteur);
+  // Systemadmins erfahren per Mail von einer neuen Freigabe (best effort).
+  if (bis) {
+    try {
+      await benachrichtigeSystemAdminsUeberSupportFreigabe(session.user.vereinId!, bis, akteur);
+    } catch (err) {
+      console.error("Support-Freigabe-Benachrichtigung fehlgeschlagen:", err);
+    }
+  }
   revalidatePath("/admin/einstellungen");
   redirect("/admin/einstellungen");
 }
