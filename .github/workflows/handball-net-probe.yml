@@ -41,3 +41,41 @@ jobs:
         with:
           name: handball-net-sonde
           path: scripts/handball-net-probe/out
+
+  nuliga-import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: handballpate
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/handballpate?sslmode=disable
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/handballpate?sslmode=disable
+      AUTH_SECRET: probe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Schema migrieren
+        run: npx drizzle-kit migrate
+      - name: TSF Heuchelheim importieren (nuLiga HHV + handball.net)
+        run: npx tsx scripts/handball-net-probe/import.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nuliga-import-html
+          path: out/html
