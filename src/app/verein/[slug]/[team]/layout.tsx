@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeftIcon } from "lucide-react";
 import { FavoritStern } from "@/components/liga/favorit-stern";
+import { ScrollNachOben } from "@/components/liga/scroll-nach-oben";
 import { TeamTabs } from "@/components/liga/team-tabs";
 import { Badge } from "@/components/ui/badge";
 import { ladeTeam } from "./laden";
@@ -18,6 +19,7 @@ export default async function MannschaftsLayout({
 
   return (
     <>
+      <ScrollNachOben schluessel={`${verein.slug}/${m.slug}`} />
       <div className="space-y-3">
         <Link
           href={basis}
