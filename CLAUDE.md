@@ -193,6 +193,17 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   deaktiviert. Bei handball.net gibt es das Pendant über manuelle Team-IDs
   (`handball_net_team_ids`): sie werden immer übernommen, auch wenn das Team zu
   einem anderen Verein gehört (`teamUebernehmen`).
+- **Freundschaftsspiele/Turniere (nuLiga „… FS …“):** In der Vereinsliste
+  stehen sie als eigene Mini-Gruppen (ein Spiel, Spielnummer 0, Tabelle ohne
+  Aussage). `synchronisiereFreundschaftsspiele` (`nuliga/sync.ts`) lädt sie bei
+  der passenden Mannschaft (Kategorie aus der Vereinsliste, Nummer aus dem
+  Portrait, eigene Seite über die Vereins-ID im Portrait). `liga_gruppe`/
+  `liga_spiel.ist_freundschaft` kennzeichnen sie: nie in Tabelle/Platz
+  (`holeMannschaften` schließt sie aus der Hauptteilnahme aus), Struktur- und
+  Spiele-Sync fassen sie nicht an. In den Spielzeilen trägt die EIGENE Seite
+  die Teamtable der regulären Teilnahme, damit alle bestehenden Vergleiche
+  („gegen“/„bei“, Hervorhebung) unverändert funktionieren. Noch offen:
+  Freundschaftsspiele von Zusatzquellen (Partnerverein) und handball.net.
 - **Aufbau der vereinsweiten Seite:** drei Bereiche als eigene Routen —
   `/verein/[slug]` (Letzte Ergebnisse, Startseite), `/spiele` (Nächste Spiele),
   `/mannschaften` — mit `components/liga/vereins-nav.tsx` (Bottom-Bar unter

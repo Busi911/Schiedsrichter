@@ -134,7 +134,10 @@ export const holeMannschaften = cache(async (ligaVereinId: string): Promise<Mann
         and(
           eq(ligaMannschaften.ligaVereinId, ligaVereinId),
           eq(ligaMannschaften.aktiv, true),
-          eq(ligaTeilnahmen.aktiv, true)
+          eq(ligaTeilnahmen.aktiv, true),
+          // Freundschaftsspiele (eigene Mini-Gruppen) haben weder Tabelle noch
+          // Platz — ihre Spiele kommen unten dazu.
+          eq(ligaGruppen.istFreundschaft, false)
         )
       );
     if (zeilen.length === 0) return [];
@@ -165,16 +168,40 @@ export const holeMannschaften = cache(async (ligaVereinId: string): Promise<Mann
         : Promise.resolve([] as SpielAnsicht[]),
     ]);
 
+    // Freundschaftsspiele der Mannschaften: in den Spielzeilen steht bei der
+    // eigenen Seite die Teamtable der regulären Teilnahme (siehe
+    // nuliga/sync.ts, synchronisiereFreundschaftsspiele).
+    const fsTeilnahmen = await adminDb
+      .select({ mannschaftId: ligaTeilnahmen.mannschaftId, gruppeId: ligaTeilnahmen.gruppeId })
+      .from(ligaTeilnahmen)
+      .innerJoin(ligaGruppen, eq(ligaGruppen.id, ligaTeilnahmen.gruppeId))
+      .where(
+        and(
+          inArray(ligaTeilnahmen.mannschaftId, auswahl.map((z) => z.m.id)),
+          eq(ligaTeilnahmen.aktiv, true),
+          eq(ligaGruppen.istFreundschaft, true)
+        )
+      );
+    const fsGruppen = [...new Set(fsTeilnahmen.map((f) => f.gruppeId))];
+    const fsSpiele = fsGruppen.length
+      ? await adminDb.query.ligaSpiele.findMany({
+          where: inArray(ligaSpiele.gruppeId, fsGruppen),
+          orderBy: [asc(ligaSpiele.datum), asc(ligaSpiele.uhrzeit)],
+        })
+      : [];
+
     const jetzt = new Date();
     return auswahl.map(({ m, t, g }) => {
       const tt = t.nuligaTeamtableId;
-      const eigeneSpiele = sortiereChronologisch(
-        tt
+      const fsEigene = new Set(fsTeilnahmen.filter((f) => f.mannschaftId === m.id).map((f) => f.gruppeId));
+      const eigeneSpiele = sortiereChronologisch([
+        ...(tt
           ? spiele.filter(
               (s) => s.gruppeId === g.id && (s.heimTeamtableId === tt || s.gastTeamtableId === tt)
             )
-          : []
-      );
+          : []),
+        ...(tt ? fsSpiele.filter((s) => fsEigene.has(s.gruppeId)) : []),
+      ]);
       const zeile = tt ? tabelle.find((x) => x.gruppeId === g.id && x.nuligaTeamtableId === tt) : null;
       return {
         id: m.id,

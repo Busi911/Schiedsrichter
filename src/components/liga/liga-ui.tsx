@@ -89,6 +89,7 @@ export function SpielKarte({
         </span>
         <span className="flex items-center gap-1.5">
           {teamLabel && <Badge variant="secondary">{teamLabel}</Badge>}
+          {spiel.istFreundschaft && <Badge variant="outline">Freundschaftsspiel</Badge>}
           {STATUS_LABEL[spiel.status] && <Badge variant="outline">{STATUS_LABEL[spiel.status]}</Badge>}
         </span>
       </div>

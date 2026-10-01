@@ -9,7 +9,14 @@ import { eq } from "drizzle-orm";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
-import { fehlertext, legeLigaVereinAn, synchronisiereSpiele, synchronisiereStruktur, type HoleHtml } from "./sync";
+import {
+  fehlertext,
+  legeLigaVereinAn,
+  synchronisiereFreundschaftsspiele,
+  synchronisiereSpiele,
+  synchronisiereStruktur,
+  type HoleHtml,
+} from "./sync";
 import { synchronisiereFaellige } from "./sync-cron";
 import { eigenerNameImPortrait, ermittleTeamtable, waehleSaison, spielGeaendert } from "./sync-hilfen";
 import { paramsAusUrl } from "./html";
@@ -520,5 +527,92 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync: Zusatzquelle (Partnerverein, Postgres)
     await db.delete(schema.ligaVereinZusatzquellen).where(eq(schema.ligaVereinZusatzquellen.ligaVereinId, id));
     await synchronisiereStruktur(id, { db, holeHtml });
     expect(await slugs(id)).not.toContain("maennliche-e");
+  });
+});
+
+describe.skipIf(!ADMIN_URL)("nuLiga-Sync: Freundschaftsspiele (Postgres)", () => {
+  const pool = new Pool({ connectionString: ADMIN_URL });
+  const db = drizzle(pool, { schema });
+  const vereinId = randomUUID();
+
+  // Das Freundschaftsspiel der Vereinsliste gehört hier zur männlichen D-Jugend II
+  // (die einzige Mannschaft der Fixture mit Tabellenzuordnung).
+  const club = fixture("club-teams.html").replace("<td>Männer/männlich</td>", "<td>männliche Jugend D</td>");
+  const portrait = fixture("freundschaft-portrait.html").replace(
+    "TSF Heuchelheim&nbsp;1.&nbsp;Männer/männlich",
+    "TSF Heuchelheim&nbsp;II.&nbsp;männliche Jugend D"
+  );
+  const anfragen: string[] = [];
+  const holeHtml: HoleHtml = async (url) => {
+    anfragen.push(url);
+    const p = paramsAusUrl(url);
+    if (url.includes("/clubTeams")) return club;
+    if (url.includes("/groupPage") && p.get("group") === "492633") return fixture("group-page.html");
+    if (url.includes("/groupPage") && p.get("group") === "522635") return fixture("freundschaft-gruppe.html");
+    if (url.includes("/teamPortrait") && p.get("teamtable") === "2260175") return portrait;
+    throw new Error("HTTP 503");
+  };
+
+  beforeAll(async () => {
+    await db.delete(schema.ligaVereine);
+    await db.delete(schema.ligaGruppen);
+    await db.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim" });
+  });
+  afterAll(async () => {
+    await db.delete(schema.vereine).where(eq(schema.vereine.id, vereinId));
+    await db.delete(schema.ligaGruppen);
+    await pool.end();
+  });
+
+  it("legt das Spiel bei der Mannschaft an, ohne Tabelle, idempotent und robust gegen den Struktur-Sync", async () => {
+    const { id } = await legeLigaVereinAn(db, { vereinId, nuligaClubId: "69723", name: "TSF Heuchelheim" });
+    const jetzt = new Date("2026-08-30T10:00:00Z");
+    await synchronisiereStruktur(id, { db, holeHtml, jetzt });
+
+    const r = await synchronisiereFreundschaftsspiele(id, { db, holeHtml, jetzt });
+    expect(r.status).toBe("erfolgreich");
+    expect(r.neu).toBeGreaterThan(0);
+
+    const gruppe = await db.query.ligaGruppen.findFirst({ where: eq(schema.ligaGruppen.nuligaGroupId, "522635") });
+    expect(gruppe?.istFreundschaft).toBe(true);
+    const spiele = await db.query.ligaSpiele.findMany({ where: eq(schema.ligaSpiele.gruppeId, gruppe!.id) });
+    expect(spiele).toHaveLength(1);
+    expect(spiele[0]).toMatchObject({
+      spielnummer: 0,
+      istFreundschaft: true,
+      halleName: "Sporthalle Heuchelheim",
+      halleNuligaId: "30402",
+      meetingId: "8460431",
+      toreHeim: 29,
+      toreGast: 26,
+    });
+    // eigene Seite trägt die Teamtable der regulären Teilnahme (D-II: 2242017), der Gegner seine eigene
+    expect(spiele[0].heimTeamtableId).toBe("2242017");
+    expect(spiele[0].gastTeamtableId).toBe("2260176");
+
+    const mannschaft = await db.query.ligaMannschaften.findFirst({
+      where: eq(schema.ligaMannschaften.slug, "maennliche-d-2"),
+    });
+    const teilnahmen = await db.query.ligaTeilnahmen.findMany({
+      where: eq(schema.ligaTeilnahmen.mannschaftId, mannschaft!.id),
+    });
+    const fs = teilnahmen.find((t) => t.gruppeId === gruppe!.id)!;
+    expect(fs).toMatchObject({ aktiv: true, rang: null, punktePlus: null, nuligaTeamtableId: "2260175" });
+
+    // zweiter Lauf: fertig/frisch -> keine Abrufe, nichts neu
+    anfragen.length = 0;
+    const r2 = await synchronisiereFreundschaftsspiele(id, { db, holeHtml, jetzt });
+    expect(r2.neu).toBe(0);
+    expect(anfragen.filter((u) => u.includes("/groupPage") || u.includes("/teamPortrait"))).toHaveLength(0);
+
+    // der reguläre Struktur-Sync darf die Freundschafts-Teilnahme nicht deaktivieren
+    await synchronisiereStruktur(id, { db, holeHtml, jetzt: new Date(jetzt.getTime() + 2 * 3600_000) });
+    const nachher = await db.query.ligaTeilnahmen.findFirst({ where: eq(schema.ligaTeilnahmen.id, fs.id) });
+    expect(nachher?.aktiv).toBe(true);
+
+    // der Spiele-Sync der regulären Teilnahmen lädt keine Freundschafts-Portraits
+    anfragen.length = 0;
+    await synchronisiereSpiele(id, { db, holeHtml, jetzt: new Date(jetzt.getTime() + 3 * 3600_000) });
+    expect(anfragen.some((u) => u.includes("teamtable=2260175"))).toBe(false);
   });
 });

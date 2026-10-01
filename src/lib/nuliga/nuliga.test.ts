@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseClubTeams } from "./parsers/club-teams";
+import { parseFreundschaftsGruppe } from "./parsers/freundschaft";
 import { parseGroupPage } from "./parsers/group-page";
 import { parseTeamPortrait } from "./parsers/team-portrait";
 import { parseSpielTabellen } from "./parsers/spielzeilen";
@@ -282,5 +283,38 @@ describe("parseGroupPage: zurückgezogene Mannschaft", () => {
       ["TSV Beispiel", "11", false],
       ["HSG Muster II", "22", true],
     ]);
+  });
+});
+
+describe("Freundschaftsspiel-Gruppe", () => {
+  const html = readFileSync(path.join(import.meta.dirname, "__fixtures__", "freundschaft-gruppe.html"), "utf8");
+  it("liest Titel, Teilnehmer und das eine Spiel (Nr. 0, Halle, Ergebnis)", () => {
+    const { daten } = parseFreundschaftsGruppe(html);
+    expect(daten.gruppenId).toBe("522635");
+    expect(daten.championship).toBe("Gießen FS 26/27");
+    expect(daten.titel).toBe("Freundschaftsspiel 2026-08-29 M TSF Heuchelheim (BOL) gg TV Altenhaßlau (BOL)");
+    expect(daten.teams).toEqual([
+      { name: "TSF Heuchelheim 1", teamtableId: "2260175" },
+      { name: "TV Altenhaßlau 1", teamtableId: "2260176" },
+    ]);
+    expect(daten.spiele).toHaveLength(1);
+    expect(daten.spiele[0]).toMatchObject({
+      spielnummer: 0,
+      datum: "2026-08-29",
+      uhrzeit: "16:00",
+      heim: "TSF Heuchelheim 1",
+      gast: "TV Altenhaßlau 1",
+      meetingId: "8460431",
+      status: "gespielt",
+      halle: { name: "Sporthalle Heuchelheim", nuligaId: "30402" },
+    });
+    expect(daten.spiele[0].tore).toEqual({ plus: 29, minus: 26 });
+  });
+  it("das Mannschaftsportrait liefert Verein und Mannschaftsname", () => {
+    const portrait = readFileSync(path.join(import.meta.dirname, "__fixtures__", "freundschaft-portrait.html"), "utf8");
+    const { daten } = parseTeamPortrait(portrait);
+    expect(daten.clubId).toBe("69723");
+    expect(daten.teamtableId).toBe("2260175");
+    expect(daten.mannschaftsname).toContain("1.");
   });
 });

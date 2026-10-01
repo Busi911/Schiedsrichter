@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, notInArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
 import type { PgDatabase } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import {
@@ -13,16 +13,18 @@ import {
 } from "@/db/schema";
 import { tagKey } from "@/lib/kalender";
 import { parseClubTeams } from "./parsers/club-teams";
+import { parseFreundschaftsGruppe } from "./parsers/freundschaft";
 import { beschreibeZusatzVerein, passtZumZusatzFilter } from "./zusatzquellen";
 import { parseGroupPage } from "./parsers/group-page";
 import { parseTeamPortrait } from "./parsers/team-portrait";
-import { normalisiereMannschaft, parseLigaName, slugify } from "./normalisierung";
+import { normalisiereMannschaft, nummerZuRoemisch, parseLigaName, slugify } from "./normalisierung";
 import { baueNuligaUrl } from "./verbaende";
 import {
   baueNamensIndex,
   eigenerNameImPortrait,
   ergebnisGeaendert,
   ermittleTeamtable,
+  nummerAusPortraitName,
   spielGeaendert,
   spielZuFeldern,
   waehleSaison,
@@ -118,7 +120,7 @@ class Lauf {
 async function protokolliere(
   db: LigaDb,
   ligaVereinId: string,
-  art: "struktur" | "spiele",
+  art: "struktur" | "spiele" | "freundschaft",
   start: number,
   lauf: Lauf,
   fatal: boolean
@@ -632,14 +634,26 @@ export async function synchronisiereStruktur(
           // Teilnahmen aus handball.net verwaltet deren eigener Sync.
           inArray(
             ligaTeilnahmen.gruppeId,
-            db.select({ id: ligaGruppen.id }).from(ligaGruppen).where(eq(ligaGruppen.quelle, "nuliga"))
+            db
+              .select({ id: ligaGruppen.id })
+              .from(ligaGruppen)
+              // Freundschaftsspiele verwaltet synchronisiereFreundschaftsspiele.
+              .where(and(eq(ligaGruppen.quelle, "nuliga"), eq(ligaGruppen.istFreundschaft, false)))
           )
         )
       );
     const aktive = await db
       .selectDistinct({ id: ligaTeilnahmen.mannschaftId })
       .from(ligaTeilnahmen)
-      .where(and(inArray(ligaTeilnahmen.mannschaftId, mannschaftIds), eq(ligaTeilnahmen.aktiv, true)));
+      .innerJoin(ligaGruppen, eq(ligaGruppen.id, ligaTeilnahmen.gruppeId))
+      .where(
+        and(
+          inArray(ligaTeilnahmen.mannschaftId, mannschaftIds),
+          eq(ligaTeilnahmen.aktiv, true),
+          // Eine Mannschaft nur mit Freundschaftsspielen bleibt nicht aktiv.
+          eq(ligaGruppen.istFreundschaft, false)
+        )
+      );
     const aktivIds = aktive.map((a) => a.id);
     await db
       .update(ligaMannschaften)
@@ -684,7 +698,8 @@ export async function synchronisiereSpiele(
             ),
             eq(ligaTeilnahmen.aktiv, true),
             eq(ligaGruppen.quelle, "nuliga"),
-            eq(ligaGruppen.istMeldeliste, false)
+            eq(ligaGruppen.istMeldeliste, false),
+            eq(ligaGruppen.istFreundschaft, false)
           )
         )
     : [];
@@ -830,9 +845,271 @@ export async function synchronisiereSpiele(
   return protokolliere(db, ligaVereinId, "spiele", start, lauf, false);
 }
 
+// Freundschaftsspiele/Turniere der Vereinsliste ("… FS 26/27"): jedes Spiel ist
+// eine eigene Mini-Gruppe (Spielnummer 0, eine Tabelle ohne Aussage). Sie
+// werden bei der passenden Mannschaft als Spiele geführt, erscheinen aber nie
+// in Tabelle/Platz (liga_gruppe.ist_freundschaft).
+//
+// Die eigene Seite der Gruppe wird über das Mannschaftsportrait (Vereins-ID)
+// erkannt, die Mannschaft über Kategorie (Vereinsliste) + Nummer (Portrait).
+// In den Spielzeilen steht bei der EIGENEN Seite die Teamtable der regulären
+// Teilnahme der Mannschaft — so funktionieren alle bestehenden Vergleiche
+// (eigene Seite hervorheben, "gegen"/"bei") unverändert. Fertige, ältere
+// Spiele werden nicht erneut geladen.
+export async function synchronisiereFreundschaftsspiele(
+  ligaVereinId: string,
+  { db, holeHtml, jetzt = new Date(), frist }: SyncOptionen
+): Promise<SyncErgebnis> {
+  const start = Date.now();
+  const lauf = new Lauf(holeHtml, frist);
+  const verein = await db.query.ligaVereine.findFirst({ where: eq(ligaVereine.id, ligaVereinId) });
+  if (!verein) throw new Error("Liga-Verein nicht gefunden");
+  if (!verein.nuligaClubId) return protokolliere(db, ligaVereinId, "freundschaft", start, lauf, false);
+
+  let club;
+  try {
+    club = parseClubTeams(
+      await lauf.hole(baueNuligaUrl(verein.verband, "clubTeams", { club: verein.nuligaClubId }))
+    );
+  } catch (err) {
+    lauf.fehler(`clubTeams: ${fehlertext(err)}`);
+    return protokolliere(db, ligaVereinId, "freundschaft", start, lauf, true);
+  }
+  const saison = waehleSaison(club.daten.teams, jetzt);
+  if (!saison) return protokolliere(db, ligaVereinId, "freundschaft", start, lauf, false);
+
+  const eintraege = new Map<string, (typeof club.daten.teams)[number]>();
+  for (const t of club.daten.teams) {
+    if (!t.regulaer && t.saison === saison && /\b(FS|FrSp)\b/i.test(t.championship)) {
+      eintraege.set(t.gruppenId, t);
+    }
+  }
+
+  const gruppenBestand = eintraege.size
+    ? await db.query.ligaGruppen.findMany({
+        where: and(
+          eq(ligaGruppen.verband, verein.verband),
+          eq(ligaGruppen.istFreundschaft, true),
+          inArray(ligaGruppen.nuligaGroupId, [...eintraege.keys()])
+        ),
+      })
+    : [];
+  const gruppeNachNuligaId = new Map(gruppenBestand.map((g) => [g.nuligaGroupId, g]));
+  const mannschaften = await db.query.ligaMannschaften.findMany({
+    where: eq(ligaMannschaften.ligaVereinId, ligaVereinId),
+    columns: { id: true },
+  });
+  const mannschaftIds = mannschaften.map((m) => m.id);
+  const teilnahmenBestand = mannschaftIds.length
+    ? await db
+        .select({ t: ligaTeilnahmen })
+        .from(ligaTeilnahmen)
+        .innerJoin(ligaGruppen, eq(ligaGruppen.id, ligaTeilnahmen.gruppeId))
+        .where(and(inArray(ligaTeilnahmen.mannschaftId, mannschaftIds), eq(ligaGruppen.istFreundschaft, true)))
+    : [];
+  const teilnahmeNachGruppe = new Map(teilnahmenBestand.map((b) => [b.t.gruppeId, b.t]));
+
+  const vorDreiTagen = tagKey(new Date(jetzt.getTime() - 3 * 86_400_000));
+  const gesehen = new Set<string>();
+  const ohneMannschaft: string[] = [];
+  let abgebrochen = false;
+
+  for (const eintrag of eintraege.values()) {
+    const gruppe = gruppeNachNuligaId.get(eintrag.gruppenId);
+    const vorher = gruppe ? teilnahmeNachGruppe.get(gruppe.id) : undefined;
+    if (vorher && gruppe) {
+      const spielAlt = await db.query.ligaSpiele.findFirst({ where: eq(ligaSpiele.gruppeId, gruppe.id) });
+      const fertig = !!spielAlt && spielAlt.toreHeim !== null && spielAlt.datum < vorDreiTagen;
+      const frisch =
+        !!vorher.spieleSynchronisiertAm && jetzt.getTime() - vorher.spieleSynchronisiertAm.getTime() < FRISCH_MS;
+      if (vorher.aktiv && (fertig || frisch)) {
+        gesehen.add(vorher.id);
+        continue;
+      }
+    }
+    if (lauf.fristAbgelaufen()) {
+      abgebrochen = true;
+      break;
+    }
+    try {
+      const { daten, warnungen } = parseFreundschaftsGruppe(
+        await lauf.hole(
+          baueNuligaUrl(verein.verband, "groupPage", { championship: eintrag.championship, group: eintrag.gruppenId })
+        )
+      );
+      for (const w of warnungen) lauf.warn(`${eintrag.ligaName}: ${w}`);
+      if (daten.spiele.length === 0 || daten.teams.length === 0) continue;
+
+      // Eigene Seite + Mannschaft (nur beim ersten Mal über das Portrait)
+      let eigenTt = vorher?.nuligaTeamtableId ?? null;
+      let mannschaftId = vorher?.mannschaftId ?? null;
+      if (!eigenTt || !mannschaftId) {
+        let portraitName: string | null = null;
+        for (const t of daten.teams) {
+          if (lauf.fristAbgelaufen()) break;
+          const portrait = parseTeamPortrait(
+            await lauf.hole(
+              baueNuligaUrl(verein.verband, "teamPortrait", {
+                teamtable: t.teamtableId,
+                pageState: "vorrunde",
+                championship: eintrag.championship,
+                group: eintrag.gruppenId,
+              })
+            )
+          ).daten;
+          if (portrait.clubId && portrait.clubId === verein.nuligaClubId) {
+            eigenTt = t.teamtableId;
+            portraitName = portrait.mannschaftsname;
+            break;
+          }
+        }
+        if (!eigenTt) {
+          if (!lauf.fristAbgelaufen()) lauf.warn(`${eintrag.ligaName}: eigene Mannschaft nicht erkennbar, übersprungen`);
+          continue;
+        }
+        const nummer = nummerAusPortraitName(portraitName) ?? 1;
+        let norm = normalisiereMannschaft(eintrag.mannschaftsname, eintrag.ligaName);
+        if (norm.nummer === 1 && nummer > 1) {
+          norm = normalisiereMannschaft(`${eintrag.mannschaftsname} ${nummerZuRoemisch(nummer)}`, eintrag.ligaName);
+        }
+        const m = await db.query.ligaMannschaften.findFirst({
+          where: and(
+            eq(ligaMannschaften.ligaVereinId, ligaVereinId),
+            eq(ligaMannschaften.schluessel, norm.schluessel),
+            eq(ligaMannschaften.aktiv, true)
+          ),
+        });
+        if (!m) {
+          ohneMannschaft.push(norm.anzeigename);
+          continue;
+        }
+        mannschaftId = m.id;
+      }
+
+      // Teamtable der regulären Teilnahme (siehe Kommentar oben)
+      const [regulaer] = await db
+        .select({ tt: ligaTeilnahmen.nuligaTeamtableId })
+        .from(ligaTeilnahmen)
+        .innerJoin(ligaGruppen, eq(ligaGruppen.id, ligaTeilnahmen.gruppeId))
+        .where(
+          and(
+            eq(ligaTeilnahmen.mannschaftId, mannschaftId),
+            eq(ligaTeilnahmen.aktiv, true),
+            eq(ligaGruppen.istFreundschaft, false),
+            isNotNull(ligaTeilnahmen.nuligaTeamtableId)
+          )
+        )
+        .orderBy(desc(ligaTeilnahmen.saison))
+        .limit(1);
+      if (!regulaer?.tt) {
+        lauf.warn(`${eintrag.ligaName}: Mannschaft ohne Tabellenzuordnung, übersprungen`);
+        continue;
+      }
+
+      const gruppeId = await upsertGruppe(
+        db,
+        verein.verband,
+        eintrag.gruppenId,
+        { championship: eintrag.championship, ligaName: daten.titel ?? eintrag.ligaName, saison },
+        lauf
+      );
+      await db.update(ligaGruppen).set({ istFreundschaft: true }).where(eq(ligaGruppen.id, gruppeId));
+
+      const werte = {
+        saison,
+        nuligaName: daten.titel ?? eintrag.ligaName,
+        rang: null,
+        punktePlus: null,
+        punkteMinus: null,
+        nuligaTeamtableId: eigenTt,
+        aktiv: true,
+        synchronisiertAm: new Date(),
+        spieleSynchronisiertAm: new Date(),
+      };
+      const vorhandene = await db.query.ligaTeilnahmen.findFirst({
+        where: and(eq(ligaTeilnahmen.mannschaftId, mannschaftId), eq(ligaTeilnahmen.gruppeId, gruppeId)),
+      });
+      let teilnahmeId: string;
+      if (vorhandene) {
+        await db.update(ligaTeilnahmen).set(werte).where(eq(ligaTeilnahmen.id, vorhandene.id));
+        teilnahmeId = vorhandene.id;
+      } else {
+        const [neu] = await db
+          .insert(ligaTeilnahmen)
+          .values({ mannschaftId, gruppeId, ...werte })
+          .returning({ id: ligaTeilnahmen.id });
+        teilnahmeId = neu.id;
+        lauf.neu++;
+      }
+      gesehen.add(teilnahmeId);
+
+      const namen = new Map<string, string | null>(
+        daten.teams.map((t) => [t.name, t.teamtableId === eigenTt ? regulaer.tt : t.teamtableId])
+      );
+      for (const s of daten.spiele) {
+        const felder = spielZuFeldern(s, namen);
+        const nummer = s.spielnummer ?? 0;
+        const alt = await db.query.ligaSpiele.findFirst({
+          where: and(eq(ligaSpiele.gruppeId, gruppeId), eq(ligaSpiele.spielnummer, nummer)),
+        });
+        if (!alt) {
+          await db
+            .insert(ligaSpiele)
+            .values({ gruppeId, spielnummer: nummer, istFreundschaft: true, ...felder })
+            .onConflictDoUpdate({
+              target: [ligaSpiele.gruppeId, ligaSpiele.spielnummer],
+              set: { ...felder, istFreundschaft: true, synchronisiertAm: new Date() },
+            });
+          lauf.neu++;
+        } else if (spielGeaendert({ ...alt }, felder) || !alt.istFreundschaft) {
+          await db
+            .update(ligaSpiele)
+            .set({ ...felder, istFreundschaft: true, synchronisiertAm: new Date() })
+            .where(eq(ligaSpiele.id, alt.id));
+          lauf.aktualisiert++;
+        }
+      }
+    } catch (err) {
+      lauf.fehler(`${eintrag.ligaName}: ${fehlertext(err)}`);
+    }
+  }
+
+  if (ohneMannschaft.length) {
+    lauf.warn(
+      `Freundschaftsspiele ohne passende Mannschaft übersprungen: ${[...new Set(ohneMannschaft)].join(", ")}`
+    );
+  }
+
+  // Nicht mehr gelistete Freundschaftsspiele ausblenden (nie löschen) — nur
+  // nach vollständigem Lauf, sonst würden noch nicht geladene verschwinden.
+  if (!abgebrochen && !lauf.unvollstaendig && !lauf.hatFehler) {
+    const veraltet = teilnahmenBestand.filter((b) => b.t.aktiv && !gesehen.has(b.t.id)).map((b) => b.t.id);
+    if (veraltet.length) {
+      await db.update(ligaTeilnahmen).set({ aktiv: false }).where(inArray(ligaTeilnahmen.id, veraltet));
+    }
+  }
+  if (abgebrochen) lauf.unvollstaendig = true;
+  return protokolliere(db, ligaVereinId, "freundschaft", start, lauf, false);
+}
+
 export async function synchronisiereVollstaendig(ligaVereinId: string, opt: SyncOptionen) {
   const struktur = await synchronisiereStruktur(ligaVereinId, opt);
-  if (struktur.status === "fehler") return { struktur, spiele: null };
+  if (struktur.status === "fehler") return { struktur, spiele: null, freundschaft: null };
   const spiele = await synchronisiereSpiele(ligaVereinId, opt);
-  return { struktur, spiele };
+  // Freundschaftsspiele hängen an den (eben aktualisierten) Mannschaften; ein
+  // Fehler hier lässt Struktur und Spiele unberührt.
+  let freundschaft: SyncErgebnis | null = null;
+  try {
+    freundschaft = await synchronisiereFreundschaftsspiele(ligaVereinId, opt);
+  } catch (err) {
+    freundschaft = {
+      status: "fehler",
+      anfragen: 0,
+      neu: 0,
+      aktualisiert: 0,
+      meldungen: [`Freundschaftsspiele: ${fehlertext(err)}`],
+      unvollstaendig: false,
+    };
+  }
+  return { struktur, spiele, freundschaft };
 }
