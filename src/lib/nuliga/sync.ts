@@ -59,6 +59,9 @@ export type SyncErgebnis = {
   neu: number;
   aktualisiert: number;
   meldungen: string[];
+  // true, wenn der Lauf wegen der Frist (Zeitlimit) Teile NICHT geladen hat —
+  // ein weiterer Aufruf setzt fort (Gegenstück zu "teilweise" wegen Fehlern).
+  unvollstaendig: boolean;
 };
 
 class Lauf {
@@ -141,6 +144,7 @@ async function protokolliere(
     neu: lauf.neu,
     aktualisiert: lauf.aktualisiert,
     meldungen: lauf.meldungen,
+    unvollstaendig: lauf.unvollstaendig,
   };
 }
 
