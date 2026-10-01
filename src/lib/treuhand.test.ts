@@ -15,6 +15,8 @@ vi.mock("@/db/admin", () => ({ adminDb: testDb }));
 vi.mock("server-only", () => ({}));
 // Anonymer Besucher: keine Session
 vi.mock("@/auth", () => ({ auth: async () => null }));
+const sendMailMock = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("./mailer", () => ({ sendMail: sendMailMock }));
 let vorschauCookie: string | undefined;
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: (n: string) => (n === "hp_vorschau" && vorschauCookie ? { value: vorschauCookie } : undefined) }),
@@ -139,6 +141,22 @@ describe.skipIf(!ADMIN_URL)("Treuhand (Postgres)", () => {
     await t.uebergebeVerein(sysAdminId, vereinId, "Admin Zwei", `zwei-${vereinId}@example.invalid`);
     expect((await holeAlleVereine()).some((v) => v.slug === "geheimer-verein-test")).toBe(true);
     expect((await holeVerein("geheimer-verein-test"))?.id).toBeDefined();
+  });
+
+  it("eine Support-Freigabe benachrichtigt alle Systemadmins per Mail", async () => {
+    const t = await import("./treuhand");
+    const { benachrichtigeSystemAdminsUeberSupportFreigabe } = await import("./system-admin-benachrichtigung");
+    const vereinId = await t.vereinVorbereiten(sysAdminId, "Freigabe Verein");
+    angelegt.push(vereinId);
+    sendMailMock.mockClear();
+    const bis = await t.setzeSupportFreigabe(vereinId, 3, "Vereins Admin");
+    expect(bis).toBeInstanceOf(Date);
+    await benachrichtigeSystemAdminsUeberSupportFreigabe(vereinId, bis!, "Vereins Admin");
+    const an = sendMailMock.mock.calls.map((c) => c as unknown as [string, string]);
+    const meine = an.find(([empfaenger]) => empfaenger === sysEmail);
+    expect(meine?.[1]).toBe("Support-Freigabe: Freigabe Verein");
+    // Widerruf liefert kein Datum (kein Anlass für eine Mail)
+    expect(await t.setzeSupportFreigabe(vereinId, null, "Vereins Admin")).toBeNull();
   });
 
   it("Vorschau-Link öffnet einen Verein in Vorbereitung nur befristet, widerrufbar und nur für diesen Verein", async () => {

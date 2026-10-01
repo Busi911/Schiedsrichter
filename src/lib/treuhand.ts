@@ -153,7 +153,7 @@ export async function setzeSupportFreigabe(
   vereinId: string,
   tage: number | null,
   akteur: string
-) {
+): Promise<Date | null> {
   if (tage !== null && !(SUPPORT_TAGE as readonly number[]).includes(tage)) {
     throw new Error("Ungültige Dauer.");
   }
@@ -161,11 +161,12 @@ export async function setzeSupportFreigabe(
     await adminDb.update(vereine).set({ supportZugriffBis: null }).where(eq(vereine.id, vereinId));
     await adminDb.delete(treuhandZugriffe).where(eq(treuhandZugriffe.vereinId, vereinId));
     await schreibeProtokoll(vereinId, "support_widerrufen", akteur);
-    return;
+    return null;
   }
   const bis = new Date(Date.now() + tage * TAG_MS);
   await adminDb.update(vereine).set({ supportZugriffBis: bis }).where(eq(vereine.id, vereinId));
   await schreibeProtokoll(vereinId, "support_freigegeben", akteur, `${tage} Tag(e), bis ${bis.toISOString()}`);
+  return bis;
 }
 
 export async function holeProtokoll(vereinId: string, limit = 15) {
