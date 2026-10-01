@@ -189,6 +189,22 @@ describe.skipIf(!ADMIN_URL)("Treuhand (Postgres)", () => {
     // Antwort hängt am Cookie → darf nie im gemeinsamen Cache landen
     expect(logo.headers.get("Cache-Control")).toContain("private");
     expect((await manifestRoute.GET(new Request("http://x/"), params)).status).toBe(200);
+
+    // Link-Vorschau-Crawler (kein Cookie): Titel + Logo über den Token
+    vorschauCookie = undefined;
+    const tokenRoute = await import("@/app/verein/[slug]/vorschau/[token]/route");
+    const tokenLogo = await import("@/app/verein/[slug]/vorschau/[token]/logo/route");
+    const token = await v.erzeugeVorschauLink(vereinId, 1, "test");
+    const tp = { params: Promise.resolve({ slug: "logo-vorschau-test", token }) };
+    const bot = await tokenRoute.GET(new Request("http://x/", { headers: { "user-agent": "WhatsApp/2.23" } }), tp);
+    expect(bot.status).toBe(200);
+    const html = await bot.text();
+    expect(html).toContain('og:image');
+    expect(html).toContain(`/verein/logo-vorschau-test/vorschau/${token}/logo`);
+    expect((await tokenLogo.GET(new Request("http://x/"), tp)).status).toBe(200);
+    expect((await tokenLogo.GET(new Request("http://x/"), { params: Promise.resolve({ slug: "logo-vorschau-test", token: "falsch" }) })).status).toBe(404);
+    // normaler Browser: weiter Umleitung mit Cookie
+    expect((await tokenRoute.GET(new Request("http://x/", { headers: { "user-agent": "Mozilla/5.0" } }), tp)).status).toBe(307);
     vorschauCookie = undefined;
   });
 
