@@ -1,8 +1,15 @@
 import "server-only";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine, termine, vereine } from "@/db/schema";
+import { ligaGruppen, ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine, termine, vereine } from "@/db/schema";
 import { gleicheAb, type AbgleichErgebnis } from "@/lib/hallenplan-abgleich";
+
+const berlinUhr = new Intl.DateTimeFormat("de-DE", {
+  timeZone: "Europe/Berlin",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
 export type VereinsAbgleich = {
   vereinId: string;
@@ -10,13 +17,19 @@ export type VereinsAbgleich = {
   hatLigaVerein: boolean;
   termineGesamt: number;
   anzahl: Record<AbgleichErgebnis["status"], number>;
-  nurOeffentlich: number; // Liga-Spiele eigener Mannschaften ohne Hallenplan-Termin
+  // Liga-Spiele eigener Mannschaften ohne Hallenplan-Termin. Auswärtsspiele
+  // stehen naturgemäß nie im eigenen Hallenplan und sind unproblematisch.
+  nurOeffentlichHeim: number;
+  nurOeffentlichAuswaerts: number;
+  // Kein Treffer, davon Freundschaftsspiele/Turniere (ohne Spielnummer, nicht in der Liga).
+  keinTrefferFreundschaft: number;
   auffaellig: {
     status: AbgleichErgebnis["status"];
     start: Date;
     heim: string | null;
     gast: string | null;
     uid: string | null;
+    pflichtspiel: boolean | null;
     kandidaten: string[];
   }[];
 };
@@ -36,6 +49,8 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
         icsUid: termine.icsUid,
         heim: termine.heimMannschaftName,
         gast: termine.auswaertsMannschaftName,
+        kategorie: termine.kategorie,
+        pflichtspiel: termine.pflichtspiel,
       })
       .from(termine)
       .where(and(eq(termine.vereinId, v.id), eq(termine.typ, "rundenspiel")));
@@ -46,6 +61,7 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
       .where(eq(ligaVereine.vereinId, v.id));
 
     let spiele: (typeof ligaSpiele.$inferSelect)[] = [];
+    let eigeneTeamIds = new Set<string>();
     if (ligaVerein) {
       const teilnahmen = await adminDb
         .select({ gruppeId: ligaTeilnahmen.gruppeId, teamtable: ligaTeilnahmen.nuligaTeamtableId })
@@ -54,6 +70,7 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
         .where(and(eq(ligaMannschaften.ligaVereinId, ligaVerein.id), eq(ligaTeilnahmen.aktiv, true)));
       const gruppen = [...new Set(teilnahmen.map((t) => t.gruppeId))];
       const teamIds = teilnahmen.map((t) => t.teamtable).filter((x): x is string => !!x);
+      eigeneTeamIds = new Set(teamIds);
       if (gruppen.length > 0 && teamIds.length > 0) {
         spiele = await adminDb
           .select()
@@ -67,12 +84,25 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
       }
     }
 
+    const gruppenInfo = new Map(
+      (spiele.length
+        ? await adminDb
+            .select({ id: ligaGruppen.id, geschlecht: ligaGruppen.geschlecht, altersklasse: ligaGruppen.altersklasse })
+            .from(ligaGruppen)
+            .where(inArray(ligaGruppen.id, [...new Set(spiele.map((s) => s.gruppeId))]))
+        : []
+      ).map((g) => [g.id, g])
+    );
+
     const abgleich = gleicheAb(
       hallenTermine,
       spiele.map((s) => ({
         id: s.id,
         spielnummer: s.spielnummer,
         datum: s.datum,
+        uhrzeit: s.uhrzeit ?? (s.beginn ? berlinUhr.format(s.beginn) : null),
+        geschlecht: gruppenInfo.get(s.gruppeId)?.geschlecht ?? null,
+        altersklasse: gruppenInfo.get(s.gruppeId)?.altersklasse ?? null,
         heimName: s.heimName,
         gastName: s.gastName,
       }))
@@ -80,7 +110,10 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
     const anzahl = { sicher: 0, unklar: 0, mehrdeutig: 0, kein_treffer: 0 };
     for (const a of abgleich) anzahl[a.status]++;
     const verknuepft = new Set(abgleich.flatMap((a) => (a.status === "sicher" ? a.spielIds : [])));
-    const nurOeffentlich = spiele.filter((s) => !verknuepft.has(s.id)).length;
+    const unverknuepft = spiele.filter((s) => !verknuepft.has(s.id));
+    const nurOeffentlichHeim = unverknuepft.filter(
+      (s) => s.heimTeamtableId && eigeneTeamIds.has(s.heimTeamtableId)
+    ).length;
 
     const nachId = new Map(hallenTermine.map((t) => [t.id, t]));
     const spielNachId = new Map(spiele.map((s) => [s.id, s]));
@@ -94,6 +127,7 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
           heim: t.heim,
           gast: t.gast,
           uid: t.icsUid,
+          pflichtspiel: t.pflichtspiel,
           kandidaten: a.spielIds.map((id) => {
             const s = spielNachId.get(id)!;
             return `${s.datum} ${s.heimName} – ${s.gastName}${s.spielnummer ? ` (Nr. ${s.spielnummer})` : ""}`;
@@ -108,7 +142,11 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
       hatLigaVerein: !!ligaVerein,
       termineGesamt: hallenTermine.length,
       anzahl,
-      nurOeffentlich,
+      nurOeffentlichHeim,
+      nurOeffentlichAuswaerts: unverknuepft.length - nurOeffentlichHeim,
+      keinTrefferFreundschaft: abgleich.filter(
+        (a) => a.status === "kein_treffer" && nachId.get(a.terminId)!.pflichtspiel === false
+      ).length,
       auffaellig,
     });
   }
