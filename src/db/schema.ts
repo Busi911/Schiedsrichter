@@ -1,5 +1,6 @@
 import {
   type AnyPgColumn,
+  customType,
   boolean,
   date,
   integer,
@@ -989,4 +990,19 @@ export const ligaSyncLaeufe = pgTable("liga_sync_lauf", {
   aktualisiert: integer("aktualisiert").notNull().default(0),
   status: ligaSyncStatusEnum("status").notNull(),
   meldungen: jsonb("meldungen").$type<string[]>().notNull().default([]),
+});
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
+
+// Vereinslogo für die öffentliche Seite/Web-App: bereits normalisiert (PNG,
+// 512x512, siehe lib/liga-logo.ts) und deshalb klein. Eigene Tabelle, damit
+// Abfragen auf liga_verein nie das Bild mitladen.
+export const ligaVereinLogos = pgTable("liga_verein_logo", {
+  ligaVereinId: uuid("liga_verein_id")
+    .primaryKey()
+    .references(() => ligaVereine.id, { onDelete: "cascade" }),
+  png: bytea("png").notNull(),
+  aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
 });

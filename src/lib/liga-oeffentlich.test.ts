@@ -73,6 +73,16 @@ describe.skipIf(!ADMIN_URL)("öffentliche Abfragen (Postgres)", () => {
     expect(maenner.spiele).toEqual([]);
   });
 
+  it("speichert/liest das Vereinslogo und liefert die Version nur bei vorhandenem Logo", async () => {
+    const { holeLogoPng, holeLogoVersion } = await import("./liga-oeffentlich");
+    expect(await holeLogoVersion(ligaVereinId)).toBeNull();
+    expect(await holeLogoPng(ligaVereinId)).toBeNull();
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+    await testDb.insert(schema.ligaVereinLogos).values({ ligaVereinId, png });
+    expect(Buffer.compare((await holeLogoPng(ligaVereinId))!, png)).toBe(0);
+    expect(await holeLogoVersion(ligaVereinId)).toBeGreaterThan(0);
+  });
+
   it("liefert die Gruppentabelle sortiert nach Rang", async () => {
     const { holeMannschaften, holeTabelle } = await import("./liga-oeffentlich");
     const d2 = (await holeMannschaften(ligaVereinId)).find((m) => m.slug === "maennliche-d-2")!;

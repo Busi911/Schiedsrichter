@@ -24,9 +24,11 @@ export function vereinsInitialen(name: string): string {
   return (erstes[0] + (zweites ? zweites[0] : (erstes[1] ?? ""))).toUpperCase();
 }
 
-export function vereinsManifest(verein: { slug: string; name: string }) {
+export function vereinsManifest(verein: { slug: string; name: string }, logoVersion?: number | null) {
   const farbe = `hsl(${vereinsFarbton(verein.slug)} 55% 28%)`;
   const start = `/verein/${verein.slug}`;
+  // Cache-Buster: ändert sich das Logo, laden Browser das neue Icon.
+  const v = logoVersion ? `?v=${logoVersion}` : "";
   return {
     id: start,
     name: verein.name,
@@ -39,9 +41,9 @@ export function vereinsManifest(verein: { slug: string; name: string }) {
     background_color: "#f4f4f5",
     theme_color: farbe,
     icons: [
-      { src: `${start}/icon/192`, sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: `${start}/icon/512`, sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: `${start}/icon/512`, sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: `${start}/icon/192${v}`, sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: `${start}/icon/512${v}`, sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: `${start}/icon/512${v}`, sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }

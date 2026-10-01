@@ -16,11 +16,13 @@ export function FanKopf({
   titel,
   untertitel,
   initialen,
+  logoUrl,
   aktiv,
 }: {
   titel: string;
   untertitel?: string;
   initialen?: string;
+  logoUrl?: string;
   aktiv?: "vereine" | "meine";
 }) {
   const navLink = (href: string, label: string, key: "vereine" | "meine") => (
@@ -42,13 +44,24 @@ export function FanKopf({
           {navLink("/meine", "Meine Mannschaften", "meine")}
         </nav>
         <div className="flex items-center gap-3">
-          {initialen && (
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt=""
+              width={48}
+              height={48}
+              className="size-12 shrink-0 rounded-xl bg-white object-contain p-1"
+            />
+          ) : (
+            initialen && (
             <span
               aria-hidden="true"
               className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-foreground/15 font-heading text-lg font-extrabold tracking-tight"
             >
               {initialen}
             </span>
+            )
           )}
           <div className="min-w-0">
             <p className="font-heading truncate text-xl leading-tight font-bold sm:text-2xl">{titel}</p>

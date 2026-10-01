@@ -6,7 +6,8 @@ import { eq } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaVereine, vereine } from "@/db/schema";
+import { ligaVereine, ligaVereinLogos, vereine } from "@/db/schema";
+import { LogoFehler, verarbeiteLogo } from "@/lib/liga-logo";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { legeLigaVereinAn, synchronisiereVollstaendig } from "@/lib/nuliga/sync";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
@@ -273,6 +274,51 @@ export async function oeffentlicheSeiteEntfernen() {
   // Favoriten per Cascade); Gruppen/Spiele bleiben als öffentliche
   // Sportdaten bestehen, solange andere Vereine sie nutzen.
   await adminDb.delete(ligaVereine).where(eq(ligaVereine.vereinId, session.user.vereinId!));
+  revalidatePath("/admin/einstellungen");
+  redirect("/admin/einstellungen");
+}
+
+// Logo für die öffentliche Seite/Web-App hochladen (PNG/JPEG/WebP, max. 5 MB).
+// Wird geprüft und zu einem 512x512-PNG normalisiert (siehe lib/liga-logo.ts).
+export async function logoHochladen(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const ligaVerein = await adminDb.query.ligaVereine.findFirst({
+    where: eq(ligaVereine.vereinId, session.user.vereinId!),
+    columns: { id: true },
+  });
+  if (!ligaVerein) throw new Error("Bitte zuerst die öffentliche Vereinsseite anlegen.");
+
+  const datei = formData.get("logo");
+  if (!(datei instanceof File) || datei.size === 0) throw new Error("Bitte eine Bilddatei auswählen.");
+
+  let png: Buffer;
+  try {
+    png = await verarbeiteLogo(Buffer.from(await datei.arrayBuffer()));
+  } catch (err) {
+    if (err instanceof LogoFehler) throw new Error(err.message);
+    throw err;
+  }
+
+  await adminDb
+    .insert(ligaVereinLogos)
+    .values({ ligaVereinId: ligaVerein.id, png, aktualisiertAm: new Date() })
+    .onConflictDoUpdate({
+      target: ligaVereinLogos.ligaVereinId,
+      set: { png, aktualisiertAm: new Date() },
+    });
+  revalidatePath("/admin/einstellungen");
+  redirect("/admin/einstellungen");
+}
+
+export async function logoEntfernen() {
+  const session = await requireAdminSchreibzugriff();
+  const ligaVerein = await adminDb.query.ligaVereine.findFirst({
+    where: eq(ligaVereine.vereinId, session.user.vereinId!),
+    columns: { id: true },
+  });
+  if (ligaVerein) {
+    await adminDb.delete(ligaVereinLogos).where(eq(ligaVereinLogos.ligaVereinId, ligaVerein.id));
+  }
   revalidatePath("/admin/einstellungen");
   redirect("/admin/einstellungen");
 }

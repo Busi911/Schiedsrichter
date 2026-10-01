@@ -1,9 +1,10 @@
 import { ImageResponse } from "next/og";
-import { holeVerein } from "@/lib/liga-oeffentlich";
+import { baueLogoIcon } from "@/lib/liga-logo";
+import { holeLogoPng, holeVerein } from "@/lib/liga-oeffentlich";
 import { vereinsFarbton, vereinsInitialen } from "@/lib/liga-pwa";
 
-// App-Icon je Verein (Initialen auf vereinsspezifischer Farbe) — wir haben
-// keine Vereinslogos, daher wird das Icon dynamisch erzeugt.
+// App-Icon je Verein: das hochgeladene Logo (Rand auf weißem Grund), sonst
+// Initialen auf vereinsspezifischer Farbe.
 const ERLAUBT = new Set(["180", "192", "512"]);
 
 export async function GET(_: Request, { params }: { params: Promise<{ slug: string; groesse: string }> }) {
@@ -13,6 +14,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   if (!verein) return new Response("Not found", { status: 404 });
 
   const px = Number(groesse);
+  const logo = await holeLogoPng(verein.id);
+  if (logo) {
+    const png = await baueLogoIcon(logo, px);
+    return new Response(new Uint8Array(png), {
+      headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" },
+    });
+  }
   const h = vereinsFarbton(verein.slug);
   return new ImageResponse(
     (

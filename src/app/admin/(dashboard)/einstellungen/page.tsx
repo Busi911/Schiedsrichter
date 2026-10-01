@@ -3,9 +3,11 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaVereine, vereine } from "@/db/schema";
+import { ligaVereine, ligaVereinLogos, vereine } from "@/db/schema";
 import {
   dienstBedarfSpeichern,
+  logoEntfernen,
+  logoHochladen,
   oeffentlicheSeiteEntfernen,
   oeffentlicheSeiteSpeichern,
   nuligaEinstellungenSpeichern,
@@ -57,6 +59,13 @@ export default async function EinstellungenPage({
   const ligaVerein = await adminDb.query.ligaVereine.findFirst({
     where: eq(ligaVereine.vereinId, vereinId),
   });
+
+  const logo = ligaVerein
+    ? await adminDb.query.ligaVereinLogos.findFirst({
+        where: eq(ligaVereinLogos.ligaVereinId, ligaVerein.id),
+        columns: { aktualisiertAm: true },
+      })
+    : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -199,6 +208,51 @@ export default async function EinstellungenPage({
               </SubmitButton>
             )}
           </form>
+          {ligaVerein && (
+            <div className="flex flex-col gap-3 border-t pt-4">
+              <div className="flex items-center gap-3">
+                {logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`/verein/${ligaVerein.slug}/logo?v=${logo.aktualisiertAm.getTime()}`}
+                    alt="Vereinslogo"
+                    width={56}
+                    height={56}
+                    className="size-14 rounded-xl border bg-white object-contain p-1"
+                  />
+                ) : (
+                  <div className="flex size-14 items-center justify-center rounded-xl border bg-muted text-xs text-muted-foreground">
+                    Kein Logo
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Das Logo erscheint im Kopf eurer öffentlichen Seite und als Icon der Web-App
+                  (PNG, JPEG oder WebP, max. 5 MB, am besten quadratisch).
+                </p>
+              </div>
+              {session.user.istAdmin && (
+                <>
+                  <form action={logoHochladen} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Input name="logo" type="file" accept="image/png,image/jpeg,image/webp" required />
+                    <SubmitButton size="sm" pendingText="Lädt hoch…" className="self-start">
+                      {logo ? "Logo ersetzen" : "Logo hochladen"}
+                    </SubmitButton>
+                  </form>
+                  {logo && (
+                    <form action={logoEntfernen}>
+                      <ConfirmSubmitButton
+                        variant="outline"
+                        size="sm"
+                        confirmText="Logo wirklich entfernen? Die Web-App zeigt dann wieder die Initialen."
+                      >
+                        Logo entfernen
+                      </ConfirmSubmitButton>
+                    </form>
+                  )}
+                </>
+              )}
+            </div>
+          )}
           {ligaVerein && session.user.istAdmin && (
             <form action={oeffentlicheSeiteEntfernen}>
               <ConfirmSubmitButton
