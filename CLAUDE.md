@@ -45,12 +45,12 @@ Komponenten übernehmen alle `Button`-Props (`variant`, `size`, `className`,
 
 ## Rechtliche Inhalte (Datenschutz/AVV)
 
-`/datenschutz` und `/admin/avv` sind automatisiert erstellte ENTWÜRFE
-(deutlich als solche markiert, mit Warnhinweis auf der Seite) — vor
-produktivem Einsatz mit echten Vereinen von einem Anwalt/Datenschutz-
-beauftragten gegenprüfen lassen. Beim Weiterschreiben dieser Texte immer
-denselben Warnhinweis beibehalten, nie stillschweigend als final
-behandeln.
+`/datenschutz` und `/admin/avv` sind automatisiert erstellt und nicht
+juristisch geprüft. Der frühere Entwurf-Warnhinweis auf den beiden Seiten
+wurde auf ausdrücklichen Wunsch des Betreibers entfernt (01.10.2026) — beim
+Weiterschreiben dieser Texte keinen neuen Warnhinweis einbauen, solange
+nichts anderes gewünscht wird. Die juristische Prüfung bleibt als offener
+Punkt in der Roadmap (README).
 
 ## Zwei-Ebenen-Benachrichtigungen (Verein-Default + Personen-Override)
 
