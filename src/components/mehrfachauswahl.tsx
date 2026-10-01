@@ -93,7 +93,7 @@ export function TerminMehrfachAuswahl({
   // bereits vollständigen zu suchen. In dieser Ansicht gibt es keine
   // Tages-Überschriften, da die Reihenfolge nicht mehr chronologisch ist
   // (das Datum steht in jeder Karte selbst).
-  const [sortierung, setSortierung] = useState<"datum" | "offen">("datum");
+  const [sortierung, setSortierung] = useState<"datum" | "offen">("offen");
   const anzeigeTermine =
     sortierung === "offen"
       ? [...termine].sort((a, b) => Number(a.vollstaendig) - Number(b.vollstaendig))
