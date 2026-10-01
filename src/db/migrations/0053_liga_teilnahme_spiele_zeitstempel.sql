@@ -1,0 +1,1 @@
+ALTER TABLE "liga_teilnahme" ADD COLUMN "spiele_synchronisiert_am" timestamp;

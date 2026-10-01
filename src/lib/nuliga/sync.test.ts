@@ -112,7 +112,8 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync (Postgres)", () => {
     // zweiter Aufruf legt nichts doppelt an
     expect((await legeLigaVereinAn(db, { vereinId, nuligaClubId: "69723", name: "x" })).id).toBe(id);
 
-    const jetzt = new Date("2026-10-01T10:00:00Z");
+    const jetzt = new Date();
+    const spaeter = new Date(jetzt.getTime() + 2 * 3600_000); // jenseits der "frisch"-Grenze
     const s1 = await synchronisiereStruktur(id, { db, holeHtml, jetzt });
     // Gruppen ohne Fixture-Seite schlagen fehl -> "teilweise", nicht "fehler"
     expect(s1.status).toBe("teilweise");
@@ -142,8 +143,8 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync (Postgres)", () => {
     expect(spiele1).toHaveLength(4);
 
     // Idempotenz: zweiter Lauf ändert nichts
-    const s2 = await synchronisiereStruktur(id, { db, holeHtml, jetzt });
-    const sp2 = await synchronisiereSpiele(id, { db, holeHtml, jetzt });
+    const s2 = await synchronisiereStruktur(id, { db, holeHtml, jetzt: spaeter });
+    const sp2 = await synchronisiereSpiele(id, { db, holeHtml, jetzt: spaeter });
     expect(s2.neu).toBe(0);
     expect(s2.aktualisiert).toBe(0);
     expect(sp2.neu).toBe(0);
@@ -176,5 +177,68 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync (Postgres)", () => {
     // Struktur ist nach dem "fehler"-Lauf zuletzt jetzt aktualisiert worden
     const r = await synchronisiereFaellige({ db, holeHtml, nurVereinId: verein!.id });
     expect(r[0].struktur).toBeUndefined();
+  });
+});
+
+describe.skipIf(!ADMIN_URL)("nuLiga-Sync: Zeitlimit (Postgres)", () => {
+  const pool = new Pool({ connectionString: ADMIN_URL });
+  const db = drizzle(pool, { schema });
+  const vereinId = randomUUID();
+  const portrait = fixture("team-portrait.html")
+    .replaceAll("2208495", "2242017")
+    .replaceAll("491948", "492633");
+  const anfragen: string[] = [];
+  const holeHtml: HoleHtml = async (url) => {
+    anfragen.push(url);
+    const p = paramsAusUrl(url);
+    if (url.includes("/clubTeams")) return fixture("club-teams.html");
+    if (url.includes("/groupPage") && p.get("group") === "492633") return fixture("group-page.html");
+    if (url.includes("/teamPortrait")) return portrait;
+    throw new Error("HTTP 503");
+  };
+
+  beforeAll(async () => {
+    await db.delete(schema.ligaGruppen);
+    await db.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim" });
+  });
+  afterAll(async () => {
+    await db.delete(schema.vereine).where(eq(schema.vereine.id, vereinId));
+    await db.delete(schema.ligaGruppen);
+    await pool.end();
+  });
+
+  it("endet bei abgelaufener Frist ordentlich und setzt beim nächsten Lauf fort", async () => {
+    const { id } = await legeLigaVereinAn(db, { vereinId, nuligaClubId: "69723", name: "TSF Heuchelheim" });
+    const abgelaufen = Date.now() - 1;
+
+    // Struktur: nur clubTeams wird geladen, Mannschaften entstehen trotzdem
+    const r1 = await synchronisiereStruktur(id, { db, holeHtml, frist: abgelaufen });
+    expect(anfragen.filter((u) => u.includes("/groupPage"))).toHaveLength(0);
+    expect(r1.status).toBe("teilweise");
+    expect(r1.meldungen.some((m) => m.includes("Zeitlimit"))).toBe(true);
+    const verein = () => db.query.ligaVereine.findFirst({ where: eq(schema.ligaVereine.id, id) });
+    expect((await verein())?.strukturSynchronisiertAm).toBeNull(); // bleibt fällig
+    expect(
+      await db.query.ligaMannschaften.findMany({ where: eq(schema.ligaMannschaften.ligaVereinId, id) })
+    ).toHaveLength(7);
+
+    // Fortsetzung ohne Zeitlimit lädt die Tabelle nach
+    await synchronisiereStruktur(id, { db, holeHtml });
+    expect(anfragen.filter((u) => u.includes("/groupPage")).length).toBeGreaterThan(0);
+    expect((await verein())?.strukturSynchronisiertAm).not.toBeNull();
+
+    // Spiele: abgelaufene Frist -> kein Portrait geladen, Zeitstempel bleibt leer
+    anfragen.length = 0;
+    const sp1 = await synchronisiereSpiele(id, { db, holeHtml, frist: abgelaufen });
+    expect(anfragen).toHaveLength(0);
+    expect(sp1.status).toBe("teilweise");
+    expect((await verein())?.spieleSynchronisiertAm).toBeNull();
+
+    // Fortsetzung lädt die Spiele; ein sofortiger weiterer Lauf überspringt "frische" Teams
+    const sp2 = await synchronisiereSpiele(id, { db, holeHtml });
+    expect(sp2.neu).toBeGreaterThan(0);
+    anfragen.length = 0;
+    await synchronisiereSpiele(id, { db, holeHtml });
+    expect(anfragen.filter((u) => u.includes("/teamPortrait"))).toHaveLength(0);
   });
 });

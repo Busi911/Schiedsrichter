@@ -7,7 +7,7 @@ import "server-only";
 // Netzwerk getestet werden kann.
 export type HoleHtml = (url: string) => Promise<string>;
 
-const MIN_ABSTAND_MS = Number(process.env.NULIGA_MIN_ABSTAND_MS ?? 1500);
+const MIN_ABSTAND_MS = Number(process.env.NULIGA_MIN_ABSTAND_MS ?? 1000);
 const TIMEOUT_MS = 20_000;
 
 // Ehrlicher User-Agent mit Kontakt statt Browser-Tarnung (der HHV hat dem

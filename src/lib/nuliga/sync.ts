@@ -38,7 +38,21 @@ import type { TabellenZeile } from "./types";
 export type LigaDb = PgDatabase<any, typeof schema>;
 export type HoleHtml = (url: string) => Promise<string>;
 
-export type SyncOptionen = { db: LigaDb; holeHtml: HoleHtml; jetzt?: Date };
+export type SyncOptionen = {
+  db: LigaDb;
+  holeHtml: HoleHtml;
+  jetzt?: Date;
+  // Absolute Frist (Date.now()-Millisekunden): danach werden keine neuen
+  // nuLiga-Seiten mehr geladen, der Lauf endet ordentlich als "teilweise"
+  // und setzt beim nächsten Aufruf fort — statt vom Serverless-Zeitlimit
+  // hart abgebrochen zu werden (siehe maxDuration der aufrufenden Route).
+  frist?: number;
+};
+
+// Gruppentabellen/Spielpläne, die jünger sind, werden bei einem
+// Folgeaufruf nicht erneut geladen — so setzt ein zweiter Klick auf
+// "Jetzt aktualisieren" nach einem Zeitlimit genau dort fort.
+const FRISCH_MS = 30 * 60 * 1000;
 export type SyncErgebnis = {
   status: "erfolgreich" | "teilweise" | "fehler";
   anfragen: number;
@@ -53,7 +67,21 @@ class Lauf {
   aktualisiert = 0;
   meldungen: string[] = [];
   hatFehler = false;
-  constructor(private holeHtml: HoleHtml) {}
+  unvollstaendig = false;
+  constructor(
+    private holeHtml: HoleHtml,
+    private frist?: number
+  ) {}
+  fristAbgelaufen(): boolean {
+    if (this.frist !== undefined && Date.now() > this.frist) {
+      if (!this.unvollstaendig) {
+        this.meldungen.push("Zeitlimit erreicht – Rest wird beim nächsten Lauf geladen");
+      }
+      this.unvollstaendig = true;
+      return true;
+    }
+    return false;
+  }
   async hole(url: string): Promise<string> {
     this.anfragen++;
     return this.holeHtml(url);
@@ -77,7 +105,7 @@ async function protokolliere(
 ): Promise<SyncErgebnis> {
   const status: SyncErgebnis["status"] = fatal
     ? "fehler"
-    : lauf.hatFehler
+    : lauf.hatFehler || lauf.unvollstaendig
       ? "teilweise"
       : "erfolgreich";
   await db.insert(ligaSyncLaeufe).values({
@@ -99,10 +127,13 @@ async function protokolliere(
         sql`${ligaSyncLaeufe.gestartetAm} < now() - interval '30 days'`
       )
     );
+  // Bei unvollständigem Lauf (Zeitlimit) den Zeitstempel NICHT setzen: der
+  // Verein bleibt "fällig", der nächste Aufruf (Cron oder "Jetzt
+  // aktualisieren") macht weiter.
   const stempel =
     art === "struktur"
-      ? { strukturSynchronisiertAm: new Date(), syncStatus: status }
-      : { spieleSynchronisiertAm: new Date(), syncStatus: status };
+      ? { strukturSynchronisiertAm: lauf.unvollstaendig ? undefined : new Date(), syncStatus: status }
+      : { spieleSynchronisiertAm: lauf.unvollstaendig ? undefined : new Date(), syncStatus: status };
   await db.update(ligaVereine).set(stempel).where(eq(ligaVereine.id, ligaVereinId));
   return {
     status,
@@ -206,21 +237,20 @@ async function aktualisiereGruppentabelle(
       lauf.fehler(`Gruppe ${gruppenId}: keine Tabelle lesbar, bestehender Stand bleibt`);
       return null;
     }
-    if (daten.liga) {
-      const liga = daten.liga;
-      await db
-        .update(ligaGruppen)
-        .set({
-          ligaName: liga.name,
-          geschlecht: liga.geschlecht,
-          altersklasse: liga.altersklasse,
-          spielklasse: liga.spielklasse,
-          gruppe: liga.gruppe,
-          istMeldeliste: liga.istMeldeliste,
-          tabelleSynchronisiertAm: new Date(),
-        })
-        .where(eq(ligaGruppen.id, gruppeId));
-    }
+    await db
+      .update(ligaGruppen)
+      .set({
+        ...(daten.liga && {
+          ligaName: daten.liga.name,
+          geschlecht: daten.liga.geschlecht,
+          altersklasse: daten.liga.altersklasse,
+          spielklasse: daten.liga.spielklasse,
+          gruppe: daten.liga.gruppe,
+          istMeldeliste: daten.liga.istMeldeliste,
+        }),
+        tabelleSynchronisiertAm: new Date(),
+      })
+      .where(eq(ligaGruppen.id, gruppeId));
     for (const z of zeilen) {
       const werte = {
         name: z.mannschaft,
@@ -277,10 +307,10 @@ async function gespeicherteTabelle(db: LigaDb, gruppeId: string): Promise<Tabell
 
 export async function synchronisiereStruktur(
   ligaVereinId: string,
-  { db, holeHtml, jetzt = new Date() }: SyncOptionen
+  { db, holeHtml, jetzt = new Date(), frist }: SyncOptionen
 ): Promise<SyncErgebnis> {
   const start = Date.now();
-  const lauf = new Lauf(holeHtml);
+  const lauf = new Lauf(holeHtml, frist);
   const verein = await db.query.ligaVereine.findFirst({ where: eq(ligaVereine.id, ligaVereinId) });
   if (!verein) throw new Error("Liga-Verein nicht gefunden");
 
@@ -322,15 +352,28 @@ export async function synchronisiereStruktur(
     );
     let tabelle: TabellenZeile[] = [];
     if (!parseLigaName(team.ligaName).istMeldeliste) {
+      const gespeichert = await gespeicherteTabelle(db, gruppeId);
+      const gruppeZeile = await db.query.ligaGruppen.findFirst({
+        where: eq(ligaGruppen.id, gruppeId),
+        columns: { tabelleSynchronisiertAm: true },
+      });
+      const frisch =
+        gespeichert.length > 0 &&
+        !!gruppeZeile?.tabelleSynchronisiertAm &&
+        jetzt.getTime() - gruppeZeile.tabelleSynchronisiertAm.getTime() < FRISCH_MS;
+      // Frische Tabelle bzw. abgelaufenes Zeitlimit: gespeicherten Stand
+      // nutzen, die Mannschaften werden trotzdem angelegt.
       tabelle =
-        (await aktualisiereGruppentabelle(
-          db,
-          lauf,
-          verein.verband,
-          gruppeId,
-          team.gruppenId,
-          team.championship
-        )) ?? (await gespeicherteTabelle(db, gruppeId));
+        frisch || lauf.fristAbgelaufen()
+          ? gespeichert
+          : ((await aktualisiereGruppentabelle(
+              db,
+              lauf,
+              verein.verband,
+              gruppeId,
+              team.gruppenId,
+              team.championship
+            )) ?? gespeichert);
     }
     gruppen.set(team.gruppenId, { gruppeId, tabelle });
   }
@@ -463,10 +506,10 @@ export async function synchronisiereStruktur(
 
 export async function synchronisiereSpiele(
   ligaVereinId: string,
-  { db, holeHtml, jetzt = new Date() }: SyncOptionen
+  { db, holeHtml, jetzt = new Date(), frist }: SyncOptionen
 ): Promise<SyncErgebnis> {
   const start = Date.now();
-  const lauf = new Lauf(holeHtml);
+  const lauf = new Lauf(holeHtml, frist);
   const verein = await db.query.ligaVereine.findFirst({ where: eq(ligaVereine.id, ligaVereinId) });
   if (!verein) throw new Error("Liga-Verein nicht gefunden");
 
@@ -494,8 +537,21 @@ export async function synchronisiereSpiele(
   const heute = tagKey(jetzt);
   const gruppenMitNeuemErgebnis = new Set<string>();
 
+  // Älteste zuerst (nie geladene vorn), damit nach einem Zeitlimit die
+  // übrigen beim nächsten Lauf drankommen.
+  teilnahmen.sort(
+    (a, b) => (a.t.spieleSynchronisiertAm?.getTime() ?? 0) - (b.t.spieleSynchronisiertAm?.getTime() ?? 0)
+  );
+
   for (const { t, g } of teilnahmen) {
     if (!t.nuligaTeamtableId) continue;
+    if (
+      t.spieleSynchronisiertAm &&
+      jetzt.getTime() - t.spieleSynchronisiertAm.getTime() < FRISCH_MS
+    ) {
+      continue;
+    }
+    if (lauf.fristAbgelaufen()) break;
     try {
       const html = await lauf.hole(
         baueNuligaUrl(verein.verband, "teamPortrait", {
@@ -565,6 +621,10 @@ export async function synchronisiereSpiele(
           sql`(${ligaSpiele.heimTeamtableId} = ${t.nuligaTeamtableId} or ${ligaSpiele.gastTeamtableId} = ${t.nuligaTeamtableId})`
         )
       );
+      await db
+        .update(ligaTeilnahmen)
+        .set({ spieleSynchronisiertAm: new Date() })
+        .where(eq(ligaTeilnahmen.id, t.id));
     } catch (err) {
       lauf.fehler(`${t.nuligaName}: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -572,6 +632,7 @@ export async function synchronisiereSpiele(
 
   // Neues Ergebnis -> Tabelle der Gruppe frisch holen (eine Abfrage je Gruppe).
   for (const gruppeId of gruppenMitNeuemErgebnis) {
+    if (lauf.fristAbgelaufen()) break;
     const g = teilnahmen.find((x) => x.g.id === gruppeId)!.g;
     await aktualisiereGruppentabelle(db, lauf, verein.verband, g.id, g.nuligaGroupId, g.championship);
   }

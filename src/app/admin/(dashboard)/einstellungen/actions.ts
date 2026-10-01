@@ -247,9 +247,13 @@ export async function oeffentlicheSeiteSpeichern(formData: FormData) {
     nuligaClubId: clubId,
     name: verein.name,
   });
+  // Frist deutlich unter maxDuration (60 s der Einstellungsseite): bleibt
+  // etwas liegen, endet der Lauf als "teilweise" und ein weiterer Klick (oder
+  // der Cron) setzt fort, statt vom Serverless-Limit abgebrochen zu werden.
   const { struktur, spiele } = await synchronisiereVollstaendig(id, {
     db: adminDb,
     holeHtml: holeNuligaHtml,
+    frist: Date.now() + 45_000,
   });
 
   const meldungen = [...struktur.meldungen, ...(spiele?.meldungen ?? [])];
