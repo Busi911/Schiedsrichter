@@ -65,14 +65,6 @@ export default async function AvvPage() {
         </p>
       </div>
 
-      <p className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-400">
-        Dieser Vertragstext ist ein Muster (angelehnt an die
-        Standard-Vorlage der deutschen Datenschutzkonferenz) und
-        automatisiert erstellt — er ersetzt keine rechtliche Prüfung. Bitte
-        bei Bedarf von einem Anwalt bzw. Datenschutzbeauftragten
-        gegenprüfen lassen, bevor er als final betrachtet wird.
-      </p>
-
       <Card>
         <CardContent className="flex flex-col gap-5 pt-6 text-sm text-muted-foreground">
           <section className="flex flex-col gap-2">

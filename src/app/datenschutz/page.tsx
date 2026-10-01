@@ -15,13 +15,6 @@ export default function DatenschutzPage() {
         Datenschutzerklärung
       </h1>
 
-      <p className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-400">
-        Diese Erklärung beschreibt die tatsächlich eingesetzten technischen
-        Dienste (Stand dieser Version) und ist automatisiert erstellt — sie
-        ersetzt keine rechtliche Prüfung. Bitte vor produktivem Einsatz von
-        einem Anwalt bzw. Datenschutzbeauftragten gegenprüfen lassen.
-      </p>
-
       <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">Verantwortlicher</h2>
         <p className="text-sm text-muted-foreground">
@@ -130,6 +123,22 @@ export default function DatenschutzPage() {
           eingeloggt ist, kann Vereine und Mannschaften als Favoriten
           markieren; gespeichert wird dabei nur die Zuordnung zu deinem Konto,
           die du jederzeit wieder entfernen kannst.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="font-heading text-lg font-medium">
+          Zugriffsdaten beim Besuch der Seiten
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Beim Aufruf der Anwendung — auch der öffentlichen Vereins- und
+          Mannschaftsseiten ohne Konto — verarbeitet der Hosting-Anbieter
+          technisch notwendige Zugriffsdaten (u.a. IP-Adresse, Zeitpunkt,
+          aufgerufene Adresse, Browser-Angaben) in Server-Protokollen, um die
+          Seiten auszuliefern, Fehler zu erkennen und Missbrauch abzuwehren.
+          Wir werten diese Daten nicht zur Profilbildung oder zu
+          Werbezwecken aus. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO
+          (berechtigtes Interesse am sicheren und stabilen Betrieb).
         </p>
       </section>
 

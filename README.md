@@ -465,32 +465,34 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
 
 **Offene Fragen vorab**
 
-- **"Angebunden":** Vorschlag: nur Vereine, die das selbst einschalten
-  (Verein-weiter Schalter in `/admin/einstellungen`, Default aus — analog zum
-  Muster "Zwei-Ebenen-Benachrichtigungen" in `CLAUDE.md`, hier nur die
-  Verein-Ebene). Nicht automatisch alle Vereine.
-- **Datenquelle Tabelle:** Die vorhandenen Scraper
-  (`src/lib/nuliga-scraper.ts`, `src/lib/handball-net-scraper.ts`) holen
-  bisher Spiele/Hallenbelegung, **keine Tabellen**. Ob nuLiga und handball.net
-  die Tabelle stabil abrufbar liefern, ist noch zu prüfen (Landesverband/Liga
-  pro Mannschaft; nuLiga bisher fest auf HHV verdrahtet).
-  - **Ansatz nuLiga (HHV), Hinweis aus der Abstimmung — noch nicht
-    geprüft:** Es gibt eine Vereinsseite anhand der nuLiga-Vereins-ID, die
-    alle Mannschaften des Vereins auflistet, z.B.
-    `https://hhv-handball.liga.nu/cgi-bin/WebObjects/nuLigaHBDE.woa/wa/clubTeams?club=69723`.
-    Von den Mannschaften dort aus sollen die jeweilige Tabelle und ggf. der
-    Spielplan erreichbar sein. Damit würde eine einzige Vereins-ID reichen
-    (statt Hallen-IDs bzw. je Mannschaft eine ID), um alle Mannschaften mit
-    Tabelle/Spielplan/Ergebnissen anzubinden. Offen: neues Verein-Feld für
-    die nuLiga-Vereins-ID (neben den bisherigen Hallen-IDs in
-    `/admin/einstellungen`); Aufbau des HTML der Mannschaftsseiten (Link-
-    Struktur zu Tabelle/Spielplan, Saison-/Staffel-Parameter); ob die Seiten
-    ohne Login abrufbar sind und ob die Nutzungsbedingungen von nuLiga das
-    automatische Abrufen erlauben; andere Landesverbände hätten eine andere
-    Domain (siehe Hinweis oben). Vorgehen: zuerst die Seiten testweise
-    abrufen und das Format dokumentieren, dann den Scraper erweitern.
-  - **Ansatz handball.net (ab der 3. Liga):** Mannschaften mit
-    `handballNetTeamId` — Tabelle auf der Team-Seite prüfen.
+- **"Angebunden":** **Entschieden (01.10.2026):** Die Seite entsteht,
+  sobald ein Admin in `/admin/einstellungen` die nuLiga-Vereins-ID hinterlegt
+  — kein zusätzlicher Verein-Schalter, kein Systemadmin-Import.
+- **Datenquelle Tabelle:** **Umgesetzt (Stand des Codes auf `main`, nach
+  Durchsicht der Quellen — nicht selbst gegen die Live-Seiten getestet):**
+  - **nuLiga (HHV):** Über die Vereins-ID (`clubTeams?club=<id>`, Parser
+    `src/lib/nuliga/parsers/club-teams.ts`) werden alle Mannschaften eines
+    Vereins gefunden; von dort aus werden Gruppenseite (Tabelle + Spielplan,
+    `parsers/group-page.ts`) und Mannschaftsportrait
+    (`parsers/team-portrait.ts`) gelesen. Sync in `src/lib/nuliga/sync.ts`
+    (Struktur und Spiele getrennt, idempotent, fehlertolerant), Cron
+    `/api/cron/liga-sync` über `sync-cron.ts` (spieltagsnah häufiger).
+    Tabellen liegen als `liga_tabellenzeile` in der DB (gecacht, kein Abruf
+    pro Seitenaufruf). nuLiga ist bisher nur für den HHV konfiguriert
+    (`src/lib/nuliga/verbaende.ts`; weitere Verbände = weiterer Eintrag).
+    Die Spalte "Mannschaftsverantwortlicher" wird bewusst nie gelesen
+    (Datenschutz). Zurückgezogene Mannschaften werden erkannt und
+    ausgeblendet (#178, #181).
+  - **handball.net (ab der 3. Liga):** Zweite Quelle über die JSON-API
+    (`src/lib/handball-net/`), Einstieg über die handball.net-Vereins-ID,
+    optional manuell ergänzte Team-IDs; die Tabelle wird dort aus den Spielen
+    berechnet (`berechneTabelle` in `modell.ts`). Unabhängig von nuLiga (ein
+    Ausfall betrifft die andere Quelle nicht).
+  - **Noch offen:** weitere Landesverbände (nuLiga-Domain je Verband); ob
+    handball.net- und nuLiga-Daten für denselben Verein sauber
+    zusammenlaufen (Dubletten); Verhalten bei geänderter HTML-Struktur
+    (Parser meldet Warnungen, löscht bei unlesbarer Seite nichts — echte
+    Seitenänderungen testweise abwarten).
 - **Welche Spiele:** Für den öffentlichen Spielplan zählen die Spiele der
   *eigenen Mannschaften* (Mannschaft mit Liga-Anbindung), nicht die
   Hallenbelegung fremder Mannschaften, die für Ordner-/Kioskdienst importiert
@@ -525,9 +527,16 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
   Spielplan. Favoriten ("Meine Vereine") zunächst lokal im Browser
   (`localStorage`, mit try/catch), kein Konto nötig.
 - SEO/Teilen: sprechende URLs pro Verein/Mannschaft, Open-Graph-Metadaten.
-- Rechtliches: `/datenschutz` um den öffentlichen Bereich ergänzen (Entwurf-
-  Warnhinweis beibehalten, siehe `CLAUDE.md`); Impressum/Verantwortlichkeit
-  für den öffentlichen Bereich klären.
+- Rechtliches: `/datenschutz` enthält einen Abschnitt zu den öffentlichen
+  Vereins- und Mannschaftsseiten sowie zu Zugriffsdaten (Server-Protokolle,
+  IP-Adresse) auch ohne Konto (der frühere Entwurf-Warnhinweis auf `/datenschutz` und `/admin/avv`
+  wurde auf Wunsch entfernt, die Texte sind aber nicht juristisch geprüft).
+  **Offen:** juristische Prüfung der Texte; Impressum nennt
+  DeWe Consulting UG als Betreiber — zu klären, ob für den öffentlichen
+  Bereich (und die dort angezeigten Verbandsdaten) etwas ergänzt werden
+  muss. Zu den Abrufen: Laut Kommentar im Code haben HHV (nuLiga) und DHB
+  (handball.net) dem automatischen Abruf zugestimmt — die Zustimmung ggf.
+  schriftlich ablegen; für weitere Verbände jeweils neu klären.
 
 **Grober Ablauf**
 
@@ -555,20 +564,28 @@ hier abhaken bzw. entfernen.
 - Mail "Termin geändert" an eingetragene Personen mit Login, wenn bei einem
   **manuellen** Termin (Freundschaftsspiel/Turnier) Zeit oder Ort geändert
   wird. Zuordnungen bleiben bewusst bestehen (nur benachrichtigen, nicht
-  austragen). Der echte Mailversand wurde noch nicht ausprobiert.
+  austragen). Der echte Mailversand wurde noch nicht ausprobiert (s.u.).
 
-**Gemergt, aber noch nicht am Handy geprüft** (Stand 30.09.2026)
+**Gemergt und am Handy geprüft** (bestätigt am 01.10.2026)
 
-- #163 — Eintragen-Leiste auf `/zeitnehmer-eintragen/…` und
-  `/ordner-eintragen/…` klebt am unteren Rand; Umschalter "Nach Datum"
-  (Standard) / "Offene zuerst". Zu prüfen: Sticky-Verhalten mit Tastatur und
-  Safari-Leiste.
-- #164 — Bottom-Navigation (`src/components/bottom-nav.tsx`) mobil für
-  Admin (Übersicht, Kalender, Termine, Training, Mehr), `/profil`
-  (rollenabhängig; ohne Rollen Profil + Hilfe) und `/system`. Zu prüfen:
-  iPhone-Safe-Area, Mehr-Menü, Logout daraus, Rollen-Kombinationen auf
-  `/profil`.
-- #165 — diese Roadmap.
+- Eintragen-Leiste auf `/zeitnehmer-eintragen/…` und `/ordner-eintragen/…`
+  klebt am unteren Rand; Umschalter "Nach Datum" (Standard) / "Offene
+  zuerst".
+- Bottom-Navigation (`src/components/bottom-nav.tsx`) mobil für Admin
+  (Übersicht, Kalender, Termine, Training, Mehr), `/profil` (rollenabhängig;
+  ohne Rollen Profil + Hilfe) und `/system`.
+- Wart-Seiten (Zeitnehmer, Ordner): Selbsteintragungs-Link prominent mit
+  Kopieren/Teilen/Öffnen; "Link neu generieren" und "Deaktivieren" unter
+  "Weitere Optionen".
+
+**Gemergt, noch nicht bestätigt**
+
+- Öffentliche Tabelle: zurückgezogene Mannschaften werden ausgeblendet
+  (`holeTabelle` filtert `zurueckgezogen`, #181). Prüfen, ob die Zeile in der
+  Live-Tabelle verschwindet; falls nicht, einmal "Jetzt aktualisieren" in
+  `/admin/einstellungen` (setzt das Merkmal beim Sync).
+- Mail "Termin geändert" bei manuellen Terminen: Uhrzeit eines Testspiels mit
+  eingetragenem Zeitnehmer ändern und prüfen, ob die Mail ankommt.
 
 **Besprochen und entschieden**
 
@@ -576,6 +593,9 @@ hier abhaken bzw. entfernen.
   "Offene Dienste" liegt unter Mehr, der Zähler offener Dienste steht als
   Badge am Mehr-Tab. Alle eingeloggten Personen bekommen die Leiste, nicht
   nur Admins. Desktop-Navigation bleibt unverändert.
+- Eintragen-Seiten (`/zeitnehmer-eintragen`, `/ordner-eintragen`): Standard
+  der Sortierung ist "Offene zuerst" (Umschalter auf "Nach Datum" bleibt),
+  entschieden am 01.10.2026.
 - Bei manuell geänderten Terminen werden Eingetragene **nicht** ausgetragen
   (anders als beim automatischen Sync des Hallenspielplans).
 - Beim Sync-Fall (Hallenspielplan, nuLiga/handball.net) bleibt es beim
@@ -594,16 +614,11 @@ hier abhaken bzw. entfernen.
   eingetragen und bekommen **keine** Mail (der Verband setzt sie an);
   Trainer und Spieler werden bei Verlegungen generell nicht informiert.
   Soll sich das ändern?
-- Standard der Sortierung auf den Eintragen-Seiten (#163): aktuell
-  "Nach Datum"; "Offene zuerst" wäre als Standard denkbar.
 - Bottom-Navigation: `/hilfe` liegt außerhalb der Layouts und zeigt keine
   Leiste (dort gibt es den Zurück-Button). Ggf. angleichen.
 - Workflow "Produkttour-Screenshots": der Push-Schritt scheitert, sobald
   `main` per Branch-Schutz nur noch über Pull Requests änderbar ist — dann
   automatisch einen PR erzeugen lassen statt direkt zu pushen.
-- Lokal meldet `tsc` einen Fehler `Cannot find name 'LayoutProps'` in
-  `src/app/layout.tsx` (auch ohne Änderungen, vermutlich fehlende von Next
-  erzeugte Typen); in CI/Build unauffällig, bei Gelegenheit klären.
 
 ## Bekannte offene Punkte
 
