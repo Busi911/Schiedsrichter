@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { FanKopf, FanTheme } from "@/components/liga/fan-rahmen";
-import { holeLogoVersion, holeVerein } from "@/lib/liga-oeffentlich";
+import { holeVereinsDesign, holeVerein } from "@/lib/liga-oeffentlich";
 import { vereinsFarbton, vereinsInitialen } from "@/lib/liga-pwa";
 import { saisonLabel } from "@/lib/saison";
 
@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const verein = await holeVerein(slug);
   if (!verein) return {};
-  const v = (await holeLogoVersion(verein.id)) ?? "";
+  const v = (await holeVereinsDesign(verein.id)).logoVersion ?? "";
   return {
     manifest: `/verein/${verein.slug}/manifest.webmanifest`,
     icons: {
@@ -25,7 +25,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export async function generateViewport({ params }: Props): Promise<Viewport> {
   const { slug } = await params;
-  return { themeColor: `hsl(${vereinsFarbton(slug)} 55% 28%)` };
+  const verein = await holeVerein(slug);
+  const farbton = verein ? (await holeVereinsDesign(verein.id)).farbton : null;
+  return { themeColor: `hsl(${farbton ?? vereinsFarbton(slug)} 55% 28%)` };
 }
 
 export default async function VereinsHuelle({
@@ -36,11 +38,11 @@ export default async function VereinsHuelle({
   const verein = await holeVerein(slug);
   if (!verein) notFound();
 
-  const logoVersion = await holeLogoVersion(verein.id);
+  const { logoVersion, farbton } = await holeVereinsDesign(verein.id);
 
   return (
     <>
-      <FanTheme hue={vereinsFarbton(verein.slug)} />
+      <FanTheme hue={farbton ?? vereinsFarbton(verein.slug)} />
       <FanKopf
         titel={verein.name}
         untertitel={`Saison ${saisonLabel(new Date())}`}

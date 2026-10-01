@@ -75,13 +75,14 @@ describe.skipIf(!ADMIN_URL)("öffentliche Abfragen (Postgres)", () => {
   });
 
   it("speichert/liest das Vereinslogo und liefert die Version nur bei vorhandenem Logo", async () => {
-    const { holeLogoPng, holeLogoVersion } = await import("./liga-oeffentlich");
+    const { holeLogoPng, holeLogoVersion, holeVereinsDesign } = await import("./liga-oeffentlich");
     expect(await holeLogoVersion(ligaVereinId)).toBeNull();
     expect(await holeLogoPng(ligaVereinId)).toBeNull();
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
-    await testDb.insert(schema.ligaVereinLogos).values({ ligaVereinId, png });
+    await testDb.insert(schema.ligaVereinLogos).values({ ligaVereinId, png, farbton: 224 });
     expect(Buffer.compare((await holeLogoPng(ligaVereinId))!, png)).toBe(0);
     expect(await holeLogoVersion(ligaVereinId)).toBeGreaterThan(0);
+    expect((await holeVereinsDesign(ligaVereinId)).farbton).toBe(224);
   });
 
   it("liefert die Gruppentabelle sortiert nach Rang", async () => {

@@ -393,6 +393,13 @@
       "when": 1790834740060,
       "tag": "0055_liga_verein_logo",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1790835755184,
+      "tag": "0056_liga_logo_farbton",
+      "breakpoints": true
     }
   ]
 }

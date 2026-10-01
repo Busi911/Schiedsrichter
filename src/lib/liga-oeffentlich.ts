@@ -73,17 +73,22 @@ export const holeVerein = cache(async (slug: string) =>
   )
 );
 
-// Nur der Zeitstempel (dient als Cache-Buster in der Bild-URL) — das Bild
-// selbst wird erst von den Logo-/Icon-Routen geladen.
-export const holeLogoVersion = cache(async (ligaVereinId: string): Promise<number | null> => {
-  const zeile = await mitColdStartRetry(() =>
-    adminDb.query.ligaVereinLogos.findFirst({
-      where: eq(ligaVereinLogos.ligaVereinId, ligaVereinId),
-      columns: { aktualisiertAm: true },
-    })
-  );
-  return zeile ? zeile.aktualisiertAm.getTime() : null;
-});
+// Nur Zeitstempel (Cache-Buster der Bild-URL) und Farbton — das Bild selbst
+// wird erst von den Logo-/Icon-Routen geladen. Ohne Logo: beides null.
+export const holeVereinsDesign = cache(
+  async (ligaVereinId: string): Promise<{ logoVersion: number | null; farbton: number | null }> => {
+    const zeile = await mitColdStartRetry(() =>
+      adminDb.query.ligaVereinLogos.findFirst({
+        where: eq(ligaVereinLogos.ligaVereinId, ligaVereinId),
+        columns: { aktualisiertAm: true, farbton: true },
+      })
+    );
+    return { logoVersion: zeile ? zeile.aktualisiertAm.getTime() : null, farbton: zeile?.farbton ?? null };
+  }
+);
+
+export const holeLogoVersion = async (ligaVereinId: string) =>
+  (await holeVereinsDesign(ligaVereinId)).logoVersion;
 
 export const holeLogoPng = async (ligaVereinId: string): Promise<Buffer | null> => {
   const zeile = await mitColdStartRetry(() =>

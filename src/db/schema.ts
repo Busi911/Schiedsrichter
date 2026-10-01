@@ -1004,5 +1004,9 @@ export const ligaVereinLogos = pgTable("liga_verein_logo", {
     .primaryKey()
     .references(() => ligaVereine.id, { onDelete: "cascade" }),
   png: bytea("png").notNull(),
+  // Hauptfarbe des Logos als Farbton (0-359), beim Upload ermittelt (siehe
+  // ermittleFarbton in lib/liga-logo.ts) — null bei farblosen Logos
+  // (schwarz/weiß/grau), dann gilt die aus dem Slug abgeleitete Farbe.
+  farbton: integer("farbton"),
   aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
 });

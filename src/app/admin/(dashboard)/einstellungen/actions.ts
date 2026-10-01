@@ -7,7 +7,7 @@ import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
 import { ligaVereine, ligaVereinLogos, vereine } from "@/db/schema";
-import { LogoFehler, verarbeiteLogo } from "@/lib/liga-logo";
+import { ermittleFarbton, LogoFehler, verarbeiteLogo } from "@/lib/liga-logo";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { legeLigaVereinAn, synchronisiereVollstaendig } from "@/lib/nuliga/sync";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
@@ -311,12 +311,15 @@ export async function logoHochladen(formData: FormData) {
     throw err;
   }
 
+  // Vereinsfarbe aus dem Logo ableiten (null = farbloses Logo -> Standardfarbe).
+  const farbton = await ermittleFarbton(png);
+
   await adminDb
     .insert(ligaVereinLogos)
-    .values({ ligaVereinId: ligaVerein.id, png, aktualisiertAm: new Date() })
+    .values({ ligaVereinId: ligaVerein.id, png, farbton, aktualisiertAm: new Date() })
     .onConflictDoUpdate({
       target: ligaVereinLogos.ligaVereinId,
-      set: { png, aktualisiertAm: new Date() },
+      set: { png, farbton, aktualisiertAm: new Date() },
     });
   revalidatePath("/admin/einstellungen");
   redirect("/admin/einstellungen");

@@ -44,3 +44,53 @@ export async function baueLogoIcon(png512: Buffer, groesse: number): Promise<Buf
     .png()
     .toBuffer();
 }
+
+// Hauptfarbe (Farbton 0-359) des Logos: Pixel nach Farbton in 24 Klassen
+// zählen, gewichtet nach Sättigung; transparente sowie graue/sehr helle/sehr
+// dunkle Pixel zählen nicht (Rahmen, Schrift, Hintergrund). Gibt null zurück,
+// wenn das Logo praktisch farblos ist.
+export async function ermittleFarbton(png: Buffer): Promise<number | null> {
+  const { data, info } = await sharp(png)
+    .resize(64, 64, { fit: "inside" })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const KLASSEN = 24;
+  const gewicht = new Array<number>(KLASSEN).fill(0);
+  let gesamt = 0;
+  for (let i = 0; i < info.width * info.height; i++) {
+    const r = data[i * 4] / 255;
+    const g = data[i * 4 + 1] / 255;
+    const b = data[i * 4 + 2] / 255;
+    const alpha = data[i * 4 + 3];
+    if (alpha < 128) continue;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const chroma = max - min;
+    const hell = (max + min) / 2;
+    if (chroma < 0.15 || hell > 0.92 || hell < 0.08) continue; // grau/weiß/schwarz
+    let h: number;
+    if (max === r) h = ((g - b) / chroma + 6) % 6;
+    else if (max === g) h = (b - r) / chroma + 2;
+    else h = (r - g) / chroma + 4;
+    const grad = h * 60;
+    const klasse = Math.floor(grad / (360 / KLASSEN)) % KLASSEN;
+    gewicht[klasse] += chroma;
+    gesamt += chroma;
+  }
+  if (gesamt < 3) return null; // praktisch farblos
+
+  // Benachbarte Klassen mitzählen, damit ein Farbton an einer Klassengrenze
+  // nicht gegen eine einzelne etwas größere Klasse verliert.
+  let beste = 0;
+  let besterWert = -1;
+  for (let k = 0; k < KLASSEN; k++) {
+    const wert = gewicht[k] + 0.5 * (gewicht[(k + 1) % KLASSEN] + gewicht[(k + KLASSEN - 1) % KLASSEN]);
+    if (wert > besterWert) {
+      besterWert = wert;
+      beste = k;
+    }
+  }
+  return Math.round(beste * (360 / KLASSEN) + 360 / KLASSEN / 2) % 360;
+}

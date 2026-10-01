@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { baueLogoIcon, LogoFehler, verarbeiteLogo } from "./liga-logo";
+import { baueLogoIcon, ermittleFarbton, LogoFehler, verarbeiteLogo } from "./liga-logo";
 
 const testbild = (breite: number, hoehe: number, format: "png" | "jpeg" | "webp" = "png") =>
   sharp({ create: { width: breite, height: hoehe, channels: 3, background: "#c00000" } })
@@ -40,5 +40,52 @@ describe("Vereinslogo", () => {
     const mitte = (96 * 192 + 96) * 3;
     expect(raw[mitte]).toBeGreaterThan(150);
     expect(raw[mitte + 1]).toBeLessThan(60);
+  });
+});
+
+describe("Vereinsfarbe aus dem Logo", () => {
+  const bild = (hintergrund: string, innen?: { farbe: string; groesse: number }) => {
+    const grund = sharp({ create: { width: 200, height: 200, channels: 4, background: hintergrund } });
+    if (!innen) return grund.png().toBuffer();
+    return sharp({ create: { width: innen.groesse, height: innen.groesse, channels: 4, background: innen.farbe } })
+      .png()
+      .toBuffer()
+      .then((kern) => grund.composite([{ input: kern, gravity: "centre" }]).png().toBuffer());
+  };
+  const nahe = (ist: number | null, soll: number) => {
+    expect(ist).not.toBeNull();
+    const diff = Math.abs(((ist! - soll + 540) % 360) - 180);
+    expect(diff).toBeLessThanOrEqual(15);
+  };
+
+  it("erkennt die Hauptfarbe (rot ~0, blau ~220, grün ~120)", async () => {
+    nahe(await ermittleFarbton(await bild("#cc0000")), 0);
+    nahe(await ermittleFarbton(await bild("#1d4ed8")), 224);
+    nahe(await ermittleFarbton(await bild("#15803d")), 142);
+  });
+
+  it("ignoriert weißen/grauen Hintergrund und Transparenz", async () => {
+    // blaues Zentrum auf weißem Grund: blau gewinnt
+    nahe(await ermittleFarbton(await bild("#ffffff", { farbe: "#1d4ed8", groesse: 90 })), 224);
+    // transparenter Grund
+    const transparent = await sharp({
+      create: { width: 100, height: 100, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+    })
+      .composite([
+        {
+          input: await sharp({ create: { width: 40, height: 40, channels: 4, background: "#cc0000" } }).png().toBuffer(),
+          gravity: "centre",
+        },
+      ])
+      .png()
+      .toBuffer();
+    nahe(await ermittleFarbton(transparent), 0);
+  });
+
+  it("gibt bei farblosen Logos null zurück", async () => {
+    expect(await ermittleFarbton(await bild("#ffffff"))).toBeNull();
+    expect(await ermittleFarbton(await bild("#000000"))).toBeNull();
+    expect(await ermittleFarbton(await bild("#808080"))).toBeNull();
+    expect(await ermittleFarbton(await bild("#ffffff", { farbe: "#222222", groesse: 90 }))).toBeNull();
   });
 });
