@@ -157,6 +157,25 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
 - DB-Integrationstests (`nuliga/sync.test.ts`, `liga-oeffentlich.test.ts`)
   laufen nur mit `TEST_DATABASE_ADMIN_URL` (siehe `tenant-isolation.test.ts`);
   `fileParallelism` ist deshalb ausgeschaltet.
+- **Zweite Quelle handball.net (DHB: 3. Liga, Jugendbundesliga, Quali):**
+  `src/lib/handball-net/` (modell = reine Parser/Whitelist/Statusmapping/
+  Normalisierung/Tabelle, client = HTTP, sync = Persistenz). Einstieg ist
+  `liga_verein.handball_net_club_id` (+ optional manuelle Team-IDs). Dieselben
+  `liga_*`-Tabellen: `liga_gruppe.quelle` = "nuliga" | "handball_net"
+  (verband "DHB"); die Spalten `nuliga_group_id`/`nuliga_teamtable_id`/
+  `halle_nuliga_id` tragen bei handball.net die externe Phasen-/Team-/Hallen-ID
+  (Umbenennung steht aus). Spiele: `liga_spiel.spielcode` (offizielle
+  DHB-Spielnummer, je Gruppe eindeutig) statt `spielnummer`. Jede Quelle
+  synchronisiert unabhängig (`liga-sync-quellen.ts`, `sync-cron.ts`); der
+  nuLiga-Sync fasst nur `quelle = 'nuliga'`-Teilnahmen an. Die API liefert
+  auch Schiedsrichter, Zeitnehmer, Verantwortliche und Vereinskontakte — die
+  Parser-Typen sind eine Whitelist, Personendaten dürfen nie persistiert werden
+  (Test in `handball-net.test.ts`). Die Tabelle wird aus den Phasenspielen
+  BERECHNET (kein Standings-Endpunkt bekannt, ohne direkten Vergleich).
+  Kollidiert der Mannschaftsschlüssel mit einer aktiven nuLiga-Teilnahme
+  derselben Saison, wird die DHB-Mannschaft getrennt geführt ("… (DHB)") und
+  gemeldet. Noch offen: Dedupe über Quellen hinweg, Konfliktliste, Umbenennung
+  der nuliga_*-Spalten.
 - **Fan-Web-App (öffentlich):** Favoriten liegen NUR im Browser
   (`lib/liga-favoriten-lokal.ts`, localStorage, kein Konto, keine DB-Tabelle).
   Jeder Verein ist eine installierbare Web-App mit eigenem Namen, Farbe und

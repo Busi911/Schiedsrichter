@@ -14,10 +14,14 @@ const WARTEZEIT_S = 10;
 export function LigaAutoWeiter({
   aktion,
   clubId,
+  handballNetClubId,
+  handballNetTeamIds,
   runde,
 }: {
   aktion: (formData: FormData) => Promise<void>;
   clubId: string;
+  handballNetClubId: string;
+  handballNetTeamIds: string;
   runde: number;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -45,6 +49,8 @@ export function LigaAutoWeiter({
   return (
     <form ref={formRef} action={aktion} className="mt-2 flex flex-wrap items-center gap-3 text-sm">
       <input type="hidden" name="nuligaClubId" value={clubId} />
+      <input type="hidden" name="handballNetClubId" value={handballNetClubId} />
+      <input type="hidden" name="handballNetTeamIds" value={handballNetTeamIds} />
       <input type="hidden" name="runde" value={runde} />
       {abgebrochen ? (
         <>
@@ -59,7 +65,7 @@ export function LigaAutoWeiter({
         </>
       ) : laeuft ? (
         <span className="inline-flex items-center gap-2">
-          <Loader2 className="size-4 animate-spin" /> Lädt weiter von nuLiga… (bis ca. 1 Minute)
+          <Loader2 className="size-4 animate-spin" /> Lädt weiter (nuLiga/handball.net)… (bis ca. 1 Minute)
         </span>
       ) : (
         <>

@@ -164,21 +164,38 @@ async function protokolliere(
 }
 
 // Legt die öffentliche Seite für einen registrierten Verein an (idempotent).
+// Quellen: nuLiga-Vereins-ID und/oder handball.net-Vereins-ID (mindestens eine).
 export async function legeLigaVereinAn(
   db: LigaDb,
-  eingabe: { vereinId: string; nuligaClubId: string; name: string; verband?: string }
+  eingabe: {
+    vereinId: string;
+    nuligaClubId?: string | null;
+    handballNetClubId?: string | null;
+    handballNetTeamIds?: string | null;
+    name: string;
+    verband?: string;
+  }
 ): Promise<{ id: string; slug: string }> {
+  const nuligaClubId = eingabe.nuligaClubId || null;
+  const handballNetClubId = eingabe.handballNetClubId || null;
+  if (!nuligaClubId && !handballNetClubId && !eingabe.handballNetTeamIds) {
+    throw new Error("Mindestens eine Vereins-ID (nuLiga oder handball.net) ist nötig.");
+  }
   const bestehend = await db.query.ligaVereine.findFirst({
     where: eq(ligaVereine.vereinId, eingabe.vereinId),
   });
   if (bestehend) {
-    if (bestehend.nuligaClubId !== eingabe.nuligaClubId) {
-      // Slug bleibt stabil (URLs sollen nicht brechen), nur die ID ändert sich.
-      await db
-        .update(ligaVereine)
-        .set({ nuligaClubId: eingabe.nuligaClubId, strukturSynchronisiertAm: null })
-        .where(eq(ligaVereine.id, bestehend.id));
-    }
+    // Slug bleibt stabil (URLs sollen nicht brechen), nur die IDs ändern sich.
+    await db
+      .update(ligaVereine)
+      .set({
+        nuligaClubId,
+        handballNetClubId,
+        handballNetTeamIds: eingabe.handballNetTeamIds || null,
+        ...(bestehend.nuligaClubId !== nuligaClubId && { strukturSynchronisiertAm: null }),
+        ...(bestehend.handballNetClubId !== handballNetClubId && { handballNetSynchronisiertAm: null }),
+      })
+      .where(eq(ligaVereine.id, bestehend.id));
     return { id: bestehend.id, slug: bestehend.slug };
   }
 
@@ -194,7 +211,9 @@ export async function legeLigaVereinAn(
       slug,
       name: eingabe.name,
       verband: eingabe.verband ?? "HHV",
-      nuligaClubId: eingabe.nuligaClubId,
+      nuligaClubId,
+      handballNetClubId,
+      handballNetTeamIds: eingabe.handballNetTeamIds || null,
     })
     .returning({ id: ligaVereine.id });
   return { id: neu.id, slug };
@@ -332,6 +351,10 @@ export async function synchronisiereStruktur(
   const lauf = new Lauf(holeHtml, frist);
   const verein = await db.query.ligaVereine.findFirst({ where: eq(ligaVereine.id, ligaVereinId) });
   if (!verein) throw new Error("Liga-Verein nicht gefunden");
+  if (!verein.nuligaClubId) {
+    lauf.warn("Keine nuLiga-Vereins-ID hinterlegt – nuLiga wird übersprungen");
+    return protokolliere(db, ligaVereinId, "struktur", start, lauf, false);
+  }
 
   let club;
   try {
@@ -512,7 +535,15 @@ export async function synchronisiereStruktur(
       .update(ligaTeilnahmen)
       .set({ aktiv: false })
       .where(
-        and(inArray(ligaTeilnahmen.mannschaftId, mannschaftIds), notInArray(ligaTeilnahmen.id, gesehen))
+        and(
+          inArray(ligaTeilnahmen.mannschaftId, mannschaftIds),
+          notInArray(ligaTeilnahmen.id, gesehen),
+          // Teilnahmen aus handball.net verwaltet deren eigener Sync.
+          inArray(
+            ligaTeilnahmen.gruppeId,
+            db.select({ id: ligaGruppen.id }).from(ligaGruppen).where(eq(ligaGruppen.quelle, "nuliga"))
+          )
+        )
       );
     const aktive = await db
       .selectDistinct({ id: ligaTeilnahmen.mannschaftId })
@@ -541,6 +572,9 @@ export async function synchronisiereSpiele(
   const lauf = new Lauf(holeHtml, frist);
   const verein = await db.query.ligaVereine.findFirst({ where: eq(ligaVereine.id, ligaVereinId) });
   if (!verein) throw new Error("Liga-Verein nicht gefunden");
+  if (!verein.nuligaClubId) {
+    return protokolliere(db, ligaVereinId, "spiele", start, lauf, false);
+  }
 
   const mannschaften = await db.query.ligaMannschaften.findMany({
     where: and(eq(ligaMannschaften.ligaVereinId, ligaVereinId), eq(ligaMannschaften.aktiv, true)),
@@ -558,6 +592,7 @@ export async function synchronisiereSpiele(
               mannschaften.map((m) => m.id)
             ),
             eq(ligaTeilnahmen.aktiv, true),
+            eq(ligaGruppen.quelle, "nuliga"),
             eq(ligaGruppen.istMeldeliste, false)
           )
         )
@@ -573,7 +608,14 @@ export async function synchronisiereSpiele(
   );
 
   for (const { t, g } of teilnahmen) {
-    if (!t.nuligaTeamtableId) continue;
+    if (!t.nuligaTeamtableId) {
+      // Ohne Tabellenzeile (z.B. Gruppentabelle noch leer oder Team dort
+      // nicht auffindbar) gibt es keinen Spielplan-Abruf — nicht stillschweigend.
+      lauf.warn(
+        `${t.nuligaName} (Gruppe ${g.nuligaGroupId}): keine Tabellenzeile zugeordnet, Spielplan wird nicht geladen`
+      );
+      continue;
+    }
     if (
       t.spieleSynchronisiertAm &&
       jetzt.getTime() - t.spieleSynchronisiertAm.getTime() < FRISCH_MS
@@ -610,7 +652,11 @@ export async function synchronisiereSpiele(
         lauf.warn(`${t.nuligaName}: ${mitNummer.length - eindeutig.size} doppelte Spielnummern zusammengeführt`);
       }
       const spiele = [...eindeutig.values()];
-      if (spiele.length === 0) continue; // nichts löschen, wenn Seite leer wirkt
+      if (spiele.length === 0) {
+        // nichts löschen, wenn Seite leer wirkt — aber sichtbar machen
+        lauf.warn(`${t.nuligaName} (Gruppe ${g.nuligaGroupId}): Spielplan enthält keine Spiele`);
+        continue;
+      }
 
       const tabelle = await gespeicherteTabelle(db, g.id);
       const namen = baueNamensIndex(

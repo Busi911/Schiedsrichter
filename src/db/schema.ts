@@ -831,13 +831,23 @@ export const ligaVereine = pgTable(
     // Landesverband (Schlüssel in lib/nuliga/verbaende.ts) — vorbereitet für
     // mehrere nuLiga-Instanzen.
     verband: text("verband").notNull().default("HHV"),
-    nuligaClubId: text("nuliga_club_id").notNull(),
+    // Quellen: ein Verein hat nuLiga (Landesverband) und/oder handball.net
+    // (DHB-Wettbewerbe). Mindestens eine ist gesetzt.
+    nuligaClubId: text("nuliga_club_id"),
+    handballNetClubId: text("handball_net_club_id"),
+    // Optional manuell hinterlegte handball.net-Team-IDs (kommagetrennt),
+    // falls die Teamliste des Vereins nicht automatisch ermittelt werden kann.
+    handballNetTeamIds: text("handball_net_team_ids"),
+    handballNetSynchronisiertAm: timestamp("handball_net_synchronisiert_am", { mode: "date" }),
     strukturSynchronisiertAm: timestamp("struktur_synchronisiert_am", { mode: "date" }),
     spieleSynchronisiertAm: timestamp("spiele_synchronisiert_am", { mode: "date" }),
     syncStatus: ligaSyncStatusEnum("sync_status"),
     erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("liga_verein_verband_club_idx").on(t.verband, t.nuligaClubId)]
+  (t) => [
+    uniqueIndex("liga_verein_verband_club_idx").on(t.verband, t.nuligaClubId),
+    uniqueIndex("liga_verein_handball_net_club_idx").on(t.handballNetClubId),
+  ]
 );
 
 // Eine nuLiga-Spielgruppe (Liga/Staffel) einer Saison — zentrale Einheit:
@@ -847,6 +857,10 @@ export const ligaGruppen = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     verband: text("verband").notNull().default("HHV"),
+    // Datenquelle der Gruppe: "nuliga" | "handball_net". Die Spalten
+    // nuliga_group_id/nuliga_teamtable_id/halle_nuliga_id tragen je nach Quelle
+    // die externe ID (handball.net: Phasen-/Team-/Hallen-ID, verband = "DHB").
+    quelle: text("quelle").notNull().default("nuliga"),
     nuligaGroupId: text("nuliga_group_id").notNull(),
     championship: text("championship").notNull(),
     saison: text("saison"),
@@ -949,7 +963,12 @@ export const ligaSpiele = pgTable(
     gruppeId: uuid("gruppe_id")
       .notNull()
       .references(() => ligaGruppen.id, { onDelete: "cascade" }),
-    spielnummer: integer("spielnummer").notNull(),
+    // nuLiga: Spielnummer in der Gruppe. handball.net: null, dort gilt spielcode.
+    spielnummer: integer("spielnummer"),
+    // Offizielle Spielnummer des DHB (z.B. "2627DHB3LERMC0701"), je Gruppe eindeutig.
+    spielcode: text("spielcode"),
+    quelle: text("quelle").notNull().default("nuliga"),
+    externeId: text("externe_id"),
     meetingId: text("meeting_id"),
     datum: date("datum", { mode: "string" }).notNull(),
     uhrzeit: text("uhrzeit"),
@@ -973,7 +992,10 @@ export const ligaSpiele = pgTable(
     status: ligaSpielStatusEnum("status").notNull().default("geplant"),
     synchronisiertAm: timestamp("synchronisiert_am", { mode: "date" }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("liga_spiel_gruppe_nummer_idx").on(t.gruppeId, t.spielnummer)]
+  (t) => [
+    uniqueIndex("liga_spiel_gruppe_nummer_idx").on(t.gruppeId, t.spielnummer),
+    uniqueIndex("liga_spiel_gruppe_code_idx").on(t.gruppeId, t.spielcode),
+  ]
 );
 
 // Protokoll jedes Sync-Laufs (Fehler nachvollziehbar, siehe lib/nuliga/sync).
