@@ -301,3 +301,51 @@ export function berechneTabelle(spiele: HnetSpiel[]): TabellenEintrag[] {
   sortiert.forEach((z, i) => (z.rang = i + 1));
   return sortiert;
 }
+
+// Offizielle Tabelle aus /api/new/standings?phase_id=… . Whitelist: nur Rang,
+// Mannschaft und Zahlen — die Antwort enthält je Verein auch Adresse, Telefon
+// und E-Mail, die nie übernommen werden. Punkte kommen als Gesamtsumme
+// (2 für Sieg, 1 für Unentschieden), Minuspunkte ergeben sich daraus.
+// Unplausible Zeilen verwerfen die ganze Tabelle (Rückfall: Berechnung).
+export function parseOffizielleTabelle(antwort: unknown): TabellenEintrag[] | null {
+  const data = (antwort as { data?: unknown } | null)?.data;
+  if (!Array.isArray(data) || data.length === 0) return null;
+  const zahl = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const zeilen: TabellenEintrag[] = [];
+  for (const roh of data) {
+    const r = roh as Record<string, unknown>;
+    const team = r?.team as { id?: unknown; name?: unknown; club?: { name?: unknown } | null } | undefined;
+    const id = team?.id;
+    const rang = zahl(r?.position);
+    const spiele = zahl(r?.played);
+    const siege = zahl(r?.won);
+    const unentschieden = zahl(r?.drawn);
+    const niederlagen = zahl(r?.lost);
+    const torePlus = zahl(r?.goals_for);
+    const toreMinus = zahl(r?.goals_against);
+    const punkte = zahl(r?.points);
+    if (
+      (typeof id !== "number" && typeof id !== "string") ||
+      typeof team?.name !== "string" ||
+      rang === null || spiele === null || siege === null || unentschieden === null ||
+      niederlagen === null || torePlus === null || toreMinus === null || punkte === null ||
+      siege + unentschieden + niederlagen !== spiele
+    ) {
+      return null;
+    }
+    zeilen.push({
+      teamId: String(id),
+      name: schoenerTeamname(team.name, typeof team.club?.name === "string" ? team.club.name : null),
+      rang,
+      spiele,
+      siege,
+      unentschieden,
+      niederlagen,
+      torePlus,
+      toreMinus,
+      punktePlus: punkte,
+      punkteMinus: Math.max(0, 2 * spiele - punkte),
+    });
+  }
+  return zeilen.sort((a, b) => a.rang - b.rang);
+}

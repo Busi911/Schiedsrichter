@@ -170,8 +170,11 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   nuLiga-Sync fasst nur `quelle = 'nuliga'`-Teilnahmen an. Die API liefert
   auch Schiedsrichter, Zeitnehmer, Verantwortliche und Vereinskontakte — die
   Parser-Typen sind eine Whitelist, Personendaten dürfen nie persistiert werden
-  (Test in `handball-net.test.ts`). Die Tabelle wird aus den Phasenspielen
-  BERECHNET (kein Standings-Endpunkt bekannt, ohne direkten Vergleich).
+  (Test in `handball-net.test.ts`). Die Tabelle kommt von
+  `/api/new/standings?phase_id=…` (`parseOffizielleTabelle`, Whitelist — die
+  Antwort enthält Vereinsadressen/-kontakte); schlägt der Abruf fehl oder ist
+  die Antwort unplausibel, wird sie aus den Phasenspielen BERECHNET (ohne
+  direkten Vergleich).
   Kollidiert der Mannschaftsschlüssel mit einer aktiven nuLiga-Teilnahme
   derselben Saison, wird die DHB-Mannschaft getrennt geführt ("… (DHB)") und
   gemeldet. Noch offen: Dedupe über Quellen hinweg, Konfliktliste, Umbenennung

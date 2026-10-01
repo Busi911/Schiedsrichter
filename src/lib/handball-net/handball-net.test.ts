@@ -15,6 +15,7 @@ import { synchronisiereAlleQuellen } from "@/lib/liga-sync-quellen";
 import { synchronisiereHandballNet } from "./sync";
 import {
   berechneTabelle,
+  parseOffizielleTabelle,
   mappeStatus,
   normalisiereHnetTeam,
   parsePhasen,
@@ -175,6 +176,29 @@ describe("handball.net-Modell", () => {
       [2, "TuS 82 Opladen", 1, 1, 1],
       [3, "SG Beispielstadt", 1, 3, 2],
     ]);
+  });
+
+  it("übernimmt die offizielle Tabelle ohne Vereinskontakte", () => {
+    const zeile = (position: number, played: number, won: number, drawn: number, lost: number, points: number) => ({
+      position,
+      team: {
+        id: 69770 + position,
+        name: "TUS 82 OPLADEN",
+        club: { name: "TuS 82 Opladen", email: "geheim@example.org", emergency_phone: "0123", address: "Weg 1" },
+      },
+      played, won, drawn, lost,
+      goals_for: 10, goals_against: 8, goals_diff: 2, points,
+      form: [{ match_id: 1, result: "W" }],
+    });
+    const t = parseOffizielleTabelle({ data: [zeile(2, 5, 2, 0, 3, 4), zeile(1, 5, 5, 0, 0, 10)] });
+    expect(t?.map((z) => [z.rang, z.name, z.punktePlus, z.punkteMinus])).toEqual([
+      [1, "TuS 82 Opladen", 10, 0],
+      [2, "TuS 82 Opladen", 4, 6],
+    ]);
+    expect(JSON.stringify(t)).not.toMatch(/geheim|0123|Weg 1/);
+    expect(parseOffizielleTabelle({ data: [zeile(1, 5, 5, 1, 0, 10)] })).toBeNull();
+    expect(parseOffizielleTabelle({ data: [] })).toBeNull();
+    expect(parseOffizielleTabelle(null)).toBeNull();
   });
 });
 

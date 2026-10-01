@@ -485,8 +485,13 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
     ausgeblendet (#178, #181).
   - **handball.net (ab der 3. Liga):** Zweite Quelle über die JSON-API
     (`src/lib/handball-net/`), Einstieg über die handball.net-Vereins-ID,
-    optional manuell ergänzte Team-IDs; die Tabelle wird dort aus den Spielen
-    berechnet (`berechneTabelle` in `modell.ts`). Unabhängig von nuLiga (ein
+    optional manuell ergänzte Team-IDs; die Tabelle kommt von
+    `/api/new/standings?phase_id=…` (`parseOffizielleTabelle`, nur Zahlen und
+    Teamname — die Antwort enthält Vereinskontakte); nur als Rückfall wird sie
+    aus den Spielen berechnet (`berechneTabelle`, ohne direkten Vergleich).
+    Offen: der Parameter `round` des Endpunkts wird bisher nicht gesetzt —
+    nach dem ersten Sync prüfen, ob die Tabelle dem Stand auf handball.net
+    entspricht. Unabhängig von nuLiga (ein
     Ausfall betrifft die andere Quelle nicht).
   - **Noch offen:** weitere Landesverbände (nuLiga-Domain je Verband); ob
     handball.net- und nuLiga-Daten für denselben Verein sauber
