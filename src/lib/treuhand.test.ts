@@ -159,6 +159,39 @@ describe.skipIf(!ADMIN_URL)("Treuhand (Postgres)", () => {
     expect(await t.setzeSupportFreigabe(vereinId, null, "Vereins Admin")).toBeNull();
   });
 
+  it("Logo, Icon und Manifest eines Vorschau-Vereins werden nur mit gültigem Vorschau-Cookie ausgeliefert", async () => {
+    const t = await import("./treuhand");
+    const v = await import("./verein-vorschau");
+    const logoRoute = await import("@/app/verein/[slug]/logo/route");
+    const manifestRoute = await import("@/app/verein/[slug]/manifest.webmanifest/route");
+    const vereinId = await t.vereinVorbereiten(sysAdminId, "Logo Vorschau Verein");
+    angelegt.push(vereinId);
+    const [lv] = await testDb
+      .insert(schema.ligaVereine)
+      .values({ vereinId, slug: "logo-vorschau-test", name: "Logo Vorschau Verein", nuligaClubId: "999993" })
+      .returning({ id: schema.ligaVereine.id });
+    // winziges gültiges PNG (1x1)
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==",
+      "base64"
+    );
+    await testDb.insert(schema.ligaVereinLogos).values({ ligaVereinId: lv.id, png });
+    const params = { params: Promise.resolve({ slug: "logo-vorschau-test" }) };
+
+    vorschauCookie = undefined;
+    expect((await logoRoute.GET(new Request("http://x/"), params)).status).toBe(404);
+    expect((await manifestRoute.GET(new Request("http://x/"), params)).status).toBe(404);
+
+    vorschauCookie = await v.erzeugeVorschauLink(vereinId, 1, "test");
+    const logo = await logoRoute.GET(new Request("http://x/"), params);
+    expect(logo.status).toBe(200);
+    expect(logo.headers.get("Content-Type")).toBe("image/png");
+    // Antwort hängt am Cookie → darf nie im gemeinsamen Cache landen
+    expect(logo.headers.get("Cache-Control")).toContain("private");
+    expect((await manifestRoute.GET(new Request("http://x/"), params)).status).toBe(200);
+    vorschauCookie = undefined;
+  });
+
   it("Vorschau-Link öffnet einen Verein in Vorbereitung nur befristet, widerrufbar und nur für diesen Verein", async () => {
     const t = await import("./treuhand");
     const v = await import("./verein-vorschau");

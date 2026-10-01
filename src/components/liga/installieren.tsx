@@ -7,14 +7,17 @@ import { Button } from "@/components/ui/button";
 type InstallEvent = Event & { prompt: () => Promise<void> };
 
 const KEY = "hp_install_weg";
+// Weggeklickt wird je App (Verein bzw. "Meine Mannschaften"), nicht für die ganze
+// Domain — jeder Verein ist eine eigene installierbare Web-App.
+const schluessel = (app: string) => `${KEY}:${app}`;
 const EVENT = "hp-install-weg";
 
 // Gerätestatus als primitiver Snapshot (stabil für useSyncExternalStore):
 // "weg" = bereits installiert oder weggeklickt, "ios" = Safari-Anleitung,
 // "normal" = Hinweis nur, wenn der Browser einen Installations-Dialog anbietet.
-function status(): "weg" | "ios" | "normal" {
+function status(app: string): "weg" | "ios" | "normal" {
   try {
-    if (localStorage.getItem(KEY) === "1") return "weg";
+    if (localStorage.getItem(schluessel(app)) === "1") return "weg";
   } catch {
     // ignorieren
   }
@@ -34,9 +37,9 @@ function abonniere(callback: () => void) {
 // über beforeinstallprompt, iOS (Safari kennt das Ereignis nicht) mit
 // Anleitung. Wird nicht gezeigt, wenn die App schon installiert ist oder der
 // Hinweis weggeklickt wurde.
-export function InstallHinweis({ appName }: { appName: string }) {
+export function InstallHinweis({ appName, appId }: { appName: string; appId: string }) {
   const [ereignis, setEreignis] = useState<InstallEvent | null>(null);
-  const zustand = useSyncExternalStore(abonniere, status, () => "weg" as const);
+  const zustand = useSyncExternalStore(abonniere, () => status(appId), () => "weg" as const);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -54,7 +57,7 @@ export function InstallHinweis({ appName }: { appName: string }) {
 
   const schliessen = () => {
     try {
-      localStorage.setItem(KEY, "1");
+      localStorage.setItem(schluessel(appId), "1");
     } catch {
       // ignorieren
     }
