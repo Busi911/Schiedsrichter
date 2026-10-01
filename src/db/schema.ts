@@ -756,6 +756,13 @@ export const termine = pgTable("termin", {
   // dass derselbe noch ungelöste Duplikat-Fund bei jedem täglichen Sync
   // erneut eine Mail auslöst.
   duplikatGemeldetAm: timestamp("duplikat_gemeldet_am", { mode: "date" }),
+  // Nur bei typ = 'rundenspiel': das zugehörige Spiel der öffentlichen
+  // Liga-Daten (liga_spiel), gesetzt von der Verknüpfung in /system/abgleich
+  // (siehe lib/hallenplan-verknuepfung.ts). Nur ein Verweis — ändert weder
+  // Termin noch Zuordnungen; null = nicht verknüpft.
+  ligaSpielId: uuid("liga_spiel_id").references((): AnyPgColumn => ligaSpiele.id, {
+    onDelete: "set null",
+  }),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 

@@ -1,7 +1,9 @@
 import { requireSystemAdmin } from "@/lib/session";
 import { berechneHallenplanAbgleich } from "@/lib/hallenplan-abgleich-laden";
 import { formatDatumZeit } from "@/lib/format";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Badge } from "@/components/ui/badge";
+import { hallenplanVerknuepfen } from "./actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -12,8 +14,13 @@ const STATUS_LABEL = {
   sicher: "Sicher",
 } as const;
 
-export default async function AbgleichPage() {
+export default async function AbgleichPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ verein?: string; neu?: string; schon?: string; dup?: string }>;
+}) {
   await requireSystemAdmin();
+  const ergebnisInfo = await searchParams;
   const vereine = await berechneHallenplanAbgleich();
   const mitTerminen = vereine.filter((v) => v.termineGesamt > 0 || v.hatLigaVerein);
 
@@ -137,6 +144,31 @@ export default async function AbgleichPage() {
                     <strong>{t.unberuehrtMitZuordnungen}</strong> mit Zuordnungen).
                   </li>
                 </ul>
+                <div className="flex flex-col gap-2 rounded-lg border p-3">
+                  <p>
+                    Verknüpft: <strong>{v.bereitsVerknuepft}</strong> von {v.termineGesamt} Terminen.
+                  </p>
+                  {ergebnisInfo.verein === v.vereinId && (
+                    <p className="text-green-700 dark:text-green-400">
+                      Gerade verknüpft: {ergebnisInfo.neu} neu, {ergebnisInfo.schon} schon vorhanden
+                      {Number(ergebnisInfo.dup) > 0 ? `, ${ergebnisInfo.dup} übersprungen (Duplikate im Hallenplan)` : ""}.
+                    </p>
+                  )}
+                  <form action={hallenplanVerknuepfen}>
+                    <input type="hidden" name="vereinId" value={v.vereinId} />
+                    <ConfirmSubmitButton
+                      size="sm"
+                      variant="outline"
+                      pendingText="Verknüpft…"
+                      confirmText={`Termine von ${v.vereinName} mit den öffentlichen Spielen verknüpfen? Es wird nur ein Verweis je Termin gespeichert — Zeiten, Zuordnungen und Ansetzung bleiben unverändert, es wird nichts gelöscht.`}
+                    >
+                      Sicher zugeordnete Termine verknüpfen
+                    </ConfirmSubmitButton>
+                  </form>
+                  <p className="text-xs text-muted-foreground">
+                    Speichert nur den Verweis (kein Datenverlust möglich), kann beliebig oft wiederholt werden.
+                  </p>
+                </div>
                 {t.zeitAbweichungen.length > 0 && (
                   <div>
                     <p className="mb-1 font-medium">Zeit weicht ab (max. 30)</p>

@@ -1,0 +1,2 @@
+ALTER TABLE "termin" ADD COLUMN "liga_spiel_id" uuid;--> statement-breakpoint
+ALTER TABLE "termin" ADD CONSTRAINT "termin_liga_spiel_id_liga_spiel_id_fk" FOREIGN KEY ("liga_spiel_id") REFERENCES "public"."liga_spiel"("id") ON DELETE set null ON UPDATE no action;
