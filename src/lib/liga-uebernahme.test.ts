@@ -86,6 +86,15 @@ describe.skipIf(!ADMIN_URL)("Liga-Übernahme (Postgres)", () => {
     const r2 = await uebernehmeLigaSpiele(vereinId, "test", new Date("2020-01-01T00:00:00Z"));
     expect(r2.angelegt).toBe(0);
     expect(await termineDesVereins()).toHaveLength(1 + erwartet);
+
+    // auch wenn der Abgleich einen eigenen Termin NICHT wiedererkennt (hier: Namen
+    // verfälscht), wird für dasselbe Spiel nie ein zweiter angelegt
+    const [eigener] = nachher.filter((t) => t.icsUid?.startsWith("liga:"));
+    await testDb.update(schema.termine).set({ heimMannschaftName: "Unbekannt", auswaertsMannschaftName: "Fremd" }).where(eq(schema.termine.id, eigener.id));
+    const r3 = await uebernehmeLigaSpiele(vereinId, "test", new Date("2020-01-01T00:00:00Z"));
+    expect(r3.angelegt).toBe(0);
+    expect(await termineDesVereins()).toHaveLength(1 + erwartet);
+    await testDb.update(schema.termine).set({ heimMannschaftName: eigener.heimMannschaftName, auswaertsMannschaftName: eigener.auswaertsMannschaftName }).where(eq(schema.termine.id, eigener.id));
   });
 
   it("entfernt einen leeren eigenen Doppelgänger, wenn der Hallenplan das Spiel nachliefert; Doppelgänger mit Dienst bleibt", async () => {
