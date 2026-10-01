@@ -141,6 +141,9 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
   const nuligaHalle1Id = parseHalleId(formData, "nuligaHalle1Id");
   const nuligaHalle2Id = parseHalleId(formData, "nuligaHalle2Id");
   const nuligaHalle3Id = parseHalleId(formData, "nuligaHalle3Id");
+  const hallenNamenRoh = formData.get("eigeneHallenNamen");
+  const eigeneHallenNamen =
+    typeof hallenNamenRoh === "string" && hallenNamenRoh.trim() ? hallenNamenRoh.trim().slice(0, 500) : null;
   const nuligaAutoImportAktiviert = formData.get("nuligaAutoImportAktiviert") === "on";
   const rundenspielAenderungenBenachrichtigungAktiviert =
     formData.get("rundenspielAenderungenBenachrichtigungAktiviert") === "on";
@@ -152,6 +155,7 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
         nuligaHalle1Id,
         nuligaHalle2Id,
         nuligaHalle3Id,
+        eigeneHallenNamen,
         nuligaAutoImportAktiviert,
         rundenspielAenderungenBenachrichtigungAktiviert,
       })

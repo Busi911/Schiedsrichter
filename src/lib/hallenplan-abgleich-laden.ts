@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaGruppen, ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine, termine, vereine } from "@/db/schema";
-import { gleicheAb, type AbgleichErgebnis } from "@/lib/hallenplan-abgleich";
+import { gleicheAb, istEigeneHalle, parseHallenNamen, type AbgleichErgebnis } from "@/lib/hallenplan-abgleich";
 
 const berlinUhr = new Intl.DateTimeFormat("de-DE", {
   timeZone: "Europe/Berlin",
@@ -51,6 +51,7 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
       halle1: vereine.nuligaHalle1Id,
       halle2: vereine.nuligaHalle2Id,
       halle3: vereine.nuligaHalle3Id,
+      hallenNamen: vereine.eigeneHallenNamen,
     })
     .from(vereine);
   const ergebnis: VereinsAbgleich[] = [];
@@ -128,9 +129,12 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
     const heimUnverknuepft = unverknuepft.filter(
       (s) => s.heimTeamtableId && eigeneTeamIds.has(s.heimTeamtableId)
     );
-    const eigeneHallen = new Set([v.halle1, v.halle2, v.halle3].filter((h): h is string => !!h));
-    const heimEigeneHalle = heimUnverknuepft.filter((s) => s.halleNuligaId && eigeneHallen.has(s.halleNuligaId)).length;
-    const heimHalleUnbekannt = heimUnverknuepft.filter((s) => !s.halleNuligaId).length;
+    const eigene = {
+      ids: [v.halle1, v.halle2, v.halle3].filter((h): h is string => !!h),
+      namen: parseHallenNamen(v.hallenNamen),
+    };
+    const heimEigeneHalle = heimUnverknuepft.filter((s) => istEigeneHalle(s, eigene)).length;
+    const heimHalleUnbekannt = heimUnverknuepft.filter((s) => !s.halleNuligaId && !s.halleName).length;
     const nurOeffentlichHeim = heimUnverknuepft.length;
 
     const nachId = new Map(hallenTermine.map((t) => [t.id, t]));

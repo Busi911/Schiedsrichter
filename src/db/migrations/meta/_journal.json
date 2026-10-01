@@ -435,6 +435,13 @@
       "when": 1790857476854,
       "tag": "0061_liga_zusatzquelle",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1790860440520,
+      "tag": "0062_verein_eigene_hallen_namen",
+      "breakpoints": true
     }
   ]
 }

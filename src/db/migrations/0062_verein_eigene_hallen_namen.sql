@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ADD COLUMN "eigene_hallen_namen" text;

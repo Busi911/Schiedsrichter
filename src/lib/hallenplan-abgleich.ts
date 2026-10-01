@@ -187,3 +187,26 @@ export function gleicheAb(termine: AbgleichTermin[], spiele: AbgleichSpiel[]): A
     return { terminId: t.id, status: "kein_treffer", spielIds: [] };
   });
 }
+
+// Eigene Spielhallen: nuLiga-Hallen-IDs (nur für nuLiga-Spiele vergleichbar —
+// handball.net nutzt eigene IDs) und/oder Hallennamen (quellenübergreifend,
+// Teilstring ohne Groß-/Kleinschreibung und Sonderzeichen).
+export function parseHallenNamen(roh: string | null | undefined): string[] {
+  return (roh ?? "")
+    .split(/[\n,;]+/)
+    .map((n) => n.trim())
+    .filter(Boolean);
+}
+
+export function istEigeneHalle(
+  spiel: { halleNuligaId: string | null; halleName: string | null; quelle: string },
+  eigene: { ids: string[]; namen: string[] }
+): boolean {
+  if (spiel.quelle === "nuliga" && spiel.halleNuligaId && eigene.ids.includes(spiel.halleNuligaId)) return true;
+  const name = normalisiereName(spiel.halleName);
+  if (!name) return false;
+  return eigene.namen.some((n) => {
+    const gesucht = normalisiereName(n);
+    return gesucht !== "" && name.includes(gesucht);
+  });
+}
