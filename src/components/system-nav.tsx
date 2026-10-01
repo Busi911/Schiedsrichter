@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/system/vereine", label: "Vereine" },
   { href: "/system/warteliste", label: "Warteliste" },
   { href: "/system/feedback", label: "Feedback" },
+  { href: "/system/abgleich", label: "Abgleich" },
 ];
 
 export function SystemNav() {
