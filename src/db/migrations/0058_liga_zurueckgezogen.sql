@@ -1,0 +1,1 @@
+ALTER TABLE "liga_tabellenzeile" ADD COLUMN "zurueckgezogen" boolean DEFAULT false NOT NULL;

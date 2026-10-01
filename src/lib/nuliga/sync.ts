@@ -301,6 +301,7 @@ async function aktualisiereGruppentabelle(
         toreMinus: z.tore?.minus ?? null,
         punktePlus: z.punkte?.plus ?? null,
         punkteMinus: z.punkte?.minus ?? null,
+        zurueckgezogen: z.zurueckgezogen === true,
       };
       await db
         .insert(ligaTabellenzeilen)
@@ -340,6 +341,7 @@ async function gespeicherteTabelle(db: LigaDb, gruppeId: string): Promise<Tabell
     niederlagen: z.niederlagen,
     tore: z.torePlus === null ? null : { plus: z.torePlus, minus: z.toreMinus ?? 0 },
     punkte: z.punktePlus === null ? null : { plus: z.punktePlus, minus: z.punkteMinus ?? 0 },
+    zurueckgezogen: z.zurueckgezogen,
   }));
 }
 
@@ -487,6 +489,11 @@ export async function synchronisiereStruktur(
       );
     }
 
+    const zurueckgezogen = !!teamtable && gruppe.tabelle.some((z) => z.teamtableId === teamtable && z.zurueckgezogen);
+    if (zurueckgezogen) {
+      lauf.warn(`"${team.mannschaftsname}" (Gruppe ${team.gruppenId}): zurückgezogen – wird nicht angezeigt`);
+    }
+
     const vorher = await db.query.ligaTeilnahmen.findFirst({
       where: and(
         eq(ligaTeilnahmen.mannschaftId, mannschaft.id),
@@ -500,7 +507,7 @@ export async function synchronisiereStruktur(
       punktePlus: team.punkte?.plus ?? null,
       punkteMinus: team.punkte?.minus ?? null,
       nuligaTeamtableId: teamtable ?? vorher?.nuligaTeamtableId ?? null,
-      aktiv: true,
+      aktiv: !zurueckgezogen,
       synchronisiertAm: new Date(),
     };
     if (vorher) {

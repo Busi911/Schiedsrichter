@@ -895,6 +895,7 @@ export const ligaTabellenzeilen = pgTable(
     toreMinus: integer("tore_minus"),
     punktePlus: integer("punkte_plus"),
     punkteMinus: integer("punkte_minus"),
+    zurueckgezogen: boolean("zurueckgezogen").notNull().default(false),
   },
   (t) => [uniqueIndex("liga_tabellenzeile_gruppe_team_idx").on(t.gruppeId, t.nuligaTeamtableId)]
 );

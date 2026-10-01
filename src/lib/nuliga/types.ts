@@ -56,6 +56,9 @@ export type TabellenZeile = {
   niederlagen: number | null;
   tore: Doppelwert | null;
   punkte: Doppelwert | null;
+  // nuLiga: "zurückgezogen am …" statt Spielstatistik — die Mannschaft nimmt
+  // nicht (mehr) teil, hat keine Spiele.
+  zurueckgezogen?: boolean;
 };
 
 export type LigaInfo = {

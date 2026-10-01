@@ -407,6 +407,13 @@
       "when": 1790836729983,
       "tag": "0057_liga_handball_net_quelle",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1790840664390,
+      "tag": "0058_liga_zurueckgezogen",
+      "breakpoints": true
     }
   ]
 }
