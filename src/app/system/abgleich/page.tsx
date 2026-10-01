@@ -103,7 +103,7 @@ export default async function AbgleichPage() {
             <CardHeader>
               <CardTitle className="text-base">{v.vereinName}: nicht sicher zugeordnet</CardTitle>
               <CardDescription>
-                {v.auffaellig.length} Termine, die manuell geprüft werden sollten (max. 30 angezeigt).
+                {v.auffaellig.length} Termine, die manuell geprüft werden sollten (max. 30 angezeigt, Pflichtspiele zuerst).
               </CardDescription>
             </CardHeader>
             <CardContent>
