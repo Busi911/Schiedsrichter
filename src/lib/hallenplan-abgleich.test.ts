@@ -109,6 +109,13 @@ describe("hallenplan-abgleich", () => {
     expect(gleicheAb([t], [spiel()])[0].status).toBe("sicher");
   });
 
+  it("ein Freundschaftsspiel bekommt kein Liga-Spiel der gleichen Paarung Wochen später als Kandidat", () => {
+    const t = termin({ pflichtspiel: false, icsUid: "rundenspiel:1:2026-10-01:14:00:HSG Test II:TV Gast" });
+    expect(gleicheAb([t], [spiel({ spielnummer: 14, datum: "2026-11-10" })])[0].status).toBe("kein_treffer");
+    // am selben Tag bleibt es ein sicherer Treffer
+    expect(gleicheAb([t], [spiel({ spielnummer: 14, datum: "2026-10-17" })])[0].status).toBe("sicher");
+  });
+
   it("meldet mehrdeutig statt zu raten", () => {
     const r = gleicheAb([termin()], [spiel(), spiel({ id: "s2" })]); // beide 14:00
     expect(r[0]).toMatchObject({ status: "mehrdeutig", spielIds: ["s1", "s2"] });

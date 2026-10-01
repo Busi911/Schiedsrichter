@@ -13,6 +13,8 @@ export type AbgleichTermin = {
   gast: string | null;
   // Rohtext aus dem Hallenplan, z.B. "mJC", "wJD", "Mä/männl.", "Fr/weibl."
   kategorie: string | null;
+  // false = Freundschaftsspiel/Turnier (keine Verbandsspielnummer), null/true sonst
+  pflichtspiel?: boolean | null;
 };
 
 export type AbgleichSpiel = {
@@ -173,6 +175,9 @@ export function gleicheAb(termine: AbgleichTermin[], spiele: AbgleichSpiel[]): A
     // reicht NICHT (Spielnummern sind nur je Gruppe eindeutig).
     // Gleiche Mannschaften zählen nur als Kandidat, wenn das Spiel zeitlich
     // nah liegt (verlegt) — Hin-/Rückspiel oder Vorsaison sind keine Verlegung.
+    // Freundschaftsspiele/Turniere haben kein verlegbares Ligaspiel — ein
+    // Liga-Spiel derselben Paarung Wochen später ist nur das nächste Aufeinandertreffen.
+    if (t.pflichtspiel === false) return { terminId: t.id, status: "kein_treffer", spielIds: [] };
     const vage = spiele.filter(
       (s) =>
         (gleicheMannschaften(t, s) && tageAbstand(tag, s.datum) <= MAX_VERLEGUNG_TAGE) ||
