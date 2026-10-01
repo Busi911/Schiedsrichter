@@ -110,7 +110,7 @@ export default async function AdminDashboardPage() {
 
   const unbesetzteTermineZeilen = unbesetzteTermine.map((t) => ({
     terminId: t.terminId,
-    zeit: formatDateTime(t.start),
+    start: t.start,
     typLabel: t.typLabel,
     ort: t.ort,
     mannschaft: t.mannschaftLabel,
