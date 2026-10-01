@@ -160,7 +160,9 @@ export default async function EinstellungenPage({
           {nuligaErgebnis.ligaWeiter === "1" && ligaVerein && session.user.istAdmin && (
             <LigaAutoWeiter
               aktion={oeffentlicheSeiteSpeichern}
-              clubId={ligaVerein.nuligaClubId}
+              clubId={ligaVerein.nuligaClubId ?? ""}
+              handballNetClubId={ligaVerein.handballNetClubId ?? ""}
+              handballNetTeamIds={ligaVerein.handballNetTeamIds ?? ""}
               runde={Number(nuligaErgebnis.ligaRunde) || 1}
             />
           )}
@@ -205,15 +207,43 @@ export default async function EinstellungenPage({
                 placeholder="z.B. 69723"
                 defaultValue={ligaVerein?.nuligaClubId ?? ""}
                 disabled={!session.user.istAdmin}
-                required
               />
               <p className="text-xs text-muted-foreground">
                 Die Zahl hinter <code>club=</code> in der Adresse eurer Vereinsseite auf nuLiga
-                (z.B. <code>…clubTeams?club=69723</code>).
+                (z.B. <code>…clubTeams?club=69723</code>). Optional, wenn ihr nur handball.net nutzt.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="handballNetClubId">handball.net-Vereins-ID (DHB-Wettbewerbe)</Label>
+              <Input
+                id="handballNetClubId"
+                name="handballNetClubId"
+                placeholder="z.B. 0b8y490"
+                defaultValue={ligaVerein?.handballNetClubId ?? ""}
+                disabled={!session.user.istAdmin}
+              />
+              <p className="text-xs text-muted-foreground">
+                Der Teil hinter <code>/club/</code> in der Adresse eures Vereins auf handball.net
+                (z.B. <code>handball.net/club/0b8y490</code>). Mannschaften der 3. Liga,
+                Jugendbundesliga u.ä. erscheinen dann zusammen mit den nuLiga-Mannschaften.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="handballNetTeamIds">handball.net-Team-IDs (optional)</Label>
+              <Input
+                id="handballNetTeamIds"
+                name="handballNetTeamIds"
+                placeholder="z.B. 69770, 69771"
+                defaultValue={ligaVerein?.handballNetTeamIds ?? ""}
+                disabled={!session.user.istAdmin}
+              />
+              <p className="text-xs text-muted-foreground">
+                Nur nötig, falls die Mannschaften nicht automatisch gefunden werden: die Zahl
+                hinter <code>/team/</code> in der Adresse der Mannschaft.
               </p>
             </div>
             {session.user.istAdmin && (
-              <SubmitButton size="sm" className="self-start" pendingText="Lädt von nuLiga… (bis ca. 1 Minute)">
+              <SubmitButton size="sm" className="self-start" pendingText="Lädt von nuLiga/handball.net… (bis ca. 1 Minute)">
                 {ligaVerein ? "Jetzt aktualisieren" : "Speichern & Seite erstellen"}
               </SubmitButton>
             )}

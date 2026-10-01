@@ -63,7 +63,8 @@ export function sortiereChronologisch<T extends SpielAnsicht>(spiele: T[]): T[] 
     (a, b) =>
       a.datum.localeCompare(b.datum) ||
       (a.uhrzeit ?? "99:99").localeCompare(b.uhrzeit ?? "99:99") ||
-      a.spielnummer - b.spielnummer
+      (a.spielnummer ?? 0) - (b.spielnummer ?? 0) ||
+      (a.spielcode ?? "").localeCompare(b.spielcode ?? "")
   );
 }
 

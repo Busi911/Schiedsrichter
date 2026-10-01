@@ -9,7 +9,9 @@ import { adminDb } from "@/db/admin";
 import { ligaVereine, ligaVereinLogos, vereine } from "@/db/schema";
 import { ermittleFarbton, LogoFehler, verarbeiteLogo } from "@/lib/liga-logo";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
-import { legeLigaVereinAn, synchronisiereVollstaendig } from "@/lib/nuliga/sync";
+import { legeLigaVereinAn } from "@/lib/nuliga/sync";
+import { synchronisiereAlleQuellen } from "@/lib/liga-sync-quellen";
+import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
 import { signOut } from "@/auth";
 
@@ -236,10 +238,24 @@ export async function oeffentlicheSeiteSpeichern(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
-  const roh = formData.get("nuligaClubId");
-  const clubId = typeof roh === "string" ? roh.trim() : "";
-  if (!/^\d{1,10}$/.test(clubId)) {
+  const feld = (n: string) => {
+    const roh = formData.get(n);
+    return typeof roh === "string" ? roh.trim() : "";
+  };
+  const clubId = feld("nuligaClubId");
+  const handballNetClubId = feld("handballNetClubId");
+  const handballNetTeamIds = feld("handballNetTeamIds");
+  if (clubId && !/^\d{1,10}$/.test(clubId)) {
     throw new Error("Die nuLiga-Vereins-ID besteht nur aus Ziffern (z.B. 69723).");
+  }
+  if (handballNetClubId && !/^[a-z0-9]{3,20}$/i.test(handballNetClubId)) {
+    throw new Error("Die handball.net-Vereins-ID besteht aus Buchstaben/Ziffern (z.B. 0b8y490).");
+  }
+  if (handballNetTeamIds && !/^\d+([\s,;]+\d+)*$/.test(handballNetTeamIds)) {
+    throw new Error("Team-IDs bitte als Zahlen, durch Komma getrennt (z.B. 69770, 69771).");
+  }
+  if (!clubId && !handballNetClubId && !handballNetTeamIds) {
+    throw new Error("Bitte mindestens eine Vereins-ID (nuLiga oder handball.net) angeben.");
   }
 
   const verein = await withTenant(vereinId, (tx) =>
@@ -249,26 +265,29 @@ export async function oeffentlicheSeiteSpeichern(formData: FormData) {
 
   const { id } = await legeLigaVereinAn(adminDb, {
     vereinId,
-    nuligaClubId: clubId,
+    nuligaClubId: clubId || null,
+    handballNetClubId: handballNetClubId || null,
+    handballNetTeamIds: handballNetTeamIds || null,
     name: verein.name,
   });
   // Frist deutlich unter maxDuration (60 s der Einstellungsseite): bleibt
   // etwas liegen, endet der Lauf als "teilweise" und ein weiterer Klick (oder
   // der Cron) setzt fort, statt vom Serverless-Limit abgebrochen zu werden.
-  const { struktur, spiele } = await synchronisiereVollstaendig(id, {
+  const ergebnis = await synchronisiereAlleQuellen(id, {
     db: adminDb,
     holeHtml: holeNuligaHtml,
+    holeJson: holeHandballNetApi,
     frist: Date.now() + 45_000,
   });
 
-  const meldungen = [...struktur.meldungen, ...(spiele?.meldungen ?? [])];
+  const meldungen = ergebnis.meldungen;
   const rundeRoh = Number(formData.get("runde"));
   const runde = Number.isInteger(rundeRoh) && rundeRoh >= 0 ? Math.min(rundeRoh, MAX_AUTO_RUNDEN) : 0;
-  const weiter = (struktur.unvollstaendig || !!spiele?.unvollstaendig) && runde + 1 < MAX_AUTO_RUNDEN;
+  const weiter = ergebnis.unvollstaendig && runde + 1 < MAX_AUTO_RUNDEN;
   const params = new URLSearchParams({
-    ligaStatus: spiele?.status ?? struktur.status,
-    ligaNeu: String(struktur.neu + (spiele?.neu ?? 0)),
-    ligaAnfragen: String(struktur.anfragen + (spiele?.anfragen ?? 0)),
+    ligaStatus: ergebnis.status,
+    ligaNeu: String(ergebnis.neu),
+    ligaAnfragen: String(ergebnis.anfragen),
   });
   if (meldungen.length) params.set("ligaMeldungen", meldungen.slice(0, 8).join(" | "));
   // Unvollständig (Zeitlimit): die Seite macht nach kurzer Pause selbst weiter.
