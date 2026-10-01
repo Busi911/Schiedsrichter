@@ -894,6 +894,32 @@ export const ligaVereine = pgTable(
   ]
 );
 
+// Zusätzliche nuLiga-Vereine, aus denen NUR ausgewählte Mannschaften auf die
+// öffentliche Seite übernommen werden — z.B. eine Spielgemeinschaft, die in
+// nuLiga unter dem führenden Partnerverein geführt wird. Gefiltert wird über
+// die Kategorie (liga_kategorie, kommagetrennt) und optional einen Textteil
+// des Mannschafts-/Liganamens; der Rest des Partnervereins wird nie übernommen.
+// Wie die übrigen liga_*-Tabellen ohne RLS (nur öffentliche Sportdaten).
+export const ligaVereinZusatzquellen = pgTable(
+  "liga_verein_zusatzquelle",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ligaVereinId: uuid("liga_verein_id")
+      .notNull()
+      .references(() => ligaVereine.id, { onDelete: "cascade" }),
+    nuligaClubId: text("nuliga_club_id").notNull(),
+    // Freies Label für die Anzeige in den Einstellungen (z.B. "KSG Bieber").
+    bezeichnung: text("bezeichnung"),
+    // Kommagetrennte liga_kategorie-Werte, leer = alle Kategorien.
+    kategorien: text("kategorien").notNull().default(""),
+    // Optionaler Textteil (ohne Groß-/Kleinschreibung), der im Mannschafts-
+    // oder Liganamen vorkommen muss.
+    nameEnthaelt: text("name_enthaelt"),
+    erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("liga_zusatzquelle_verein_club_idx").on(t.ligaVereinId, t.nuligaClubId)]
+);
+
 // Eine nuLiga-Spielgruppe (Liga/Staffel) einer Saison — zentrale Einheit:
 // Tabelle und Spiele hängen an der Gruppe, nicht an einer Mannschaft.
 export const ligaGruppen = pgTable(

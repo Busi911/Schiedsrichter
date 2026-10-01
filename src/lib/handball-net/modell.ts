@@ -349,3 +349,17 @@ export function parseOffizielleTabelle(antwort: unknown): TabellenEintrag[] | nu
   }
   return zeilen.sort((a, b) => a.rang - b.rang);
 }
+
+// Darf ein Team übernommen werden? Teams, die über die Vereins-ID gefunden
+// werden, müssen zu diesem Verein gehören. Manuell hinterlegte Team-IDs sind
+// dagegen immer erlaubt: so lässt sich z.B. eine Jugendspielgemeinschaft
+// anbinden, die bei handball.net unter einem Partnerverein läuft.
+export function teamUebernehmen(
+  teamClubId: string | null,
+  vereinClubId: string | null,
+  manuelleTeamIds: string[],
+  teamId: string
+): boolean {
+  if (manuelleTeamIds.includes(teamId)) return true;
+  return !(vereinClubId && teamClubId && teamClubId !== vereinClubId);
+}

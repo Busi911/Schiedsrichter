@@ -9,9 +9,11 @@ import {
   ligaTabellenzeilen,
   ligaTeilnahmen,
   ligaVereine,
+  ligaVereinZusatzquellen,
 } from "@/db/schema";
 import { tagKey } from "@/lib/kalender";
 import { parseClubTeams } from "./parsers/club-teams";
+import { passtZumZusatzFilter } from "./zusatzquellen";
 import { parseGroupPage } from "./parsers/group-page";
 import { parseTeamPortrait } from "./parsers/team-portrait";
 import { normalisiereMannschaft, parseLigaName, slugify } from "./normalisierung";
@@ -380,11 +382,44 @@ export async function synchronisiereStruktur(
     await db.update(ligaVereine).set({ name: vereinsname }).where(eq(ligaVereine.id, ligaVereinId));
   }
 
-  const teams = club.daten.teams.filter((t) => t.regulaer && t.saison === saison);
+  // Eintraege: Mannschaften des eigenen Vereins plus die gefilterten
+  // Mannschaften der Zusatzquellen (z.B. Spielgemeinschaft unter dem
+  // Partnerverein). vereinsname dient dem Abgleich mit der Gruppentabelle.
+  const eintraege: { team: (typeof club.daten.teams)[number]; vereinsname: string }[] = club.daten.teams
+    .filter((t) => t.regulaer && t.saison === saison)
+    .map((team) => ({ team, vereinsname }));
+  let zusatzFehler = false;
+  const zusatzquellen = await db.query.ligaVereinZusatzquellen.findMany({
+    where: eq(ligaVereinZusatzquellen.ligaVereinId, ligaVereinId),
+  });
+  for (const z of zusatzquellen) {
+    const bezeichnung = z.bezeichnung || z.nuligaClubId;
+    if (lauf.fristAbgelaufen()) {
+      zusatzFehler = true;
+      break;
+    }
+    try {
+      const zHtml = await lauf.hole(baueNuligaUrl(verein.verband, "clubTeams", { club: z.nuligaClubId }));
+      const zClub = parseClubTeams(zHtml);
+      for (const w of zClub.warnungen) lauf.warn(`Zusatzquelle ${bezeichnung}: ${w}`);
+      const gewaehlt = zClub.daten.teams.filter(
+        (t) => t.regulaer && t.saison === saison && passtZumZusatzFilter(t, z)
+      );
+      lauf.warn(
+        `Zusatzquelle ${bezeichnung}: ${gewaehlt.length} Mannschaft(en) übernommen` +
+          (gewaehlt.length ? ` (${gewaehlt.map((t) => t.mannschaftsname).join(", ")})` : " – Filter prüfen")
+      );
+      const zName = zClub.daten.vereinsname ?? bezeichnung;
+      for (const team of gewaehlt) eintraege.push({ team, vereinsname: zName });
+    } catch (err) {
+      zusatzFehler = true;
+      lauf.fehler(`Zusatzquelle ${bezeichnung}: ${fehlertext(err)}`);
+    }
+  }
 
   // Gruppen (je eine Abfrage pro Gruppe, Meldelisten nur aus clubTeams).
   const gruppen = new Map<string, { gruppeId: string; tabelle: TabellenZeile[] }>();
-  for (const team of teams) {
+  for (const { team } of eintraege) {
     if (gruppen.has(team.gruppenId)) continue;
     if (normalisiereMannschaft(team.mannschaftsname).entfaellt) continue;
     const gruppeId = await upsertGruppe(
@@ -425,7 +460,7 @@ export async function synchronisiereStruktur(
   // Mannschaften + Teilnahmen
   const gesehen: string[] = [];
   const belegteSchluessel = new Set<string>();
-  for (const team of teams) {
+  for (const { team, vereinsname: quellenName } of eintraege) {
     const norm = normalisiereMannschaft(team.mannschaftsname, team.ligaName);
     if (norm.entfaellt) continue;
     if (belegteSchluessel.has(norm.schluessel)) {
@@ -473,7 +508,7 @@ export async function synchronisiereStruktur(
     const teamtable = ermittleTeamtable(
       { rang: team.rang, punkte: team.punkte, nummer: norm.nummer },
       gruppe.tabelle,
-      vereinsname
+      quellenName
     );
     if (!teamtable && gruppe.tabelle.length > 0) {
       // Mit Kontext, damit die Ursache direkt aus der Meldung ersichtlich
@@ -537,7 +572,10 @@ export async function synchronisiereStruktur(
     columns: { id: true },
   });
   const mannschaftIds = alleMannschaften.map((m) => m.id);
-  if (gesehen.length > 0 && mannschaftIds.length > 0) {
+  if (zusatzFehler) {
+    lauf.warn("Eine Zusatzquelle war nicht lesbar – bestehende Mannschaften wurden nicht deaktiviert");
+  }
+  if (!zusatzFehler && gesehen.length > 0 && mannschaftIds.length > 0) {
     await db
       .update(ligaTeilnahmen)
       .set({ aktiv: false })
@@ -605,6 +643,14 @@ export async function synchronisiereSpiele(
         )
     : [];
 
+  const zusatzClubIds = new Set(
+    (
+      await db.query.ligaVereinZusatzquellen.findMany({
+        where: eq(ligaVereinZusatzquellen.ligaVereinId, ligaVereinId),
+        columns: { nuligaClubId: true },
+      })
+    ).map((z) => z.nuligaClubId)
+  );
   const heute = tagKey(jetzt);
   const gruppenMitNeuemErgebnis = new Set<string>();
 
@@ -645,7 +691,7 @@ export async function synchronisiereSpiele(
         lauf.fehler(`${t.nuligaName}: teamtable der Seite passt nicht, übersprungen`);
         continue;
       }
-      if (daten.clubId && daten.clubId !== verein.nuligaClubId) {
+      if (daten.clubId && daten.clubId !== verein.nuligaClubId && !zusatzClubIds.has(daten.clubId)) {
         lauf.warn(`${t.nuligaName}: Portrait gehört zu Verein ${daten.clubId} (Spielgemeinschaft?)`);
       }
       const mitNummer = daten.spiele.filter((s) => s.spielnummer !== null);

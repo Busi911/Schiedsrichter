@@ -179,6 +179,18 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   derselben Saison, wird die DHB-Mannschaft getrennt geführt ("… (DHB)") und
   gemeldet. Noch offen: Dedupe über Quellen hinweg, Konfliktliste, Umbenennung
   der nuliga_*-Spalten.
+- **Zusatzquellen (Spielgemeinschaften unter einem Partnerverein):**
+  Läuft eine Mannschaft in nuLiga unter einem anderen Verein (z.B. eine
+  Jugendspielgemeinschaft), trägt der Admin dessen nuLiga-Vereins-ID unter
+  Einstellungen → Öffentliche Vereinsseite als Zusatzquelle ein
+  (`liga_verein_zusatzquelle`, Filter über Kategorie und optional einen
+  Namensteil — nie der ganze Partnerverein). `synchronisiereStruktur` liest
+  deren clubTeams und legt die gefilterten Mannschaften unter dem eigenen
+  `liga_verein` an (Filter rein in `nuliga/zusatzquellen.ts`); der Spiele-Sync
+  braucht dafür keine Änderung. Ist eine Zusatzquelle nicht lesbar, wird nichts
+  deaktiviert. Bei handball.net gibt es das Pendant über manuelle Team-IDs
+  (`handball_net_team_ids`): sie werden immer übernommen, auch wenn das Team zu
+  einem anderen Verein gehört (`teamUebernehmen`).
 - **Aufbau der vereinsweiten Seite:** drei Bereiche als eigene Routen —
   `/verein/[slug]` (Letzte Ergebnisse, Startseite), `/spiele` (Nächste Spiele),
   `/mannschaften` — mit `components/liga/vereins-nav.tsx` (Bottom-Bar unter

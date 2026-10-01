@@ -22,6 +22,7 @@ import {
   parseSpiele,
   parseTeam,
   schoenerTeamname,
+  teamUebernehmen,
   type HnetPhase,
   type HnetSaison,
   type HnetSpiel,
@@ -266,7 +267,7 @@ export async function synchronisiereHandballNet(
     try {
       const team = parseTeam(alsObj(await hole(`/api/new/teams/${encodeURIComponent(teamId)}`))?.data);
       if (!team) throw new Error("Team nicht lesbar");
-      if (verein.handballNetClubId && team.clubId && team.clubId !== verein.handballNetClubId) {
+      if (!teamUebernehmen(team.clubId, verein.handballNetClubId, manuell, teamId)) {
         warn(`Team ${teamId} (${team.name}) gehört zu Verein ${team.clubId}, übersprungen`);
         continue;
       }

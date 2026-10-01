@@ -4,7 +4,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaVereine, ligaVereinLogos, vereine } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, ligaVereinLogos, ligaVereinZusatzquellen, vereine } from "@/db/schema";
 import {
   dienstBedarfSpeichern,
   logoEntfernen,
@@ -13,6 +13,8 @@ import {
   logoHochladen,
   oeffentlicheSeiteEntfernen,
   oeffentlicheSeiteSpeichern,
+  zusatzquelleEntfernen,
+  zusatzquelleHinzufuegen,
   nuligaEinstellungenSpeichern,
   vereinsdatenSpeichern,
 } from "./actions";
@@ -38,6 +40,14 @@ const PROTOKOLL_LABEL: Record<string, string> = {
   support_freigegeben: "Support-Zugriff freigegeben",
   support_widerrufen: "Support-Zugriff widerrufen",
   support_zugriff: "Support-Zugriff genutzt",
+};
+
+const ZUSATZ_KATEGORIE_LABEL: Record<string, string> = {
+  jugend_weiblich: "Weibliche Jugend",
+  jugend_maennlich: "Männliche Jugend",
+  damen: "Frauen",
+  herren: "Männer",
+  kinder: "Kinder",
 };
 
 export default async function EinstellungenPage({
@@ -75,6 +85,13 @@ export default async function EinstellungenPage({
         columns: { aktualisiertAm: true },
       })
     : null;
+
+  const zusatzquellen = ligaVerein
+    ? await adminDb.query.ligaVereinZusatzquellen.findMany({
+        where: eq(ligaVereinZusatzquellen.ligaVereinId, ligaVerein.id),
+        orderBy: [asc(ligaVereinZusatzquellen.erstelltAm)],
+      })
+    : [];
 
   const protokoll = await holeProtokoll(vereinId, 8);
   const supportAktiv = supportFreigabeAktiv(verein?.supportZugriffBis ?? null);
@@ -287,8 +304,11 @@ export default async function EinstellungenPage({
                 disabled={!session.user.istAdmin}
               />
               <p className="text-xs text-muted-foreground">
-                Nur nötig, falls die Mannschaften nicht automatisch gefunden werden: die Zahl
-                hinter <code>/team/</code> in der Adresse der Mannschaft.
+                Nur nötig, falls die Mannschaften nicht automatisch gefunden werden — oder für eine
+                Spielgemeinschaft, die bei handball.net unter einem Partnerverein läuft (z.B. eine
+                Jugendspielgemeinschaft in der Jugendbundesliga): die Zahl hinter <code>/team/</code> in
+                der Adresse der Mannschaft. Hier eingetragene Teams werden immer übernommen, auch wenn
+                sie zu einem anderen Verein gehören.
               </p>
             </div>
             {session.user.istAdmin && (
@@ -297,6 +317,94 @@ export default async function EinstellungenPage({
               </SubmitButton>
             )}
           </form>
+          {ligaVerein && (
+            <div className="flex flex-col gap-3 border-t pt-4">
+              <div>
+                <h3 className="text-sm font-medium">Weitere nuLiga-Vereine (z.B. Spielgemeinschaft)</h3>
+                <p className="text-xs text-muted-foreground">
+                  Läuft eine Mannschaft in nuLiga unter einem Partnerverein (z.B. eine Jugendspielgemeinschaft),
+                  tragt hier dessen nuLiga-Vereins-ID ein. Übernommen werden nur die Mannschaften, die zum
+                  Filter passen — der Rest des Partnervereins nicht.
+                </p>
+              </div>
+              {zusatzquellen.length > 0 && (
+                <ul className="flex flex-col gap-2">
+                  {zusatzquellen.map((z) => (
+                    <li key={z.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm">
+                      <span>
+                        <span className="font-medium">{z.bezeichnung || `Verein ${z.nuligaClubId}`}</span>{" "}
+                        <span className="text-muted-foreground">
+                          (ID {z.nuligaClubId}) ·{" "}
+                          {[
+                            ...z.kategorien
+                              .split(",")
+                              .filter(Boolean)
+                              .map((k) => ZUSATZ_KATEGORIE_LABEL[k] ?? k),
+                            z.nameEnthaelt ? `Name enthält „${z.nameEnthaelt}“` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </span>
+                      </span>
+                      {session.user.istAdmin && (
+                        <form action={zusatzquelleEntfernen}>
+                          <input type="hidden" name="id" value={z.id} />
+                          <ConfirmSubmitButton
+                            variant="outline"
+                            size="sm"
+                            confirmText="Diesen Verein wirklich entfernen? Seine Mannschaften verschwinden von der öffentlichen Seite."
+                          >
+                            Entfernen
+                          </ConfirmSubmitButton>
+                        </form>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {session.user.istAdmin && (
+                <form action={zusatzquelleHinzufuegen} className="flex flex-col gap-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="zusatzClubId">nuLiga-Vereins-ID des Partnervereins</Label>
+                      <Input id="zusatzClubId" name="zusatzClubId" inputMode="numeric" placeholder="z.B. 69692" required />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="zusatzBezeichnung">Bezeichnung (optional)</Label>
+                      <Input id="zusatzBezeichnung" name="zusatzBezeichnung" placeholder="z.B. wJSG Bieber/Heuchelheim" />
+                    </div>
+                  </div>
+                  <fieldset className="flex flex-col gap-1.5">
+                    <legend className="text-sm">Nur diese Mannschaften übernehmen</legend>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                      {Object.entries(ZUSATZ_KATEGORIE_LABEL).map(([wert, label]) => (
+                        <label key={wert} className="flex items-center gap-1.5">
+                          <input
+                            type="checkbox"
+                            name="zusatzKategorie"
+                            value={wert}
+                            defaultChecked={wert === "jugend_weiblich"}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="zusatzNameEnthaelt">Name enthält (optional)</Label>
+                    <Input id="zusatzNameEnthaelt" name="zusatzNameEnthaelt" placeholder="z.B. Heuchelheim" />
+                    <p className="text-xs text-muted-foreground">
+                      Zusätzlicher Filter auf Mannschafts- oder Liganame, falls der Partnerverein weitere
+                      Mannschaften derselben Kategorie hat, die nicht zur Spielgemeinschaft gehören.
+                    </p>
+                  </div>
+                  <SubmitButton size="sm" className="self-start" pendingText="Lädt von nuLiga… (bis ca. 1 Minute)">
+                    Hinzufügen &amp; laden
+                  </SubmitButton>
+                </form>
+              )}
+            </div>
+          )}
           {ligaVerein && (
             <div className="flex flex-col gap-3 border-t pt-4">
               <div className="flex items-center gap-3">

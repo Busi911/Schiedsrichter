@@ -6,7 +6,7 @@ import { and, eq } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaVereine, ligaVereinLogos, vereine } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, ligaVereinLogos, ligaVereinZusatzquellen, vereine } from "@/db/schema";
 import { ermittleFarbton, LogoFehler, verarbeiteLogo } from "@/lib/liga-logo";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { legeLigaVereinAn } from "@/lib/nuliga/sync";
@@ -298,6 +298,98 @@ export async function oeffentlicheSeiteSpeichern(formData: FormData) {
   }
   revalidatePath("/admin/einstellungen");
   redirect(`/admin/einstellungen?${params.toString()}`);
+}
+
+const ZUSATZ_KATEGORIEN = ["herren", "damen", "jugend_maennlich", "jugend_weiblich", "kinder"] as const;
+const MAX_ZUSATZQUELLEN = 5;
+
+// Nach dem Ändern der Zusatzquellen sofort synchronisieren (Struktur + Spiele),
+// damit das Ergebnis direkt sichtbar ist bzw. entfernte Mannschaften
+// verschwinden; bei Zeitlimit setzt der Auto-Weiter-Mechanismus fort.
+async function syncNachZusatzquelle(ligaVereinId: string): Promise<never> {
+  const ergebnis = await synchronisiereAlleQuellen(ligaVereinId, {
+    db: adminDb,
+    holeHtml: holeNuligaHtml,
+    holeJson: holeHandballNetApi,
+    frist: Date.now() + 45_000,
+  });
+  const params = new URLSearchParams({
+    ligaStatus: ergebnis.status,
+    ligaNeu: String(ergebnis.neu),
+    ligaAnfragen: String(ergebnis.anfragen),
+  });
+  if (ergebnis.meldungen.length) params.set("ligaMeldungen", ergebnis.meldungen.slice(0, 8).join(" | "));
+  if (ergebnis.unvollstaendig) {
+    params.set("ligaWeiter", "1");
+    params.set("ligaRunde", "1");
+  }
+  revalidatePath("/admin/einstellungen");
+  redirect(`/admin/einstellungen?${params.toString()}`);
+}
+
+// Weiteren nuLiga-Verein (z.B. Partnerverein einer Spielgemeinschaft)
+// anbinden — übernommen werden NUR Mannschaften, die zum Filter passen.
+export async function zusatzquelleHinzufuegen(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const ligaVerein = await adminDb.query.ligaVereine.findFirst({
+    where: eq(ligaVereine.vereinId, session.user.vereinId!),
+  });
+  if (!ligaVerein) throw new Error("Bitte zuerst die öffentliche Vereinsseite einrichten.");
+
+  const feld = (n: string) => {
+    const roh = formData.get(n);
+    return typeof roh === "string" ? roh.trim() : "";
+  };
+  const clubId = feld("zusatzClubId");
+  if (!/^\d{1,10}$/.test(clubId)) throw new Error("Die nuLiga-Vereins-ID besteht nur aus Ziffern.");
+  if (clubId === ligaVerein.nuligaClubId) {
+    throw new Error("Das ist die ID eures eigenen Vereins — die ist oben bereits hinterlegt.");
+  }
+  const kategorien = ZUSATZ_KATEGORIEN.filter((k) => formData.getAll("zusatzKategorie").includes(k));
+  const nameEnthaelt = feld("zusatzNameEnthaelt").slice(0, 60) || null;
+  if (kategorien.length === 0 && !nameEnthaelt) {
+    throw new Error("Bitte mindestens eine Kategorie oder einen Namensteil als Filter angeben — sonst würde der ganze Verein übernommen.");
+  }
+  const bestehende = await adminDb.query.ligaVereinZusatzquellen.findMany({
+    where: eq(ligaVereinZusatzquellen.ligaVereinId, ligaVerein.id),
+    columns: { nuligaClubId: true },
+  });
+  if (bestehende.length >= MAX_ZUSATZQUELLEN && !bestehende.some((b) => b.nuligaClubId === clubId)) {
+    throw new Error(`Höchstens ${MAX_ZUSATZQUELLEN} weitere Vereine.`);
+  }
+
+  await adminDb
+    .insert(ligaVereinZusatzquellen)
+    .values({
+      ligaVereinId: ligaVerein.id,
+      nuligaClubId: clubId,
+      bezeichnung: feld("zusatzBezeichnung").slice(0, 80) || null,
+      kategorien: kategorien.join(","),
+      nameEnthaelt,
+    })
+    .onConflictDoUpdate({
+      target: [ligaVereinZusatzquellen.ligaVereinId, ligaVereinZusatzquellen.nuligaClubId],
+      set: {
+        bezeichnung: feld("zusatzBezeichnung").slice(0, 80) || null,
+        kategorien: kategorien.join(","),
+        nameEnthaelt,
+      },
+    });
+  await syncNachZusatzquelle(ligaVerein.id);
+}
+
+export async function zusatzquelleEntfernen(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const id = formData.get("id");
+  if (typeof id !== "string") throw new Error("Ungültige Anfrage.");
+  const ligaVerein = await adminDb.query.ligaVereine.findFirst({
+    where: eq(ligaVereine.vereinId, session.user.vereinId!),
+  });
+  if (!ligaVerein) throw new Error("Öffentliche Vereinsseite nicht gefunden.");
+  await adminDb
+    .delete(ligaVereinZusatzquellen)
+    .where(and(eq(ligaVereinZusatzquellen.id, id), eq(ligaVereinZusatzquellen.ligaVereinId, ligaVerein.id)));
+  await syncNachZusatzquelle(ligaVerein.id);
 }
 
 export async function oeffentlicheSeiteEntfernen() {
