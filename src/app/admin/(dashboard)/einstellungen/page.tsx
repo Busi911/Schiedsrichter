@@ -378,7 +378,7 @@ export default async function EinstellungenPage({
             >
               <p className="text-xs text-muted-foreground">
                 Läuft eine Mannschaft in nuLiga unter einem Partnerverein (z.B. eine Jugendspielgemeinschaft),
-                tragt hier dessen nuLiga-Vereins-ID ein. Übernommen werden nur die Mannschaften, die zum
+                tragt hier dessen Vereins-ID ein (nuLiga oder handball.net). Übernommen werden nur die Mannschaften, die zum
                 Filter passen — der Rest des Partnervereins nicht.
               </p>
               {zusatzquellen.length > 0 && (
@@ -386,9 +386,9 @@ export default async function EinstellungenPage({
                   {zusatzquellen.map((z) => (
                     <li key={z.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm">
                       <span>
-                        <span className="font-medium">{z.bezeichnung || `Verein ${z.nuligaClubId}`}</span>{" "}
+                        <span className="font-medium">{z.bezeichnung || `Verein ${z.nuligaClubId ?? z.handballNetClubId}`}</span>{" "}
                         <span className="text-muted-foreground">
-                          (ID {z.nuligaClubId}) ·{" "}
+                          ({z.handballNetClubId ? "handball.net" : "nuLiga"}-ID {z.nuligaClubId ?? z.handballNetClubId}) ·{" "}
                           {[
                             ...z.kategorien
                               .split(",")
@@ -420,14 +420,23 @@ export default async function EinstellungenPage({
                 <form action={zusatzquelleHinzufuegen} className="flex flex-col gap-3">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="zusatzClubId">nuLiga-Vereins-ID des Partnervereins</Label>
-                      <Input id="zusatzClubId" name="zusatzClubId" inputMode="numeric" placeholder="z.B. 69692" required />
+                      <Label htmlFor="zusatzClubId">Vereins-ID des Partnervereins</Label>
+                      <Input id="zusatzClubId" name="zusatzClubId" placeholder="nuLiga: 69692 · handball.net: 0b8y490" required />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="zusatzBezeichnung">Bezeichnung (optional)</Label>
                       <Input id="zusatzBezeichnung" name="zusatzBezeichnung" placeholder="z.B. wJSG Bieber/Heuchelheim" />
                     </div>
                   </div>
+                  <fieldset className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                    <legend className="mb-1 text-sm">Quelle der ID</legend>
+                    <label className="flex items-center gap-1.5">
+                      <input type="radio" name="zusatzQuelle" value="nuliga" defaultChecked /> nuLiga (Landesverband)
+                    </label>
+                    <label className="flex items-center gap-1.5">
+                      <input type="radio" name="zusatzQuelle" value="handball_net" /> handball.net (z.B. Jugendbundesliga)
+                    </label>
+                  </fieldset>
                   <fieldset className="flex flex-col gap-1.5">
                     <legend className="text-sm">Nur diese Mannschaften übernehmen</legend>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">

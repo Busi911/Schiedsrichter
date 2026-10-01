@@ -354,10 +354,20 @@ export async function zusatzquelleHinzufuegen(formData: FormData) {
     const roh = formData.get(n);
     return typeof roh === "string" ? roh.trim() : "";
   };
+  const quelle = feld("zusatzQuelle") === "handball_net" ? "handball_net" : "nuliga";
   const clubId = feld("zusatzClubId");
-  if (!/^\d{1,10}$/.test(clubId)) throw new Error("Die nuLiga-Vereins-ID besteht nur aus Ziffern.");
-  if (clubId === ligaVerein.nuligaClubId) {
-    throw new Error("Das ist die ID eures eigenen Vereins — die ist oben bereits hinterlegt.");
+  if (quelle === "nuliga") {
+    if (!/^\d{1,10}$/.test(clubId)) throw new Error("Die nuLiga-Vereins-ID besteht nur aus Ziffern.");
+    if (clubId === ligaVerein.nuligaClubId) {
+      throw new Error("Das ist die ID eures eigenen Vereins — die ist oben bereits hinterlegt.");
+    }
+  } else {
+    if (!/^[a-z0-9]{3,20}$/i.test(clubId)) {
+      throw new Error("Die handball.net-Vereins-ID besteht aus Buchstaben/Ziffern (z.B. 0b8y490).");
+    }
+    if (clubId === ligaVerein.handballNetClubId) {
+      throw new Error("Das ist die ID eures eigenen Vereins — die ist oben bereits hinterlegt.");
+    }
   }
   const kategorien = ZUSATZ_KATEGORIEN.filter((k) => formData.getAll("zusatzKategorie").includes(k));
   const nameEnthaelt = feld("zusatzNameEnthaelt").slice(0, 60) || null;
@@ -366,28 +376,31 @@ export async function zusatzquelleHinzufuegen(formData: FormData) {
   }
   const bestehende = await adminDb.query.ligaVereinZusatzquellen.findMany({
     where: eq(ligaVereinZusatzquellen.ligaVereinId, ligaVerein.id),
-    columns: { nuligaClubId: true },
+    columns: { nuligaClubId: true, handballNetClubId: true },
   });
-  if (bestehende.length >= MAX_ZUSATZQUELLEN && !bestehende.some((b) => b.nuligaClubId === clubId)) {
+  const schonDa = bestehende.some((b) => (quelle === "nuliga" ? b.nuligaClubId : b.handballNetClubId) === clubId);
+  if (bestehende.length >= MAX_ZUSATZQUELLEN && !schonDa) {
     throw new Error(`Höchstens ${MAX_ZUSATZQUELLEN} weitere Vereine.`);
   }
 
+  const werte = {
+    bezeichnung: feld("zusatzBezeichnung").slice(0, 80) || null,
+    kategorien: kategorien.join(","),
+    nameEnthaelt,
+  };
   await adminDb
     .insert(ligaVereinZusatzquellen)
     .values({
       ligaVereinId: ligaVerein.id,
-      nuligaClubId: clubId,
-      bezeichnung: feld("zusatzBezeichnung").slice(0, 80) || null,
-      kategorien: kategorien.join(","),
-      nameEnthaelt,
+      ...(quelle === "nuliga" ? { nuligaClubId: clubId } : { handballNetClubId: clubId }),
+      ...werte,
     })
     .onConflictDoUpdate({
-      target: [ligaVereinZusatzquellen.ligaVereinId, ligaVereinZusatzquellen.nuligaClubId],
-      set: {
-        bezeichnung: feld("zusatzBezeichnung").slice(0, 80) || null,
-        kategorien: kategorien.join(","),
-        nameEnthaelt,
-      },
+      target:
+        quelle === "nuliga"
+          ? [ligaVereinZusatzquellen.ligaVereinId, ligaVereinZusatzquellen.nuligaClubId]
+          : [ligaVereinZusatzquellen.ligaVereinId, ligaVereinZusatzquellen.handballNetClubId],
+      set: werte,
     });
   await syncNachZusatzquelle(ligaVerein.id);
 }

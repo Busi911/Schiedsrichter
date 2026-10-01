@@ -24,6 +24,7 @@ import {
   parseTeam,
   saisonLabel,
   schoenerTeamname,
+  passtZumHnetFilter,
   teamUebernehmen,
 } from "./modell";
 
@@ -418,3 +419,73 @@ describe("teamUebernehmen (Spielgemeinschaften unter einem Partnerverein)", () =
   });
 });
 
+describe("passtZumHnetFilter (Partnerverein bei handball.net)", () => {
+  const team = (name: string, gender: "m" | "w", ageCategory: string, clubName = "HSG Beispiel") => ({
+    id: "1",
+    name,
+    gender,
+    ageCategory,
+    clubId: "c2",
+    clubName,
+  });
+  it("filtert nach Kategorie", () => {
+    const f = { kategorien: "jugend_weiblich", nameEnthaelt: null };
+    expect(passtZumHnetFilter(team("JSG Test", "w", "A-JUGEND"), f)).toBe(true);
+    expect(passtZumHnetFilter(team("JSG Test", "m", "A-JUGEND"), f)).toBe(false);
+    expect(passtZumHnetFilter(team("Frauen", "w", "ERWACHSENE"), f)).toBe(false);
+  });
+  it("Namensteil prüft Team- und Vereinsname, Groß-/Kleinschreibung egal", () => {
+    const f = { kategorien: "jugend_weiblich", nameEnthaelt: "heuchelheim" };
+    expect(passtZumHnetFilter(team("JSG Bieber/Heuchelheim", "w", "B-JUGEND"), f)).toBe(true);
+    expect(passtZumHnetFilter(team("JSG Anders", "w", "B-JUGEND", "TSF Heuchelheim"), f)).toBe(true);
+    expect(passtZumHnetFilter(team("JSG Anders", "w", "B-JUGEND"), f)).toBe(false);
+  });
+});
+
+
+describe.skipIf(!ADMIN_URL)("handball.net: Zusatzquelle (Postgres)", () => {
+  const pool = new Pool({ connectionString: ADMIN_URL });
+  const db = drizzle(pool, { schema });
+  const vereinId = randomUUID();
+  const aufruf: string[] = [];
+  const PARTNER = { id: "partner1", name: "HSG Partner" };
+  const jsg = { id: 77001, name: "JSG Partner/Beispiel", club: PARTNER, gender: { id: "F" }, age_category: { id: 2, name: "A-JUGEND" } };
+  const maenner = { id: 77002, name: "HSG Partner", club: PARTNER, gender: { id: "M" }, age_category: { id: 1, name: "ERWACHSENE" } };
+  const holeJson = async (pfad: string): Promise<unknown> => {
+    aufruf.push(pfad);
+    const ok = (data: unknown) => ({ data, pagination: { last_page: 1 } });
+    if (pfad === "/api/new/seasons")
+      return { data: [{ id: 2627, name: "Saison 2026/2027", start_date: "2026-07-01", end_date: "2027-06-30" }] };
+    if (pfad.startsWith("/api/new/teams?club_id=partner1")) return ok([jsg, maenner]);
+    if (pfad.startsWith("/api/new/teams/77001/competitions")) return ok([]);
+    if (pfad === "/api/new/teams/77001") return ok(jsg);
+    throw new Error("HTTP 404");
+  };
+  beforeAll(async () => {
+    await db.delete(schema.ligaVereine);
+    await db.delete(schema.ligaGruppen);
+    await db.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim" });
+  });
+  afterAll(async () => {
+    await db.delete(schema.vereine).where(eq(schema.vereine.id, vereinId));
+    await db.delete(schema.ligaVereine);
+    await pool.end();
+  });
+
+  it("übernimmt nur Teams des Partnervereins, die zum Filter passen (auch fremder Verein)", async () => {
+    const { id } = await legeLigaVereinAn(db, { vereinId, handballNetClubId: "owncl", name: "TSF Heuchelheim" });
+    await db.insert(schema.ligaVereinZusatzquellen).values({
+      ligaVereinId: id,
+      handballNetClubId: "partner1",
+      bezeichnung: "Partner-JSG",
+      kategorien: "jugend_weiblich",
+      nameEnthaelt: "Beispiel",
+    });
+    const r = await synchronisiereHandballNet(id, { db, holeJson, jetzt: new Date("2026-10-01T10:00:00Z") });
+    expect(r.meldungen.some((m) => m.includes("Zusatzquelle Partner-JSG: 1 Team(s) übernommen (JSG Partner/Beispiel)"))).toBe(true);
+    // das passende Team wurde geladen (nicht wegen "anderer Verein" übersprungen), das Männerteam nicht
+    expect(aufruf).toContain("/api/new/teams/77001");
+    expect(aufruf.some((p) => p.includes("/api/new/teams/77002"))).toBe(false);
+    expect(r.meldungen.some((m) => m.includes("gehört zu Verein"))).toBe(false);
+  });
+});

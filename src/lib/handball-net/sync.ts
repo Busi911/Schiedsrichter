@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, notInArray, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
 import {
   ligaGruppen,
   ligaMannschaften,
@@ -7,6 +7,7 @@ import {
   ligaTabellenzeilen,
   ligaTeilnahmen,
   ligaVereine,
+  ligaVereinZusatzquellen,
 } from "@/db/schema";
 import { tagKey } from "@/lib/kalender";
 import { saisonLabel as saisonLabelFuerDatum } from "@/lib/saison";
@@ -21,6 +22,7 @@ import {
   parseSaisons,
   parseSpiele,
   parseTeam,
+  passtZumHnetFilter,
   schoenerTeamname,
   teamUebernehmen,
   type HnetPhase,
@@ -83,6 +85,36 @@ function datenArray(antwort: unknown): unknown[] {
 // probiert (der erste mit Treffern gewinnt); die Meldung nennt, welcher
 // funktioniert hat bzw. woran es scheiterte. Manuell hinterlegte Team-IDs
 // gelten immer zusätzlich.
+// Teamliste eines Vereins (Kandidatenpfade siehe oben): null + Fehlertexte,
+// wenn kein Pfad Treffer lieferte.
+async function holeTeamsDesVereins(
+  holeJson: HoleJson,
+  clubId: string,
+  saisonId: string | null
+): Promise<{ teams: HnetTeam[] | null; fehler: string[] }> {
+  const season = saisonId ? `season_id=${encodeURIComponent(saisonId)}` : "";
+  const kandidaten = [
+    `/api/new/teams?club_id=${encodeURIComponent(clubId)}${season ? `&${season}` : ""}`,
+    `/api/new/teams/clubs/${encodeURIComponent(clubId)}/teams${season ? `?${season}` : ""}`,
+    `/api/new/clubs/${encodeURIComponent(clubId)}/teams${season ? `?${season}` : ""}`,
+  ];
+  const fehler: string[] = [];
+  for (const pfad of kandidaten) {
+    try {
+      // seitenweise (die API liefert standardmäßig nur 25 Teams)
+      const liste = await holeAlleSeiten(holeJson, pfad);
+      const treffer = liste
+        .map(parseTeam)
+        .filter((t): t is HnetTeam => t !== null && (t.clubId === null || t.clubId === clubId));
+      if (treffer.length > 0) return { teams: treffer, fehler };
+      fehler.push(`${pfad.split("?")[0]}: leer`);
+    } catch (err) {
+      fehler.push(`${pfad.split("?")[0]}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  return { teams: null, fehler };
+}
+
 async function ermittleTeamIds(
   holeJson: HoleJson,
   clubId: string | null,
@@ -92,32 +124,10 @@ async function ermittleTeamIds(
 ): Promise<string[]> {
   const ids = new Set(manuell);
   if (clubId) {
-    const season = saisonId ? `season_id=${encodeURIComponent(saisonId)}` : "";
-    const kandidaten = [
-      `/api/new/teams?club_id=${encodeURIComponent(clubId)}${season ? `&${season}` : ""}`,
-      `/api/new/teams/clubs/${encodeURIComponent(clubId)}/teams${season ? `?${season}` : ""}`,
-      `/api/new/clubs/${encodeURIComponent(clubId)}/teams${season ? `?${season}` : ""}`,
-    ];
-    const fehler: string[] = [];
-    let gefunden = false;
-    for (const pfad of kandidaten) {
-      try {
-        // seitenweise (die API liefert standardmäßig nur 25 Teams)
-        const liste = await holeAlleSeiten(holeJson, pfad);
-        const treffer = liste
-          .map(parseTeam)
-          .filter((t): t is HnetTeam => t !== null && (t.clubId === null || t.clubId === clubId));
-        if (treffer.length > 0) {
-          treffer.forEach((t) => ids.add(t.id));
-          gefunden = true;
-          break;
-        }
-        fehler.push(`${pfad.split("?")[0]}: leer`);
-      } catch (err) {
-        fehler.push(`${pfad.split("?")[0]}: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    }
-    if (!gefunden && manuell.length === 0) {
+    const { teams, fehler } = await holeTeamsDesVereins(holeJson, clubId, saisonId);
+    if (teams) {
+      teams.forEach((t) => ids.add(t.id));
+    } else if (manuell.length === 0) {
       meldung(
         `handball.net: Teamliste zu Verein ${clubId} nicht abrufbar (${fehler.join("; ")}) – ` +
           `bitte Team-IDs manuell hinterlegen`
@@ -158,6 +168,23 @@ function spielFelder(s: HnetSpiel, teamId: string): SpielFelder {
     ergebnisBestaetigt: s.beendet,
     status: s.status,
   };
+}
+
+// Hat der Verein eine handball.net-Quelle (Vereins-ID, Team-IDs oder eine
+// handball.net-Zusatzquelle)? Entscheidet, ob der Sync läuft.
+export async function hatHandballNetQuelle(
+  db: LigaDb,
+  verein: { id: string; handballNetClubId: string | null; handballNetTeamIds: string | null }
+): Promise<boolean> {
+  if (verein.handballNetClubId || verein.handballNetTeamIds) return true;
+  const zusatz = await db.query.ligaVereinZusatzquellen.findFirst({
+    where: and(
+      eq(ligaVereinZusatzquellen.ligaVereinId, verein.id),
+      isNotNull(ligaVereinZusatzquellen.handballNetClubId)
+    ),
+    columns: { id: true },
+  });
+  return !!zusatz;
 }
 
 export async function synchronisiereHandballNet(
@@ -213,10 +240,18 @@ export async function synchronisiereHandballNet(
     return { status, anfragen, neu, aktualisiert, meldungen, unvollstaendig };
   };
 
-  const manuell = (verein.handballNetTeamIds ?? "")
+  const manuellEigene = (verein.handballNetTeamIds ?? "")
     .split(/[\s,;]+/)
     .filter((x) => /^\d+$/.test(x));
-  if (!verein.handballNetClubId && manuell.length === 0) {
+  const zusatzHnet = (
+    await db.query.ligaVereinZusatzquellen.findMany({
+      where: and(
+        eq(ligaVereinZusatzquellen.ligaVereinId, ligaVereinId),
+        isNotNull(ligaVereinZusatzquellen.handballNetClubId)
+      ),
+    })
+  ).flatMap((z) => (z.handballNetClubId ? [{ ...z, handballNetClubId: z.handballNetClubId }] : []));
+  if (!verein.handballNetClubId && manuellEigene.length === 0 && zusatzHnet.length === 0) {
     fehler("handball.net: weder Vereins-ID noch Team-IDs hinterlegt");
     return protokoll(true);
   }
@@ -231,6 +266,28 @@ export async function synchronisiereHandballNet(
   const label = saison?.label ?? saisonLabelFuerDatum(jetzt);
   const von = saison?.start ?? `${jetzt.getMonth() >= 6 ? jetzt.getFullYear() : jetzt.getFullYear() - 1}-07-01`;
   const bis = saison?.ende ?? `${Number(von.slice(0, 4)) + 1}-06-30`;
+
+  // Zusatzquellen (Partnerverein + Filter): nur passende Teams, die immer
+  // übernommen werden, auch wenn sie zu einem anderen Verein gehören.
+  const zusatzIds = new Set<string>();
+  for (const z of zusatzHnet) {
+    if (fristAbgelaufen()) break;
+    const name = z.bezeichnung || z.handballNetClubId;
+    const { teams, fehler: f } = await holeTeamsDesVereins(hole, z.handballNetClubId, saison?.id ?? null);
+    if (!teams) {
+      fehler(`Zusatzquelle ${name}: Teamliste nicht abrufbar (${f.join("; ")})`);
+      continue;
+    }
+    const gewaehlt = teams.filter((t) => passtZumHnetFilter(t, z));
+    gewaehlt.forEach((t) => zusatzIds.add(t.id));
+    warn(
+      `Zusatzquelle ${name}: ${gewaehlt.length} Team(s) übernommen` +
+        (gewaehlt.length
+          ? ` (${gewaehlt.map((t) => t.name).join(", ")})`
+          : ` – Filter prüfen (${teams.length} Teams im Verein, z.B. ${teams.slice(0, 4).map((t) => t.name).join(", ")})`)
+    );
+  }
+  const manuell = [...manuellEigene, ...zusatzIds];
 
   const teamIds = await ermittleTeamIds(hole, verein.handballNetClubId, manuell, saison?.id ?? null, (t) =>
     fehler(t)
