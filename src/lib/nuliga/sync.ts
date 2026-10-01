@@ -432,7 +432,17 @@ export async function synchronisiereStruktur(
       vereinsname
     );
     if (!teamtable && gruppe.tabelle.length > 0) {
-      lauf.warn(`"${team.mannschaftsname}" (Gruppe ${team.gruppenId}): Tabellenzeile nicht zuordenbar`);
+      // Mit Kontext, damit die Ursache direkt aus der Meldung ersichtlich
+      // ist (Stand laut Vereinsliste und die Namen der Gruppentabelle).
+      const namen = gruppe.tabelle
+        .slice(0, 8)
+        .map((z) => `${z.rang}. ${z.mannschaft}`)
+        .join("; ");
+      lauf.warn(
+        `"${team.mannschaftsname}" (Gruppe ${team.gruppenId}): Tabellenzeile nicht zuordenbar ` +
+          `(Vereinsliste: Platz ${team.rang ?? "?"}, ${team.punkte ? `${team.punkte.plus}:${team.punkte.minus}` : "?"} Punkte; ` +
+          `Tabelle: ${namen})`
+      );
     }
 
     const vorher = await db.query.ligaTeilnahmen.findFirst({

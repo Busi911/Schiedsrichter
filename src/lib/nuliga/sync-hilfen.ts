@@ -42,9 +42,12 @@ export function ermittleTeamtable(
   const tokens = normalisiereName(vereinsname)
     .split(" ")
     .filter((t) => t.length >= 4 && !["verein", "sport", "handball"].includes(t));
+  // nuLiga kürzt lange Namen in Tabellen ab ("Heuchelh./Bieber II"): daher
+  // genügt der Anfang des Vereinsnamen-Bestandteils (mind. 5 Buchstaben).
+  const namensAnfaenge = tokens.map((t) => t.slice(0, Math.max(5, Math.min(t.length, 7))));
   const namensTreffer = mitId.filter((z) => {
     const n = normalisiereName(z.mannschaft);
-    if (!tokens.some((t) => n.includes(t))) return false;
+    if (!namensAnfaenge.some((a) => n.includes(a))) return false;
     return team.nummer === 1
       ? !/\s(ii|iii|iv|v|vi|\d)$/.test(n)
       : n.endsWith(normalisiereName(roemisch[team.nummer] ?? "")) || n.endsWith(` ${team.nummer}`);
