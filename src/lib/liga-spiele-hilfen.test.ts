@@ -38,12 +38,14 @@ describe("sammleVereinsSpiele", () => {
   const jetzt = new Date("2026-10-01T10:00:00Z");
   const m = [
     {
+      id: "m1",
       name: "Männer",
       kategorie: "herren" as const,
       teamtableId: "t1",
       spiele: [gespielt("a", "2026-09-20"), gespielt("b", "2026-09-27"), spiel("c", "2026-10-04"), spiel("x", "2026-10-11")],
     },
     {
+      id: "m2",
       name: "Jugend B",
       kategorie: "jugend_maennlich" as const,
       teamtableId: "t9",
@@ -61,6 +63,7 @@ describe("sammleVereinsSpiele", () => {
   it("führt ein gemeinsames Spiel zweier eigener Mannschaften nur einmal", () => {
     const x = sammleVereinsSpiele(m, jetzt).anstehend.find((e) => e.spiel.id === "x")!;
     expect(x.teams).toEqual(["Männer", "Jugend B"]);
+    expect(x.mannschaftIds).toEqual(["m1", "m2"]);
     expect(x.eigenTeamtable).toBe("t1");
   });
 
