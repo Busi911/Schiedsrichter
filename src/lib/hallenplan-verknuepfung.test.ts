@@ -92,7 +92,10 @@ describe.skipIf(!ADMIN_URL)("Hallenplan verknüpfen (Postgres)", () => {
     expect(vorher.t.ligaSpielId).toBeNull();
 
     const r1 = await verknuepfeHallenplanTermine(vereinId, "test");
-    expect(r1).toEqual({ verknuepft: 1, bereitsVerknuepft: 0, uebersprungenMehrfach: 0 });
+    expect(r1).toMatchObject({ verknuepft: 1, bereitsVerknuepft: 0, uebersprungenMehrfach: 0 });
+    // Kontrollzahl: Dienste vorher = nachher (1 Zuordnung am Test-Termin)
+    expect(r1.zuordnungenVorher).toBe(1);
+    expect(r1.zuordnungenNachher).toBe(1);
     const nachher = await zustand();
     expect(nachher.t.ligaSpielId).toBe(spiel.id);
     // alles außer dem Verweis unverändert
@@ -100,7 +103,7 @@ describe.skipIf(!ADMIN_URL)("Hallenplan verknüpfen (Postgres)", () => {
     expect(nachher.z).toEqual(vorher.z);
 
     const r2 = await verknuepfeHallenplanTermine(vereinId, "test");
-    expect(r2).toEqual({ verknuepft: 0, bereitsVerknuepft: 1, uebersprungenMehrfach: 0 });
+    expect(r2).toMatchObject({ verknuepft: 0, bereitsVerknuepft: 1, uebersprungenMehrfach: 0 });
     expect((await zustand()).z).toHaveLength(1);
   });
 

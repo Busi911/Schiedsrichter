@@ -1,7 +1,7 @@
 import "server-only";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { termine } from "@/db/schema";
+import { termine, terminZuordnungen } from "@/db/schema";
 import { ermittleSichereVerknuepfungen } from "@/lib/hallenplan-abgleich-laden";
 import { schreibeProtokoll } from "@/lib/treuhand";
 
@@ -9,7 +9,21 @@ export type VerknuepfungsErgebnis = {
   verknuepft: number; // neu gesetzt
   bereitsVerknuepft: number; // schon richtig verknüpft (unverändert)
   uebersprungenMehrfach: number; // Spiel wäre Ziel mehrerer Termine (Duplikate) — nicht automatisch
+  // Kontrollzahl: Zuordnungen (Dienste) aller Hallenplan-Termine des Vereins
+  // direkt vor und nach dem Lauf — müssen gleich sein (die Verknüpfung fasst
+  // sie nie an). Abweichungen kämen nur von parallelen Änderungen durch Nutzer.
+  zuordnungenVorher: number;
+  zuordnungenNachher: number;
 };
+
+async function zaehleZuordnungen(vereinId: string): Promise<number> {
+  const [z] = await adminDb
+    .select({ n: sql<number>`count(*)::int` })
+    .from(terminZuordnungen)
+    .innerJoin(termine, eq(termine.id, terminZuordnungen.terminId))
+    .where(and(eq(termine.vereinId, vereinId), eq(termine.typ, "rundenspiel")));
+  return z?.n ?? 0;
+}
 
 // Schritt 2a der Zusammenführung: speichert zu jedem SICHER zugeordneten
 // Hallenplan-Termin nur den Verweis auf das öffentliche Spiel
@@ -18,6 +32,7 @@ export type VerknuepfungsErgebnis = {
 // von mehreren Terminen beansprucht (Duplikate im Hallenplan), bleibt es
 // unverknüpft und wird gemeldet statt geraten.
 export async function verknuepfeHallenplanTermine(vereinId: string, akteur: string): Promise<VerknuepfungsErgebnis> {
+  const zuordnungenVorher = await zaehleZuordnungen(vereinId);
   const sichere = await ermittleSichereVerknuepfungen(vereinId);
 
   const proSpiel = new Map<string, string[]>();
@@ -44,11 +59,18 @@ export async function verknuepfeHallenplanTermine(vereinId: string, akteur: stri
     }
   });
 
+  const zuordnungenNachher = await zaehleZuordnungen(vereinId);
   await schreibeProtokoll(
     vereinId,
     "hallenplan_verknuepft",
     akteur,
-    `${zuSetzen.length} neu, ${bereitsVerknuepft} bereits verknüpft, ${uebersprungenMehrfach} übersprungen (Duplikate)`
+    `${zuSetzen.length} neu, ${bereitsVerknuepft} bereits verknüpft, ${uebersprungenMehrfach} übersprungen (Duplikate); Zuordnungen vorher ${zuordnungenVorher}, nachher ${zuordnungenNachher}`
   );
-  return { verknuepft: zuSetzen.length, bereitsVerknuepft, uebersprungenMehrfach };
+  return {
+    verknuepft: zuSetzen.length,
+    bereitsVerknuepft,
+    uebersprungenMehrfach,
+    zuordnungenVorher,
+    zuordnungenNachher,
+  };
 }
