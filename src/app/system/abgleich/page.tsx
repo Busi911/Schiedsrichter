@@ -116,6 +116,20 @@ export default async function AbgleichPage({
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3 text-sm">
+                {t.pflichtOffen === 0 ? (
+                  <p className="rounded-lg bg-green-100 p-3 text-green-900 dark:bg-green-950 dark:text-green-100">
+                    <strong>Gut:</strong> Alle {t.pflichtGesamt} Liga-Pflichtspiel-Termine sind sicher zugeordnet.
+                    {t.freundschaftGesamt > 0 &&
+                      ` Die übrigen ${t.freundschaftGesamt} sind Freundschaftsspiele/Turniere — dafür gibt es keine öffentlichen Daten, sie bleiben bewusst unberührt.`}
+                  </p>
+                ) : (
+                  <p className="rounded-lg bg-amber-100 p-3 text-amber-950 dark:bg-amber-950 dark:text-amber-100">
+                    <strong>Prüfen:</strong> {t.pflichtOffen} von {t.pflichtGesamt} Liga-Pflichtspiel-Terminen sind nicht
+                    sicher zugeordnet (siehe Liste „nicht sicher zugeordnet“ weiter unten — Pflichtspiele stehen oben).
+                    {t.freundschaftGesamt > 0 &&
+                      ` Dazu ${t.freundschaftGesamt} Freundschaftsspiele/Turniere, die erwartbar keine öffentliche Entsprechung haben.`}
+                  </p>
+                )}
                 <ul className="list-disc space-y-1 pl-5">
                   <li>
                     <strong>{t.verknuepfbar}</strong> Termine würden mit dem öffentlichen Spiel verknüpft, davon{" "}

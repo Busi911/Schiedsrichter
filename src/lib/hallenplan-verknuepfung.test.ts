@@ -108,6 +108,8 @@ describe.skipIf(!ADMIN_URL)("Hallenplan verknüpfen (Postgres)", () => {
     expect(bericht.bereitsVerknuepft).toBe(1);
     expect(bericht.verknuepfte).toHaveLength(1);
     expect(bericht.verknuepfte[0]).toMatchObject({ zuordnungen: 1, ansetzung: true });
+    // Ampel: der einzige Pflichtspiel-Termin ist zugeordnet
+    expect(bericht.trockenlauf).toMatchObject({ pflichtGesamt: 1, pflichtOffen: 0, freundschaftGesamt: 0 });
     expect(bericht.verknuepfte[0].spiel).toContain(spiel.datum);
 
     const r2 = await verknuepfeHallenplanTermine(vereinId, "test");

@@ -58,6 +58,12 @@ export type Trockenlauf = {
   neuAnzulegenGesamt: number;
   // Nicht sicher zugeordnete Termine, die unberührt blieben (davon mit Zuordnungen).
   unberuehrt: number;
+  // Ampel: Liga-Pflichtspiel-Termine (haben ein öffentliches Gegenstück) und
+  // wie viele davon sicher zugeordnet sind. Freundschaftsspiele/Turniere haben
+  // keins und sind erwartbar offen.
+  pflichtGesamt: number;
+  pflichtOffen: number;
+  freundschaftGesamt: number;
   unberuehrtMitZuordnungen: number;
 };
 
@@ -313,6 +319,11 @@ async function berechneFuerVerein(
       halle: s.halleName,
     })),
     neuAnzulegenGesamt: neuAnzulegenAlle.length,
+    pflichtGesamt: hallenTermine.filter((t) => t.pflichtspiel !== false).length,
+    pflichtOffen: abgleich.filter(
+      (a) => a.status !== "sicher" && nachId.get(a.terminId)!.pflichtspiel !== false
+    ).length,
+    freundschaftGesamt: hallenTermine.filter((t) => t.pflichtspiel === false).length,
     unberuehrt: unberuehrteTermine.length,
     unberuehrtMitZuordnungen: unberuehrteTermine.filter((a) => (zuordnungsAnzahl.get(a.terminId) ?? 0) > 0).length,
   };
