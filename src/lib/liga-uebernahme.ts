@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, eq, inArray, like, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { mannschaften, termine, terminZuordnungen } from "@/db/schema";
+import { ligaVereine, mannschaften, termine, terminZuordnungen, vereine } from "@/db/schema";
 import { ermittleUebernahmeBasis } from "@/lib/hallenplan-abgleich-laden";
 import { findeMannschaft, type RundenspielEreignis } from "@/lib/rundenspiel-import";
 import { parseBerlinDatumZeit } from "@/lib/format";
@@ -12,6 +12,8 @@ import { schreibeProtokoll } from "@/lib/treuhand";
 // (ermittleVerwaisteRundenspielIds) erkennt Termine nur über dieses Präfix und
 // fasst diese hier deshalb nie an.
 export const LIGA_UID_PRAEFIX = "liga:";
+
+export const CRON_AKTEUR = "automatisch (Cron)";
 
 export type UebernahmeErgebnis = {
   angelegt: number;
@@ -139,11 +141,35 @@ export async function uebernehmeLigaSpiele(
   }
 
   const zuordnungenNachher = await zaehleZuordnungen(vereinId);
-  await schreibeProtokoll(
-    vereinId,
-    "liga_uebernommen",
-    akteur,
-    `${angelegt} Termine angelegt, ${doppelteEntfernt} leere Doppelgänger entfernt, ${doppelteMitDiensten} Doppelgänger mit Diensten gemeldet, ${uebersprungenOhneZeit} ohne Uhrzeit übersprungen; Zuordnungen vorher ${zuordnungenVorher}, nachher ${zuordnungenNachher}`
-  );
+  // Der stündliche Cron läuft meist ohne Änderung — dann kein Protokolleintrag.
+  if (akteur !== CRON_AKTEUR || angelegt + doppelteEntfernt + doppelteMitDiensten > 0) {
+    await schreibeProtokoll(
+      vereinId,
+      "liga_uebernommen",
+      akteur,
+      `${angelegt} Termine angelegt, ${doppelteEntfernt} leere Doppelgänger entfernt, ${doppelteMitDiensten} Doppelgänger mit Diensten gemeldet, ${uebersprungenOhneZeit} ohne Uhrzeit übersprungen; Zuordnungen vorher ${zuordnungenVorher}, nachher ${zuordnungenNachher}`
+    );
+  }
   return { angelegt, uebersprungenOhneZeit, doppelteEntfernt, doppelteMitDiensten, zuordnungenVorher, zuordnungenNachher };
+}
+
+// Vom Liga-Sync-Cron aufgerufen: nur Vereine mit eingeschalteter Übernahme (Default
+// aus) und — wenn angegeben — nur die, deren Liga-Verein gerade synchronisiert wurde.
+// Fehler eines Vereins stoppen die anderen nicht.
+export async function uebernehmeFuerAktiveVereine(nurLigaVereinIds?: string[], jetzt = new Date()) {
+  const aktive = await adminDb
+    .select({ vereinId: vereine.id, ligaVereinId: ligaVereine.id })
+    .from(vereine)
+    .innerJoin(ligaVereine, eq(ligaVereine.vereinId, vereine.id))
+    .where(eq(vereine.ligaUebernahmeAktiv, true));
+  const ergebnis: { vereinId: string; angelegt?: number; fehler?: string }[] = [];
+  for (const a of aktive) {
+    if (nurLigaVereinIds && !nurLigaVereinIds.includes(a.ligaVereinId)) continue;
+    try {
+      ergebnis.push({ vereinId: a.vereinId, angelegt: (await uebernehmeLigaSpiele(a.vereinId, CRON_AKTEUR, jetzt)).angelegt });
+    } catch (err) {
+      ergebnis.push({ vereinId: a.vereinId, fehler: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  return ergebnis;
 }

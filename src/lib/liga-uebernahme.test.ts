@@ -121,4 +121,28 @@ describe.skipIf(!ADMIN_URL)("Liga-Übernahme (Postgres)", () => {
     expect(mailSpy).not.toHaveBeenCalled();
     void ligaVereinId;
   });
+
+  it("Cron-Lauf: nur Vereine mit eingeschalteter Übernahme (Default aus), still", async () => {
+    const { uebernehmeFuerAktiveVereine } = await import("./liga-uebernahme");
+    // Ausgangslage: alle eigenen liga:-Termine weg, Spiele sind weiter "fehlend"
+    await testDb.delete(schema.termine).where(and(eq(schema.termine.vereinId, vereinId), eq(schema.termine.quelle, "rundenspiel_import")));
+    const eigene = async () => (await termineDesVereins()).filter((t) => t.icsUid?.startsWith("liga:")).length;
+
+    // Default aus: nichts passiert
+    expect(await uebernehmeFuerAktiveVereine()).toEqual([]);
+    expect(await eigene()).toBe(0);
+
+    await testDb.update(schema.vereine).set({ ligaUebernahmeAktiv: true }).where(eq(schema.vereine.id, vereinId));
+    // anderer Liga-Verein gerade synchronisiert: dieser Verein bleibt außen vor
+    expect(await uebernehmeFuerAktiveVereine([randomUUID()])).toEqual([]);
+    expect(await eigene()).toBe(0);
+
+    const r = await uebernehmeFuerAktiveVereine([ligaVereinId], new Date("2020-01-01T00:00:00Z"));
+    expect(r).toHaveLength(1);
+    expect(r[0].fehler).toBeUndefined();
+    expect(r[0].angelegt).toBeGreaterThan(0);
+    expect(await eigene()).toBe(r[0].angelegt);
+    expect(mailSpy).not.toHaveBeenCalled();
+    await testDb.update(schema.vereine).set({ ligaUebernahmeAktiv: false }).where(eq(schema.vereine.id, vereinId));
+  });
 });

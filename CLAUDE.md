@@ -285,6 +285,8 @@ alles unter `/system/abgleich` (nur Systemadmin):
    Hallenplan das Spiel nachliefert; mit Diensten bleibt er und wird gemeldet).
    Zeit/Ort bestehender Termine (Verlegungen) behandelt weiter der Hallenplan-
    Import. Ansetzung/Dienste liegen nur in privaten Terminen, nie in `liga_*`.
-   Noch offen: Schalter je Verein (Default aus) + automatischer Lauf im Cron,
-   Ergebnis-Übernahme, Verlegungen aus den öffentlichen Daten.
+   Automatisch: Schalter `vereine.liga_uebernahme_aktiv` (Default aus, je Verein
+   unter `/system/abgleich`, nur Systemadmin); der Liga-Sync-Cron ruft nach dem
+   Sync eines Vereins `uebernehmeFuerAktiveVereine` auf (Protokolleintrag nur bei
+   Änderung). Noch offen: Ergebnis-Übernahme, Verlegungen aus den öffentlichen Daten.
    Die Hallen-ID bleibt als Zusatzquelle (u.a. für Freundschaftsspiele/Turniere).
