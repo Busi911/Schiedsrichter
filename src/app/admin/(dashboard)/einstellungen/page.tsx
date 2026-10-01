@@ -16,6 +16,7 @@ import {
   zusatzquelleEntfernen,
   zusatzquelleHinzufuegen,
   nuligaEinstellungenSpeichern,
+  eigeneHallenNamenSpeichern,
   vereinsdatenSpeichern,
 } from "./actions";
 import { ChevronDown } from "lucide-react";
@@ -457,6 +458,33 @@ export default async function EinstellungenPage({
               )}
             </div>
           )}
+          {ligaVerein && session.user.istAdmin && (
+            <form action={eigeneHallenNamenSpeichern} className="flex flex-col gap-3 border-t pt-4">
+              <div>
+                <h3 className="text-sm font-medium">Eure Spielhallen</h3>
+                <p className="text-xs text-muted-foreground">
+                  Damit erkennen wir, welche Spiele in einer eurer Hallen stattfinden (nur für diese wird später
+                  eine Einteilung angelegt) — unabhängig davon, ob die Spiele aus nuLiga oder handball.net kommen.
+                </p>
+              </div>
+              <textarea
+                id="eigeneHallenNamen"
+                name="eigeneHallenNamen"
+                rows={2}
+                maxLength={500}
+                aria-label="Namen eurer Spielhallen"
+                placeholder={"z.B. Sporthalle Heuchelheim\nHalle am Seebach"}
+                defaultValue={verein?.eigeneHallenNamen ?? ""}
+                className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              />
+              <p className="text-xs text-muted-foreground">
+                Eine Halle pro Zeile, ein Teil des Namens reicht (Groß-/Kleinschreibung egal).
+              </p>
+              <SubmitButton size="sm" className="self-start" pendingText="Wird gespeichert…">
+                Hallen speichern
+              </SubmitButton>
+            </form>
+          )}
           {ligaVerein && (
             <div className="flex flex-col gap-3 border-t pt-4">
               <div className="flex items-center gap-3">
@@ -879,23 +907,6 @@ export default async function EinstellungenPage({
                   placeholder="optional"
                   defaultValue={verein?.nuligaHalle3Id ?? ""}
                 />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="eigeneHallenNamen">Namen eurer Spielhallen (optional)</Label>
-                <textarea
-                  id="eigeneHallenNamen"
-                  name="eigeneHallenNamen"
-                  rows={2}
-                  maxLength={500}
-                  placeholder={"z.B. Sporthalle Heuchelheim\nHalle am Seebach"}
-                  defaultValue={verein?.eigeneHallenNamen ?? ""}
-                  className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Eine Halle pro Zeile (ein Teil des Namens reicht). Damit erkennen wir auch bei Quellen ohne
-                  nuLiga-Hallen-ID (z.B. handball.net), ob ein Spiel in einer eurer Hallen stattfindet — nur
-                  für diese Spiele wird später eine Einteilung angelegt.
-                </p>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="nuligaAutoImportAktiviert" className="font-normal">

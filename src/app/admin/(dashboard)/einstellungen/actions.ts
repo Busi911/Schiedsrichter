@@ -141,9 +141,6 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
   const nuligaHalle1Id = parseHalleId(formData, "nuligaHalle1Id");
   const nuligaHalle2Id = parseHalleId(formData, "nuligaHalle2Id");
   const nuligaHalle3Id = parseHalleId(formData, "nuligaHalle3Id");
-  const hallenNamenRoh = formData.get("eigeneHallenNamen");
-  const eigeneHallenNamen =
-    typeof hallenNamenRoh === "string" && hallenNamenRoh.trim() ? hallenNamenRoh.trim().slice(0, 500) : null;
   const nuligaAutoImportAktiviert = formData.get("nuligaAutoImportAktiviert") === "on";
   const rundenspielAenderungenBenachrichtigungAktiviert =
     formData.get("rundenspielAenderungenBenachrichtigungAktiviert") === "on";
@@ -155,7 +152,6 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
         nuligaHalle1Id,
         nuligaHalle2Id,
         nuligaHalle3Id,
-        eigeneHallenNamen,
         nuligaAutoImportAktiviert,
         rundenspielAenderungenBenachrichtigungAktiviert,
       })
@@ -194,6 +190,20 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
 
   revalidatePath("/admin/einstellungen");
   redirect(`/admin/einstellungen?${params.toString()}`);
+}
+
+// Namen der eigenen Spielhallen (siehe lib/hallenplan-abgleich.ts, istEigeneHalle):
+// eigenes Formular, unabhängig vom (auslaufenden) nuLiga-Hallenplan-Import.
+export async function eigeneHallenNamenSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+  const roh = formData.get("eigeneHallenNamen");
+  const eigeneHallenNamen = typeof roh === "string" && roh.trim() ? roh.trim().slice(0, 500) : null;
+  await withTenant(vereinId, (tx) =>
+    tx.update(vereine).set({ eigeneHallenNamen }).where(eq(vereine.id, vereinId))
+  );
+  revalidatePath("/admin/einstellungen");
+  redirect("/admin/einstellungen");
 }
 
 // Gefahrenzone: löscht den kompletten Verein UNWIDERRUFLICH — alle
