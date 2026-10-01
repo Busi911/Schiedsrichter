@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { count } from "drizzle-orm";
 import {
   CalendarClockIcon,
   CalendarDaysIcon,
@@ -12,11 +11,8 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { auth } from "@/auth";
-import { adminDb } from "@/db/admin";
-import { mitColdStartRetry } from "@/db/retry";
-import { vereine } from "@/db/schema";
 import { holeAlleVereine } from "@/lib/liga-oeffentlich";
-import { holeSystemEinstellungen } from "@/lib/system-einstellungen";
+import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import { Vereinsuche } from "@/components/liga/vereinsuche";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -121,9 +117,7 @@ export default async function Home() {
   }
 
   const { betaVereinLimit } = await holeSystemEinstellungen();
-  const [{ value: vereineCount }] = await mitColdStartRetry(() =>
-    adminDb.select({ value: count() }).from(vereine)
-  );
+  const vereineCount = await zaehleVereineFuerBetaLimit();
   const freiePlaetze = Math.max(betaVereinLimit - vereineCount, 0);
   // Vereine mit öffentlicher Seite (Spielpläne/Ergebnisse) — stehen vor dem Beta-Hinweis.
   const vereineMitSeite = await holeAlleVereine();

@@ -1,9 +1,8 @@
 "use server";
 
-import { count } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { vereine, warteliste as wartelisteTabelle } from "@/db/schema";
-import { holeSystemEinstellungen } from "@/lib/system-einstellungen";
+import { warteliste as wartelisteTabelle } from "@/db/schema";
+import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
@@ -43,7 +42,7 @@ export async function vereinRegistrieren(
   }
 
   const { betaVereinLimit } = await holeSystemEinstellungen();
-  const [{ value: vereineCount }] = await adminDb.select({ value: count() }).from(vereine);
+  const vereineCount = await zaehleVereineFuerBetaLimit();
 
   if (vereineCount >= betaVereinLimit) {
     await adminDb.insert(wartelisteTabelle).values({
