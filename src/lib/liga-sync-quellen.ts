@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { ligaVereine } from "@/db/schema";
 import type { HoleJson } from "@/lib/handball-net/client";
 import { hatHandballNetQuelle, synchronisiereHandballNet } from "@/lib/handball-net/sync";
-import { synchronisiereVollstaendig, type HoleHtml, type LigaDb } from "@/lib/nuliga/sync";
+import { synchronisiereFreundschaftsspieleSicher, synchronisiereVollstaendig, type HoleHtml, type LigaDb } from "@/lib/nuliga/sync";
 
 export type QuellenSyncErgebnis = {
   status: "erfolgreich" | "teilweise" | "fehler";
@@ -32,7 +32,7 @@ export async function synchronisiereAlleQuellen(
 
   if (verein.nuligaClubId) {
     try {
-      const { struktur, spiele, freundschaft } = await synchronisiereVollstaendig(ligaVereinId, opt);
+      const { struktur, spiele, freundschaft } = await synchronisiereVollstaendig(ligaVereinId, { ...opt, ohneFreundschaft: true });
       for (const r of [struktur, spiele, freundschaft]) {
         if (!r) continue;
         ergebnis.neu += r.neu;
@@ -60,6 +60,17 @@ export async function synchronisiereAlleQuellen(
       stati.push("fehler");
       ergebnis.meldungen.push(`handball.net: ${err instanceof Error ? err.message : String(err)}`);
     }
+  }
+
+  // Freundschaftsspiele zuletzt: bei knappem Zeitbudget kommen so Struktur,
+  // Spiele und handball.net zuerst dran.
+  if (verein.nuligaClubId && ergebnis.status !== "fehler") {
+    const r = await synchronisiereFreundschaftsspieleSicher(ligaVereinId, opt);
+    ergebnis.neu += r.neu;
+    ergebnis.anfragen += r.anfragen;
+    ergebnis.meldungen.push(...r.meldungen);
+    ergebnis.unvollstaendig ||= r.unvollstaendig;
+    stati.push(r.status);
   }
 
   // "fehler" nur, wenn ALLE Quellen scheiterten; sonst bei Teilproblemen "teilweise".

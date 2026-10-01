@@ -8,7 +8,7 @@ import {
 import type { HoleJson } from "@/lib/handball-net/client";
 import { hatHandballNetQuelle, synchronisiereHandballNet } from "@/lib/handball-net/sync";
 import {
-  synchronisiereFreundschaftsspiele,
+  synchronisiereFreundschaftsspieleSicher,
   synchronisiereSpiele,
   synchronisiereStruktur,
   type SyncOptionen,
@@ -95,8 +95,6 @@ export async function synchronisiereFaellige(
           (eintrag.struktur !== undefined || faellig(v.spieleSynchronisiertAm, intervall, jetzt))
         ) {
           eintrag.spiele = (await synchronisiereSpiele(v.id, { ...opt, jetzt, frist })).status;
-          // Freundschaftsspiele im selben Takt (fertige Spiele werden übersprungen).
-          await synchronisiereFreundschaftsspiele(v.id, { ...opt, jetzt, frist });
         }
       } catch (err) {
         eintrag.struktur = `fehler: ${err instanceof Error ? err.message : String(err)}`;
@@ -112,6 +110,11 @@ export async function synchronisiereFaellige(
       } catch (err) {
         eintrag.handballNet = `fehler: ${err instanceof Error ? err.message : String(err)}`;
       }
+    }
+    // Freundschaftsspiele zuletzt und im selben Takt wie die Spiele (fertige
+    // werden übersprungen): so verdrängen sie handball.net nicht aus dem Budget.
+    if (v.nuligaClubId && eintrag.spiele !== undefined) {
+      await synchronisiereFreundschaftsspieleSicher(v.id, { ...opt, jetzt, frist });
     }
     ergebnis.push(eintrag);
   }
