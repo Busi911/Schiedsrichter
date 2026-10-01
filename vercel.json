@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/liga-sync",
-      "schedule": "40 3 * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/ics-sync",

@@ -149,9 +149,11 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
 - **Sync:** idempotent, fehlertolerant (unlesbare Seite löscht nichts),
   strikt sequenziell mit Mindestabstand (`nuliga/client.ts`). Cron
   `/api/cron/liga-sync` entscheidet je Verein selbst, was fällig ist
-  (`sync-cron.ts`); er läuft aktuell täglich (`vercel.json`) — auf einem
-  Plan mit häufigeren Crons (z.B. `*/30 * * * *`) werden Spiele am Spieltag
-  automatisch öfter aktualisiert.
+  (`sync-cron.ts`); er läuft stündlich (`vercel.json`, braucht einen Vercel-Plan mit
+  häufigen Crons — Pro; auf Hobby nur täglich). Dadurch werden Spiele am
+  Spieltag öfter aktualisiert und ein wegen des Zeitlimits (40 s je Aufruf)
+  unvollständiger Lauf wird beim nächsten Aufruf fortgesetzt, bis alles
+  geladen ist.
 - Der HHV hat dem automatischen Abruf zugestimmt (Zusage schriftlich
   ablegen). Weitere Landesverbände: Eintrag in `nuliga/verbaende.ts`.
 - DB-Integrationstests (`nuliga/sync.test.ts`, `liga-oeffentlich.test.ts`)
