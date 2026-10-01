@@ -130,8 +130,8 @@ describe.skipIf(!ADMIN_URL)("Hallenplan verknüpfen (Postgres)", () => {
     expect(await vergleicheAnsetzung(vereinId, mit("Must."))).toMatchObject({ geprueft: 1, verschieden: 1, gleich: 0, gruppenFehler: 0 });
     // öffentlich noch keine Ansetzung
     expect(await vergleicheAnsetzung(vereinId, mit(null))).toMatchObject({ geprueft: 1, nurHallenplan: 1 });
-    // gleiches Kürzel (Schreibweise egal)
-    expect(await vergleicheAnsetzung(vereinId, mit("mue"))).toMatchObject({ geprueft: 1, gleich: 1 });
+    // gleiches Kürzel (Punkt egal)
+    expect(await vergleicheAnsetzung(vereinId, mit("Mue"))).toMatchObject({ geprueft: 1, gleich: 1 });
     // Ladefehler der Gruppenseite: kein Absturz, wird gezählt
     const r = await vergleicheAnsetzung(vereinId, async () => {
       throw new Error("HTTP 503");
