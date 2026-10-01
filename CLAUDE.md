@@ -176,6 +176,17 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   derselben Saison, wird die DHB-Mannschaft getrennt geführt ("… (DHB)") und
   gemeldet. Noch offen: Dedupe über Quellen hinweg, Konfliktliste, Umbenennung
   der nuliga_*-Spalten.
+- **Aufbau der vereinsweiten Seite:** drei Bereiche als eigene Routen —
+  `/verein/[slug]` (Letzte Ergebnisse, Startseite), `/spiele` (Nächste Spiele),
+  `/mannschaften` — mit `components/liga/vereins-nav.tsx` (Bottom-Bar unter
+  `md`, Tabs ab `md`; nur auf diesen drei Seiten sichtbar, deren Inhalt braucht
+  `pb-20 md:pb-0`). Listen kommen aus `lib/liga-spiele-hilfen.ts`
+  (`sammleVereinsSpiele`, rein/testbar), Filter-Chips aus
+  `gefilterte-liste.tsx`. Statische Segmente `spiele`/`mannschaften` haben
+  Vorrang vor `[team]`. Die Landingpage `/` zeigt die Vereinssuche ganz oben.
+- **Eigene Mannschaftsnamen:** `liga_mannschaft.anzeigename_eigen` (Admin →
+  Einstellungen → Öffentliche Vereinsseite) überschreibt `name` nur in der
+  Anzeige (`holeMannschaften`); der Sync fasst es nie an, der Slug bleibt stabil.
 - **Fan-Web-App (öffentlich):** Favoriten liegen NUR im Browser
   (`lib/liga-favoriten-lokal.ts`, localStorage, kein Konto, keine DB-Tabelle).
   Jeder Verein ist eine installierbare Web-App mit eigenem Namen, Farbe und

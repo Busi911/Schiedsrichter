@@ -1,0 +1,1 @@
+ALTER TABLE "liga_mannschaft" ADD COLUMN "anzeigename_eigen" text;

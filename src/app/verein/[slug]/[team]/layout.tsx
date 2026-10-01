@@ -22,7 +22,7 @@ export default async function MannschaftsLayout({
       <ScrollNachOben schluessel={`${verein.slug}/${m.slug}`} />
       <div className="space-y-3">
         <Link
-          href={basis}
+          href={`${basis}/mannschaften`}
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeftIcon className="size-4" />

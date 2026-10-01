@@ -26,6 +26,16 @@ export function formatKurzDatum(datum: string): string {
   }).format(new Date(`${datum}T12:00:00Z`));
 }
 
+// "Sonntag, 27.09." als Überschrift einer Tagesgruppe.
+export function formatTagKopf(datum: string): string {
+  return new Intl.DateTimeFormat("de-DE", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: ZEITZONE,
+  }).format(new Date(`${datum}T12:00:00Z`)) + ".";
+}
+
 const STATUS_LABEL: Record<string, string> = {
   verlegt: "Verlegt",
   abgesagt: "Abgesagt",
@@ -38,19 +48,44 @@ export function SpielKarte({
   spiel,
   eigenTeamtable,
   teamLabel,
+  nurUhrzeit,
+  mitAusgang,
 }: {
   spiel: SpielAnsicht;
   eigenTeamtable?: string | null;
   teamLabel?: string;
+  // In einer nach Tagen gruppierten Liste steht das Datum schon in der Überschrift.
+  nurUhrzeit?: boolean;
+  // Farbstreifen links: Sieg/Unentschieden/Niederlage aus Sicht der eigenen Mannschaft.
+  mitAusgang?: boolean;
 }) {
+  let ausgang: "S" | "U" | "N" | null = null;
+  if (mitAusgang && eigenTeamtable && hatErgebnis(spiel)) {
+    const heim = spiel.heimTeamtableId === eigenTeamtable;
+    const eigen = heim ? spiel.toreHeim! : spiel.toreGast!;
+    const gegner = heim ? spiel.toreGast! : spiel.toreHeim!;
+    ausgang = eigen > gegner ? "S" : eigen === gegner ? "U" : "N";
+  }
   const fett = (tt: string | null) =>
     eigenTeamtable && tt === eigenTeamtable ? "font-semibold text-foreground" : "";
   return (
-    <Card size="sm" className="gap-2 px-4">
+    <Card
+      size="sm"
+      className={cn(
+        "gap-2 px-4",
+        ausgang === "S" && "border-l-4 border-l-emerald-600",
+        ausgang === "U" && "border-l-4 border-l-amber-500",
+        ausgang === "N" && "border-l-4 border-l-rose-600"
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <CalendarIcon className="size-3.5" />
-          {formatSpieltag(spiel.datum, spiel.uhrzeit)}
+          {nurUhrzeit
+            ? spiel.uhrzeit
+              ? `${spiel.uhrzeit} Uhr`
+              : "Zeit offen"
+            : formatSpieltag(spiel.datum, spiel.uhrzeit)}
         </span>
         <span className="flex items-center gap-1.5">
           {teamLabel && <Badge variant="secondary">{teamLabel}</Badge>}
@@ -113,7 +148,7 @@ export function StandHinweis({ stand }: { stand: Date | null }) {
   }).format(stand);
   return (
     <p className="text-xs text-muted-foreground">
-      Stand: {text} · Quelle: nuLiga (Hessischer Handball-Verband)
+      Stand: {text} · Quellen: nuLiga (Hessischer Handball-Verband), handball.net (DHB)
     </p>
   );
 }

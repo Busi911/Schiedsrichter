@@ -18,6 +18,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.8,
     });
+    for (const pfad of ["/spiele", "/mannschaften"]) {
+      eintraege.push({
+        url: `${basis}/verein/${v.slug}${pfad}`,
+        lastModified: v.spieleSynchronisiertAm ?? undefined,
+        changeFrequency: "daily",
+        priority: 0.7,
+      });
+    }
     for (const m of await holeMannschaften(v.id)) {
       for (const pfad of ["", "/spielplan", "/ergebnisse", "/tabelle"]) {
         eintraege.push({
