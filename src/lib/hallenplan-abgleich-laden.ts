@@ -1,8 +1,23 @@
 import "server-only";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaGruppen, ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine, termine, vereine } from "@/db/schema";
-import { gleicheAb, istEigeneHalle, parseHallenNamen, type AbgleichErgebnis } from "@/lib/hallenplan-abgleich";
+import {
+  ligaGruppen,
+  ligaMannschaften,
+  ligaSpiele,
+  ligaTeilnahmen,
+  ligaVereine,
+  termine,
+  terminZuordnungen,
+  vereine,
+} from "@/db/schema";
+import {
+  gleicheAb,
+  istEigeneHalle,
+  parseHallenNamen,
+  vergleicheVerknuepftes,
+  type AbgleichErgebnis,
+} from "@/lib/hallenplan-abgleich";
 
 const berlinUhr = new Intl.DateTimeFormat("de-DE", {
   timeZone: "Europe/Berlin",
@@ -10,6 +25,31 @@ const berlinUhr = new Intl.DateTimeFormat("de-DE", {
   minute: "2-digit",
   hour12: false,
 });
+
+// Trockenlauf der Zusammenführung: nur eine Vorschau, was passieren WÜRDE.
+export type Trockenlauf = {
+  // Sicher zugeordnete Termine (würden mit dem öffentlichen Spiel verknüpft).
+  verknuepfbar: number;
+  // Davon mit eingetragenen Funktionsträgern (Zuordnungen bleiben erhalten).
+  verknuepfbarMitZuordnungen: number;
+  // Öffentliche Zeit weicht vom Hallenplan ab (Verlegung?) — würde den Termin
+  // verschieben (und Zuordnungen außer Schiri entfernen, siehe rundenspiel-sync.ts).
+  zeitAbweichungen: {
+    start: Date;
+    heim: string | null;
+    gast: string | null;
+    neu: string;
+    zuordnungen: number;
+  }[];
+  // Ergebnis kommt aus den öffentlichen Daten dazu.
+  ergebnisNeu: number;
+  // Heimspiele in eigener Halle ohne Termin: würden neu angelegt.
+  neuAnzulegen: { datum: string; uhrzeit: string | null; heim: string; gast: string; halle: string | null }[];
+  neuAnzulegenGesamt: number;
+  // Nicht sicher zugeordnete Termine, die unberührt blieben (davon mit Zuordnungen).
+  unberuehrt: number;
+  unberuehrtMitZuordnungen: number;
+};
 
 export type VereinsAbgleich = {
   vereinId: string;
@@ -31,6 +71,7 @@ export type VereinsAbgleich = {
   nurOeffentlichAuswaerts: number;
   // Kein Treffer, davon Freundschaftsspiele/Turniere (ohne Spielnummer, nicht in der Liga).
   keinTrefferFreundschaft: number;
+  trockenlauf: Trockenlauf;
   auffaellig: {
     status: AbgleichErgebnis["status"];
     start: Date;
@@ -68,9 +109,21 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
         gast: termine.auswaertsMannschaftName,
         kategorie: termine.kategorie,
         pflichtspiel: termine.pflichtspiel,
+        ergebnisHeim: termine.ergebnisHeim,
+        ergebnisAuswaerts: termine.ergebnisAuswaerts,
       })
       .from(termine)
       .where(and(eq(termine.vereinId, v.id), eq(termine.typ, "rundenspiel")));
+
+    const zuordnungsAnzahl = new Map<string, number>();
+    if (hallenTermine.length > 0) {
+      const zeilen = await adminDb
+        .select({ terminId: terminZuordnungen.terminId, anzahl: sql<number>`count(*)::int` })
+        .from(terminZuordnungen)
+        .where(inArray(terminZuordnungen.terminId, hallenTermine.map((t) => t.id)))
+        .groupBy(terminZuordnungen.terminId);
+      for (const z of zeilen) zuordnungsAnzahl.set(z.terminId, z.anzahl);
+    }
 
     const [ligaVerein] = await adminDb
       .select({ id: ligaVereine.id })
@@ -170,6 +223,45 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
           x.start.getTime() - y.start.getTime()
       );
 
+    const sicherePaare = abgleich
+      .filter((a) => a.status === "sicher")
+      .map((a) => ({ termin: nachId.get(a.terminId)!, spiel: spielNachId.get(a.spielIds[0])! }));
+    const zeitAbweichungen: Trockenlauf["zeitAbweichungen"] = [];
+    let ergebnisNeu = 0;
+    for (const { termin, spiel } of sicherePaare) {
+      const diff = vergleicheVerknuepftes(termin, spiel);
+      if (diff.ergebnisNeu) ergebnisNeu++;
+      if (diff.zeitAbweichung) {
+        zeitAbweichungen.push({
+          start: termin.start,
+          heim: termin.heim,
+          gast: termin.gast,
+          neu: `${spiel.datum}${spiel.uhrzeit ? ` ${spiel.uhrzeit}` : ""}`,
+          zuordnungen: zuordnungsAnzahl.get(termin.id) ?? 0,
+        });
+      }
+    }
+    const neuAnzulegenAlle = heimUnverknuepft
+      .filter((s) => istEigeneHalle(s, eigene))
+      .sort((a, b) => a.datum.localeCompare(b.datum) || (a.uhrzeit ?? "").localeCompare(b.uhrzeit ?? ""));
+    const unberuehrteTermine = abgleich.filter((a) => a.status !== "sicher");
+    const trockenlauf: Trockenlauf = {
+      verknuepfbar: sicherePaare.length,
+      verknuepfbarMitZuordnungen: sicherePaare.filter((p) => (zuordnungsAnzahl.get(p.termin.id) ?? 0) > 0).length,
+      zeitAbweichungen: zeitAbweichungen.sort((a, b) => a.start.getTime() - b.start.getTime()),
+      ergebnisNeu,
+      neuAnzulegen: neuAnzulegenAlle.slice(0, 30).map((s) => ({
+        datum: s.datum,
+        uhrzeit: s.uhrzeit ?? (s.beginn ? berlinUhr.format(s.beginn) : null),
+        heim: s.heimName,
+        gast: s.gastName,
+        halle: s.halleName,
+      })),
+      neuAnzulegenGesamt: neuAnzulegenAlle.length,
+      unberuehrt: unberuehrteTermine.length,
+      unberuehrtMitZuordnungen: unberuehrteTermine.filter((a) => (zuordnungsAnzahl.get(a.terminId) ?? 0) > 0).length,
+    };
+
     ergebnis.push({
       vereinId: v.id,
       vereinName: v.name,
@@ -188,6 +280,7 @@ export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
       keinTrefferFreundschaft: abgleich.filter(
         (a) => a.status === "kein_treffer" && nachId.get(a.terminId)!.pflichtspiel === false
       ).length,
+      trockenlauf,
       auffaellig,
     });
   }

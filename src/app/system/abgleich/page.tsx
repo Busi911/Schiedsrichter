@@ -97,6 +97,107 @@ export default async function AbgleichPage() {
       </Card>
 
       {mitTerminen
+        .filter((v) => v.hatLigaVerein && v.termineGesamt > 0)
+        .map((v) => {
+          const t = v.trockenlauf;
+          return (
+            <Card key={`trocken-${v.vereinId}`}>
+              <CardHeader>
+                <CardTitle className="text-base">{v.vereinName}: Trockenlauf Zusammenführung</CardTitle>
+                <CardDescription>
+                  Vorschau, was die Zusammenführung tun WÜRDE — es wird nichts geändert.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3 text-sm">
+                <ul className="list-disc space-y-1 pl-5">
+                  <li>
+                    <strong>{t.verknuepfbar}</strong> Termine würden mit dem öffentlichen Spiel verknüpft, davon{" "}
+                    <strong>{t.verknuepfbarMitZuordnungen}</strong> mit eingetragenen Funktionsträgern (diese
+                    Zuordnungen bleiben erhalten).
+                  </li>
+                  <li>
+                    Bei <strong>{t.ergebnisNeu}</strong> verknüpften Terminen käme ein Ergebnis aus den öffentlichen
+                    Daten dazu.
+                  </li>
+                  <li>
+                    <strong>{t.zeitAbweichungen.length}</strong> verknüpfte Termine haben eine andere Zeit als das
+                    öffentliche Spiel
+                    {t.zeitAbweichungen.length > 0 && " (siehe unten — würde als Verlegung gelten)"}.
+                  </li>
+                  <li>
+                    <strong>{t.neuAnzulegenGesamt}</strong> Heimspiele in eigener Halle ohne Termin würden neu
+                    angelegt.
+                  </li>
+                  <li>
+                    <strong>{t.unberuehrt}</strong> Termine ohne sichere Zuordnung blieben unverändert (davon{" "}
+                    <strong>{t.unberuehrtMitZuordnungen}</strong> mit Zuordnungen).
+                  </li>
+                </ul>
+                {t.zeitAbweichungen.length > 0 && (
+                  <div>
+                    <p className="mb-1 font-medium">Zeit weicht ab (max. 30)</p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Hallenplan</TableHead>
+                          <TableHead>Öffentlich</TableHead>
+                          <TableHead>Zuordnungen</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {t.zeitAbweichungen.slice(0, 30).map((a, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="whitespace-normal">
+                              {formatDatumZeit(a.start)}
+                              <span className="block text-xs text-muted-foreground">
+                                {a.heim} – {a.gast}
+                              </span>
+                            </TableCell>
+                            <TableCell>{a.neu}</TableCell>
+                            <TableCell>{a.zuordnungen}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                {t.neuAnzulegen.length > 0 && (
+                  <div>
+                    <p className="mb-1 font-medium">
+                      Würde neu angelegt (erste {t.neuAnzulegen.length} von {t.neuAnzulegenGesamt})
+                    </p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Spiel</TableHead>
+                          <TableHead>Halle</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {t.neuAnzulegen.map((n, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="whitespace-normal">
+                              {n.datum}
+                              {n.uhrzeit ? ` ${n.uhrzeit}` : ""}
+                              <span className="block text-xs text-muted-foreground">
+                                {n.heim} – {n.gast}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-normal text-muted-foreground">
+                              {n.halle ?? "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+
+      {mitTerminen
         .filter((v) => v.auffaellig.length > 0 && v.hatLigaVerein)
         .map((v) => (
           <Card key={v.vereinId}>
