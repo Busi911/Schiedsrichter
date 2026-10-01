@@ -465,10 +465,9 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
 
 **Offene Fragen vorab**
 
-- **"Angebunden":** Vorschlag: nur Vereine, die das selbst einschalten
-  (Verein-weiter Schalter in `/admin/einstellungen`, Default aus — analog zum
-  Muster "Zwei-Ebenen-Benachrichtigungen" in `CLAUDE.md`, hier nur die
-  Verein-Ebene). Nicht automatisch alle Vereine.
+- **"Angebunden":** **Entschieden (01.10.2026):** Die Seite entsteht,
+  sobald ein Admin in `/admin/einstellungen` die nuLiga-Vereins-ID hinterlegt
+  — kein zusätzlicher Verein-Schalter, kein Systemadmin-Import.
 - **Datenquelle Tabelle:** Die vorhandenen Scraper
   (`src/lib/nuliga-scraper.ts`, `src/lib/handball-net-scraper.ts`) holen
   bisher Spiele/Hallenbelegung, **keine Tabellen**. Ob nuLiga und handball.net
@@ -525,9 +524,14 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
   Spielplan. Favoriten ("Meine Vereine") zunächst lokal im Browser
   (`localStorage`, mit try/catch), kein Konto nötig.
 - SEO/Teilen: sprechende URLs pro Verein/Mannschaft, Open-Graph-Metadaten.
-- Rechtliches: `/datenschutz` um den öffentlichen Bereich ergänzen (Entwurf-
-  Warnhinweis beibehalten, siehe `CLAUDE.md`); Impressum/Verantwortlichkeit
-  für den öffentlichen Bereich klären.
+- Rechtliches: `/datenschutz` enthält einen Abschnitt zu den öffentlichen
+  Vereins- und Mannschaftsseiten sowie zu Zugriffsdaten (Server-Protokolle,
+  IP-Adresse) auch ohne Konto (Entwurf-Warnhinweis bleibt, siehe
+  `CLAUDE.md`). **Offen:** juristische Prüfung der Texte; Impressum nennt
+  DeWe Consulting UG als Betreiber — zu klären, ob für den öffentlichen
+  Bereich (und die dort angezeigten Verbandsdaten) etwas ergänzt werden
+  muss; ob die Nutzungsbedingungen von nuLiga/HHV die automatische
+  Übernahme der Sportdaten erlauben.
 
 **Grober Ablauf**
 
@@ -555,20 +559,28 @@ hier abhaken bzw. entfernen.
 - Mail "Termin geändert" an eingetragene Personen mit Login, wenn bei einem
   **manuellen** Termin (Freundschaftsspiel/Turnier) Zeit oder Ort geändert
   wird. Zuordnungen bleiben bewusst bestehen (nur benachrichtigen, nicht
-  austragen). Der echte Mailversand wurde noch nicht ausprobiert.
+  austragen). Der echte Mailversand wurde noch nicht ausprobiert (s.u.).
 
-**Gemergt, aber noch nicht am Handy geprüft** (Stand 30.09.2026)
+**Gemergt und am Handy geprüft** (bestätigt am 01.10.2026)
 
-- #163 — Eintragen-Leiste auf `/zeitnehmer-eintragen/…` und
-  `/ordner-eintragen/…` klebt am unteren Rand; Umschalter "Nach Datum"
-  (Standard) / "Offene zuerst". Zu prüfen: Sticky-Verhalten mit Tastatur und
-  Safari-Leiste.
-- #164 — Bottom-Navigation (`src/components/bottom-nav.tsx`) mobil für
-  Admin (Übersicht, Kalender, Termine, Training, Mehr), `/profil`
-  (rollenabhängig; ohne Rollen Profil + Hilfe) und `/system`. Zu prüfen:
-  iPhone-Safe-Area, Mehr-Menü, Logout daraus, Rollen-Kombinationen auf
-  `/profil`.
-- #165 — diese Roadmap.
+- Eintragen-Leiste auf `/zeitnehmer-eintragen/…` und `/ordner-eintragen/…`
+  klebt am unteren Rand; Umschalter "Nach Datum" (Standard) / "Offene
+  zuerst".
+- Bottom-Navigation (`src/components/bottom-nav.tsx`) mobil für Admin
+  (Übersicht, Kalender, Termine, Training, Mehr), `/profil` (rollenabhängig;
+  ohne Rollen Profil + Hilfe) und `/system`.
+- Wart-Seiten (Zeitnehmer, Ordner): Selbsteintragungs-Link prominent mit
+  Kopieren/Teilen/Öffnen; "Link neu generieren" und "Deaktivieren" unter
+  "Weitere Optionen".
+
+**Gemergt, noch nicht bestätigt**
+
+- Öffentliche Tabelle: zurückgezogene Mannschaften werden ausgeblendet
+  (`holeTabelle` filtert `zurueckgezogen`, #181). Prüfen, ob die Zeile in der
+  Live-Tabelle verschwindet; falls nicht, einmal "Jetzt aktualisieren" in
+  `/admin/einstellungen` (setzt das Merkmal beim Sync).
+- Mail "Termin geändert" bei manuellen Terminen: Uhrzeit eines Testspiels mit
+  eingetragenem Zeitnehmer ändern und prüfen, ob die Mail ankommt.
 
 **Besprochen und entschieden**
 
@@ -601,9 +613,6 @@ hier abhaken bzw. entfernen.
 - Workflow "Produkttour-Screenshots": der Push-Schritt scheitert, sobald
   `main` per Branch-Schutz nur noch über Pull Requests änderbar ist — dann
   automatisch einen PR erzeugen lassen statt direkt zu pushen.
-- Lokal meldet `tsc` einen Fehler `Cannot find name 'LayoutProps'` in
-  `src/app/layout.tsx` (auch ohne Änderungen, vermutlich fehlende von Next
-  erzeugte Typen); in CI/Build unauffällig, bei Gelegenheit klären.
 
 ## Bekannte offene Punkte
 

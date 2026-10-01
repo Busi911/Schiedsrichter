@@ -134,6 +134,22 @@ export default function DatenschutzPage() {
       </section>
 
       <section className="flex flex-col gap-2">
+        <h2 className="font-heading text-lg font-medium">
+          Zugriffsdaten beim Besuch der Seiten
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Beim Aufruf der Anwendung — auch der öffentlichen Vereins- und
+          Mannschaftsseiten ohne Konto — verarbeitet der Hosting-Anbieter
+          technisch notwendige Zugriffsdaten (u.a. IP-Adresse, Zeitpunkt,
+          aufgerufene Adresse, Browser-Angaben) in Server-Protokollen, um die
+          Seiten auszuliefern, Fehler zu erkennen und Missbrauch abzuwehren.
+          Wir werten diese Daten nicht zur Profilbildung oder zu
+          Werbezwecken aus. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO
+          (berechtigtes Interesse am sicheren und stabilen Betrieb).
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">Cookies</h2>
         <p className="text-sm text-muted-foreground">
           Es wird ausschließlich ein technisch notwendiges Session-Cookie
