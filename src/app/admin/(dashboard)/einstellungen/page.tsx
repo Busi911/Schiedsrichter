@@ -17,17 +17,11 @@ import {
   vereinsdatenSpeichern,
 } from "./actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SubmitButton } from "@/components/submit-button";
+import { EinstellungsBereich } from "@/components/einstellungs-bereich";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { VereinLoeschenDialog } from "@/components/verein-loeschen-dialog";
 import { LigaAutoWeiter } from "@/components/liga-auto-weiter";
@@ -93,8 +87,8 @@ export default async function EinstellungenPage({
     : [];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
+    <div className="flex flex-col gap-3">
+      <div className="mb-2">
         <h1 className="font-heading text-2xl font-semibold">Einstellungen</h1>
       </div>
 
@@ -123,15 +117,8 @@ export default async function EinstellungenPage({
         </Alert>
       )}
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Vereinsdaten</CardTitle>
-          <CardDescription>
-            Wird aktuell nur informativ hinterlegt (z.B. für spätere
-            Rechnungen) — bislang nirgends in der App sichtbar.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <EinstellungsBereich titel="Vereinsdaten" kurz="Adresse und Kontaktdaten des Vereins" beschreibung={<>Wird aktuell nur informativ hinterlegt (z.B. für spätere
+            Rechnungen) — bislang nirgends in der App sichtbar.</>}>
           <form action={vereinsdatenSpeichern} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="strasse">Straße und Hausnummer</Label>
@@ -160,8 +147,7 @@ export default async function EinstellungenPage({
               Speichern
             </SubmitButton>
           </form>
-        </CardContent>
-      </Card>
+        </EinstellungsBereich>
 
       {nuligaErgebnis.ligaStatus !== undefined && (
         <Alert
@@ -191,16 +177,9 @@ export default async function EinstellungenPage({
         </Alert>
       )}
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Support-Zugriff</CardTitle>
-          <CardDescription>
-            Standardmäßig kommt niemand vom HandballerPate-Support in euren Verein. Wenn ihr Hilfe
+      <EinstellungsBereich titel="Support-Zugriff" kurz="Befristete Freigabe für den Support, Protokoll" beschreibung={<>Standardmäßig kommt niemand vom HandballerPate-Support in euren Verein. Wenn ihr Hilfe
             braucht, könnt ihr den Zugriff ausdrücklich und befristet freigeben und jederzeit
-            wieder widerrufen. Jeder Zugriff wird unten protokolliert.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+            wieder widerrufen. Jeder Zugriff wird unten protokolliert.</>}>
           <p className="text-sm">
             {supportAktiv
               ? `Freigegeben bis ${verein!.supportZugriffBis!.toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "medium", timeStyle: "short" })}.`
@@ -241,23 +220,15 @@ export default async function EinstellungenPage({
               </ul>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </EinstellungsBereich>
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Öffentliche Vereinsseite</CardTitle>
-          <CardDescription>
-            Zeigt Mannschaften, Spielpläne, Ergebnisse und Tabellen eures Vereins
+      <EinstellungsBereich titel="Öffentliche Vereinsseite" kurz="Ligadaten aus nuLiga und handball.net, Namen, Logo" beschreibung={<>Zeigt Mannschaften, Spielpläne, Ergebnisse und Tabellen eures Vereins
             aus nuLiga und handball.net auf einer öffentlichen Seite (ohne Login, für Suchmaschinen
             auffindbar). Es werden nur öffentliche Sportdaten übernommen — keine
             Personen.{" "}
             <Link href="/hilfe#oeffentliche-seite" className="font-medium underline">
               Anleitung: So richtet ihr die öffentliche Seite ein
-            </Link>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+            </Link></>} offen>
           {ligaVerein && (
             <p className="text-sm">
               Eure Seite:{" "}
@@ -414,15 +385,10 @@ export default async function EinstellungenPage({
               </ConfirmSubmitButton>
             </form>
           )}
-        </CardContent>
-      </Card>
+        </EinstellungsBereich>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Dienste-Bedarf pro Termin</CardTitle>
-            <CardDescription>
-              Wie viele Ordner-, Kioskdienst-, Kassierer- und Zeitnehmer/
+      <div className="flex flex-col gap-3">
+        <EinstellungsBereich titel="Dienste-Bedarf pro Termin" kurz="Wie viele Helfer pro Termin gebraucht werden" beschreibung={<>Wie viele Ordner-, Kioskdienst-, Kassierer- und Zeitnehmer/
               Sekretär-Kräfte pro Freundschaftsspiel, Turnier bzw. Rundenspiel
               benötigt werden.
               Sobald diese Anzahl erreicht ist, können sich weitere
@@ -430,10 +396,7 @@ export default async function EinstellungenPage({
               ICS-Feed (das sind die persönlichen Einsätze der Schiedsrichter).
               Zeitnehmer und Sekretär sind dabei jeweils eigene Rollen mit
               fest max. einer Person — der hier eingetragene Bedarf zählt
-              beide zusammen (z.B. 2 = ein Zeitnehmer UND ein Sekretär).
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+              beide zusammen (z.B. 2 = ein Zeitnehmer UND ein Sekretär).</>}>
             <form action={dienstBedarfSpeichern} className="flex flex-col gap-5">
               <fieldset
                 disabled={!session.user.istAdmin}
@@ -675,21 +638,13 @@ export default async function EinstellungenPage({
                 <SubmitButton className="w-full">Speichern</SubmitButton>
               )}
             </form>
-          </CardContent>
-        </Card>
+          </EinstellungsBereich>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>nuLiga Automatischer Import</CardTitle>
-            <CardDescription>
-              Bis zu drei Hallen-IDs eintragen (leere Felder werden
+        <EinstellungsBereich titel="nuLiga Automatischer Import" kurz="Hallen-IDs und täglicher Import des Hallenspielplans" beschreibung={<>Bis zu drei Hallen-IDs eintragen (leere Felder werden
               übersprungen) — dieselben Angaben wie im bisherigen manuellen
               Export-Workflow. Bei aktiviertem Import lädt der Verein täglich
               automatisch neue Spiele in den Hallenspielplan; nach dem
-              Speichern läuft sofort ein erster Sync.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+              Speichern läuft sofort ein erster Sync.</>}>
             <div className="mb-4 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">
                 Woher bekomme ich die Hallen-ID?
@@ -796,37 +751,23 @@ export default async function EinstellungenPage({
                 </SubmitButton>
               )}
             </form>
-          </CardContent>
-        </Card>
+          </EinstellungsBereich>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Rechtliches</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-1 text-sm">
+        <EinstellungsBereich titel="Rechtliches" kurz="AVV und Datenschutzerklärung">
             <Link href="/admin/avv" className="underline">
               Auftragsverarbeitungsvertrag (AVV) ansehen
             </Link>
             <Link href="/datenschutz" className="underline">
               Datenschutzerklärung
             </Link>
-          </CardContent>
-        </Card>
+          </EinstellungsBereich>
       </div>
 
       {session.user.istAdmin && verein && (
-        <Card className="max-w-2xl border-destructive/50">
-          <CardHeader>
-            <CardTitle>Gefahrenzone</CardTitle>
-            <CardDescription>
-              Löscht den gesamten Verein samt aller Funktionsträger,
-              Mannschaften, Termine und Historie — unwiderruflich.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <EinstellungsBereich titel="Gefahrenzone" kurz="Verein unwiderruflich löschen" beschreibung={<>Löscht den gesamten Verein samt aller Funktionsträger,
+              Mannschaften, Termine und Historie — unwiderruflich.</>} gefahr>
             <VereinLoeschenDialog vereinsname={verein.name} />
-          </CardContent>
-        </Card>
+          </EinstellungsBereich>
       )}
     </div>
   );
