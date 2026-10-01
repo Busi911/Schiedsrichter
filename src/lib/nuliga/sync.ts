@@ -899,7 +899,7 @@ export async function synchronisiereFreundschaftsspiele(
   const gruppeNachNuligaId = new Map(gruppenBestand.map((g) => [g.nuligaGroupId, g]));
   const mannschaften = await db.query.ligaMannschaften.findMany({
     where: eq(ligaMannschaften.ligaVereinId, ligaVereinId),
-    columns: { id: true },
+    columns: { id: true, kategorie: true, altersklasse: true, untergruppe: true, aktiv: true },
   });
   const mannschaftIds = mannschaften.map((m) => m.id);
   const teilnahmenBestand = mannschaftIds.length
@@ -926,6 +926,24 @@ export async function synchronisiereFreundschaftsspiele(
         !!vorher.spieleSynchronisiertAm && jetzt.getTime() - vorher.spieleSynchronisiertAm.getTime() < FRISCH_MS;
       if (vorher.aktiv && (fertig || frisch)) {
         gesehen.add(vorher.id);
+        continue;
+      }
+    }
+    // Gruppe ohne bereits bekannte Teilnahme: gibt es im Verein überhaupt eine
+    // aktive Mannschaft dieser Kategorie/Altersklasse? Sonst spart das die
+    // Abrufe (Gruppenseite + Portraits), die sonst bei JEDEM Lauf erneut
+    // anfielen und das Zeitbudget der übrigen Quellen aufbrauchten.
+    if (!vorher) {
+      const vorab = normalisiereMannschaft(eintrag.mannschaftsname, eintrag.ligaName);
+      const passt = mannschaften.some(
+        (m) =>
+          m.aktiv &&
+          m.kategorie === vorab.kategorie &&
+          (m.altersklasse ?? "") === (vorab.altersklasse ?? "") &&
+          (m.untergruppe ?? "") === (vorab.untergruppe ?? "")
+      );
+      if (!passt) {
+        ohneMannschaft.push(vorab.anzeigename);
         continue;
       }
     }
@@ -1094,17 +1112,25 @@ export async function synchronisiereFreundschaftsspiele(
   return protokolliere(db, ligaVereinId, "freundschaft", start, lauf, false);
 }
 
-export async function synchronisiereVollstaendig(ligaVereinId: string, opt: SyncOptionen) {
-  const struktur = await synchronisiereStruktur(ligaVereinId, opt);
-  if (struktur.status === "fehler") return { struktur, spiele: null, freundschaft: null };
-  const spiele = await synchronisiereSpiele(ligaVereinId, opt);
-  // Freundschaftsspiele hängen an den (eben aktualisierten) Mannschaften; ein
-  // Fehler hier lässt Struktur und Spiele unberührt.
-  let freundschaft: SyncErgebnis | null = null;
+// ZUKÜNFTIGES FEATURE: Der automatische Abruf der Freundschaftsspiele/Turniere
+// ist vorerst abgeschaltet (zu aufwendig im Verhältnis zum Nutzen, siehe
+// CLAUDE.md). Bereits geladene Daten bleiben unverändert bestehen; der Code
+// ist vollständig vorhanden — zum Aktivieren auf true setzen.
+export const FREUNDSCHAFTSSPIELE_AKTIV = false;
+
+// Freundschaftsspiele hängen an den (eben aktualisierten) Mannschaften; ein
+// Fehler hier lässt alles andere unberührt.
+export async function synchronisiereFreundschaftsspieleSicher(
+  ligaVereinId: string,
+  opt: SyncOptionen
+): Promise<SyncErgebnis> {
+  if (!FREUNDSCHAFTSSPIELE_AKTIV) {
+    return { status: "erfolgreich", anfragen: 0, neu: 0, aktualisiert: 0, meldungen: [], unvollstaendig: false };
+  }
   try {
-    freundschaft = await synchronisiereFreundschaftsspiele(ligaVereinId, opt);
+    return await synchronisiereFreundschaftsspiele(ligaVereinId, opt);
   } catch (err) {
-    freundschaft = {
+    return {
       status: "fehler",
       anfragen: 0,
       neu: 0,
@@ -1113,5 +1139,17 @@ export async function synchronisiereVollstaendig(ligaVereinId: string, opt: Sync
       unvollstaendig: false,
     };
   }
+}
+
+// `ohneFreundschaft`: Der Aufrufer synchronisiert sie selbst NACH den übrigen
+// Quellen (sie sind am wenigsten wichtig und fressen sonst das Zeitbudget).
+export async function synchronisiereVollstaendig(
+  ligaVereinId: string,
+  opt: SyncOptionen & { ohneFreundschaft?: boolean }
+) {
+  const struktur = await synchronisiereStruktur(ligaVereinId, opt);
+  if (struktur.status === "fehler") return { struktur, spiele: null, freundschaft: null };
+  const spiele = await synchronisiereSpiele(ligaVereinId, opt);
+  const freundschaft = opt.ohneFreundschaft ? null : await synchronisiereFreundschaftsspieleSicher(ligaVereinId, opt);
   return { struktur, spiele, freundschaft };
 }

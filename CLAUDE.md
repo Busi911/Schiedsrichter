@@ -195,7 +195,9 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   Verein gehört, `teamUebernehmen`) und dieselbe Zusatzquelle mit
   `handball_net_club_id` (Teamliste des Partnervereins, gefiltert über
   Kategorie/Namensteil, `passtZumHnetFilter`).
-- **Freundschaftsspiele/Turniere (nuLiga „… FS …“):** In der Vereinsliste
+- **Freundschaftsspiele/Turniere (nuLiga „… FS …“) — ZUKÜNFTIGES FEATURE, derzeit
+  abgeschaltet** (`FREUNDSCHAFTSSPIELE_AKTIV = false` in `nuliga/sync.ts`; Code und
+  Tests bleiben, bereits geladene Daten bleiben bestehen). In der Vereinsliste
   stehen sie als eigene Mini-Gruppen (ein Spiel, Spielnummer 0, Tabelle ohne
   Aussage). `synchronisiereFreundschaftsspiele` (`nuliga/sync.ts`) lädt sie bei
   der passenden Mannschaft (Kategorie aus der Vereinsliste, Nummer aus dem
