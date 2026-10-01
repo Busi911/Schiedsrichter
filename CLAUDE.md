@@ -276,11 +276,15 @@ alles unter `/system/abgleich` (nur Systemadmin):
    nichts sonst, löscht nichts, idempotent; Spiele, die mehrere Termine
    beanspruchen (Duplikate), bleiben unverknüpft. Test: Zuordnungen/Termin
    unverändert.
-3. **Übernehmen** (noch NICHT gebaut): Schalter je Verein (Default aus), Termine
-   aus der öffentlichen Quelle aktualisieren/anlegen — nur künftige Spiele neu,
-   Zuordnungen und Ansetzung (Schiri-Kürzel, handball.net-Schiedsrichter/Zeitnehmer;
-   personenbezogen, NUR im privaten Termin, NIE in `liga_*`) bleiben erhalten,
-   nichts wird gelöscht (das Aufräumen verwaister Hallenplan-Termine darf
-   verknüpfte/nur im Hallenplan vorhandene Termine nie löschen — Löschen
-   kaskadiert auf `termin_zuordnung`), Sicherungskopie vor der Aktivierung.
+3. **Übernehmen** (`liga-uebernahme.ts`, Button je Verein in `/system/abgleich`,
+   bewusst manuell/Pilot): legt fehlende KÜNFTIGE Heimspiele in eigener Halle still
+   als Termin an (`icsUid` = `liga:<spielId>`, nie `rundenspiel:` — sonst würde die
+   Aufräumlogik des Hallenplan-Imports sie löschen; `liga_spiel_id` gesetzt).
+   Keine Mails, keine Änderung/Löschung bestehender Termine oder Zuordnungen
+   (einzige Löschung: ein eigener LEERER `liga:`-Doppelgänger, sobald der
+   Hallenplan das Spiel nachliefert; mit Diensten bleibt er und wird gemeldet).
+   Zeit/Ort bestehender Termine (Verlegungen) behandelt weiter der Hallenplan-
+   Import. Ansetzung/Dienste liegen nur in privaten Terminen, nie in `liga_*`.
+   Noch offen: Schalter je Verein (Default aus) + automatischer Lauf im Cron,
+   Ergebnis-Übernahme, Verlegungen aus den öffentlichen Daten.
    Die Hallen-ID bleibt als Zusatzquelle (u.a. für Freundschaftsspiele/Turniere).

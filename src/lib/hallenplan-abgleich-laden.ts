@@ -14,6 +14,7 @@ import {
 import {
   gleicheAb,
   istEigeneHalle,
+  kategorieText,
   parseHallenNamen,
   ortWeichtAb,
   vergleicheVerknuepftes,
@@ -136,7 +137,11 @@ const alleVereinsZeilen = (): Promise<VereinsZeile[]> =>
 // sicher zugeordneten Paare Termin -> öffentliches Spiel (Basis der Verknüpfung).
 async function berechneFuerVerein(
   v: VereinsZeile
-): Promise<{ bericht: VereinsAbgleich; sichere: { terminId: string; spielId: string }[] }> {
+): Promise<{
+  bericht: VereinsAbgleich;
+  sichere: { terminId: string; spielId: string }[];
+  neuSpiele: { spiel: typeof ligaSpiele.$inferSelect; kategorie: string | null }[];
+}> {
   const hallenTermine = await adminDb
     .select({
       id: termine.id,
@@ -369,7 +374,14 @@ async function berechneFuerVerein(
     trockenlauf,
     auffaellig,
 };
-  return { bericht, sichere: sicherePaare.map((p) => ({ terminId: p.termin.id, spielId: p.spiel.id })) };
+  return {
+    bericht,
+    sichere: sicherePaare.map((p) => ({ terminId: p.termin.id, spielId: p.spiel.id })),
+    neuSpiele: neuAnzulegenAlle.map((spiel) => {
+      const g = gruppenInfo.get(spiel.gruppeId);
+      return { spiel, kategorie: kategorieText(g?.geschlecht ?? null, g?.altersklasse ?? null) };
+    }),
+  };
 }
 
 // Nur lesend (adminDb, vereinsübergreifend für den Systemadmin): verändert
@@ -387,4 +399,13 @@ export async function ermittleSichereVerknuepfungen(vereinId: string) {
   const v = (await alleVereinsZeilen()).find((z) => z.id === vereinId);
   if (!v) throw new Error("Verein nicht gefunden.");
   return (await berechneFuerVerein(v)).sichere;
+}
+
+// Für die Übernahme (lib/liga-uebernahme.ts): Heimspiele in eigener Halle ohne
+// Termin samt Kategorie, dazu die sicher zugeordneten Paare.
+export async function ermittleUebernahmeBasis(vereinId: string) {
+  const v = (await alleVereinsZeilen()).find((z) => z.id === vereinId);
+  if (!v) throw new Error("Verein nicht gefunden.");
+  const { sichere, neuSpiele } = await berechneFuerVerein(v);
+  return { sichere, neuSpiele };
 }
