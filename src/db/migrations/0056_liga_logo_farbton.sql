@@ -1,0 +1,1 @@
+ALTER TABLE "liga_verein_logo" ADD COLUMN "farbton" integer;

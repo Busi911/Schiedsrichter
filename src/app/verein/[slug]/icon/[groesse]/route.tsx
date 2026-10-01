@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { baueLogoIcon } from "@/lib/liga-logo";
-import { holeLogoPng, holeVerein } from "@/lib/liga-oeffentlich";
+import { holeLogoPng, holeVereinsDesign, holeVerein } from "@/lib/liga-oeffentlich";
 import { vereinsFarbton, vereinsInitialen } from "@/lib/liga-pwa";
 
 // App-Icon je Verein: das hochgeladene Logo (Rand auf weißem Grund), sonst
@@ -21,7 +21,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
       headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" },
     });
   }
-  const h = vereinsFarbton(verein.slug);
+  const h = (await holeVereinsDesign(verein.id)).farbton ?? vereinsFarbton(verein.slug);
   return new ImageResponse(
     (
       <div

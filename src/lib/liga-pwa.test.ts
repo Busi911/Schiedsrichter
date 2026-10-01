@@ -18,6 +18,15 @@ describe("Vereins-Web-App", () => {
     expect(vereinsInitialen("")).toBe("H");
   });
 
+  it("Manifest nutzt die Logo-Farbe und -Version, sonst die Slug-Farbe", () => {
+    const mit = vereinsManifest({ slug: "tsf", name: "TSF" }, { logoVersion: 123, farbton: 224 });
+    expect(mit.theme_color).toBe("hsl(224 55% 28%)");
+    expect(mit.icons[0].src).toContain("?v=123");
+    const ohne = vereinsManifest({ slug: "tsf", name: "TSF" });
+    expect(ohne.theme_color).toBe(`hsl(${vereinsFarbton("tsf")} 55% 28%)`);
+    expect(ohne.icons[0].src).not.toContain("?v=");
+  });
+
   it("Manifest trägt Namen, Startseite und Icons des Vereins", () => {
     const m = vereinsManifest({ slug: "tsf-heuchelheim", name: "TSF Heuchelheim" });
     expect(m.name).toBe("TSF Heuchelheim");

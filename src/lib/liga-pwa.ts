@@ -24,8 +24,12 @@ export function vereinsInitialen(name: string): string {
   return (erstes[0] + (zweites ? zweites[0] : (erstes[1] ?? ""))).toUpperCase();
 }
 
-export function vereinsManifest(verein: { slug: string; name: string }, logoVersion?: number | null) {
-  const farbe = `hsl(${vereinsFarbton(verein.slug)} 55% 28%)`;
+export function vereinsManifest(
+  verein: { slug: string; name: string },
+  design: { logoVersion?: number | null; farbton?: number | null } = {}
+) {
+  const { logoVersion, farbton } = design;
+  const farbe = `hsl(${farbton ?? vereinsFarbton(verein.slug)} 55% 28%)`;
   const start = `/verein/${verein.slug}`;
   // Cache-Buster: ändert sich das Logo, laden Browser das neue Icon.
   const v = logoVersion ? `?v=${logoVersion}` : "";
