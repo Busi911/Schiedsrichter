@@ -944,6 +944,10 @@ export const ligaGruppen = pgTable(
     spielklasse: text("spielklasse"),
     gruppe: text("gruppe"),
     istMeldeliste: boolean("ist_meldeliste").notNull().default(false),
+    // Freundschaftsspiel/Turnier (nuLiga-Wettbewerb "… FS …"): je Spiel eine eigene
+    // Mini-Gruppe. Taucht nie in Tabelle/Platz auf, die Spiele erscheinen aber bei
+    // der Mannschaft (siehe nuliga/freundschaft.ts).
+    istFreundschaft: boolean("ist_freundschaft").notNull().default(false),
     tabelleSynchronisiertAm: timestamp("tabelle_synchronisiert_am", { mode: "date" }),
   },
   (t) => [uniqueIndex("liga_gruppe_verband_gruppe_idx").on(t.verband, t.nuligaGroupId)]
@@ -1068,6 +1072,8 @@ export const ligaSpiele = pgTable(
     halbzeitHeim: integer("halbzeit_heim"),
     halbzeitGast: integer("halbzeit_gast"),
     ergebnisBestaetigt: boolean("ergebnis_bestaetigt").notNull().default(false),
+    // Spiel eines Freundschafts-/Turnier-Wettbewerbs (Kennzeichnung in der Anzeige).
+    istFreundschaft: boolean("ist_freundschaft").notNull().default(false),
     status: ligaSpielStatusEnum("status").notNull().default("geplant"),
     synchronisiertAm: timestamp("synchronisiert_am", { mode: "date" }).notNull().defaultNow(),
   },

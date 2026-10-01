@@ -8,6 +8,7 @@ import {
 import type { HoleJson } from "@/lib/handball-net/client";
 import { synchronisiereHandballNet } from "@/lib/handball-net/sync";
 import {
+  synchronisiereFreundschaftsspiele,
   synchronisiereSpiele,
   synchronisiereStruktur,
   type SyncOptionen,
@@ -94,6 +95,8 @@ export async function synchronisiereFaellige(
           (eintrag.struktur !== undefined || faellig(v.spieleSynchronisiertAm, intervall, jetzt))
         ) {
           eintrag.spiele = (await synchronisiereSpiele(v.id, { ...opt, jetzt, frist })).status;
+          // Freundschaftsspiele im selben Takt (fertige Spiele werden übersprungen).
+          await synchronisiereFreundschaftsspiele(v.id, { ...opt, jetzt, frist });
         }
       } catch (err) {
         eintrag.struktur = `fehler: ${err instanceof Error ? err.message : String(err)}`;

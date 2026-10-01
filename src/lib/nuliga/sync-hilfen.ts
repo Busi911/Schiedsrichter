@@ -169,3 +169,13 @@ export function spieleIntervallMinuten(spieltagsnah: boolean): number {
   return spieltagsnah ? 45 : 6 * 60;
 }
 export const STRUKTUR_INTERVALL_MINUTEN = 20 * 60;
+
+// Mannschaftsnummer aus dem Portrait-Kopf ("TSF Heuchelheim 1. Männer/männlich",
+// "… II. Männer"): die Ordnungszahl steht mit Punkt vor der Kategorie.
+export function nummerAusPortraitName(name: string | null): number | null {
+  if (!name) return null;
+  const t = name.replace(/\u00a0/g, " ").match(/(?:^|\s)(\d{1,2}|VI|V|IV|III|II|I)\.\s/);
+  if (!t) return null;
+  const roemisch: Record<string, number> = { I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6 };
+  return /^\d+$/.test(t[1]) ? Number(t[1]) : (roemisch[t[1]] ?? null);
+}

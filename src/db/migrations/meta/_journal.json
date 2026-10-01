@@ -442,6 +442,13 @@
       "when": 1790860440520,
       "tag": "0062_verein_eigene_hallen_namen",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1790861103126,
+      "tag": "0063_liga_freundschaftsspiele",
+      "breakpoints": true
     }
   ]
 }

@@ -32,8 +32,8 @@ export async function synchronisiereAlleQuellen(
 
   if (verein.nuligaClubId) {
     try {
-      const { struktur, spiele } = await synchronisiereVollstaendig(ligaVereinId, opt);
-      for (const r of [struktur, spiele]) {
+      const { struktur, spiele, freundschaft } = await synchronisiereVollstaendig(ligaVereinId, opt);
+      for (const r of [struktur, spiele, freundschaft]) {
         if (!r) continue;
         ergebnis.neu += r.neu;
         ergebnis.anfragen += r.anfragen;
