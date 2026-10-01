@@ -68,6 +68,16 @@ export type VereinsAbgleich = {
   termineGesamt: number;
   // Termine, die bereits mit einem öffentlichen Spiel verknüpft sind.
   bereitsVerknuepft: number;
+  // Die verknüpften Termine (Hallenplan ↔ öffentliches Spiel), nach Datum.
+  verknuepfte: {
+    start: Date;
+    heim: string | null;
+    gast: string | null;
+    spiel: string | null; // null = Spiel nicht (mehr) in den Daten dieses Vereins
+    zuordnungen: number;
+    ansetzung: boolean;
+    ortAbweichung: boolean;
+  }[];
   anzahl: Record<AbgleichErgebnis["status"], number>;
   // Liga-Spiele eigener Mannschaften ohne Hallenplan-Termin. Auswärtsspiele
   // stehen naturgemäß nie im eigenen Hallenplan und sind unproblematisch.
@@ -313,6 +323,25 @@ async function berechneFuerVerein(
     hatLigaVerein: !!ligaVerein,
     termineGesamt: hallenTermine.length,
     bereitsVerknuepft: hallenTermine.filter((t) => t.ligaSpielId).length,
+    verknuepfte: hallenTermine
+      .filter((t) => t.ligaSpielId)
+      .map((t) => {
+        const sp = spielNachId.get(t.ligaSpielId!);
+        return {
+          start: t.start,
+          heim: t.heim,
+          gast: t.gast,
+          spiel: sp
+            ? `${sp.spielnummer ? `Nr. ${sp.spielnummer} · ` : ""}${sp.datum}${sp.uhrzeit ? ` ${sp.uhrzeit}` : ""}${
+                sp.halleName ? ` · ${sp.halleName}` : ""
+              }`
+            : null,
+          zuordnungen: zuordnungsAnzahl.get(t.id) ?? 0,
+          ansetzung: !!(t.srKuerzel || t.hnSchiedsrichter || t.hnZeitnehmer),
+          ortAbweichung: sp ? ortWeichtAb(t.ort, sp.halleName) : false,
+        };
+      })
+      .sort((a, b) => a.start.getTime() - b.start.getTime()),
     anzahl,
     nurOeffentlichHeim,
     nurOeffentlichHeimEigeneHalle: heimEigeneHalle,

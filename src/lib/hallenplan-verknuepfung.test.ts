@@ -102,6 +102,14 @@ describe.skipIf(!ADMIN_URL)("Hallenplan verknüpfen (Postgres)", () => {
     expect({ ...nachher.t, ligaSpielId: null }).toEqual({ ...vorher.t, ligaSpielId: null });
     expect(nachher.z).toEqual(vorher.z);
 
+    // Anzeige: der verknüpfte Termin taucht im Bericht auf
+    const { berechneHallenplanAbgleich } = await import("./hallenplan-abgleich-laden");
+    const bericht = (await berechneHallenplanAbgleich()).find((b) => b.vereinId === vereinId)!;
+    expect(bericht.bereitsVerknuepft).toBe(1);
+    expect(bericht.verknuepfte).toHaveLength(1);
+    expect(bericht.verknuepfte[0]).toMatchObject({ zuordnungen: 1, ansetzung: true });
+    expect(bericht.verknuepfte[0].spiel).toContain(spiel.datum);
+
     const r2 = await verknuepfeHallenplanTermine(vereinId, "test");
     expect(r2).toMatchObject({ verknuepft: 0, bereitsVerknuepft: 1, uebersprungenMehrfach: 0 });
     expect((await zustand()).z).toHaveLength(1);

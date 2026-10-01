@@ -194,6 +194,46 @@ export default async function AbgleichPage({
                     Speichert nur den Verweis (kein Datenverlust möglich), kann beliebig oft wiederholt werden.
                   </p>
                 </div>
+                {v.verknuepfte.length > 0 && (
+                  <details className="rounded-lg border p-3">
+                    <summary className="cursor-pointer font-medium">
+                      Verknüpfte Termine anzeigen ({v.verknuepfte.length})
+                    </summary>
+                    <Table className="mt-2">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Hallenplan-Termin</TableHead>
+                          <TableHead>Öffentliches Spiel</TableHead>
+                          <TableHead>Dienste</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {v.verknuepfte.slice(0, 300).map((x, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="whitespace-normal">
+                              {formatDatumZeit(x.start)}
+                              <span className="block text-xs text-muted-foreground">
+                                {x.heim} – {x.gast}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-normal text-muted-foreground">
+                              {x.spiel ?? "nicht mehr in den Daten"}
+                              {x.ortAbweichung && <span className="block">Halle anders geschrieben</span>}
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-normal">
+                              {x.zuordnungen > 0 && <span className="block">{x.zuordnungen} Zuordnung(en)</span>}
+                              {x.ansetzung && <span className="block text-muted-foreground">mit Ansetzung</span>}
+                              {x.zuordnungen === 0 && !x.ansetzung && "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {v.verknuepfte.length > 300 && (
+                      <p className="mt-2 text-xs text-muted-foreground">Erste 300 von {v.verknuepfte.length} angezeigt.</p>
+                    )}
+                  </details>
+                )}
                 {t.zeitAbweichungen.length > 0 && (
                   <div>
                     <p className="mb-1 font-medium">Zeit weicht ab (max. 30)</p>
