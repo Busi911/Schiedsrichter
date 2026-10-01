@@ -47,6 +47,25 @@ const links = async (muster) =>
     [...new Map(as.map((a) => [a.href, (a.textContent ?? "").trim().replace(/\s+/g, " ")])).entries()]
   );
 
+// 0. Direkt eine Mannschaftsseite öffnen und deren Tabs durchklicken
+if (process.env.TEAM_URL) {
+  await offen(process.env.TEAM_URL, "00-team");
+  for (const tab of ["TABELLE", "SPIELPLAN", "STATISTIKEN"]) {
+    const b = page.getByRole("tab", { name: new RegExp(tab, "i") }).first();
+    const sichtbar = await b.isVisible().catch(() => false);
+    console.log(`Tab ${tab}: ${sichtbar ? "gefunden" : "NICHT gefunden"}`);
+    if (!sichtbar) continue;
+    console.log(`--- Klick auf ${tab}`);
+    await b.click().catch(() => {});
+    await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(3000);
+    await page.screenshot({ path: `out/00-${tab.toLowerCase()}.png`, fullPage: true });
+  }
+  writeFileSync("out/api.json", JSON.stringify(api, null, 1));
+  await browser.close();
+  process.exit(0);
+}
+
 // 1. Verein suchen (oder direkt per ID)
 let vereine = [];
 if (CLUB_ID) vereine = [[`${BASIS}/club/${CLUB_ID}`, `TSF Heuchelheim (ID ${CLUB_ID})`]];
