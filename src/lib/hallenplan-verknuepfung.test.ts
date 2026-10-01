@@ -117,6 +117,32 @@ describe.skipIf(!ADMIN_URL)("Hallenplan verknüpfen (Postgres)", () => {
     expect((await zustand()).z).toHaveLength(1);
   });
 
+  it("Ansetzungs-Vergleich: nur lesend, erkennt verschiedene und gleiche Kürzel", async () => {
+    const { vergleicheAnsetzung } = await import("./ansetzung-vergleich");
+    const vorher = await zustand();
+    // Gruppenseite mit Ansetzung für genau dieses Spiel (Nr. aus dem Testspiel)
+    const seite = (kuerzel: string | null) =>
+      `<table><tr><th>Nr.</th><th>Heimmannschaft</th><th>Gastmannschaft</th><th>&nbsp;</th></tr>` +
+      `<tr><td>${spiel.spielnummer}</td><td>A</td><td>B</td><td>${kuerzel ? `<span title="Vorname Nachname">${kuerzel}</span>` : ""}</td></tr></table>`;
+    const mit = (k: string | null): HoleHtml => async () => seite(k);
+
+    // Termin hat "Mue.", öffentlich anderes Kürzel
+    expect(await vergleicheAnsetzung(vereinId, mit("Must."))).toMatchObject({ geprueft: 1, verschieden: 1, gleich: 0, gruppenFehler: 0 });
+    // öffentlich noch keine Ansetzung
+    expect(await vergleicheAnsetzung(vereinId, mit(null))).toMatchObject({ geprueft: 1, nurHallenplan: 1 });
+    // gleiches Kürzel (Schreibweise egal)
+    expect(await vergleicheAnsetzung(vereinId, mit("mue"))).toMatchObject({ geprueft: 1, gleich: 1 });
+    // Ladefehler der Gruppenseite: kein Absturz, wird gezählt
+    const r = await vergleicheAnsetzung(vereinId, async () => {
+      throw new Error("HTTP 503");
+    });
+    expect(r).toMatchObject({ geprueft: 0, gruppenFehler: 1 });
+    // nichts verändert
+    const nachher = await zustand();
+    expect(nachher.t).toEqual(vorher.t);
+    expect(nachher.z).toEqual(vorher.z);
+  });
+
   it("verknüpft nicht, wenn zwei Termine dasselbe Spiel beanspruchen (Duplikate)", async () => {
     const { verknuepfeHallenplanTermine } = await import("./hallenplan-verknuepfung");
     await testDb.update(schema.termine).set({ ligaSpielId: null }).where(eq(schema.termine.id, terminId));
