@@ -154,6 +154,16 @@ export const vereine = pgTable("verein", {
   plz: text("plz"),
   ort: text("ort"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+  // "vorbereitung": vom Systemadmin als Treuhänder eingerichtet, noch ohne
+  // Vereinsadmin — nicht öffentlich sichtbar, es gehen keine Mails raus (siehe
+  // lib/treuhand.ts). "aktiv": normaler Verein (Standard, auch für alle
+  // bestehenden).
+  status: text("status").$type<"vorbereitung" | "aktiv">().notNull().default("aktiv"),
+  uebergebenAm: timestamp("uebergeben_am", { mode: "date" }),
+  // Ausdrückliche Freigabe des Vereinsadmins, dass ein Systemadmin zu
+  // Supportzwecken bis zu diesem Zeitpunkt in den Verein wechseln darf.
+  // null = kein Zugriff.
+  supportZugriffBis: timestamp("support_zugriff_bis", { mode: "date" }),
   // Zustimmung zum Auftragsverarbeitungsvertrag (Art. 28 DSGVO, siehe
   // /admin/avv) — erzwungen beim ersten Login des Vereinsadmins (siehe
   // erzwingeAvvZustimmungFallsNoetig in lib/session.ts). null = noch nicht
@@ -403,6 +413,40 @@ export const ignorierteMannschaften = pgTable(
     ),
   ]
 );
+
+// ---------------------------------------------------------------------------
+// Treuhand: Systemadmin richtet einen Verein ein / bekommt Support-Zugriff
+// ---------------------------------------------------------------------------
+// Beide Tabellen sind bewusst systemweit (kein RLS, app_user hat keinen
+// Zugriff, siehe Migration): nur über adminDb aus lib/treuhand.ts.
+
+// Aktiver Vereinskontext eines Systemadmins (höchstens einer je Systemadmin).
+// Gelöscht bei "Zurück ins System", Übergabe oder Widerruf/Ablauf der Freigabe.
+export const treuhandZugriffe = pgTable("treuhand_zugriff", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  systemAdminUserId: text("system_admin_user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  art: text("art").$type<"einrichtung" | "support">().notNull(),
+  gestartetAm: timestamp("gestartet_am", { mode: "date" }).notNull().defaultNow(),
+});
+
+// Nachweis, wer wann in einem Verein tätig war und wann übergeben wurde.
+export const vereinProtokoll = pgTable("verein_protokoll", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  aktion: text("aktion").notNull(),
+  // Schnappschuss statt FK, damit der Eintrag auch nach Kontolöschung bleibt.
+  akteur: text("akteur"),
+  details: text("details"),
+  zeitpunkt: timestamp("zeitpunkt", { mode: "date" }).notNull().defaultNow(),
+});
 
 // ---------------------------------------------------------------------------
 // Auth.js (Drizzle-Adapter) — erweitert um verein_id/ist_admin für Mandanten

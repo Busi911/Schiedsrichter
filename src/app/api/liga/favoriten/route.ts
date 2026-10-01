@@ -1,7 +1,7 @@
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { mitColdStartRetry } from "@/db/retry";
-import { ligaMannschaften, ligaVereine } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, vereine as vereineTabelle } from "@/db/schema";
 import {
   hatErgebnis,
   holeMannschaften,
@@ -47,9 +47,16 @@ export async function GET(request: Request) {
     : [];
   const noetigeVereine = [...new Set([...vereinIds, ...zeilen.map((z) => z.ligaVereinId)])];
   const vereine = noetigeVereine.length
-    ? await mitColdStartRetry(() =>
-        adminDb.query.ligaVereine.findMany({ where: inArray(ligaVereine.id, noetigeVereine) })
-      )
+    ? (
+        await mitColdStartRetry(() =>
+          adminDb
+            .select({ v: ligaVereine })
+            .from(ligaVereine)
+            .innerJoin(vereineTabelle, eq(vereineTabelle.id, ligaVereine.vereinId))
+            // Vereine im Vorbereitungs-Modus sind nicht öffentlich.
+            .where(and(inArray(ligaVereine.id, noetigeVereine), eq(vereineTabelle.status, "aktiv")))
+        )
+      ).map((r) => r.v)
     : [];
 
   const jetzt = new Date();

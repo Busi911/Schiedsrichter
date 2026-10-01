@@ -9,6 +9,9 @@ declare module "next-auth" {
       istAdminLesend: boolean;
       istSystemAdmin: boolean;
       mussPasswortAendern: boolean;
+      // Gesetzt, wenn ein Systemadmin als Treuhänder/Support in einem Verein
+      // arbeitet (siehe lib/treuhand.ts und requireSession).
+      treuhand: "einrichtung" | "support" | null;
     } & DefaultSession["user"];
   }
 

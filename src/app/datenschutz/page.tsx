@@ -143,6 +143,21 @@ export default function DatenschutzPage() {
       </section>
 
       <section className="flex flex-col gap-2">
+        <h2 className="font-heading text-lg font-medium">
+          Zugriff durch den Betreiber (Einrichtung und Support)
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Der Betreiber kann einen Verein auf dessen Wunsch im Vorbereitungs-Modus
+          einrichten. Der Verein ist dabei nicht öffentlich sichtbar, es werden keine
+          E-Mails versendet. Mit der Übergabe an den Vereinsadmin endet dieser Zugriff
+          vollständig. Danach kann der Betreiber nur auf die Vereinsdaten zugreifen,
+          wenn der Vereinsadmin den Support-Zugriff ausdrücklich und befristet
+          freigibt; er kann die Freigabe jederzeit widerrufen. Übergabe, Freigaben und
+          Zugriffe werden im Verein protokolliert und sind dort einsehbar.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">Cookies</h2>
         <p className="text-sm text-muted-foreground">
           Es wird ausschließlich ein technisch notwendiges Session-Cookie

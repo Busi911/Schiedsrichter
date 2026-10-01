@@ -11,6 +11,7 @@ import { ermittleFarbton, LogoFehler, verarbeiteLogo } from "@/lib/liga-logo";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { legeLigaVereinAn } from "@/lib/nuliga/sync";
 import { synchronisiereAlleQuellen } from "@/lib/liga-sync-quellen";
+import { setzeSupportFreigabe } from "@/lib/treuhand";
 import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
 import { signOut } from "@/auth";
@@ -381,5 +382,23 @@ export async function mannschaftsnamenSpeichern(formData: FormData) {
   }
   revalidatePath("/admin/einstellungen");
   revalidatePath("/verein", "layout");
+  redirect("/admin/einstellungen");
+}
+
+// Support-Zugriff: nur der Vereinsadmin selbst gibt ihn frei (befristet) oder
+// widerruft ihn. Ein Systemadmin im Treuhand-Kontext darf das nie für sich tun.
+export async function supportZugriffSetzen(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  if (session.user.treuhand) {
+    throw new Error("Die Support-Freigabe kann nur der Vereinsadmin selbst erteilen.");
+  }
+  const roh = formData.get("tage");
+  const tage = roh === "widerrufen" ? null : Number(roh);
+  await setzeSupportFreigabe(
+    session.user.vereinId!,
+    tage,
+    session.user.name ?? session.user.email ?? "Vereinsadmin"
+  );
+  revalidatePath("/admin/einstellungen");
   redirect("/admin/einstellungen");
 }

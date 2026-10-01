@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { holeKontextSession } from "@/lib/session";
 import {
   AUSWERTUNG_ROLLEN,
   holeTermineFuerAuswertung,
@@ -7,7 +7,7 @@ import {
 import { terminAlsExcel } from "@/lib/termin-excel";
 
 export async function GET(request: Request) {
-  const session = await auth();
+  const session = await holeKontextSession();
   if (
     !session?.user?.vereinId ||
     (!session.user.istAdmin && !session.user.istAdminLesend)

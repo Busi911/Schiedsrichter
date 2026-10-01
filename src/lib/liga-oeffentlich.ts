@@ -11,8 +11,8 @@ import {
   ligaVereinLogos,
   ligaTeilnahmen,
   ligaVereine,
+  vereine,
 } from "@/db/schema";
-import { tagKey } from "@/lib/kalender";
 import { saisonLabel } from "@/lib/saison";
 
 // Lesezugriff für die öffentlichen Seiten /verein/... (ohne Session, daher
@@ -48,11 +48,30 @@ export type MannschaftAnsicht = {
   naechstesSpiel: SpielAnsicht | null;
 };
 
-export const holeVerein = cache(async (slug: string) =>
-  mitColdStartRetry(() =>
+// Vereine im Vorbereitungs-Modus (Systemadmin richtet sie im Hintergrund ein,
+// siehe lib/treuhand.ts) sind öffentlich nicht erreichbar — nur der
+// einrichtende Systemadmin selbst darf sich die Seite ansehen.
+async function darfVorschauSehen(vereinId: string): Promise<boolean> {
+  const { auth } = await import("@/auth");
+  const { holeTreuhandKontext } = await import("./treuhand");
+  const session = await auth();
+  if (!session?.user?.istSystemAdmin) return false;
+  return (await holeTreuhandKontext(session.user.id))?.vereinId === vereinId;
+}
+
+export const holeVerein = cache(async (slug: string) => {
+  const ligaVerein = await mitColdStartRetry(() =>
     adminDb.query.ligaVereine.findFirst({ where: eq(ligaVereine.slug, slug) })
-  )
-);
+  );
+  if (!ligaVerein) return undefined;
+  const [verein] = await mitColdStartRetry(() =>
+    adminDb.select({ status: vereine.status }).from(vereine).where(eq(vereine.id, ligaVerein.vereinId))
+  );
+  if (verein?.status === "vorbereitung" && !(await darfVorschauSehen(ligaVerein.vereinId))) {
+    return undefined;
+  }
+  return ligaVerein;
+});
 
 // Nur Zeitstempel (Cache-Buster der Bild-URL) und Farbton — das Bild selbst
 // wird erst von den Logo-/Icon-Routen geladen. Ohne Logo: beides null.
@@ -78,17 +97,28 @@ export const holeLogoPng = async (ligaVereinId: string): Promise<Buffer | null> 
   return zeile?.png ?? null;
 };
 
+// Nur Vereine, die übergeben/aktiv sind (nicht im Vorbereitungs-Modus).
 export const holeAlleVereine = async () =>
   mitColdStartRetry(() =>
-    adminDb.query.ligaVereine.findMany({
-      columns: { id: true, name: true, slug: true },
-      orderBy: [asc(ligaVereine.name)],
-    })
+    adminDb
+      .select({ id: ligaVereine.id, name: ligaVereine.name, slug: ligaVereine.slug })
+      .from(ligaVereine)
+      .innerJoin(vereine, eq(vereine.id, ligaVereine.vereinId))
+      .where(eq(vereine.status, "aktiv"))
+      .orderBy(asc(ligaVereine.name))
   );
 
 export const holeAlleVereineFuerSitemap = async () =>
   mitColdStartRetry(() =>
-    adminDb.query.ligaVereine.findMany({ columns: { id: true, slug: true, spieleSynchronisiertAm: true } })
+    adminDb
+      .select({
+        id: ligaVereine.id,
+        slug: ligaVereine.slug,
+        spieleSynchronisiertAm: ligaVereine.spieleSynchronisiertAm,
+      })
+      .from(ligaVereine)
+      .innerJoin(vereine, eq(vereine.id, ligaVereine.vereinId))
+      .where(eq(vereine.status, "aktiv"))
   );
 
 // Aktive Mannschaften des Vereins (aktuelle Saison) samt Tabellenstand und
