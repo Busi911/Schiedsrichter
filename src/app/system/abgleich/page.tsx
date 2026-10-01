@@ -29,9 +29,11 @@ export default async function AbgleichPage({
       <div>
         <h1 className="font-heading text-2xl font-semibold">Hallenplan-Abgleich</h1>
         <p className="text-sm text-muted-foreground">
-          Nur Bericht, es wird nichts verändert: Wie viele per Hallen-ID importierte Termine lassen sich
-          sicher einem Spiel der öffentlichen Liga-Daten zuordnen (Voraussetzung, um beide Wege
-          zusammenzuführen, ohne Zuordnungen von Schiris/Zeitnehmern zu verlieren)?
+          Wie viele per Hallen-ID importierte Termine lassen sich sicher einem Spiel der öffentlichen
+          Liga-Daten zuordnen (Voraussetzung, um beide Wege zusammenzuführen, ohne Dienste von
+          Schiris/Zeitnehmern zu verlieren)? Die Tabelle und der Trockenlauf darunter sind reine
+          Berichte; verändert wird nur, wenn du bei einem Verein ausdrücklich „verknüpfen“ drückst
+          (speichert nur einen Verweis, löscht und ändert nichts).
         </p>
       </div>
 
@@ -40,7 +42,7 @@ export default async function AbgleichPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Verein</TableHead>
+                <TableHead className="sticky left-0 z-10 bg-card">Verein</TableHead>
                 <TableHead>Termine</TableHead>
                 <TableHead>Sicher</TableHead>
                 <TableHead>Unklar</TableHead>
@@ -54,7 +56,7 @@ export default async function AbgleichPage({
             <TableBody>
               {mitTerminen.map((v) => (
                 <TableRow key={v.vereinId}>
-                  <TableCell className="font-medium">
+                  <TableCell className="sticky left-0 z-10 max-w-32 bg-card font-medium whitespace-normal">
                     {v.vereinName}
                     {!v.hatLigaVerein && (
                       <span className="block text-xs font-normal text-muted-foreground">
