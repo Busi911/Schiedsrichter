@@ -1,10 +1,10 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { holeProtokoll, supportFreigabeAktiv } from "@/lib/treuhand";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaVereine, ligaVereinLogos, ligaVereinZusatzquellen, vereine } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, ligaSyncLaeufe, ligaVereinLogos, ligaVereinZusatzquellen, vereine } from "@/db/schema";
 import {
   dienstBedarfSpeichern,
   logoEntfernen,
@@ -90,6 +90,16 @@ export default async function EinstellungenPage({
     ? await adminDb.query.ligaVereinZusatzquellen.findMany({
         where: eq(ligaVereinZusatzquellen.ligaVereinId, ligaVerein.id),
         orderBy: [asc(ligaVereinZusatzquellen.erstelltAm)],
+      })
+    : [];
+
+  // Letzte Sync-Läufe: bleiben sichtbar, auch wenn der Ergebnisbalken nach dem
+  // Klick (URL-Parameter) nicht erscheint oder die Seite neu geladen wurde.
+  const syncLaeufe = ligaVerein
+    ? await adminDb.query.ligaSyncLaeufe.findMany({
+        where: eq(ligaSyncLaeufe.ligaVereinId, ligaVerein.id),
+        orderBy: [desc(ligaSyncLaeufe.gestartetAm)],
+        limit: 4,
       })
     : [];
 
@@ -262,6 +272,46 @@ export default async function EinstellungenPage({
                 </span>
               )}
             </p>
+          )}
+          {syncLaeufe.length > 0 && (
+            <details className="rounded-lg border px-3 py-2 text-sm">
+              <summary className="cursor-pointer font-medium">
+                Letzte Synchronisationen
+                <span className="font-normal text-muted-foreground">
+                  {" "}
+                  · zuletzt {syncLaeufe[0].status} (
+                  {syncLaeufe[0].gestartetAm.toLocaleString("de-DE", {
+                    timeZone: "Europe/Berlin",
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
+                  )
+                </span>
+              </summary>
+              <ul className="mt-2 flex flex-col gap-2">
+                {syncLaeufe.map((l) => (
+                  <li key={l.id} className="flex flex-col gap-0.5 border-t pt-2 first:border-t-0 first:pt-0">
+                    <span>
+                      {l.gestartetAm.toLocaleString("de-DE", {
+                        timeZone: "Europe/Berlin",
+                        dateStyle: "short",
+                        timeStyle: "medium",
+                      })}{" "}
+                      · {l.art} · <strong>{l.status}</strong> · {l.neu} neu, {l.aktualisiert} aktualisiert,{" "}
+                      {l.anfragen} Abrufe
+                    </span>
+                    {l.meldungen.slice(0, 8).map((m, i) => (
+                      <span key={i} className="text-xs text-muted-foreground">
+                        {m}
+                      </span>
+                    ))}
+                    {l.meldungen.length > 8 && (
+                      <span className="text-xs text-muted-foreground">… und {l.meldungen.length - 8} weitere</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
           <form action={oeffentlicheSeiteSpeichern} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
