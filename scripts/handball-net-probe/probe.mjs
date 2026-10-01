@@ -16,7 +16,9 @@ const ctx = await browser.newContext({ locale: "de-DE", viewport: { width: 1280,
 const page = await ctx.newPage();
 page.on("response", async (r) => {
   const u = r.url();
-  if (!u.includes("/api/")) return;
+  const art = r.request().resourceType();
+  const analytics = /googletagmanager|google-analytics|sensic|consentmanager|doubleclick|googlesyndication/.test(u);
+  if (analytics || !(u.includes("/api/") || art === "fetch" || art === "xhr")) return;
   let body = "";
   try {
     body = (await r.text()).slice(0, /press\/config|federations|news/.test(u) ? 200 : 1500).replace(/\s+/g, " ");
@@ -57,7 +59,7 @@ if (process.env.TEAM_URL) {
     if (!sichtbar) continue;
     console.log(`--- Klick auf ${tab}`);
     await b.click().catch(() => {});
-    await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
+    await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(3000);
     await page.screenshot({ path: `out/00-${tab.toLowerCase()}.png`, fullPage: true });
   }
@@ -122,7 +124,7 @@ if (team) {
     const b = page.getByRole("tab", { name: new RegExp(tab, "i") }).first();
     if (await b.isVisible().catch(() => false)) {
       await b.click().catch(() => {});
-      await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
+      await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
       await page.waitForTimeout(2500);
       await page.screenshot({ path: `out/04-${tab.toLowerCase()}.png`, fullPage: true });
       console.log(`Tab ${tab} geöffnet`);
