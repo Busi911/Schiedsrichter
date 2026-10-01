@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { baueLogoIcon } from "@/lib/liga-logo";
-import { holeLogoPng, holeVereinsDesign, holeVerein } from "@/lib/liga-oeffentlich";
+import { holeLogoPng, holeVereinsDesign, holeVerein, holeVorschau } from "@/lib/liga-oeffentlich";
 import { vereinsFarbton, vereinsInitialen } from "@/lib/liga-pwa";
 
 // App-Icon je Verein: das hochgeladene Logo (Rand auf weißem Grund), sonst
@@ -14,11 +14,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   if (!verein) return new Response("Not found", { status: 404 });
 
   const px = Number(groesse);
+  // Vorschau-Verein (Zugriff hängt am Cookie): nie im gemeinsamen Cache ablegen.
+  const cache = (await holeVorschau(verein.vereinId)) ? "private, no-store" : "public, max-age=86400";
   const logo = await holeLogoPng(verein.id);
   if (logo) {
     const png = await baueLogoIcon(logo, px);
     return new Response(new Uint8Array(png), {
-      headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" },
+      headers: { "Content-Type": "image/png", "Cache-Control": cache },
     });
   }
   const h = (await holeVereinsDesign(verein.id)).farbton ?? vereinsFarbton(verein.slug);
@@ -41,6 +43,6 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
         {vereinsInitialen(verein.name)}
       </div>
     ),
-    { width: px, height: px, headers: { "Cache-Control": "public, max-age=86400" } }
+    { width: px, height: px, headers: { "Cache-Control": cache } }
   );
 }

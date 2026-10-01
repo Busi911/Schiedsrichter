@@ -4,7 +4,7 @@ import { MeineMannschaften } from "@/components/liga/meine-mannschaften";
 export default function MeinePage() {
   return (
     <>
-      <InstallHinweis appName="Meine Mannschaften" />
+      <InstallHinweis appName="Meine Mannschaften" appId="meine" />
       <MeineMannschaften />
     </>
   );

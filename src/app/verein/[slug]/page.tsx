@@ -43,7 +43,7 @@ export default async function ErgebnisseSeite({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <BereichsKopf titel="Letzte Ergebnisse" vereinId={verein.id} vereinName={verein.name} />
-      <InstallHinweis appName={verein.name} />
+      <InstallHinweis appName={verein.name} appId={verein.slug} />
       {mannschaften.length === 0 ? (
         <p className="rounded-xl bg-background p-6 text-sm text-muted-foreground ring-1 ring-foreground/[0.06]">
           Die Mannschaften werden gerade geladen. Bitte in Kürze erneut versuchen.
