@@ -512,6 +512,13 @@
       "when": 1790921184033,
       "tag": "0072_liga_uebernahme_standard_an",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1790921653648,
+      "tag": "0073_hallenplan_import_aus_standard",
+      "breakpoints": true
     }
   ]
 }

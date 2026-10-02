@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ALTER COLUMN "hallenplan_import_aus" SET DEFAULT true;
