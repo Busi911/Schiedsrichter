@@ -22,7 +22,8 @@ export async function sendMail(
   to: string,
   subject: string,
   text: string,
-  html?: string
+  html?: string,
+  opt: { abmeldeUrl?: string } = {}
 ) {
   // Vereine im Vorbereitungs-Modus (Systemadmin richtet im Hintergrund ein,
   // siehe lib/treuhand.ts) verschicken noch keine Mails.
@@ -36,5 +37,12 @@ export async function sendMail(
     subject,
     text,
     html,
+    // Ein-Klick-Abmeldung (RFC 8058) für abbestellbare Mails: Gmail/Outlook zeigen einen "Abbestellen"-Knopf.
+    ...(opt.abmeldeUrl && {
+      headers: {
+        "List-Unsubscribe": `<${opt.abmeldeUrl.replace("/abmelden/", "/api/abmelden/")}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    }),
   });
 }

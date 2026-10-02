@@ -4,6 +4,7 @@ import { adminDb } from "@/db/admin";
 import { users } from "@/db/schema";
 import { holeEigeneKalenderEintraege } from "./eigener-kalender";
 import { sendMail } from "./mailer";
+import { abmeldeInfo } from "./abmelden";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
 import { formatWochentagDatum } from "./format";
 import { appUrl } from "./app-url";
@@ -77,12 +78,13 @@ export async function sendeWochenDigests() {
         );
         if (eintraegeProTag.size === 0) continue;
 
-        const inhalt = digestInhalt(verein.name, eintraegeProTag);
+        const inhalt = { ...digestInhalt(verein.name, eintraegeProTag), abmelden: abmeldeInfo(user.id, "digest") };
         await sendMail(
           user.email,
           `Deine Einsätze diese Woche bei ${verein.name}`,
           emailAlsText(inhalt),
-          emailAlsHtml(inhalt)
+          emailAlsHtml(inhalt),
+          { abmeldeUrl: inhalt.abmelden.url }
         );
         versendet++;
       } catch (err) {
