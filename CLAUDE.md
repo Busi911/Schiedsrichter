@@ -328,6 +328,6 @@ alles unter `/system/abgleich` (nur Systemadmin):
    Die Abgleich-Seite ist bewusst schlank (nur offene Punkte, Schalter, aktuelle Vergleiche).
    Ort-Abweichungen werden einzeln geprüft ("Ort übernehmen" mit Mail an Betroffene / "Ort geprüft" =
    `termin.liga_ort_bestaetigt`); Import-Termine sind im Kalender nicht bearbeit-/löschbar.
-   Standard von `liga_uebernahme_aktiv` ist jetzt an (neue Vereine); bestehende Vereine schaltet der
+   Standard von `liga_uebernahme_aktiv` ist jetzt an und `hallenplan_import_aus` ebenfalls an (= Import aus) für NEUE Vereine (Migrationen 0072/0073; neue Vereine brauchen nur die Vereins-ID plus "Eure Spielhallen", keine Hallen-ID); bestehende Vereine schaltet der
    Systemadmin einzeln ein. Einstellungen/Hilfe sind an die Zusammenführung angepasst: die Vereins-ID
    genügt, die Hallen-ID nur noch für Freundschaftsspiele/Turniere solange der Import an ist.

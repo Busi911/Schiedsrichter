@@ -238,11 +238,12 @@ export const vereine = pgTable("verein", {
   // Standard an (neue Vereine); bestehende Vereine schaltet der Systemadmin je Verein (/system/abgleich). Der Cron legt
   // dann fehlende künftige Heimspiele still als Termine an (lib/liga-uebernahme.ts).
   ligaUebernahmeAktiv: boolean("liga_uebernahme_aktiv").notNull().default(true),
-  // Vom Systemadmin je Verein geschaltet (/system/abgleich), erst wenn der Abgleich "erledigt" ist:
+  // Standard für NEUE Vereine: aus (die Vereins-ID genügt, keine Hallen-ID nötig). Bestehende Vereine behalten
+  // ihren Wert; der Systemadmin schaltet sie je Verein um (/system/abgleich), erst wenn der Abgleich "erledigt" ist:
   // der Hallenplan-/handball.net-Teamimport läuft für diesen Verein nicht mehr (Spielplan, Verlegungen,
   // Ergebnisse, Ansetzung kommen aus den öffentlichen Liga-Daten). Folge: Freundschaftsspiele/Turniere
   // werden bis zur automatischen Pflege (in Entwicklung) von Hand angelegt. Bestehende Termine bleiben.
-  hallenplanImportAus: boolean("hallenplan_import_aus").notNull().default(false),
+  hallenplanImportAus: boolean("hallenplan_import_aus").notNull().default(true),
   // Zuletzt vom Übernahme-Cron geprüft: sorgt dafür, dass bei Zeitnot die am längsten
   // nicht geprüften Vereine zuerst drankommen (rundenweise, nichts bleibt liegen).
   ligaUebernahmeGeprueftAm: timestamp("liga_uebernahme_geprueft_am", { mode: "date" }),
