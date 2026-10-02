@@ -26,21 +26,100 @@ export default async function AbgleichPage({
   const ergebnisInfo = await searchParams;
   const vereine = await berechneHallenplanAbgleich();
   const mitTerminen = vereine.filter((v) => v.termineGesamt > 0 || v.hatLigaVerein);
+  const pruefbar = mitTerminen.filter((v) => v.hatLigaVerein && v.termineGesamt > 0);
+  // Was bei einem Verein noch Handlung braucht (abgeschlossene Schritte tauchen hier nicht auf).
+  const handlungen = (v: (typeof vereine)[number]): string[] => {
+    const t = v.trockenlauf;
+    const l: string[] = [];
+    if (t.verknuepfbarOffen > 0) l.push(`${t.verknuepfbarOffen} sicher zugeordnete Termine sind noch nicht mit dem öffentlichen Spiel verknüpft.`);
+    if (!v.uebernahmeAktiv) l.push("Die automatische Übernahme (fehlende Heimspiele, Verlegungen, Ergebnisse, Ansetzung) ist ausgeschaltet.");
+    if (t.pflichtOffen > 0) l.push(`${t.pflichtOffen} von ${t.pflichtGesamt} Liga-Pflichtspiel-Terminen sind nicht sicher zugeordnet — bitte in den Details unter „nicht sicher zugeordnet“ prüfen.`);
+    if (t.ortAbweichungen > 0) l.push(`${t.ortAbweichungen} Termine mit anderem Hallennamen als öffentlich — prüfen, ob nur ein anderer Name oder eine echte Verlegung (Beispiele in den Details).`);
+    return l;
+  };
+  const aktionen = pruefbar.filter((v) => handlungen(v).length > 0);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-heading text-2xl font-semibold">Hallenplan-Abgleich</h1>
         <p className="text-sm text-muted-foreground">
-          Wie viele per Hallen-ID importierte Termine lassen sich sicher einem Spiel der öffentlichen
-          Liga-Daten zuordnen (Voraussetzung, um beide Wege zusammenzuführen, ohne Dienste von
-          Schiris/Zeitnehmern zu verlieren)? Die Tabelle und der Trockenlauf darunter sind reine
-          Berichte; verändert wird nur, wenn du bei einem Verein ausdrücklich „verknüpfen“ drückst
-          (speichert nur einen Verweis, löscht und ändert nichts).
+          Zusammenführung von Hallenplan-Import (Hallen-ID) und öffentlichen Liga-Daten. Oben steht nur,
+          was bei einem Verein noch Handlung braucht; abgeschlossene Schritte haben keinen Knopf mehr.
+          Zahlen, Trockenlauf und Prüfwerkzeuge liegen eingeklappt darunter.
         </p>
       </div>
 
       <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Handlungsbedarf</CardTitle>
+          <CardDescription>
+            {aktionen.length === 0
+              ? "Alles erledigt — bei keinem Verein ist etwas zu tun."
+              : `${aktionen.length} von ${pruefbar.length} Vereinen brauchen noch etwas.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 text-sm">
+          <ul className="flex flex-col gap-1">
+            {pruefbar.map((v) => {
+              const offen = handlungen(v).length > 0;
+              return (
+                <li key={`status-${v.vereinId}`} className="flex flex-wrap items-center gap-2">
+                  <Badge variant={offen ? "default" : "outline"}>{offen ? "Handlung nötig" : "Erledigt"}</Badge>
+                  <span className="font-medium">{v.vereinName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {v.bereitsVerknuepft} von {v.termineGesamt} Terminen verknüpft · automatische Übernahme{" "}
+                    {v.uebernahmeAktiv ? "an" : "aus"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          {aktionen.map((v) => (
+            <div key={`aktion-${v.vereinId}`} className="flex flex-col gap-2 rounded-lg border p-3">
+              <p className="font-medium">{v.vereinName}</p>
+              <ul className="list-disc space-y-1 pl-5">
+                {handlungen(v).map((h) => (
+                  <li key={h}>{h}</li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap gap-2">
+                {v.trockenlauf.verknuepfbarOffen > 0 && (
+                  <form action={hallenplanVerknuepfen}>
+                    <input type="hidden" name="vereinId" value={v.vereinId} />
+                    <ConfirmSubmitButton
+                      size="sm"
+                      variant="outline"
+                      pendingText="Verknüpft…"
+                      confirmText={`Termine von ${v.vereinName} mit den öffentlichen Spielen verknüpfen? Es wird nur ein Verweis je Termin gespeichert — Zeiten, Zuordnungen und Ansetzung bleiben unverändert, es wird nichts gelöscht.`}
+                    >
+                      Sicher zugeordnete Termine verknüpfen
+                    </ConfirmSubmitButton>
+                  </form>
+                )}
+                {!v.uebernahmeAktiv && (
+                  <form action={ligaUebernahmeSchalten}>
+                    <input type="hidden" name="vereinId" value={v.vereinId} />
+                    <input type="hidden" name="aktiv" value="1" />
+                    <ConfirmSubmitButton
+                      size="sm"
+                      variant="outline"
+                      pendingText="Speichert…"
+                      confirmText={`Für ${v.vereinName} die automatische Übernahme einschalten? Danach werden nach jedem Liga-Sync fehlende künftige Heimspiele angelegt, Verlegungen und Ergebnisse übernommen (bei einer Verlegung werden Betroffene benachrichtigt) und die Ansetzung aus den öffentlichen Seiten ergänzt.`}
+                    >
+                      Automatische Übernahme einschalten
+                    </ConfirmSubmitButton>
+                  </form>
+                )}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <details className="rounded-lg border">
+        <summary className="cursor-pointer p-3 text-sm font-medium">Alle Zahlen im Überblick (Detailtabelle)</summary>
+      <Card className="border-0 shadow-none">
         <CardContent className="pt-4">
           <Table>
             <TableHeader>
@@ -109,7 +188,13 @@ export default async function AbgleichPage({
           </p>
         </CardContent>
       </Card>
+      </details>
 
+      <details className="rounded-lg border" open={!!ergebnisInfo.verein}>
+        <summary className="cursor-pointer p-3 text-sm font-medium">
+          Details und Prüfwerkzeuge je Verein (Trockenlauf, Ansetzung vergleichen, Schalter)
+        </summary>
+        <div className="flex flex-col gap-6 p-3">
       {mitTerminen
         .filter((v) => v.hatLigaVerein && v.termineGesamt > 0)
         .map((v) => {
@@ -207,20 +292,9 @@ export default async function AbgleichPage({
                         : " — ABWEICHUNG, die Verknüpfung ändert keine Zuordnungen: bitte prüfen, ob parallel jemand Dienste geändert hat."}
                     </p>
                   )}
-                  <form action={hallenplanVerknuepfen}>
-                    <input type="hidden" name="vereinId" value={v.vereinId} />
-                    <ConfirmSubmitButton
-                      size="sm"
-                      variant="outline"
-                      pendingText="Verknüpft…"
-                      confirmText={`Termine von ${v.vereinName} mit den öffentlichen Spielen verknüpfen? Es wird nur ein Verweis je Termin gespeichert — Zeiten, Zuordnungen und Ansetzung bleiben unverändert, es wird nichts gelöscht.`}
-                    >
-                      Sicher zugeordnete Termine verknüpfen
-                    </ConfirmSubmitButton>
-                  </form>
-                  <p className="text-xs text-muted-foreground">
-                    Speichert nur den Verweis (kein Datenverlust möglich), kann beliebig oft wiederholt werden.
-                  </p>
+                  {t.verknuepfbarOffen === 0 && (
+                    <p className="text-xs text-muted-foreground">Verknüpfung: erledigt, nichts mehr zu verknüpfen.</p>
+                  )}
                   {ergebnisInfo.verein === v.vereinId && ergebnisInfo.ueb !== undefined && (
                     <p className="rounded-md border bg-muted/40 p-2 text-xs">
                       Übernommen: <strong>{ergebnisInfo.ueb}</strong> Termine angelegt
@@ -288,7 +362,7 @@ export default async function AbgleichPage({
                       })()}
                     </div>
                   )}
-                  {t.neuAnzulegenGesamt > 0 && (
+                  {t.neuAnzulegenGesamt > 0 && !v.uebernahmeAktiv && (
                     <form action={ligaSpieleUebernehmen}>
                       <input type="hidden" name="vereinId" value={v.vereinId} />
                       <ConfirmSubmitButton
@@ -405,6 +479,8 @@ export default async function AbgleichPage({
             </Card>
           );
         })}
+        </div>
+      </details>
 
       {mitTerminen
         .filter((v) => v.auffaellig.length > 0 && v.hatLigaVerein)

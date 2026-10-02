@@ -32,6 +32,8 @@ const berlinUhr = new Intl.DateTimeFormat("de-DE", {
 export type Trockenlauf = {
   // Sicher zugeordnete Termine (würden mit dem öffentlichen Spiel verknüpft).
   verknuepfbar: number;
+  // Davon noch NICHT verknüpft (nur dafür ist der Knopf "verknüpfen" nötig).
+  verknuepfbarOffen: number;
   // Davon mit eingetragenen Funktionsträgern (Zuordnungen bleiben erhalten).
   verknuepfbarMitZuordnungen: number;
   // Davon mit Ansetzung aus dem Hallenplan (Schiedsrichter-Kürzel bzw. von
@@ -316,6 +318,7 @@ async function berechneFuerVerein(
   const unberuehrteTermine = abgleich.filter((a) => a.status !== "sicher");
   const trockenlauf: Trockenlauf = {
     verknuepfbar: sicherePaare.length,
+    verknuepfbarOffen: sicherePaare.filter((p) => !p.termin.ligaSpielId).length,
     verknuepfbarMitZuordnungen: sicherePaare.filter((p) => (zuordnungsAnzahl.get(p.termin.id) ?? 0) > 0).length,
     verknuepfbarMitAnsetzung: sicherePaare.filter(
       (p) => p.termin.srKuerzel || p.termin.hnSchiedsrichter || p.termin.hnZeitnehmer
