@@ -22,7 +22,7 @@ export function VorschauLinks({
     return <p className="text-xs text-muted-foreground">Vorschau erst nach Hinterlegen der Vereins-ID.</p>;
   }
   return (
-    <div className="mt-2 space-y-2 text-xs">
+    <div className="mt-3 space-y-3 text-xs">
       <form action={vorschauLinkErzeugen} className="flex flex-wrap items-center gap-2">
         <input type="hidden" name="vereinId" value={vereinId} />
         <label className="text-muted-foreground" htmlFor={`tage-${vereinId}`}>
@@ -49,7 +49,7 @@ export function VorschauLinks({
           <input
             readOnly
             value={`${basisUrl}/verein/${slug}/vorschau/${l.token}`}
-            className="h-8 w-64 max-w-full rounded-md border bg-background px-2 font-mono"
+            className="h-8 w-full min-w-0 rounded-md border bg-background px-2 font-mono sm:w-72"
           />
           <span className="text-muted-foreground">bis {formatDatum(l.gueltigBis)}</span>
           <form action={vorschauLinkWiderrufen}>
