@@ -59,8 +59,10 @@ export default async function AbgleichPage({
             <TableBody>
               {mitTerminen.map((v) => (
                 <TableRow key={v.vereinId}>
-                  <TableCell className="sticky left-0 z-10 max-w-32 bg-card font-medium whitespace-normal">
-                    {v.vereinName}
+                  <TableCell className="sticky left-0 z-10 max-w-40 bg-card font-medium whitespace-normal [overflow-wrap:anywhere]">
+                    {/* Spielgemeinschaften heißen "A/B…" ohne Leerzeichen: nach dem "/" umbrechen
+                        (sonst ragt der lange Name in die nächste Spalte). */}
+                    {v.vereinName.replaceAll("/", "/\u200b")}
                     {!v.hatLigaVerein && (
                       <span className="block text-xs font-normal text-muted-foreground">
                         keine öffentliche Seite eingerichtet
