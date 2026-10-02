@@ -3,7 +3,7 @@ import { berechneHallenplanAbgleich } from "@/lib/hallenplan-abgleich-laden";
 import { formatDatumZeit } from "@/lib/format";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Badge } from "@/components/ui/badge";
-import { ortBestaetigen, ansetzungVergleichen, hallenplanVerknuepfen, ligaSpieleUebernehmen, ligaUebernahmeSchalten } from "./actions";
+import { ortBestaetigen, ortUebernehmen, ansetzungVergleichen, hallenplanVerknuepfen, ligaSpieleUebernehmen, ligaUebernahmeSchalten } from "./actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -112,6 +112,20 @@ export default async function AbgleichPage({
                         {new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" }).format(f.start)}{" "}
                         {f.heim ?? "?"} – {f.gast ?? "?"}: Termin „{f.hallenplan}“, öffentlich „{f.oeffentlich}“
                       </span>
+                      <div className="flex flex-wrap gap-2">
+                      <form action={ortUebernehmen}>
+                        <input type="hidden" name="vereinId" value={v.vereinId} />
+                        <input type="hidden" name="terminId" value={f.terminId} />
+                        <input type="hidden" name="ziel" value="status" />
+                        <ConfirmSubmitButton
+                          size="sm"
+                          variant="outline"
+                          pendingText="Speichert…"
+                          confirmText={`Den Ort dieses Termins auf „${f.oeffentlich}“ ändern (bisher „${f.hallenplan}“)? Zeit und Dienste bleiben, die eingetragenen Personen bekommen die Mail „Termin geändert“.`}
+                        >
+                          Ort aus öffentlichen Daten übernehmen
+                        </ConfirmSubmitButton>
+                      </form>
                       <form action={ortBestaetigen}>
                         <input type="hidden" name="vereinId" value={v.vereinId} />
                         <input type="hidden" name="terminId" value={f.terminId} />
@@ -125,10 +139,11 @@ export default async function AbgleichPage({
                           Ort geprüft, so lassen
                         </ConfirmSubmitButton>
                       </form>
+                      </div>
                     </div>
                   ))}
                   <p className="text-muted-foreground">
-                    Stimmt der öffentliche Ort, ändere ihn im Termin im Kalender, dann verschwindet die Meldung von selbst.
+                    Stimmt der öffentliche Ort, übernimm ihn per Knopf — dann verschwindet die Meldung von selbst.
                   </p>
                 </div>
               )}
