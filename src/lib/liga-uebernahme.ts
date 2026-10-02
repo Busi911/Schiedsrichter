@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, like, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaVereine, mannschaften, termine, terminZuordnungen, vereine } from "@/db/schema";
 import { ermittleUebernahmeBasis } from "@/lib/hallenplan-abgleich-laden";
+import { uebernehmeAenderungen } from "@/lib/liga-aenderungen";
 import { findeMannschaft, type RundenspielEreignis } from "@/lib/rundenspiel-import";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { schreibeProtokoll } from "@/lib/treuhand";
@@ -166,7 +167,7 @@ export async function uebernehmeFuerAktiveVereine(
     .innerJoin(ligaVereine, eq(ligaVereine.vereinId, vereine.id))
     .where(eq(vereine.ligaUebernahmeAktiv, true))
     .orderBy(sql`${vereine.ligaUebernahmeGeprueftAm} asc nulls first`);
-  const ergebnis: { vereinId: string; angelegt?: number; fehler?: string }[] = [];
+  const ergebnis: { vereinId: string; angelegt?: number; verlegt?: number; ergebnisse?: number; fehler?: string }[] = [];
   let uebrig = 0;
   for (const a of aktive) {
     if (opt.nurLigaVereinIds && !opt.nurLigaVereinIds.includes(a.ligaVereinId)) continue;
@@ -175,10 +176,10 @@ export async function uebernehmeFuerAktiveVereine(
       continue;
     }
     try {
-      ergebnis.push({
-        vereinId: a.vereinId,
-        angelegt: (await uebernehmeLigaSpiele(a.vereinId, CRON_AKTEUR, opt.jetzt)).angelegt,
-      });
+      const angelegt = (await uebernehmeLigaSpiele(a.vereinId, CRON_AKTEUR, opt.jetzt)).angelegt;
+      // Verlegungen und Ergebnisse aus den öffentlichen Daten (mit Benachrichtigung der Betroffenen)
+      const geaendert = await uebernehmeAenderungen(a.vereinId, CRON_AKTEUR, opt.jetzt);
+      ergebnis.push({ vereinId: a.vereinId, angelegt, verlegt: geaendert.verlegt, ergebnisse: geaendert.ergebnisse });
     } catch (err) {
       ergebnis.push({ vereinId: a.vereinId, fehler: err instanceof Error ? err.message : String(err) });
     }
