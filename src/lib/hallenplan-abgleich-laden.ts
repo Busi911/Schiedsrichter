@@ -37,6 +37,8 @@ export type Trockenlauf = {
   // Termine, deren Spiel von MEHREREN Terminen beansprucht wird (Duplikate im Hallenplan): werden nie
   // automatisch verknüpft und sind deshalb NICHT Teil von verknuepfbarOffen, sondern eigene Prüfung.
   doppelteOffen: number;
+  // Davon nur Termine ab jetzt (bereits gespielte Doppelte betreffen nichts mehr).
+  doppelteKuenftig: number;
   doppelteBeispiele: { start: Date; heim: string | null; gast: string | null }[];
   // Davon mit eingetragenen Funktionsträgern (Zuordnungen bleiben erhalten).
   verknuepfbarMitZuordnungen: number;
@@ -356,6 +358,7 @@ async function berechneFuerVerein(
     verknuepfbar: sicherePaare.length,
     verknuepfbarOffen: sicherePaare.filter((p) => !p.termin.ligaSpielId && (terminProSpiel.get(p.spiel.id) ?? 0) === 1).length,
     doppelteOffen: doppelte.length,
+    doppelteKuenftig: doppelte.filter((p) => p.termin.start.getTime() >= jetztZeit).length,
     doppelteBeispiele: doppelte
       .sort((a, b) => a.termin.start.getTime() - b.termin.start.getTime())
       .slice(0, 10)
