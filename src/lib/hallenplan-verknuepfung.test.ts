@@ -132,6 +132,15 @@ describe.skipIf(!ADMIN_URL)("Hallenplan verknüpfen (Postgres)", () => {
     expect(await vergleicheAnsetzung(vereinId, mit(null))).toMatchObject({ geprueft: 1, nurHallenplan: 1 });
     // gleiches Kürzel (Punkt egal)
     expect(await vergleicheAnsetzung(vereinId, mit("Mue"))).toMatchObject({ geprueft: 1, gleich: 1 });
+    // Rückrunde nicht abrufbar: kein Fehler, Hinrunde zählt
+    const urls: string[] = [];
+    const nurHin: HoleHtml = async (url) => {
+      urls.push(url);
+      if (url.includes("rueckrunde")) throw new Error("HTTP 404");
+      return seite("Mue.");
+    };
+    expect(await vergleicheAnsetzung(vereinId, nurHin)).toMatchObject({ geprueft: 1, gleich: 1, gruppenFehler: 0 });
+    expect(urls.some((u) => u.includes("displayTyp=vorrunde") && u.includes("displayDetail=meetings"))).toBe(true);
     // Ladefehler der Gruppenseite: kein Absturz, wird gezählt
     const r = await vergleicheAnsetzung(vereinId, async () => {
       throw new Error("HTTP 503");
