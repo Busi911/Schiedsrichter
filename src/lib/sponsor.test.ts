@@ -30,13 +30,14 @@ describe("pruefeSponsorLink", () => {
 });
 
 describe("verarbeiteSponsorBild", () => {
-  it("normalisiert ein Bild zu PNG (max. 1200 px, ohne Vergrößerung)", async () => {
+  it("normalisiert ein Bild zu kleinem WebP (max. 640×480 px, ohne Vergrößerung)", async () => {
     const jpeg = await sharp({ create: { width: 2400, height: 800, channels: 3, background: "#336699" } }).jpeg().toBuffer();
     const png = await verarbeiteSponsorBild(jpeg);
     const meta = await sharp(png).metadata();
-    expect(meta.format).toBe("png");
-    expect(meta.width).toBe(1200);
-    expect(meta.height).toBe(400);
+    expect(meta.format).toBe("webp");
+    expect(meta.width).toBe(640);
+    expect(meta.height).toBe(213)
+    expect(png.length).toBeLessThan(20_000);
     const klein = await sharp({ create: { width: 100, height: 50, channels: 3, background: "#fff" } }).png().toBuffer();
     expect((await sharp(await verarbeiteSponsorBild(klein)).metadata()).width).toBe(100);
   });
