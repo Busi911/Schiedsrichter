@@ -44,6 +44,8 @@ export type Trockenlauf = {
   // bisherige Import wertet einen anderen Ort als Verlegung (Zuordnungen weg,
   // Mails), deshalb darf die Zusammenführung den Ort nicht überschreiben.
   ortAbweichungen: number;
+  // Davon nur Termine ab jetzt (vergangene Termine sind für den Handlungsbedarf unerheblich).
+  ortAbweichungenKuenftig: number;
   ortBeispiele: { hallenplan: string; oeffentlich: string; anzahl: number }[];
   // Öffentliche Zeit weicht vom Hallenplan ab (Verlegung?) — würde den Termin
   // verschieben (und Zuordnungen außer Schiri entfernen, siehe rundenspiel-sync.ts).
@@ -68,6 +70,9 @@ export type Trockenlauf = {
   // keins und sind erwartbar offen.
   pflichtGesamt: number;
   pflichtOffen: number;
+  // Davon nur Termine ab jetzt: Spiele der Vorsaison werden nie zuordenbar und würden den
+  // Handlungsbedarf dauerhaft offen lassen.
+  pflichtOffenKuenftig: number;
   freundschaftGesamt: number;
   unberuehrtMitZuordnungen: number;
 };
@@ -297,10 +302,13 @@ async function berechneFuerVerein(
     }
   }
   let ortAbweichungen = 0;
+  let ortAbweichungenKuenftig = 0;
+  const jetztZeit = Date.now();
   const ortPaare = new Map<string, { hallenplan: string; oeffentlich: string; anzahl: number }>();
   for (const { termin, spiel } of sicherePaare) {
     if (!ortWeichtAb(termin.ort, spiel.halleName)) continue;
     ortAbweichungen++;
+    if (termin.start.getTime() >= jetztZeit) ortAbweichungenKuenftig++;
     const schluessel = `${termin.ort}|${spiel.halleName}`;
     const e = ortPaare.get(schluessel) ?? {
       hallenplan: termin.ort ?? "—",
@@ -326,6 +334,7 @@ async function berechneFuerVerein(
     zeitAbweichungen: zeitAbweichungen.sort((a, b) => a.start.getTime() - b.start.getTime()),
     ergebnisNeu,
     ortAbweichungen,
+    ortAbweichungenKuenftig,
     ortBeispiele: [...ortPaare.values()].sort((a, b) => b.anzahl - a.anzahl).slice(0, 5),
     neuAnzulegen: neuAnzulegenAlle.slice(0, 30).map((s) => ({
       datum: s.datum,
@@ -339,6 +348,12 @@ async function berechneFuerVerein(
     pflichtGesamt: hallenTermine.filter((t) => t.pflichtspiel !== false).length,
     pflichtOffen: abgleich.filter(
       (a) => a.status !== "sicher" && nachId.get(a.terminId)!.pflichtspiel !== false
+    ).length,
+    pflichtOffenKuenftig: abgleich.filter(
+      (a) =>
+        a.status !== "sicher" &&
+        nachId.get(a.terminId)!.pflichtspiel !== false &&
+        nachId.get(a.terminId)!.start.getTime() >= jetztZeit
     ).length,
     freundschaftGesamt: hallenTermine.filter((t) => t.pflichtspiel === false).length,
     unberuehrt: unberuehrteTermine.length,

@@ -33,8 +33,9 @@ export default async function AbgleichPage({
     const l: string[] = [];
     if (t.verknuepfbarOffen > 0) l.push(`${t.verknuepfbarOffen} sicher zugeordnete Termine sind noch nicht mit dem öffentlichen Spiel verknüpft.`);
     if (!v.uebernahmeAktiv) l.push("Die automatische Übernahme (fehlende Heimspiele, Verlegungen, Ergebnisse, Ansetzung) ist ausgeschaltet.");
-    if (t.pflichtOffen > 0) l.push(`${t.pflichtOffen} von ${t.pflichtGesamt} Liga-Pflichtspiel-Terminen sind nicht sicher zugeordnet — bitte in den Details unter „nicht sicher zugeordnet“ prüfen.`);
-    if (t.ortAbweichungen > 0) l.push(`${t.ortAbweichungen} Termine mit anderem Hallennamen als öffentlich — prüfen, ob nur ein anderer Name oder eine echte Verlegung (Beispiele in den Details).`);
+    // nur künftige Termine: Spiele der Vorsaison werden nie zuordenbar (stehen weiter in den Details)
+    if (t.pflichtOffenKuenftig > 0) l.push(`${t.pflichtOffenKuenftig} künftige Liga-Pflichtspiel-Termine sind nicht sicher zugeordnet — bitte in den Details unter „nicht sicher zugeordnet“ prüfen.`);
+    if (t.ortAbweichungenKuenftig > 0) l.push(`${t.ortAbweichungenKuenftig} künftige Termine mit anderem Hallennamen als öffentlich — prüfen, ob nur ein anderer Name oder eine echte Verlegung (Beispiele in den Details).`);
     return l;
   };
   const aktionen = pruefbar.filter((v) => handlungen(v).length > 0);
