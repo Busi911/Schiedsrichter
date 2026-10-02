@@ -32,6 +32,7 @@ export default async function AbgleichPage({
     const t = v.trockenlauf;
     const l: string[] = [];
     if (t.verknuepfbarOffen > 0) l.push(`${t.verknuepfbarOffen} sicher zugeordnete Termine sind noch nicht mit dem öffentlichen Spiel verknüpft.`);
+    if (t.doppelteOffen > 0) l.push(`${t.doppelteOffen} Termine sind doppelt vorhanden (zwei Termine für dasselbe Spiel) und werden deshalb nicht automatisch verknüpft — bitte in den Details unter „Doppelte Termine“ prüfen und einen davon löschen.`);
     if (!v.uebernahmeAktiv) l.push("Die automatische Übernahme (fehlende Heimspiele, Verlegungen, Ergebnisse, Ansetzung) ist ausgeschaltet.");
     // nur künftige Termine: Spiele der Vorsaison werden nie zuordenbar (stehen weiter in den Details)
     if (t.pflichtOffenKuenftig > 0) l.push(`${t.pflichtOffenKuenftig} künftige Liga-Pflichtspiel-Termine sind nicht sicher zugeordnet — bitte in den Details unter „nicht sicher zugeordnet“ prüfen.`);
@@ -266,6 +267,16 @@ export default async function AbgleichPage({
                     öffentliche Spiel
                     {t.zeitAbweichungen.length > 0 && " (siehe unten — würde als Verlegung gelten)"}.
                   </li>
+                  {t.doppelteOffen > 0 && (
+                    <li>
+                      <strong>Doppelte Termine ({t.doppelteOffen}):</strong> zwei Termine gehören zum selben öffentlichen Spiel.
+                      <span className="block text-xs text-muted-foreground">
+                        {t.doppelteBeispiele
+                          .map((d) => `${new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" }).format(d.start)} ${d.heim ?? "?"} – ${d.gast ?? "?"}`)
+                          .join(" · ")}
+                      </span>
+                    </li>
+                  )}
                   <li>
                     Bei <strong>{t.ortAbweichungen}</strong> verknüpften Terminen schreibt der Hallenplan die Halle anders
                     als die öffentlichen Daten
