@@ -174,7 +174,7 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
 - **Sync:** idempotent, fehlertolerant (unlesbare Seite löscht nichts),
   strikt sequenziell mit Mindestabstand (`nuliga/client.ts`). Cron
   `/api/cron/liga-sync` entscheidet je Verein selbst, was fällig ist
-  (`sync-cron.ts`); er läuft tagsüber stündlich (5–20 Uhr UTC, ca. 7–22 Uhr deutsche Zeit; nachts nichts, `vercel.json`, braucht einen Vercel-Plan mit
+  (`sync-cron.ts`); er läuft tagsüber stündlich (5–21 Uhr UTC, ca. 6–23 Uhr deutsche Zeit; nachts nichts, `vercel.json`, braucht einen Vercel-Plan mit
   häufigen Crons — Pro; auf Hobby nur täglich). Dadurch werden Spiele am
   Spieltag öfter aktualisiert und ein wegen des Zeitlimits (40 s je Aufruf)
   unvollständiger Lauf wird beim nächsten Aufruf fortgesetzt, bis alles
