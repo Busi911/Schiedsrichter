@@ -32,7 +32,7 @@ export default async function AbgleichPage({
     const t = v.trockenlauf;
     const l: string[] = [];
     if (t.verknuepfbarOffen > 0) l.push(`${t.verknuepfbarOffen} sicher zugeordnete Termine sind noch nicht mit dem öffentlichen Spiel verknüpft.`);
-    if (t.doppelteOffen > 0) l.push(`${t.doppelteOffen} Termine sind doppelt vorhanden (zwei Termine für dasselbe Spiel) und werden deshalb nicht automatisch verknüpft — bitte in den Details unter „Doppelte Termine“ prüfen und einen davon löschen.`);
+    if (t.doppelteKuenftig > 0) l.push(`${t.doppelteKuenftig} künftige Termine sind doppelt vorhanden (mehrere Termine für dasselbe Spiel) und werden deshalb nicht automatisch verknüpft — Details unter „Doppelte Termine“. Bitte melden, sie lassen sich im Kalender nicht löschen (Import-Termine).`);
     if (!v.uebernahmeAktiv) l.push("Die automatische Übernahme (fehlende Heimspiele, Verlegungen, Ergebnisse, Ansetzung) ist ausgeschaltet.");
     // nur künftige Termine: Spiele der Vorsaison werden nie zuordenbar (stehen weiter in den Details)
     if (t.pflichtOffenKuenftig > 0) l.push(`${t.pflichtOffenKuenftig} künftige Liga-Pflichtspiel-Termine sind nicht sicher zugeordnet — bitte in den Details unter „nicht sicher zugeordnet“ prüfen.`);
