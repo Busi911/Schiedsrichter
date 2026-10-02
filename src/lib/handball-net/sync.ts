@@ -57,7 +57,7 @@ const alsObj = (x: unknown): Roh | null =>
   typeof x === "object" && x !== null && !Array.isArray(x) ? (x as Roh) : null;
 
 // Seitenweise Abruf einer paginierten Liste ({ data: [...], pagination }).
-async function holeAlleSeiten(holeJson: HoleJson, pfad: string): Promise<unknown[]> {
+export async function holeAlleSeiten(holeJson: HoleJson, pfad: string): Promise<unknown[]> {
   const alle: unknown[] = [];
   let letzte = 1;
   for (let seite = 1; seite <= Math.min(letzte, MAX_SEITEN); seite++) {

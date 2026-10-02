@@ -300,8 +300,13 @@ alles unter `/system/abgleich` (nur Systemadmin):
    (`lib/liga-ansetzung.ts`; nur setzen/ändern, nie löschen, still; Parser `parsers/ansetzung.ts`
    ist bewusst von der Whitelist der öffentlichen Parser getrennt, nie in `liga_*`). Der
    Hallenplan-Import füllt das Kürzel bei verknüpften Terminen nur noch, wenn es leer ist
-   (`kuerzelFuerUpdate`) — kein Hin und Her. handball.net-Ansetzung (Schiedsrichter/Zeitnehmer
-   mit Namen) ist noch offen. Vergleichswerkzeug: "Ansetzung vergleichen" in `/system/abgleich`.
+   (`kuerzelFuerUpdate`) — kein Hin und Her. **handball.net-Ansetzung** (Schiedsrichter/Zeitnehmer
+   mit Namen): derselbe Cron ruft danach `lib/liga-ansetzung-hnet.ts` auf (je Phase eine Abfrage
+   `/api/new/matches?phase_id=…&date_from&date_to` über alle Seiten, Frist 45 s, Zuordnung über
+   `liga_spiel.spielcode`) und schreibt `termin.handball_net_schiedsrichter/_zeitnehmer` (Form
+   "Vorname Nachname, …" wie beim bisherigen Import, über `gruppiereSchiedsrichterUndZeitnehmer`);
+   nur setzen/ändern, nie löschen, nie in `liga_*`. Der Team-Import füllt die Namen bei verknüpften
+   Terminen von Vereinen mit eingeschalteter Übernahme nur noch, wenn sie leer sind. Vergleichswerkzeug: "Ansetzung vergleichen" in `/system/abgleich`.
    **Verlegung/Ergebnis:** `lib/liga-aenderungen.ts` (läuft im Übernahme-Cron nach dem Anlegen
    neuer Heimspiele) übernimmt für VERKNÜPFTE Termine eine neue Zeit (Halle nur ZUSAMMEN mit
    einer Zeitänderung; eine reine Hallenabweichung kann nur ein anderer Name sein und wird nicht
