@@ -11,6 +11,7 @@ import {
   vereine,
 } from "@/db/schema";
 import { sendMail } from "./mailer";
+import { abmeldeInfo } from "./abmelden";
 import { formatDatumZeitLang } from "./format";
 import { terminMailHtml, terminMailText } from "./termin-mail";
 
@@ -128,12 +129,17 @@ export async function sendeAusstehendeErinnerungen() {
 
       try {
         const vereinName = await holeVereinName(termin.vereinId);
-        const mailParams = { vereinName, ...erinnerungsMailInhalt(termin) };
+        const mailParams = {
+          vereinName,
+          ...erinnerungsMailInhalt(termin),
+          abmelden: abmeldeInfo(person.id, "termin"),
+        };
         await sendMail(
           person.email,
           "Erinnerung: anstehender Termin",
           terminMailText(mailParams),
-          terminMailHtml(mailParams)
+          terminMailHtml(mailParams),
+          { abmeldeUrl: mailParams.abmelden.url }
         );
         await withTenant(termin.vereinId, (tx) =>
           tx.insert(benachrichtigungen).values({

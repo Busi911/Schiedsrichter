@@ -33,6 +33,10 @@ export default auth((req) => {
     // Öffentliche, login-freie Selbsteintragung für Zeitnehmer/Sekretär
     // (Kenntnis des Tokens ist die Berechtigung) — siehe
     // src/app/zeitnehmer-eintragen/[token]/page.tsx.
+    // Öffentliche Abmeldung von Erinnerungs-/Übersichtsmails über einen persönlichen, signierten Link
+    // (siehe src/lib/abmelden.ts, Ein-Klick-Route nach RFC 8058 unter /api/abmelden/).
+    pathname.startsWith("/abmelden/") ||
+    pathname.startsWith("/api/abmelden/") ||
     pathname.startsWith("/zeitnehmer-eintragen/") ||
     // Öffentliche, login-freie Selbsteintragung für Ordner/Kioskdienst,
     // analog zu /zeitnehmer-eintragen/ — siehe

@@ -4,6 +4,7 @@ import { adminDb } from "@/db/admin";
 import { funktionstraegerRollen, users } from "@/db/schema";
 import { holeOffeneZeitnehmerTermine, type OffenerZeitnehmerTermin } from "./dashboard";
 import { sendMail } from "./mailer";
+import { abmeldeInfo } from "./abmelden";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
 import { formatDatumZeitLang } from "./format";
 import { appUrl } from "./app-url";
@@ -79,7 +80,10 @@ export async function sendeOffeneZeitnehmerErinnerungen() {
       const inhalt = offeneZeitnehmerInhalt(verein.name, baldOffen);
       const betreff = `${baldOffen.length} Termin${baldOffen.length === 1 ? "" : "e"} ohne vollständige Zeitnehmer-/Sekretär-Besetzung in den nächsten ${FENSTER_TAGE} Tagen`;
       for (const wart of zeitnehmerwarte) {
-        await sendMail(wart.email, betreff, emailAlsText(inhalt), emailAlsHtml(inhalt));
+        const mitAbmeldung = { ...inhalt, abmelden: abmeldeInfo(wart.id, "zn-erinnerung") };
+        await sendMail(wart.email, betreff, emailAlsText(mitAbmeldung), emailAlsHtml(mitAbmeldung), {
+          abmeldeUrl: mitAbmeldung.abmelden.url,
+        });
         versendet++;
       }
     } catch (err) {

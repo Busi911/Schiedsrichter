@@ -33,6 +33,8 @@ export type EmailInhalt = {
   zeilen: EmailZeile[];
   cta?: { text: string; url: string };
   kleingedrucktes?: string;
+  // Nur bei abbestellbaren Mails (siehe lib/abmelden.ts): sichtbarer Abmelde-Link im Mailfuß.
+  abmelden?: { url: string; text: string };
 };
 
 export function emailAlsText(inhalt: EmailInhalt): string {
@@ -46,6 +48,7 @@ export function emailAlsText(inhalt: EmailInhalt): string {
   ];
   if (inhalt.cta) teile.push(`\n${inhalt.cta.text}: ${inhalt.cta.url}`);
   if (inhalt.kleingedrucktes) teile.push(`\n${inhalt.kleingedrucktes}`);
+  if (inhalt.abmelden) teile.push(`\n${inhalt.abmelden.text} ${inhalt.abmelden.url}`);
   return teile.join("\n");
 }
 
@@ -110,6 +113,11 @@ export function emailAlsHtml(inhalt: EmailInhalt): string {
           ${
             inhalt.kleingedrucktes
               ? `<p style="margin:24px 0 0;color:#a1a1aa;font-size:12px;text-align:center;">${escapeHtml(inhalt.kleingedrucktes)}</p>`
+              : ""
+          }
+          ${
+            inhalt.abmelden
+              ? `<p style="margin:12px 0 0;color:#a1a1aa;font-size:12px;text-align:center;">${escapeHtml(inhalt.abmelden.text)} <a href="${escapeHtml(inhalt.abmelden.url)}" style="color:#71717a;text-decoration:underline;">Abbestellen</a></p>`
               : ""
           }
         </td>

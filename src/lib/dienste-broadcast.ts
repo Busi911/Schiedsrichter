@@ -4,6 +4,7 @@ import { adminDb } from "@/db/admin";
 import { funktionstraegerRollen, users } from "@/db/schema";
 import { holeOffenePosten, type OffenePosten } from "./dashboard";
 import { sendMail } from "./mailer";
+import { abmeldeInfo } from "./abmelden";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
 import { formatDatumZeitLang } from "./format";
 import { appUrl } from "./app-url";
@@ -103,7 +104,10 @@ export async function sendeOffeneDiensteBroadcast() {
         const inhalt = offeneDiensteBroadcastInhalt(verein.name, ROLLE_LABEL[rolle], termine);
         const betreff = `${ROLLE_LABEL[rolle]} gesucht: ${termine.length} unbesetzter Termin${termine.length === 1 ? "" : "e"}`;
         for (const person of rolleninhaber) {
-          await sendMail(person.email, betreff, emailAlsText(inhalt), emailAlsHtml(inhalt));
+          const mitAbmeldung = { ...inhalt, abmelden: abmeldeInfo(person.id, "broadcast") };
+          await sendMail(person.email, betreff, emailAlsText(mitAbmeldung), emailAlsHtml(mitAbmeldung), {
+            abmeldeUrl: mitAbmeldung.abmelden.url,
+          });
           versendet++;
         }
       }
