@@ -249,5 +249,20 @@ export function ortWeichtAb(terminOrt: string | null, halleName: string | null):
   const a = normalisiereHalle(terminOrt);
   const b = normalisiereHalle(halleName);
   if (!a || !b) return false;
-  return !(a.includes(b) || b.includes(a));
+  if (a.includes(b) || b.includes(a)) return false;
+  // "STADTGARTENHALLE" vs. "Saarlouis Sporthalle Am Stadtgarten": dieselbe Halle, nur anders
+  // geschrieben — gleich, wenn ein unterscheidendes Wort (ohne Allerweltswörter wie "Sporthalle")
+  // im anderen Namen steckt. Verschiedene Orte/Namen bleiben eine Abweichung.
+  const woerter = (n: string | null) =>
+    slugify(n ?? "")
+      .split("-")
+      .filter((w) => w.length >= 5 && !ALLERWELTS_HALLENWOERTER.has(w));
+  const wa = woerter(terminOrt);
+  const wb = woerter(halleName);
+  return !wa.some((x) => wb.some((y) => x.includes(y) || y.includes(x)));
 }
+
+const ALLERWELTS_HALLENWOERTER = new Set([
+  "sporthalle", "sportzentrum", "sportanlage", "sportpark", "turnhalle", "mehrzweckhalle",
+  "gemeindehalle", "stadthalle", "grosssporthalle", "dreifeldhalle", "zweifeldhalle", "halle",
+]);

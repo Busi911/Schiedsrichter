@@ -207,6 +207,13 @@ describe("ortWeichtAb", () => {
     expect(ortWeichtAb("Sporthalle Heuchelheim", "Sporthalle Heuchelheim, Musterstr. 1")).toBe(false);
     expect(ortWeichtAb("SPORTHALLE DUTENHOFEN", "Sporthalle Dutenhofen")).toBe(false);
   });
+  it("gleiches unterscheidendes Wort in anderer Schreibweise ist keine Abweichung", () => {
+    expect(ortWeichtAb("STADTGARTENHALLE", "Saarlouis Sporthalle Am Stadtgarten")).toBe(false);
+  });
+  it("verschiedene Orte bleiben eine Abweichung (auch mit gleichem Allerweltswort)", () => {
+    expect(ortWeichtAb("SPORTZENTRUM HÜTTENBERG", "SPORTHALLE DUTENHOFEN")).toBe(true);
+    expect(ortWeichtAb("Sporthalle Heuchelheim", "Sporthalle Biebertal")).toBe(true);
+  });
   it("andere Halle ist eine Abweichung; fehlende Angabe nicht", () => {
     expect(ortWeichtAb("Sporthalle Heuchelheim", "Großsporthalle Biebertal")).toBe(true);
     expect(ortWeichtAb(null, "Sporthalle X")).toBe(false);
