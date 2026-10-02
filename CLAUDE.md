@@ -31,6 +31,18 @@ Text/Html-Funktionspaare, die intern auf `email-layout.ts` delegieren —
 neue Mails brauchen kein eigenes Paar mehr, sondern nutzen das
 `EmailInhalt`-Muster direkt.
 
+## Sponsor je Verein (Sponsorenbild auf der öffentlichen Seite)
+
+Ein Sponsor, der die technischen Kosten übernimmt, bekommt je Verein ein kurzes Bild beim Öffnen der
+öffentlichen Seite ("Präsentiert von …", einmal pro Tag und Gerät, wegtippbar). Gepflegt NUR vom
+Systemadmin unter `/system/sponsor` (Tabelle `verein_sponsor`: aktiv, Name, https-Link, Dauer 2–8 s,
+gültig bis, Bild als normalisiertes PNG; nur `adminDb`, `app_user` hat keinen Zugriff). Wirksam nur, wenn
+aktiv UND Bild vorhanden UND Zeitraum nicht abgelaufen (`sponsorWirksam`, `lib/sponsor.ts`). Bild über
+`/verein/[slug]/sponsor` (404 solange nicht wirksam), Anzeige per `components/liga/sponsor-splash.tsx` im
+Layout `verein/[slug]/layout.tsx`. Kein Tracking: "heute gezeigt" liegt nur in localStorage;
+`?sponsor=zeigen` erzwingt die Anzeige (Vorschau). Kein SVG-Upload (XSS), Links nur https.
+Datenschutzseite enthält dazu einen Abschnitt.
+
 ## Formular-Buttons (Server Actions)
 
 Jeder `<Button type="submit">` innerhalb eines `<form action={serverAction}>`

@@ -159,6 +159,17 @@ export default function DatenschutzPage() {
       </section>
 
       <section className="flex flex-col gap-2">
+        <h2 className="font-heading text-lg font-medium">Sponsorenbild auf den öffentlichen Vereinsseiten</h2>
+        <p className="text-sm text-muted-foreground">
+          Auf der öffentlichen Seite eines Vereins kann kurz das Bild eines Sponsors erscheinen
+          („Präsentiert von …“), der die technischen Kosten übernimmt. Dabei werden keine Daten über dich
+          erhoben oder an den Sponsor übermittelt; lediglich in deinem Browser wird lokal vermerkt, dass das
+          Bild heute schon gezeigt wurde. Tippst du auf das Bild, öffnet sich die Webseite des Sponsors, für
+          die dessen Datenschutzhinweise gelten.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">Cookies</h2>
         <p className="text-sm text-muted-foreground">
           Es wird ausschließlich ein technisch notwendiges Session-Cookie
