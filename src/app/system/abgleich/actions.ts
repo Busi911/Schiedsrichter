@@ -19,6 +19,8 @@ import { terminVerlegtInhalt } from "@/lib/zuordnung";
 import { schreibeProtokoll } from "@/lib/treuhand";
 import { vergleicheAnsetzung } from "@/lib/ansetzung-vergleich";
 import { vergleicheAnsetzungHandballNet } from "@/lib/ansetzung-vergleich-hnet";
+import { berechneHallenplanAbgleich } from "@/lib/hallenplan-abgleich-laden";
+import { handlungsbedarf } from "@/lib/abgleich-handlungen";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
@@ -164,5 +166,29 @@ export async function ortUebernehmen(formData: FormData) {
       }
     }
   }
+  redirect(`/system/abgleich#${ziel(formData, vereinId)}`);
+}
+
+// Schaltet den Hallenplan-/handball.net-Teamimport eines Vereins ab (oder wieder an). Abschalten nur,
+// wenn die automatische Übernahme läuft und der Abgleich nichts mehr offen hat — sonst könnte etwas
+// verloren gehen. Bestehende Termine, Dienste und Freundschaftsspiele bleiben unverändert.
+export async function hallenplanImportSchalten(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const vereinId = formData.get("vereinId");
+  if (typeof vereinId !== "string" || !vereinId) throw new Error("Verein fehlt.");
+  const aus = formData.get("aus") === "1";
+  if (aus) {
+    const bericht = (await berechneHallenplanAbgleich()).find((v) => v.vereinId === vereinId);
+    if (!bericht || !bericht.uebernahmeAktiv) throw new Error("Zuerst die automatische Übernahme einschalten.");
+    if (handlungsbedarf(bericht).length > 0) throw new Error("Der Abgleich hat für diesen Verein noch offene Punkte — erst erledigen.");
+  }
+  await adminDb.update(vereine).set({ hallenplanImportAus: aus }).where(eq(vereine.id, vereinId));
+  await schreibeProtokoll(
+    vereinId,
+    aus ? "hallenplan_import_aus" : "hallenplan_import_an",
+    session.user.email ?? session.user.id,
+    aus ? "Hallenplan-Import abgeschaltet (öffentliche Liga-Daten führen)" : "Hallenplan-Import wieder eingeschaltet"
+  );
+  revalidatePath("/system/abgleich");
   redirect(`/system/abgleich#${ziel(formData, vereinId)}`);
 }

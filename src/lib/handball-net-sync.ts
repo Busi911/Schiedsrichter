@@ -124,9 +124,13 @@ export async function synchronisiereAlleAktivenHandballNetMannschaften() {
     where: isNotNull(mannschaften.handballNetTeamId),
   });
 
+  // Vereine, bei denen der Hallenplan-/Teamimport abgeschaltet ist (öffentliche Liga-Daten führen)
+  const abgeschaltet = new Set(
+    (await adminDb.select({ id: vereine.id }).from(vereine).where(eq(vereine.hallenplanImportAus, true))).map((v) => v.id)
+  );
   const nachVerein = new Map<string, { id: string; handballNetTeamId: string }[]>();
   for (const m of alle) {
-    if (!m.handballNetTeamId) continue;
+    if (!m.handballNetTeamId || abgeschaltet.has(m.vereinId)) continue;
     const liste = nachVerein.get(m.vereinId) ?? [];
     liste.push({ id: m.id, handballNetTeamId: m.handballNetTeamId });
     nachVerein.set(m.vereinId, liste);

@@ -498,6 +498,13 @@
       "when": 1790919179552,
       "tag": "0070_liga_ort_bestaetigt",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1790920034773,
+      "tag": "0071_hallenplan_import_aus",
+      "breakpoints": true
     }
   ]
 }
