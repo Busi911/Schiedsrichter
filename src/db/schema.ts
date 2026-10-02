@@ -235,9 +235,9 @@ export const vereine = pgTable("verein", {
   nuligaAutoImportAktiviert: boolean("nuliga_auto_import_aktiviert")
     .notNull()
     .default(false),
-  // Vom Systemadmin je Verein geschaltet (/system/abgleich): der Liga-Sync-Cron legt
+  // Standard an (neue Vereine); bestehende Vereine schaltet der Systemadmin je Verein (/system/abgleich). Der Cron legt
   // dann fehlende künftige Heimspiele still als Termine an (lib/liga-uebernahme.ts).
-  ligaUebernahmeAktiv: boolean("liga_uebernahme_aktiv").notNull().default(false),
+  ligaUebernahmeAktiv: boolean("liga_uebernahme_aktiv").notNull().default(true),
   // Vom Systemadmin je Verein geschaltet (/system/abgleich), erst wenn der Abgleich "erledigt" ist:
   // der Hallenplan-/handball.net-Teamimport läuft für diesen Verein nicht mehr (Spielplan, Verlegungen,
   // Ergebnisse, Ansetzung kommen aus den öffentlichen Liga-Daten). Folge: Freundschaftsspiele/Turniere

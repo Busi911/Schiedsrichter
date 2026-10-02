@@ -136,22 +136,24 @@ export default async function HilfePage() {
 
       <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">
-          Wann brauche ich eine Hallen-ID?
+          Brauche ich noch eine Hallen-ID?
         </h2>
         <p className="text-sm text-muted-foreground">
-          Bis zur 3. Liga läuft der Spielbetrieb über die
-          (Landesverbands-)nuLiga-Instanz, organisiert pro Halle. Trägt
-          euer Verein unter <strong>Einstellungen → nuLiga Automatischer
-          Import</strong> die Hallen-ID(s) ein, importiert HandballerPate
-          automatisch den Hallenspielplan.
+          In der Regel <strong>nein</strong>. Spielplan, Verlegungen,
+          Ergebnisse und die Ansetzung der Schiedsrichter kommen stündlich
+          aus den öffentlichen Liga-Daten, und dafür genügt die
+          nuLiga- bzw. handball.net-Vereins-ID unter{" "}
+          <strong>Einstellungen → Öffentliche Vereinsseite</strong> — Heim-
+          und Auswärtsspiele gleichermaßen.
         </p>
         <p className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-400">
-          Wichtige Einschränkung: Der Hallenspielplan-Import über die
-          Hallen-ID deckt <strong>nur Spiele ab, die in der eigenen Halle
-          stattfinden</strong> — Auswärtsspiele der eigenen Mannschaften
-          tauchen darüber NICHT auf. Technisch ist das aktuell nicht anders
-          lösbar, da nuLiga den Spielplan hallenweise, nicht
-          mannschaftsweise anbietet.
+          Ausnahme: <strong>Freundschaftsspiele und Turniere</strong> stehen
+          nicht in den öffentlichen Liga-Daten. Bis wir sie ebenfalls
+          automatisch pflegen (in Entwicklung), müssen sie von Hand als
+          Termin angelegt werden. Solange euer Verein noch den
+          Hallenplan-Import nutzt (<strong>Einstellungen →
+          Hallenplan-Import</strong>), kommen sie weiter über die Hallen-ID;
+          die Umstellung nehmen wir je Verein vor.
         </p>
       </section>
 
@@ -186,7 +188,7 @@ export default async function HilfePage() {
           <strong>Handball360</strong> um, das nuLiga und Handball4all
           ablöst. Auch der HHV plant den Umstieg. Sobald das feststeht und
           sich die Datenquelle ändert, passen wir den automatischen Import
-          entsprechend an — die Unterscheidung Hallen-ID/Team-ID oben gilt
+          entsprechend an — die Unterscheidung Vereins-ID/Team-ID oben gilt
           also nur, solange nuLiga bzw. handball.net im Einsatz sind.
         </p>
       </section>

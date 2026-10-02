@@ -135,13 +135,14 @@ describe.skipIf(!ADMIN_URL)("Liga-Übernahme (Postgres)", () => {
     void ligaVereinId;
   });
 
-  it("Cron-Lauf: nur Vereine mit eingeschalteter Übernahme (Default aus), still", async () => {
+  it("Cron-Lauf: nur Vereine mit eingeschalteter Übernahme (Schalter), still", async () => {
     const { uebernehmeFuerAktiveVereine } = await import("./liga-uebernahme");
     // Ausgangslage: alle eigenen liga:-Termine weg, Spiele sind weiter "fehlend"
     await testDb.delete(schema.termine).where(and(eq(schema.termine.vereinId, vereinId), eq(schema.termine.quelle, "rundenspiel_import")));
     const eigene = async () => (await termineDesVereins()).filter((t) => t.icsUid?.startsWith("liga:")).length;
 
-    // Default aus: nichts passiert
+    // Schalter aus: nichts passiert (der Standard für neue Vereine ist an, hier ausdrücklich ausgeschaltet)
+    await testDb.update(schema.vereine).set({ ligaUebernahmeAktiv: false }).where(eq(schema.vereine.id, vereinId));
     expect((await uebernehmeFuerAktiveVereine()).ergebnis).toEqual([]);
     expect(await eigene()).toBe(0);
 

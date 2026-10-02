@@ -846,10 +846,11 @@ export default async function EinstellungenPage({
             </form>
           </EinstellungsBereich>
 
-        <EinstellungsBereich titel="nuLiga Automatischer Import" kurz="Hallen-IDs und täglicher Import des Hallenspielplans" beschreibung={<>Bis zu drei Hallen-IDs eintragen (leere Felder werden
-              übersprungen) — dieselben Angaben wie im bisherigen manuellen
-              Export-Workflow. Bei aktiviertem Import lädt der Verein täglich
-              automatisch neue Spiele in den Hallenspielplan; nach dem
+        <EinstellungsBereich titel="Hallenplan-Import (Hallen-ID)" kurz={verein?.hallenplanImportAus ? "Abgeschaltet — Freundschaftsspiele und Turniere von Hand anlegen" : "Hallen-IDs und täglicher Import des Hallenspielplans"} beschreibung={verein?.hallenplanImportAus ? <>Spielplan, Verlegungen, Ergebnisse und Ansetzung kommen stündlich aus den öffentlichen Liga-Daten über eure Vereins-ID. Hier gibt es nichts mehr einzurichten.</> : <>Bis zu drei Hallen-IDs eintragen (leere Felder werden
+              übersprungen). Spielplan, Ergebnisse und Verlegungen kommen künftig
+              über die Vereins-ID aus den öffentlichen Liga-Daten; die Hallen-ID liefert
+              nur noch Freundschaftsspiele und Turniere. Bei aktiviertem Import
+              lädt der Verein täglich automatisch neue Spiele; nach dem
               Speichern läuft sofort ein erster Sync.</>}>
             {verein?.hallenplanImportAus ? (
               <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
@@ -873,6 +874,33 @@ export default async function EinstellungenPage({
                 </p>
               </div>
             )}
+            {verein?.hallenplanImportAus ? (
+              <form action={nuligaEinstellungenSpeichern} className="flex flex-col gap-4">
+                <input type="hidden" name="nuligaHalle1Id" value={verein?.nuligaHalle1Id ?? ""} />
+                <input type="hidden" name="nuligaHalle2Id" value={verein?.nuligaHalle2Id ?? ""} />
+                <input type="hidden" name="nuligaHalle3Id" value={verein?.nuligaHalle3Id ?? ""} />
+                {verein?.nuligaAutoImportAktiviert && <input type="hidden" name="nuligaAutoImportAktiviert" value="on" />}
+                <fieldset disabled={!session.user.istAdmin} className="contents">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="rundenspielAenderungenBenachrichtigungAktiviert" className="font-normal">
+                      Benachrichtigung bei verlegten Spielen/neuen Ergebnissen
+                    </Label>
+                    <Switch
+                      key={String(verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false)}
+                      id="rundenspielAenderungenBenachrichtigungAktiviert"
+                      name="rundenspielAenderungenBenachrichtigungAktiviert"
+                      defaultChecked={verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false}
+                    />
+                  </div>
+                </fieldset>
+                {session.user.istAdmin && (
+                  <SubmitButton className="w-full" pendingText="Speichert…">
+                    Speichern
+                  </SubmitButton>
+                )}
+              </form>
+            ) : (
+              <>
             <div className="mb-4 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">
                 Woher bekomme ich die Hallen-ID?
@@ -979,6 +1007,8 @@ export default async function EinstellungenPage({
                 </SubmitButton>
               )}
             </form>
+              </>
+            )}
           </EinstellungsBereich>
 
         <EinstellungsBereich titel="Rechtliches" kurz="AVV und Datenschutzerklärung">

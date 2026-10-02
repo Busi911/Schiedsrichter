@@ -163,7 +163,8 @@ describe.skipIf(!ADMIN_URL)("Hallenplan verknüpfen (Postgres)", () => {
     await testDb.update(schema.termine).set({ nuligaSchiedsrichterKuerzel: "Mue." }).where(eq(schema.termine.id, terminId));
     const vorher = await zustand();
 
-    // Schalter aus (Default): nichts wird angefasst
+    // Schalter aus (der Standard für neue Vereine ist an, hier ausdrücklich ausgeschaltet): nichts wird angefasst
+    await testDb.update(schema.vereine).set({ ligaUebernahmeAktiv: false }).where(eq(schema.vereine.id, vereinId));
     expect(await uebernehmeAnsetzungen({ holeHtml: mit("Neu."), jetzt })).toMatchObject({ gruppenGeprueft: 0, aktualisiert: 0 });
     expect(await kuerzelJetzt()).toBe("Mue.");
 
