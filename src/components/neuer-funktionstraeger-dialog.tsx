@@ -65,7 +65,6 @@ export function NeuerFunktionstraegerDialog({
                     type="checkbox"
                     name="typen"
                     value={value}
-                    defaultChecked={value === "schiedsrichter"}
                     className="size-4"
                   />
                   {label}
