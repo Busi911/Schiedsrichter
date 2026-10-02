@@ -12,6 +12,7 @@ export function formatSpieltag(datum: string, uhrzeit: string | null): string {
     weekday: "long",
     day: "2-digit",
     month: "2-digit",
+    year: "numeric",
     timeZone: ZEITZONE,
   }).format(new Date(`${datum}T12:00:00Z`));
   return uhrzeit ? `${text} · ${uhrzeit}` : `${text} · Zeit offen`;
@@ -26,14 +27,15 @@ export function formatKurzDatum(datum: string): string {
   }).format(new Date(`${datum}T12:00:00Z`));
 }
 
-// "Sonntag, 27.09." als Überschrift einer Tagesgruppe.
+// "Sonntag, 27.09.2026" als Überschrift einer Tagesgruppe.
 export function formatTagKopf(datum: string): string {
   return new Intl.DateTimeFormat("de-DE", {
     weekday: "long",
     day: "2-digit",
     month: "2-digit",
+    year: "numeric",
     timeZone: ZEITZONE,
-  }).format(new Date(`${datum}T12:00:00Z`)) + ".";
+  }).format(new Date(`${datum}T12:00:00Z`));
 }
 
 const STATUS_LABEL: Record<string, string> = {
