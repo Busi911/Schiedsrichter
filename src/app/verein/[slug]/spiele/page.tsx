@@ -26,7 +26,7 @@ export default async function NaechsteSpieleSeite({ params }: Props) {
   const { anstehend } = sammleVereinsSpiele(mannschaften, new Date());
 
   return (
-    <div className="space-y-5 pb-20 md:pb-0">
+    <div className="space-y-5 pb-28 md:pb-0">
       <BereichsKopf titel="Nächste Spiele" vereinId={verein.id} vereinName={verein.name} />
       <GefilterteListe
         leerText="Aktuell sind keine Spiele angesetzt."

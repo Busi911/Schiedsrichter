@@ -29,8 +29,10 @@ export function FanKopf({
     <Link
       href={href}
       className={cn(
-        "rounded-full px-3 py-1 text-sm font-medium transition",
-        aktiv === key ? "bg-primary-foreground/20" : "hover:bg-primary-foreground/10"
+        "inline-flex min-h-11 items-center rounded-full border-2 px-4 text-base font-semibold transition active:scale-95",
+        aktiv === key
+          ? "border-primary-foreground bg-primary-foreground text-primary shadow-md"
+          : "border-primary-foreground/40 hover:bg-primary-foreground/10"
       )}
     >
       {label}
@@ -39,7 +41,7 @@ export function FanKopf({
   return (
     <header className="bg-primary text-primary-foreground">
       <div className="mx-auto max-w-3xl px-4 pt-4 pb-5">
-        <nav className="mb-4 flex items-center gap-1" aria-label="Hauptnavigation">
+        <nav className="mb-4 flex items-center gap-2" aria-label="Hauptnavigation">
           {navLink("/verein", "Vereine", "vereine")}
           {navLink("/meine", "Meine Mannschaften", "meine")}
         </nav>

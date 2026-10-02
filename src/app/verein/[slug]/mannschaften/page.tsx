@@ -26,7 +26,7 @@ export default async function MannschaftenSeite({ params }: Props) {
   const gruppen = gruppiereMannschaften(mannschaften);
 
   return (
-    <div className="space-y-6 pb-20 md:pb-0">
+    <div className="space-y-6 pb-28 md:pb-0">
       <BereichsKopf titel="Mannschaften" vereinId={verein.id} vereinName={verein.name} />
       {mannschaften.length === 0 ? (
         <p className="rounded-xl bg-background p-6 text-sm text-muted-foreground ring-1 ring-foreground/[0.06]">

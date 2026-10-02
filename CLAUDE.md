@@ -239,7 +239,7 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   `/verein/[slug]` (Letzte Ergebnisse, Startseite), `/spiele` (Nächste Spiele),
   `/mannschaften` — mit `components/liga/vereins-nav.tsx` (Bottom-Bar unter
   `md`, Tabs ab `md`; nur auf diesen drei Seiten sichtbar, deren Inhalt braucht
-  `pb-20 md:pb-0`). Listen kommen aus `lib/liga-spiele-hilfen.ts`
+  `pb-28 md:pb-0`). Listen kommen aus `lib/liga-spiele-hilfen.ts`
   (`sammleVereinsSpiele`, rein/testbar), Filter-Chips aus
   `gefilterte-liste.tsx`. Statische Segmente `spiele`/`mannschaften` haben
   Vorrang vor `[team]`. Die Landingpage `/` zeigt die Vereinssuche zwischen Produkttour und Beta-Hinweis.
