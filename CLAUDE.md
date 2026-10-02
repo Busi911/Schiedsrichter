@@ -31,6 +31,19 @@ Text/Html-Funktionspaare, die intern auf `email-layout.ts` delegieren —
 neue Mails brauchen kein eigenes Paar mehr, sondern nutzen das
 `EmailInhalt`-Muster direkt.
 
+## Abbestellbare Mails (Abmelde-Link)
+
+Die optionalen Erinnerungs-/Übersichtsmails (Wochenübersicht, Terminerinnerung, offene
+Schiedsrichter-/Zeitnehmer-Dienste, Dienste-Broadcast) enthalten einen persönlichen, signierten
+Abmelde-Link (`lib/abmelden.ts`: HMAC über `AUTH_SECRET`, gilt nur für Person + Mailart) und den
+Header `List-Unsubscribe` + `List-Unsubscribe-Post` (RFC 8058, Ein-Klick über
+`/api/abmelden/[token]`; Gmail/Outlook zeigen "Abbestellen"). Der sichtbare Link führt auf
+`/abmelden/[token]` (öffentlich, ändert erst nach Klick/POST — Mail-Scanner rufen Links vorab ab) und
+schaltet denselben persönlichen Schalter aus wie Profil → Benachrichtigungen. Neue abbestellbare Mail:
+Art in `ABMELDE_ARTEN` + `FELD` ergänzen, `abmelden: abmeldeInfo(userId, art)` in den `EmailInhalt` und
+`{ abmeldeUrl }` als 5. Argument an `sendMail`. Login-Link, Verlegungen, Admin-/System-Mails sind bewusst
+NICHT abbestellbar.
+
 ## Formular-Buttons (Server Actions)
 
 Jeder `<Button type="submit">` innerhalb eines `<form action={serverAction}>`
