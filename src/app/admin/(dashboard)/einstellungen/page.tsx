@@ -316,7 +316,7 @@ export default async function EinstellungenPage({
               </ul>
             </details>
           )}
-          <Unterbereich titel="Quellen und Vereins-IDs" kurz="nuLiga, handball.net, Team-IDs — hier aktualisieren" offen>
+          <Unterbereich titel="Quellen und Vereins-IDs" kurz="Vereins-IDs und Spielhallen — hier einrichten und aktualisieren" offen>
           <form action={oeffentlicheSeiteSpeichern} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="nuligaClubId">nuLiga-Vereins-ID</Label>
@@ -371,6 +371,34 @@ export default async function EinstellungenPage({
               </SubmitButton>
             )}
           </form>
+          {session.user.istAdmin && (
+            <div className="mt-4 flex flex-col gap-2 border-t pt-4">
+              <p className="text-sm font-medium">Eure Spielhallen</p>
+            <form action={eigeneHallenNamenSpeichern} className="flex flex-col gap-3">
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-foreground">Wichtig, sonst werden keine Heimspiele übernommen:</strong> Damit
+                erkennen wir, welche Spiele in einer eurer Hallen stattfinden (nur für diese wird eine Einteilung
+                angelegt) — unabhängig davon, ob die Spiele aus nuLiga oder handball.net kommen.
+              </p>
+              <textarea
+                id="eigeneHallenNamen"
+                name="eigeneHallenNamen"
+                rows={2}
+                maxLength={500}
+                aria-label="Namen eurer Spielhallen"
+                placeholder={"z.B. Sporthalle Heuchelheim\nHalle am Seebach"}
+                defaultValue={verein?.eigeneHallenNamen ?? ""}
+                className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              />
+              <p className="text-xs text-muted-foreground">
+                Eine Halle pro Zeile, ein Teil des Namens reicht (Groß-/Kleinschreibung egal).
+              </p>
+              <SubmitButton size="sm" className="self-start" pendingText="Wird gespeichert…">
+                Hallen speichern
+              </SubmitButton>
+            </form>
+            </div>
+          )}
           </Unterbereich>
           {ligaVerein && (
             <Unterbereich
@@ -468,32 +496,6 @@ export default async function EinstellungenPage({
                   </SubmitButton>
                 </form>
               )}
-            </Unterbereich>
-          )}
-          {ligaVerein && session.user.istAdmin && (
-            <Unterbereich titel="Eure Spielhallen" kurz={verein?.eigeneHallenNamen ? verein.eigeneHallenNamen.split(/\n|,/)[0].trim() + (verein.eigeneHallenNamen.split(/\n|,/).filter((x) => x.trim()).length > 1 ? " u.a." : "") : "Namen eurer Hallen für die Einteilung"}>
-            <form action={eigeneHallenNamenSpeichern} className="flex flex-col gap-3">
-              <p className="text-xs text-muted-foreground">
-                Damit erkennen wir, welche Spiele in einer eurer Hallen stattfinden (nur für diese wird später
-                eine Einteilung angelegt) — unabhängig davon, ob die Spiele aus nuLiga oder handball.net kommen.
-              </p>
-              <textarea
-                id="eigeneHallenNamen"
-                name="eigeneHallenNamen"
-                rows={2}
-                maxLength={500}
-                aria-label="Namen eurer Spielhallen"
-                placeholder={"z.B. Sporthalle Heuchelheim\nHalle am Seebach"}
-                defaultValue={verein?.eigeneHallenNamen ?? ""}
-                className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
-              <p className="text-xs text-muted-foreground">
-                Eine Halle pro Zeile, ein Teil des Namens reicht (Groß-/Kleinschreibung egal).
-              </p>
-              <SubmitButton size="sm" className="self-start" pendingText="Wird gespeichert…">
-                Hallen speichern
-              </SubmitButton>
-            </form>
             </Unterbereich>
           )}
           {ligaVerein && (

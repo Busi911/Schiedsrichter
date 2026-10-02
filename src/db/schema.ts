@@ -181,6 +181,8 @@ export const vereine = pgTable("verein", {
   // für spiel_ics: das sind die persönlichen Einsätze des Schiedsrichters
   // (oft bei fremden Vereinen), nicht Termine, bei denen der eigene Verein
   // Ordner/Kioskdienst-Personal am eigenen Veranstaltungsort braucht.
+  // Standard für NEUE Vereine: Freundschaftsspiele/Turniere 0, Hallenspielplan Ordner 2, Kiosk 1, Kassierer 1,
+  // Zeitnehmer/Sekretär 2 (bestehende Vereine behalten ihre Werte).
   testspielOrdnerBedarf: integer("testspiel_ordner_bedarf").notNull().default(0),
   testspielKioskdienstBedarf: integer("testspiel_kioskdienst_bedarf")
     .notNull()
@@ -191,10 +193,10 @@ export const vereine = pgTable("verein", {
     .default(0),
   rundenspielOrdnerBedarf: integer("rundenspiel_ordner_bedarf")
     .notNull()
-    .default(0),
+    .default(2),
   rundenspielKioskdienstBedarf: integer("rundenspiel_kioskdienst_bedarf")
     .notNull()
-    .default(0),
+    .default(1),
   // Kassierer-Bedarf, organisatorisch wie Ordner/Kioskdienst oben behandelt
   // (siehe ORDNER_ROLLEN in lib/ordnerwart.ts) — gleiche Termin-Typ-
   // Aufteilung, gleicher Default 0.
@@ -206,7 +208,7 @@ export const vereine = pgTable("verein", {
     .default(0),
   rundenspielKassiererBedarf: integer("rundenspiel_kassierer_bedarf")
     .notNull()
-    .default(0),
+    .default(1),
   // Mindestanzahl Zeitnehmer/Sekretär pro Termin-Typ (bisher hart 1 in
   // src/lib/besetzung.ts) — analog zum Ordner-/Kioskdienst-Bedarf oben,
   // ebenfalls nicht für spiel_ics (persönliche Einsätze des
@@ -214,13 +216,13 @@ export const vereine = pgTable("verein", {
   // entspricht dem bisherigen festen Verhalten.
   testspielZeitnehmerBedarf: integer("testspiel_zeitnehmer_bedarf")
     .notNull()
-    .default(1),
+    .default(0),
   turnierZeitnehmerBedarf: integer("turnier_zeitnehmer_bedarf")
     .notNull()
-    .default(1),
+    .default(0),
   rundenspielZeitnehmerBedarf: integer("rundenspiel_zeitnehmer_bedarf")
     .notNull()
-    .default(1),
+    .default(2),
   // Automatischer nuLiga-Rundenspiel-Import (siehe src/lib/nuliga-scraper.ts):
   // bis zu drei Hallen-IDs (dieselben Angaben wie im bisherigen manuellen
   // Export-Workflow), Import läuft nur, wenn aktiviert UND mindestens eine
