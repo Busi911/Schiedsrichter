@@ -16,6 +16,7 @@ import {
   zusatzquelleEntfernen,
   zusatzquelleHinzufuegen,
   nuligaEinstellungenSpeichern,
+  spielplanBenachrichtigungSpeichern,
   eigeneHallenNamenSpeichern,
   vereinsdatenSpeichern,
 } from "./actions";
@@ -846,7 +847,30 @@ export default async function EinstellungenPage({
             </form>
           </EinstellungsBereich>
 
-        <EinstellungsBereich titel="Hallenplan-Import (Hallen-ID)" kurz={verein?.hallenplanImportAus ? "Abgeschaltet — Freundschaftsspiele und Turniere von Hand anlegen" : "Hallen-IDs und täglicher Import des Hallenspielplans"} beschreibung={verein?.hallenplanImportAus ? <>Spielplan, Verlegungen, Ergebnisse und Ansetzung kommen stündlich aus den öffentlichen Liga-Daten über eure Vereins-ID. Hier gibt es nichts mehr einzurichten.</> : <>Bis zu drei Hallen-IDs eintragen (leere Felder werden
+        <EinstellungsBereich titel="Benachrichtigung bei Spielplan-Änderungen" kurz={verein?.rundenspielAenderungenBenachrichtigungAktiviert ? "An — Admin bekommt eine Mail bei Verlegungen und neuen Ergebnissen" : "Aus"} beschreibung={<>Wird ein Spiel verlegt oder trägt der Verband ein Ergebnis ein, bekommt der Admin auf Wunsch eine Mail. Die eingetragenen Personen werden bei einer Verlegung immer benachrichtigt.</>}>
+          <form action={spielplanBenachrichtigungSpeichern} className="flex flex-col gap-4">
+            <fieldset disabled={!session.user.istAdmin} className="contents">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="rundenspielAenderungenBenachrichtigungAktiviert" className="font-normal">
+                  Admin-Mail bei verlegten Spielen/neuen Ergebnissen
+                </Label>
+                <Switch
+                  key={String(verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false)}
+                  id="rundenspielAenderungenBenachrichtigungAktiviert"
+                  name="rundenspielAenderungenBenachrichtigungAktiviert"
+                  defaultChecked={verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false}
+                />
+              </div>
+            </fieldset>
+            {session.user.istAdmin && (
+              <SubmitButton className="w-full" pendingText="Speichert…">
+                Speichern
+              </SubmitButton>
+            )}
+          </form>
+        </EinstellungsBereich>
+
+        <EinstellungsBereich titel="Hallenplan-Import (Hallen-ID)" kurz={verein?.hallenplanImportAus ? "Abgeschaltet — Freundschaftsspiele und Turniere von Hand anlegen" : "Hallen-IDs und täglicher Import des Hallenspielplans"} beschreibung={verein?.hallenplanImportAus ? undefined : <>Bis zu drei Hallen-IDs eintragen (leere Felder werden
               übersprungen). Spielplan, Ergebnisse und Verlegungen kommen künftig
               über die Vereins-ID aus den öffentlichen Liga-Daten; die Hallen-ID liefert
               nur noch Freundschaftsspiele und Turniere. Bei aktiviertem Import
@@ -875,30 +899,7 @@ export default async function EinstellungenPage({
               </div>
             )}
             {verein?.hallenplanImportAus ? (
-              <form action={nuligaEinstellungenSpeichern} className="flex flex-col gap-4">
-                <input type="hidden" name="nuligaHalle1Id" value={verein?.nuligaHalle1Id ?? ""} />
-                <input type="hidden" name="nuligaHalle2Id" value={verein?.nuligaHalle2Id ?? ""} />
-                <input type="hidden" name="nuligaHalle3Id" value={verein?.nuligaHalle3Id ?? ""} />
-                {verein?.nuligaAutoImportAktiviert && <input type="hidden" name="nuligaAutoImportAktiviert" value="on" />}
-                <fieldset disabled={!session.user.istAdmin} className="contents">
-                  <div className="flex items-center justify-between gap-3">
-                    <Label htmlFor="rundenspielAenderungenBenachrichtigungAktiviert" className="font-normal">
-                      Benachrichtigung bei verlegten Spielen/neuen Ergebnissen
-                    </Label>
-                    <Switch
-                      key={String(verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false)}
-                      id="rundenspielAenderungenBenachrichtigungAktiviert"
-                      name="rundenspielAenderungenBenachrichtigungAktiviert"
-                      defaultChecked={verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false}
-                    />
-                  </div>
-                </fieldset>
-                {session.user.istAdmin && (
-                  <SubmitButton className="w-full" pendingText="Speichert…">
-                    Speichern
-                  </SubmitButton>
-                )}
-              </form>
+              <p className="text-sm text-muted-foreground">Die gespeicherten Hallen-IDs bleiben erhalten, falls der Import je wieder eingeschaltet wird.</p>
             ) : (
               <>
             <div className="mb-4 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
@@ -977,24 +978,6 @@ export default async function EinstellungenPage({
                   id="nuligaAutoImportAktiviert"
                   name="nuligaAutoImportAktiviert"
                   defaultChecked={verein?.nuligaAutoImportAktiviert ?? false}
-                />
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <Label
-                  htmlFor="rundenspielAenderungenBenachrichtigungAktiviert"
-                  className="font-normal"
-                >
-                  Benachrichtigung bei verlegten Spielen/neuen Ergebnissen
-                </Label>
-                <Switch
-                  key={String(
-                    verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false
-                  )}
-                  id="rundenspielAenderungenBenachrichtigungAktiviert"
-                  name="rundenspielAenderungenBenachrichtigungAktiviert"
-                  defaultChecked={
-                    verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false
-                  }
                 />
               </div>
             </fieldset>
