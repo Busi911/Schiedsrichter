@@ -18,6 +18,11 @@ describe("parseAnsetzungen (Aufbau der Zelle)", () => {
     ["Gespann in zwei Elementen", `<span title="Lippert A">Lipp.</span>/<span title="Lippert B">Lipp.</span>`, "Lipp./Lipp."],
     ["Gespann als Link mit Leerzeichen", `<a title="X Y">Kert.</a> / <a title="Z">Knod.</a>`, "Kert./Knod."],
     ["zusammengesetzter Name", `<span title="Al Mustafa / Fara">Al M./Fara.</span>`, "Al M./Fara."],
+    [
+      "Gespann mit Zeilenumbrüchen und Tabs um das Kürzel (Aufbau der Hallenspielplan-Seite)",
+      `\n\t          \n\t          \t<span title="Muster Eins / Muster Zwei">\n\t          \t\tMust./Muste.\n\t          \t</span>\n\t          \n          \t&nbsp;\n          `,
+      "Must./Muste.",
+    ],
     ["Wertungscode ist kein Kürzel", `<span title="Nicht angetreten">NH</span>`, null],
     ["ohne Namen (title) nichts", `Absage`, null],
     ["Ergebnis ist keine Ansetzung", `<a href="x?MeetingReport=1" title="Spielbericht">25:20</a>`, null],
