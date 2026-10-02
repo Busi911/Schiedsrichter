@@ -11,8 +11,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSystemAdmin } from "@/lib/session";
 import { adminDb } from "@/db/admin";
-import { and, eq } from "drizzle-orm";
-import { ligaSpiele, termine, vereine } from "@/db/schema";
+import { and, eq, inArray } from "drizzle-orm";
+import { ligaSpiele, termine, terminZuordnungen, users, vereine } from "@/db/schema";
+import { sendMail } from "@/lib/mailer";
+import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
+import { terminVerlegtInhalt } from "@/lib/zuordnung";
 import { schreibeProtokoll } from "@/lib/treuhand";
 import { vergleicheAnsetzung } from "@/lib/ansetzung-vergleich";
 import { vergleicheAnsetzungHandballNet } from "@/lib/ansetzung-vergleich-hnet";
@@ -119,5 +122,47 @@ export async function ortBestaetigen(formData: FormData) {
     .set({ ligaOrtBestaetigt: zeile.halle })
     .where(and(eq(termine.id, terminId), eq(termine.vereinId, vereinId)));
   await schreibeProtokoll(vereinId, "liga_ort_bestaetigt", session.user.email ?? session.user.id, `Ort-Abweichung bestätigt (öffentlich: ${zeile.halle})`);
+  redirect(`/system/abgleich#${ziel(formData, vereinId)}`);
+}
+
+// Setzt den Ort EINES verknüpften Termins auf den öffentlichen Hallennamen (der Hallenplan hatte eine
+// andere Halle). Zeit, Dienste und Zuordnungen bleiben unverändert; die eingetragenen Personen
+// bekommen — wie bei einer manuellen Änderung im Kalender — die Mail "Termin geändert".
+export async function ortUebernehmen(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const vereinId = formData.get("vereinId");
+  const terminId = formData.get("terminId");
+  if (typeof vereinId !== "string" || !vereinId || typeof terminId !== "string" || !terminId) throw new Error("Angaben fehlen.");
+  const [t] = await adminDb
+    .select({ start: termine.start, ort: termine.ort, beschreibung: termine.beschreibung, halle: ligaSpiele.halleName })
+    .from(termine)
+    .innerJoin(ligaSpiele, eq(ligaSpiele.id, termine.ligaSpielId))
+    .where(and(eq(termine.id, terminId), eq(termine.vereinId, vereinId)));
+  if (!t?.halle) throw new Error("Termin nicht verknüpft oder ohne öffentliche Halle.");
+  if (t.ort !== t.halle) {
+    await adminDb.update(termine).set({ ort: t.halle }).where(and(eq(termine.id, terminId), eq(termine.vereinId, vereinId)));
+    await schreibeProtokoll(vereinId, "liga_ort_uebernommen", session.user.email ?? session.user.id, `Ort übernommen: „${t.ort ?? "—"}“ → „${t.halle}“`);
+    const zuordnungen = await adminDb.select().from(terminZuordnungen).where(eq(terminZuordnungen.terminId, terminId));
+    const userIds = [...new Set(zuordnungen.flatMap((z) => (z.userId ? [z.userId] : [])))];
+    if (userIds.length > 0) {
+      const personen = await adminDb
+        .select({ id: users.id, email: users.email })
+        .from(users)
+        .where(and(eq(users.vereinId, vereinId), inArray(users.id, userIds)));
+      const [verein] = await adminDb.select({ name: vereine.name }).from(vereine).where(eq(vereine.id, vereinId));
+      for (const p of personen) {
+        const rollen = zuordnungen.filter((z) => z.userId === p.id).map((z) => z.funktionstraegerTyp);
+        const inhalt: EmailInhalt = {
+          vereinName: verein?.name ?? "deinem Verein",
+          ...terminVerlegtInhalt(rollen, { start: t.start, ort: t.ort }, { start: t.start, ort: t.halle, beschreibung: t.beschreibung }),
+        };
+        try {
+          await sendMail(p.email, "Termin geändert", emailAlsText(inhalt), emailAlsHtml(inhalt));
+        } catch (err) {
+          console.error("Termin-geändert-Mail konnte nicht gesendet werden:", err);
+        }
+      }
+    }
+  }
   redirect(`/system/abgleich#${ziel(formData, vereinId)}`);
 }
