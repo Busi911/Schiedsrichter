@@ -7,5 +7,5 @@ export async function GET(_: Request, { params }: { params: Promise<{ vereinId: 
   const { vereinId } = await params;
   const png = await holeSponsorBild(vereinId);
   if (!png) return new Response("Not found", { status: 404 });
-  return new Response(new Uint8Array(png), { headers: { "Content-Type": "image/png", "Cache-Control": "private, no-store" } });
+  return new Response(new Uint8Array(png), { headers: { "Content-Type": "image/webp", "Cache-Control": "private, no-store" } });
 }

@@ -36,7 +36,7 @@ neue Mails brauchen kein eigenes Paar mehr, sondern nutzen das
 Ein Sponsor, der die technischen Kosten übernimmt, bekommt je Verein ein kurzes Bild beim Öffnen der
 öffentlichen Seite ("Präsentiert von …", einmal pro Tag und Gerät, wegtippbar). Gepflegt NUR vom
 Systemadmin unter `/system/sponsor` (Tabelle `verein_sponsor`: aktiv, Name, https-Link, Dauer 2–8 s,
-gültig bis, Bild als normalisiertes PNG; nur `adminDb`, `app_user` hat keinen Zugriff). Wirksam nur, wenn
+gültig bis, Bild als kleines WebP (max. 640×480 px); nur `adminDb`, `app_user` hat keinen Zugriff). Wirksam nur, wenn
 aktiv UND Bild vorhanden UND Zeitraum nicht abgelaufen (`sponsorWirksam`, `lib/sponsor.ts`). Bild über
 `/verein/[slug]/sponsor` (404 solange nicht wirksam), Anzeige per `components/liga/sponsor-splash.tsx` im
 Layout `verein/[slug]/layout.tsx`. Kein Tracking: "heute gezeigt" liegt nur in localStorage;

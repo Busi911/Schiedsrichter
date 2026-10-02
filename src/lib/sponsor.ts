@@ -6,7 +6,7 @@ import { mitColdStartRetry } from "@/db/retry";
 import { vereinSponsoren } from "@/db/schema";
 
 // Sponsorenbild eines Vereins (übernimmt die technischen Kosten, siehe vereinSponsoren in db/schema.ts).
-// Das Bild kommt vom Systemadmin, wird hier GEPRÜFT und zu einem PNG normalisiert: nur Rastergrafiken
+// Das Bild kommt vom Systemadmin, wird hier GEPRÜFT und zu einem kleinen WebP normalisiert: nur Rastergrafiken
 // (PNG/JPEG/WebP — kein SVG wegen Script-/XSS-Risiko), begrenzte Größe, EXIF entfernt.
 export const SPONSOR_BILD_MAX_BYTES = 5 * 1024 * 1024;
 const ERLAUBTE_FORMATE = new Set(["png", "jpeg", "webp"]);
@@ -28,10 +28,16 @@ export async function verarbeiteSponsorBild(eingabe: Buffer): Promise<Buffer> {
   if (!format || !ERLAUBTE_FORMATE.has(format)) {
     throw new SponsorFehler("Bitte ein Bild als PNG, JPEG oder WebP hochladen.");
   }
-  return sharp(eingabe, { limitInputPixels: 40_000_000 })
+  return verkleinere(eingabe);
+}
+
+// Klein halten, damit das Bild beim Öffnen sofort da ist: höchstens 640×480 px (reicht für ein Overlay
+// auch auf hochauflösenden Handys), WebP (behält Transparenz), typisch wenige zehn KB.
+async function verkleinere(bild: Buffer): Promise<Buffer> {
+  return sharp(bild, { limitInputPixels: 40_000_000 })
     .rotate()
-    .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
-    .png({ compressionLevel: 9 })
+    .resize(640, 480, { fit: "inside", withoutEnlargement: true })
+    .webp({ quality: 80, effort: 5 })
     .toBuffer();
 }
 
@@ -86,5 +92,8 @@ export async function holeSponsorBild(vereinId: string): Promise<Buffer | null> 
   const [z] = await mitColdStartRetry(() =>
     adminDb.select({ png: vereinSponsoren.png }).from(vereinSponsoren).where(eq(vereinSponsoren.vereinId, vereinId))
   );
-  return z?.png ?? null;
+  const bild = z?.png ?? null;
+  // Früher gespeicherte Bilder (großes PNG) werden beim Ausliefern verkleinert; der Browser/CDN cached es lange.
+  if (bild && (await sharp(bild).metadata()).format !== "webp") return verkleinere(bild);
+  return bild;
 }
