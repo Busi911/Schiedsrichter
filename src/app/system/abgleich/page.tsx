@@ -35,7 +35,8 @@ export default async function AbgleichPage({
     if (!v.uebernahmeAktiv) l.push("Die automatische Übernahme (fehlende Heimspiele, Verlegungen, Ergebnisse, Ansetzung) ist ausgeschaltet.");
     // nur künftige Termine: Spiele der Vorsaison werden nie zuordenbar (stehen weiter in den Details)
     if (t.pflichtOffenKuenftig > 0) l.push(`${t.pflichtOffenKuenftig} künftige Liga-Pflichtspiel-Termine sind nicht sicher zugeordnet — bitte in den Details unter „nicht sicher zugeordnet“ prüfen.`);
-    if (t.ortAbweichungenKuenftig > 0) l.push(`${t.ortAbweichungenKuenftig} künftige Termine mit anderem Hallennamen als öffentlich — prüfen, ob nur ein anderer Name oder eine echte Verlegung (Beispiele in den Details).`);
+    // Ort-Abweichungen allein sind KEINE Handlung: eine Halle ändert sich nur zusammen mit der Zeit (dann
+    // übernimmt der Abgleich sie), sonst ist es meist nur ein anderer Hallenname. Sie stehen nur in den Details.
     return l;
   };
   const aktionen = pruefbar.filter((v) => handlungen(v).length > 0);
