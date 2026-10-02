@@ -34,6 +34,10 @@ export type Trockenlauf = {
   verknuepfbar: number;
   // Davon noch NICHT verknüpft (nur dafür ist der Knopf "verknüpfen" nötig).
   verknuepfbarOffen: number;
+  // Termine, deren Spiel von MEHREREN Terminen beansprucht wird (Duplikate im Hallenplan): werden nie
+  // automatisch verknüpft und sind deshalb NICHT Teil von verknuepfbarOffen, sondern eigene Prüfung.
+  doppelteOffen: number;
+  doppelteBeispiele: { start: Date; heim: string | null; gast: string | null }[];
   // Davon mit eingetragenen Funktionsträgern (Zuordnungen bleiben erhalten).
   verknuepfbarMitZuordnungen: number;
   // Davon mit Ansetzung aus dem Hallenplan (Schiedsrichter-Kürzel bzw. von
@@ -345,9 +349,17 @@ async function berechneFuerVerein(
     .sort((a, b) => a.datum.localeCompare(b.datum) || (a.uhrzeit ?? "").localeCompare(b.uhrzeit ?? ""));
   const neuAnzulegenAlle = neuOhneTermin.filter((sp) => sp.datum >= heute);
   const unberuehrteTermine = abgleich.filter((a) => a.status !== "sicher");
+  const terminProSpiel = new Map<string, number>();
+  for (const p of sicherePaare) terminProSpiel.set(p.spiel.id, (terminProSpiel.get(p.spiel.id) ?? 0) + 1);
+  const doppelte = sicherePaare.filter((p) => !p.termin.ligaSpielId && (terminProSpiel.get(p.spiel.id) ?? 0) > 1);
   const trockenlauf: Trockenlauf = {
     verknuepfbar: sicherePaare.length,
-    verknuepfbarOffen: sicherePaare.filter((p) => !p.termin.ligaSpielId).length,
+    verknuepfbarOffen: sicherePaare.filter((p) => !p.termin.ligaSpielId && (terminProSpiel.get(p.spiel.id) ?? 0) === 1).length,
+    doppelteOffen: doppelte.length,
+    doppelteBeispiele: doppelte
+      .sort((a, b) => a.termin.start.getTime() - b.termin.start.getTime())
+      .slice(0, 10)
+      .map((p) => ({ start: p.termin.start, heim: p.termin.heim, gast: p.termin.gast })),
     verknuepfbarMitZuordnungen: sicherePaare.filter((p) => (zuordnungsAnzahl.get(p.termin.id) ?? 0) > 0).length,
     verknuepfbarMitAnsetzung: sicherePaare.filter(
       (p) => p.termin.srKuerzel || p.termin.hnSchiedsrichter || p.termin.hnZeitnehmer
