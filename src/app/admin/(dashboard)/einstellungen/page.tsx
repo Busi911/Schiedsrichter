@@ -1,5 +1,5 @@
 import { and, asc, desc, eq } from "drizzle-orm";
-import { holeProtokoll, supportFreigabeAktiv } from "@/lib/treuhand";
+import { holeProtokoll, istDauerhaft, supportFreigabeAktiv } from "@/lib/treuhand";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
@@ -207,12 +207,14 @@ export default async function EinstellungenPage({
         </Alert>
       )}
 
-      <EinstellungsBereich titel="Support-Zugriff" kurz="Befristete Freigabe für den Support, Protokoll" beschreibung={<>Standardmäßig kommt niemand vom HandballerPate-Support in euren Verein. Wenn ihr Hilfe
+      <EinstellungsBereich titel="Support-Zugriff" kurz="Freigabe für den Support (befristet oder dauerhaft), Protokoll" beschreibung={<>Standardmäßig kommt niemand vom HandballerPate-Support in euren Verein. Wenn ihr Hilfe
             braucht, könnt ihr den Zugriff ausdrücklich und befristet freigeben und jederzeit
             wieder widerrufen. Jeder Zugriff wird unten protokolliert.</>}>
           <p className="text-sm">
             {supportAktiv
-              ? `Freigegeben bis ${verein!.supportZugriffBis!.toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "medium", timeStyle: "short" })}.`
+              ? istDauerhaft(verein!.supportZugriffBis)
+                ? "Dauerhaft freigegeben (bis ihr den Zugriff widerruft)."
+                : `Freigegeben bis ${verein!.supportZugriffBis!.toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "medium", timeStyle: "short" })}.`
               : "Aktuell nicht freigegeben."}
           </p>
           {session.user.istAdmin && !session.user.treuhand && (
@@ -225,6 +227,17 @@ export default async function EinstellungenPage({
                   </SubmitButton>
                 </form>
               ))}
+              <form action={supportZugriffSetzen}>
+                <input type="hidden" name="tage" value="dauerhaft" />
+                <ConfirmSubmitButton
+                  size="sm"
+                  variant="outline"
+                  pendingText="Wird gespeichert…"
+                  confirmText="Support-Zugriff dauerhaft freigeben? Der Support kann dann ohne weitere Rückfrage auf eure Vereinsdaten zugreifen, bis ihr ihn selbst widerruft. Jeder Zugriff wird protokolliert, und ihr könnt ihn hier jederzeit mit „Jetzt widerrufen“ beenden."
+                >
+                  Dauerhaft freigeben
+                </ConfirmSubmitButton>
+              </form>
               {supportAktiv && (
                 <form action={supportZugriffSetzen}>
                   <input type="hidden" name="tage" value="widerrufen" />

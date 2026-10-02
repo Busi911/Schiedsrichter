@@ -16,7 +16,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { appUrl } from "@/lib/app-url";
 import { VorschauLinks } from "@/components/vorschau-links";
-import { supportFreigabeAktiv } from "@/lib/treuhand";
+import { istDauerhaft, supportFreigabeAktiv } from "@/lib/treuhand";
 import { treuhandStarten } from "./actions";
 import {
   Table,
@@ -124,7 +124,7 @@ export default async function SystemVereinePage() {
                                 Support-Zugriff
                               </SubmitButton>
                               <span className="text-xs text-muted-foreground">
-                                freigegeben bis {formatDate(v.supportZugriffBis)}
+                                {istDauerhaft(v.supportZugriffBis) ? "dauerhaft freigegeben" : `freigegeben bis ${formatDate(v.supportZugriffBis)}`}
                               </span>
                             </form>
                           ) : (

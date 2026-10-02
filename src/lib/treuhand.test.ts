@@ -106,6 +106,15 @@ describe.skipIf(!ADMIN_URL)("Treuhand (Postgres)", () => {
       .where(eq(schema.vereine.id, vereinId));
     expect(await t.holeTreuhandKontext(sysAdminId)).toBeNull();
 
+    // Dauerhafte Freigabe (Wunsch des Vereinsadmins): gilt bis zum Widerruf und ist jederzeit widerrufbar
+    const dauerhaft = await t.setzeSupportFreigabe(vereinId, "dauerhaft", "Vereins Admin");
+    expect(t.istDauerhaft(dauerhaft)).toBe(true);
+    await t.starteTreuhand(sysAdminId, vereinId, "support");
+    expect(await t.holeTreuhandKontext(sysAdminId)).toMatchObject({ vereinId, art: "support" });
+    await t.setzeSupportFreigabe(vereinId, null, "Vereins Admin");
+    expect(await t.holeTreuhandKontext(sysAdminId)).toBeNull();
+    await expect(t.starteTreuhand(sysAdminId, vereinId, "support")).rejects.toThrow("Support-Freigabe");
+
     // Protokoll hält alles fest
     const aktionen = (await t.holeProtokoll(vereinId, 50)).map((p) => p.aktion);
     for (const erwartet of [
