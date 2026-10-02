@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/system/warteliste", label: "Warteliste" },
   { href: "/system/feedback", label: "Feedback" },
   { href: "/system/abgleich", label: "Abgleich" },
+  { href: "/system/mail", label: "Mail-Test" },
 ];
 
 export function SystemNav() {
