@@ -1163,3 +1163,21 @@ export const ligaVereinLogos = pgTable("liga_verein_logo", {
   farbton: integer("farbton"),
   aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
 });
+
+// Sponsor eines Vereins (übernimmt die technischen Kosten): kurzes Bild beim Öffnen der öffentlichen Seite
+// dieses Vereins, gepflegt NUR vom Systemadmin unter /system/sponsor (nur adminDb, kein RLS, app_user hat
+// keinen Zugriff). Wirksam nur, wenn aktiv UND Bild vorhanden UND der Vertragszeitraum (gueltig_bis, null =
+// unbefristet) nicht abgelaufen ist. Das Bild ist ein normalisiertes PNG (lib/sponsor.ts).
+export const vereinSponsoren = pgTable("verein_sponsor", {
+  vereinId: uuid("verein_id")
+    .primaryKey()
+    .references((): AnyPgColumn => vereine.id, { onDelete: "cascade" }),
+  aktiv: boolean("aktiv").notNull().default(false),
+  name: text("name"),
+  link: text("link"),
+  dauerSekunden: integer("dauer_sekunden").notNull().default(3),
+  gueltigBis: date("gueltig_bis", { mode: "string" }),
+  png: bytea("png"),
+  aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
+});
+

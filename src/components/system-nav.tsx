@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/system/feedback", label: "Feedback" },
   { href: "/system/abgleich", label: "Abgleich" },
   { href: "/system/mail", label: "Mail-Test" },
+  { href: "/system/sponsor", label: "Sponsor" },
 ];
 
 export function SystemNav() {

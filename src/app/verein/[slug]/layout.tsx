@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { FanKopf, FanTheme } from "@/components/liga/fan-rahmen";
+import { SponsorSplash } from "@/components/liga/sponsor-splash";
+import { holeSponsor } from "@/lib/sponsor";
 import { VereinsNav } from "@/components/liga/vereins-nav";
 import { holeVereinsDesign, holeVerein, holeVorschau } from "@/lib/liga-oeffentlich";
 import { vereinsFarbton, vereinsInitialen } from "@/lib/liga-pwa";
@@ -46,9 +48,19 @@ export default async function VereinsHuelle({
 
   const { logoVersion, farbton } = await holeVereinsDesign(verein.id);
   const vorschau = await holeVorschau(verein.vereinId);
+  const sponsor = await holeSponsor(verein.vereinId);
 
   return (
     <>
+      {sponsor && (
+        <SponsorSplash
+          bildUrl={`/verein/${verein.slug}/sponsor?v=${sponsor.version}`}
+          name={sponsor.name}
+          link={sponsor.link}
+          dauerSekunden={sponsor.dauerSekunden}
+          version={`${verein.slug}-${sponsor.version}`}
+        />
+      )}
       {vorschau && (
         <div className="bg-amber-100 px-4 py-2 text-center text-xs text-amber-950 dark:bg-amber-950 dark:text-amber-100">
           <strong>Vorschau</strong> –{" "}

@@ -526,6 +526,13 @@
       "when": 1790922121652,
       "tag": "0074_dienste_bedarf_standard",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1790931324728,
+      "tag": "0075_verein_sponsor",
+      "breakpoints": true
     }
   ]
 }
