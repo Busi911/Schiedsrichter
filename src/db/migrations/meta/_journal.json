@@ -519,6 +519,13 @@
       "when": 1790921653648,
       "tag": "0073_hallenplan_import_aus_standard",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1790922121652,
+      "tag": "0074_dienste_bedarf_standard",
+      "breakpoints": true
     }
   ]
 }
