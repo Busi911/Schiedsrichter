@@ -769,6 +769,10 @@ export const termine = pgTable("termin", {
   ligaSpielId: uuid("liga_spiel_id").references((): AnyPgColumn => ligaSpiele.id, {
     onDelete: "set null",
   }),
+  // Vom Systemadmin in /system/abgleich bestätigt: der Ort dieses Termins weicht vom öffentlichen
+  // Hallennamen ab und das ist so richtig. Gespeichert wird der öffentliche Name, der bestätigt wurde —
+  // ändert er sich, gilt die Abweichung wieder als offen.
+  ligaOrtBestaetigt: text("liga_ort_bestaetigt"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 

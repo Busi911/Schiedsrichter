@@ -47,6 +47,10 @@ export type Trockenlauf = {
   // Davon nur Termine ab jetzt (vergangene Termine sind für den Handlungsbedarf unerheblich).
   ortAbweichungenKuenftig: number;
   ortBeispiele: { hallenplan: string; oeffentlich: string; anzahl: number }[];
+  // Offene (noch nicht bestätigte) künftige Ort-Abweichungen einzeln, zum Prüfen und Bestätigen.
+  ortFaelle: { terminId: string; start: Date; heim: string | null; gast: string | null; hallenplan: string; oeffentlich: string }[];
+  // Bereits bestätigte Abweichungen (zählen nicht mehr als offen).
+  ortBestaetigt: number;
   // Öffentliche Zeit weicht vom Hallenplan ab (Verlegung?) — würde den Termin
   // verschieben (und Zuordnungen außer Schiri entfernen, siehe rundenspiel-sync.ts).
   zeitAbweichungen: {
@@ -171,6 +175,7 @@ async function berechneFuerVerein(
       hnSchiedsrichter: termine.handballNetSchiedsrichter,
       hnZeitnehmer: termine.handballNetZeitnehmer,
       ligaSpielId: termine.ligaSpielId,
+      ortBestaetigt: termine.ligaOrtBestaetigt,
     })
     .from(termine)
     .where(and(eq(termine.vereinId, v.id), eq(termine.typ, "rundenspiel")));
@@ -303,12 +308,28 @@ async function berechneFuerVerein(
   }
   let ortAbweichungen = 0;
   let ortAbweichungenKuenftig = 0;
+  let ortBestaetigt = 0;
+  const ortFaelle: Trockenlauf["ortFaelle"] = [];
   const jetztZeit = Date.now();
   const ortPaare = new Map<string, { hallenplan: string; oeffentlich: string; anzahl: number }>();
   for (const { termin, spiel } of sicherePaare) {
     if (!ortWeichtAb(termin.ort, spiel.halleName)) continue;
+    if (termin.ortBestaetigt && termin.ortBestaetigt === spiel.halleName) {
+      ortBestaetigt++;
+      continue;
+    }
     ortAbweichungen++;
-    if (termin.start.getTime() >= jetztZeit) ortAbweichungenKuenftig++;
+    if (termin.start.getTime() >= jetztZeit) {
+      ortAbweichungenKuenftig++;
+      ortFaelle.push({
+        terminId: termin.id,
+        start: termin.start,
+        heim: termin.heim,
+        gast: termin.gast,
+        hallenplan: termin.ort ?? "—",
+        oeffentlich: spiel.halleName ?? "—",
+      });
+    }
     const schluessel = `${termin.ort}|${spiel.halleName}`;
     const e = ortPaare.get(schluessel) ?? {
       hallenplan: termin.ort ?? "—",
@@ -335,6 +356,8 @@ async function berechneFuerVerein(
     ergebnisNeu,
     ortAbweichungen,
     ortAbweichungenKuenftig,
+    ortFaelle: ortFaelle.sort((a, b) => a.start.getTime() - b.start.getTime()).slice(0, 10),
+    ortBestaetigt,
     ortBeispiele: [...ortPaare.values()].sort((a, b) => b.anzahl - a.anzahl).slice(0, 5),
     neuAnzulegen: neuAnzulegenAlle.slice(0, 30).map((s) => ({
       datum: s.datum,
