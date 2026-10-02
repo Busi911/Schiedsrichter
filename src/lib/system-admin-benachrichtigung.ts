@@ -6,6 +6,7 @@ import { sendMail } from "./mailer";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
 import { appUrl } from "./app-url";
 import { formatDatum } from "./format";
+import { istDauerhaft } from "./treuhand";
 
 function vereinRegistriertInhalt(
   vereinName: string,
@@ -65,7 +66,7 @@ export async function benachrichtigeSystemAdminsUeberSupportFreigabe(
     ueberschrift: `${vereinName} hat dem Support Zugriff freigegeben.`,
     zeilen: [
       `Freigegeben von: ${akteur}`,
-      `Der Zugriff gilt bis ${formatDatum(bis)} und kann vom Verein jederzeit widerrufen werden.`,
+      (istDauerhaft(bis) ? "Der Zugriff gilt dauerhaft (bis zum Widerruf) und kann vom Verein jederzeit widerrufen werden." : `Der Zugriff gilt bis ${formatDatum(bis)} und kann vom Verein jederzeit widerrufen werden.`),
     ],
     cta: { text: "Zu den Vereinen", url: `${appUrl()}/system/vereine` },
   });

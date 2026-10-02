@@ -551,7 +551,7 @@ export async function supportZugriffSetzen(formData: FormData) {
     throw new Error("Die Support-Freigabe kann nur der Vereinsadmin selbst erteilen.");
   }
   const roh = formData.get("tage");
-  const tage = roh === "widerrufen" ? null : Number(roh);
+  const tage = roh === "widerrufen" ? null : roh === "dauerhaft" ? "dauerhaft" : Number(roh);
   const akteur = session.user.name ?? session.user.email ?? "Vereinsadmin";
   const bis = await setzeSupportFreigabe(session.user.vereinId!, tage, akteur);
   // Systemadmins erfahren per Mail von einer neuen Freigabe (best effort).

@@ -151,8 +151,9 @@ export default function DatenschutzPage() {
           einrichten. Der Verein ist dabei nicht öffentlich sichtbar, es werden keine
           E-Mails versendet. Mit der Übergabe an den Vereinsadmin endet dieser Zugriff
           vollständig. Danach kann der Betreiber nur auf die Vereinsdaten zugreifen,
-          wenn der Vereinsadmin den Support-Zugriff ausdrücklich und befristet
-          freigibt; er kann die Freigabe jederzeit widerrufen. Übergabe, Freigaben und
+          wenn der Vereinsadmin den Support-Zugriff ausdrücklich freigibt — befristet
+          (1, 3 oder 7 Tage) oder auf eigenen Wunsch dauerhaft bis zum Widerruf; er kann
+          die Freigabe jederzeit widerrufen. Übergabe, Freigaben und
           Zugriffe werden im Verein protokolliert und sind dort einsehbar.
         </p>
       </section>

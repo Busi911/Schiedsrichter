@@ -13,6 +13,10 @@ import { treuhandZugriffe, users, vereine, vereinProtokoll } from "@/db/schema";
 
 export type TreuhandArt = "einrichtung" | "support";
 export const SUPPORT_TAGE = [1, 3, 7] as const;
+// "Dauerhaft" (bis zum Widerruf) ist ein ausdrücklich vom Vereinsadmin gewählter Sonderfall: gespeichert als
+// Datum weit in der Zukunft, damit alle bestehenden Prüfungen (supportFreigabeAktiv) unverändert gelten.
+const DAUERHAFT_BIS = new Date("9999-12-31T00:00:00Z");
+export const istDauerhaft = (bis: Date | null): boolean => !!bis && bis.getUTCFullYear() >= 9000;
 const TAG_MS = 24 * 60 * 60 * 1000;
 
 // Liegt eine laufende Support-Freigabe vor? (Eigene Funktion, damit Seiten
@@ -98,7 +102,7 @@ export async function starteTreuhand(userId: string, vereinId: string, art: Treu
     vereinId,
     art === "einrichtung" ? "einrichtung_gestartet" : "support_zugriff",
     akteur,
-    art === "support" ? `Freigabe bis ${v.supportZugriffBis!.toISOString()}` : undefined
+    art === "support" ? (istDauerhaft(v.supportZugriffBis) ? "Freigabe dauerhaft" : `Freigabe bis ${v.supportZugriffBis!.toISOString()}`) : undefined
   );
 }
 
@@ -151,10 +155,10 @@ export async function uebergebeVerein(
 // null) sofort widerrufen. Ein Widerruf beendet auch einen laufenden Zugriff.
 export async function setzeSupportFreigabe(
   vereinId: string,
-  tage: number | null,
+  tage: number | "dauerhaft" | null,
   akteur: string
 ): Promise<Date | null> {
-  if (tage !== null && !(SUPPORT_TAGE as readonly number[]).includes(tage)) {
+  if (tage !== null && tage !== "dauerhaft" && !(SUPPORT_TAGE as readonly number[]).includes(tage)) {
     throw new Error("Ungültige Dauer.");
   }
   if (tage === null) {
@@ -162,6 +166,11 @@ export async function setzeSupportFreigabe(
     await adminDb.delete(treuhandZugriffe).where(eq(treuhandZugriffe.vereinId, vereinId));
     await schreibeProtokoll(vereinId, "support_widerrufen", akteur);
     return null;
+  }
+  if (tage === "dauerhaft") {
+    await adminDb.update(vereine).set({ supportZugriffBis: DAUERHAFT_BIS }).where(eq(vereine.id, vereinId));
+    await schreibeProtokoll(vereinId, "support_freigegeben", akteur, "dauerhaft (bis zum Widerruf)");
+    return DAUERHAFT_BIS;
   }
   const bis = new Date(Date.now() + tage * TAG_MS);
   await adminDb.update(vereine).set({ supportZugriffBis: bis }).where(eq(vereine.id, vereinId));
