@@ -15,6 +15,7 @@ import { setzeSupportFreigabe } from "@/lib/treuhand";
 import { benachrichtigeSystemAdminsUeberSupportFreigabe } from "@/lib/system-admin-benachrichtigung";
 import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
+import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { signOut } from "@/auth";
 
 function parseAnzahl(formData: FormData, feld: string, min = 0): number {
@@ -219,6 +220,8 @@ export async function eigeneHallenNamenSpeichern(formData: FormData) {
   await withTenant(vereinId, (tx) =>
     tx.update(vereine).set({ eigeneHallenNamen }).where(eq(vereine.id, vereinId))
   );
+  // Mit den Hallennamen sind die Heimspiele erkennbar: sofort Termine anlegen.
+  await uebernahmeNachEinrichtung(vereinId);
   revalidatePath("/admin/einstellungen");
   redirect("/admin/einstellungen");
 }
@@ -266,7 +269,24 @@ export async function vereinLoeschen(formData: FormData) {
 // falls ein Lauf wider Erwarten nie vollständig wird.
 const MAX_AUTO_RUNDEN = 6;
 
+// Nach dem Einrichten (Vereins-IDs gespeichert, Spielhallen eingetragen) sofort die fehlenden künftigen
+// Heimspiele als Termine anlegen, statt auf den stündlichen Cron zu warten. Nur wenn die Übernahme beim
+// Verein an ist; ein Fehler hier darf das Speichern nie verhindern (der Cron holt es sonst nach).
+async function uebernahmeNachEinrichtung(vereinId: string, bis?: number): Promise<void> {
+  if (bis !== undefined && Date.now() > bis) return;
+  try {
+    const [v] = await adminDb.select({ aktiv: vereine.ligaUebernahmeAktiv }).from(vereine).where(eq(vereine.id, vereinId));
+    if (!v?.aktiv) return;
+    const [lv] = await adminDb.select({ id: ligaVereine.id }).from(ligaVereine).where(eq(ligaVereine.vereinId, vereinId));
+    if (!lv) return;
+    await uebernehmeLigaSpiele(vereinId, "Einrichtung");
+  } catch (err) {
+    console.error("Sofort-Übernahme nach der Einrichtung fehlgeschlagen:", err);
+  }
+}
+
 export async function oeffentlicheSeiteSpeichern(formData: FormData) {
+  const startZeit = Date.now();
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
@@ -311,6 +331,8 @@ export async function oeffentlicheSeiteSpeichern(formData: FormData) {
     holeJson: holeHandballNetApi,
     frist: Date.now() + 45_000,
   });
+  // Spiele sind geladen: fehlende künftige Heimspiele gleich als Termine anlegen (nur wenn noch Zeit bleibt).
+  await uebernahmeNachEinrichtung(vereinId, startZeit + 40_000);
 
   const meldungen = ergebnis.meldungen;
   const rundeRoh = Number(formData.get("runde"));

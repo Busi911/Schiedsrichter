@@ -370,6 +370,13 @@ export default async function EinstellungenPage({
                 {ligaVerein ? "Jetzt aktualisieren" : "Speichern & Seite erstellen"}
               </SubmitButton>
             )}
+            <p className="rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+              Nach dem Speichern werden die Spiele sofort geladen, und eure Heimspiele (sobald unten „Eure
+              Spielhallen“ eingetragen ist) stehen gleich im Kalender. Danach läuft alles automatisch: Spielplan
+              und Ergebnisse stündlich, Verlegungen meist innerhalb von ein bis eineinhalb Stunden, die
+              Schiedsrichter-Ansetzung etwa 30 bis 60 Minuten nach dem Eintrag durch den Verband. Ihr müsst
+              nichts weiter tun.
+            </p>
           </form>
           {session.user.istAdmin && (
             <div className="mt-4 flex flex-col gap-2 border-t pt-4">
