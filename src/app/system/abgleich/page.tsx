@@ -20,7 +20,7 @@ const STATUS_LABEL = {
 export default async function AbgleichPage({
   searchParams,
 }: {
-  searchParams: Promise<{ verein?: string; neu?: string; schon?: string; dup?: string; zv?: string; zn?: string; ueb?: string; uebdup?: string; uebdupd?: string; uebzeit?: string; av?: string; avg?: string; avgl?: string; avv?: string; avh?: string; avo?: string; avl?: string; avf?: string; avb?: string }>;
+  searchParams: Promise<{ verein?: string; neu?: string; schon?: string; dup?: string; zv?: string; zn?: string; ueb?: string; uebdup?: string; uebdupd?: string; uebzeit?: string; av?: string; avg?: string; avgl?: string; avv?: string; avh?: string; avo?: string; avl?: string; avf?: string; avb?: string; avq?: string }>;
 }) {
   await requireSystemAdmin();
   const ergebnisInfo = await searchParams;
@@ -49,7 +49,7 @@ export default async function AbgleichPage({
     if (ergebnisInfo.ueb !== undefined)
       return `Übernommen: ${ergebnisInfo.ueb} Termine angelegt${Number(ergebnisInfo.uebdup) > 0 ? `, ${ergebnisInfo.uebdup} leere Doppelgänger entfernt` : ""}${Number(ergebnisInfo.uebdupd) > 0 ? `, ${ergebnisInfo.uebdupd} Doppelgänger mit Diensten (bitte prüfen)` : ""}.${dienste(ergebnisInfo.zv, ergebnisInfo.zn)}`;
     if (ergebnisInfo.av === "1")
-      return `Ansetzung verglichen: ${ergebnisInfo.avg} Termine — gleich ${ergebnisInfo.avgl}, verschieden ${ergebnisInfo.avv}, nur im Hallenplan ${ergebnisInfo.avh}, nur öffentlich ${ergebnisInfo.avo}, beide ohne Ansetzung ${ergebnisInfo.avl}.`;
+      return `Ansetzung verglichen${ergebnisInfo.avq === "handball_net" ? " (handball.net)" : ""}: ${ergebnisInfo.avg} Termine — gleich ${ergebnisInfo.avgl}, verschieden ${ergebnisInfo.avv}, nur im Hallenplan ${ergebnisInfo.avh}, nur öffentlich ${ergebnisInfo.avo}, beide ohne Ansetzung ${ergebnisInfo.avl}.`;
     return null;
   };
 
@@ -355,10 +355,22 @@ export default async function AbgleichPage({
                       Ansetzung vergleichen (nuLiga)
                     </ConfirmSubmitButton>
                   </form>
+                  <form action={ansetzungVergleichen} className="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="vereinId" value={v.vereinId} />
+                    <input type="hidden" name="quelle" value="handball_net" />
+                    <ConfirmSubmitButton
+                      size="sm"
+                      variant="outline"
+                      pendingText="Vergleicht…"
+                      confirmText={`Angesetzte Schiedsrichter und Zeitnehmer von ${v.vereinName} aus handball.net mit den Hallenplan-Terminen vergleichen? Es wird nur gelesen, nichts gespeichert oder geändert.`}
+                    >
+                      Ansetzung vergleichen (handball.net)
+                    </ConfirmSubmitButton>
+                  </form>
                   {ergebnisInfo.verein === v.vereinId && ergebnisInfo.av === "1" && (
                     <div className="rounded-md border bg-muted/40 p-2 text-xs">
                       <p>
-                        Verglichen: <strong>{ergebnisInfo.avg}</strong> verknüpfte nuLiga-Termine — gleich:{" "}
+                        Verglichen: <strong>{ergebnisInfo.avg}</strong> verknüpfte {ergebnisInfo.avq === "handball_net" ? "handball.net" : "nuLiga"}-Termine — gleich:{" "}
                         <strong>{ergebnisInfo.avgl}</strong>, verschieden: <strong>{ergebnisInfo.avv}</strong>, nur im
                         Hallenplan: <strong>{ergebnisInfo.avh}</strong>, nur öffentlich:{" "}
                         <strong>{ergebnisInfo.avo}</strong>, beide ohne Ansetzung: <strong>{ergebnisInfo.avl}</strong>.

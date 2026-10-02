@@ -15,7 +15,9 @@ import { eq } from "drizzle-orm";
 import { vereine } from "@/db/schema";
 import { schreibeProtokoll } from "@/lib/treuhand";
 import { vergleicheAnsetzung } from "@/lib/ansetzung-vergleich";
+import { vergleicheAnsetzungHandballNet } from "@/lib/ansetzung-vergleich-hnet";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
+import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { verknuepfeHallenplanTermine } from "@/lib/hallenplan-verknuepfung";
 
@@ -80,10 +82,12 @@ export async function ansetzungVergleichen(formData: FormData) {
   await requireSystemAdmin();
   const vereinId = formData.get("vereinId");
   if (typeof vereinId !== "string" || !vereinId) throw new Error("Verein fehlt.");
-  const r = await vergleicheAnsetzung(vereinId, holeNuligaHtml);
+  const hnet = formData.get("quelle") === "handball_net";
+  const r = hnet ? await vergleicheAnsetzungHandballNet(vereinId, holeHandballNetApi) : await vergleicheAnsetzung(vereinId, holeNuligaHtml);
   const params = new URLSearchParams({
     verein: vereinId,
     av: "1",
+    avq: hnet ? "handball_net" : "nuliga",
     avg: String(r.geprueft),
     avgl: String(r.gleich),
     avv: String(r.verschieden),
