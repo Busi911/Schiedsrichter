@@ -38,6 +38,19 @@ export default async function AbgleichPage({
     return l;
   };
   const aktionen = pruefbar.filter((v) => handlungen(v).length > 0);
+  const dienste = (zv?: string, zn?: string) =>
+    ` Kontrolle Dienste: vorher ${zv}, nachher ${zn}${zv === zn ? " — unverändert." : " — ABWEICHUNG, bitte prüfen."}`;
+  // Ergebnis der zuletzt ausgelösten Aktion (nur für den Verein, bei dem sie ausgelöst wurde)
+  const aktionsErgebnis = (vereinId: string): string | null => {
+    if (ergebnisInfo.verein !== vereinId) return null;
+    if (ergebnisInfo.neu !== undefined)
+      return `Verknüpft: ${ergebnisInfo.neu} neu, ${ergebnisInfo.schon} schon vorhanden${Number(ergebnisInfo.dup) > 0 ? `, ${ergebnisInfo.dup} wegen Duplikaten übersprungen` : ""}.${dienste(ergebnisInfo.zv, ergebnisInfo.zn)}`;
+    if (ergebnisInfo.ueb !== undefined)
+      return `Übernommen: ${ergebnisInfo.ueb} Termine angelegt${Number(ergebnisInfo.uebdup) > 0 ? `, ${ergebnisInfo.uebdup} leere Doppelgänger entfernt` : ""}${Number(ergebnisInfo.uebdupd) > 0 ? `, ${ergebnisInfo.uebdupd} Doppelgänger mit Diensten (bitte prüfen)` : ""}.${dienste(ergebnisInfo.zv, ergebnisInfo.zn)}`;
+    if (ergebnisInfo.av === "1")
+      return `Ansetzung verglichen: ${ergebnisInfo.avg} Termine — gleich ${ergebnisInfo.avgl}, verschieden ${ergebnisInfo.avv}, nur im Hallenplan ${ergebnisInfo.avh}, nur öffentlich ${ergebnisInfo.avo}, beide ohne Ansetzung ${ergebnisInfo.avl}.`;
+    return null;
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,13 +77,18 @@ export default async function AbgleichPage({
             {pruefbar.map((v) => {
               const offen = handlungen(v).length > 0;
               return (
-                <li key={`status-${v.vereinId}`} className="flex flex-wrap items-center gap-2">
+                <li key={`status-${v.vereinId}`} id={`status-${v.vereinId}`} className="flex scroll-mt-20 flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={offen ? "default" : "outline"}>{offen ? "Handlung nötig" : "Erledigt"}</Badge>
                   <span className="font-medium">{v.vereinName}</span>
                   <span className="text-xs text-muted-foreground">
                     {v.bereitsVerknuepft} von {v.termineGesamt} Terminen verknüpft · automatische Übernahme{" "}
                     {v.uebernahmeAktiv ? "an" : "aus"}
                   </span>
+                  </div>
+                  {aktionsErgebnis(v.vereinId) && (
+                    <p className="rounded-md border bg-muted/40 p-2 text-xs">{aktionsErgebnis(v.vereinId)}</p>
+                  )}
                 </li>
               );
             })}
@@ -87,6 +105,7 @@ export default async function AbgleichPage({
                 {v.trockenlauf.verknuepfbarOffen > 0 && (
                   <form action={hallenplanVerknuepfen}>
                     <input type="hidden" name="vereinId" value={v.vereinId} />
+                    <input type="hidden" name="ziel" value="status" />
                     <ConfirmSubmitButton
                       size="sm"
                       variant="outline"
@@ -200,7 +219,7 @@ export default async function AbgleichPage({
         .map((v) => {
           const t = v.trockenlauf;
           return (
-            <Card key={`trocken-${v.vereinId}`}>
+            <Card key={`trocken-${v.vereinId}`} id={`details-${v.vereinId}`} className="scroll-mt-20">
               <CardHeader>
                 <CardTitle className="text-base">{v.vereinName}: Trockenlauf Zusammenführung</CardTitle>
                 <CardDescription>

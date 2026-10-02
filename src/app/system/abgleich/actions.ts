@@ -1,5 +1,12 @@
 "use server";
 
+// Nach einer Aktion bleibt die Seite an der Stelle, an der geklickt wurde, statt nach oben zu
+// springen: "status" = Zeile des Vereins im Bereich "Handlungsbedarf", sonst die Detail-Karte.
+// (Der Anker "status-…" existiert immer — auch wenn der Verein dort nach der Aktion "erledigt" ist.)
+function ziel(formData: FormData, vereinId: string): string {
+  return `${formData.get("ziel") === "status" ? "status" : "details"}-${vereinId}`;
+}
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSystemAdmin } from "@/lib/session";
@@ -28,7 +35,7 @@ export async function hallenplanVerknuepfen(formData: FormData) {
     zv: String(r.zuordnungenVorher),
     zn: String(r.zuordnungenNachher),
   });
-  redirect(`/system/abgleich?${params.toString()}`);
+  redirect(`/system/abgleich?${params.toString()}#${ziel(formData, vereinId)}`);
 }
 
 // Schritt 3: fehlende künftige Heimspiele still aus den öffentlichen Daten anlegen
@@ -48,7 +55,7 @@ export async function ligaSpieleUebernehmen(formData: FormData) {
     zv: String(r.zuordnungenVorher),
     zn: String(r.zuordnungenNachher),
   });
-  redirect(`/system/abgleich?${params.toString()}`);
+  redirect(`/system/abgleich?${params.toString()}#${ziel(formData, vereinId)}`);
 }
 
 // Schaltet je Verein, ob der Liga-Sync-Cron fehlende künftige Heimspiele selbst anlegt.
@@ -86,5 +93,5 @@ export async function ansetzungVergleichen(formData: FormData) {
     avf: String(r.gruppenFehler),
     avb: JSON.stringify(r.beispiele),
   });
-  redirect(`/system/abgleich?${params.toString()}`);
+  redirect(`/system/abgleich?${params.toString()}#${ziel(formData, vereinId)}`);
 }
