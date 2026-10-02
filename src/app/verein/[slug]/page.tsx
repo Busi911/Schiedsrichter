@@ -37,7 +37,7 @@ export default async function ErgebnisseSeite({ params }: Props) {
   };
 
   return (
-    <div className="space-y-5 pb-20 md:pb-0">
+    <div className="space-y-5 pb-28 md:pb-0">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}

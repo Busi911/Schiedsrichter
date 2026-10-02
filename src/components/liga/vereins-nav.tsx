@@ -45,9 +45,9 @@ export function VereinsNav({ basis }: { basis: string }) {
 
       <nav
         aria-label="Bereiche des Vereins"
-        className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:hidden"
       >
-        <ul className="mx-auto grid max-w-3xl grid-cols-3 gap-1 px-2 pt-1.5 pb-1.5">
+        <ul className="mx-auto grid max-w-3xl grid-cols-3 gap-1 px-2 pt-2 pb-2">
           {BEREICHE.map((b) => {
             const aktiv = b === aktuell;
             return (
@@ -56,17 +56,17 @@ export function VereinsNav({ basis }: { basis: string }) {
                   href={`${basis}${b.pfad}`}
                   aria-current={aktiv ? "page" : undefined}
                   className={cn(
-                    "flex flex-col items-center gap-0.5 rounded-xl py-1 text-[11px] font-semibold transition",
+                    "flex flex-col items-center gap-1 rounded-xl py-1 text-xs font-bold transition active:scale-95",
                     aktiv ? "text-primary" : "text-muted-foreground"
                   )}
                 >
                   <span
                     className={cn(
-                      "flex h-7 w-14 items-center justify-center rounded-full transition",
-                      aktiv && "bg-accent"
+                      "flex h-9 w-16 items-center justify-center rounded-full transition",
+                      aktiv && "bg-primary text-primary-foreground shadow-sm"
                     )}
                   >
-                    <b.Icon className="size-6" />
+                    <b.Icon className="size-7" />
                   </span>
                   {b.kurz}
                 </Link>
