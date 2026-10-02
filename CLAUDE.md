@@ -290,7 +290,19 @@ alles unter `/system/abgleich` (nur Systemadmin):
    :30; NICHT im Liga-Sync-Cron — dessen 60-s-Limit reicht dafür nicht) ruft
    `uebernehmeFuerAktiveVereine` auf: am längsten ungeprüfte Vereine zuerst
    (`liga_uebernahme_geprueft_am`), Frist 45 s, Rest im nächsten Lauf
-   (Protokolleintrag nur bei Änderung). Noch offen: Ergebnis-Übernahme, Verlegungen aus den öffentlichen Daten.
+   (Protokolleintrag nur bei Änderung).
+   **Ansetzung (nuLiga):** der eigene Cron `/api/cron/liga-ansetzung` (:15/:45, Frist 40 s,
+   `liga_gruppe.ansetzung_geprueft_am` für die Reihenfolge) liest je Gruppe die Seite
+   "Spielplan (Gesamt)" (`groupPage?displayTyp=vorrunde|rueckrunde&displayDetail=meetings`;
+   NUR dort steht die Ansetzung auch für weit entfernte Spiele — die Gruppenseite "Aktuell"
+   zeigt nur die nächsten Tage, die Team-Seite gar keine) und schreibt das Schiedsrichter-Kürzel
+   in die VERKNÜPFTEN privaten Termine von Vereinen mit eingeschalteter Übernahme
+   (`lib/liga-ansetzung.ts`; nur setzen/ändern, nie löschen, still; Parser `parsers/ansetzung.ts`
+   ist bewusst von der Whitelist der öffentlichen Parser getrennt, nie in `liga_*`). Der
+   Hallenplan-Import füllt das Kürzel bei verknüpften Terminen nur noch, wenn es leer ist
+   (`kuerzelFuerUpdate`) — kein Hin und Her. handball.net-Ansetzung (Schiedsrichter/Zeitnehmer
+   mit Namen) ist noch offen. Vergleichswerkzeug: "Ansetzung vergleichen" in `/system/abgleich`.
+   Noch offen: Ergebnis-Übernahme, Verlegungen aus den öffentlichen Daten.
    **Geplantes Aufräumen nach erfolgreichem Pilot (TSF Heuchelheim):** Standard von
    `liga_uebernahme_aktiv` auf an, bestehende Vereine per Migration einschalten,
    Schalter nur als Notbremse behalten; danach die Einstellungen aufräumen

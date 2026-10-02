@@ -1,0 +1,1 @@
+ALTER TABLE "liga_gruppe" ADD COLUMN "ansetzung_geprueft_am" timestamp;
