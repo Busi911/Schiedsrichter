@@ -140,7 +140,7 @@ export default async function HilfePage() {
         </h2>
         <p className="text-sm text-muted-foreground">
           In der Regel <strong>nein</strong>. Spielplan, Verlegungen,
-          Ergebnisse und die Ansetzung der Schiedsrichter kommen stündlich
+          Ergebnisse und die Ansetzung der Schiedsrichter kommen tagsüber stündlich
           aus den öffentlichen Liga-Daten, und dafür genügt die
           nuLiga- bzw. handball.net-Vereins-ID unter{" "}
           <strong>Einstellungen → Öffentliche Vereinsseite</strong> — Heim-

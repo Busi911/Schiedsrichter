@@ -2,15 +2,15 @@
   "crons": [
     {
       "path": "/api/cron/liga-sync",
-      "schedule": "0 * * * *"
+      "schedule": "0 5-20 * * *"
     },
     {
       "path": "/api/cron/liga-uebernahme",
-      "schedule": "30 * * * *"
+      "schedule": "30 5-20 * * *"
     },
     {
       "path": "/api/cron/liga-ansetzung",
-      "schedule": "15,45 * * * *"
+      "schedule": "15 5-20 * * *"
     },
     {
       "path": "/api/cron/ics-sync",
