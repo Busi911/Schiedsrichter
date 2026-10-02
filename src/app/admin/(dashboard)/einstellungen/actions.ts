@@ -164,7 +164,10 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
   );
 
   const params = new URLSearchParams();
-  if (nuligaAutoImportAktiviert && hallenIds.length > 0) {
+  const [importStatus] = await withTenant(vereinId, (tx) =>
+    tx.select({ aus: vereine.hallenplanImportAus }).from(vereine).where(eq(vereine.id, vereinId))
+  );
+  if (nuligaAutoImportAktiviert && hallenIds.length > 0 && !importStatus?.aus) {
     const ergebnis = await synchronisiereNuligaHallen(vereinId, hallenIds);
     params.set("nuligaNeu", String(ergebnis.neu));
     params.set("nuligaAktualisiert", String(ergebnis.aktualisiert));

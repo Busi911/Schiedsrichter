@@ -525,7 +525,7 @@ export async function synchronisiereNuligaHallen(
 // Für alle Vereine mit aktiviertem Auto-Import (siehe /api/cron/rundenspiel-sync).
 export async function synchronisiereAlleAktivenNuligaVereine() {
   const kandidaten = await adminDb.query.vereine.findMany({
-    where: eq(vereine.nuligaAutoImportAktiviert, true),
+    where: and(eq(vereine.nuligaAutoImportAktiviert, true), eq(vereine.hallenplanImportAus, false)),
   });
 
   const ergebnisse = [];

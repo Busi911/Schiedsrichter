@@ -3,7 +3,8 @@ import { berechneHallenplanAbgleich } from "@/lib/hallenplan-abgleich-laden";
 import { formatDatumZeit } from "@/lib/format";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Badge } from "@/components/ui/badge";
-import { ortBestaetigen, ortUebernehmen, ansetzungVergleichen, hallenplanVerknuepfen, ligaSpieleUebernehmen, ligaUebernahmeSchalten } from "./actions";
+import { handlungsbedarf } from "@/lib/abgleich-handlungen";
+import { hallenplanImportSchalten, ortBestaetigen, ortUebernehmen, ansetzungVergleichen, hallenplanVerknuepfen, ligaSpieleUebernehmen, ligaUebernahmeSchalten } from "./actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -27,18 +28,7 @@ export default async function AbgleichPage({
   const vereine = await berechneHallenplanAbgleich();
   const mitTerminen = vereine.filter((v) => v.termineGesamt > 0 || v.hatLigaVerein);
   const pruefbar = mitTerminen.filter((v) => v.hatLigaVerein && v.termineGesamt > 0);
-  // Was bei einem Verein noch Handlung braucht (abgeschlossene Schritte tauchen hier nicht auf).
-  const handlungen = (v: (typeof vereine)[number]): string[] => {
-    const t = v.trockenlauf;
-    const l: string[] = [];
-    if (t.verknuepfbarOffen > 0) l.push(`${t.verknuepfbarOffen} sicher zugeordnete Termine sind noch nicht mit dem öffentlichen Spiel verknüpft.`);
-    if (t.doppelteKuenftig > 0) l.push(`${t.doppelteKuenftig} künftige Termine sind doppelt vorhanden (mehrere Termine für dasselbe Spiel) und werden deshalb nicht automatisch verknüpft — Details unter „Doppelte Termine“. Bitte melden, sie lassen sich im Kalender nicht löschen (Import-Termine).`);
-    if (!v.uebernahmeAktiv) l.push("Die automatische Übernahme (fehlende Heimspiele, Verlegungen, Ergebnisse, Ansetzung) ist ausgeschaltet.");
-    // nur künftige Termine: Spiele der Vorsaison werden nie zuordenbar (stehen weiter in den Details)
-    if (t.pflichtOffenKuenftig > 0) l.push(`${t.pflichtOffenKuenftig} künftige Liga-Pflichtspiel-Termine sind nicht sicher zugeordnet — bitte in den Details unter „nicht sicher zugeordnet“ prüfen.`);
-    if (t.ortAbweichungenKuenftig > 0) l.push(`${t.ortAbweichungenKuenftig} künftige Termine mit anderem Hallennamen als öffentlich — prüfen, ob nur ein anderer Name oder eine echte Verlegung (Beispiele in den Details).`);
-    return l;
-  };
+  const handlungen = handlungsbedarf;
   const aktionen = pruefbar.filter((v) => handlungen(v).length > 0);
   const dienste = (zv?: string, zn?: string) =>
     ` Kontrolle Dienste: vorher ${zv}, nachher ${zn}${zv === zn ? " — unverändert." : " — ABWEICHUNG, bitte prüfen."}`;
@@ -85,7 +75,7 @@ export default async function AbgleichPage({
                   <span className="font-medium">{v.vereinName}</span>
                   <span className="text-xs text-muted-foreground">
                     {v.bereitsVerknuepft} von {v.termineGesamt} Terminen verknüpft · automatische Übernahme{" "}
-                    {v.uebernahmeAktiv ? "an" : "aus"}
+                    {v.uebernahmeAktiv ? "an" : "aus"} · Hallenplan-Import {v.hallenplanAus ? "aus" : "an"}
                   </span>
                   </div>
                   {aktionsErgebnis(v.vereinId) && (
@@ -399,6 +389,31 @@ export default async function AbgleichPage({
                     >
                       {v.uebernahmeAktiv ? "Ausschalten" : "Einschalten"}
                     </ConfirmSubmitButton>
+                  </form>
+                  <form action={hallenplanImportSchalten} className="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="vereinId" value={v.vereinId} />
+                    <input type="hidden" name="aus" value={v.hallenplanAus ? "0" : "1"} />
+                    <Badge variant={v.hallenplanAus ? "default" : "outline"}>
+                      Hallenplan-Import: {v.hallenplanAus ? "aus" : "an"}
+                    </Badge>
+                    <ConfirmSubmitButton
+                      size="sm"
+                      variant="outline"
+                      pendingText="Speichert…"
+                      confirmText={
+                        v.hallenplanAus
+                          ? `Hallenplan-Import für ${v.vereinName} wieder einschalten?`
+                          : `Hallenplan-Import für ${v.vereinName} ausschalten? Spielplan, Verlegungen, Ergebnisse und Ansetzung kommen dann nur noch aus den öffentlichen Liga-Daten. ACHTUNG: Freundschaftsspiele und Turniere werden dann nicht mehr automatisch angelegt, sondern müssen von Hand eingetragen werden (die automatische Pflege wird entwickelt). Bereits vorhandene Termine, Dienste und Freundschaftsspiele bleiben unverändert. Jederzeit wieder einschaltbar.`
+                      }
+                    >
+                      {v.hallenplanAus ? "Wieder einschalten" : "Ausschalten"}
+                    </ConfirmSubmitButton>
+                    {!v.hallenplanAus && (
+                      <span className="basis-full text-xs text-muted-foreground">
+                        Erst möglich, wenn die Übernahme an ist und oben nichts mehr zu tun ist. Freundschaftsspiele/Turniere
+                        müssen danach von Hand angelegt werden.
+                      </span>
+                    )}
                   </form>
                   <form action={ansetzungVergleichen} className="flex flex-wrap items-center gap-2">
                     <input type="hidden" name="vereinId" value={v.vereinId} />

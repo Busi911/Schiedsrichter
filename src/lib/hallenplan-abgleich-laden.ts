@@ -93,6 +93,8 @@ export type VereinsAbgleich = {
   hatLigaVerein: boolean;
   // Liga-Sync-Cron legt fehlende künftige Heimspiele selbst an.
   uebernahmeAktiv: boolean;
+  // Hallenplan-/handball.net-Teamimport für diesen Verein abgeschaltet.
+  hallenplanAus: boolean;
   termineGesamt: number;
   // Termine, die bereits mit einem öffentlichen Spiel verknüpft sind.
   bereitsVerknuepft: number;
@@ -141,6 +143,7 @@ type VereinsZeile = {
   halle3: string | null;
   hallenNamen: string | null;
   uebernahmeAktiv: boolean;
+  hallenplanAus: boolean;
 };
 
 const alleVereinsZeilen = (): Promise<VereinsZeile[]> =>
@@ -153,6 +156,7 @@ const alleVereinsZeilen = (): Promise<VereinsZeile[]> =>
       halle3: vereine.nuligaHalle3Id,
       hallenNamen: vereine.eigeneHallenNamen,
       uebernahmeAktiv: vereine.ligaUebernahmeAktiv,
+      hallenplanAus: vereine.hallenplanImportAus,
     })
     .from(vereine);
 
@@ -403,6 +407,7 @@ async function berechneFuerVerein(
     vereinName: v.name,
     hatLigaVerein: !!ligaVerein,
     uebernahmeAktiv: v.uebernahmeAktiv,
+    hallenplanAus: v.hallenplanAus,
     termineGesamt: hallenTermine.length,
     bereitsVerknuepft: hallenTermine.filter((t) => t.ligaSpielId).length,
     verknuepfte: hallenTermine

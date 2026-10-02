@@ -851,15 +851,28 @@ export default async function EinstellungenPage({
               Export-Workflow. Bei aktiviertem Import lädt der Verein täglich
               automatisch neue Spiele in den Hallenspielplan; nach dem
               Speichern läuft sofort ein erster Sync.</>}>
-            <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
-              <p className="font-medium">Wofür brauche ich die Hallen-ID noch?</p>
-              <p className="mt-1">
-                Die öffentliche Vereinsseite und der Kalender kommen mit eurer nuLiga- bzw. handball.net-Vereins-ID aus.
-                Die Hallen-ID liefert zusätzlich <strong>Freundschaftsspiele und Turniere</strong> — die sind in den
-                öffentlichen Liga-Daten (noch) nicht enthalten und kommen deshalb vorerst nur über diesen Import. Habt
-                ihr welche, lasst die Hallen-ID eingetragen.
-              </p>
-            </div>
+            {verein?.hallenplanImportAus ? (
+              <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+                <p className="font-medium">Der Hallenplan-Import ist für euren Verein abgeschaltet.</p>
+                <p className="mt-1">
+                  Spielplan, Verlegungen, Ergebnisse und Ansetzung kommen aus den öffentlichen Liga-Daten (eure
+                  Vereins-ID). Die Hallen-ID wird nicht mehr gebraucht.{" "}
+                  <strong>Freundschaftsspiele und Turniere müssen derzeit von Hand angelegt werden</strong> — die
+                  automatische Pflege wird entwickelt.
+                </p>
+              </div>
+            ) : (
+              <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+                <p className="font-medium">Wofür brauche ich die Hallen-ID noch?</p>
+                <p className="mt-1">
+                  Die öffentliche Vereinsseite und der Kalender kommen mit eurer nuLiga- bzw. handball.net-Vereins-ID aus.
+                  Die Hallen-ID liefert zusätzlich <strong>Freundschaftsspiele und Turniere</strong> — die sind in den
+                  öffentlichen Liga-Daten (noch) nicht enthalten. Die Hallen-ID entfällt künftig; danach müssen
+                  Freundschaftsspiele und Turniere von Hand angelegt werden, bis die automatische Pflege fertig ist
+                  (in Entwicklung).
+                </p>
+              </div>
+            )}
             <div className="mb-4 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">
                 Woher bekomme ich die Hallen-ID?

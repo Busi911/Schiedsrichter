@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ADD COLUMN "hallenplan_import_aus" boolean DEFAULT false NOT NULL;
