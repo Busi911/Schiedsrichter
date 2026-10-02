@@ -3,6 +3,7 @@ import {
   ermittleRundenspielAenderung,
   ermittleVerwaisteRundenspielIds,
   terminBenoetigtUpdate,
+  kuerzelFuerUpdate,
   waehleFallbackTermin,
 } from "./rundenspiel-sync";
 import type { RundenspielEreignis } from "./rundenspiel-import";
@@ -171,5 +172,19 @@ describe("waehleFallbackTermin", () => {
 
   it("liefert undefined bei leerer Kandidatenliste", () => {
     expect(waehleFallbackTermin([], new Date("2026-09-01T18:00:00Z"))).toBeUndefined();
+  });
+});
+
+describe("kuerzelFuerUpdate (Hallenplan-Import bei verknüpften Terminen)", () => {
+  it("unverknüpft: Wert aus dem Hallenplan, auch leer", () => {
+    expect(kuerzelFuerUpdate({ ligaSpielId: null, nuligaSchiedsrichterKuerzel: "Alt." }, "Neu.")).toBe("Neu.");
+    expect(kuerzelFuerUpdate({ ligaSpielId: null, nuligaSchiedsrichterKuerzel: "Alt." }, null)).toBeNull();
+  });
+  it("verknüpft: vorhandenes Kürzel bleibt, wird nie überschrieben oder gelöscht", () => {
+    expect(kuerzelFuerUpdate({ ligaSpielId: "s1", nuligaSchiedsrichterKuerzel: "Öff." }, "Hall.")).toBe("Öff.");
+    expect(kuerzelFuerUpdate({ ligaSpielId: "s1", nuligaSchiedsrichterKuerzel: "Öff." }, null)).toBe("Öff.");
+  });
+  it("verknüpft, aber noch leer: wird aus dem Hallenplan gefüllt", () => {
+    expect(kuerzelFuerUpdate({ ligaSpielId: "s1", nuligaSchiedsrichterKuerzel: null }, "Hall.")).toBe("Hall.");
   });
 });

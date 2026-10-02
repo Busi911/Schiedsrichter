@@ -26,6 +26,19 @@ import { sendeDuplikatBenachrichtigungen } from "./duplikat-benachrichtigung";
 // importiertes Rundenspiel ein UPDATE braucht: nur wenn sich tatsächlich
 // etwas geändert hat, sonst würde jeder Sync-Lauf (per Cron täglich) jedes
 // unveränderte Spiel erneut als "aktualisiert" ausweisen.
+// Bei einem mit den öffentlichen Liga-Daten VERKNÜPFTEN Termin (liga_spiel_id) pflegt die
+// automatische Ansetzungs-Übernahme (lib/liga-ansetzung.ts) das nuLiga-Schiedsrichter-Kürzel —
+// dort ist es aktueller als im täglichen Hallenplan-Import. Der Hallenplan-Import füllt es dann
+// nur, wenn es noch leer ist, und überschreibt nie einen vorhandenen Wert (kein Hin und Her).
+export function kuerzelFuerUpdate(
+  bestehend: { ligaSpielId: string | null; nuligaSchiedsrichterKuerzel: string | null },
+  ereignisKuerzel: string | null
+): string | null {
+  return bestehend.ligaSpielId && bestehend.nuligaSchiedsrichterKuerzel
+    ? bestehend.nuligaSchiedsrichterKuerzel
+    : ereignisKuerzel;
+}
+
 export function terminBenoetigtUpdate(
   bestehend: {
     start: Date;
@@ -238,7 +251,8 @@ export async function importiereRundenspielEreignisse(
       if (bestehend) {
         verwendeteIds.push(bestehend.id);
         terminIds.push(bestehend.id);
-        if (terminBenoetigtUpdate(bestehend, ereignis, mannschaftId)) {
+        const kuerzel = kuerzelFuerUpdate(bestehend, ereignis.schiedsrichterKuerzel);
+        if (terminBenoetigtUpdate(bestehend, { ...ereignis, schiedsrichterKuerzel: kuerzel }, mannschaftId)) {
           const aenderung = ermittleRundenspielAenderung(bestehend, ereignis);
           if (aenderung) {
             aenderungen.push({
@@ -310,7 +324,7 @@ export async function importiereRundenspielEreignisse(
               freundschaftsTyp: ereignis.freundschaftsTyp,
               ergebnisHeim: ereignis.ergebnisHeim,
               ergebnisAuswaerts: ereignis.ergebnisAuswaerts,
-              nuligaSchiedsrichterKuerzel: ereignis.schiedsrichterKuerzel,
+              nuligaSchiedsrichterKuerzel: kuerzel,
               handballNetSchiedsrichter: ereignis.angesetzterSchiedsrichter,
               handballNetZeitnehmer: ereignis.angesetzterZeitnehmer,
             })

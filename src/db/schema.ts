@@ -980,6 +980,9 @@ export const ligaGruppen = pgTable(
     // der Mannschaft (siehe nuliga/freundschaft.ts).
     istFreundschaft: boolean("ist_freundschaft").notNull().default(false),
     tabelleSynchronisiertAm: timestamp("tabelle_synchronisiert_am", { mode: "date" }),
+    // Zuletzt vom Ansetzungs-Cron geprüft (lib/liga-ansetzung.ts): bei Zeitnot kommen die am
+    // längsten ungeprüften Gruppen zuerst dran.
+    ansetzungGeprueftAm: timestamp("ansetzung_geprueft_am", { mode: "date" }),
   },
   (t) => [uniqueIndex("liga_gruppe_verband_gruppe_idx").on(t.verband, t.nuligaGroupId)]
 );

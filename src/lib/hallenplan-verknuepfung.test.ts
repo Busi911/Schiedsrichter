@@ -152,6 +152,53 @@ describe.skipIf(!ADMIN_URL)("Hallenplan verknüpfen (Postgres)", () => {
     expect(nachher.z).toEqual(vorher.z);
   });
 
+  it("Ansetzungs-Übernahme: nur Vereine mit eingeschalteter Übernahme, setzt/aktualisiert, löscht nie, still", async () => {
+    const { uebernehmeAnsetzungen } = await import("./liga-ansetzung");
+    const seite = (kuerzel: string | null) =>
+      `<table><tr><th>Nr.</th><th>Heimmannschaft</th><th>Gastmannschaft</th><th>&nbsp;</th></tr>` +
+      `<tr><td>${spiel.spielnummer}</td><td>A</td><td>B</td><td>${kuerzel ? `<span title="Vorname Nachname">${kuerzel}</span>` : ""}</td></tr></table>`;
+    const mit = (k: string | null): HoleHtml => async () => seite(k);
+    const jetzt = new Date("2020-01-01T00:00:00Z");
+    const kuerzelJetzt = async () => (await zustand()).t.nuligaSchiedsrichterKuerzel;
+    await testDb.update(schema.termine).set({ nuligaSchiedsrichterKuerzel: "Mue." }).where(eq(schema.termine.id, terminId));
+    const vorher = await zustand();
+
+    // Schalter aus (Default): nichts wird angefasst
+    expect(await uebernehmeAnsetzungen({ holeHtml: mit("Neu."), jetzt })).toMatchObject({ gruppenGeprueft: 0, aktualisiert: 0 });
+    expect(await kuerzelJetzt()).toBe("Mue.");
+
+    await testDb.update(schema.vereine).set({ ligaUebernahmeAktiv: true }).where(eq(schema.vereine.id, vereinId));
+    // öffentlich ohne Ansetzung: nichts löschen, nichts ändern
+    expect(await uebernehmeAnsetzungen({ holeHtml: mit(null), jetzt })).toMatchObject({ gruppenGeprueft: 1, aktualisiert: 0 });
+    expect(await kuerzelJetzt()).toBe("Mue.");
+    // gleiches Kürzel (Punkt/Schreibweise egal): keine Änderung
+    expect(await uebernehmeAnsetzungen({ holeHtml: mit("Mue"), jetzt })).toMatchObject({ aktualisiert: 0 });
+    // neues Kürzel: wird übernommen; ein zweiter Lauf ändert nichts mehr
+    expect(await uebernehmeAnsetzungen({ holeHtml: mit("Eike/Fisc."), jetzt })).toMatchObject({ aktualisiert: 1 });
+    expect(await kuerzelJetzt()).toBe("Eike/Fisc.");
+    expect(await uebernehmeAnsetzungen({ holeHtml: mit("Eike/Fisc."), jetzt })).toMatchObject({ aktualisiert: 0 });
+    // Ladefehler: wird gezählt, Termin bleibt, Gruppe zählt als versucht
+    expect(
+      await uebernehmeAnsetzungen({
+        holeHtml: async () => {
+          throw new Error("HTTP 503");
+        },
+        jetzt,
+      })
+    ).toMatchObject({ gruppenFehler: 1, aktualisiert: 0 });
+    expect(await kuerzelJetzt()).toBe("Eike/Fisc.");
+    // abgelaufene Frist: nichts geprüft, Gruppe bleibt übrig
+    expect(await uebernehmeAnsetzungen({ holeHtml: mit("Neu."), jetzt, frist: Date.now() - 1 })).toMatchObject({
+      gruppenGeprueft: 0,
+      gruppenUebrig: 1,
+    });
+    // außer dem Kürzel ist nichts verändert, Dienste unberührt
+    const nachher = await zustand();
+    expect({ ...nachher.t, nuligaSchiedsrichterKuerzel: null }).toEqual({ ...vorher.t, nuligaSchiedsrichterKuerzel: null });
+    expect(nachher.z).toEqual(vorher.z);
+    await testDb.update(schema.vereine).set({ ligaUebernahmeAktiv: false }).where(eq(schema.vereine.id, vereinId));
+  });
+
   it("verknüpft nicht, wenn zwei Termine dasselbe Spiel beanspruchen (Duplikate)", async () => {
     const { verknuepfeHallenplanTermine } = await import("./hallenplan-verknuepfung");
     await testDb.update(schema.termine).set({ ligaSpielId: null }).where(eq(schema.termine.id, terminId));
