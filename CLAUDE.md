@@ -302,7 +302,19 @@ alles unter `/system/abgleich` (nur Systemadmin):
    Hallenplan-Import füllt das Kürzel bei verknüpften Terminen nur noch, wenn es leer ist
    (`kuerzelFuerUpdate`) — kein Hin und Her. handball.net-Ansetzung (Schiedsrichter/Zeitnehmer
    mit Namen) ist noch offen. Vergleichswerkzeug: "Ansetzung vergleichen" in `/system/abgleich`.
-   Noch offen: Ergebnis-Übernahme, Verlegungen aus den öffentlichen Daten.
+   **Verlegung/Ergebnis:** `lib/liga-aenderungen.ts` (läuft im Übernahme-Cron nach dem Anlegen
+   neuer Heimspiele) übernimmt für VERKNÜPFTE Termine eine neue Zeit (Halle nur ZUSAMMEN mit
+   einer Zeitänderung; eine reine Hallenabweichung kann nur ein anderer Name sein und wird nicht
+   übernommen) und Ergebnisse (nur bei gleicher Heim/Gast-Richtung). Es ruft dafür den
+   vorhandenen Import auf (`importiereRundenspielEreignisse(..., { quelle: "liga" })`): dieselben
+   Regeln wie beim Hallenplan-Import — bei einer Verlegung entfallen die Dienste außer
+   Schiedsrichter, die betroffenen Personen werden benachrichtigt, der Vereinsadmin nach seinem
+   Opt-in. Bereits begonnene/vergangene Termine werden nicht mehr verlegt. Umgekehrt ändert der
+   (tägliche) Hallenplan-Import Zeit/Halle/Ergebnis eines verknüpften Termins eines Vereins mit
+   eingeschalteter Übernahme NICHT mehr (sonst setzt er öffentlich schon gemeldete Verlegungen
+   zurück, beide Wege überschrieben sich stündlich inkl. Mails).
+   Tests mit `withTenant` brauchen ein Mock von `@/db` (der App-Treiber ist Neon/WebSocket).
+   Noch offen: handball.net-Ansetzung, Vergleich je Verein + Abschalten des Hallenplan-Imports.
    **Geplantes Aufräumen nach erfolgreichem Pilot (TSF Heuchelheim):** Standard von
    `liga_uebernahme_aktiv` auf an, bestehende Vereine per Migration einschalten,
    Schalter nur als Notbremse behalten; danach die Einstellungen aufräumen

@@ -172,7 +172,14 @@ export async function importiereRundenspielEreignisse(
   mannschaftIdErmitteln: (
     ereignis: RundenspielEreignis,
     mannschaftsListe: { id: string; name: string; altersklasse?: string | null }[]
-  ) => string | null = findeMannschaft
+  ) => string | null = findeMannschaft,
+  // quelle "liga": Aufruf aus der automatischen Übernahme aus den öffentlichen Liga-Daten
+  // (lib/liga-aenderungen.ts). Dort ist der Liga-Termin maßgeblich. Bei "hallenplan"
+  // (Standard) ändern Zeit, Halle und Ergebnis eines VERKNÜPFTEN Termins eines Vereins mit
+  // eingeschalteter Übernahme sich NICHT mehr durch den (täglichen, oft älteren) Hallenplan:
+  // sonst würde er eine öffentlich schon gemeldete Verlegung zurücksetzen und beide Wege
+  // würden sich stündlich überschreiben (inkl. Mails).
+  opt: { quelle?: "hallenplan" | "liga" } = {}
 ) {
   let neu = 0;
   let aktualisiert = 0;
@@ -194,6 +201,10 @@ export async function importiereRundenspielEreignisse(
       where: eq(mannschaften.vereinId, vereinId),
       orderBy: (m) => [asc(m.name)],
     });
+    const ligaFuehrt =
+      opt.quelle !== "liga" &&
+      !!(await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { ligaUebernahmeAktiv: true } }))
+        ?.ligaUebernahmeAktiv;
 
     // Innerhalb dieses Laufs bereits per UID oder Fallback verwendete
     // Termin-IDs — verhindert, dass zwei verschiedene Ereignisse in
@@ -201,7 +212,8 @@ export async function importiereRundenspielEreignisse(
     // (siehe Fallback-Abgleich unten).
     const verwendeteIds: string[] = [];
 
-    for (const ereignis of ereignisse) {
+    for (const rohEreignis of ereignisse) {
+      let ereignis = rohEreignis;
       const mannschaftId = mannschaftIdErmitteln(ereignis, mannschaftsListe);
       let bestehend = await tx.query.termine.findFirst({
         where: and(
@@ -246,6 +258,16 @@ export async function importiereRundenspielEreignisse(
           );
           bestehend = waehleFallbackTermin(gleicheHalle, ereignis.start);
         }
+      }
+
+      if (bestehend && ligaFuehrt && bestehend.ligaSpielId) {
+        ereignis = {
+          ...ereignis,
+          start: bestehend.start,
+          ort: bestehend.ort ?? ereignis.ort,
+          ergebnisHeim: bestehend.ergebnisHeim ?? ereignis.ergebnisHeim,
+          ergebnisAuswaerts: bestehend.ergebnisAuswaerts ?? ereignis.ergebnisAuswaerts,
+        };
       }
 
       if (bestehend) {

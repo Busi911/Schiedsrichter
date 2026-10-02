@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import * as schema from "@/db/schema";
@@ -15,6 +15,18 @@ const ADMIN_URL = process.env.TEST_DATABASE_ADMIN_URL;
 const pool = new Pool({ connectionString: ADMIN_URL ?? "postgres://unused" });
 const testDb = drizzle(pool, { schema });
 const mailSpy = vi.fn();
+// withTenant (genutzt von der Änderungs-Übernahme im Cron-Lauf) gegen die lokale Test-Datenbank
+// (die App nutzt dafür den Neon-WebSocket-Treiber): als app_user, mit gesetzter Mandanten-Variable.
+const appPool = new Pool({ connectionString: process.env.TEST_DATABASE_URL ?? "postgres://unused" });
+const appDb = drizzle(appPool, { schema });
+vi.mock("@/db", () => ({
+  db: appDb,
+  withTenant: <T,>(vId: string, callback: (tx: typeof appDb) => Promise<T>) =>
+    appDb.transaction(async (tx) => {
+      await tx.execute(sql`select set_config('app.current_verein_id', ${vId}, true)`);
+      return callback(tx as unknown as typeof appDb);
+    }),
+}));
 vi.mock("@/db/admin", () => ({ adminDb: testDb }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/mailer", () => ({ sendMail: (...a: unknown[]) => mailSpy(...a) }));
@@ -49,6 +61,7 @@ describe.skipIf(!ADMIN_URL)("Liga-Übernahme (Postgres)", () => {
     await testDb.delete(schema.vereine).where(eq(schema.vereine.id, vereinId));
     await testDb.delete(schema.ligaGruppen);
     await pool.end();
+    await appPool.end();
   });
 
   const termineDesVereins = () => testDb.select().from(schema.termine).where(eq(schema.termine.vereinId, vereinId));
