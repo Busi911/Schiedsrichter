@@ -198,8 +198,8 @@ export function MannschaftsKarte({ basis, m }: { basis: string; m: MannschaftAns
           <p className="text-xs text-muted-foreground">Kein Spiel angesetzt</p>
         )}
         <span className="flex shrink-0 items-center text-xs font-medium text-primary" aria-hidden="true">
-          Öffnen
-          <ChevronRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
+          <span className="hidden sm:inline">Öffnen</span>
+          <ChevronRightIcon className="size-5 transition-transform group-hover:translate-x-0.5 sm:size-4" />
         </span>
       </div>
     </Card>
