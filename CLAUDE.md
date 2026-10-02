@@ -319,10 +319,15 @@ alles unter `/system/abgleich` (nur Systemadmin):
    eingeschalteter Übernahme NICHT mehr (sonst setzt er öffentlich schon gemeldete Verlegungen
    zurück, beide Wege überschrieben sich stündlich inkl. Mails).
    Tests mit `withTenant` brauchen ein Mock von `@/db` (der App-Treiber ist Neon/WebSocket).
-   Noch offen: handball.net-Ansetzung, Vergleich je Verein + Abschalten des Hallenplan-Imports.
-   **Geplantes Aufräumen nach erfolgreichem Pilot (TSF Heuchelheim):** Standard von
-   `liga_uebernahme_aktiv` auf an, bestehende Vereine per Migration einschalten,
-   Schalter nur als Notbremse behalten; danach die Einstellungen aufräumen
-   (Hallen-ID-/nuLiga-Import-Schalter, "täglich"-Texte, Hilfe-Artikel an die
-   Zusammenführung anpassen, nicht mehr gebrauchte Abgleich-Knöpfe).
-   Die Hallen-ID bleibt als Zusatzquelle (u.a. für Freundschaftsspiele/Turniere).
+   **Abschalten des Hallenplan-Imports:** `vereine.hallenplan_import_aus` (Schalter je Verein in
+   `/system/abgleich`, nur Systemadmin; abschaltbar nur bei eingeschalteter Übernahme UND ohne
+   Handlungsbedarf, gemeinsame Prüfung `lib/abgleich-handlungen.ts`). Dann überspringen der nuLiga-
+   Hallenplan-Cron, der handball.net-Teamimport und der Sofortimport beim Speichern der Hallen-IDs diesen
+   Verein; vorhandene Termine/Dienste bleiben. Folge: Freundschaftsspiele/Turniere müssen von Hand
+   angelegt werden (automatische Pflege in Entwicklung, steht so auch in Einstellungen/Hilfe).
+   Die Abgleich-Seite ist bewusst schlank (nur offene Punkte, Schalter, aktuelle Vergleiche).
+   Ort-Abweichungen werden einzeln geprüft ("Ort übernehmen" mit Mail an Betroffene / "Ort geprüft" =
+   `termin.liga_ort_bestaetigt`); Import-Termine sind im Kalender nicht bearbeit-/löschbar.
+   Standard von `liga_uebernahme_aktiv` ist jetzt an (neue Vereine); bestehende Vereine schaltet der
+   Systemadmin einzeln ein. Einstellungen/Hilfe sind an die Zusammenführung angepasst: die Vereins-ID
+   genügt, die Hallen-ID nur noch für Freundschaftsspiele/Turniere solange der Import an ist.

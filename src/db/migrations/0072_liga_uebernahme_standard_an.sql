@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ALTER COLUMN "liga_uebernahme_aktiv" SET DEFAULT true;
