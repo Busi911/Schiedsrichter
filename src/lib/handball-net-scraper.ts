@@ -142,7 +142,7 @@ type SchiedsrichterRoh = {
 // statt eine zweite exakte Rollenbezeichnung zu raten.
 const SCHIEDSRICHTER_ROLLE_MUSTER = /schiedsrichter/i;
 
-function gruppiereSchiedsrichterUndZeitnehmer(
+export function gruppiereSchiedsrichterUndZeitnehmer(
   referees: unknown
 ): { schiedsrichter: string | null; zeitnehmer: string | null } {
   if (!Array.isArray(referees)) return { schiedsrichter: null, zeitnehmer: null };

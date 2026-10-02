@@ -267,6 +267,10 @@ export async function importiereRundenspielEreignisse(
           ort: bestehend.ort ?? ereignis.ort,
           ergebnisHeim: bestehend.ergebnisHeim ?? ereignis.ergebnisHeim,
           ergebnisAuswaerts: bestehend.ergebnisAuswaerts ?? ereignis.ergebnisAuswaerts,
+          // handball.net-Ansetzung (Namen): pflegt die automatische Übernahme aus den öffentlichen
+          // Daten (lib/liga-ansetzung-hnet.ts); hier nur füllen, wenn noch leer
+          angesetzterSchiedsrichter: bestehend.handballNetSchiedsrichter ?? ereignis.angesetzterSchiedsrichter,
+          angesetzterZeitnehmer: bestehend.handballNetZeitnehmer ?? ereignis.angesetzterZeitnehmer,
         };
       }
 
