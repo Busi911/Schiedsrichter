@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarIcon, MapPinIcon } from "lucide-react";
+import { CalendarIcon, ChevronRightIcon, MapPinIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -164,7 +164,7 @@ export function MannschaftsKarte({ basis, m }: { basis: string; m: MannschaftAns
       : n.heimName
     : null;
   return (
-    <Card size="sm" className="relative gap-1.5 px-4 transition hover:ring-foreground/15">
+    <Card size="sm" className="group relative gap-1.5 px-4 transition hover:bg-muted/40 hover:ring-foreground/25 active:bg-muted/60">
       <Link href={`${basis}/${m.slug}`} className="absolute inset-0 z-0 rounded-xl" aria-label={m.name} />
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -187,15 +187,21 @@ export function MannschaftsKarte({ basis, m }: { basis: string; m: MannschaftAns
         )}
         {m.istMeldeliste && <Badge variant="outline">Meldeliste</Badge>}
       </div>
-      {n && gegner ? (
-        <p className="text-xs text-muted-foreground">
-          Nächstes Spiel: {formatKurzDatum(n.datum)}
-          {n.uhrzeit ? ` · ${n.uhrzeit}` : ""} · {n.heimTeamtableId === m.teamtableId ? "gegen" : "bei"}{" "}
-          {gegner}
-        </p>
-      ) : (
-        <p className="text-xs text-muted-foreground">Kein Spiel angesetzt</p>
-      )}
+      <div className="flex items-end justify-between gap-2">
+        {n && gegner ? (
+          <p className="text-xs text-muted-foreground">
+            Nächstes Spiel: {formatKurzDatum(n.datum)}
+            {n.uhrzeit ? ` · ${n.uhrzeit}` : ""} · {n.heimTeamtableId === m.teamtableId ? "gegen" : "bei"}{" "}
+            {gegner}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Kein Spiel angesetzt</p>
+        )}
+        <span className="flex shrink-0 items-center text-xs font-medium text-primary" aria-hidden="true">
+          <span className="hidden sm:inline">Öffnen</span>
+          <ChevronRightIcon className="size-5 transition-transform group-hover:translate-x-0.5 sm:size-4" />
+        </span>
+      </div>
     </Card>
   );
 }
