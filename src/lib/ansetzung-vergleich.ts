@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, inArray } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaGruppen, ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine, termine } from "@/db/schema";
+import { ligaGruppen, ligaSpiele, termine } from "@/db/schema";
 import { ermittleSichereVerknuepfungen } from "@/lib/hallenplan-abgleich-laden";
 import { baueNuligaUrl } from "@/lib/nuliga/verbaende";
 import { parseAnsetzungen } from "@/lib/nuliga/parsers/ansetzung";
@@ -14,13 +14,13 @@ export type AnsetzungsVergleich = {
   nurHallenplan: number; // im Termin vorhanden, öffentlich (noch) nicht
   nurOeffentlich: number; // öffentlich vorhanden, im Termin nicht (neu angesetzt)
   beideLeer: number;
-  gruppenGeladen: number; // geladene Team-Seiten (Spielplan der Mannschaft, wie der Sync)
+  gruppenGeladen: number; // geladene Gruppenseiten (Spielplan Gesamt)
   gruppenFehler: number;
   beispiele: { termin: string; hallenplan: string | null; oeffentlich: string | null }[];
 };
 
-// NUR LESEND: lädt die Team-Seiten (teamPortrait = ganzer Spielplan der Mannschaft, dieselbe
-// Seite wie der Spiele-Sync) der eigenen Mannschaften zu den verknüpften nuLiga-Spielen und vergleicht das angesetzte Schiedsrichter-Kürzel mit dem
+// NUR LESEND: lädt die Gruppenseiten "Spielplan (Gesamt)" der Spiele, die mit einem Termin dieses
+// Vereins verknüpft sind (nuLiga), und vergleicht das angesetzte Schiedsrichter-Kürzel mit dem
 // des Termins (aus dem Hallenplan-Import). Schreibt nichts, speichert kein Kürzel.
 export async function vergleicheAnsetzung(vereinId: string, holeHtml: HoleHtml): Promise<AnsetzungsVergleich> {
   const sichere = await ermittleSichereVerknuepfungen(vereinId);
@@ -51,47 +51,37 @@ export async function vergleicheAnsetzung(vereinId: string, holeHtml: HoleHtml):
     .where(and(eq(termine.vereinId, vereinId), inArray(termine.id, sichere.map((p) => p.terminId))));
   const terminNachId = new Map(termineZeilen.map((t) => [t.id, t]));
 
-  // Die Gruppenseite zeigt nur einen Zeitausschnitt ("Aktuell") — der volle Spielplan steht auf
-  // der Team-Seite (wie beim Sync). Je eigener Mannschaft in den betroffenen Gruppen EINE Seite
-  // laden (sequenziell, der nuLiga-Client hält den Mindestabstand).
-  const gruppenIds = [...new Set(spiele.filter((x) => x.quelle === "nuliga").map((x) => x.gruppeId))];
-  const teams = gruppenIds.length
-    ? await adminDb
-        .select({
-          gruppeId: ligaTeilnahmen.gruppeId,
-          teamtable: ligaTeilnahmen.nuligaTeamtableId,
-          verband: ligaGruppen.verband,
-          championship: ligaGruppen.championship,
-          gruppenNr: ligaGruppen.nuligaGroupId,
-        })
-        .from(ligaTeilnahmen)
-        .innerJoin(ligaGruppen, eq(ligaGruppen.id, ligaTeilnahmen.gruppeId))
-        .innerJoin(ligaMannschaften, eq(ligaMannschaften.id, ligaTeilnahmen.mannschaftId))
-        .innerJoin(ligaVereine, eq(ligaVereine.id, ligaMannschaften.ligaVereinId))
-        .where(
-          and(eq(ligaVereine.vereinId, vereinId), eq(ligaTeilnahmen.aktiv, true), inArray(ligaTeilnahmen.gruppeId, gruppenIds))
-        )
-    : [];
+  // Je Gruppe die Seite "Spielplan (Gesamt)" laden (sequenziell, der nuLiga-Client hält den
+  // Mindestabstand). Nur dort steht die Ansetzung auch für Spiele weit in der Zukunft: die
+  // Gruppenseite "Aktuell" zeigt nur die nächsten Tage, die Team-Seite (teamPortrait) zeigt
+  // keine Ansetzung. Hinrunde ist Pflicht (Fehler werden gezählt), die Rückrunde ist optional
+  // (nicht jede Gruppe hat sie schon).
+  const gruppen = new Map<string, (typeof spiele)[number]>();
+  for (const x of spiele) if (x.quelle === "nuliga") gruppen.set(x.gruppeId, x);
   const ansetzungen = new Map<string, Map<number, string>>();
   const out = { ...leer };
-  for (const t of teams) {
-    if (!t.teamtable) continue;
+  const gesamtUrl = (g: (typeof spiele)[number], runde: "vorrunde" | "rueckrunde") =>
+    baueNuligaUrl(g.verband, "groupPage", {
+      displayTyp: runde,
+      displayDetail: "meetings",
+      championship: g.championship,
+      group: g.gruppenNr,
+    });
+  for (const [gruppeId, g] of gruppen) {
+    const karte = new Map<number, string>();
     try {
-      const html = await holeHtml(
-        baueNuligaUrl(t.verband, "teamPortrait", {
-          teamtable: t.teamtable,
-          pageState: "vorrunde",
-          championship: t.championship,
-          group: t.gruppenNr,
-        })
-      );
-      const karte = ansetzungen.get(t.gruppeId) ?? new Map<number, string>();
-      for (const a of parseAnsetzungen(html)) karte.set(a.spielnummer, a.kuerzel);
-      ansetzungen.set(t.gruppeId, karte);
+      for (const a of parseAnsetzungen(await holeHtml(gesamtUrl(g, "vorrunde")))) karte.set(a.spielnummer, a.kuerzel);
       out.gruppenGeladen++;
     } catch {
       out.gruppenFehler++;
+      continue;
     }
+    try {
+      for (const a of parseAnsetzungen(await holeHtml(gesamtUrl(g, "rueckrunde")))) karte.set(a.spielnummer, a.kuerzel);
+    } catch {
+      // Rückrunde (noch) nicht abrufbar: kein Fehler
+    }
+    ansetzungen.set(gruppeId, karte);
   }
 
   for (const p of sichere) {
