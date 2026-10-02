@@ -26,6 +26,7 @@ export default async function AbgleichPage({
   const ergebnisInfo = await searchParams;
   const vereine = await berechneHallenplanAbgleich();
   const mitTerminen = vereine.filter((v) => v.termineGesamt > 0 || v.hatLigaVerein);
+  const neue = mitTerminen.filter((v) => v.hatLigaVerein && v.termineGesamt === 0);
   const pruefbar = mitTerminen.filter((v) => v.hatLigaVerein && v.termineGesamt > 0);
   const handlungen = handlungsbedarf;
   const zeitpunkt = new Date().getTime();
@@ -200,6 +201,63 @@ export default async function AbgleichPage({
           ))}
         </CardContent>
       </Card>
+
+      {neue.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Neu eingerichtete Vereine ohne Termine</CardTitle>
+            <CardDescription>
+              Diagnose, warum (noch) keine Heimspiele als Termine angelegt wurden. Sie werden angelegt, sobald die
+              Übernahme an ist und eine eingetragene Spielhalle zu einem Heimspiel passt.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm">
+            {neue.map((v) => (
+              <div key={`neu-${v.vereinId}`} id={`status-${v.vereinId}`} className="flex scroll-mt-20 flex-col gap-1.5 rounded-lg border p-3">
+                <p className="font-medium">{v.vereinName}</p>
+                <ul className="list-disc space-y-1 pl-5">
+                  <li>Automatische Übernahme: <strong>{v.uebernahmeAktiv ? "an" : "aus"}</strong></li>
+                  <li>
+                    Eure Spielhallen:{" "}
+                    {v.eigeneHallenNamen?.trim() ? (
+                      <strong>{v.eigeneHallenNamen.trim().replace(/\s*\n\s*/g, " · ")}</strong>
+                    ) : (
+                      <strong className="text-destructive">nicht eingetragen — ohne Hallennamen wird kein Heimspiel erkannt</strong>
+                    )}
+                  </li>
+                  <li>
+                    Heimspiele laut öffentlichen Daten: <strong>{v.nurOeffentlichHeim}</strong>, davon in einer
+                    erkannten eigenen Halle: <strong>{v.nurOeffentlichHeimEigeneHalle}</strong>, künftig anlegbar:{" "}
+                    <strong>{v.trockenlauf.neuAnzulegenGesamt}</strong>
+                  </li>
+                  {v.andereHallenNamen.length > 0 && (
+                    <li>
+                      Hallen der Heimspiele, die nicht als eigene erkannt wurden:{" "}
+                      {v.andereHallenNamen.map((h) => `${h.name} (${h.anzahl}×)`).join(" · ")} — passt einer davon zu eurer
+                      Halle? Dann den Namen (oder einen Teil davon) bei „Eure Spielhallen“ eintragen.
+                    </li>
+                  )}
+                </ul>
+                {!v.uebernahmeAktiv && (
+                  <form action={ligaUebernahmeSchalten}>
+                    <input type="hidden" name="vereinId" value={v.vereinId} />
+                    <input type="hidden" name="aktiv" value="1" />
+                    <input type="hidden" name="ziel" value="status" />
+                    <ConfirmSubmitButton
+                      size="sm"
+                      variant="outline"
+                      pendingText="Speichert…"
+                      confirmText={`Für ${v.vereinName} die automatische Übernahme einschalten? Fehlende künftige Heimspiele werden dann angelegt.`}
+                    >
+                      Automatische Übernahme einschalten
+                    </ConfirmSubmitButton>
+                  </form>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

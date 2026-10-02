@@ -120,6 +120,8 @@ export type VereinsAbgleich = {
   nurOeffentlichHeimHalleUnbekannt: number;
   // Hallen der Heimspiele, die nicht zu den eigenen gehören (häufigste zuerst).
   andereHallenNamen: { name: string; anzahl: number }[];
+  // Eingetragene eigene Spielhallen (Einstellungen), roh — für die Diagnose neuer Vereine.
+  eigeneHallenNamen: string | null;
   nurOeffentlichAuswaerts: number;
   // Kein Treffer, davon Freundschaftsspiele/Turniere (ohne Spielnummer, nicht in der Liga).
   keinTrefferFreundschaft: number;
@@ -434,6 +436,7 @@ async function berechneFuerVerein(
     nurOeffentlichHeimEigeneHalle: heimEigeneHalle,
     nurOeffentlichHeimAndereHalle: nurOeffentlichHeim - heimEigeneHalle - heimHalleUnbekannt,
     nurOeffentlichHeimHalleUnbekannt: heimHalleUnbekannt,
+    eigeneHallenNamen: v.hallenNamen,
     andereHallenNamen: [...andereHallen]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6)
