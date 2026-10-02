@@ -143,8 +143,6 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
   const nuligaHalle2Id = parseHalleId(formData, "nuligaHalle2Id");
   const nuligaHalle3Id = parseHalleId(formData, "nuligaHalle3Id");
   const nuligaAutoImportAktiviert = formData.get("nuligaAutoImportAktiviert") === "on";
-  const rundenspielAenderungenBenachrichtigungAktiviert =
-    formData.get("rundenspielAenderungenBenachrichtigungAktiviert") === "on";
 
   await withTenant(vereinId, (tx) =>
     tx
@@ -154,7 +152,6 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
         nuligaHalle2Id,
         nuligaHalle3Id,
         nuligaAutoImportAktiviert,
-        rundenspielAenderungenBenachrichtigungAktiviert,
       })
       .where(eq(vereine.id, vereinId))
   );
@@ -194,6 +191,22 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
 
   revalidatePath("/admin/einstellungen");
   redirect(`/admin/einstellungen?${params.toString()}`);
+}
+
+// Mail an den Vereinsadmin bei verlegten Spielen/neuen Ergebnissen (egal ob aus dem Hallenplan-Import oder
+// den öffentlichen Liga-Daten) — eigenes Formular, unabhängig von Hallen-IDs.
+export async function spielplanBenachrichtigungSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+  const aktiv = formData.get("rundenspielAenderungenBenachrichtigungAktiviert") === "on";
+  await withTenant(vereinId, (tx) =>
+    tx
+      .update(vereine)
+      .set({ rundenspielAenderungenBenachrichtigungAktiviert: aktiv })
+      .where(eq(vereine.id, vereinId))
+  );
+  revalidatePath("/admin/einstellungen");
+  redirect("/admin/einstellungen");
 }
 
 // Namen der eigenen Spielhallen (siehe lib/hallenplan-abgleich.ts, istEigeneHalle):
