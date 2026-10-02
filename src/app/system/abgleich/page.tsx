@@ -3,7 +3,7 @@ import { berechneHallenplanAbgleich } from "@/lib/hallenplan-abgleich-laden";
 import { formatDatumZeit } from "@/lib/format";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Badge } from "@/components/ui/badge";
-import { ansetzungVergleichen, hallenplanVerknuepfen, ligaSpieleUebernehmen, ligaUebernahmeSchalten } from "./actions";
+import { ortBestaetigen, ansetzungVergleichen, hallenplanVerknuepfen, ligaSpieleUebernehmen, ligaUebernahmeSchalten } from "./actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -102,6 +102,35 @@ export default async function AbgleichPage({
                   <li key={h}>{h}</li>
                 ))}
               </ul>
+              {v.trockenlauf.ortFaelle.length > 0 && (
+                <div className="flex flex-col gap-2 rounded-md bg-muted/40 p-2 text-xs">
+                  <p className="font-medium">Ort prüfen (Hallenplan ↔ öffentlich):</p>
+                  {v.trockenlauf.ortFaelle.map((f) => (
+                    <div key={f.terminId} className="flex flex-wrap items-center justify-between gap-2">
+                      <span>
+                        {new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" }).format(f.start)}{" "}
+                        {f.heim ?? "?"} – {f.gast ?? "?"}: Termin „{f.hallenplan}“, öffentlich „{f.oeffentlich}“
+                      </span>
+                      <form action={ortBestaetigen}>
+                        <input type="hidden" name="vereinId" value={v.vereinId} />
+                        <input type="hidden" name="terminId" value={f.terminId} />
+                        <input type="hidden" name="ziel" value="status" />
+                        <ConfirmSubmitButton
+                          size="sm"
+                          variant="outline"
+                          pendingText="Speichert…"
+                          confirmText={`Ort geprüft: der Termin bleibt in „${f.hallenplan}“ (öffentlich steht „${f.oeffentlich}“)? Es wird nur die Prüfung vermerkt, am Termin ändert sich nichts. Ändert sich der öffentliche Hallenname später, wird es wieder gemeldet.`}
+                        >
+                          Ort geprüft, so lassen
+                        </ConfirmSubmitButton>
+                      </form>
+                    </div>
+                  ))}
+                  <p className="text-muted-foreground">
+                    Stimmt der öffentliche Ort, ändere ihn im Termin im Kalender, dann verschwindet die Meldung von selbst.
+                  </p>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 {v.trockenlauf.verknuepfbarOffen > 0 && (
                   <form action={hallenplanVerknuepfen}>
@@ -270,6 +299,7 @@ export default async function AbgleichPage({
                     Bei <strong>{t.ortAbweichungen}</strong> verknüpften Terminen schreibt der Hallenplan die Halle anders
                     als die öffentlichen Daten
                     {t.ortAbweichungen > 0 && " (der Ort würde bei der Übernahme NICHT überschrieben)"}.
+                    {t.ortBestaetigt > 0 && ` ${t.ortBestaetigt} weitere wurden bereits geprüft und bestätigt.`}
                     {t.ortBeispiele.length > 0 && (
                       <span className="block text-xs text-muted-foreground">
                         {t.ortBeispiele.map((o) => `${o.anzahl}× „${o.hallenplan}“ → „${o.oeffentlich}“`).join(" · ")}

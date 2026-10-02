@@ -11,8 +11,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSystemAdmin } from "@/lib/session";
 import { adminDb } from "@/db/admin";
-import { eq } from "drizzle-orm";
-import { vereine } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
+import { ligaSpiele, termine, vereine } from "@/db/schema";
 import { schreibeProtokoll } from "@/lib/treuhand";
 import { vergleicheAnsetzung } from "@/lib/ansetzung-vergleich";
 import { vergleicheAnsetzungHandballNet } from "@/lib/ansetzung-vergleich-hnet";
@@ -98,4 +98,26 @@ export async function ansetzungVergleichen(formData: FormData) {
     avb: JSON.stringify(r.beispiele),
   });
   redirect(`/system/abgleich?${params.toString()}#${ziel(formData, vereinId)}`);
+}
+
+// Bestätigt, dass der Ort eines verknüpften Termins vom öffentlichen Hallennamen abweichen darf
+// (z.B. das Spiel findet tatsächlich in der anderen Halle statt). Merkt sich den bestätigten
+// öffentlichen Namen; ändert er sich, wird die Abweichung wieder gemeldet. Ändert sonst nichts.
+export async function ortBestaetigen(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const vereinId = formData.get("vereinId");
+  const terminId = formData.get("terminId");
+  if (typeof vereinId !== "string" || !vereinId || typeof terminId !== "string" || !terminId) throw new Error("Angaben fehlen.");
+  const [zeile] = await adminDb
+    .select({ halle: ligaSpiele.halleName })
+    .from(termine)
+    .innerJoin(ligaSpiele, eq(ligaSpiele.id, termine.ligaSpielId))
+    .where(and(eq(termine.id, terminId), eq(termine.vereinId, vereinId)));
+  if (!zeile?.halle) throw new Error("Termin nicht verknüpft oder ohne öffentliche Halle.");
+  await adminDb
+    .update(termine)
+    .set({ ligaOrtBestaetigt: zeile.halle })
+    .where(and(eq(termine.id, terminId), eq(termine.vereinId, vereinId)));
+  await schreibeProtokoll(vereinId, "liga_ort_bestaetigt", session.user.email ?? session.user.id, `Ort-Abweichung bestätigt (öffentlich: ${zeile.halle})`);
+  redirect(`/system/abgleich#${ziel(formData, vereinId)}`);
 }
