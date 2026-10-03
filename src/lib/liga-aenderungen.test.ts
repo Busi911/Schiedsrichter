@@ -160,6 +160,17 @@ describe.skipIf(!ADMIN_URL)("Verlegungen und Ergebnisse aus den öffentlichen Da
     expect(await dienste()).toHaveLength(3);
     expect(mailSpy).not.toHaveBeenCalled();
 
+    // Korrektur (vorläufiges Ergebnis später berichtigt): Termin folgt, still, Dienste unberührt
+    await testDb.update(schema.ligaSpiele).set({ toreHeim: 27, toreGast: 22 }).where(eq(schema.ligaSpiele.id, spiel.id));
+    expect((await uebernehmeAenderungen(vereinId, "test", JETZT)).ergebnisse).toBe(1);
+    expect([(await termin()).ergebnisHeim, (await termin()).ergebnisAuswaerts]).toEqual([27, 22]);
+    expect(await dienste()).toHaveLength(3);
+    expect(mailSpy).not.toHaveBeenCalled();
+    // unverändert → nichts mehr zu tun
+    expect((await uebernehmeAenderungen(vereinId, "test", JETZT)).ergebnisse).toBe(0);
+    await testDb.update(schema.ligaSpiele).set({ toreHeim: 27, toreGast: 21 }).where(eq(schema.ligaSpiele.id, spiel.id));
+    await uebernehmeAenderungen(vereinId, "test", JETZT);
+
     // Heim/Gast im Termin vertauscht → kein Ergebnis raten
     await testDb.update(schema.termine).set({ ergebnisHeim: null, ergebnisAuswaerts: null, heimMannschaftName: spiel.gastName, auswaertsMannschaftName: spiel.heimName }).where(eq(schema.termine.id, terminId));
     expect((await uebernehmeAenderungen(vereinId, "test", JETZT)).ergebnisse).toBe(0);

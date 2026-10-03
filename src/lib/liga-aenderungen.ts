@@ -58,11 +58,15 @@ export async function uebernehmeAenderungen(
       Math.abs(spielStart.getTime() - t.start.getTime()) >= MINUTE_MS;
     const neuerOrt = zeitGeaendert && s.halleName && ortWeichtAb(t.ort, s.halleName) ? s.halleName : null;
     const gleicheRichtung = normalisiereName(t.heimMannschaftName) === normalisiereName(s.heimName);
+    // Neu eingetragen ODER korrigiert (z.B. vorläufiges Ergebnis, später berichtigt): der Termin
+    // folgt dem öffentlichen Ergebnis. Ergebnisse verknüpfter Spiele kommen nur aus den Liga-Daten
+    // (von Hand pflegbar sind nur Test- und Turnierspiele). Eine Korrektur löst keine Mail aus —
+    // die Benachrichtigung gilt nur dem erstmals eingetragenen Ergebnis.
     const ergebnisNeu =
-      (t.ergebnisHeim === null || t.ergebnisAuswaerts === null) &&
       s.toreHeim !== null &&
       s.toreGast !== null &&
-      gleicheRichtung;
+      gleicheRichtung &&
+      (t.ergebnisHeim !== s.toreHeim || t.ergebnisAuswaerts !== s.toreGast);
     if (!zeitGeaendert && !ergebnisNeu) continue;
     if (zeitGeaendert) verlegt++;
     if (ergebnisNeu) ergebnisse++;
