@@ -174,7 +174,7 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
 - **Sync:** idempotent, fehlertolerant (unlesbare Seite löscht nichts),
   strikt sequenziell mit Mindestabstand (`nuliga/client.ts`). Cron
   `/api/cron/liga-sync` entscheidet je Verein selbst, was fällig ist
-  (`sync-cron.ts`); er läuft stündlich (`vercel.json`, braucht einen Vercel-Plan mit
+  (`sync-cron.ts`); er läuft tagsüber stündlich (5–21 Uhr UTC, ca. 6–23 Uhr deutsche Zeit; nachts nichts, `vercel.json`, braucht einen Vercel-Plan mit
   häufigen Crons — Pro; auf Hobby nur täglich). Dadurch werden Spiele am
   Spieltag öfter aktualisiert und ein wegen des Zeitlimits (40 s je Aufruf)
   unvollständiger Lauf wird beim nächsten Aufruf fortgesetzt, bis alles
@@ -315,12 +315,12 @@ alles unter `/system/abgleich` (nur Systemadmin):
    Zeit/Ort bestehender Termine (Verlegungen) behandelt weiter der Hallenplan-
    Import. Ansetzung/Dienste liegen nur in privaten Terminen, nie in `liga_*`.
    Automatisch: Schalter `vereine.liga_uebernahme_aktiv` (Default aus, je Verein
-   unter `/system/abgleich`, nur Systemadmin); der eigene Cron `/api/cron/liga-uebernahme` (stündlich,
+   unter `/system/abgleich`, nur Systemadmin); der eigene Cron `/api/cron/liga-uebernahme` (tagsüber stündlich wie der Sync,
    :30; NICHT im Liga-Sync-Cron — dessen 60-s-Limit reicht dafür nicht) ruft
    `uebernehmeFuerAktiveVereine` auf: am längsten ungeprüfte Vereine zuerst
    (`liga_uebernahme_geprueft_am`), Frist 45 s, Rest im nächsten Lauf
    (Protokolleintrag nur bei Änderung).
-   **Ansetzung (nuLiga):** der eigene Cron `/api/cron/liga-ansetzung` (:15/:45, Frist 40 s,
+   **Ansetzung (nuLiga):** der eigene Cron `/api/cron/liga-ansetzung` (tagsüber stündlich um :15, Frist 40 s,
    `liga_gruppe.ansetzung_geprueft_am` für die Reihenfolge) liest je Gruppe die Seite
    "Spielplan (Gesamt)" (`groupPage?displayTyp=vorrunde|rueckrunde&displayDetail=meetings`;
    NUR dort steht die Ansetzung auch für weit entfernte Spiele — die Gruppenseite "Aktuell"
