@@ -178,8 +178,9 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   häufigen Crons — Pro; auf Hobby nur täglich). Dadurch werden Spiele am
   Spieltag öfter aktualisiert und ein wegen des Zeitlimits (40 s je Aufruf)
   unvollständiger Lauf wird beim nächsten Aufruf fortgesetzt, bis alles
-  geladen ist. Reihenfolge: Vereine mit Spiel HEUTE zuerst, dann der am längsten
-  nicht geladene; innerhalb eines Vereins Mannschaften mit Spiel heute oder einem Spiel von gestern ohne
+  geladen ist. Reihenfolge: Vereine mit Spiel HEUTE zuerst, dann reihum der am längsten
+  nicht VERSUCHTE (letztes Sync-Protokoll, nicht "zuletzt vollständig" — sonst blockiert ein nie fertig werdender
+  Verein alle anderen); innerhalb eines Vereins Mannschaften mit Spiel heute oder einem Spiel von gestern ohne
   endgültiges Ergebnis (fehlt oder nur vorläufig) zuerst (so wird ein spät eingetragenes oder berichtigtes
   Ergebnis am nächsten Tag sicher nachgeladen) (`sortiereNachDringlichkeit`). Jeder Abruf hat eine harte Frist
   (`mitHarterFrist`, Frist + 8 s), damit der Lauf nie ins 60-s-Limit läuft. Funktionen laufen in

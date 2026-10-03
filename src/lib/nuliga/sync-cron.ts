@@ -1,5 +1,5 @@
-import { and, eq, gte, isNotNull, lte, or, sql } from "drizzle-orm";
-import { ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine } from "@/db/schema";
+import { and, eq, gte, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
+import { ligaMannschaften, ligaSpiele, ligaSyncLaeufe, ligaTeilnahmen, ligaVereine } from "@/db/schema";
 import { tagKey } from "@/lib/kalender";
 import {
   STRUKTUR_INTERVALL_MINUTEN,
@@ -91,10 +91,19 @@ export async function synchronisiereFaellige(
   const naehe = new Map<string, 0 | 1 | 2>();
   schritt("Spieltagsnähe berechnen");
   for (const v of alleVereine) naehe.set(v.id, await spieltagsNaehe(db, v.id, jetzt));
+  // Innerhalb gleicher Dringlichkeit reihum nach dem letzten VERSUCH: ein Verein, dessen Lauf wegen des
+  // Zeitlimits nie ganz fertig wird, behält seinen Zeitstempel "zuletzt vollständig" und stünde sonst
+  // bei jedem Lauf wieder vorn — die übrigen kämen nie dran. Jeder Lauf schreibt ein Protokoll.
+  const versuche = await db
+    .select({ id: ligaSyncLaeufe.ligaVereinId, zuletzt: sql<Date>`max(${ligaSyncLaeufe.gestartetAm})` })
+    .from(ligaSyncLaeufe)
+    .where(inArray(ligaSyncLaeufe.art, ["spiele", "handball_net"]))
+    .groupBy(ligaSyncLaeufe.ligaVereinId);
+  const letzterVersuch = new Map(versuche.map((r) => [r.id, r.zuletzt ? new Date(r.zuletzt) : null]));
   const vereine = sortiereNachDringlichkeit(
     alleVereine,
     (v) => naehe.get(v.id) ?? 0,
-    (v) => v.spieleSynchronisiertAm
+    (v) => letzterVersuch.get(v.id) ?? v.spieleSynchronisiertAm
   );
   const ergebnis: FaelligeErgebnis = [];
   const frist = start + budgetMs;
