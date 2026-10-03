@@ -179,8 +179,9 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   Spieltag öfter aktualisiert und ein wegen des Zeitlimits (40 s je Aufruf)
   unvollständiger Lauf wird beim nächsten Aufruf fortgesetzt, bis alles
   geladen ist. Reihenfolge: Vereine mit Spiel HEUTE zuerst, dann der am längsten
-  nicht geladene; innerhalb eines Vereins Mannschaften mit Spiel gestern oder heute zuerst
-  (so wird ein spät eingetragenes Ergebnis am nächsten Tag sicher nachgeladen) (`sortiereNachDringlichkeit`). Jeder Abruf hat eine harte Frist
+  nicht geladene; innerhalb eines Vereins Mannschaften mit Spiel heute oder einem Spiel von gestern ohne
+  endgültiges Ergebnis (fehlt oder nur vorläufig) zuerst (so wird ein spät eingetragenes oder berichtigtes
+  Ergebnis am nächsten Tag sicher nachgeladen) (`sortiereNachDringlichkeit`). Jeder Abruf hat eine harte Frist
   (`mitHarterFrist`, Frist + 8 s), damit der Lauf nie ins 60-s-Limit läuft.
 - Der HHV hat dem automatischen Abruf zugestimmt (Zusage schriftlich
   ablegen). Weitere Landesverbände: Eintrag in `nuliga/verbaende.ts`.

@@ -723,9 +723,10 @@ export async function synchronisiereSpiele(
 
   // Älteste zuerst (nie geladene vorn), damit nach einem Zeitlimit die
   // übrigen beim nächsten Lauf drankommen.
-  // Davor aber alles, was Ergebnisse braucht: Mannschaften mit einem Spiel gestern oder heute. Bei
-  // knapper Zeit sind die aktuellen Ergebnisse so zuerst da, und ein spät eingetragenes Ergebnis
-  // vom Vortag wird am nächsten Tag sicher nachgeladen.
+  // Davor aber alles, was Ergebnisse braucht: Mannschaften mit einem Spiel heute oder einem Spiel
+  // von gestern, dessen Ergebnis noch fehlt oder nur vorläufig ist. So sind bei knapper Zeit die
+  // aktuellen Ergebnisse zuerst da, und ein spät eingetragenes oder noch berichtigtes Ergebnis vom
+  // Vortag wird am nächsten Tag sicher nachgeladen (abgeschlossene Spiele von gestern nicht mehr).
   const gestern = tagKey(new Date(jetzt.getTime() - 24 * 60 * 60 * 1000));
   const dringend = new Set<string>();
   if (teilnahmen.length > 0) {
@@ -733,6 +734,9 @@ export async function synchronisiereSpiele(
       .select({
         heim: ligaSpiele.heimTeamtableId,
         gast: ligaSpiele.gastTeamtableId,
+        datum: ligaSpiele.datum,
+        tore: ligaSpiele.toreHeim,
+        bestaetigt: ligaSpiele.ergebnisBestaetigt,
       })
       .from(ligaSpiele)
       .where(
@@ -743,6 +747,7 @@ export async function synchronisiereSpiele(
         )
       );
     for (const r of nahe) {
+      if (r.datum !== heute && r.tore !== null && r.bestaetigt) continue;
       if (r.heim) dringend.add(r.heim);
       if (r.gast) dringend.add(r.gast);
     }
