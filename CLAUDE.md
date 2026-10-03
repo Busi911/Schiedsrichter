@@ -338,7 +338,8 @@ alles unter `/system/abgleich` (nur Systemadmin):
    **Verlegung/Ergebnis:** `lib/liga-aenderungen.ts` (läuft im Übernahme-Cron nach dem Anlegen
    neuer Heimspiele) übernimmt für VERKNÜPFTE Termine eine neue Zeit (Halle nur ZUSAMMEN mit
    einer Zeitänderung; eine reine Hallenabweichung kann nur ein anderer Name sein und wird nicht
-   übernommen) und Ergebnisse (nur bei gleicher Heim/Gast-Richtung). Es ruft dafür den
+   übernommen) und Ergebnisse (nur bei gleicher Heim/Gast-Richtung; auch Korrekturen, z.B. ein vorläufiges Ergebnis,
+   das später berichtigt wird — still, ohne Mail). Es ruft dafür den
    vorhandenen Import auf (`importiereRundenspielEreignisse(..., { quelle: "liga" })`): dieselben
    Regeln wie beim Hallenplan-Import — bei einer Verlegung entfallen die Dienste außer
    Schiedsrichter, die betroffenen Personen werden benachrichtigt, der Vereinsadmin nach seinem
