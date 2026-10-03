@@ -182,7 +182,10 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   nicht geladene; innerhalb eines Vereins Mannschaften mit Spiel heute oder einem Spiel von gestern ohne
   endgültiges Ergebnis (fehlt oder nur vorläufig) zuerst (so wird ein spät eingetragenes oder berichtigtes
   Ergebnis am nächsten Tag sicher nachgeladen) (`sortiereNachDringlichkeit`). Jeder Abruf hat eine harte Frist
-  (`mitHarterFrist`, Frist + 8 s), damit der Lauf nie ins 60-s-Limit läuft.
+  (`mitHarterFrist`, Frist + 8 s), damit der Lauf nie ins 60-s-Limit läuft. Funktionen laufen in
+  `fra1` (`vercel.json` → `regions`), im selben Raum wie die Neon-Datenbank (eu-central-1): jede einzelne
+  Abfrage über den Atlantik (iad1) kostete ~100 ms und brachte den Lauf ins Zeitlimit. Beim handball.net-Sync
+  werden Tabellenzeilen und Spiele je Phase in EINER Anweisung geschrieben (`excluded`-Upsert).
 - Der HHV hat dem automatischen Abruf zugestimmt (Zusage schriftlich
   ablegen). Weitere Landesverbände: Eintrag in `nuliga/verbaende.ts`.
 - DB-Integrationstests (`nuliga/sync.test.ts`, `liga-oeffentlich.test.ts`)
