@@ -24,6 +24,7 @@ import {
   eigenerNameImPortrait,
   ergebnisGeaendert,
   ermittleTeamtable,
+  mitHarterFrist,
   nummerAusPortraitName,
   spielGeaendert,
   spielZuFeldern,
@@ -106,7 +107,9 @@ class Lauf {
   }
   async hole(url: string): Promise<string> {
     this.anfragen++;
-    return this.holeHtml(url);
+    return mitHarterFrist(this.frist, () => this.holeHtml(url), () => {
+      this.unvollstaendig = true;
+    });
   }
   warn(text: string) {
     this.meldungen.push(text);

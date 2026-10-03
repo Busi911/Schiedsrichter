@@ -179,3 +179,34 @@ export function nummerAusPortraitName(name: string | null): number | null {
   const roemisch: Record<string, number> = { I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6 };
   return /^\d+$/.test(t[1]) ? Number(t[1]) : (roemisch[t[1]] ?? null);
 }
+
+// Wie lange ein bereits laufender Abruf nach der Frist noch warten darf. Ohne diese Grenze kann ein
+// langsamer nuLiga-Abruf (Timeout 20 s, bei 429/5xx plus 5 s Pause und zweiter Versuch) kurz vor
+// der Frist starten und die Funktion über das 60-s-Limit von Vercel treiben (504, der ganze Lauf
+// geht verloren, nichts wird protokolliert).
+export const FRIST_NACHLAUF_MS = 8_000;
+
+export async function mitHarterFrist<T>(
+  frist: number | undefined,
+  abruf: () => Promise<T>,
+  beiZeitlimit?: () => void
+): Promise<T> {
+  if (frist === undefined) return abruf();
+  const rest = frist + FRIST_NACHLAUF_MS - Date.now();
+  const zeitlimit = () => {
+    beiZeitlimit?.();
+    return new Error("Zeitlimit erreicht – Abruf abgebrochen, wird beim nächsten Lauf wiederholt");
+  };
+  if (rest <= 0) throw zeitlimit();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      abruf(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(zeitlimit()), rest);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
