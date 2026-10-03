@@ -1,5 +1,6 @@
 import "server-only";
 import { promises as dns } from "node:dns";
+import { appUrl } from "./app-url";
 
 export type MailDiagnose = {
   host: string | null;
@@ -15,7 +16,7 @@ export type MailDiagnose = {
 
 // Übliche DKIM-Selektoren gängiger Anbieter (kein Beweis, wenn keiner gefunden wird: der Selektor des
 // eigenen Anbieters kann anders heißen — maßgeblich ist "dkim=pass" im Header einer echten Testmail).
-const DKIM_SELEKTOREN = ["default", "google", "selector1", "selector2", "mail", "k1", "s1", "s2", "resend", "brevo", "smtp", "dkim"];
+const DKIM_SELEKTOREN = ["default", "google", "selector1", "selector2", "mail", "k1", "s1", "s2", "resend", "brevo", "smtp", "dkim", "s1-ionos", "s2-ionos", "s3-ionos"];
 
 async function txt(name: string): Promise<string[]> {
   try {
@@ -23,6 +24,13 @@ async function txt(name: string): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+// Hauptdomain (letzte zwei Labels; für .de/.com/.org-Domains ausreichend): "www.handballerpate.de" -> "handballerpate.de"
+export function hauptDomain(host: string | null): string | null {
+  if (!host) return null;
+  const teile = host.toLowerCase().replace(/:\d+$/, "").split(".");
+  return teile.length >= 2 ? teile.slice(-2).join(".") : null;
 }
 
 export function extrahiereDomain(absender: string | null | undefined): string | null {
@@ -76,6 +84,18 @@ export async function pruefeMailKonfiguration(): Promise<MailDiagnose> {
   }
   if (ergebnis.mx.length === 0) {
     ergebnis.hinweise.push(`Für ${domain} gibt es keinen MX-Eintrag: Antworten an die Absenderadresse kommen nicht an, das wirkt unseriös.`);
+  }
+  let appHost: string | null = null;
+  try {
+    appHost = new URL(appUrl()).host;
+  } catch {
+    appHost = null;
+  }
+  const appDomain = hauptDomain(appHost);
+  if (appDomain && appDomain !== "localhost" && hauptDomain(domain) !== appDomain) {
+    ergebnis.hinweise.push(
+      `Die Absenderdomain (${domain}) weicht von der Domain der Links in den Mails (${appDomain}) ab. Spamfilter werten das als Warnzeichen. Besser: Absender auf eine Adresse bei ${appDomain} umstellen (mit eigenem SPF/DKIM/DMARC).`
+    );
   }
   if (/no-?reply/i.test(absender ?? "")) {
     ergebnis.hinweise.push("Die Absenderadresse beginnt mit „noreply“. Eine echte, erreichbare Adresse (z.B. info@…) wird von Spamfiltern besser bewertet.");
