@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, lte, notInArray, sql } from "drizzle-orm";
 import type { PgDatabase } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import {
@@ -24,6 +24,8 @@ import {
   eigenerNameImPortrait,
   ergebnisGeaendert,
   ermittleTeamtable,
+  mitHarterFrist,
+  sortiereNachDringlichkeit,
   nummerAusPortraitName,
   spielGeaendert,
   spielZuFeldern,
@@ -106,7 +108,9 @@ class Lauf {
   }
   async hole(url: string): Promise<string> {
     this.anfragen++;
-    return this.holeHtml(url);
+    return mitHarterFrist(this.frist, () => this.holeHtml(url), () => {
+      this.unvollstaendig = true;
+    });
   }
   warn(text: string) {
     this.meldungen.push(text);
@@ -719,9 +723,38 @@ export async function synchronisiereSpiele(
 
   // Älteste zuerst (nie geladene vorn), damit nach einem Zeitlimit die
   // übrigen beim nächsten Lauf drankommen.
-  teilnahmen.sort(
-    (a, b) => (a.t.spieleSynchronisiertAm?.getTime() ?? 0) - (b.t.spieleSynchronisiertAm?.getTime() ?? 0)
+  // Davor aber alles, was Ergebnisse braucht: Mannschaften mit Spiel heute oder einem gestrigen Spiel
+  // ohne Ergebnis. Bei knapper Zeit sind die aktuellen Ergebnisse so zuerst da.
+  const gestern = tagKey(new Date(jetzt.getTime() - 24 * 60 * 60 * 1000));
+  const dringend = new Set<string>();
+  if (teilnahmen.length > 0) {
+    const nahe = await db
+      .select({
+        heim: ligaSpiele.heimTeamtableId,
+        gast: ligaSpiele.gastTeamtableId,
+        datum: ligaSpiele.datum,
+        tore: ligaSpiele.toreHeim,
+      })
+      .from(ligaSpiele)
+      .where(
+        and(
+          inArray(ligaSpiele.gruppeId, [...new Set(teilnahmen.map((x) => x.g.id))]),
+          gte(ligaSpiele.datum, gestern),
+          lte(ligaSpiele.datum, heute)
+        )
+      );
+    for (const r of nahe) {
+      if (r.datum !== heute && r.tore !== null) continue;
+      if (r.heim) dringend.add(r.heim);
+      if (r.gast) dringend.add(r.gast);
+    }
+  }
+  const sortiert = sortiereNachDringlichkeit(
+    teilnahmen,
+    (x) => (x.t.nuligaTeamtableId && dringend.has(x.t.nuligaTeamtableId) ? 1 : 0),
+    (x) => x.t.spieleSynchronisiertAm
   );
+  teilnahmen.splice(0, teilnahmen.length, ...sortiert);
 
   for (const { t, g } of teilnahmen) {
     if (!t.nuligaTeamtableId) {

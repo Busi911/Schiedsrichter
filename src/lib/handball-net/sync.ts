@@ -12,7 +12,7 @@ import {
 import { tagKey } from "@/lib/kalender";
 import { saisonLabel as saisonLabelFuerDatum } from "@/lib/saison";
 import type { LigaDb, SyncErgebnis } from "@/lib/nuliga/sync";
-import { spielGeaendert, type SpielFelder } from "@/lib/nuliga/sync-hilfen";
+import { mitHarterFrist, spielGeaendert, type SpielFelder } from "@/lib/nuliga/sync-hilfen";
 import type { HoleJson } from "./client";
 import {
   berechneTabelle,
@@ -205,7 +205,9 @@ export async function synchronisiereHandballNet(
   };
   const hole: HoleJson = async (pfad) => {
     anfragen++;
-    return holeJson(pfad);
+    return mitHarterFrist(frist, () => holeJson(pfad), () => {
+      unvollstaendig = true;
+    });
   };
   const fristAbgelaufen = () => {
     if (frist !== undefined && Date.now() > frist) {
