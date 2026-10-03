@@ -71,16 +71,25 @@ export type FaelligeErgebnis = {
 // ~6 Std. `budgetMs` begrenzt die Laufzeit (Serverless-Timeout): bleibt
 // etwas liegen, kommt es beim nächsten Aufruf dran.
 export async function synchronisiereFaellige(
-  opt: SyncOptionen & { budgetMs?: number; nurVereinId?: string; holeJson?: HoleJson }
+  opt: SyncOptionen & {
+    budgetMs?: number;
+    nurVereinId?: string;
+    holeJson?: HoleJson;
+    // Meldet den aktuellen Schritt (für den Watchdog der Cron-Route: wo hängt ein Lauf?)
+    beiSchritt?: (text: string) => void;
+  }
 ): Promise<FaelligeErgebnis> {
   const { db, jetzt = new Date(), budgetMs = 45_000 } = opt;
   const start = Date.now();
+  const schritt = opt.beiSchritt ?? (() => {});
+  schritt("Vereine laden");
   const alleVereine = await db.query.ligaVereine.findMany({
     where: opt.nurVereinId ? eq(ligaVereine.id, opt.nurVereinId) : sql`true`,
   });
   // Vereine mit Spielen heute zuerst, dann der am längsten nicht geladene: bei knapper Zeit
   // sind die aktuellen Ergebnisse sicher dran, der Rest folgt beim nächsten Lauf.
   const naehe = new Map<string, 0 | 1 | 2>();
+  schritt("Spieltagsnähe berechnen");
   for (const v of alleVereine) naehe.set(v.id, await spieltagsNaehe(db, v.id, jetzt));
   const vereine = sortiereNachDringlichkeit(
     alleVereine,
@@ -99,21 +108,25 @@ export async function synchronisiereFaellige(
     if (v.nuligaClubId) {
       try {
         if (faellig(v.strukturSynchronisiertAm, STRUKTUR_INTERVALL_MINUTEN, jetzt)) {
+          schritt(`${v.slug}: Struktur`);
           eintrag.struktur = (await synchronisiereStruktur(v.id, { ...opt, jetzt, frist })).status;
         }
         if (
           eintrag.struktur !== "fehler" &&
           (eintrag.struktur !== undefined || faellig(v.spieleSynchronisiertAm, intervall, jetzt))
         ) {
+          schritt(`${v.slug}: nuLiga-Spiele`);
           eintrag.spiele = (await synchronisiereSpiele(v.id, { ...opt, jetzt, frist })).status;
         }
       } catch (err) {
         eintrag.struktur = `fehler: ${err instanceof Error ? err.message : String(err)}`;
       }
     }
+    schritt(`${v.slug}: handball.net prüfen`);
     if (opt.holeJson && (await hatHandballNetQuelle(db, v))) {
       try {
         if (faellig(v.handballNetSynchronisiertAm, intervall, jetzt)) {
+          schritt(`${v.slug}: handball.net-Spiele`);
           eintrag.handballNet = (
             await synchronisiereHandballNet(v.id, { db, holeJson: opt.holeJson, jetzt, frist })
           ).status;
@@ -125,9 +138,11 @@ export async function synchronisiereFaellige(
     // Freundschaftsspiele zuletzt und im selben Takt wie die Spiele (fertige
     // werden übersprungen): so verdrängen sie handball.net nicht aus dem Budget.
     if (v.nuligaClubId && eintrag.spiele !== undefined) {
+      schritt(`${v.slug}: Freundschaftsspiele`);
       await synchronisiereFreundschaftsspieleSicher(v.id, { ...opt, jetzt, frist });
     }
     ergebnis.push(eintrag);
   }
+  schritt("fertig");
   return ergebnis;
 }
