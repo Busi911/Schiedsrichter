@@ -3,6 +3,7 @@ import { ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine } from "@/db/
 import { tagKey } from "@/lib/kalender";
 import {
   STRUKTUR_INTERVALL_MINUTEN,
+  sortiereNachDringlichkeit,
   spieleIntervallMinuten,
 } from "./sync-hilfen";
 import type { HoleJson } from "@/lib/handball-net/client";
@@ -21,17 +22,18 @@ function faellig(letzter: Date | null, intervallMinuten: number, jetzt: Date): b
   return !letzter || jetzt.getTime() - letzter.getTime() >= intervallMinuten * MINUTE_MS;
 }
 
-// Hat der Verein ein Spiel gestern/heute/morgen? Dann ist er "spieltagsnah"
-// und wird häufiger synchronisiert (Ergebnisse), sonst nur selten.
-async function istSpieltagsnah(
+// Spieltagsnähe eines Vereins: 2 = Spiel HEUTE (dringend, Ergebnisse), 1 = Spiel gestern/morgen
+// (spieltagsnah, häufiger synchronisieren), 0 = sonst (selten).
+async function spieltagsNaehe(
   db: SyncOptionen["db"],
   ligaVereinId: string,
   jetzt: Date
-): Promise<boolean> {
+): Promise<0 | 1 | 2> {
   const von = tagKey(new Date(jetzt.getTime() - TAG_MS));
   const bis = tagKey(new Date(jetzt.getTime() + TAG_MS));
+  const heute = tagKey(jetzt);
   const treffer = await db
-    .select({ id: ligaSpiele.id })
+    .select({ datum: ligaSpiele.datum })
     .from(ligaSpiele)
     .innerJoin(
       ligaTeilnahmen,
@@ -51,9 +53,9 @@ async function istSpieltagsnah(
         gte(ligaSpiele.datum, von),
         lte(ligaSpiele.datum, bis)
       )
-    )
-    .limit(1);
-  return treffer.length > 0;
+    );
+  if (treffer.length === 0) return 0;
+  return treffer.some((t) => t.datum === heute) ? 2 : 1;
 }
 
 export type FaelligeErgebnis = {
@@ -73,9 +75,18 @@ export async function synchronisiereFaellige(
 ): Promise<FaelligeErgebnis> {
   const { db, jetzt = new Date(), budgetMs = 45_000 } = opt;
   const start = Date.now();
-  const vereine = await db.query.ligaVereine.findMany({
+  const alleVereine = await db.query.ligaVereine.findMany({
     where: opt.nurVereinId ? eq(ligaVereine.id, opt.nurVereinId) : sql`true`,
   });
+  // Vereine mit Spielen heute zuerst, dann der am längsten nicht geladene: bei knapper Zeit
+  // sind die aktuellen Ergebnisse sicher dran, der Rest folgt beim nächsten Lauf.
+  const naehe = new Map<string, 0 | 1 | 2>();
+  for (const v of alleVereine) naehe.set(v.id, await spieltagsNaehe(db, v.id, jetzt));
+  const vereine = sortiereNachDringlichkeit(
+    alleVereine,
+    (v) => naehe.get(v.id) ?? 0,
+    (v) => v.spieleSynchronisiertAm
+  );
   const ergebnis: FaelligeErgebnis = [];
   const frist = start + budgetMs;
 
@@ -83,7 +94,7 @@ export async function synchronisiereFaellige(
     if (Date.now() - start > budgetMs) break;
     const eintrag: FaelligeErgebnis[number] = { ligaVereinId: v.id, slug: v.slug };
     // Jede Quelle für sich: ein Fehler/Ausfall einer Quelle betrifft die andere nicht.
-    const spieltagsnah = await istSpieltagsnah(db, v.id, jetzt);
+    const spieltagsnah = (naehe.get(v.id) ?? 0) > 0;
     const intervall = spieleIntervallMinuten(spieltagsnah);
     if (v.nuligaClubId) {
       try {

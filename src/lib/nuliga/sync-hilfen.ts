@@ -210,3 +210,17 @@ export async function mitHarterFrist<T>(
     clearTimeout(timer);
   }
 }
+
+// Reihenfolge im Sync: zuerst, was am Spieltag Ergebnisse braucht, dann das Älteste. Bei knapper Zeit
+// (Zeitlimit) kommen so die aktuellen Spiele sicher dran und der Rest folgt beim nächsten Lauf.
+// Stabil: gleiche Dringlichkeit und gleicher Zeitstempel behalten ihre Reihenfolge.
+export function sortiereNachDringlichkeit<T>(
+  liste: T[],
+  dringlichkeit: (x: T) => number,
+  zuletzt: (x: T) => Date | null
+): T[] {
+  return [...liste].sort(
+    (a, b) =>
+      dringlichkeit(b) - dringlichkeit(a) || (zuletzt(a)?.getTime() ?? 0) - (zuletzt(b)?.getTime() ?? 0)
+  );
+}

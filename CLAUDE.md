@@ -178,7 +178,10 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   häufigen Crons — Pro; auf Hobby nur täglich). Dadurch werden Spiele am
   Spieltag öfter aktualisiert und ein wegen des Zeitlimits (40 s je Aufruf)
   unvollständiger Lauf wird beim nächsten Aufruf fortgesetzt, bis alles
-  geladen ist.
+  geladen ist. Reihenfolge: Vereine mit Spiel HEUTE zuerst, dann der am längsten
+  nicht geladene; innerhalb eines Vereins Mannschaften mit Spiel heute oder gestrigem Spiel ohne
+  Ergebnis zuerst (`sortiereNachDringlichkeit`). Jeder Abruf hat eine harte Frist
+  (`mitHarterFrist`, Frist + 8 s), damit der Lauf nie ins 60-s-Limit läuft.
 - Der HHV hat dem automatischen Abruf zugestimmt (Zusage schriftlich
   ablegen). Weitere Landesverbände: Eintrag in `nuliga/verbaende.ts`.
 - DB-Integrationstests (`nuliga/sync.test.ts`, `liga-oeffentlich.test.ts`)

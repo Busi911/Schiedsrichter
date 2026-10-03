@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { FRIST_NACHLAUF_MS, mitHarterFrist } from "./sync-hilfen";
+import { FRIST_NACHLAUF_MS, mitHarterFrist, sortiereNachDringlichkeit } from "./sync-hilfen";
 
 describe("mitHarterFrist", () => {
   it("gibt das Ergebnis eines rechtzeitigen Abrufs zurück", async () => {
@@ -26,5 +26,19 @@ describe("mitHarterFrist", () => {
     const abruf = vi.fn(async () => "x");
     await expect(mitHarterFrist(Date.now() - FRIST_NACHLAUF_MS - 1, abruf)).rejects.toThrow(/Zeitlimit/);
     expect(abruf).not.toHaveBeenCalled();
+  });
+});
+
+describe("sortiereNachDringlichkeit", () => {
+  it("setzt Dringendes vor Älteres und sortiert sonst nach ältestem Zeitstempel", () => {
+    const d = (h: number) => new Date(2026, 9, 3, h);
+    const liste = [
+      { n: "alt", d: 0, z: d(1) as Date | null },
+      { n: "nie", d: 0, z: null },
+      { n: "heute-neu", d: 1, z: d(9) },
+      { n: "heute-alt", d: 1, z: d(2) },
+    ];
+    const r = sortiereNachDringlichkeit(liste, (x) => x.d, (x) => x.z).map((x) => x.n);
+    expect(r).toEqual(["heute-alt", "heute-neu", "nie", "alt"]);
   });
 });
