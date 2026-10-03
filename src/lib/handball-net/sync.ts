@@ -1,4 +1,5 @@
 import { and, eq, gte, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   ligaGruppen,
   ligaMannschaften,
@@ -51,6 +52,9 @@ const QUELLE = "handball_net";
 const FRISCH_MS = 30 * 60 * 1000;
 const SEITENGROESSE = 100;
 const MAX_SEITEN = 15;
+
+// Wert der neuen Zeile in einem INSERT … ON CONFLICT DO UPDATE (Mehrzeilen-Upsert).
+const excluded = (spalte: AnyPgColumn) => sql`excluded.${sql.identifier(spalte.name)}`;
 
 type Roh = Record<string, unknown>;
 const alsObj = (x: unknown): Roh | null =>
@@ -588,27 +592,41 @@ async function verarbeitePhase(k: PhaseKontext): Promise<string | null> {
     }
   }
   if (tabelle && tabelle.length > 0) {
-    for (const z of tabelle) {
-      const werte = {
-        name: z.name,
-        rang: z.rang,
-        spiele: z.spiele,
-        siege: z.siege,
-        unentschieden: z.unentschieden,
-        niederlagen: z.niederlagen,
-        torePlus: z.torePlus,
-        toreMinus: z.toreMinus,
-        punktePlus: z.punktePlus,
-        punkteMinus: z.punkteMinus,
-      };
-      await db
-        .insert(ligaTabellenzeilen)
-        .values({ gruppeId: gruppe.id, nuligaTeamtableId: z.teamId, ...werte })
-        .onConflictDoUpdate({
-          target: [ligaTabellenzeilen.gruppeId, ligaTabellenzeilen.nuligaTeamtableId],
-          set: werte,
-        });
-    }
+    // Eine Anweisung statt einer je Zeile: jede Datenbankabfrage kostet Laufzeit (Funktion und
+    // Datenbank liegen nicht im selben Rechenzentrum), der Lauf hat nur ein knappes Zeitlimit.
+    await db
+      .insert(ligaTabellenzeilen)
+      .values(
+        [...new Map(tabelle.map((z) => [z.teamId, z])).values()].map((z) => ({
+          gruppeId: gruppe.id,
+          nuligaTeamtableId: z.teamId,
+          name: z.name,
+          rang: z.rang,
+          spiele: z.spiele,
+          siege: z.siege,
+          unentschieden: z.unentschieden,
+          niederlagen: z.niederlagen,
+          torePlus: z.torePlus,
+          toreMinus: z.toreMinus,
+          punktePlus: z.punktePlus,
+          punkteMinus: z.punkteMinus,
+        }))
+      )
+      .onConflictDoUpdate({
+        target: [ligaTabellenzeilen.gruppeId, ligaTabellenzeilen.nuligaTeamtableId],
+        set: {
+          name: excluded(ligaTabellenzeilen.name),
+          rang: excluded(ligaTabellenzeilen.rang),
+          spiele: excluded(ligaTabellenzeilen.spiele),
+          siege: excluded(ligaTabellenzeilen.siege),
+          unentschieden: excluded(ligaTabellenzeilen.unentschieden),
+          niederlagen: excluded(ligaTabellenzeilen.niederlagen),
+          torePlus: excluded(ligaTabellenzeilen.torePlus),
+          toreMinus: excluded(ligaTabellenzeilen.toreMinus),
+          punktePlus: excluded(ligaTabellenzeilen.punktePlus),
+          punkteMinus: excluded(ligaTabellenzeilen.punkteMinus),
+        },
+      });
     await db.delete(ligaTabellenzeilen).where(
       and(
         eq(ligaTabellenzeilen.gruppeId, gruppe.id),
@@ -658,19 +676,30 @@ async function verarbeitePhase(k: PhaseKontext): Promise<string | null> {
     where: and(eq(ligaSpiele.gruppeId, gruppe.id), inArray(ligaSpiele.spielcode, codes)),
   });
   const nachCode = new Map(bestehende.map((b) => [b.spielcode, b]));
+  // Nur Neues/Geändertes schreiben, und zwar in EINER Anweisung (weniger Datenbank-Umläufe).
+  const zuSchreiben: (typeof ligaSpiele.$inferInsert)[] = [];
   for (const { s, code } of mitCode) {
     const felder = spielFelder(s, team.id);
     const alt = nachCode.get(code);
     if (alt && !spielGeaendert({ ...alt } as SpielFelder, felder)) continue;
-    await db
-      .insert(ligaSpiele)
-      .values({ gruppeId: gruppe.id, spielcode: code, quelle: QUELLE, externeId: s.id, ...felder })
-      .onConflictDoUpdate({
-        target: [ligaSpiele.gruppeId, ligaSpiele.spielcode],
-        set: { ...felder, externeId: s.id, synchronisiertAm: new Date() },
-      });
+    zuSchreiben.push({ gruppeId: gruppe.id, spielcode: code, quelle: QUELLE, externeId: s.id, ...felder });
     if (alt) k.zaehler.aktualisiert();
     else k.zaehler.neu();
+  }
+  // Doppelte Spielcodes in einer Anweisung wären ein Fehler ("row a second time"): der letzte gilt.
+  const eindeutig = [...new Map(zuSchreiben.map((z) => [z.spielcode, z])).values()];
+  if (eindeutig.length > 0) {
+    const spalten = Object.keys(eindeutig[0]).filter((c) => c !== "gruppeId" && c !== "spielcode") as (keyof typeof ligaSpiele.$inferInsert)[];
+    await db
+      .insert(ligaSpiele)
+      .values(eindeutig)
+      .onConflictDoUpdate({
+        target: [ligaSpiele.gruppeId, ligaSpiele.spielcode],
+        set: {
+          ...Object.fromEntries(spalten.map((c) => [c, excluded(ligaSpiele[c as keyof typeof ligaSpiele] as never)])),
+          synchronisiertAm: new Date(),
+        },
+      });
   }
 
   // Zukünftige Spiele des Teams, die handball.net nicht mehr führt, entfernen.
