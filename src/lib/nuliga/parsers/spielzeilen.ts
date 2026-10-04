@@ -63,10 +63,13 @@ function parseErgebnis(zelle: Zelle | undefined): {
     const params = paramsAusUrl(anker[1]);
     const halbzeitText =
       anker[2].match(/(?:title|alt)\s*=\s*"(\d+:\d+)\s+zur Halbzeit"/i)?.[1] ?? null;
+    // nuLiga zeigt "0:0" schon, bevor das Spiel gespielt ist (Spielbericht angelegt, noch kein Ergebnis).
+    // Ein echtes 0:0 gibt es im Handball praktisch nicht, deshalb gilt es als "noch kein Ergebnis".
+    const tore = parseDoppelwert(textVon(anker[2]));
     return {
       meetingId: params.get("meeting"),
       gruppenId: params.get("group"),
-      tore: parseDoppelwert(textVon(anker[2])),
+      tore: tore && tore.plus === 0 && tore.minus === 0 ? null : tore,
       halbzeit: halbzeitText ? parseDoppelwert(halbzeitText) : null,
       code: null,
     };

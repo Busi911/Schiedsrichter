@@ -164,7 +164,8 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   nuLiga zeigt in denselben Seiten Mannschaftsverantwortliche,
   Schiedsrichter (Name/Kürzel) und Kalender-Tokens — die dürfen nie
   persistiert werden. Ein Ergebnis wird nur aus einem `…MeetingReport`-Link
-  gelesen, nie aus dem übrigen Inhalt der Ergebnis-Spalte. Neue Felder nur mit
+  gelesen, nie aus dem übrigen Inhalt der Ergebnis-Spalte. Ein "0:0" gilt als Platzhalter vor dem Spiel (nuLiga legt den
+  Spielbericht vorher an) und wird NICHT als Ergebnis gespeichert — auch nicht im Hallenplan-Import (`extrahiereErgebnis`). Neue Felder nur mit
   Test, dass die Platzhalter-Namen aus `__fixtures__/README.md` nicht
   auftauchen. Fixtures nie ungekürzt/mit echten Namen einchecken.
 - **Teamidentität:** nie über den angezeigten Namen. Stabil sind

@@ -127,8 +127,12 @@ function extrahiereErgebnis(zusatz: string | undefined): {
     const match: RegExpMatchArray | null =
       ergebnisHeim === null ? teil.trim().match(ERGEBNIS_MUSTER) : null;
     if (match) {
-      ergebnisHeim = Number(match[1]);
-      ergebnisAuswaerts = Number(match[2]);
+      // "0:0" ist der Platzhalter vor dem Spiel (Spielbericht angelegt, noch kein Ergebnis): kein Ergebnis,
+      // aber auch nicht in den Zusatz-Text übernehmen.
+      if (!(match[1] === "0" && match[2] === "0")) {
+        ergebnisHeim = Number(match[1]);
+        ergebnisAuswaerts = Number(match[2]);
+      }
     } else {
       rest.push(teil);
     }

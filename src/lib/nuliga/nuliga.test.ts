@@ -271,6 +271,23 @@ describe("parseSpielTabellen: Sonderfälle", () => {
   });
 });
 
+describe("parseSpielTabellen: Platzhalter 0:0", () => {
+  const zeile = (ergebnis: string) => `<html><body><table class="result-set">
+    <tr><th>Tag</th><th>Datum</th><th>Zeit</th><th>Ort</th><th>Nr.</th><th>Heimmannschaft</th><th>Gastmannschaft</th><th>Ergebnis</th></tr>
+    <tr><td>Sa.</td><td>03.10.2026</td><td>16:00</td><td></td><td>7</td><td>TSV Heim</td><td>TSV Gast</td><td><a href="x?MeetingReport=1&amp;meeting=5&amp;group=9" title="Spielbericht">${ergebnis}</a></td></tr>
+  </table></body></html>`;
+
+  it("0:0 vor dem Spiel gilt als noch kein Ergebnis", () => {
+    const { spiele } = parseSpielTabellen(zeile("0:0"));
+    expect(spiele[0]).toMatchObject({ spielnummer: 7, tore: null, status: "geplant" });
+  });
+
+  it("ein echtes Ergebnis bleibt erhalten", () => {
+    const { spiele } = parseSpielTabellen(zeile("29:36"));
+    expect(spiele[0]).toMatchObject({ tore: { plus: 29, minus: 36 }, status: "gespielt" });
+  });
+});
+
 describe("parseGroupPage: zurückgezogene Mannschaft", () => {
   it("erkennt 'zurückgezogen am …' statt Statistik", () => {
     const html = `<html><body><table class="result-set">

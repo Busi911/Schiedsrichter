@@ -83,6 +83,32 @@ describe("parseRundenspielJson", () => {
     );
   });
 
+  it("behandelt den Platzhalter 0:0 vor dem Spiel nicht als Ergebnis (und nicht als Titel-Text)", () => {
+    const { ereignisse } = parseRundenspielJson(
+      beispielJson({
+        events: [
+          {
+            date: "2026-08-02",
+            time: "15:00",
+            start: "2026-08-02T15:00:00+02:00",
+            title: "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1",
+            gameNumber: "0",
+            category: "Mä/männl.",
+            league: "F 2026-08-02 M TSF Heuchelheim (BOL) gg HSG Lumdatal (LL)",
+            home: "TSF Heuchelheim 1",
+            away: "HSG Lumdatal e.V. 1",
+            location: "Sporthalle Heuchelheim",
+            locationId: 30402,
+            zusatz: "0:0",
+          },
+        ],
+      })
+    );
+    expect(ereignisse[0].ergebnisHeim).toBeNull();
+    expect(ereignisse[0].ergebnisAuswaerts).toBeNull();
+    expect(ereignisse[0].beschreibung).not.toContain("0:0");
+  });
+
   it("lässt ein Schiedsrichter-Kürzel in der Zusatz-Zelle unangetastet (kein Ergebnis-Muster)", () => {
     const { ereignisse } = parseRundenspielJson(
       beispielJson({
