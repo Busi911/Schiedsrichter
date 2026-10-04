@@ -25,7 +25,7 @@ export default async function AdminKalenderPage({
           Alle Termine des Vereins — Spiele aus dem ICS-Feed sowie Freundschaftsspiele/Turniere. Zum
           Anschauen der Details auf einen Termin klicken.
           <span className="ml-2 inline-flex items-center gap-1">
-            <CheckCircle2 className="size-3.5 text-emerald-600" /> Besetzung vollständig
+            <CheckCircle2 className="size-3.5 text-blue-700 dark:text-blue-400" /> Besetzung vollständig
           </span>
           <span className="ml-3 inline-flex items-center gap-1">
             <AlertCircle className="size-3.5 text-destructive" /> Besetzung offen
