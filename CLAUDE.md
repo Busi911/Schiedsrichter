@@ -391,7 +391,7 @@ alles unter `/system/abgleich` (nur Systemadmin):
   Hash-Routen `#/groups/<GROUP>` und `#/groups/<GROUP>/meetings/<MEETING>` (`baueLiveStaffelUrl`/`baueLiveSpielUrl`
   in `nuliga/verbaende.ts`; Gruppen-ID kommt aus `bericht_url` (`&group=`), Meeting-ID aus `meeting_id`). `SpielKarte`
   zeigt "Live-Ticker" + "Spielbericht" (über `lib/match-provider.ts`, `quelleFuer`). Eine Meeting-ID heißt NICHT, dass
-  das Spiel live ist. Es gibt keinen verifizierten "LIVE"-Status, nur die Vermutung `laeuftVermutlich` (liga-spiel-status.ts: Spielbericht angelegt + kein Ergebnis + Anwurf höchstens 2 h her) → Badge "Läuft vermutlich".
+  das Spiel live ist. Es gibt keinen verifizierten "LIVE"-Status, nur die Vermutung `laeuftVermutlich` (liga-spiel-status.ts: Spielbericht angelegt + kein Ergebnis + Anwurf höchstens 2 h her) → Badge "Läuft" (bewusst ohne "vermutlich", bleibt aber nur eine Vermutung).
 - NICHT umgesetzt: `getLiveState` (Interface in `match-provider.ts`, nuLiga-Implementierung fehlt absichtlich), Spielstand/
   Events, Cache, Detailseite. Der Daten-Endpunkt der SPA ist nicht verifiziert (die Sandbox erreicht weder
   `hhv-handball.liga.nu` noch `hbde-live.liga.nu`; Domain-Freigabe oder Netzwerk-Tab-Daten der SPA nötig). Spiele ohne

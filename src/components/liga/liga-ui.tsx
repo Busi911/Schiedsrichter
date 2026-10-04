@@ -100,7 +100,7 @@ export function SpielKarte({
           {laeuft && (
             <Badge className="gap-1.5 bg-rose-600 text-white">
               <span className="size-1.5 animate-pulse rounded-full bg-white" />
-              Läuft vermutlich
+              Läuft
             </Badge>
           )}
           {spiel.istFreundschaft && <Badge variant="outline">Freundschaftsspiel</Badge>}
