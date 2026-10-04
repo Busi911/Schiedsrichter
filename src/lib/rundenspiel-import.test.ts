@@ -83,41 +83,30 @@ describe("parseRundenspielJson", () => {
     );
   });
 
-  describe("0:0 in der Zusatz-Zelle", () => {
-    const mitStart = (start: Date) =>
-      parseRundenspielJson(
-        beispielJson({
-          events: [
-            {
-              date: "2026-08-02",
-              time: "15:00",
-              start: start.toISOString(),
-              title: "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1",
-              gameNumber: "0",
-              category: "Mä/männl.",
-              league: "F 2026-08-02 M TSF Heuchelheim (BOL) gg HSG Lumdatal (LL)",
-              home: "TSF Heuchelheim 1",
-              away: "HSG Lumdatal e.V. 1",
-              location: "Sporthalle Heuchelheim",
-              locationId: 30402,
-              zusatz: "0:0",
-            },
-          ],
-        })
-      ).ereignisse[0];
-
-    it("kurz nach dem Anpfiff ist 0:0 nur der Platzhalter (kein Ergebnis, nicht im Titel)", () => {
-      const e = mitStart(new Date(Date.now() - 2 * 3600_000));
-      expect(e.ergebnisHeim).toBeNull();
-      expect(e.ergebnisAuswaerts).toBeNull();
-      expect(e.beschreibung).not.toContain("0:0");
-    });
-
-    it("über einen Tag nach dem Spiel ist 0:0 ein echtes Ergebnis (Nichtantritt/Wertung)", () => {
-      const e = mitStart(new Date(Date.now() - 30 * 3600_000));
-      expect(e.ergebnisHeim).toBe(0);
-      expect(e.ergebnisAuswaerts).toBe(0);
-    });
+  it("behandelt den Platzhalter 0:0 nicht als Ergebnis (und nicht als Titel-Text)", () => {
+    const { ereignisse } = parseRundenspielJson(
+      beispielJson({
+        events: [
+          {
+            date: "2026-08-02",
+            time: "15:00",
+            start: "2026-08-02T15:00:00+02:00",
+            title: "TSF Heuchelheim 1 – HSG Lumdatal e.V. 1",
+            gameNumber: "0",
+            category: "Mä/männl.",
+            league: "F 2026-08-02 M TSF Heuchelheim (BOL) gg HSG Lumdatal (LL)",
+            home: "TSF Heuchelheim 1",
+            away: "HSG Lumdatal e.V. 1",
+            location: "Sporthalle Heuchelheim",
+            locationId: 30402,
+            zusatz: "0:0",
+          },
+        ],
+      })
+    );
+    expect(ereignisse[0].ergebnisHeim).toBeNull();
+    expect(ereignisse[0].ergebnisAuswaerts).toBeNull();
+    expect(ereignisse[0].beschreibung).not.toContain("0:0");
   });
 
   it("lässt ein Schiedsrichter-Kürzel in der Zusatz-Zelle unangetastet (kein Ergebnis-Muster)", () => {

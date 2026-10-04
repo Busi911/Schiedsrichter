@@ -111,16 +111,9 @@ function bildeUid(locationId: number | string, event: unknown): string | null {
 // monats-kalender.tsx).
 const ERGEBNIS_MUSTER = /^(\d{1,3}):(\d{1,3})$/;
 
-// "0:0" ist vor dem Spiel nur der Platzhalter (Spielbericht angelegt, noch kein Ergebnis). Ein echtes 0:0
-// gibt es bei Nichtantritt/Wertung — das steht aber erst später fest: deshalb zählt es erst, wenn der
-// Spielbeginn mehr als einen Tag zurückliegt.
-const NULL_NULL_AB_MS = 24 * 60 * 60 * 1000;
-
-function extrahiereErgebnis(
-  zusatz: string | undefined,
-  beginn?: Date,
-  jetzt: Date = new Date()
-): {
+// "0:0" ist nur der Platzhalter vor dem Spiel (Spielbericht angelegt, noch kein Ergebnis). Ein echtes 0:0 gibt
+// es im Handball nicht, ein Nichtantritt trägt in nuLiga einen eigenen Wertungs-Marker (NH/NG).
+function extrahiereErgebnis(zusatz: string | undefined): {
   ergebnisHeim: number | null;
   ergebnisAuswaerts: number | null;
   zusatzOhneErgebnis: string | undefined;
@@ -136,10 +129,8 @@ function extrahiereErgebnis(
     const match: RegExpMatchArray | null =
       ergebnisHeim === null ? teil.trim().match(ERGEBNIS_MUSTER) : null;
     if (match) {
-      const nullNull = match[1] === "0" && match[2] === "0";
-      const nullNullEcht = !!beginn && jetzt.getTime() - beginn.getTime() >= NULL_NULL_AB_MS;
       // Platzhalter-0:0 wird weder Ergebnis noch Zusatz-Text.
-      if (!nullNull || nullNullEcht) {
+      if (!(match[1] === "0" && match[2] === "0")) {
         ergebnisHeim = Number(match[1]);
         ergebnisAuswaerts = Number(match[2]);
       }
@@ -444,7 +435,7 @@ export function parseRundenspielJson(text: string): RundenspielParseErgebnis {
       // oben), der Rest bleibt wie bisher roh.
       const zusatzRoh = typeof e.zusatz === "string" ? e.zusatz : undefined;
       const { ergebnisHeim, ergebnisAuswaerts, zusatzOhneErgebnis } =
-        extrahiereErgebnis(zusatzRoh, start);
+        extrahiereErgebnis(zusatzRoh);
       const { kuerzel: schiedsrichterKuerzel, zusatzOhneKuerzel: zusatz } =
         extrahiereSchiedsrichterKuerzel(zusatzOhneErgebnis);
       // Nur bei handball.net-Ursprung gesetzt (siehe schiedsrichter/
