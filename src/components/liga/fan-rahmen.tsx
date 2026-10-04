@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { LinkSpinner } from "@/components/link-spinner";
 
 // Eigene Erscheinung der öffentlichen Fan-Web-App: farbiges Kopfband und
 // vereinsspezifische Akzentfarbe (Farbton aus dem Vereins-Slug, siehe
@@ -36,6 +37,9 @@ export function FanKopf({
       )}
     >
       {label}
+      <span className="ml-2 empty:hidden">
+        <LinkSpinner />
+      </span>
     </Link>
   );
   // Auf den Listen (Vereine / Meine Mannschaften) sind die Schaltflächen die Hauptnavigation: groß und
@@ -47,6 +51,9 @@ export function FanKopf({
       className="-my-1 inline-flex items-center py-2 text-sm font-medium opacity-80 transition hover:opacity-100 active:opacity-100"
     >
       {label}
+      <span className="ml-1.5 empty:hidden">
+        <LinkSpinner />
+      </span>
     </Link>
   );
   return (
