@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ZEITZONE } from "@/lib/format";
+import { laeuftVermutlich } from "@/lib/liga-spiel-status";
 import { quelleFuer } from "@/lib/match-provider";
 import { hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "./favorit-stern";
@@ -70,6 +71,7 @@ export function SpielKarte({
     ausgang = eigen > gegner ? "S" : eigen === gegner ? "U" : "N";
   }
   // Nur nuLiga-Spiele haben Links (handball.net: null); Verband "HHV" ist aktuell der einzige.
+  const laeuft = laeuftVermutlich(spiel, new Date());
   const berichtUrl = quelleFuer(spiel).berichtUrl(spiel);
   const liveUrl = quelleFuer(spiel).liveUrl(spiel);
   const fett = (tt: string | null) =>
@@ -95,6 +97,12 @@ export function SpielKarte({
         </span>
         <span className="flex items-center gap-1.5">
           {teamLabel && <Badge variant="secondary">{teamLabel}</Badge>}
+          {laeuft && (
+            <Badge className="gap-1.5 bg-rose-600 text-white">
+              <span className="size-1.5 animate-pulse rounded-full bg-white" />
+              Läuft vermutlich
+            </Badge>
+          )}
           {spiel.istFreundschaft && <Badge variant="outline">Freundschaftsspiel</Badge>}
           {STATUS_LABEL[spiel.status] && <Badge variant="outline">{STATUS_LABEL[spiel.status]}</Badge>}
         </span>
