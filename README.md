@@ -553,6 +553,41 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
 4. Tests (Isolation, Datenschutz), Datenschutzerklärung, Startseite verlinken.
 5. Später: Kader/Torschützen, Favoriten mit Konto, Push bei Ergebnissen.
 
+### Live-Ticker (nuLiga nuScore) — Idee (04.10.2026)
+
+**Idee:** nuLiga hat einen Live-Ticker (nuScore Live), der mit Spielbeginn
+läuft. Auf der öffentlichen Vereinsseite soll sichtbar werden, dass ein Spiel
+gerade läuft, und der Ticker erreichbar sein.
+
+**Stufe 1 — Link zum Ticker (einfach, ohne Abruf):**
+- Auf der Spielkarte erscheint während des Spiels ein Button "Live bei
+  nuScore", der direkt zum Ticker bei nuLiga führt. Wir rufen dafür nichts
+  zusätzlich ab; keine Datenschutz- oder Zustimmungsfrage.
+- **Vorab klären:** Muster der Ticker-Adresse (Beispiel-URL eines laufenden
+  oder vergangenen Spiels; von der Entwicklungsumgebung aus ist nuLiga nicht
+  erreichbar). Der Link gehört in `components/liga/liga-ui.tsx`
+  (`SpielKarte`); "läuft gerade" ergibt sich aus Beginn bis ca. 2 Stunden
+  danach ohne Ergebnis.
+
+**Stufe 2 — Live-Stand direkt auf der Seite (aufwendiger, erst nach Klärung):**
+- Anzeige "läuft, Stand 14:12" auf der Spielkarte. Abruf nur AUF ANFRAGE (wenn
+  jemand die Seite öffnet) mit 1–2 Minuten Zwischenspeicher, damit je Spiel
+  höchstens ein Abruf an nuLiga geht; der stündliche Sync reicht dafür nicht.
+- **Offen 1 — Zustimmung:** Die Zusage des HHV gilt für Spielpläne und
+  Ergebnisse. Für den Live-Ticker vermutlich neu und schriftlich klären.
+- **Offen 2 — Datenschutz:** Live-Ticker nennen oft Torschützen/Strafen mit
+  Namen. Nur Spielstand und Spielzeit übernehmen, keine Personendaten (gilt
+  wie bei den Parsern als Whitelist, Test ergänzen).
+- **Offen 3 — Schnittstelle:** Unklar, ob der Ticker einen sauberen
+  Datenabruf hat oder nur eine Webseite, die sich ändern kann. Dafür
+  Beispielseite bzw. Seitenquelle sichten.
+- **handball.net:** Die Schnittstelle liefert laut `handball-net/modell.ts`
+  Ergebnisse nur für beendete Spiele (`is_finished`). Ob sie auch einen
+  Live-Stand hat, an einer echten Antwort prüfen.
+
+**Reihenfolge:** Stufe 1 bauen, sobald eine Ticker-Adresse vorliegt. Stufe 2
+erst nach Zustimmung des HHV und nach Sichtung der Daten.
+
 ### Stand der Abstimmung (30.09.2026)
 
 Sammelstelle für alles, was in den letzten Arbeitsschritten besprochen wurde,
