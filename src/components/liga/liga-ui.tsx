@@ -74,7 +74,9 @@ export function SpielKarte({
     ausgang = eigen > gegner ? "S" : eigen === gegner ? "U" : "N";
   }
   // Nur nuLiga-Spiele haben Links (handball.net: null); Verband "HHV" ist aktuell der einzige.
-  const berichtUrl = quelleFuer(spiel).berichtUrl(spiel);
+  // Den Spielbericht gibt es erst mit Abschluss des Spiels: nur zeigen, wenn ein Ergebnis angezeigt wird (nicht bei
+  // Zwischenstand oder ganz ohne Ergebnis).
+  const berichtUrl = hatErgebnis(spiel) && !zwischenstand ? quelleFuer(spiel).berichtUrl(spiel) : null;
   const jetzt = new Date();
   const liveUrl = liveTickerRelevant(spiel, jetzt) ? quelleFuer(spiel).liveUrl(spiel) : null;
   const fett = (tt: string | null) =>
