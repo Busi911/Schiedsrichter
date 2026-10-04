@@ -42,6 +42,18 @@ export function liveTickerRelevant(s: SpielAnsicht, jetzt: Date): boolean {
   return ab >= -60 * 60 * 1000 && ab <= 4 * 60 * 60 * 1000;
 }
 
+// Zwischenstand: nuLiga zeigt schon während des Spiels den laufenden Stand als noch nicht genehmigtes Ergebnis. Die Seite
+// zeigt ihn NIE als Ergebnis (sieht sonst wie ein Endstand aus, bei stündlichem Sync oft veraltet): solange das Ergebnis
+// nicht genehmigt ist und der Anwurf höchstens 3 h zurückliegt, steht stattdessen "Ergebnis folgt". Danach gilt es wie
+// bisher als vorläufiges Ergebnis (z.B. wenn nuLiga ein Spiel nie genehmigt).
+export const ZWISCHENSTAND_FENSTER_MS = 3 * 60 * 60 * 1000;
+
+export function istZwischenstand(s: SpielAnsicht, jetzt: Date): boolean {
+  if (!KURZ(s) || s.ergebnisBestaetigt || s.status === "nicht_angetreten" || !s.beginn) return false;
+  const seit = jetzt.getTime() - s.beginn.getTime();
+  return seit >= 0 && seit <= ZWISCHENSTAND_FENSTER_MS;
+}
+
 export function spielPhase(s: SpielAnsicht): SpielPhase {
   if (s.status === "abgesagt") return "abgesagt";
   if (s.status === "nicht_angetreten") return "nicht_angetreten";

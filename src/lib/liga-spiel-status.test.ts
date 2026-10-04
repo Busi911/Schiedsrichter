@@ -73,3 +73,21 @@ describe("liveTickerRelevant", () => {
     expect(liveTickerRelevant(mit({ beginn: anwurf, status: "abgesagt" }), t(30))).toBe(false);
   });
 });
+
+import { istZwischenstand } from "./liga-spiel-status";
+describe("istZwischenstand", () => {
+  const anwurf = new Date("2026-10-04T15:00:00Z");
+  const t = (min: number) => new Date(anwurf.getTime() + min * 60_000);
+  const lauf = mit({ beginn: anwurf, toreHeim: 19, toreGast: 6 });
+  it("nicht genehmigtes Ergebnis bis 3 h nach Anwurf wird nicht als Ergebnis gezeigt", () => {
+    expect(istZwischenstand(lauf, t(40))).toBe(true);
+    expect(istZwischenstand(lauf, t(106))).toBe(true);
+    expect(istZwischenstand(lauf, t(181))).toBe(false);
+  });
+  it("genehmigt, ohne Ergebnis, Nichtantritt oder vor dem Anwurf: kein Zwischenstand", () => {
+    expect(istZwischenstand(mit({ beginn: anwurf, toreHeim: 30, toreGast: 25, ergebnisBestaetigt: true }), t(60))).toBe(false);
+    expect(istZwischenstand(mit({ beginn: anwurf }), t(60))).toBe(false);
+    expect(istZwischenstand(mit({ beginn: anwurf, toreHeim: 20, toreGast: 0, status: "nicht_angetreten" }), t(60))).toBe(false);
+    expect(istZwischenstand(lauf, t(-5))).toBe(false);
+  });
+});

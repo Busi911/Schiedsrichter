@@ -29,6 +29,7 @@ export {
   type SpielAnsicht,
 } from "./liga-spiele-hilfen";
 import { hatErgebnis, istAnstehend, sortiereChronologisch } from "./liga-spiele-hilfen";
+import { istZwischenstand } from "./liga-spiel-status";
 
 export type MannschaftAnsicht = {
   id: string;
@@ -272,7 +273,7 @@ export const holeGruppe = cache(async (gruppeId: string) =>
 export function formKurve(m: MannschaftAnsicht, anzahl = 5): ("S" | "U" | "N")[] {
   const tt = m.teamtableId;
   return m.spiele
-    .filter((s) => hatErgebnis(s))
+    .filter((s) => hatErgebnis(s) && !istZwischenstand(s, new Date()))
     .slice(-anzahl)
     .map((s) => {
       const eigenHeim = s.heimTeamtableId === tt;

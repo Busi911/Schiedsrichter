@@ -1,3 +1,4 @@
+import { istZwischenstand } from "@/lib/liga-spiel-status";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { adminDb } from "@/db/admin";
@@ -24,7 +25,8 @@ const spielKurz = (s: SpielAnsicht, eigenTeamtable: string | null) => ({
   heim: s.heimName,
   gast: s.gastName,
   eigenHeim: eigenTeamtable !== null && s.heimTeamtableId === eigenTeamtable,
-  tore: hatErgebnis(s) ? { heim: s.toreHeim, gast: s.toreGast } : null,
+  // Zwischenstände (laufendes Spiel, Ergebnis noch nicht genehmigt) nie als Ergebnis ausliefern
+  tore: hatErgebnis(s) && !istZwischenstand(s, new Date()) ? { heim: s.toreHeim, gast: s.toreGast } : null,
   vorlaeufig: hatErgebnis(s) && !s.ergebnisBestaetigt,
   status: s.status,
 });

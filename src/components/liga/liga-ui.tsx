@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ZEITZONE } from "@/lib/format";
-import { laeuftVermutlich, liveTickerRelevant } from "@/lib/liga-spiel-status";
+import { istZwischenstand, laeuftVermutlich, liveTickerRelevant } from "@/lib/liga-spiel-status";
 import { quelleFuer } from "@/lib/match-provider";
 import { hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "./favorit-stern";
@@ -63,9 +63,11 @@ export function SpielKarte({
   // Farbstreifen links: Sieg/Unentschieden/Niederlage aus Sicht der eigenen Mannschaft.
   mitAusgang?: boolean;
 }) {
-  const laeuft = laeuftVermutlich(spiel, new Date());
+  const jetztSpiel = new Date();
+  const laeuft = laeuftVermutlich(spiel, jetztSpiel);
+  const zwischenstand = istZwischenstand(spiel, jetztSpiel);
   let ausgang: "S" | "U" | "N" | null = null;
-  if (!laeuft && mitAusgang && eigenTeamtable && hatErgebnis(spiel)) {
+  if (!zwischenstand && mitAusgang && eigenTeamtable && hatErgebnis(spiel)) {
     const heim = spiel.heimTeamtableId === eigenTeamtable;
     const eigen = heim ? spiel.toreHeim! : spiel.toreGast!;
     const gegner = heim ? spiel.toreGast! : spiel.toreHeim!;
@@ -113,13 +115,18 @@ export function SpielKarte({
           <p className={cn("truncate", fett(spiel.heimTeamtableId))}>{spiel.heimName}</p>
           <p className={cn("truncate", fett(spiel.gastTeamtableId))}>{spiel.gastName}</p>
         </div>
-        {hatErgebnis(spiel) && (
+        {zwischenstand && (
+          <p className="text-right text-xs font-medium text-muted-foreground">
+            {laeuft ? "Läuft gerade" : "Ergebnis folgt"}
+          </p>
+        )}
+        {hatErgebnis(spiel) && !zwischenstand && (
           <div className="text-right">
             <p className="font-heading text-xl leading-tight font-bold tabular-nums">
               {spiel.toreHeim}:{spiel.toreGast}
             </p>
             {!spiel.ergebnisBestaetigt && (
-              <p className="text-[10px] text-muted-foreground">{laeuft ? "live" : "vorläufig"}</p>
+              <p className="text-[10px] text-muted-foreground">vorläufig</p>
             )}
           </div>
         )}
