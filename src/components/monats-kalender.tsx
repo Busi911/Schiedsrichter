@@ -882,6 +882,10 @@ export function MonatsKalender({
                   ...eintraege.map((e) => e.farbe ?? "var(--muted-foreground)"),
                 ].slice(0, 3);
                 const ausgewaehlt = key === ausgewaehlterTag;
+                // Heute/künftig mit mindestens einem noch nicht vollständig besetzten Spiel: Warnzeichen am Tag
+                // (Symbol statt nur Farbe, damit es auch bei Rot-Grün-Schwäche erkennbar ist).
+                const besetzungOffen =
+                  key >= heuteKey && eintraege.some((e) => e.besetzung === "offen");
                 return (
                   <button
                     type="button"
@@ -890,8 +894,8 @@ export function MonatsKalender({
                     onClick={() => setAusgewaehlterTag(key)}
                     aria-current={tag.heute ? "date" : undefined}
                     aria-pressed={ausgewaehlt}
-                    aria-label={formatWochentagDatum(tag.datum)}
-                    className={`flex h-11 flex-col items-center justify-center gap-0.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
+                    aria-label={`${formatWochentagDatum(tag.datum)}${besetzungOffen ? ", Besetzung offen" : ""}`}
+                    className={`relative flex h-11 flex-col items-center justify-center gap-0.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
                       !tag.imMonat
                         ? "cursor-default opacity-30"
                         : ausgewaehlt
@@ -904,6 +908,12 @@ export function MonatsKalender({
                     >
                       {tag.datum.getDate()}
                     </span>
+                    {besetzungOffen && tag.imMonat && (
+                      <AlertCircle
+                        aria-hidden
+                        className={`absolute top-0.5 right-0.5 size-3 ${ausgewaehlt ? "text-primary-foreground" : "text-destructive"}`}
+                      />
+                    )}
                     <span className="flex h-1 items-center gap-0.5">
                       {punkte.map((farbe, i) => (
                         <span
