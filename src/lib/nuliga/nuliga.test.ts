@@ -361,3 +361,19 @@ describe("Spielbericht-Link (meetingId / berichtUrl)", () => {
     expect(baueBerichtUrl("HHV", null)).toBeNull();
   });
 });
+
+describe("nuScoreLive-Links", () => {
+  it("baut Staffel- und Spiel-URL nur aus reinen Zahlen-IDs", async () => {
+    const { baueLiveStaffelUrl, baueLiveSpielUrl, gruppenIdAusBerichtUrl } = await import("./verbaende");
+    expect(baueLiveStaffelUrl("491948")).toBe("https://hbde-live.liga.nu/nuScoreLive/#/groups/491948");
+    expect(baueLiveSpielUrl("424023", "7979438")).toBe(
+      "https://hbde-live.liga.nu/nuScoreLive/#/groups/424023/meetings/7979438"
+    );
+    expect(baueLiveSpielUrl("424023", null)).toBeNull();
+    expect(baueLiveSpielUrl("4/../x", "1")).toBeNull();
+    expect(
+      gruppenIdAusBerichtUrl("/x/wa/groupMeetingReport?meeting=8322404&championship=Darmstadt+26%2F27&group=511797")
+    ).toBe("511797");
+    expect(gruppenIdAusBerichtUrl(null)).toBeNull();
+  });
+});

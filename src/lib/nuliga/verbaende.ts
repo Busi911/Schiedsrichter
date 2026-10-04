@@ -31,6 +31,31 @@ export function baueBerichtUrl(verband: string, berichtUrl: string | null): stri
   return `https://${v.domain}${berichtUrl}`;
 }
 
+// nuScoreLive (Live-Ticker): eigene Single-Page-App, getrennt von der nuLiga-Anwendung (Hash-Routen, verifiziert
+// vom Betreiber): #/groups/<GROUP_ID> (Staffel) und #/groups/<GROUP_ID>/meetings/<MEETING_ID> (Einzelspiel).
+// Eine vorhandene Meeting-ID heißt NICHT, dass das Spiel live ist — der Link führt nur auf die Live-/Statistikseite.
+const LIVE_BASIS = "https://hbde-live.liga.nu/nuScoreLive/";
+const NUR_ZIFFERN = /^\d+$/;
+
+export function baueLiveStaffelUrl(groupId: string | null): string | null {
+  return groupId && NUR_ZIFFERN.test(groupId) ? `${LIVE_BASIS}#/groups/${groupId}` : null;
+}
+
+export function baueLiveSpielUrl(groupId: string | null, meetingId: string | null): string | null {
+  if (!groupId || !meetingId || !NUR_ZIFFERN.test(groupId) || !NUR_ZIFFERN.test(meetingId)) return null;
+  return `${LIVE_BASIS}#/groups/${groupId}/meetings/${meetingId}`;
+}
+
+// Gruppen-ID aus dem gespeicherten Spielbericht-Pfad (…&group=<ID>); so braucht die Spielkarte keinen Join.
+export function gruppenIdAusBerichtUrl(berichtUrl: string | null): string | null {
+  if (!berichtUrl) return null;
+  try {
+    return new URL(berichtUrl, "https://nuliga.invalid").searchParams.get("group");
+  } catch {
+    return null;
+  }
+}
+
 export function baueNuligaUrl(
   verband: string,
   seite: "clubTeams" | "groupPage" | "teamPortrait",

@@ -387,6 +387,12 @@ alles unter `/system/abgleich` (nur Systemadmin):
   der Spielbericht angelegt ist (deshalb auch das "0:0"-Platzhalterverhalten) — für Spiele davor ist `meeting_id` leer;
   ein Backfill ist ohne weitere Quelle nicht möglich, der Sync füllt es von selbst, sobald nuLiga den Link zeigt.
 - `lib/liga-spiel-status.ts` (`spielPhase`): Anzeige-Phase aus gespeicherten Daten, bewusst OHNE "live".
-- NICHT umgesetzt (braucht echte Browser-Daten eines laufenden Spiels): Live-Status, Spielstand-/Event-Abruf,
-  Cache, Spiel-Detailseite. Nötig: Netzwerk-Tab (URL, Methode, Parameter, Header, Antwort) der nuLiga-/nuScore-Seite
-  während eines laufenden Spiels; die Sandbox erreicht `hhv-handball.liga.nu` nicht (Netzwerk-Policy).
+- **nuScoreLive (Live-Ticker, vom Betreiber verifiziert):** eigene SPA `https://hbde-live.liga.nu/nuScoreLive/` mit
+  Hash-Routen `#/groups/<GROUP>` und `#/groups/<GROUP>/meetings/<MEETING>` (`baueLiveStaffelUrl`/`baueLiveSpielUrl`
+  in `nuliga/verbaende.ts`; Gruppen-ID kommt aus `bericht_url` (`&group=`), Meeting-ID aus `meeting_id`). `SpielKarte`
+  zeigt "Live-Ticker" + "Spielbericht" (über `lib/match-provider.ts`, `quelleFuer`). Eine Meeting-ID heißt NICHT, dass
+  das Spiel live ist — es gibt bewusst keinen "LIVE"-Status.
+- NICHT umgesetzt: `getLiveState` (Interface in `match-provider.ts`, nuLiga-Implementierung fehlt absichtlich), Spielstand/
+  Events, Cache, Detailseite. Der Daten-Endpunkt der SPA ist nicht verifiziert (die Sandbox erreicht weder
+  `hhv-handball.liga.nu` noch `hbde-live.liga.nu`; Domain-Freigabe oder Netzwerk-Tab-Daten der SPA nötig). Spiele ohne
+  angelegten Spielbericht haben noch keine `meeting_id` und damit keinen Live-Link.
