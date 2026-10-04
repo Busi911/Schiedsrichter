@@ -398,3 +398,10 @@ alles unter `/system/abgleich` (nur Systemadmin):
   Events, Cache, Detailseite. Der Daten-Endpunkt der SPA ist nicht verifiziert (die Sandbox erreicht weder
   `hhv-handball.liga.nu` noch `hbde-live.liga.nu`; Domain-Freigabe oder Netzwerk-Tab-Daten der SPA nötig). Spiele ohne
   angelegten Spielbericht haben noch keine `meeting_id` und damit keinen Live-Link.
+
+## Besetzung "Vollständig" und definierte Dienste
+
+Ein Termin gilt im Admin-Kalender (Badge "Vollständig"/"Offen") und in "Unbesetzte Termine" (Dashboard) nur als vollständig, wenn
+Schiedsrichter (falls vom Verein zu stellen), Zeitnehmer/Sekretär UND alle vom Verein definierten Helferdienste (Ordner,
+Kioskdienst, Kassierer: Bedarf > 0 laut `bedarfFuer`, nicht für die Mannschaft abgeschaltet) ihren Bedarf erreichen.
+Dasselbe Maß wie die Liste "Offene Dienste" (`berechneOffenePosten`).
