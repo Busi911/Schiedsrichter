@@ -120,6 +120,7 @@ export default async function AdminDashboardPage() {
     mannschaft: t.mannschaftLabel,
     schiriOffen: t.schiriOffen,
     zeitnehmerOffen: t.zeitnehmerOffen,
+    helferdienstOffen: t.helferdienstOffen,
   }));
 
   return (

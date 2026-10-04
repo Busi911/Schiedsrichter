@@ -18,6 +18,7 @@ export type UnbesetzterTerminZeile = {
   mannschaft: string | null;
   schiriOffen: boolean;
   zeitnehmerOffen: boolean;
+  helferdienstOffen: boolean;
 };
 
 // Ersetzt die frühere "Nächste Termine"-Tabelle auf dem Dashboard — der dort
@@ -62,6 +63,7 @@ export function UnbesetzteTermineTabelle({
                   <div className="flex flex-wrap gap-1">
                     {t.schiriOffen && <Badge variant="warning">Schiedsrichter</Badge>}
                     {t.zeitnehmerOffen && <Badge variant="warning">Zeitnehmer</Badge>}
+                    {t.helferdienstOffen && <Badge variant="warning">Helferdienst</Badge>}
                   </div>
                 </TableCell>
               </TableRow>

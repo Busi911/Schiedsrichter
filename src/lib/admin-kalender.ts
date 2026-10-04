@@ -261,7 +261,7 @@ export async function holeAdminKalenderDaten(
           externeZeitnehmerSekretaerAnzahl
         )
       : null;
-    const besetzung = besetzungsStatus
+    let besetzung = besetzungsStatus
       ? istBesetzungVollstaendig(besetzungsStatus, t.typ, t.pflichtspiel)
         ? ("vollstaendig" as const)
         : ("offen" as const)
@@ -404,6 +404,7 @@ export async function holeAdminKalenderDaten(
           entfernbar: false,
         });
       }
+      let helferdienstOffen = false;
       for (const rolle of ORDNER_ROLLEN) {
         const vorhandeneAnzahl = eigeneZuordnungen.filter(
           (z) => z.funktionstraegerTyp === rolle
@@ -426,6 +427,7 @@ export async function holeAdminKalenderDaten(
         // "Person wählen…"-Dropdown eine ohnehin abgelehnte Zuordnung gar
         // nicht erst anbietet.
         if (vorhandeneAnzahl >= bedarf) volleRollen.push(rolle);
+        if (bedarf > 0 && vorhandeneAnzahl < bedarf) helferdienstOffen = true;
         if (bedarf > 0 && vorhandeneAnzahl === 0) {
           besetzungsDetails.push({
             id: `offen-${rolle}-${t.id}`,
@@ -434,6 +436,9 @@ export async function holeAdminKalenderDaten(
           });
         }
       }
+      // Vom Verein definierte Dienste (Bedarf > 0 für Ordner/Kioskdienst/Kassierer) zählen zur Vollständigkeit:
+      // ist einer davon nicht besetzt, gilt die Besetzung als offen — passend zur Liste "Offene Dienste".
+      if (besetzung === "vollstaendig" && helferdienstOffen) besetzung = "offen";
     }
 
     liste.push({

@@ -190,6 +190,7 @@ export type UnbesetzterTermin = {
   mannschaftLabel: string | null;
   schiriOffen: boolean;
   zeitnehmerOffen: boolean;
+  helferdienstOffen: boolean;
 };
 
 // spiel_ics bewusst ausgenommen — rein persönlicher ICS-Feed-Einsatz eines
@@ -235,7 +236,24 @@ export function berechneUnbesetzteTermine(
       externeSchiriAnzahl,
       externeZeitnehmerSekretaerAnzahl
     );
-    if (istBesetzungVollstaendig(status, termin.typ, termin.pflichtspiel)) continue;
+    // Vom Verein definierte Helferdienste (Ordner/Kioskdienst/Kassierer) zählen mit: ein Termin gilt nur als besetzt,
+    // wenn auch diese ihren Bedarf erreichen (wie im Admin-Kalender und in "Offene Dienste").
+    const helferOffen = ORDNER_ROLLEN.some((rolle) => {
+      const bedarf = bedarfFuer(
+        verein,
+        termin.typ,
+        rolle,
+        termin.pflichtspiel,
+        termin.freundschaftsTyp,
+        undefined,
+        mannschaftDeaktiviertFuerOrdnerRolle(termin, rolle)
+      );
+      return (
+        bedarf > 0 &&
+        eigeneZuordnungen.filter((z) => z.funktionstraegerTyp === rolle).length < bedarf
+      );
+    });
+    if (!helferOffen && istBesetzungVollstaendig(status, termin.typ, termin.pflichtspiel)) continue;
 
     ergebnis.push({
       terminId: termin.id,
@@ -253,6 +271,7 @@ export function berechneUnbesetzteTermine(
       schiriOffen: !(termin.typ === "rundenspiel" && termin.pflichtspiel === true)
         && !status.schiriErfuellt,
       zeitnehmerOffen: !status.zeitnehmerSekretaerErfuellt,
+      helferdienstOffen: helferOffen,
     });
   }
 
@@ -299,6 +318,7 @@ export async function holeUnbesetzteTermine(
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
         mannschaftOrdnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
         mannschaftKioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
+        mannschaftKassiererBedarfDeaktiviert: mannschaften.kassiererBedarfDeaktiviert,
         mannschaftZeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
         handballNetSchiedsrichter: termine.handballNetSchiedsrichter,
         nuligaSchiedsrichterKuerzel: termine.nuligaSchiedsrichterKuerzel,
