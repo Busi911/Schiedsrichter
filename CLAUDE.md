@@ -398,3 +398,10 @@ alles unter `/system/abgleich` (nur Systemadmin):
   Events, Cache, Detailseite. Der Daten-Endpunkt der SPA ist nicht verifiziert (die Sandbox erreicht weder
   `hhv-handball.liga.nu` noch `hbde-live.liga.nu`; Domain-Freigabe oder Netzwerk-Tab-Daten der SPA nötig). Spiele ohne
   angelegten Spielbericht haben noch keine `meeting_id` und damit keinen Live-Link.
+
+## Admin-Statistik
+
+`/admin/statistik` (früher Abschnitt auf `/admin/dienste` = "Offene Dienste", gehört dort nicht hin): Spielbilanz je Mannschaft
+über ALLE Spiele (Heim + Auswärts + Freundschaft) aus den öffentlichen Liga-Daten (`lib/spiel-statistik.ts`,
+`holeMannschaftsBilanzenAlleSpiele`); ohne Liga-Daten Rückfall auf die alte Heimspiel-Bilanz aus dem Hallenplan.
+Zwischenstände laufender Spiele (`istZwischenstand`) und Nichtantritte zählen nicht.

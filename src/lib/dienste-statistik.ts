@@ -10,7 +10,10 @@ import {
   lt,
 } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
+import { adminDb } from "@/db/admin";
+import { ligaVereine, mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
+import { holeMannschaften } from "@/lib/liga-oeffentlich";
+import { berechneBilanzAusLigaSpielen } from "@/lib/spiel-statistik";
 import { normalisiereMannschaftsname } from "@/lib/rundenspiel-import";
 
 // Statistik-Sektion auf /admin/dienste — "wie ausgelastet sind wir" (Top
@@ -27,14 +30,8 @@ export type RundenspielErgebnisZeile = {
   ergebnisAuswaerts: number;
 };
 
-export type MannschaftsBilanz = {
-  mannschaftId: string;
-  label: string;
-  siege: number;
-  unentschieden: number;
-  niederlagen: number;
-  spiele: number;
-};
+export type { MannschaftsBilanz } from "./dienste-statistik-typen";
+import type { MannschaftsBilanz } from "./dienste-statistik-typen";
 
 // Auf welcher Seite (heim/auswärts) stand die EIGENE Mannschaft in diesem
 // Rundenspiel-Rohdatensatz? Gleiche Best-Effort-Logik wie findeMannschaft in
@@ -119,6 +116,23 @@ export function berechneGesamtbilanz(bilanzen: MannschaftsBilanz[]): Gesamtbilan
     spiele,
     siegquote: spiele > 0 ? Math.round((siege / spiele) * 100) : null,
   };
+}
+
+// Bilanz über ALLE Spiele (Heim + Auswärts) aus den öffentlichen Liga-Daten des Vereins. Hat der Verein (noch) keine
+// Liga-Daten oder daraus ergibt sich nichts, fällt es auf die bisherige Bilanz der Heimspiele aus dem Hallenplan zurück.
+export async function holeMannschaftsBilanzenAlleSpiele(
+  vereinId: string
+): Promise<MannschaftsBilanz[]> {
+  const ligaVerein = await adminDb.query.ligaVereine.findFirst({
+    where: eq(ligaVereine.vereinId, vereinId),
+    columns: { id: true },
+  });
+  if (ligaVerein) {
+    const ansichten = await holeMannschaften(ligaVerein.id);
+    const bilanzen = berechneBilanzAusLigaSpielen(ansichten, new Date());
+    if (bilanzen.length > 0) return bilanzen;
+  }
+  return holeMannschaftsBilanzen(vereinId);
 }
 
 export async function holeMannschaftsBilanzen(

@@ -141,3 +141,46 @@ describe("berechneGesamtbilanz", () => {
     expect(berechneGesamtbilanz([])).toEqual({ spiele: 0, siegquote: null });
   });
 });
+
+import { berechneBilanzAusLigaSpielen } from "./spiel-statistik";
+import type { SpielAnsicht } from "./liga-spiele-hilfen";
+
+describe("berechneBilanzAusLigaSpielen (alle Spiele)", () => {
+  const spiel = (x: Partial<SpielAnsicht>) =>
+    ({ status: "gespielt", ergebnisBestaetigt: true, beginn: new Date("2026-09-01T10:00:00Z"), ...x }) as SpielAnsicht;
+  const m = (spiele: SpielAnsicht[]) => [
+    { id: "m1", name: "Männer", altersklasse: null, teamtableId: "T1", spiele },
+  ];
+  const jetzt = new Date("2026-10-04T12:00:00Z");
+
+  it("zählt Heim- UND Auswärtsspiele aus Sicht der eigenen Mannschaft", () => {
+    const b = berechneBilanzAusLigaSpielen(
+      m([
+        spiel({ heimTeamtableId: "T1", gastTeamtableId: "X", toreHeim: 30, toreGast: 20 }),
+        spiel({ heimTeamtableId: "Y", gastTeamtableId: "T1", toreHeim: 25, toreGast: 25 }),
+        spiel({ heimTeamtableId: "Z", gastTeamtableId: "T1", toreHeim: 30, toreGast: 22 }),
+      ]),
+      jetzt
+    );
+    expect(b[0]).toMatchObject({ siege: 1, unentschieden: 1, niederlagen: 1, spiele: 3 });
+  });
+
+  it("ignoriert Spiele ohne Ergebnis, Nichtantritte und laufende Zwischenstände", () => {
+    const b = berechneBilanzAusLigaSpielen(
+      m([
+        spiel({ heimTeamtableId: "T1", gastTeamtableId: "X", toreHeim: null, toreGast: null }),
+        spiel({ heimTeamtableId: "T1", gastTeamtableId: "X", toreHeim: 20, toreGast: 0, status: "nicht_angetreten" }),
+        spiel({
+          heimTeamtableId: "T1",
+          gastTeamtableId: "X",
+          toreHeim: 19,
+          toreGast: 6,
+          ergebnisBestaetigt: false,
+          beginn: new Date("2026-10-04T10:30:00Z"),
+        }),
+      ]),
+      jetzt
+    );
+    expect(b).toHaveLength(0);
+  });
+});
