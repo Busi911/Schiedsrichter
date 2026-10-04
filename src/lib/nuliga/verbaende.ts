@@ -22,6 +22,15 @@ export function holeVerband(schluessel: string): Verband {
   return v;
 }
 
+// Öffentlicher Spielbericht-Link: der von nuLiga selbst gelieferte Pfad (Spielplan-Link) plus Domain des
+// Verbands. Nur nuLiga-Pfade, nur https, nie eine fremde Domain.
+export function baueBerichtUrl(verband: string, berichtUrl: string | null): string | null {
+  if (!berichtUrl || !berichtUrl.startsWith("/") || berichtUrl.startsWith("//")) return null;
+  const v = VERBAENDE[verband];
+  if (!v || !/MeetingReport\?/i.test(berichtUrl)) return null;
+  return `https://${v.domain}${berichtUrl}`;
+}
+
 export function baueNuligaUrl(
   verband: string,
   seite: "clubTeams" | "groupPage" | "teamPortrait",

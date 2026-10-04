@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { CalendarIcon, ChevronRightIcon, MapPinIcon } from "lucide-react";
+import { CalendarIcon, ChevronRightIcon, ExternalLinkIcon, MapPinIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ZEITZONE } from "@/lib/format";
+import { baueBerichtUrl } from "@/lib/nuliga/verbaende";
 import { hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "./favorit-stern";
 
@@ -68,6 +69,8 @@ export function SpielKarte({
     const gegner = heim ? spiel.toreGast! : spiel.toreHeim!;
     ausgang = eigen > gegner ? "S" : eigen === gegner ? "U" : "N";
   }
+  // Nur nuLiga-Spiele haben einen Link (handball.net: null); Verband "HHV" ist aktuell der einzige.
+  const berichtUrl = spiel.quelle === "nuliga" ? baueBerichtUrl("HHV", spiel.berichtUrl) : null;
   const fett = (tt: string | null) =>
     eigenTeamtable && tt === eigenTeamtable ? "font-semibold text-foreground" : "";
   return (
@@ -111,11 +114,28 @@ export function SpielKarte({
           </div>
         )}
       </div>
-      {spiel.halleName && (
-        <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-          <MapPinIcon className="size-3.5" />
-          {spiel.halleName}
-        </p>
+      {(spiel.halleName || berichtUrl) && (
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {spiel.halleName ? (
+            <p className="inline-flex items-center gap-1.5">
+              <MapPinIcon className="size-3.5" />
+              {spiel.halleName}
+            </p>
+          ) : (
+            <span />
+          )}
+          {berichtUrl && (
+            <a
+              href={berichtUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+            >
+              Spielbericht bei nuLiga
+              <ExternalLinkIcon className="size-3" />
+            </a>
+          )}
+        </div>
       )}
     </Card>
   );

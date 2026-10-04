@@ -105,6 +105,7 @@ export type SpielFelder = {
   heimTeamtableId: string | null;
   gastTeamtableId: string | null;
   meetingId: string | null;
+  berichtUrl: string | null;
   toreHeim: number | null;
   toreGast: number | null;
   halbzeitHeim: number | null;
@@ -130,6 +131,7 @@ export function spielZuFeldern(
     heimTeamtableId: namen.get(s.heim) ?? null,
     gastTeamtableId: namen.get(s.gast) ?? null,
     meetingId: s.meetingId,
+    berichtUrl: s.berichtUrl,
     toreHeim: s.tore?.plus ?? null,
     toreGast: s.tore?.minus ?? null,
     halbzeitHeim: s.halbzeit?.plus ?? null,

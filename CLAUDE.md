@@ -377,3 +377,16 @@ alles unter `/system/abgleich` (nur Systemadmin):
    Standard von `liga_uebernahme_aktiv` ist jetzt an und `hallenplan_import_aus` ebenfalls an (= Import aus) für NEUE Vereine (Migrationen 0072/0073; neue Vereine brauchen nur die Vereins-ID plus "Eure Spielhallen", keine Hallen-ID); bestehende Vereine schaltet der
    Systemadmin einzeln ein. Einstellungen/Hilfe sind an die Zusammenführung angepasst: die Vereins-ID
    genügt, die Hallen-ID nur noch für Freundschaftsspiele/Turniere solange der Import an ist.
+
+## Spielbericht-Link / Live-Ticker (Stand 04.10.2026, Analyse ohne Zugriff auf nuLiga)
+
+- `liga_spiel.meeting_id` (nuLiga-Meeting-ID) gab es schon; neu: `liga_spiel.bericht_url` = Pfad+Query des
+  `…MeetingReport`-Links aus dem Spielplan (`parsers/spielzeilen.ts` `berichtPfad`, keine Domain gespeichert).
+  `baueBerichtUrl` (`nuliga/verbaende.ts`) setzt die Domain aus dem Verband davor; `SpielKarte` zeigt daraus
+  "Spielbericht bei nuLiga". Beides wird NUR aus dem Spielplan-Link gelesen, nuLiga zeigt ihn offenbar erst, wenn
+  der Spielbericht angelegt ist (deshalb auch das "0:0"-Platzhalterverhalten) — für Spiele davor ist `meeting_id` leer;
+  ein Backfill ist ohne weitere Quelle nicht möglich, der Sync füllt es von selbst, sobald nuLiga den Link zeigt.
+- `lib/liga-spiel-status.ts` (`spielPhase`): Anzeige-Phase aus gespeicherten Daten, bewusst OHNE "live".
+- NICHT umgesetzt (braucht echte Browser-Daten eines laufenden Spiels): Live-Status, Spielstand-/Event-Abruf,
+  Cache, Spiel-Detailseite. Nötig: Netzwerk-Tab (URL, Methode, Parameter, Header, Antwort) der nuLiga-/nuScore-Seite
+  während eines laufenden Spiels; die Sandbox erreicht `hhv-handball.liga.nu` nicht (Netzwerk-Policy).

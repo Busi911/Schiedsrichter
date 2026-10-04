@@ -1099,6 +1099,9 @@ export const ligaSpiele = pgTable(
     quelle: text("quelle").notNull().default("nuliga"),
     externeId: text("externe_id"),
     meetingId: text("meeting_id"),
+    // Pfad+Query des öffentlichen nuLiga-Spielberichts (exakt der Link aus dem Spielplan, ohne Domain).
+    // Nur nuLiga, nur sobald nuLiga den Link zeigt; die Domain kommt aus dem Verband (verbaende.ts).
+    berichtUrl: text("bericht_url"),
     datum: date("datum", { mode: "string" }).notNull(),
     uhrzeit: text("uhrzeit"),
     beginn: timestamp("beginn", { mode: "date", withTimezone: true }),

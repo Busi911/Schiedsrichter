@@ -122,7 +122,8 @@ describe("sync-hilfen", () => {
     const f = {
       datum: "2026-10-02", uhrzeit: "20:15", beginn: new Date(1), urspruenglicherBeginn: null,
       halleName: null, halleNummer: null, halleNuligaId: null, heimName: "A", gastName: "B",
-      heimTeamtableId: null, gastTeamtableId: null, meetingId: null, toreHeim: null, toreGast: null,
+      heimTeamtableId: null, gastTeamtableId: null, meetingId: null,
+    berichtUrl: null, toreHeim: null, toreGast: null,
       halbzeitHeim: null, halbzeitGast: null, ergebnisBestaetigt: false, status: "geplant" as const,
     };
     expect(spielGeaendert(f, { ...f, beginn: new Date(1) })).toBe(false);
