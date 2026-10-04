@@ -1,4 +1,5 @@
 import "server-only";
+import { appUrl } from "@/lib/app-url";
 
 function escapeHtml(text: string): string {
   return text
@@ -66,9 +67,7 @@ export function emailAlsHtml(inhalt: EmailInhalt): string {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:420px;background:#ffffff;border-radius:16px;border:1px solid #e4e4e7;">
             <tr>
               <td style="padding:32px 32px 8px;text-align:center;">
-                <div style="width:48px;height:48px;margin:0 auto 16px;border-radius:14px;background:#1c1c1e;text-align:center;line-height:48px;">
-                  <span style="color:#f97316;font-size:22px;">●</span>
-                </div>
+                <img src="${appUrl()}/brand/logo-rund.png" width="56" height="53" alt="HandballerPate" style="display:block;width:56px;height:auto;margin:0 auto 16px;border:0;outline:none;" />
                 ${
                   inhalt.vereinName
                     ? `<p style="margin:0 0 4px;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#a1a1aa;">${escapeHtml(inhalt.vereinName)}</p>`
