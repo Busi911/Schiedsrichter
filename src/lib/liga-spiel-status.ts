@@ -19,14 +19,17 @@ export type SpielPhase =
 
 const KURZ = (s: SpielAnsicht) => s.toreHeim !== null && s.toreGast !== null;
 
-// Fenster nach dem Anwurf, in dem ein Spiel mit angelegtem Spielbericht und ohne Ergebnis als "läuft vermutlich" gilt.
-export const LAUF_FENSTER_MS = 2 * 60 * 60 * 1000;
+// Fenster nach dem Anwurf, in dem ein Spiel mit angelegtem Spielbericht als "läuft" gilt (Handball: 2 x 30 Min + Pause
+// + Auszeiten, Jugend kürzer).
+export const LAUF_FENSTER_MS = 90 * 60 * 1000;
 
-// Vermutung, KEIN verifizierter Live-Status: Spielbericht ist angelegt (nuLiga zeigt den Link erst dann), es gibt noch
-// kein Ergebnis, und der Anwurf liegt höchstens zwei Stunden zurück. Zeit allein genügt nie (ohne Spielbericht bleibt
-// ein Spiel "geplant"). Grenzen: ein Spiel, dessen Bericht nicht online geführt wird, wird nie markiert.
+// Vermutung, KEIN verifizierter Live-Status: nuLiga zeigt schon während des Spiels den Zwischenstand als
+// "vorläufiges" Ergebnis (noch nicht genehmigt). Ein Spiel gilt als laufend, wenn der Spielbericht angelegt ist, das
+// Ergebnis fehlt oder noch nicht genehmigt ist und der Anwurf höchstens 90 Min zurückliegt. Zeit allein genügt nie.
+// Grenze: ein gerade beendetes, noch nicht genehmigtes Spiel zeigt "Läuft" bis das Fenster abläuft.
 export function laeuftVermutlich(s: SpielAnsicht, jetzt: Date): boolean {
-  if (spielPhase(s) !== "bericht_angelegt" || !s.beginn) return false;
+  const phase = spielPhase(s);
+  if ((phase !== "bericht_angelegt" && phase !== "ergebnis_vorlaeufig") || !s.beginn) return false;
   const seit = jetzt.getTime() - s.beginn.getTime();
   return seit >= 0 && seit <= LAUF_FENSTER_MS;
 }

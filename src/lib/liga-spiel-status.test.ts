@@ -38,11 +38,23 @@ describe("laeuftVermutlich", () => {
     const s = mit({ meetingId: "5", beginn: anwurf });
     expect(laeuftVermutlich(s, t(-5))).toBe(false);
     expect(laeuftVermutlich(s, t(10))).toBe(true);
-    expect(laeuftVermutlich(s, t(121))).toBe(false);
+    expect(laeuftVermutlich(s, t(91))).toBe(false);
   });
   it("Zeit allein genügt nicht, ein Ergebnis beendet die Vermutung", () => {
     expect(laeuftVermutlich(mit({ beginn: anwurf }), t(10))).toBe(false);
-    expect(laeuftVermutlich(mit({ meetingId: "5", beginn: anwurf, toreHeim: 20, toreGast: 18 }), t(10))).toBe(false);
+    expect(
+      laeuftVermutlich(mit({ meetingId: "5", beginn: anwurf, toreHeim: 20, toreGast: 18, ergebnisBestaetigt: true }), t(10))
+    ).toBe(false);
     expect(laeuftVermutlich(mit({ meetingId: "5", status: "abgesagt", beginn: anwurf }), t(10))).toBe(false);
+  });
+});
+
+describe("laeuftVermutlich mit Zwischenstand", () => {
+  const anwurf = new Date("2026-10-04T15:00:00Z");
+  const t = (min: number) => new Date(anwurf.getTime() + min * 60_000);
+  it("vorläufiges Ergebnis im Zeitfenster = läuft, danach nicht mehr", () => {
+    const s = mit({ meetingId: "5", beginn: anwurf, toreHeim: 19, toreGast: 6 });
+    expect(laeuftVermutlich(s, t(40))).toBe(true);
+    expect(laeuftVermutlich(s, t(160))).toBe(false);
   });
 });

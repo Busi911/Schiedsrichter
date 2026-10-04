@@ -63,15 +63,15 @@ export function SpielKarte({
   // Farbstreifen links: Sieg/Unentschieden/Niederlage aus Sicht der eigenen Mannschaft.
   mitAusgang?: boolean;
 }) {
+  const laeuft = laeuftVermutlich(spiel, new Date());
   let ausgang: "S" | "U" | "N" | null = null;
-  if (mitAusgang && eigenTeamtable && hatErgebnis(spiel)) {
+  if (!laeuft && mitAusgang && eigenTeamtable && hatErgebnis(spiel)) {
     const heim = spiel.heimTeamtableId === eigenTeamtable;
     const eigen = heim ? spiel.toreHeim! : spiel.toreGast!;
     const gegner = heim ? spiel.toreGast! : spiel.toreHeim!;
     ausgang = eigen > gegner ? "S" : eigen === gegner ? "U" : "N";
   }
   // Nur nuLiga-Spiele haben Links (handball.net: null); Verband "HHV" ist aktuell der einzige.
-  const laeuft = laeuftVermutlich(spiel, new Date());
   const berichtUrl = quelleFuer(spiel).berichtUrl(spiel);
   const liveUrl = quelleFuer(spiel).liveUrl(spiel);
   const fett = (tt: string | null) =>
@@ -118,7 +118,7 @@ export function SpielKarte({
               {spiel.toreHeim}:{spiel.toreGast}
             </p>
             {!spiel.ergebnisBestaetigt && (
-              <p className="text-[10px] text-muted-foreground">vorläufig</p>
+              <p className="text-[10px] text-muted-foreground">{laeuft ? "Zwischenstand" : "vorläufig"}</p>
             )}
           </div>
         )}
