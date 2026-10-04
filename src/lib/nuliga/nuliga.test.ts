@@ -271,18 +271,23 @@ describe("parseSpielTabellen: Sonderfälle", () => {
   });
 });
 
-describe("parseSpielTabellen: Platzhalter 0:0", () => {
-  const zeile = (ergebnis: string) => `<html><body><table class="result-set">
-    <tr><th>Tag</th><th>Datum</th><th>Zeit</th><th>Ort</th><th>Nr.</th><th>Heimmannschaft</th><th>Gastmannschaft</th><th>Ergebnis</th></tr>
-    <tr><td>Sa.</td><td>03.10.2026</td><td>16:00</td><td></td><td>7</td><td>TSV Heim</td><td>TSV Gast</td><td><a href="x?MeetingReport=1&amp;meeting=5&amp;group=9" title="Spielbericht">${ergebnis}</a></td></tr>
+describe("parseSpielTabellen: 0:0", () => {
+  const zeile = (ergebnis: string, genehmigt = false) => `<html><body><table class="result-set">
+    <tr><th>Tag</th><th>Datum</th><th>Zeit</th><th>Ort</th><th>Nr.</th><th>Heimmannschaft</th><th>Gastmannschaft</th><th>Ergebnis</th><th>Info</th></tr>
+    <tr><td>Sa.</td><td>03.10.2026</td><td>16:00</td><td></td><td>7</td><td>TSV Heim</td><td>TSV Gast</td><td><a href="x?MeetingReport=1&amp;meeting=5&amp;group=9" title="Spielbericht">${ergebnis}</a></td><td>${genehmigt ? "Spielbericht genehmigt" : ""}</td></tr>
   </table></body></html>`;
 
-  it("0:0 vor dem Spiel gilt als noch kein Ergebnis", () => {
+  it("0:0 ohne genehmigten Spielbericht ist nur der Platzhalter vor dem Spiel (noch kein Ergebnis)", () => {
     const { spiele } = parseSpielTabellen(zeile("0:0"));
-    expect(spiele[0]).toMatchObject({ spielnummer: 7, tore: null, status: "geplant" });
+    expect(spiele[0]).toMatchObject({ spielnummer: 7, tore: null, status: "geplant", ergebnisBestaetigt: false });
   });
 
-  it("ein echtes Ergebnis bleibt erhalten", () => {
+  it("0:0 mit genehmigtem Spielbericht (z.B. Nichtantritt) ist ein echtes Ergebnis", () => {
+    const { spiele } = parseSpielTabellen(zeile("0:0", true));
+    expect(spiele[0]).toMatchObject({ tore: { plus: 0, minus: 0 }, status: "gespielt", ergebnisBestaetigt: true });
+  });
+
+  it("ein normales Ergebnis bleibt erhalten", () => {
     const { spiele } = parseSpielTabellen(zeile("29:36"));
     expect(spiele[0]).toMatchObject({ tore: { plus: 29, minus: 36 }, status: "gespielt" });
   });
