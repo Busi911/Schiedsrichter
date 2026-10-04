@@ -28,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { SubmitButton } from "@/components/submit-button";
+import { LinkSymbol } from "@/components/link-spinner";
 
 // Mobile-Navigation wie in einer nativen App (nur unter md — auf Desktop
 // bleibt die jeweilige Kopfzeilen-Nav). Bis zu MAX_TABS Bereiche direkt
@@ -129,7 +130,9 @@ export function BottomNav({
                 istAktiv(pathname, item.href, item.exact) ? "bg-secondary font-medium" : "hover:bg-muted"
               )}
             >
-              <Icon name={item.icon} className="size-4 text-muted-foreground" />
+              <LinkSymbol className="size-4 text-muted-foreground">
+                <Icon name={item.icon} className="size-4 text-muted-foreground" />
+              </LinkSymbol>
               <span className="flex-1">{item.label}</span>
               {!!item.badge && <Badge variant="warning">{item.badge}</Badge>}
             </Link>
@@ -165,7 +168,9 @@ export function BottomNav({
                     aktiv ? "font-medium text-primary" : "text-muted-foreground"
                   )}
                 >
-                  <Icon name={tab.icon} className="size-5" />
+                  <LinkSymbol className="size-5">
+                    <Icon name={tab.icon} className="size-5" />
+                  </LinkSymbol>
                   {tab.label}
                 </Link>
               </li>

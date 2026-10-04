@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDaysIcon, CircleCheckIcon, UsersIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LinkSymbol } from "@/components/link-spinner";
 
 const BEREICHE = [
   { pfad: "", label: "Ergebnisse", kurz: "Ergebnisse", Icon: CircleCheckIcon },
@@ -35,7 +36,9 @@ export function VereinsNav({ basis }: { basis: string }) {
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 )}
               >
-                <b.Icon className="size-4" />
+                <LinkSymbol className="size-4">
+                  <b.Icon className="size-4" />
+                </LinkSymbol>
                 {b.label}
               </Link>
             </li>
@@ -66,7 +69,9 @@ export function VereinsNav({ basis }: { basis: string }) {
                       aktiv && "bg-primary text-primary-foreground shadow-sm"
                     )}
                   >
-                    <b.Icon className="size-7" />
+                    <LinkSymbol className="size-7">
+                      <b.Icon className="size-7" />
+                    </LinkSymbol>
                   </span>
                   {b.kurz}
                 </Link>
