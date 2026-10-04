@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ZEITZONE } from "@/lib/format";
-import { baueBerichtUrl } from "@/lib/nuliga/verbaende";
+import { laeuftVermutlich } from "@/lib/liga-spiel-status";
+import { quelleFuer } from "@/lib/match-provider";
 import { hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "./favorit-stern";
 
@@ -69,8 +70,10 @@ export function SpielKarte({
     const gegner = heim ? spiel.toreGast! : spiel.toreHeim!;
     ausgang = eigen > gegner ? "S" : eigen === gegner ? "U" : "N";
   }
-  // Nur nuLiga-Spiele haben einen Link (handball.net: null); Verband "HHV" ist aktuell der einzige.
-  const berichtUrl = spiel.quelle === "nuliga" ? baueBerichtUrl("HHV", spiel.berichtUrl) : null;
+  // Nur nuLiga-Spiele haben Links (handball.net: null); Verband "HHV" ist aktuell der einzige.
+  const laeuft = laeuftVermutlich(spiel, new Date());
+  const berichtUrl = quelleFuer(spiel).berichtUrl(spiel);
+  const liveUrl = quelleFuer(spiel).liveUrl(spiel);
   const fett = (tt: string | null) =>
     eigenTeamtable && tt === eigenTeamtable ? "font-semibold text-foreground" : "";
   return (
@@ -94,6 +97,12 @@ export function SpielKarte({
         </span>
         <span className="flex items-center gap-1.5">
           {teamLabel && <Badge variant="secondary">{teamLabel}</Badge>}
+          {laeuft && (
+            <Badge className="gap-1.5 bg-rose-600 text-white">
+              <span className="size-1.5 animate-pulse rounded-full bg-white" />
+              Läuft vermutlich
+            </Badge>
+          )}
           {spiel.istFreundschaft && <Badge variant="outline">Freundschaftsspiel</Badge>}
           {STATUS_LABEL[spiel.status] && <Badge variant="outline">{STATUS_LABEL[spiel.status]}</Badge>}
         </span>
@@ -114,7 +123,7 @@ export function SpielKarte({
           </div>
         )}
       </div>
-      {(spiel.halleName || berichtUrl) && (
+      {(spiel.halleName || berichtUrl || liveUrl) && (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
           {spiel.halleName ? (
             <p className="inline-flex items-center gap-1.5">
@@ -124,16 +133,31 @@ export function SpielKarte({
           ) : (
             <span />
           )}
-          {berichtUrl && (
-            <a
-              href={berichtUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-            >
-              Spielbericht bei nuLiga
-              <ExternalLinkIcon className="size-3" />
-            </a>
+          {(berichtUrl || liveUrl) && (
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {liveUrl && (
+                <a
+                  href={liveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                >
+                  Live-Ticker
+                  <ExternalLinkIcon className="size-3" />
+                </a>
+              )}
+              {berichtUrl && (
+                <a
+                  href={berichtUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                >
+                  Spielbericht
+                  <ExternalLinkIcon className="size-3" />
+                </a>
+              )}
+            </span>
           )}
         </div>
       )}
