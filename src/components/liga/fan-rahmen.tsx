@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { LinkSpinner } from "@/components/link-spinner";
 
 // Eigene Erscheinung der öffentlichen Fan-Web-App: farbiges Kopfband und
 // vereinsspezifische Akzentfarbe (Farbton aus dem Vereins-Slug, siehe
@@ -36,15 +37,39 @@ export function FanKopf({
       )}
     >
       {label}
+      <span className="ml-2 empty:hidden">
+        <LinkSpinner />
+      </span>
+    </Link>
+  );
+  // Auf den Listen (Vereine / Meine Mannschaften) sind die Schaltflächen die Hauptnavigation: groß und
+  // abgehoben. Auf Vereins- und Mannschaftsseiten stören sie nur — dort als schlanke Textzeile.
+  const kompakt = aktiv === undefined;
+  const dezent = (href: string, label: string) => (
+    <Link
+      href={href}
+      className="-my-1 inline-flex items-center py-2 text-sm font-medium opacity-80 transition hover:opacity-100 active:opacity-100"
+    >
+      {label}
+      <span className="ml-1.5 empty:hidden">
+        <LinkSpinner />
+      </span>
     </Link>
   );
   return (
     <header className="bg-primary text-primary-foreground">
-      <div className="mx-auto max-w-3xl px-4 pt-4 pb-5">
-        <nav className="mb-4 flex items-center gap-2" aria-label="Hauptnavigation">
-          {navLink("/verein", "Vereine", "vereine")}
-          {navLink("/meine", "Meine Mannschaften", "meine")}
-        </nav>
+      <div className={cn("mx-auto max-w-3xl px-4", kompakt ? "pt-2 pb-4" : "pt-4 pb-5")}>
+        {kompakt ? (
+          <nav className="mb-1 flex items-center gap-5" aria-label="Hauptnavigation">
+            {dezent("/verein", "Vereine")}
+            {dezent("/meine", "Meine Mannschaften")}
+          </nav>
+        ) : (
+          <nav className="mb-4 flex items-center gap-2" aria-label="Hauptnavigation">
+            {navLink("/verein", "Vereine", "vereine")}
+            {navLink("/meine", "Meine Mannschaften", "meine")}
+          </nav>
+        )}
         <div className="flex items-center gap-3">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
