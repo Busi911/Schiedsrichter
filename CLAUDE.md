@@ -90,6 +90,16 @@ Bestehende ältere Erinnerungs-Flags (`wochenDigestAktiviert` etc.) haben
 dieses zweistufige Muster NICHT — nicht rückwirkend umbauen, ohne
 explizit danach gefragt zu werden.
 
+## Datenbank: Cold-Start-Schutz
+
+Neon fährt nach Inaktivität herunter; der erste Zugriff kann mit einem Verbindungsfehler scheitern.
+`withTenant` und die öffentlichen Abfragen wiederholen deshalb (`db/retry.ts`, `mitColdStartRetry`).
+`adminDb` (`db/admin.ts`) ist zusätzlich als Ganzes geschützt (`db/schutz.ts`, `mitColdStartSchutz`): Lesen und
+`execute` bei jedem erkannten transienten Verbindungsfehler, Schreiben (insert/update/delete) und `transaction`
+NUR bei Fehlern, bei denen die Anweisung sicher noch nicht lief (nie doppelt schreiben). drizzle verpackt
+Datenbankfehler in "Failed query: …" — der echte Fehler steckt in `cause`, `retry.ts` prüft deshalb die
+Fehlerkette. Neue Zugriffe über `adminDb` brauchen keinen eigenen Retry.
+
 ## Globale System-Einstellungen
 
 `system_einstellungen` (Singleton, genau eine Zeile) und `warteliste` sind
