@@ -1,0 +1,1 @@
+ALTER TABLE "liga_spiel" ADD COLUMN "bericht_url" text;

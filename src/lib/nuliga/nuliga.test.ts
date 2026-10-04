@@ -335,3 +335,29 @@ describe("Freundschaftsspiel-Gruppe", () => {
     expect(daten.mannschaftsname).toContain("1.");
   });
 });
+
+describe("Spielbericht-Link (meetingId / berichtUrl)", () => {
+  it("übernimmt Pfad+Query des MeetingReport-Links, nie eine Domain", async () => {
+    const { berichtPfad } = await import("./parsers/spielzeilen");
+    expect(
+      berichtPfad(
+        "/cgi-bin/WebObjects/nuLigaHBDE.woa/wa/groupMeetingReport?meeting=8262491&amp;championship=Gie%C3%9Fen+26%2F27&amp;group=491948"
+      )
+    ).toBe(
+      "/cgi-bin/WebObjects/nuLigaHBDE.woa/wa/groupMeetingReport?meeting=8262491&championship=Gie%C3%9Fen+26%2F27&group=491948"
+    );
+    expect(berichtPfad("https://evil.example/x/groupMeetingReport?meeting=1")).toBe(
+      "/x/groupMeetingReport?meeting=1"
+    );
+    expect(berichtPfad("/x/anderesDing?meeting=1")).toBeNull();
+  });
+
+  it("baut die öffentliche URL nur für bekannte Verbände und nuLiga-Pfade", async () => {
+    const { baueBerichtUrl } = await import("./verbaende");
+    const pfad = "/cgi-bin/WebObjects/nuLigaHBDE.woa/wa/groupMeetingReport?meeting=1&group=2";
+    expect(baueBerichtUrl("HHV", pfad)).toBe(`https://hhv-handball.liga.nu${pfad}`);
+    expect(baueBerichtUrl("DHB", pfad)).toBeNull();
+    expect(baueBerichtUrl("HHV", "//evil.example/MeetingReport?x=1")).toBeNull();
+    expect(baueBerichtUrl("HHV", null)).toBeNull();
+  });
+});

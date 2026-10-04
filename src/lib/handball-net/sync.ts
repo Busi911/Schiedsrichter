@@ -165,6 +165,7 @@ function spielFelder(s: HnetSpiel, teamId: string): SpielFelder {
     heimTeamtableId: s.heim.id,
     gastTeamtableId: s.gast.id,
     meetingId: null,
+    berichtUrl: null,
     toreHeim: s.toreHeim,
     toreGast: s.toreGast,
     halbzeitHeim: null,

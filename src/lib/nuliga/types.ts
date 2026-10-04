@@ -29,6 +29,8 @@ export type NuligaSpiel = {
   spielnummer: number | null;
   // Globale nuLiga-Meeting-ID, nur bei gespielten Spielen verlinkt.
   meetingId: string | null;
+  // Pfad+Query des Spielbericht-Links (relativ, ohne Domain), nur aus einem "…MeetingReport"-Link.
+  berichtUrl: string | null;
   // Gruppen-ID aus dem Spielbericht-Link, falls dort vorhanden.
   gruppenId: string | null;
   datum: string; // ISO yyyy-mm-dd

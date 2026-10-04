@@ -46,14 +46,28 @@ function parseHalle(zelle: Zelle | undefined): NuligaSpiel["halle"] {
   return { name: name || null, nummer, nuligaId };
 }
 
+// Relativer Link (Pfad + Query) zum Spielbericht. Absolute Links werden auf Pfad+Query gekürzt, damit nie
+// eine fremde Domain gespeichert wird; die Domain setzt die Anzeige aus dem Verband.
+export function berichtPfad(href: string): string | null {
+  const roh = href.replace(/&amp;/g, "&").trim();
+  try {
+    const u = new URL(roh, "https://nuliga.invalid");
+    if (!/MeetingReport$/i.test(u.pathname)) return null;
+    return `${u.pathname}${u.search}`;
+  } catch {
+    return null;
+  }
+}
+
 function parseErgebnis(zelle: Zelle | undefined): {
   meetingId: string | null;
+  berichtUrl: string | null;
   gruppenId: string | null;
   tore: NuligaSpiel["tore"];
   halbzeit: NuligaSpiel["halbzeit"];
   code: string | null;
 } {
-  const leer = { meetingId: null, gruppenId: null, tore: null, halbzeit: null, code: null };
+  const leer = { meetingId: null, berichtUrl: null, gruppenId: null, tore: null, halbzeit: null, code: null };
   if (!zelle) return leer;
 
   const anker = zelle.html.match(
@@ -65,6 +79,7 @@ function parseErgebnis(zelle: Zelle | undefined): {
       anker[2].match(/(?:title|alt)\s*=\s*"(\d+:\d+)\s+zur Halbzeit"/i)?.[1] ?? null;
     return {
       meetingId: params.get("meeting"),
+      berichtUrl: berichtPfad(anker[1]),
       gruppenId: params.get("group"),
       tore: parseDoppelwert(textVon(anker[2])),
       halbzeit: halbzeitText ? parseDoppelwert(halbzeitText) : null,
@@ -152,6 +167,7 @@ export function parseSpielTabellen(html: string): { spiele: NuligaSpiel[]; warnu
       spiele.push({
         spielnummer: nr ? Number(nr) : null,
         meetingId: ergebnis.meetingId,
+        berichtUrl: ergebnis.berichtUrl,
         gruppenId: ergebnis.gruppenId,
         datum: aktuellesDatum,
         uhrzeit,
