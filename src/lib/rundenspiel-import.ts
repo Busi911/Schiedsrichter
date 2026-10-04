@@ -111,6 +111,8 @@ function bildeUid(locationId: number | string, event: unknown): string | null {
 // monats-kalender.tsx).
 const ERGEBNIS_MUSTER = /^(\d{1,3}):(\d{1,3})$/;
 
+// "0:0" ist nur der Platzhalter vor dem Spiel (Spielbericht angelegt, noch kein Ergebnis). Ein echtes 0:0 gibt
+// es im Handball nicht, ein Nichtantritt trägt in nuLiga einen eigenen Wertungs-Marker (NH/NG).
 function extrahiereErgebnis(zusatz: string | undefined): {
   ergebnisHeim: number | null;
   ergebnisAuswaerts: number | null;
@@ -127,8 +129,11 @@ function extrahiereErgebnis(zusatz: string | undefined): {
     const match: RegExpMatchArray | null =
       ergebnisHeim === null ? teil.trim().match(ERGEBNIS_MUSTER) : null;
     if (match) {
-      ergebnisHeim = Number(match[1]);
-      ergebnisAuswaerts = Number(match[2]);
+      // Platzhalter-0:0 wird weder Ergebnis noch Zusatz-Text.
+      if (!(match[1] === "0" && match[2] === "0")) {
+        ergebnisHeim = Number(match[1]);
+        ergebnisAuswaerts = Number(match[2]);
+      }
     } else {
       rest.push(teil);
     }

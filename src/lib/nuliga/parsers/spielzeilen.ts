@@ -129,7 +129,13 @@ export function parseSpielTabellen(html: string): { spiele: NuligaSpiel[]; warnu
       const letzteZellen = z.slice(ergebnisIndex + 1);
       const bestaetigt = letzteZellen.some((c) => /Spielbericht genehmigt/i.test(c.html));
       const abgesagt = letzteZellen.some((c) => /Spielabsage/i.test(c.html));
-
+      // nuLiga zeigt "0:0" schon, sobald der Spielbericht angelegt ist (vor/während des Spiels). Ein echtes
+      // 0:0 gibt es im Handball nicht: ein Nichtantritt steht als Wertungs-Code (NH/NG, siehe parseErgebnis).
+      // Ein 0:0 ist also immer nur der Platzhalter: noch kein Ergebnis.
+      if (ergebnis.tore && ergebnis.tore.plus === 0 && ergebnis.tore.minus === 0) {
+        ergebnis.tore = null;
+        ergebnis.halbzeit = null;
+      }
       let status: SpielStatus = "geplant";
       if (ergebnis.tore) status = "gespielt";
       else if (ergebnis.code) status = "nicht_angetreten";
