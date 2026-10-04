@@ -7,14 +7,39 @@ const TRANSIENTE_FEHLER_MUSTER = [
   /timeout/i,
   /fetch failed/i,
   /ECONNRESET/i,
+  /ECONNREFUSED/i,
   /ETIMEDOUT/i,
 ];
 
-function istTransienterVerbindungsfehler(err: unknown): boolean {
+// Nur Fehler, bei denen die Anweisung SICHER noch nicht ausgeführt wurde (Verbindungsaufbau schlug fehl):
+// für Schreibzugriffe, damit ein Wiederholen nie etwas doppelt anlegt. "terminated"/"reset"/"timeout"
+// können dagegen auch mitten in einer Anweisung auftreten.
+const SICHERE_FEHLER_MUSTER = [
+  /connection timeout/i,
+  /ECONNREFUSED/i,
+  /fetch failed/i,
+  /could not connect|cannot connect/i,
+];
+
+function istTransienterVerbindungsfehler(err: unknown, strikt = false): boolean {
+  // drizzle verpackt Datenbankfehler in einen "Failed query: …"-Fehler und hängt den eigentlichen Fehler
+  // (mit Code/Meldung der Verbindung) als `cause` an — deshalb die ganze Kette prüfen, sonst erkennt man
+  // einen Cold-Start-Fehler nie.
+  for (let fehler: unknown = err, tiefe = 0; fehler && tiefe < 5; tiefe++) {
+    if (istTransient(fehler, strikt)) return true;
+    fehler = (fehler as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+function istTransient(err: unknown, strikt: boolean): boolean {
   const code = (err as { code?: string } | undefined)?.code;
-  if (code && TRANSIENTE_PG_CODES.has(code)) return true;
+  if (code && TRANSIENTE_PG_CODES.has(code)) {
+    // 08006 (connection_failure) kann mitten in einer Anweisung auftreten.
+    return !strikt || code !== "08006";
+  }
   const nachricht = err instanceof Error ? err.message : String(err);
-  return TRANSIENTE_FEHLER_MUSTER.some((muster) => muster.test(nachricht));
+  return (strikt ? SICHERE_FEHLER_MUSTER : TRANSIENTE_FEHLER_MUSTER).some((muster) => muster.test(nachricht));
 }
 
 // Neon-Computes fahren nach Inaktivität herunter (Autosuspend) und brauchen
@@ -32,13 +57,14 @@ function istTransienterVerbindungsfehler(err: unknown): boolean {
 // mitten in einer bereits laufenden Transaktion.
 export async function mitColdStartRetry<T>(
   fn: () => Promise<T>,
-  versucheUebrig = 2
+  versucheUebrig = 2,
+  strikt = false
 ): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    if (versucheUebrig <= 0 || !istTransienterVerbindungsfehler(err)) throw err;
+    if (versucheUebrig <= 0 || !istTransienterVerbindungsfehler(err, strikt)) throw err;
     await new Promise((resolve) => setTimeout(resolve, 400));
-    return mitColdStartRetry(fn, versucheUebrig - 1);
+    return mitColdStartRetry(fn, versucheUebrig - 1, strikt);
   }
 }

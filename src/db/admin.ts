@@ -2,6 +2,7 @@ import "server-only";
 import { Pool } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import * as schema from "./schema";
+import { mitColdStartSchutz } from "./schutz";
 
 if (!process.env.DATABASE_ADMIN_URL) {
   throw new Error(
@@ -24,4 +25,5 @@ pool.on("error", (err: Error) => {
   console.error("Pool-Fehler auf einer inaktiven DB-Verbindung (adminDb):", err);
 });
 
-export const adminDb = drizzle(pool, { schema });
+// Mit Cold-Start-Schutz (siehe schutz.ts): Zugriffe überstehen einen aufwachenden Neon-Compute.
+export const adminDb = mitColdStartSchutz(drizzle(pool, { schema }));
