@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ZEITZONE } from "@/lib/format";
-import { laeuftVermutlich } from "@/lib/liga-spiel-status";
+import { laeuftVermutlich, liveTickerRelevant } from "@/lib/liga-spiel-status";
 import { quelleFuer } from "@/lib/match-provider";
 import { hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "./favorit-stern";
@@ -73,7 +73,8 @@ export function SpielKarte({
   }
   // Nur nuLiga-Spiele haben Links (handball.net: null); Verband "HHV" ist aktuell der einzige.
   const berichtUrl = quelleFuer(spiel).berichtUrl(spiel);
-  const liveUrl = quelleFuer(spiel).liveUrl(spiel);
+  const jetzt = new Date();
+  const liveUrl = liveTickerRelevant(spiel, jetzt) ? quelleFuer(spiel).liveUrl(spiel) : null;
   const fett = (tt: string | null) =>
     eigenTeamtable && tt === eigenTeamtable ? "font-semibold text-foreground" : "";
   return (
@@ -118,7 +119,7 @@ export function SpielKarte({
               {spiel.toreHeim}:{spiel.toreGast}
             </p>
             {!spiel.ergebnisBestaetigt && (
-              <p className="text-[10px] text-muted-foreground">{laeuft ? "Zwischenstand" : "vorläufig"}</p>
+              <p className="text-[10px] text-muted-foreground">{laeuft ? "Zwischenstand, bis zu 1 Std. alt" : "vorläufig"}</p>
             )}
           </div>
         )}

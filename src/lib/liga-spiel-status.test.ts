@@ -58,3 +58,18 @@ describe("laeuftVermutlich mit Zwischenstand", () => {
     expect(laeuftVermutlich(s, t(160))).toBe(false);
   });
 });
+
+import { liveTickerRelevant } from "./liga-spiel-status";
+describe("liveTickerRelevant", () => {
+  const anwurf = new Date("2026-10-04T15:00:00Z");
+  const t = (min: number) => new Date(anwurf.getTime() + min * 60_000);
+  it("nur im Fenster 60 Min vor bis 4 h nach Anwurf und ohne genehmigtes Ergebnis", () => {
+    const s = mit({ beginn: anwurf });
+    expect(liveTickerRelevant(s, t(-90))).toBe(false);
+    expect(liveTickerRelevant(s, t(-30))).toBe(true);
+    expect(liveTickerRelevant(s, t(200))).toBe(true);
+    expect(liveTickerRelevant(s, t(250))).toBe(false);
+    expect(liveTickerRelevant(mit({ beginn: anwurf, ergebnisBestaetigt: true }), t(30))).toBe(false);
+    expect(liveTickerRelevant(mit({ beginn: anwurf, status: "abgesagt" }), t(30))).toBe(false);
+  });
+});

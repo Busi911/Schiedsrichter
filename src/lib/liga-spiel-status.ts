@@ -34,6 +34,14 @@ export function laeuftVermutlich(s: SpielAnsicht, jetzt: Date): boolean {
   return seit >= 0 && seit <= LAUF_FENSTER_MS;
 }
 
+// Live-Ticker ist nur kurz vor, während und kurz nach dem Spiel interessant: ab 60 Min vor dem Anwurf bis 4 h danach,
+// solange das Ergebnis nicht genehmigt ist und das Spiel nicht abgesagt/verlegt ist.
+export function liveTickerRelevant(s: SpielAnsicht, jetzt: Date): boolean {
+  if (!s.beginn || s.ergebnisBestaetigt || s.status === "abgesagt" || s.status === "verlegt") return false;
+  const ab = jetzt.getTime() - s.beginn.getTime();
+  return ab >= -60 * 60 * 1000 && ab <= 4 * 60 * 60 * 1000;
+}
+
 export function spielPhase(s: SpielAnsicht): SpielPhase {
   if (s.status === "abgesagt") return "abgesagt";
   if (s.status === "nicht_angetreten") return "nicht_angetreten";
