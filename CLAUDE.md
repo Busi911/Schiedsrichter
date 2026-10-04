@@ -391,7 +391,7 @@ alles unter `/system/abgleich` (nur Systemadmin):
   Hash-Routen `#/groups/<GROUP>` und `#/groups/<GROUP>/meetings/<MEETING>` (`baueLiveStaffelUrl`/`baueLiveSpielUrl`
   in `nuliga/verbaende.ts`; Gruppen-ID kommt aus `bericht_url` (`&group=`), Meeting-ID aus `meeting_id`). `SpielKarte`
   zeigt "Live-Ticker" (nur 60 Min vor bis 4 h nach Anwurf, solange das Ergebnis nicht genehmigt ist: `liveTickerRelevant`) + "Spielbericht" (über `lib/match-provider.ts`, `quelleFuer`). Eine Meeting-ID heißt NICHT, dass
-  das Spiel live ist. Es gibt keinen verifizierten "LIVE"-Status, nur die Vermutung `laeuftVermutlich` (liga-spiel-status.ts: Spielbericht angelegt + kein oder noch nicht genehmigtes Ergebnis (nuLiga zeigt den Zwischenstand als "vorläufig") + Anwurf höchstens 90 Min her; dann Badge "Läuft", Label "Zwischenstand, bis zu 1 Std. alt" (Sync stündlich), kein Sieg/Niederlage-Streifen) → Badge "Läuft" (bewusst ohne "vermutlich", bleibt aber nur eine Vermutung).
+  das Spiel live ist. Es gibt keinen verifizierten "LIVE"-Status, nur die Vermutung `laeuftVermutlich` (liga-spiel-status.ts: Spielbericht angelegt + kein oder noch nicht genehmigtes Ergebnis (nuLiga zeigt den Zwischenstand als "vorläufig") + Anwurf höchstens 90 Min her; dann Badge "Live", Label "live" (auf Wunsch des Betreibers ohne Altershinweis; Sync ist stündlich), kein Sieg/Niederlage-Streifen) (bleibt nur eine Vermutung).
 - Liga-Sync von Hand: Systemseite `/system/sync` (Button, optional ein Verein; gleiche Logik wie der Cron, ohne CRON_SECRET).
 - NICHT umgesetzt: `getLiveState` (Interface in `match-provider.ts`, nuLiga-Implementierung fehlt absichtlich), Spielstand/
   Events, Cache, Detailseite. Der Daten-Endpunkt der SPA ist nicht verifiziert (die Sandbox erreicht weder

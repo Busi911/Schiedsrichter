@@ -101,7 +101,7 @@ export function SpielKarte({
           {laeuft && (
             <Badge className="gap-1.5 bg-rose-600 text-white">
               <span className="size-1.5 animate-pulse rounded-full bg-white" />
-              Läuft
+              Live
             </Badge>
           )}
           {spiel.istFreundschaft && <Badge variant="outline">Freundschaftsspiel</Badge>}
@@ -119,7 +119,7 @@ export function SpielKarte({
               {spiel.toreHeim}:{spiel.toreGast}
             </p>
             {!spiel.ergebnisBestaetigt && (
-              <p className="text-[10px] text-muted-foreground">{laeuft ? "Zwischenstand, bis zu 1 Std. alt" : "vorläufig"}</p>
+              <p className="text-[10px] text-muted-foreground">{laeuft ? "live" : "vorläufig"}</p>
             )}
           </div>
         )}
