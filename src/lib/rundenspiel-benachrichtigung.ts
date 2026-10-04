@@ -4,46 +4,47 @@ import { adminDb } from "@/db/admin";
 import { termine, users } from "@/db/schema";
 import type { EntfernteZuordnungBeiVerlegung, RundenspielAenderung } from "./rundenspiel-sync";
 import { sendMail } from "./mailer";
-import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
-import { formatDatumZeitLang } from "./format";
+import { emailAlsHtml, emailAlsText, type EmailInhalt, type EmailZeile } from "./email-layout";
+import { formatDatumZeit } from "./format";
 import { formatErgebnis } from "./termin-label";
 import { appUrl } from "./app-url";
 import { zuordnungEntferntWegenVerlegungInhalt } from "./zuordnung";
 
-// Zeigt konkret WAS sich geändert hat statt nur DASS — alter/neuer Termin
-// bei einer Verlegung, das eingetragene Ergebnis bei einem neuen Ergebnis
-// (siehe startAlt/ortAlt/ergebnisHeim/ergebnisAuswaerts in
-// RundenspielAenderung, rundenspiel-sync.ts).
-function aenderungsDetails(a: RundenspielAenderung): string {
-  const teile: string[] = [];
+// Pro Spiel ein kompakter Block statt eines langen Satzes: Spielname fett, darunter Klasse/Termin/Halle und WAS sich
+// geändert hat (alter → neuer Termin bei einer Verlegung, das eingetragene Ergebnis bei einem neuen Ergebnis, siehe
+// startAlt/ortAlt/ergebnisHeim/ergebnisAuswaerts in RundenspielAenderung, rundenspiel-sync.ts).
+export function rundenspielAenderungZeilen(a: RundenspielAenderung): EmailZeile[] {
+  const zeilen: EmailZeile[] = [
+    { text: `${a.heimMannschaft} – ${a.auswaertsMannschaft}`, stark: true, neueGruppe: true },
+    [a.kategorie, formatDatumZeit(a.start), a.ort].filter(Boolean).join(" · "),
+  ];
   if (a.verlegt) {
-    const altZusatz = [formatDatumZeitLang(a.startAlt), a.ortAlt].filter(Boolean).join(" · ");
-    const neuZusatz = [formatDatumZeitLang(a.start), a.ort].filter(Boolean).join(" · ");
-    teile.push(`verlegt von ${altZusatz} auf ${neuZusatz}`);
+    const alt = [formatDatumZeit(a.startAlt), a.ortAlt].filter(Boolean).join(" · ");
+    zeilen.push(`Verlegt, vorher: ${alt}`);
   }
   if (a.ergebnisNeu) {
     const ergebnis = formatErgebnis(a.ergebnisHeim, a.ergebnisAuswaerts);
-    teile.push(ergebnis ? `Ergebnis eingetragen: ${ergebnis}` : "Ergebnis eingetragen");
+    zeilen.push(ergebnis ? `Ergebnis: ${ergebnis}` : "Ergebnis eingetragen");
   }
-  return teile.join(", ");
+  return zeilen;
 }
 
-export function rundenspielAenderungZeile(a: RundenspielAenderung): string {
-  const spiel = a.kategorie
-    ? `${a.heimMannschaft} – ${a.auswaertsMannschaft} (${a.kategorie})`
-    : `${a.heimMannschaft} – ${a.auswaertsMannschaft}`;
-  const zusatz = [formatDatumZeitLang(a.start), a.ort].filter(Boolean).join(" · ");
-  return `${spiel} (${zusatz}) — ${aenderungsDetails(a)}`;
-}
+// Mehr als so viele Spiele machen die Mail unlesbar: der Rest steht im Hallenspielplan (Button).
+const MAX_SPIELE_IN_MAIL = 10;
 
 export function rundenspielAenderungenInhalt(
   vereinName: string,
   aenderungen: RundenspielAenderung[]
 ): EmailInhalt {
+  const sichtbar = aenderungen.slice(0, MAX_SPIELE_IN_MAIL);
+  const rest = aenderungen.length - sichtbar.length;
   return {
     vereinName,
-    ueberschrift: `${aenderungen.length} Änderung${aenderungen.length === 1 ? "" : "en"} im Hallenspielplan.`,
-    zeilen: aenderungen.map(rundenspielAenderungZeile),
+    ueberschrift: `${aenderungen.length} Änderung${aenderungen.length === 1 ? "" : "en"} im Hallenspielplan`,
+    zeilen: [
+      ...sichtbar.flatMap(rundenspielAenderungZeilen),
+      ...(rest > 0 ? [{ text: `… und ${rest} weitere im Hallenspielplan.`, neueGruppe: true }] : []),
+    ],
     cta: {
       text: "Zum Hallenspielplan",
       url: `${appUrl()}/admin/termine?tab=rundenspiele`,
