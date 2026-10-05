@@ -1,13 +1,6 @@
 import Link from "next/link";
-import { ChevronDownIcon } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { holeOffenePosten } from "@/lib/dashboard";
-import {
-  berechneGesamtbilanz,
-  holeAnzahlAktiverDienstleistender,
-  holeMannschaftsBilanzen,
-  holeTopDienstmenschen,
-} from "@/lib/dienste-statistik";
 import {
   Card,
   CardContent,
@@ -16,8 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { UnbesetzteDiensteTabelle } from "@/components/dashboard-tabellen";
-import { ErfolgreichsteMannschaftenChart } from "@/components/erfolgreichste-mannschaften-chart";
-import { TopDienstmenschenChart } from "@/components/top-dienstmenschen-chart";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 
 const ROLLE_LABEL: Record<string, string> = {
@@ -35,19 +26,7 @@ export default async function DienstePage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
 
-  const [offenePosten, mannschaftsBilanzen, topDienstmenschen, anzahlAktive] =
-    await Promise.all([
-      holeOffenePosten(vereinId),
-      holeMannschaftsBilanzen(vereinId),
-      holeTopDienstmenschen(vereinId, 8),
-      holeAnzahlAktiverDienstleistender(vereinId),
-    ]);
-
-  const { spiele: gesamtSpiele, siegquote } = berechneGesamtbilanz(mannschaftsBilanzen);
-  // Top 8 nach Siegquote sortiert anzeigen (mindestens 1 Spiel) — bei
-  // Gleichstand zählt bereits berechneMannschaftsBilanzen die Spielanzahl als
-  // Tie-Breaker, hier nur noch auf die Anzeige begrenzt.
-  const erfolgreichsteMannschaften = mannschaftsBilanzen.slice(0, 8);
+  const offenePosten = await holeOffenePosten(vereinId);
 
   const offenePostenZeilen = offenePosten.map((p) => ({
     terminId: p.terminId,
@@ -73,86 +52,6 @@ export default async function DienstePage() {
           hier nur einmal.
         </p>
       </div>
-
-      {/* Oberhalb der offenen Dienste und standardmäßig aufgeklappt — anders
-          als früher (unterhalb, eingeklappt), da die Statistik so direkt ins
-          Auge fällt statt erst per Klick entdeckt zu werden. Bleibt trotzdem
-          ein <details>, damit sie bei Bedarf eingeklappt werden kann. */}
-      <details className="group" open>
-        <summary className="flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden">
-          <h2 className="font-heading text-xl font-semibold">Statistik</h2>
-          <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="mt-3 flex flex-col gap-6">
-          <p className="-mt-1 text-sm text-muted-foreground">
-            Rundenspiele mit erfasstem Ergebnis sowie Dienste seit
-            Vereinsstart.
-          </p>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardDescription>Rundenspiele mit Ergebnis</CardDescription>
-                <CardTitle className="text-3xl">{gesamtSpiele}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardDescription>Siegquote (alle Mannschaften)</CardDescription>
-                <CardTitle className="text-3xl">
-                  {siegquote !== null ? `${siegquote}%` : "—"}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardDescription>Aktive Dienstleistende</CardDescription>
-                <CardTitle className="text-3xl">{anzahlAktive}</CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Erfolgreichste Mannschaften</CardTitle>
-                <CardDescription>
-                  Sieg/Unentschieden/Niederlage aus dem nuLiga-Rundenspiel-Import.
-                  Balkenlänge = Spiele relativ zur aktivsten Mannschaft.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {erfolgreichsteMannschaften.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Noch keine Rundenspiel-Ergebnisse mit zugeordneter Mannschaft.
-                  </p>
-                ) : (
-                  <ErfolgreichsteMannschaftenChart bilanzen={erfolgreichsteMannschaften} />
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Top Dienstleistende</CardTitle>
-                <CardDescription>
-                  Absolvierte Einsätze als Schiedsrichter, Zeitnehmer, Sekretär,
-                  Ordner, Kioskdienst oder Kassierer zusammen.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {topDienstmenschen.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Noch keine absolvierten Dienste.
-                  </p>
-                ) : (
-                  <TopDienstmenschenChart personen={topDienstmenschen} />
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </details>
 
       <Card>
         <CardHeader>
