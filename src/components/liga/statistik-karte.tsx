@@ -16,22 +16,22 @@ function Bilanzzeile({ label, s, u, n }: { label: string; s: number; u: number; 
   );
 }
 
-// Punkte (Sieg 2, Unentschieden 1) nach jedem gespielten Spiel als kleine Kurve (reines SVG, kein Chart-Paket).
+// Punkte (Sieg 2, Unentschieden 1) als Anteil der bisher möglichen Punkte: ein Balken statt Kurve, auf dem Handy sofort lesbar.
 function Saisonverlauf({ verlauf }: { verlauf: MannschaftsKennzahlen["verlauf"] }) {
-  if (verlauf.length < 2) return null;
-  const B = 100;
-  const H = 32;
-  const max = Math.max(...verlauf.map((v) => v.punkte), 1);
-  const punkte = verlauf.map((v, i) => `${(i / (verlauf.length - 1)) * B},${H - (v.punkte / max) * (H - 4) - 2}`);
+  if (verlauf.length < 1) return null;
+  const punkte = verlauf.at(-1)!.punkte;
+  const moeglich = verlauf.length * 2;
   return (
     <div>
-      <div className="mb-1 flex items-baseline justify-between text-xs text-muted-foreground">
-        <span>Punkte im Saisonverlauf</span>
-        <span className="tabular-nums">{verlauf.at(-1)!.punkte} nach {verlauf.length} Spielen</span>
+      <div className="mb-1 flex items-baseline justify-between text-sm">
+        <span className="text-muted-foreground">Punkte</span>
+        <span className="font-medium tabular-nums">
+          {punkte} von {moeglich} möglichen
+        </span>
       </div>
-      <svg viewBox={`0 0 ${B} ${H}`} preserveAspectRatio="none" className="h-10 w-full text-primary" role="img" aria-label="Verlauf der Punkte über die Saison">
-        <polyline points={punkte.join(" ")} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
-      </svg>
+      <div className="h-2 overflow-hidden rounded-full bg-muted" role="img" aria-label={`${punkte} von ${moeglich} möglichen Punkten`}>
+        <div className="h-full rounded-full bg-primary" style={{ width: `${Math.round((punkte / moeglich) * 100)}%` }} />
+      </div>
     </div>
   );
 }
@@ -54,13 +54,13 @@ function Duelle({ duelle }: { duelle: Duell[] }) {
       </summary>
       <ul className="mt-1 flex flex-col gap-1.5 text-sm">
         {mehrere.map((d) => (
-          <li key={d.gegnerName} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <li key={d.gegnerName} className="flex items-center justify-between gap-2">
             <span className="min-w-0 truncate">{d.gegnerName}</span>
             <span className="flex shrink-0 gap-1">
               {d.spiele.map((s, i) => {
                 const c = ergebnisChip(s);
                 return (
-                  <span key={i} className={`rounded px-1.5 py-0.5 text-xs font-semibold tabular-nums ${c.klasse}`} title={s.heim ? "Heimspiel" : "Auswärtsspiel"}>
+                  <span key={i} className={`whitespace-nowrap rounded px-1 py-0.5 text-[11px] font-semibold tabular-nums ${c.klasse}`} title={s.heim ? "Heimspiel" : "Auswärtsspiel"}>
                     {s.heim ? "H " : "A "}
                     {c.text}
                   </span>
