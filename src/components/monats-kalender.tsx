@@ -641,8 +641,8 @@ export function MonatsKalender({
                     <span
                       className={`ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                         e.besetzung === "vollstaendig"
-                          ? "bg-blue-600/15 text-blue-800 dark:text-blue-300"
-                          : "bg-destructive/15 text-destructive"
+                          ? "bg-emerald-700 text-white dark:bg-emerald-600"
+                          : "bg-red-700 text-white dark:bg-red-600"
                       }`}
                     >
                       {e.besetzung === "vollstaendig" ? (
@@ -822,7 +822,7 @@ export function MonatsKalender({
                           ) : (
                             e.besetzung &&
                             (e.besetzung === "vollstaendig" ? (
-                              <CheckCircle2 className="size-2.5 shrink-0 text-blue-700 dark:text-blue-400" />
+                              <CheckCircle2 className="size-2.5 shrink-0 text-emerald-700 dark:text-emerald-500" />
                             ) : (
                               <AlertCircle className="size-2.5 shrink-0 text-destructive" />
                             ))

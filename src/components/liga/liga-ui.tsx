@@ -86,9 +86,9 @@ export function SpielKarte({
       size="sm"
       className={cn(
         "gap-2 px-4",
-        ausgang === "S" && "border-l-4 border-l-blue-700",
+        ausgang === "S" && "border-l-4 border-l-emerald-700",
         ausgang === "U" && "border-l-4 border-l-slate-500",
-        ausgang === "N" && "border-l-4 border-l-orange-600"
+        ausgang === "N" && "border-l-4 border-l-red-700"
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -178,9 +178,9 @@ export function SpielKarte({
 export function FormChips({ form }: { form: ("S" | "U" | "N")[] }) {
   if (form.length === 0) return null;
   const farbe = {
-    S: "bg-blue-700 text-white",
+    S: "bg-emerald-700 text-white",
     U: "bg-slate-500 text-white",
-    N: "bg-orange-600 text-white",
+    N: "bg-red-700 text-white",
   } as const;
   return (
     <div className="flex gap-1" aria-label="Form der letzten Spiele">
