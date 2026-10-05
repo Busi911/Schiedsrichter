@@ -35,6 +35,7 @@ import { NeueMannschaftDialog } from "@/components/neue-mannschaft-dialog";
 import { SubmitButton } from "@/components/submit-button";
 import { formatDatum } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
+import { HilfeHinweis } from "@/components/hilfe-hinweis";
 
 const BEDARF_ROLLEN = [
   { wert: "ordner", label: "Ordner" },
@@ -91,7 +92,10 @@ export default async function MannschaftenPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
         <h1 className="font-heading text-2xl font-semibold">Mannschaften</h1>
+          <HilfeHinweis anker="erste-schritte" />
+        </div>
         <p className="text-sm text-muted-foreground">
           Mannschaften des Vereins verwalten.
         </p>

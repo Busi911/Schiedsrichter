@@ -24,6 +24,10 @@ export async function Footer() {
         {" · "}
         {!eingeloggt && (
           <>
+            <Link href="/app-hilfe" className="underline">
+              Hilfe zur App
+            </Link>
+            {" · "}
             <Link href="/registrieren" className="underline">
               Verein registrieren
             </Link>

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { UnbesetzteDiensteTabelle } from "@/components/dashboard-tabellen";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
+import { HilfeHinweis } from "@/components/hilfe-hinweis";
 
 const ROLLE_LABEL: Record<string, string> = {
   ordner: "Ordner",
@@ -43,9 +44,12 @@ export default async function DienstePage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
         <h1 className="font-heading text-2xl font-semibold">
           Offene Dienste
         </h1>
+          <HilfeHinweis anker="bedarf" />
+        </div>
         <p className="text-sm text-muted-foreground">
           Offener Ordner-/Kioskdienst-/Kassierer-Bedarf sowie fehlende
           Zeitnehmer/Sekretär — ein Termin mit mehreren offenen Rollen zählt

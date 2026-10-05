@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SubmitButton } from "@/components/submit-button";
 import { formatDatumZeit } from "@/lib/format";
+import { HilfeHinweis } from "@/components/hilfe-hinweis";
 
 // Wie TYP_LABEL in funktionstraeger-tabelle.tsx — hier separat gepflegt, da
 // diese Datei eine Server Component ist und nicht aus der Client-Komponente
@@ -153,9 +154,12 @@ export default async function FunktionstraegerPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
         <h1 className="font-heading text-2xl font-semibold">
           Funktionsträger
         </h1>
+          <HilfeHinweis anker="rollen" />
+        </div>
         <p className="text-sm text-muted-foreground">
           Alle Funktionsträger des Vereins verwalten.
         </p>

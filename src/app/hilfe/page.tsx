@@ -26,6 +26,31 @@ export default async function HilfePage() {
 
       <h1 className="font-heading text-2xl font-semibold">Hilfe</h1>
 
+      <nav aria-label="Inhalt" className="rounded-lg border bg-muted/30 p-4">
+        <p className="mb-2 text-sm font-medium">Inhalt</p>
+        <ul className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          {[
+            ["erste-schritte", "Erste Schritte: App einrichten"],
+            ["anmelden", "Anmelden, Passwort, E-Mail ändern"],
+            ["rollen", "Wer darf was? Rollen"],
+            ["oeffentliche-seite", "Öffentliche Vereinsseite & App"],
+            ["kalender", "Kalender & Besetzung"],
+            ["bedarf", "Dienste-Bedarf festlegen"],
+            ["zuordnung", "Funktionsträger zuordnen"],
+            ["ics-feed", "Persönlicher Kalender (ICS-Feed)"],
+            ["mails", "E-Mails & Erinnerungen"],
+            ["statistik", "Statistik & offene Dienste"],
+            ["support", "Support, Feedback, Datenschutz"],
+          ].map(([id, label]) => (
+            <li key={id}>
+              <a href={`#${id}`} className="inline-flex min-h-8 items-center underline-offset-4 hover:underline">
+                {label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
       <section id="erste-schritte" className="flex flex-col gap-3 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">Erste Schritte: HandballerPate einrichten</h2>
         <p className="text-sm text-muted-foreground">
@@ -71,6 +96,46 @@ export default async function HilfePage() {
           <strong>Darstellung:</strong> Unten auf jeder Seite stellt ihr „Automatisch“ (folgt dem Handy), „Hell“ oder „Dunkel“
           ein. Die Statistik (Bilanz aller Spiele, Top-Dienstleistende) findet ihr unter{" "}
           <strong>Verwaltung → Statistik</strong>, offene Aufgaben unter <strong>Offene Dienste</strong>.
+        </p>
+      </section>
+
+      <section id="anmelden" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Anmelden, Passwort, E-Mail ändern</h2>
+        <p className="text-sm text-muted-foreground">
+          Ihr meldet euch mit eurer E-Mail-Adresse an: entweder mit einem <strong>Link, den wir euch per E-Mail schicken</strong>{" "}
+          (kein Passwort nötig) oder, wenn ihr eins festgelegt habt, mit <strong>Passwort</strong>. Hat euch der Admin ein
+          Einmal-Passwort gegeben, werdet ihr nach dem ersten Login gebeten, ein eigenes zu vergeben.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Link kommt nicht an?</strong> Schaut im Spam-Ordner nach und prüft, ob die Adresse richtig geschrieben ist (der
+          Admin hinterlegt sie unter Funktionsträger). <strong>E-Mail-Adresse ändern:</strong> in eurem Profil (Einstellungen-Menü); die neue Adresse
+          gilt erst, nachdem ihr den Bestätigungslink angeklickt habt, den wir an genau diese Adresse schicken.{" "}
+          <strong>Passwort ändern:</strong> im selben Menü unter „Passwort ändern“.
+        </p>
+      </section>
+
+      <section id="rollen" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Wer darf was? Rollen</h2>
+        <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm text-muted-foreground">
+          <li>
+            <strong>Vereinsadmin:</strong> sieht und ändert alles im Verein (Funktionsträger, Mannschaften, Termine, Einstellungen).
+          </li>
+          <li>
+            <strong>Admin „nur lesend“:</strong> sieht dieselben Seiten, kann aber nichts ändern, z.B. für Kassenprüfer oder einen
+            zweiten Vorstand.
+          </li>
+          <li>
+            <strong>Warte (Schiedsrichter-, Zeitnehmer-, Ordnerwart):</strong> ordnen auf ihrer Profil-Seite Personen zu den
+            Terminen zu und verwalten ihre Selbsteintragungs-Links.
+          </li>
+          <li>
+            <strong>Alle anderen Funktionsträger</strong> (Schiedsrichter, Zeitnehmer, Sekretär, Ordner, Kioskdienst, Kassierer,
+            Trainer): sehen im Profil ihre eigenen Einsätze, offene Dienste und ihren persönlichen Kalender.
+          </li>
+        </ul>
+        <p className="text-sm text-muted-foreground">
+          Eine Person kann mehrere Rollen haben. Wer den Verein verlässt, wird deaktiviert, seine bisherigen Einsätze bleiben in der
+          Historie.
         </p>
       </section>
 
@@ -252,6 +317,22 @@ export default async function HilfePage() {
         </p>
       </section>
 
+      <section id="kalender" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Kalender &amp; Besetzung</h2>
+        <p className="text-sm text-muted-foreground">
+          Im <strong>Kalender</strong> seht ihr alle Termine des Vereins. Ein Spiel zeigt <strong>„Vollständig“</strong> (grün,
+          Häkchen), wenn Schiedsrichter (falls der Verein ihn stellen muss), Zeitnehmer/Sekretär und alle festgelegten
+          Helferdienste besetzt sind, sonst <strong>„Offen“</strong> (rot, Ausrufezeichen). Am Handy markiert ein kleines
+          Warnsymbol die Tage, an denen noch etwas offen ist. Tippt einen Termin an, um Details zu sehen und Personen
+          zuzuordnen. Termine, die automatisch aus Liga-Daten kommen, sind nicht bearbeitbar; eine Verlegung übernimmt
+          HandballerPate selbst.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Ein Spiel fehlt oder ist falsch?</strong> Die Liga-Daten werden tagsüber stündlich geholt. Prüft im Zweifel die
+          Vereins-ID unter Einstellungen → Öffentliche Vereinsseite oder meldet es über den Feedback-Button.
+        </p>
+      </section>
+
       <section id="ics-feed" className="flex flex-col gap-2 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">
           Persönlicher Schiedsrichter-Kalender (HHV Funktionsträger ICS-Feed)
@@ -358,6 +439,47 @@ export default async function HilfePage() {
           entfernen oder ersetzen (Umbesetzung), z.B. wenn jemand
           kurzfristig ausfällt.
         </p>
+      </section>
+      <section id="mails" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">E-Mails &amp; Erinnerungen</h2>
+        <p className="text-sm text-muted-foreground">
+          HandballerPate schickt Erinnerungen vor unbesetzten Diensten, auslaufenden Lizenzen und anstehenden Terminen sowie eine
+          Wochenübersicht, und informiert bei Verlegungen. Jede Person stellt im Profil-Menü unter <strong>Benachrichtigungen</strong> ein,
+          welche optionalen Mails sie bekommt. Jede dieser Mails hat unten einen <strong>Abbestellen-Link</strong> (auch Gmail und
+          Outlook zeigen „Abbestellen“). Der Admin legt in den Einstellungen fest, welche Mail-Arten der Verein überhaupt
+          verschickt. Login-Links, Verlegungen und Systemmails sind nicht abbestellbar.
+        </p>
+      </section>
+
+      <section id="statistik" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Statistik &amp; offene Dienste</h2>
+        <p className="text-sm text-muted-foreground">
+          Unter <strong>Verwaltung → Offene Dienste</strong> steht, was noch zu besetzen ist (ein Spiel mit mehreren offenen Rollen
+          zählt einmal). Unter <strong>Verwaltung → Statistik</strong> seht ihr die Bilanz aller Mannschaften über alle Spiele (Heim
+          und Auswärts; laufende Spiele zählen erst mit dem endgültigen Ergebnis) und die Top-Dienstleistenden.
+        </p>
+      </section>
+
+      <section id="support" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Support, Feedback, Datenschutz</h2>
+        <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm text-muted-foreground">
+          <li>
+            <strong>Frage oder Fehler?</strong> Über den <strong>Feedback-Button</strong> im Kopf der Seite erreicht ihr uns direkt.
+          </li>
+          <li>
+            <strong>Support-Zugriff:</strong> Standardmäßig kommt niemand vom HandballerPate-Support in euren Verein. Der Admin kann
+            unter Einstellungen → Support-Zugriff eine befristete oder dauerhafte Freigabe erteilen und jederzeit widerrufen. Jeder
+            Zugriff wird protokolliert.
+          </li>
+          <li>
+            <strong>Datenschutz:</strong> Eure Daten sind je Verein getrennt. Auftragsverarbeitungsvertrag und Datenschutzerklärung
+            findet ihr unter Einstellungen → Rechtliches bzw. im Fußbereich. Die öffentliche Vereinsseite zeigt nur öffentliche Sportdaten, keine
+            Personen.
+          </li>
+          <li>
+            <strong>Darstellung:</strong> Hell, Dunkel oder automatisch stellt ihr unten auf jeder Seite ein.
+          </li>
+        </ul>
       </section>
     </main>
   );
