@@ -924,6 +924,8 @@ export const ligaVereine = pgTable(
     // Optional manuell hinterlegte handball.net-Team-IDs (kommagetrennt),
     // falls die Teamliste des Vereins nicht automatisch ermittelt werden kann.
     handballNetTeamIds: text("handball_net_team_ids"),
+    // Vom Verein selbst gewählter Farbton (0-359) der öffentlichen Seite; null = aus dem Logo bzw. Slug (siehe lib/liga-farbe.ts).
+    farbtonEigen: integer("farbton_eigen"),
     handballNetSynchronisiertAm: timestamp("handball_net_synchronisiert_am", { mode: "date" }),
     strukturSynchronisiertAm: timestamp("struktur_synchronisiert_am", { mode: "date" }),
     spieleSynchronisiertAm: timestamp("spiele_synchronisiert_am", { mode: "date" }),

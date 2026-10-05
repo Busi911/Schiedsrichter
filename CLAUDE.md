@@ -412,3 +412,10 @@ Ein Termin gilt im Admin-Kalender (Badge "Vollständig"/"Offen") und in "Unbeset
 Schiedsrichter (falls vom Verein zu stellen), Zeitnehmer/Sekretär UND alle vom Verein definierten Helferdienste (Ordner,
 Kioskdienst, Kassierer: Bedarf > 0 laut `bedarfFuer`, nicht für die Mannschaft abgeschaltet) ihren Bedarf erreichen.
 Dasselbe Maß wie die Liste "Offene Dienste" (`berechneOffenePosten`).
+
+## Eigene Vereinsfarbe (öffentliche Seite)
+
+`liga_verein.farbton_eigen` (nur der Farbton 0-359, Migration 0077): der Admin wählt sie unter Einstellungen → Öffentliche Vereinsseite → Farbe
+(Farbwähler, `lib/liga-farbe.ts` `hexZuFarbton`; Grau/Weiß/Schwarz werden abgelehnt). Vorrang: eigene Farbe vor Logo-Farbe
+(`liga_verein_logo.farbton`) vor Standard aus dem Slug (`holeVereinsDesign`). Sättigung/Helligkeit legt `FanTheme` fest (lesbar in Hell/Dunkel);
+die Version in `holeVereinsDesign` enthält die eigene Farbe, damit Icon-URLs der Web-App neu geladen werden.

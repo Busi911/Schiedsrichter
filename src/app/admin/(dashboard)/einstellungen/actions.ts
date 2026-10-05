@@ -7,6 +7,7 @@ import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
 import { ligaMannschaften, ligaVereine, ligaVereinLogos, ligaVereinZusatzquellen, vereine } from "@/db/schema";
+import { hexZuFarbton } from "@/lib/liga-farbe";
 import { ermittleFarbton, LogoFehler, verarbeiteLogo } from "@/lib/liga-logo";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { legeLigaVereinAn } from "@/lib/nuliga/sync";
@@ -499,6 +500,31 @@ export async function logoHochladen(formData: FormData) {
       target: ligaVereinLogos.ligaVereinId,
       set: { png, farbton, aktualisiertAm: new Date() },
     });
+  revalidatePath("/admin/einstellungen");
+  redirect("/admin/einstellungen");
+}
+
+// Eigene Vereinsfarbe der öffentlichen Seite/Web-App (Standard: aus dem Logo). Gespeichert wird nur der Farbton.
+export async function vereinsfarbeSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const farbton = hexZuFarbton(String(formData.get("farbe") ?? ""));
+  if (farbton === null) {
+    throw new Error("Bitte eine kräftigere Farbe wählen — Grau, Weiß und Schwarz haben keinen erkennbaren Farbton.");
+  }
+  await adminDb
+    .update(ligaVereine)
+    .set({ farbtonEigen: farbton })
+    .where(eq(ligaVereine.vereinId, session.user.vereinId!));
+  revalidatePath("/admin/einstellungen");
+  redirect("/admin/einstellungen");
+}
+
+export async function vereinsfarbeZuruecksetzen() {
+  const session = await requireAdminSchreibzugriff();
+  await adminDb
+    .update(ligaVereine)
+    .set({ farbtonEigen: null })
+    .where(eq(ligaVereine.vereinId, session.user.vereinId!));
   revalidatePath("/admin/einstellungen");
   redirect("/admin/einstellungen");
 }
