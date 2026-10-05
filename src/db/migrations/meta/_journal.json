@@ -547,6 +547,13 @@
       "when": 1791230601543,
       "tag": "0077_liga_verein_farbton_eigen",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1791230762726,
+      "tag": "0078_user_letzte_aktivitaet",
+      "breakpoints": true
     }
   ]
 }

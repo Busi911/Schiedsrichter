@@ -569,6 +569,9 @@ export const users = pgTable("user", {
   // damit Admins erkennen, welche Personen ihren Zugang noch nie genutzt
   // haben.
   letzterLoginAm: timestamp("letzter_login_am", { mode: "date" }),
+  // Letzte Aktivität in der App (höchstens alle 5 Minuten aktualisiert, siehe lib/aktivitaet.ts) — für die
+  // Vereins-Gesundheit des Systemadmins ("online jetzt", "lebt der Verein"). Kein Inhalt, nur ein Zeitstempel.
+  letzteAktivitaetAm: timestamp("letzte_aktivitaet_am", { mode: "date" }),
 });
 
 export const accounts = pgTable(
