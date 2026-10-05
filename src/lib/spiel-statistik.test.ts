@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { berechneMannschaftsKennzahlen, berechneVereinsKennzahlen, type StatistikMannschaft } from "./spiel-statistik";
+import { berechneMannschaftsKennzahlen, berechneVereinsKennzahlen, berechneWoche, type StatistikMannschaft } from "./spiel-statistik";
 import type { SpielAnsicht } from "./liga-spiele-hilfen";
 
 const jetzt = new Date("2026-10-05T12:00:00Z");
@@ -70,5 +70,54 @@ describe("berechneVereinsKennzahlen", () => {
     const g = berechneVereinsKennzahlen([a, a]);
     expect(g).toMatchObject({ mannschaften: 2, spiele: 4, siege: 2, niederlagen: 2, siegquote: 50, torePlus: 100, toreMinus: 100 });
     expect(berechneVereinsKennzahlen([]).siegquote).toBeNull();
+  });
+});
+
+describe("Saisonverlauf und Duelle", () => {
+  it("summiert Punkte (2/1/0) und Tordifferenz nach jedem Spiel", () => {
+    const k = berechneMannschaftsKennzahlen(
+      team([heim(30, 20, { datum: "2026-09-01" }), aus(25, 25, { datum: "2026-09-08" }), heim(20, 28, { datum: "2026-09-15" })]),
+      jetzt
+    )!;
+    expect(k.verlauf).toEqual([
+      { punkte: 2, diff: 10 },
+      { punkte: 3, diff: 10 },
+      { punkte: 3, diff: 2 },
+    ]);
+  });
+  it("gruppiert Duelle nach Gegner-ID inkl. noch ausstehender Spiele, abgesagte fehlen", () => {
+    const k = berechneMannschaftsKennzahlen(
+      team([
+        heim(30, 20, { datum: "2026-09-01", gastName: "TV A", gastTeamtableId: "A" }),
+        aus(null as unknown as number, null as unknown as number, { datum: "2026-12-01", heimName: "TV A", heimTeamtableId: "A" }),
+        heim(20, 20, { datum: "2026-09-08", gastName: "TV B", gastTeamtableId: "B", status: "abgesagt" }),
+      ]),
+      jetzt
+    )!;
+    expect(k.duelle).toHaveLength(1);
+    expect(k.duelle[0].gegnerName).toBe("TV A");
+    expect(k.duelle[0].spiele).toEqual([
+      { datum: "2026-09-01", heim: true, eigen: 30, gegner: 20 },
+      { datum: "2026-12-01", heim: false, eigen: null, gegner: null },
+    ]);
+  });
+});
+
+describe("berechneWoche", () => {
+  const heute = "2026-10-07"; // Mittwoch -> Woche 05.10.-11.10.
+  const im = (x: Partial<SpielAnsicht>) => spiel({ datum: "2026-10-10", ...x });
+  it("zählt Spiele der laufenden Woche einmal, mit Siegen/Niederlagen und offenen Spielen", () => {
+    const m1 = team([im({ id: "a", heimTeamtableId: "T", gastTeamtableId: "X", toreHeim: 30, toreGast: 20 }), im({ id: "b", heimTeamtableId: "X", gastTeamtableId: "T", toreHeim: null, toreGast: null }), spiel({ id: "alt", datum: "2026-09-30", heimTeamtableId: "T", gastTeamtableId: "X", toreHeim: 1, toreGast: 0 })]);
+    const w = berechneWoche([m1], jetzt, heute)!;
+    expect(w).toMatchObject({ von: "2026-10-05", bis: "2026-10-11", spiele: 2, gespielt: 1, siege: 1, niederlagen: 0, torePlus: 30, toreMinus: 20 });
+  });
+  it("ein Duell zweier eigener Mannschaften zählt einmal und ohne Sieg/Niederlage", () => {
+    const a = team([im({ id: "d", heimTeamtableId: "T", gastTeamtableId: "U", toreHeim: 30, toreGast: 20 })]);
+    const b = { ...a, id: "m2", teamtableId: "U" };
+    const w = berechneWoche([a, b], jetzt, heute)!;
+    expect(w).toMatchObject({ spiele: 1, gespielt: 1, siege: 0, unentschieden: 0, niederlagen: 0 });
+  });
+  it("keine Spiele in der Woche -> null", () => {
+    expect(berechneWoche([team([spiel({ datum: "2026-09-01", heimTeamtableId: "T", gastTeamtableId: "X", toreHeim: 1, toreGast: 0 })])], jetzt, heute)).toBeNull();
   });
 });

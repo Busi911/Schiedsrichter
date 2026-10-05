@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import type { MannschaftsKennzahlen } from "@/lib/spiel-statistik";
+import type { Duell, MannschaftsKennzahlen, Woche } from "@/lib/spiel-statistik";
 import { formatKurzDatum, FormChips } from "./liga-ui";
 
 const prozent = (teil: number, gesamt: number) => (gesamt > 0 ? Math.round((teil / gesamt) * 100) : 0);
@@ -13,6 +13,96 @@ function Bilanzzeile({ label, s, u, n }: { label: string; s: number; u: number; 
         {s} S · {u} U · {n} N
       </span>
     </div>
+  );
+}
+
+// Punkte (Sieg 2, Unentschieden 1) nach jedem gespielten Spiel als kleine Kurve (reines SVG, kein Chart-Paket).
+function Saisonverlauf({ verlauf }: { verlauf: MannschaftsKennzahlen["verlauf"] }) {
+  if (verlauf.length < 2) return null;
+  const B = 100;
+  const H = 32;
+  const max = Math.max(...verlauf.map((v) => v.punkte), 1);
+  const punkte = verlauf.map((v, i) => `${(i / (verlauf.length - 1)) * B},${H - (v.punkte / max) * (H - 4) - 2}`);
+  return (
+    <div>
+      <div className="mb-1 flex items-baseline justify-between text-xs text-muted-foreground">
+        <span>Punkte im Saisonverlauf</span>
+        <span className="tabular-nums">{verlauf.at(-1)!.punkte} nach {verlauf.length} Spielen</span>
+      </div>
+      <svg viewBox={`0 0 ${B} ${H}`} preserveAspectRatio="none" className="h-10 w-full text-primary" role="img" aria-label="Verlauf der Punkte über die Saison">
+        <polyline points={punkte.join(" ")} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+}
+
+function ergebnisChip(d: Duell["spiele"][number]) {
+  if (d.eigen === null || d.gegner === null) return { text: formatKurzDatum(d.datum), klasse: "bg-muted text-muted-foreground" };
+  const klasse = d.eigen > d.gegner ? "bg-emerald-700 text-white" : d.eigen === d.gegner ? "bg-slate-500 text-white" : "bg-red-700 text-white";
+  return { text: `${d.eigen}:${d.gegner}`, klasse };
+}
+
+function Duelle({ duelle }: { duelle: Duell[] }) {
+  const mehrere = duelle.filter((d) => d.spiele.length > 0);
+  if (mehrere.length === 0) return null;
+  return (
+    <details className="group border-t pt-2">
+      <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between text-sm font-medium [&::-webkit-details-marker]:hidden">
+        Duelle ({mehrere.length} Gegner)
+        <span className="text-xs text-muted-foreground group-open:hidden">anzeigen</span>
+        <span className="hidden text-xs text-muted-foreground group-open:inline">ausblenden</span>
+      </summary>
+      <ul className="mt-1 flex flex-col gap-1.5 text-sm">
+        {mehrere.map((d) => (
+          <li key={d.gegnerName} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <span className="min-w-0 truncate">{d.gegnerName}</span>
+            <span className="flex shrink-0 gap-1">
+              {d.spiele.map((s, i) => {
+                const c = ergebnisChip(s);
+                return (
+                  <span key={i} className={`rounded px-1.5 py-0.5 text-xs font-semibold tabular-nums ${c.klasse}`} title={s.heim ? "Heimspiel" : "Auswärtsspiel"}>
+                    {s.heim ? "H " : "A "}
+                    {c.text}
+                  </span>
+                );
+              })}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1 text-[11px] text-muted-foreground">H = Heimspiel, A = Auswärtsspiel. Ohne Ergebnis steht das Datum des Spiels.</p>
+    </details>
+  );
+}
+
+// "Diese Woche in Zahlen" über alle eigenen Mannschaften (Kopf der Ergebnis-Seite).
+export function WochenKarte({ w }: { w: Woche }) {
+  const offen = w.spiele - w.gespielt;
+  return (
+    <Card size="sm" className="gap-2 px-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="font-heading text-base font-semibold">Diese Woche in Zahlen</h2>
+        <span className="text-xs text-muted-foreground">
+          {formatKurzDatum(w.von)} – {formatKurzDatum(w.bis)}
+        </span>
+      </div>
+      <p className="text-sm">
+        <span className="font-semibold tabular-nums">{w.spiele}</span> Spiele, davon{" "}
+        <span className="font-semibold tabular-nums">{w.gespielt}</span> gespielt
+        {offen > 0 && <span className="text-muted-foreground"> · noch {offen} offen</span>}
+      </p>
+      {w.gespielt > 0 && (
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground tabular-nums">
+            {w.siege} S · {w.unentschieden} U · {w.niederlagen} N
+          </span>
+          {w.siege + w.unentschieden + w.niederlagen > 0 && (
+            <> · Siegquote {Math.round((w.siege / (w.siege + w.unentschieden + w.niederlagen)) * 100)}%</>
+          )}{" "}
+          · Tore {w.torePlus}:{w.toreMinus}
+        </p>
+      )}
+    </Card>
   );
 }
 
@@ -68,6 +158,8 @@ export function StatistikKarte({ name, href, k }: { name: string; href: string; 
         </div>
       </div>
 
+      <Saisonverlauf verlauf={k.verlauf} />
+
       {(k.hoechsterSieg || k.torreichstes) && (
         <div className="flex flex-col gap-1 border-t pt-2 text-sm">
           {k.hoechsterSieg && (
@@ -112,6 +204,7 @@ export function StatistikKarte({ name, href, k }: { name: string; href: string; 
           )}
         </div>
       )}
+      <Duelle duelle={k.duelle} />
     </Card>
   );
 }
