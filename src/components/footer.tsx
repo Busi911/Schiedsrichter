@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import { ThemeUmschalter } from "@/components/theme-umschalter";
 
 // Global im Root-Layout eingebunden (siehe src/app/layout.tsx), damit
 // Datenschutz/Impressum von JEDER Seite aus erreichbar sind — nicht nur von
@@ -45,6 +46,9 @@ export async function Footer() {
           Impressum
         </Link>
       </p>
+      <div className="mt-3 flex justify-center">
+        <ThemeUmschalter />
+      </div>
     </footer>
   );
 }

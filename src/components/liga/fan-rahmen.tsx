@@ -9,7 +9,7 @@ import { LinkSpinner } from "@/components/link-spinner";
 export function FanTheme({ hue }: { hue: number }) {
   const h = Math.round(hue);
   return (
-    <style>{`.fan{--primary:oklch(0.42 0.12 ${h});--primary-foreground:oklch(0.98 0 0);--ring:oklch(0.42 0.12 ${h} / 0.5);--accent:oklch(0.93 0.03 ${h});--accent-foreground:oklch(0.3 0.1 ${h})}@media (prefers-color-scheme: dark){.fan{--primary:oklch(0.62 0.12 ${h});--primary-foreground:oklch(0.14 0.02 ${h});--accent:oklch(0.3 0.05 ${h});--accent-foreground:oklch(0.92 0.04 ${h})}}`}</style>
+    <style>{`.fan{--primary:oklch(0.42 0.12 ${h});--primary-foreground:oklch(0.98 0 0);--ring:oklch(0.42 0.12 ${h} / 0.5);--accent:oklch(0.93 0.03 ${h});--accent-foreground:oklch(0.3 0.1 ${h})}.dark .fan{--primary:oklch(0.62 0.12 ${h});--primary-foreground:oklch(0.14 0.02 ${h});--accent:oklch(0.3 0.05 ${h});--accent-foreground:oklch(0.92 0.04 ${h})}`}</style>
   );
 }
 
