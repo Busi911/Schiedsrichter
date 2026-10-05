@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { appUrl } from "@/lib/app-url";
-import { holeVerein } from "@/lib/liga-oeffentlich";
+import { holeVerein, mannschaftsReihenfolge } from "@/lib/liga-oeffentlich";
 import { spielGruppe } from "@/lib/liga-spiele-hilfen";
 import { berechneMannschaftsKennzahlen, berechneVereinsKennzahlen } from "@/lib/spiel-statistik";
 import { BereichsKopf } from "@/components/liga/bereichs-kopf";
@@ -27,11 +27,12 @@ export default async function StatistikSeite({ params }: Props) {
   const { slug } = await params;
   const { verein, mannschaften, basis } = await ladeVereinsDaten(slug);
   const jetzt = new Date();
+  const reihenfolge = mannschaftsReihenfolge(mannschaften);
   const eintraege = mannschaften
     .map((m) => ({ m, k: berechneMannschaftsKennzahlen(m, jetzt) }))
     .filter((e): e is { m: (typeof mannschaften)[number]; k: NonNullable<ReturnType<typeof berechneMannschaftsKennzahlen>> } => !!e.k)
-    // Erfolgreichste zuerst (Siege − Niederlagen), bei Gleichstand mehr Spiele.
-    .sort((a, b) => b.k.siege - b.k.niederlagen - (a.k.siege - a.k.niederlagen) || b.k.spiele - a.k.spiele);
+    // Gleiche Reihenfolge wie auf der Mannschaften-Seite.
+    .sort((a, b) => (reihenfolge.get(a.m.id) ?? 999) - (reihenfolge.get(b.m.id) ?? 999));
   const gesamt = berechneVereinsKennzahlen(eintraege.map((e) => e.k));
 
   return (

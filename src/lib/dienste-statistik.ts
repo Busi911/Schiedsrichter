@@ -12,7 +12,7 @@ import {
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
 import { ligaVereine, mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
-import { holeMannschaften } from "@/lib/liga-oeffentlich";
+import { holeMannschaften, mannschaftsReihenfolge } from "@/lib/liga-oeffentlich";
 import { berechneBilanzAusLigaSpielen, berechneMannschaftsKennzahlen, type MannschaftsKennzahlen } from "@/lib/spiel-statistik";
 import { normalisiereMannschaftsname } from "@/lib/rundenspiel-import";
 
@@ -148,11 +148,12 @@ export async function holeMannschaftsKennzahlenAlleSpiele(
   const ansichten = await holeMannschaften(ligaVerein.id);
   const jetzt = new Date();
   const liste: { id: string; name: string; href: string; k: MannschaftsKennzahlen }[] = [];
+  const reihenfolge = mannschaftsReihenfolge(ansichten);
   for (const m of ansichten) {
     const k = berechneMannschaftsKennzahlen(m, jetzt);
     if (k) liste.push({ id: m.id, name: m.name, href: `/verein/${ligaVerein.slug}/${m.slug}`, k });
   }
-  return liste.sort((a, b) => b.k.siege - b.k.niederlagen - (a.k.siege - a.k.niederlagen) || b.k.spiele - a.k.spiele);
+  return liste.sort((a, b) => (reihenfolge.get(a.id) ?? 999) - (reihenfolge.get(b.id) ?? 999));
 }
 
 export async function holeMannschaftsBilanzen(

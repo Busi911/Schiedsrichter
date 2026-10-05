@@ -317,3 +317,11 @@ export function gruppiereMannschaften(mannschaften: MannschaftAnsicht[]) {
       ),
   })).filter((g) => g.mannschaften.length > 0);
 }
+
+/** Reihenfolge wie auf der Mannschaften-Seite (Herren, Damen, Jugend …; je Gruppe nach Altersklasse und Nummer). */
+export function mannschaftsReihenfolge(mannschaften: MannschaftAnsicht[]): Map<string, number> {
+  const rang = new Map<string, number>();
+  let i = 0;
+  for (const g of gruppiereMannschaften(mannschaften)) for (const m of g.mannschaften) rang.set(m.id, i++);
+  return rang;
+}
