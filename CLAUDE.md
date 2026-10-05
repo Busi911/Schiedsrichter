@@ -419,3 +419,12 @@ Dasselbe Maß wie die Liste "Offene Dienste" (`berechneOffenePosten`).
 (Farbwähler, `lib/liga-farbe.ts` `hexZuFarbton`; Grau/Weiß/Schwarz werden abgelehnt). Vorrang: eigene Farbe vor Logo-Farbe
 (`liga_verein_logo.farbton`) vor Standard aus dem Slug (`holeVereinsDesign`). Sättigung/Helligkeit legt `FanTheme` fest (lesbar in Hell/Dunkel);
 die Version in `holeVereinsDesign` enthält die eigene Farbe, damit Icon-URLs der Web-App neu geladen werden.
+
+## Vereins-Gesundheit (Systemadmin)
+
+`/system/gesundheit`: je Verein "lebt / ruhig / inaktiv / nie benutzt" (letzte Aktivität = max aus `users.letzte_aktivitaet_am` und `letzter_login_am` über alle
+Personen des Vereins: ≤ 7 Tage lebt, ≤ 30 ruhig), "online jetzt" (Aktivität ≤ 5 Min), Personen/Admins/schon angemeldet/mit Rolle, Mannschaften, künftige
+Termine, Einteilungen (±30 Tage) und eine Einrichtungs-Checkliste (Admin angelegt + angemeldet, AVV, Mannschaften, Funktionsträger mit Rolle, künftige
+Termine, öffentliche Seite). Nur Kennzahlen/Zeitstempel (`lib/verein-gesundheit.ts`, Bewertung rein in `verein-gesundheit-bewertung.ts`). Die
+Aktivität schreibt `requireSession` über `markiereAktivitaet` (`lib/aktivitaet.ts`): eine bedingte Anweisung, höchstens alle 5 Minuten, nach der Antwort
+(`after`); Systemadmins im Treuhand-/Support-Kontext zählen nicht als Aktivität des Vereins. Migration 0078.
