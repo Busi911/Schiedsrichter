@@ -8,6 +8,7 @@ import {
   MessageCircleIcon,
   RefreshCwIcon,
   ShieldCheckIcon,
+  SmartphoneIcon,
   UsersIcon,
 } from "lucide-react";
 import { auth } from "@/auth";
@@ -19,7 +20,15 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { ProdukttourBild } from "@/components/produkttour-bild";
 
+// Große, gut tippbare Buttons auf der Startseite (mobil zuerst): mindestens 48 px hoch.
+const GROSSER_BUTTON = "h-12 px-6 text-base";
+
 const FEATURES = [
+  {
+    icon: SmartphoneIcon,
+    titel: "Die App für Spieler, Eltern und Fans",
+    text: "Spielplan, Ergebnisse, Tabellen und Live-Ticker eures Vereins — ohne Login, als App aufs Handy installierbar, mit euren Lieblingsmannschaften als Favoriten.",
+  },
   {
     icon: UsersIcon,
     titel: "Funktionsträger zentral verwalten",
@@ -137,7 +146,7 @@ export default async function Home() {
           </div>
           <Button
             variant="outline"
-            size="sm"
+            className="h-10 px-4 text-sm"
             render={<Link href="/login" />}
             nativeButton={false}
           >
@@ -158,18 +167,25 @@ export default async function Home() {
             Excel-Listen und WhatsApp-Nachrichten hinterherzutelefonieren.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" render={<Link href="/registrieren" />} nativeButton={false}>
+            <Button className={GROSSER_BUTTON} render={<Link href="/registrieren" />} nativeButton={false}>
               Jetzt kostenlos registrieren
             </Button>
             <Button
-              size="lg"
               variant="outline"
+              className={GROSSER_BUTTON}
               render={<Link href="/login" />}
               nativeButton={false}
             >
               Login
             </Button>
           </div>
+          <Link
+            href="#vereine"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border px-5 text-base font-medium hover:bg-muted"
+          >
+            <SmartphoneIcon className="size-5 text-primary" />
+            Euren Verein als App finden
+          </Link>
           <p className="text-sm text-muted-foreground">
             {freiePlaetze > 0
               ? `Noch ${freiePlaetze} von ${betaVereinLimit} Beta-Plätzen frei — danach Warteliste.`
@@ -248,20 +264,21 @@ export default async function Home() {
 
         {/* Die öffentlichen Vereinsseiten (vor dem Beta-Hinweis): Spielpläne, Ergebnisse
             und Mannschaften ohne Login — für Spieler, Eltern und Fans. */}
-        <section className="border-b bg-muted/30">
+        <section id="vereine" className="scroll-mt-4 border-b bg-muted/30">
           <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10">
             <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
               <div>
                 <h2 className="font-heading text-2xl font-semibold">Spielpläne &amp; Ergebnisse</h2>
                 <p className="text-sm text-muted-foreground">
-                  Euren Verein finden: Mannschaften, nächste Spiele und Ergebnisse, ohne Login.
+                  Euren Verein finden: Mannschaften, nächste Spiele, Ergebnisse und Live-Ticker, ohne Login — und als App aufs
+                  Handy installieren (im Browser „Teilen“ → „Zum Home-Bildschirm“).
                 </p>
               </div>
               <div className="flex gap-3 text-sm">
-                <Link href="/verein" className="font-medium underline-offset-4 hover:underline">
+                <Link href="/verein" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
                   Alle Vereine
                 </Link>
-                <Link href="/meine" className="font-medium underline-offset-4 hover:underline">
+                <Link href="/meine" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
                   Meine Mannschaften
                 </Link>
               </div>
@@ -297,7 +314,7 @@ export default async function Home() {
               </li>
             </ul>
             <div>
-              <Button render={<Link href="/registrieren" />} nativeButton={false}>
+              <Button className={GROSSER_BUTTON} render={<Link href="/registrieren" />} nativeButton={false}>
                 Verein registrieren
               </Button>
             </div>
