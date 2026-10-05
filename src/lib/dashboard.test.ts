@@ -372,13 +372,27 @@ describe("berechneUnbesetzteTermine", () => {
     expect(termine[0]).toMatchObject({ terminId: "t1", schiriOffen: true, zeitnehmerOffen: true });
   });
 
-  it("meldet keinen Termin, wenn Schiedsrichter und Zeitnehmer vollständig besetzt sind", () => {
+  it("meldet keinen Termin, wenn Schiedsrichter, Zeitnehmer und die definierten Helferdienste besetzt sind", () => {
     const termin = { id: "t1", start: new Date("2026-09-01T10:00:00Z"), typ: "testspiel", ort: null };
     const termine = berechneUnbesetzteTermine(verein, [termin], [
       { terminId: "t1", funktionstraegerTyp: "schiedsrichter" },
       { terminId: "t1", funktionstraegerTyp: "zeitnehmer" },
+      { terminId: "t1", funktionstraegerTyp: "ordner" },
+      { terminId: "t1", funktionstraegerTyp: "ordner" },
+      { terminId: "t1", funktionstraegerTyp: "kioskdienst" },
     ]);
     expect(termine).toHaveLength(0);
+  });
+
+  it("zählt einen definierten, aber unbesetzten Helferdienst (Ordner/Kiosk) als nicht vollständig", () => {
+    const termin = { id: "t1", start: new Date("2026-09-01T10:00:00Z"), typ: "testspiel", ort: null };
+    const termine = berechneUnbesetzteTermine(verein, [termin], [
+      { terminId: "t1", funktionstraegerTyp: "schiedsrichter" },
+      { terminId: "t1", funktionstraegerTyp: "zeitnehmer" },
+      { terminId: "t1", funktionstraegerTyp: "ordner" },
+    ]);
+    expect(termine).toHaveLength(1);
+    expect(termine[0]).toMatchObject({ schiriOffen: false, zeitnehmerOffen: false, helferdienstOffen: true });
   });
 
   it("ignoriert bei echten Ligaspielen (pflichtspiel = true) den fehlenden Schiedsrichter — der Verband stellt ihn", () => {

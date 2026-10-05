@@ -405,3 +405,10 @@ alles unter `/system/abgleich` (nur Systemadmin):
 über ALLE Spiele (Heim + Auswärts + Freundschaft) aus den öffentlichen Liga-Daten (`lib/spiel-statistik.ts`,
 `holeMannschaftsBilanzenAlleSpiele`); ohne Liga-Daten Rückfall auf die alte Heimspiel-Bilanz aus dem Hallenplan.
 Zwischenstände laufender Spiele (`istZwischenstand`) und Nichtantritte zählen nicht.
+
+## Besetzung "Vollständig" und definierte Dienste
+
+Ein Termin gilt im Admin-Kalender (Badge "Vollständig"/"Offen") und in "Unbesetzte Termine" (Dashboard) nur als vollständig, wenn
+Schiedsrichter (falls vom Verein zu stellen), Zeitnehmer/Sekretär UND alle vom Verein definierten Helferdienste (Ordner,
+Kioskdienst, Kassierer: Bedarf > 0 laut `bedarfFuer`, nicht für die Mannschaft abgeschaltet) ihren Bedarf erreichen.
+Dasselbe Maß wie die Liste "Offene Dienste" (`berechneOffenePosten`).
