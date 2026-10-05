@@ -412,3 +412,11 @@ Ein Termin gilt im Admin-Kalender (Badge "Vollständig"/"Offen") und in "Unbeset
 Schiedsrichter (falls vom Verein zu stellen), Zeitnehmer/Sekretär UND alle vom Verein definierten Helferdienste (Ordner,
 Kioskdienst, Kassierer: Bedarf > 0 laut `bedarfFuer`, nicht für die Mannschaft abgeschaltet) ihren Bedarf erreichen.
 Dasselbe Maß wie die Liste "Offene Dienste" (`berechneOffenePosten`).
+
+## Dark Mode (Hell/Dunkel/Automatisch)
+
+Klasse `dark` auf `<html>` (Variante `@custom-variant dark` in `globals.css`, `.dark`-Variablen dort). Ein Inline-Skript im Root-Layout setzt sie
+VOR dem ersten Zeichnen: gespeicherte Wahl (`localStorage` `hp-theme` = `light`|`dark`), sonst Geräte-Einstellung (`prefers-color-scheme`,
+reagiert live auf Änderungen). Umschalter "Automatisch / Hell / Dunkel" (`components/theme-umschalter.tsx`) in der globalen Fußzeile;
+Wahl liegt nur im Browser (kein Konto). Neue Farben immer über die Design-Tokens (`bg-background`, `text-muted-foreground` ...) oder mit
+`dark:`-Variante, nie feste Hellfarben. Fan-Seiten (`.fan`, Vereinsfarbe) haben eine eigene Dunkel-Variante `.dark .fan` (fan-rahmen.tsx).
