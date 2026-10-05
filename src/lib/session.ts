@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
 import { holeTreuhandKontext } from "@/lib/treuhand";
+import { markiereAktivitaet } from "@/lib/aktivitaet";
 
 // Erzwingt die Passwort-Änderung nach einem Einmal-Passwort (siehe
 // mussPasswortAendern in db/schema.ts), bevor irgendeine andere Seite
@@ -41,6 +42,8 @@ export async function requireSession() {
     redirect("/login");
   }
   erzwingePasswortAenderungFallsNoetig(session.user.mussPasswortAendern);
+  // Aktivität des Vereinsmitglieds festhalten — nicht die eines Systemadmins, der als Treuhänder/Support im Verein arbeitet.
+  if (!session.user.treuhand && !session.user.istSystemAdmin) markiereAktivitaet(session.user.id);
   return session;
 }
 
