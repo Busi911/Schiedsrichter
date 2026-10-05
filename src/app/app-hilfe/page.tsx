@@ -26,6 +26,7 @@ export default function AppHilfePage() {
             ["finden", "Verein und Mannschaft finden"],
             ["installieren", "App aufs Handy installieren"],
             ["favoriten", "Favoriten merken"],
+            ["statistik", "Statistik"],
             ["spiele", "Live, Ergebnis folgt, vorläufig"],
             ["daten", "Woher kommen die Daten?"],
             ["problem", "Etwas fehlt oder stimmt nicht"],
@@ -77,6 +78,19 @@ export default function AppHilfePage() {
           <Link href="/meine" className="underline">Meine Mannschaften</Link> seht ihr dann alle Favoriten mit ihren nächsten
           Spielen und Ergebnissen auf einen Blick. Die Favoriten liegen nur auf eurem Gerät, es gibt kein Konto und keine
           Anmeldung. Auf einem anderen Gerät müsst ihr sie neu setzen.
+        </p>
+      </section>
+
+      <section id="statistik" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Statistik</h2>
+        <p className="text-sm text-muted-foreground">
+          Im Reiter <strong>Statistik</strong> seht ihr je Mannschaft die Bilanz, Siegquote, Tore (gesamt und pro Spiel),
+          Heim und Auswärts, die Formkurve der letzten 5 Spiele, den <strong>Saisonverlauf</strong> (Punkte nach jedem Spiel),
+          höchsten Sieg, torreichstes Spiel und, soweit der Verband sie liefert, die Halbzeit-Auswertung. Unter{" "}
+          <strong>Duelle</strong> steht je Gegner Hin- und Rückspiel (ohne Ergebnis mit dem Datum des Spiels). Oben auf der
+          Seite Ergebnisse zeigt „Diese Woche in Zahlen“, wie viele Spiele des Vereins diese Woche anstehen und wie sie
+          bisher ausgegangen sind. Laufende Spiele zählen erst mit dem endgültigen Ergebnis, Nichtantritte gar nicht.
+          Eine Tabelle mit Platzverlauf gibt es nicht: Wir kennen nur die Spiele unseres Vereins, nicht die der ganzen Staffel.
         </p>
       </section>
 

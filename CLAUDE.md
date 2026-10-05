@@ -451,3 +451,6 @@ Mannschaft (`components/liga/statistik-karte.tsx`): Bilanz, Siegquote, Tore, Hei
 Pausenstand) Halbzeit-Auswertung. Rechnung rein in `lib/spiel-statistik.ts` (`berechneMannschaftsKennzahlen`); es zählen nur Spiele mit Ergebnis, nicht Zwischenstände
 (`istZwischenstand`) und Nichtantritte. Keine Personendaten. Filter und Favoriten wie bei den anderen Bereichen (`GefilterteListe`).
 Der Admin sieht dieselben Mannschaftskarten unter `/admin/statistik` ("Mannschaften im Detail", `holeMannschaftsKennzahlenAlleSpiele`).
+Erweiterung (Schritt 2): Karte je Mannschaft hat zusätzlich Saisonverlauf (Punkte 2/1/0 nach jedem Spiel, SVG-Kurve) und "Duelle" (je Gegner Hin-/Rückspiel über die
+Teamtable-ID, auch ausstehende); die Ergebnis-Seite zeigt oben "Diese Woche in Zahlen" (`berechneWoche`, Mo-So deutsche Zeit, jedes Spiel einmal). WICHTIG: `liga_spiel` enthält nur Spiele
+der EIGENEN Mannschaften (nuLiga: Team-Portrait, handball.net: Abfrage mit team_id) — ein Tabellenverlauf (Platz je Spieltag) braucht alle Spiele der Staffel und damit einen erweiterten Sync.

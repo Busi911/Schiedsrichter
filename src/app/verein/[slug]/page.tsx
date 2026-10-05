@@ -5,6 +5,9 @@ import { sammleVereinsSpiele } from "@/lib/liga-spiele-hilfen";
 import { BereichsKopf } from "@/components/liga/bereichs-kopf";
 import { GefilterteListe } from "@/components/liga/gefilterte-liste";
 import { InstallHinweis } from "@/components/liga/installieren";
+import { WochenKarte } from "@/components/liga/statistik-karte";
+import { berechneWoche } from "@/lib/spiel-statistik";
+import { tagKey } from "@/lib/kalender";
 import { formatTagKopf, SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
 import { ladeVereinsDaten } from "./laden";
 
@@ -26,7 +29,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ErgebnisseSeite({ params }: Props) {
   const { slug } = await params;
   const { verein, mannschaften, basis } = await ladeVereinsDaten(slug);
-  const { ergebnisse } = sammleVereinsSpiele(mannschaften, new Date());
+  const jetzt = new Date();
+  const { ergebnisse } = sammleVereinsSpiele(mannschaften, jetzt);
+  const woche = berechneWoche(mannschaften, jetzt, tagKey(jetzt));
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -44,6 +49,7 @@ export default async function ErgebnisseSeite({ params }: Props) {
       />
       <BereichsKopf titel="Letzte Ergebnisse" vereinId={verein.id} vereinName={verein.name} />
       <InstallHinweis appName={verein.name} appId={verein.slug} />
+      {woche && <WochenKarte w={woche} />}
       {mannschaften.length === 0 ? (
         <p className="rounded-xl bg-background p-6 text-sm text-muted-foreground ring-1 ring-foreground/[0.06]">
           Die Mannschaften werden gerade geladen. Bitte in Kürze erneut versuchen.

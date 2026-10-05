@@ -72,7 +72,14 @@ export type MannschaftsKennzahlen = {
   torreichstes: (SpielHighlight & { summe: number }) | null;
   // Nur Spiele mit bekanntem Halbzeitstand (nuLiga); null, wenn keines vorhanden.
   halbzeit: { spiele: number; fuehrungZurPause: number; siegNachFuehrung: number; gedreht: number } | null;
+  // Saisonverlauf: Punkte (Sieg 2, Unentschieden 1) und Tordifferenz summiert nach jedem gespielten Spiel (chronologisch).
+  verlauf: { punkte: number; diff: number }[];
+  // Duelle je Gegner (Hin-/Rückspiel), auch noch ausstehende; Ergebnis null = noch nicht gespielt/gewertet.
+  duelle: Duell[];
 };
+
+export type DuellSpiel = { datum: string; heim: boolean; eigen: number | null; gegner: number | null };
+export type Duell = { gegnerName: string; spiele: DuellSpiel[] };
 
 const rund1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -95,6 +102,8 @@ export function berechneMannschaftsKennzahlen(m: StatistikMannschaft, jetzt: Dat
     hoechsterSieg: null,
     torreichstes: null,
     halbzeit: null,
+    verlauf: [],
+    duelle: [],
   };
   const chronologisch = [...m.spiele].sort(
     (a, b) => a.datum.localeCompare(b.datum) || (a.uhrzeit ?? "").localeCompare(b.uhrzeit ?? "")
@@ -123,6 +132,11 @@ export function berechneMannschaftsKennzahlen(m: StatistikMannschaft, jetzt: Dat
       seite.niederlagen++;
     }
     k.form.push(ausgang);
+    const vorher = k.verlauf.at(-1) ?? { punkte: 0, diff: 0 };
+    k.verlauf.push({
+      punkte: vorher.punkte + (ausgang === "S" ? 2 : ausgang === "U" ? 1 : 0),
+      diff: vorher.diff + eigen - gegner,
+    });
     const gegnerName = heim ? s.gastName : s.heimName;
     const basis = { eigen, gegner, gegnerName, datum: s.datum, heim };
     if (ausgang === "S" && (!k.hoechsterSieg || eigen - gegner > k.hoechsterSieg.eigen - k.hoechsterSieg.gegner)) {
@@ -144,11 +158,81 @@ export function berechneMannschaftsKennzahlen(m: StatistikMannschaft, jetzt: Dat
     }
   }
   if (k.spiele === 0) return null;
+  k.duelle = berechneDuelle(chronologisch, m.teamtableId, jetzt);
   k.siegquote = Math.round((k.siege / k.spiele) * 100);
   k.schnittPlus = rund1(k.torePlus / k.spiele);
   k.schnittMinus = rund1(k.toreMinus / k.spiele);
   k.form = k.form.slice(-5);
   return k;
+}
+
+// Alle Spiele (auch künftige) je Gegner, chronologisch; abgesagte Spiele bleiben draußen. Gegner über die Teamtable-ID,
+// nie über den Namen (siehe CLAUDE.md Teamidentität).
+function berechneDuelle(chronologisch: SpielAnsicht[], eigeneId: string, jetzt: Date): Duell[] {
+  const nachGegner = new Map<string, Duell>();
+  for (const s of chronologisch) {
+    if (s.status === "abgesagt") continue;
+    const heim = s.heimTeamtableId === eigeneId;
+    if (!heim && s.gastTeamtableId !== eigeneId) continue;
+    const gegnerId = heim ? s.gastTeamtableId : s.heimTeamtableId;
+    if (!gegnerId) continue;
+    const hatErgebnis =
+      s.toreHeim !== null && s.toreGast !== null && s.status !== "nicht_angetreten" && !istZwischenstand(s, jetzt);
+    const duell = nachGegner.get(gegnerId) ?? { gegnerName: heim ? s.gastName : s.heimName, spiele: [] };
+    duell.spiele.push({
+      datum: s.datum,
+      heim,
+      eigen: hatErgebnis ? (heim ? s.toreHeim : s.toreGast) : null,
+      gegner: hatErgebnis ? (heim ? s.toreGast : s.toreHeim) : null,
+    });
+    nachGegner.set(gegnerId, duell);
+  }
+  return [...nachGegner.values()];
+}
+
+export type Woche = {
+  von: string;
+  bis: string;
+  spiele: number;
+  gespielt: number;
+  siege: number;
+  unentschieden: number;
+  niederlagen: number;
+  torePlus: number;
+  toreMinus: number;
+};
+
+// "Spieltag in Zahlen": die laufende Woche (Mo-So, deutsche Zeit) über alle eigenen Mannschaften. Jedes Spiel zählt einmal;
+// Duelle zweier eigener Mannschaften zählen als gespielt, aber ohne Sieg/Niederlage. null, wenn in der Woche kein Spiel ansteht.
+export function berechneWoche(mannschaften: StatistikMannschaft[], jetzt: Date, heute: string): Woche | null {
+  const tag = new Date(`${heute}T12:00:00Z`);
+  const abMontag = (tag.getUTCDay() + 6) % 7;
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const von = iso(new Date(tag.getTime() - abMontag * 86_400_000));
+  const bis = iso(new Date(tag.getTime() + (6 - abMontag) * 86_400_000));
+  const eigene = new Set(mannschaften.map((m) => m.teamtableId).filter((x): x is string => !!x));
+  const gesehen = new Set<string>();
+  const w: Woche = { von, bis, spiele: 0, gespielt: 0, siege: 0, unentschieden: 0, niederlagen: 0, torePlus: 0, toreMinus: 0 };
+  for (const m of mannschaften) {
+    for (const s of m.spiele) {
+      if (gesehen.has(s.id) || s.datum < von || s.datum > bis || s.status === "abgesagt") continue;
+      gesehen.add(s.id);
+      w.spiele++;
+      if (s.toreHeim === null || s.toreGast === null || s.status === "nicht_angetreten" || istZwischenstand(s, jetzt)) continue;
+      w.gespielt++;
+      const heimEigen = !!s.heimTeamtableId && eigene.has(s.heimTeamtableId);
+      const gastEigen = !!s.gastTeamtableId && eigene.has(s.gastTeamtableId);
+      if (heimEigen === gastEigen) continue; // intern oder unklar: nur als gespielt gezählt
+      const eigen = heimEigen ? s.toreHeim : s.toreGast;
+      const gegner = heimEigen ? s.toreGast : s.toreHeim;
+      w.torePlus += eigen;
+      w.toreMinus += gegner;
+      if (eigen > gegner) w.siege++;
+      else if (eigen === gegner) w.unentschieden++;
+      else w.niederlagen++;
+    }
+  }
+  return w.spiele > 0 ? w : null;
 }
 
 export function berechneVereinsKennzahlen(liste: MannschaftsKennzahlen[]) {
