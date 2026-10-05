@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/session";
 import { parseMonatParam } from "@/lib/kalender";
 import { holeAdminKalenderDaten } from "@/lib/admin-kalender";
 import { MonatsKalender } from "@/components/monats-kalender";
+import { HilfeHinweis } from "@/components/hilfe-hinweis";
 
 export default async function AdminKalenderPage({
   searchParams,
@@ -20,7 +21,10 @@ export default async function AdminKalenderPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
         <h1 className="font-heading text-2xl font-semibold">Kalender</h1>
+          <HilfeHinweis anker="kalender" />
+        </div>
         <p className="text-sm text-muted-foreground">
           Alle Termine des Vereins — Spiele aus dem ICS-Feed sowie Freundschaftsspiele/Turniere. Zum
           Anschauen der Details auf einen Termin klicken.

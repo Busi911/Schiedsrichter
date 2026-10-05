@@ -8,6 +8,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErfolgreichsteMannschaftenChart } from "@/components/erfolgreichste-mannschaften-chart";
 import { TopDienstmenschenChart } from "@/components/top-dienstmenschen-chart";
+import { HilfeHinweis } from "@/components/hilfe-hinweis";
 
 // Vormals als Abschnitt auf /admin/dienste ("Offene Dienste") — passte dort nicht hin: Spielbilanz und Dienst-
 // Einsätze sind Auswertungen, keine offenen Aufgaben. Die Bilanz zählt jetzt ALLE Spiele (Heim + Auswärts).
@@ -27,7 +28,10 @@ export default async function StatistikPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
         <h1 className="font-heading text-2xl font-semibold">Statistik</h1>
+          <HilfeHinweis anker="statistik" />
+        </div>
         <p className="text-sm text-muted-foreground">
           Alle Spiele mit Ergebnis (Heim und Auswärts) sowie absolvierte Dienste.
         </p>

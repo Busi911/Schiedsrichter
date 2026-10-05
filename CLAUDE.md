@@ -436,3 +436,10 @@ Termine, Einteilungen (±30 Tage) und eine Einrichtungs-Checkliste (Admin angele
 Termine, öffentliche Seite). Nur Kennzahlen/Zeitstempel (`lib/verein-gesundheit.ts`, Bewertung rein in `verein-gesundheit-bewertung.ts`). Die
 Aktivität schreibt `requireSession` über `markiereAktivitaet` (`lib/aktivitaet.ts`): eine bedingte Anweisung, höchstens alle 5 Minuten, nach der Antwort
 (`after`); Systemadmins im Treuhand-/Support-Kontext zählen nicht als Aktivität des Vereins. Migration 0078.
+
+## Hilfe: wo Nutzer sie finden
+
+Zwei Hilfeseiten: `/hilfe` (eingeloggt: Erste Schritte, Rollen, Kalender, Bedarf, Zuordnung, Mails, Statistik, Support; mit Inhaltsverzeichnis und Anker je Abschnitt)
+und `/app-hilfe` (öffentlich, für Spieler/Eltern/Fans: Verein finden, App installieren, Favoriten, Live/Ergebnis folgt/vorläufig; in `publicRoutes`, verlinkt in
+der Fußzeile für Besucher und auf der Startseite). Neue Funktion → Abschnitt mit Anker ergänzen UND dort, wo die Frage entsteht, ein
+`<HilfeHinweis anker="…" />` (`components/hilfe-hinweis.tsx`) auf die Seite setzen (bisher: Kalender, Funktionsträger, Offene Dienste, Statistik, Mannschaften).

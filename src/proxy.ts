@@ -10,6 +10,7 @@ const publicRoutes = [
   "/registrieren",
   "/verein",
   "/meine",
+  "/app-hilfe",
   "/sitemap.xml",
   "/robots.txt",
 ];

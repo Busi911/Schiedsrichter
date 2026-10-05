@@ -281,6 +281,9 @@ export default async function Home() {
                 <Link href="/meine" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
                   Meine Mannschaften
                 </Link>
+                <Link href="/app-hilfe" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
+                  Hilfe zur App
+                </Link>
               </div>
             </div>
             {vereineMitSeite.length === 0 ? (
