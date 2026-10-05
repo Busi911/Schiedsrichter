@@ -97,13 +97,26 @@ export const holeVerein = cache(async (slug: string) => {
 // wird erst von den Logo-/Icon-Routen geladen. Ohne Logo: beides null.
 export const holeVereinsDesign = cache(
   async (ligaVereinId: string): Promise<{ logoVersion: number | null; farbton: number | null }> => {
-    const zeile = await mitColdStartRetry(() =>
-      adminDb.query.ligaVereinLogos.findFirst({
-        where: eq(ligaVereinLogos.ligaVereinId, ligaVereinId),
-        columns: { aktualisiertAm: true, farbton: true },
-      })
+    const [zeile, eigen] = await mitColdStartRetry(() =>
+      Promise.all([
+        adminDb.query.ligaVereinLogos.findFirst({
+          where: eq(ligaVereinLogos.ligaVereinId, ligaVereinId),
+          columns: { aktualisiertAm: true, farbton: true },
+        }),
+        adminDb.query.ligaVereine.findFirst({
+          where: eq(ligaVereine.id, ligaVereinId),
+          columns: { farbtonEigen: true },
+        }),
+      ])
     );
-    return { logoVersion: zeile ? zeile.aktualisiertAm.getTime() : null, farbton: zeile?.farbton ?? null };
+    // Eigene Wahl des Vereins geht vor dem aus dem Logo ermittelten Farbton.
+    // Die Version dient als Cache-Buster von Logo-/Icon-URLs: auch eine geänderte eigene Farbe muss sie ändern,
+    // sonst zeigt die Web-App weiter das alte Icon.
+    const version =
+      zeile || eigen?.farbtonEigen != null
+        ? (zeile ? zeile.aktualisiertAm.getTime() : 0) + (eigen?.farbtonEigen ?? 0) + 1
+        : null;
+    return { logoVersion: version, farbton: eigen?.farbtonEigen ?? zeile?.farbton ?? null };
   }
 );
 

@@ -11,6 +11,8 @@ import {
   mannschaftsnamenSpeichern,
   supportZugriffSetzen,
   logoHochladen,
+  vereinsfarbeSpeichern,
+  vereinsfarbeZuruecksetzen,
   oeffentlicheSeiteEntfernen,
   oeffentlicheSeiteSpeichern,
   zusatzquelleEntfernen,
@@ -30,6 +32,8 @@ import { EinstellungsBereich, Unterbereich } from "@/components/einstellungs-ber
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { VereinLoeschenDialog } from "@/components/verein-loeschen-dialog";
 import { LigaAutoWeiter } from "@/components/liga-auto-weiter";
+import { farbtonZuHex } from "@/lib/liga-farbe";
+import { vereinsFarbton } from "@/lib/liga-pwa";
 
 // Der erste Sync der öffentlichen Vereinsseite fragt nuLiga bewusst langsam
 // ab (siehe lib/nuliga/client.ts) und braucht dafür mehr als das Standard-
@@ -85,9 +89,13 @@ export default async function EinstellungenPage({
   const logo = ligaVerein
     ? await adminDb.query.ligaVereinLogos.findFirst({
         where: eq(ligaVereinLogos.ligaVereinId, ligaVerein.id),
-        columns: { aktualisiertAm: true },
+        columns: { aktualisiertAm: true, farbton: true },
       })
     : null;
+  // Wirksame Vereinsfarbe: eigene Wahl vor Logo-Farbe vor der aus dem Slug abgeleiteten Standardfarbe.
+  const wirksamerFarbton = ligaVerein
+    ? (ligaVerein.farbtonEigen ?? logo?.farbton ?? vereinsFarbton(ligaVerein.slug))
+    : 0;
 
   const zusatzquellen = ligaVerein
     ? await adminDb.query.ligaVereinZusatzquellen.findMany({
@@ -557,6 +565,41 @@ export default async function EinstellungenPage({
                       >
                         Logo entfernen
                       </ConfirmSubmitButton>
+                    </form>
+                  )}
+                </>
+              )}
+            </Unterbereich>
+          )}
+          {ligaVerein && (
+            <Unterbereich
+              titel="Farbe"
+              kurz={ligaVerein.farbtonEigen !== null ? "Eigene Farbe" : logo?.farbton != null ? "Aus dem Logo" : "Standard"}
+            >
+              <p className="text-xs text-muted-foreground">
+                Die Farbe eurer öffentlichen Seite und der Web-App (Kopfband, Buttons, Icon). Standard ist die Hauptfarbe des
+                Logos; hier könnt ihr sie selbst festlegen. Gespeichert wird der Farbton, Helligkeit und Lesbarkeit regelt die
+                Seite selbst (auch im Dunkelmodus).
+              </p>
+              {session.user.istAdmin && (
+                <>
+                  <form action={vereinsfarbeSpeichern} className="flex flex-wrap items-center gap-3">
+                    <input
+                      type="color"
+                      name="farbe"
+                      defaultValue={farbtonZuHex(wirksamerFarbton)}
+                      aria-label="Vereinsfarbe"
+                      className="h-10 w-16 cursor-pointer rounded-md border bg-background p-1"
+                    />
+                    <SubmitButton size="sm" pendingText="Speichert…">
+                      Farbe speichern
+                    </SubmitButton>
+                  </form>
+                  {ligaVerein.farbtonEigen !== null && (
+                    <form action={vereinsfarbeZuruecksetzen}>
+                      <SubmitButton variant="outline" size="sm" pendingText="Setzt zurück…">
+                        Zurück zur Farbe aus dem Logo
+                      </SubmitButton>
                     </form>
                   )}
                 </>
