@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { ZurueckButton } from "@/components/zurueck-button";
 
 export const metadata = {
-  title: "Hilfe: Öffentliche Vereinsseite, Hallen-ID & Team-ID – HandballerPate",
+  title: "Hilfe: App einrichten, Vereinsseite, Dienste – HandballerPate",
 };
 
 // Nur im eingeloggten Zustand erreichbar (siehe publicRoutes in
@@ -24,9 +24,55 @@ export default async function HilfePage() {
         <ZurueckButton fallbackHref="/profil" />
       </div>
 
-      <h1 className="font-heading text-2xl font-semibold">
-        Hilfe: Öffentliche Vereinsseite, Hallen-ID &amp; Team-ID
-      </h1>
+      <h1 className="font-heading text-2xl font-semibold">Hilfe</h1>
+
+      <section id="erste-schritte" className="flex flex-col gap-3 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Erste Schritte: HandballerPate einrichten</h2>
+        <p className="text-sm text-muted-foreground">
+          In dieser Reihenfolge ist euer Verein in wenigen Minuten startklar. Der Systemadmin sieht ebenfalls, welche Punkte
+          noch fehlen.
+        </p>
+        <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-muted-foreground">
+          <li>
+            <strong>Anmelden und AVV bestätigen:</strong> Der Vereinsadmin meldet sich per E-Mail-Link oder Passwort an und
+            bestätigt beim ersten Login den Auftragsverarbeitungsvertrag (<strong>/admin/avv</strong>).
+          </li>
+          <li>
+            <strong>Mannschaften anlegen:</strong> unter <strong>Verwaltung → Mannschaften</strong> (bei Anbindung der
+            Liga-Daten, siehe Schritt 5, erkennt HandballerPate die Mannschaften größtenteils selbst).
+          </li>
+          <li>
+            <strong>Funktionsträger anlegen:</strong> unter <strong>Verwaltung → Funktionsträger</strong> einzeln oder per
+            Excel-Import: Schiedsrichter, Zeitnehmer, Sekretär, Ordner, Kioskdienst, Kassierer, Trainer. Wer sich selbst
+            einloggen soll, braucht eine E-Mail-Adresse. Wer mehrere Aufgaben hat, bekommt mehrere Rollen.
+          </li>
+          <li>
+            <strong>Dienste-Bedarf festlegen:</strong> unter <strong>Einstellungen → Dienste-Bedarf pro Termin</strong>, wie
+            viele Ordner, Kioskdienste, Kassierer und Zeitnehmer/Sekretär je Veranstaltung gebraucht werden (siehe unten). Ein
+            Spiel gilt nur als <strong>vollständig besetzt</strong>, wenn auch diese Dienste ihren Bedarf erreichen.
+          </li>
+          <li>
+            <strong>Spielplan anbinden:</strong> unter <strong>Einstellungen → Öffentliche Vereinsseite</strong> die
+            nuLiga- und/oder handball.net-Vereins-ID eintragen (siehe unten). Danach kommen Termine, Verlegungen, Ergebnisse
+            und Ansetzungen automatisch, tagsüber stündlich.
+          </li>
+          <li>
+            <strong>Aufgaben verteilen:</strong> die Warte (Schiedsrichter-, Zeitnehmer-, Ordnerwart) ordnen auf ihrer
+            Profil-Seite zu, oder ihr aktiviert die login-freie Selbsteintragung (siehe unten). Im <strong>Kalender</strong>{" "}
+            seht ihr, welche Spiele vollständig besetzt sind. Tage mit offener Besetzung sind am Handy mit einem
+            Warnsymbol markiert.
+          </li>
+          <li>
+            <strong>Vereinsseite und App teilen:</strong> Logo und Farbe festlegen, dann den Link zu eurer Seite an Spieler,
+            Eltern und Fans geben. Sie können die Seite als App installieren.
+          </li>
+        </ol>
+        <p className="text-sm text-muted-foreground">
+          <strong>Darstellung:</strong> Unten auf jeder Seite stellt ihr „Automatisch“ (folgt dem Handy), „Hell“ oder „Dunkel“
+          ein. Die Statistik (Bilanz aller Spiele, Top-Dienstleistende) findet ihr unter{" "}
+          <strong>Verwaltung → Statistik</strong>, offene Aufgaben unter <strong>Offene Dienste</strong>.
+        </p>
+      </section>
 
       <section id="oeffentliche-seite" className="flex flex-col gap-3 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">
@@ -91,7 +137,20 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Das Logo (PNG, JPEG oder WebP, höchstens 5 MB, am besten quadratisch)
           erscheint im Kopf der Seite und als Icon der App. Die Farbe der Seite
-          wird aus dem Logo abgeleitet, ohne Logo gibt es eine Standardfarbe.
+          wird standardmäßig aus dem Logo abgeleitet, ohne Logo gibt es eine
+          Standardfarbe. Unter <strong>Einstellungen → Öffentliche Vereinsseite → Farbe</strong>{" "}
+          könnt ihr sie selbst wählen (Farbwähler) oder mit „Zurück zur Farbe aus dem Logo“
+          wieder zurücksetzen. Helligkeit und Lesbarkeit regelt die Seite selbst.
+        </p>
+
+        <h3 className="text-sm font-medium">Live-Ticker, Spielbericht und Zwischenstände</h3>
+        <p className="text-sm text-muted-foreground">
+          Auf den Spielkarten gibt es bei nuLiga-Spielen einen Link zum <strong>Live-Ticker</strong> (rund um das Spiel) und
+          zum <strong>Spielbericht</strong> (sobald ein Ergebnis angezeigt wird). Beides erscheint erst, wenn nuLiga den
+          Spielbericht angelegt hat. Während ein Spiel läuft, zeigt die Karte „Live“ und „Läuft gerade“ statt einer Zahl,
+          danach „Ergebnis folgt“: Zwischenstände zeigen wir bewusst nicht als Ergebnis. Das Endergebnis erscheint, sobald
+          nuLiga den Spielbericht genehmigt hat (bis dahin mit „vorläufig“). Die Daten werden stündlich aktualisiert, den
+          aktuellen Spielstand liefert der Live-Ticker.
         </p>
 
         <h3 className="text-sm font-medium">Eine Mannschaft fehlt oder ist leer?</h3>
@@ -228,7 +287,12 @@ export default async function HilfePage() {
           Veranstaltungsart, ein Turnier braucht in der Regel mehr Helfer als
           ein normales Rundenspiel. Zeitnehmer und Sekretär haben dabei immer
           genau einen Platz pro Termin, Ordner/Kioskdienst/Kassierer können je
-          nach eingetragenem Bedarf auch mehrfach besetzt werden.
+          nach eingetragenem Bedarf auch mehrfach besetzt werden. Ein Spiel
+          zählt im Kalender und im Dashboard erst als <strong>vollständig
+          besetzt</strong>, wenn Zeitnehmer/Sekretär <em>und</em> alle so
+          festgelegten Helferdienste (Ordner, Kioskdienst, Kassierer) ihren
+          Bedarf erreichen; ein Bedarf von 0 oder eine abgeschaltete Mannschaft
+          zählt nicht.
         </p>
         <p className="text-sm text-muted-foreground">
           Braucht eine einzelne Mannschaft grundsätzlich keinen eigenen
