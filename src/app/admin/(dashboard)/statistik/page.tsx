@@ -3,10 +3,12 @@ import {
   berechneGesamtbilanz,
   holeAnzahlAktiverDienstleistender,
   holeMannschaftsBilanzenAlleSpiele,
+  holeMannschaftsKennzahlenAlleSpiele,
   holeTopDienstmenschen,
 } from "@/lib/dienste-statistik";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErfolgreichsteMannschaftenChart } from "@/components/erfolgreichste-mannschaften-chart";
+import { StatistikKarte } from "@/components/liga/statistik-karte";
 import { TopDienstmenschenChart } from "@/components/top-dienstmenschen-chart";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
 
@@ -16,8 +18,9 @@ export default async function StatistikPage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
 
-  const [mannschaftsBilanzen, topDienstmenschen, anzahlAktive] = await Promise.all([
+  const [mannschaftsBilanzen, mannschaftsDetails, topDienstmenschen, anzahlAktive] = await Promise.all([
     holeMannschaftsBilanzenAlleSpiele(vereinId),
+    holeMannschaftsKennzahlenAlleSpiele(vereinId),
     holeTopDienstmenschen(vereinId, 8),
     holeAnzahlAktiverDienstleistender(vereinId),
   ]);
@@ -92,6 +95,23 @@ export default async function StatistikPage() {
           </CardContent>
         </Card>
       </div>
+
+      {mannschaftsDetails.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div>
+            <h2 className="font-heading text-lg font-semibold">Mannschaften im Detail</h2>
+            <p className="text-sm text-muted-foreground">
+              Dieselben Kennzahlen wie im Statistik-Reiter der öffentlichen App: Form, Tore, Heim/Auswärts, höchster Sieg,
+              Halbzeit.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {mannschaftsDetails.map((m) => (
+              <StatistikKarte key={m.id} name={m.name} href={m.href} k={m.k} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

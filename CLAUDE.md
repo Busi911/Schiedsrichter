@@ -450,3 +450,4 @@ Vierter Bereich `/verein/[slug]/statistik` (Reiter "Statistik" in `components/li
 Mannschaft (`components/liga/statistik-karte.tsx`): Bilanz, Siegquote, Tore, Heim/Auswärts, Tore pro Spiel, Form, höchster Sieg, torreichstes Spiel und (nur nuLiga, ab 3 Spielen mit
 Pausenstand) Halbzeit-Auswertung. Rechnung rein in `lib/spiel-statistik.ts` (`berechneMannschaftsKennzahlen`); es zählen nur Spiele mit Ergebnis, nicht Zwischenstände
 (`istZwischenstand`) und Nichtantritte. Keine Personendaten. Filter und Favoriten wie bei den anderen Bereichen (`GefilterteListe`).
+Der Admin sieht dieselben Mannschaftskarten unter `/admin/statistik` ("Mannschaften im Detail", `holeMannschaftsKennzahlenAlleSpiele`).

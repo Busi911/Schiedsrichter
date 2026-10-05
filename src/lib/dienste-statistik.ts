@@ -13,7 +13,7 @@ import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
 import { ligaVereine, mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
 import { holeMannschaften } from "@/lib/liga-oeffentlich";
-import { berechneBilanzAusLigaSpielen } from "@/lib/spiel-statistik";
+import { berechneBilanzAusLigaSpielen, berechneMannschaftsKennzahlen, type MannschaftsKennzahlen } from "@/lib/spiel-statistik";
 import { normalisiereMannschaftsname } from "@/lib/rundenspiel-import";
 
 // Statistik-Sektion auf /admin/dienste — "wie ausgelastet sind wir" (Top
@@ -133,6 +133,26 @@ export async function holeMannschaftsBilanzenAlleSpiele(
     if (bilanzen.length > 0) return bilanzen;
   }
   return holeMannschaftsBilanzen(vereinId);
+}
+
+// Detail-Kennzahlen je Mannschaft (dieselben wie im Statistik-Reiter der öffentlichen App) für den Admin-Bereich.
+// Leer, wenn der Verein keine Liga-Daten hat. href = öffentliche Mannschaftsseite.
+export async function holeMannschaftsKennzahlenAlleSpiele(
+  vereinId: string
+): Promise<{ id: string; name: string; href: string; k: MannschaftsKennzahlen }[]> {
+  const ligaVerein = await adminDb.query.ligaVereine.findFirst({
+    where: eq(ligaVereine.vereinId, vereinId),
+    columns: { id: true, slug: true },
+  });
+  if (!ligaVerein) return [];
+  const ansichten = await holeMannschaften(ligaVerein.id);
+  const jetzt = new Date();
+  const liste: { id: string; name: string; href: string; k: MannschaftsKennzahlen }[] = [];
+  for (const m of ansichten) {
+    const k = berechneMannschaftsKennzahlen(m, jetzt);
+    if (k) liste.push({ id: m.id, name: m.name, href: `/verein/${ligaVerein.slug}/${m.slug}`, k });
+  }
+  return liste.sort((a, b) => b.k.siege - b.k.niederlagen - (a.k.siege - a.k.niederlagen) || b.k.spiele - a.k.spiele);
 }
 
 export async function holeMannschaftsBilanzen(
