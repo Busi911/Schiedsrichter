@@ -36,9 +36,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // Passt Browser-UI (z.B. Statusleiste bei installierter PWA) an den
-  // Dark-Mode an, der ausschließlich der System-Einstellung folgt (siehe
-  // globals.css) — kein manueller Umschalter in der App.
+  // Passt Browser-UI (z.B. Statusleiste bei installierter PWA) an die Geräte-Einstellung an. Wählt jemand manuell
+  // Hell/Dunkel gegen die Geräte-Einstellung, bleibt diese Leiste bei der Geräte-Farbe (nur Browser-Chrome).
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f4f4f5" },
     { media: "(prefers-color-scheme: dark)", color: "#1c1c1e" },
@@ -49,8 +48,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="de"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} h-full antialiased`}
     >
+      <head>
+        {/* Vor dem ersten Zeichnen: gespeicherte Wahl (hp-theme = light|dark) oder Geräte-Einstellung. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=matchMedia('(prefers-color-scheme: dark)');var a=function(){var t=localStorage.getItem('hp-theme');document.documentElement.classList.toggle('dark',t==='dark'||(t!=='light'&&m.matches))};a();m.addEventListener('change',a)}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col overflow-x-hidden bg-muted/40">
         <ServiceWorkerRegistrar />
         <div className="flex flex-1 flex-col">{children}</div>

@@ -2,11 +2,11 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Dark Mode folgt automatisch der System-Einstellung (prefers-color-scheme)
-   — kein manueller Umschalter. shadcn generiert standardmäßig eine
-   Klassen-basierte @custom-variant-Überschreibung (&:is(.dark *)) für einen
-   Toggle-Button, den es hier nicht gibt; ohne Override greift Tailwinds
-   Standard-dark:-Variante, die bereits auf prefers-color-scheme reagiert. */
+/* Dark Mode: Klasse "dark" auf <html>. Sie setzt ein Inline-Skript im Root-Layout vor dem ersten Zeichnen (Standard:
+   folgt der Geräte-Einstellung prefers-color-scheme; manuell Hell/Dunkel über den Umschalter in der Fußzeile,
+   gespeichert in localStorage). Die dark:-Variante von Tailwind hängt deshalb an dieser Klasse statt direkt an
+   prefers-color-scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -53,6 +53,7 @@
 }
 
 :root {
+  color-scheme: light;
   /* Bewusst nicht mehr rein grau/achromatisch (oklch(... 0 0)) wie im
      shadcn-Default: ein dezenter warmer Unterton (Hue ~75) auf Hintergrund/
      Border/Muted + eine echte Akzentfarbe (Indigo-Blau, Hue ~265) für
@@ -92,6 +93,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.16 0.006 60);
   --foreground: oklch(0.96 0.004 75);
   --card: oklch(0.21 0.006 60);
