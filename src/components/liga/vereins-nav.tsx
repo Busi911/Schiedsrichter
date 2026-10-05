@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDaysIcon, CircleCheckIcon, UsersIcon } from "lucide-react";
+import { BarChart3Icon, CalendarDaysIcon, CircleCheckIcon, UsersIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LinkSymbol } from "@/components/link-spinner";
 
@@ -10,10 +10,11 @@ const BEREICHE = [
   { pfad: "", label: "Ergebnisse", kurz: "Ergebnisse", Icon: CircleCheckIcon },
   { pfad: "/spiele", label: "Nächste Spiele", kurz: "Spiele", Icon: CalendarDaysIcon },
   { pfad: "/mannschaften", label: "Mannschaften", kurz: "Teams", Icon: UsersIcon },
+  { pfad: "/statistik", label: "Statistik", kurz: "Statistik", Icon: BarChart3Icon },
 ] as const;
 
-// Die drei Bereiche der Vereinsseite: auf dem Handy als feste Bottom-Bar,
-// ab md als Tabs unter dem Kopf. Nur auf den drei Bereichsseiten sichtbar —
+// Die vier Bereiche der Vereinsseite: auf dem Handy als feste Bottom-Bar,
+// ab md als Tabs unter dem Kopf. Nur auf den vier Bereichsseiten sichtbar —
 // auf Mannschaftsseiten gelten deren eigene Tabs (Übersicht, Spielplan, …).
 export function VereinsNav({ basis }: { basis: string }) {
   const pfad = usePathname();
@@ -50,7 +51,7 @@ export function VereinsNav({ basis }: { basis: string }) {
         aria-label="Bereiche des Vereins"
         className="fixed inset-x-0 bottom-0 z-40 border-t bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:hidden"
       >
-        <ul className="mx-auto grid max-w-3xl grid-cols-3 gap-1 px-2 pt-2 pb-2">
+        <ul className="mx-auto grid max-w-3xl grid-cols-4 gap-1 px-2 pt-2 pb-2">
           {BEREICHE.map((b) => {
             const aktiv = b === aktuell;
             return (
@@ -65,7 +66,7 @@ export function VereinsNav({ basis }: { basis: string }) {
                 >
                   <span
                     className={cn(
-                      "flex h-9 w-16 items-center justify-center rounded-full transition",
+                      "flex h-9 w-14 items-center justify-center rounded-full transition",
                       aktiv && "bg-primary text-primary-foreground shadow-sm"
                     )}
                   >

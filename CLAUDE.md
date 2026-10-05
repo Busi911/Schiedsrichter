@@ -443,3 +443,11 @@ Zwei Hilfeseiten: `/hilfe` (eingeloggt: Erste Schritte, Rollen, Kalender, Bedarf
 und `/app-hilfe` (öffentlich, für Spieler/Eltern/Fans: Verein finden, App installieren, Favoriten, Live/Ergebnis folgt/vorläufig; in `publicRoutes`, verlinkt in
 der Fußzeile für Besucher und auf der Startseite). Neue Funktion → Abschnitt mit Anker ergänzen UND dort, wo die Frage entsteht, ein
 `<HilfeHinweis anker="…" />` (`components/hilfe-hinweis.tsx`) auf die Seite setzen (bisher: Kalender, Funktionsträger, Offene Dienste, Statistik, Mannschaften).
+
+## Statistik-Reiter der öffentlichen App
+
+Vierter Bereich `/verein/[slug]/statistik` (Reiter "Statistik" in `components/liga/vereins-nav.tsx`, 4 Spalten in der Bottom-Bar): Vereins-Kennzahlen und eine Karte je
+Mannschaft (`components/liga/statistik-karte.tsx`): Bilanz, Siegquote, Tore, Heim/Auswärts, Tore pro Spiel, Form, höchster Sieg, torreichstes Spiel und (nur nuLiga, ab 3 Spielen mit
+Pausenstand) Halbzeit-Auswertung. Rechnung rein in `lib/spiel-statistik.ts` (`berechneMannschaftsKennzahlen`); es zählen nur Spiele mit Ergebnis, nicht Zwischenstände
+(`istZwischenstand`) und Nichtantritte. Keine Personendaten. Filter und Favoriten wie bei den anderen Bereichen (`GefilterteListe`).
+Der Admin sieht dieselben Mannschaftskarten unter `/admin/statistik` ("Mannschaften im Detail", `holeMannschaftsKennzahlenAlleSpiele`).
