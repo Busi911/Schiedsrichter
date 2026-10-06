@@ -1175,6 +1175,8 @@ export const ligaVereinLogos = pgTable("liga_verein_logo", {
   // Herkunft: "upload" (vom Verein hochgeladen, wird nie automatisch überschrieben) oder "nuliga" (automatisch
   // übernommen). quell_pfad = zuletzt gefundener Bildpfad auf nuLiga (der wodata-Wert ist NICHT stabil), quell_hash =
   // SHA-256 der heruntergeladenen Originaldatei (erkennt Änderungen ohne erneutes Verarbeiten).
+  // MIME-Typ der gespeicherten Bytes: Uploads sind normalisierte PNGs, das nuLiga-Logo bleibt das unveränderte Original.
+  mime: text("mime").notNull().default("image/png"),
   quelle: text("quelle").notNull().default("upload"),
   quellPfad: text("quell_pfad"),
   quellHash: text("quell_hash"),

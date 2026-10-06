@@ -6,7 +6,7 @@ import type { ParseErgebnis, VereinsInfo } from "../types";
 // (Telefon, E-Mail, Anschrift, Ansprechpartner, ...) wird nie angefasst.
 export function parseVereinsInfo(html: string): ParseErgebnis<VereinsInfo> {
   const warnungen: string[] = [];
-  const info: VereinsInfo = { name: null, nummer: null, gruendung: null, website: null, stammvereine: [], hallen: [], logoPfad: null, logoSicher: false };
+  const info: VereinsInfo = { name: null, nummer: null, gruendung: null, website: null, stammvereine: [], hallen: [], hallenNummern: {}, logoPfad: null, logoSicher: false };
 
   const h1 = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
   if (h1) info.name = textVon(h1[1]) || null;
@@ -30,11 +30,16 @@ export function parseVereinsInfo(html: string): ParseErgebnis<VereinsInfo> {
         if (/^https?:\/\/[^\s]+$/i.test(url)) info.website = url;
       } else if (/^stammverein/.test(label)) {
         info.stammvereine = nameninListe(wert.html);
-      } else if (/^(hallen|spielst(ä|ae)tten|sporthallen)/.test(label)) {
-        info.hallen = nameninListe(wert.html);
       }
     }
   }
+
+  // Hallen: kein Tabellenfeld, sondern ein eigener Abschnitt (Überschrift "Hallen" + Liste von Links).
+  const hallen = findeHallen(html);
+  info.hallen = hallen.eintraege.map((h) => h.name);
+  for (const h of hallen.eintraege) if (h.nummer) info.hallenNummern[h.name] = h.nummer;
+  if (!hallen.gefunden) warnungen.push('Kein Abschnitt "Hallen" gefunden (HTML-Struktur geändert?)');
+  else if (hallen.eintraege.length === 0) warnungen.push('Abschnitt "Hallen" ohne erkennbare Einträge');
 
   const logo = findeLogo(html, info.name);
   info.logoPfad = logo?.pfad ?? null;
@@ -72,4 +77,55 @@ function findeLogo(html: string, name: string | null): { pfad: string; sicher: b
   const passend = n ? kandidaten.find((k) => norm(k.alt) === n || (norm(k.alt) && n.includes(norm(k.alt))) || norm(k.alt).includes(n)) : undefined;
   if (passend) return { pfad: passend.pfad, sicher: true };
   return kandidaten.length === 1 ? { pfad: kandidaten[0].pfad, sicher: false } : null;
+}
+
+// Nur eine ABSCHLIESSENDE reine Zahl in Klammern ist die Hallennummer ("Stadthalle Linden (14151)"); andere
+// Klammern bleiben ("Sporthalle (Nord)", "Halle (alt) (12)" -> "Halle (alt)").
+export function bereinigeHallenname(wert: string): { name: string; nummer: string | null } {
+  const text = wert.replace(/[\s\u00a0]+/g, " ").trim();
+  const m = text.match(/\s*\((\d+)\)\s*$/);
+  return m ? { name: text.slice(0, m.index).trim(), nummer: m[1] } : { name: text, nummer: null };
+}
+
+const HALLEN_LABEL = /(?:^|>)\s*(?:hallen|spielst(?:ä|ae|&auml;)tten|sporthallen)\s*:?\s*(?=<)/gi;
+
+// Abschnitt "Hallen" in beliebigem Markup: ein Element, dessen GANZER Text "Hallen" ist (Überschrift, fett, Zelle,
+// dt ...), danach die Links bis zur nächsten Überschrift (höchstens 3000 Zeichen). Tragen Links eine Hallennummer
+// in Klammern ("... (14151)"), zählen nur diese (sonst z.B. Mannschafts- oder Kontaktlinks im Umfeld); fehlt sie, gelten
+// alle Links bzw. bei reinem Text die Zeilen (<br>/<li>) des Abschnitts. Vereins-/Mail-/Telefonlinks zählen nie.
+export function findeHallen(html: string): { gefunden: boolean; rohtexte: string[]; eintraege: { name: string; nummer: string | null }[] } {
+  let gefunden = false;
+  for (const treffer of html.matchAll(HALLEN_LABEL)) {
+    gefunden = true;
+    const start = (treffer.index ?? 0) + treffer[0].length;
+    let abschnitt = html.slice(start, start + 3000);
+    // Das Label-Element selbst schließen, dann bis zur nächsten Überschrift lesen.
+    const ende = abschnitt.search(/<h[1-6]\b/i);
+    if (ende >= 0) abschnitt = abschnitt.slice(0, ende);
+    // Steht das Label in einer Tabellenzeile, endet der Abschnitt mit dieser Zeile.
+    const davor = html.slice(0, treffer.index ?? 0);
+    if (davor.lastIndexOf("<tr") > davor.lastIndexOf("</tr>")) {
+      const zeilenEnde = abschnitt.search(/<\/tr>/i);
+      if (zeilenEnde >= 0) abschnitt = abschnitt.slice(0, zeilenEnde);
+    }
+
+    const anker = [...abschnitt.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)]
+      .map((m) => ({ href: attribut(`<a ${m[1]}>`, "href") ?? "", text: textVon(m[2]) }))
+      .filter((a) => a.text && !/^(mailto|tel):|clubInfoDisplay|clubTeams|clubSearch/i.test(a.href));
+    let rohtexte = anker.filter((a) => /\(\d+\)\s*$/.test(a.text)).map((a) => a.text);
+    if (rohtexte.length === 0) rohtexte = anker.map((a) => a.text);
+    if (rohtexte.length === 0) {
+      rohtexte = abschnitt
+        .split(/<br\s*\/?>|<\/li>|<\/p>|\n/i)
+        .map((t) => textVon(t))
+        .filter((t) => /\(\d+\)\s*$/.test(t));
+    }
+    const eintraege: { name: string; nummer: string | null }[] = [];
+    for (const roh of rohtexte) {
+      const h = bereinigeHallenname(roh);
+      if (h.name && !eintraege.some((e) => e.name === h.name)) eintraege.push(h);
+    }
+    if (eintraege.length > 0) return { gefunden: true, rohtexte, eintraege };
+  }
+  return { gefunden, rohtexte: [], eintraege: [] };
 }

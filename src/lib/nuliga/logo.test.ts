@@ -49,7 +49,10 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Logo (Postgres)", () => {
     const l = (await logo())!;
     expect(l.quelle).toBe("nuliga");
     expect(l.quellHash).toHaveLength(64);
-    expect((await sharp(l.png).metadata()).width).toBe(512);
+    // Original unverändert: gleiche Bytes, gleiche Proportion (kein 512er-Quadrat), MIME aus den Magic Bytes
+    expect(Buffer.compare(l.png, aktuell)).toBe(0);
+    expect(l.mime).toBe("image/png");
+    expect(await sharp(l.png).metadata()).toMatchObject({ width: 64, height: 40 });
     expect((await verein())!.logoGeprueftAm).not.toBeNull();
   });
 

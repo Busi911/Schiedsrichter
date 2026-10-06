@@ -473,9 +473,13 @@ Unregistrierte Vereine haben keine öffentliche Seite/Favoriten (die liga_*-Tabe
 `findeLogo`: Bild über die nuLiga-Bilderauslieferung, bevorzugt alt-Text = Vereinsname = `logoSicher`; ein einziger unklarer Kandidat wird nur als "bitte prüfen"
 vorgeschlagen, mehrere unklare (Werbebanner) werden nie geraten). `wodata` ist NICHT stabil und wird nie als ID benutzt. Download nur über
 `holeNuligaBild` (`client.ts`): nur https auf den Hosts aus `VERBAENDE`, nur `/wr?wodata=` (`istErlaubteNuligaBildUrl`, SSRF), Weiterleitungen nur auf ebenfalls freigegebene URLs,
-Content-Type MUSS png/jpeg/gif/webp sein (nie die Endung), höchstens 2 MB. Ablage wie beim Upload: normalisiertes 512er-PNG in `liga_verein_logo` (Postgres bytea, KEIN Blob-Dienst),
-ausgeliefert über `/verein/[slug]/logo` (nie Hotlink). Migration 0080: `liga_verein_logo.quelle` ("upload" | "nuliga"), `quell_pfad`, `quell_hash` (SHA-256 der Originaldatei),
+Content-Type nur als Hinweis (nuLiga darf `application/octet-stream` liefern), entscheidend sind die Magic Bytes (`lib/bildtyp.ts`: png/jpeg/gif/webp, nie die Endung), höchstens 2 MB. Das Logo wird UNVERÄNDERT gespeichert (kein Zuschneiden/Quadrat/Neukodieren;
+nur geprüft: `pruefeOriginalLogo`) in `liga_verein_logo` (Postgres bytea, KEIN Blob-Dienst; Spalte `mime`, Migration 0082; Uploads bleiben normalisierte PNGs), ausgeliefert über `/verein/[slug]/logo` mit gespeichertem MIME-Typ (nie Hotlink), Anzeige überall `object-contain`. Migration 0080: `liga_verein_logo.quelle` ("upload" | "nuliga"), `quell_pfad`, `quell_hash` (SHA-256 der Originaldatei),
 `abgerufen_am`; `liga_verein.logo_geprueft_am`, `logo_auto_aus`. Regeln: ein hochgeladenes Logo (`quelle = upload`) wird nie überschrieben; entfernt der Verein sein Logo, wird `logo_auto_aus`
 gesetzt (nicht neu holen; ein Upload hebt es auf); gleicher Hash = kein Neuverarbeiten und kein neuer Cache-Buster (`aktualisiert_am` bleibt); jede Prüfung setzt `logo_geprueft_am`.
 Cron `/api/cron/nuliga-logos` (täglich 3:50 UTC, je Verein höchstens alle 7 Tage, Frist 40 s). Ohne Logo: Avatar mit Initialen (`components/liga/vereins-avatar.tsx`,
 `vereinsInitialen`), nie ein kaputtes Bild; in der Vereinssuche (`/verein`, Startseite) angezeigt. Die Fixtures sind nachgebaut (siehe oben), die Bild-Erkennung gegen die echte Seite UNGEPRÜFT.
+
+**Hallen auf der nuLiga-Vereinsseite:** kein Tabellenfeld, sondern ein Abschnitt "Hallen" mit Links (`findeHallen` in `parsers/vereinsinfo.ts`): ein Element, dessen ganzer Text "Hallen" ist, danach die Links bis zur
+nächsten Überschrift bzw. zum Zeilenende der Tabelle; mit Nummer in Klammern zählen nur diese. `bereinigeHallenname` entfernt NUR eine abschließende `(Zahl)` (Nummer separat in `hallenNummern`). Die Struktur ist aus
+der Beschreibung abgeleitet, nicht verifiziert — `/system/nuliga-diagnose` (nur Systemadmin, schreibt nichts) zeigt je club-ID Hallenabschnitt, Rohtexte, Logo-src, HTTP-Status, Content-Type, Größe und erkannten Bildtyp.

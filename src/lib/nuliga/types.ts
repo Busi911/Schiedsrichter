@@ -143,7 +143,10 @@ export type VereinsInfo = {
   gruendung: number | null;
   website: string | null;
   stammvereine: string[];
+  // Nur die Namen ohne abschließende Hallennummer ("Stadthalle Linden"), Reihenfolge wie auf der Seite.
   hallen: string[];
+  // Dazu die abschließende Hallennummer aus der Klammer ("14151"), falls vorhanden — für spätere Zuordnungen.
+  hallenNummern: Record<string, string>;
   // Pfad+Query des Vereinsbilds (relativ oder absolut, wie im HTML; der wodata-Wert ist NICHT stabil, deshalb
   // nie speichern/vergleichen, sondern bei jedem Abruf neu aus der Seite lesen). logoSicher = der alt-Text
   // entspricht dem Vereinsnamen; sonst ist es nur das einzige infrage kommende Bild (Menschen sollen prüfen).

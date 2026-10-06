@@ -123,6 +123,14 @@ export const holeVereinsDesign = cache(
 export const holeLogoVersion = async (ligaVereinId: string) =>
   (await holeVereinsDesign(ligaVereinId)).logoVersion;
 
+// Logo samt MIME-Typ (Upload: normalisiertes PNG, nuLiga: unverändertes Original).
+export const holeLogo = async (ligaVereinId: string): Promise<{ daten: Buffer; mime: string } | null> => {
+  const zeile = await mitColdStartRetry(() =>
+    adminDb.query.ligaVereinLogos.findFirst({ where: eq(ligaVereinLogos.ligaVereinId, ligaVereinId) })
+  );
+  return zeile ? { daten: zeile.png, mime: zeile.mime } : null;
+};
+
 export const holeLogoPng = async (ligaVereinId: string): Promise<Buffer | null> => {
   const zeile = await mitColdStartRetry(() =>
     adminDb.query.ligaVereinLogos.findFirst({ where: eq(ligaVereinLogos.ligaVereinId, ligaVereinId) })

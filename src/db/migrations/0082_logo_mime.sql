@@ -1,0 +1,1 @@
+ALTER TABLE "liga_verein_logo" ADD COLUMN "mime" text DEFAULT 'image/png' NOT NULL;
