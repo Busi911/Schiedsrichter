@@ -17,22 +17,26 @@ export function normalisiereInstagram(roh: string): { name: string; url: string 
 
 const DATUM = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Berlin" });
 
-// Vorschlag für die erste Nachricht (Beta-Phase, kostenlos). Der Absender kann den Text vor dem Kopieren ändern.
-export function ansprachetext(opt: { vereinsname: string; vorschauUrl: string; gueltigBis: Date; absender: string }): string {
+// Absender der Ansprache (Vorname, wie er in der Nachricht steht).
+export const ANSPRACHE_ABSENDER = "Dennis";
+
+// Vorschlag für die erste Nachricht in der Sie-Form (Beta-Phase, kostenlos). Der Absender kann den Text vor dem Kopieren ändern.
+export function ansprachetext(opt: { vereinsname: string; vorschauUrl: string; gueltigBis: Date; absender?: string }): string {
+  const absender = opt.absender ?? ANSPRACHE_ABSENDER;
   return [
-    `Hallo ${opt.vereinsname}-Team,`,
+    "Guten Tag,",
     "",
-    `ich bin ${opt.absender} von HandballerPate, einer App für Handballvereine. Sie macht zwei Dinge:`,
+    `mein Name ist ${absender}, ich komme von HandballerPate, einer App für Handballvereine. Sie macht zwei Dinge:`,
     "",
-    `1. Eine App-Seite für Spieler, Eltern und Fans mit Spielplan, Ergebnissen, Tabellen und Statistiken eurer Mannschaften. Die haben wir für euch schon vorbereitet: ${opt.vorschauUrl}`,
+    `1. Eine App-Seite für Spieler, Eltern und Fans mit Spielplan, Ergebnissen, Tabellen und Statistiken Ihrer Mannschaften. Diese haben wir für den ${opt.vereinsname} bereits vorbereitet: ${opt.vorschauUrl}`,
     "",
     "2. Für den Verein selbst: Schiedsrichter, Zeitnehmer und andere Dienste bei Heimspielen planen, mit Erinnerungen per Mail.",
     "",
-    "HandballerPate ist gerade in der Beta-Phase und für euch noch kostenlos.",
+    "HandballerPate befindet sich gerade in der Beta-Phase und ist für Sie noch kostenlos.",
     "",
-    `Schaut euch die Vorschau gern in Ruhe an (der Link ist bis ${DATUM.format(opt.gueltigBis)} gültig). Bei Fragen melde ich mich gern oder rufe an. Und wenn es nicht passt, reicht ein kurzes „Kein Interesse“.`,
+    `Bitte sehen Sie sich die Vorschau in Ruhe an (der Link ist bis ${DATUM.format(opt.gueltigBis)} gültig). Bei Fragen stehe ich Ihnen gern zur Verfügung. Und wenn es nicht passt, genügt eine kurze Nachricht mit „Kein Interesse“.`,
     "",
     "Viele Grüße",
-    opt.absender,
+    absender,
   ].join("\n");
 }

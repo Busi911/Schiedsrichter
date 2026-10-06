@@ -38,7 +38,7 @@ export default async function SystemVereinePage({
 }: {
   searchParams: Promise<{ suche?: string; einrichtung?: string; index?: string }>;
 }) {
-  const session = await requireSystemAdmin();
+  await requireSystemAdmin();
   const { suche = "", einrichtung: einrichtungRoh, index: indexMeldung } = await searchParams;
   const einrichtung = leseEinrichtung(einrichtungRoh);
   const treffer = suche.trim().length >= 2 ? await sucheVereinsindex(adminDb, suche) : [];
@@ -211,8 +211,7 @@ export default async function SystemVereinePage({
                   vereinsname: v.name,
                   vorschauUrl: `${basisUrl}/verein/${slugs.get(v.id)}/vorschau/${linkFuerText.token}`,
                   gueltigBis: linkFuerText.gueltigBis,
-                  absender: session.user.name?.split(" ")[0] ?? "[Dein Name]",
-                })
+                                  })
               : null;
             const ansprachHinweise = [
               (mannschaftsAnzahl.get(v.id) ?? 0) === 0 ? "Noch keine Mannschaften geladen — den Verein erst fertig einrichten." : null,

@@ -15,14 +15,21 @@ describe("normalisiereInstagram", () => {
 });
 
 describe("ansprachetext", () => {
-  const text = ansprachetext({ vereinsname: "HSG Linden", vorschauUrl: "https://handballerpate.de/verein/hsg-linden/vorschau/abc", gueltigBis: new Date("2026-10-13T10:00:00Z"), absender: "Dennis" });
+  const text = ansprachetext({ vereinsname: "HSG Linden", vorschauUrl: "https://handballerpate.de/verein/hsg-linden/vorschau/abc", gueltigBis: new Date("2026-10-13T10:00:00Z"), });
   it("enthält Verein, Link, Beta/kostenlos, Gültigkeit und Absender", () => {
-    expect(text).toContain("Hallo HSG Linden-Team,");
+    expect(text.startsWith("Guten Tag,")).toBe(true);
+    expect(text).toContain("mein Name ist Dennis");
+    expect(text).toContain("für den HSG Linden bereits vorbereitet");
     expect(text).toContain("https://handballerpate.de/verein/hsg-linden/vorschau/abc");
     expect(text).toContain("Beta-Phase");
     expect(text).toContain("noch kostenlos");
     expect(text).toContain("bis 13.10.2026 gültig");
     expect(text.trimEnd().endsWith("Dennis")).toBe(true);
+  });
+  it("ist durchgehend in der Sie-Form (kein euch/eure/Schaut)", () => {
+    expect(text).toContain("Ihrer Mannschaften");
+    expect(text).toContain("für Sie noch kostenlos");
+    expect(text).not.toMatch(/\b(euch|eure[rnms]?|ihr|schaut|dir|dein)\b/i);
   });
   it("passt in eine Instagram-Nachricht (höchstens 1000 Zeichen)", () => {
     expect(text.length).toBeLessThan(1000);

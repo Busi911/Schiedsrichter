@@ -487,7 +487,7 @@ der Beschreibung abgeleitet, nicht verifiziert — `/system/nuliga-diagnose` (nu
 ## Verein ansprechen (Instagram, von Hand)
 
 Für Vereine in Vorbereitung zeigt `/system/vereine` unter "Verein ansprechen (Instagram)" (`components/verein-ansprechen.tsx`) einen Nachrichtenvorschlag (`lib/verein-ansprache.ts`
-`ansprachetext`: Verein, Vorschau-Link, Beta-Phase/kostenlos, Gültigkeit, Absender = Vorname des Systemadmins; bearbeitbar), "Text kopieren", "Instagram öffnen"
+`ansprachetext`: Verein, Vorschau-Link, Beta-Phase/kostenlos, Gültigkeit, Absender = `ANSPRACHE_ABSENDER` ("Dennis"), durchgehend in der Sie-Form; bearbeitbar), "Text kopieren", "Instagram öffnen"
 (`normalisiereInstagram`: nur Namen nach `[A-Za-z0-9._]`, fremde Adressen abgelehnt) und "angeschrieben am"/Notiz. Gesendet wird bewusst NIE automatisch (Instagram erlaubt keine automatisierten Erstnachrichten).
 Die Notizen liegen in `verein_kontakt` (Migration 0083, nur `adminDb`, `app_user` ohne Zugriff — nie auf der mandantenfähigen Tabelle `verein`, der Verein darf sie nicht sehen); Protokoll "ansprache_angeschrieben".
 Wenn sich die Konditionen ändern (Ende der Beta, Preis), den Text in `ansprachetext` anpassen. Rechtliche Prüfung unaufgeforderter Erstnachrichten bleibt offen.
