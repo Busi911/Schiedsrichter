@@ -15,6 +15,11 @@ export type EinrichtungsBefund = {
   syncUnvollstaendig: boolean;
   syncMeldungen: string[];
   mannschaften: number;
+  // Als Mannschaften des Vereins angelegt (aus den geladenen Liga-Mannschaften); null = nicht ermittelt.
+  mannschaftenAngelegt?: number | null;
+  mannschaftenModus?: "neu" | "fortgesetzt" | "manuell" | "ohne_liga";
+  // Der Verein hatte schon eigene Spielhallen eingetragen; die Hallen der Vereinsseite wurden NICHT übernommen.
+  hallenBereitsVorhanden?: boolean;
   termineAngelegt: number | null;
   logo: LogoErgebnis | null;
   logoSicher: boolean;
@@ -36,7 +41,9 @@ export function bewerteEinrichtung(b: EinrichtungsBefund): EinrichtungsSchritt[]
     s("stammdaten", "Vereinsseite gelesen", teile.length > 0 ? "ok" : "pruefen", teile.length > 0 ? teile.join(" · ") : "keine Stammdaten erkannt");
   }
 
-  if (b.hallenGespeichert.length > 0) {
+  if (b.hallenBereitsVorhanden) {
+    s("hallen", "Spielhallen", "ok", "der Verein hat schon eigene eingetragen — bleiben unverändert");
+  } else if (b.hallenGespeichert.length > 0) {
     s("hallen", "Spielhallen übernommen", "pruefen", `${b.hallenGespeichert.join(", ")} — bitte prüfen, ob alle Heimhallen dabei sind`);
   } else {
     s("hallen", "Spielhallen", "pruefen", "keine erkannt — unter Einstellungen → „Eure Spielhallen“ eintragen");
@@ -49,8 +56,12 @@ export function bewerteEinrichtung(b: EinrichtungsBefund): EinrichtungsSchritt[]
       "mannschaften",
       "Mannschaften geladen",
       b.syncUnvollstaendig ? "pruefen" : "ok",
-      `${b.mannschaften} Mannschaften${b.syncUnvollstaendig ? " — Lauf unvollständig, setzt der Cron fort" : ""}`
+      `${b.mannschaften} Mannschaften${b.mannschaftenAngelegt ? `, ${b.mannschaftenAngelegt} als Vereins-Mannschaften angelegt` : ""}${b.syncUnvollstaendig ? " — Lauf unvollständig, setzt der Cron fort" : ""}`
     );
+  }
+
+  if (b.mannschaftenModus === "manuell") {
+    s("vereinsmannschaften", "Mannschaften des Vereins", "ok", "der Verein pflegt eigene Mannschaften — es wurde nichts ergänzt");
   }
 
   if (b.termineAngelegt === null) {

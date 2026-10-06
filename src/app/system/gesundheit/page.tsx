@@ -1,5 +1,11 @@
 import { AlertCircle, CheckCircle2, Circle, MinusCircle } from "lucide-react";
+import { adminDb } from "@/db/admin";
+import { ligaVereine } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { EinrichtungsChecklisteListe, leseEinrichtungsErgebnis } from "@/components/einrichtungs-checkliste";
+import { findeIndexKandidaten } from "@/lib/nuliga/vereinsindex";
+import { starthilfeImportieren } from "../vereine/actions";
 import { holeVereinsGesundheit } from "@/lib/verein-gesundheit";
 import { vorZeit, type Lebenszeichen } from "@/lib/verein-gesundheit-bewertung";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +21,12 @@ const LEBENSZEICHEN: Record<Lebenszeichen, { label: string; klasse: string; icon
   nie: { label: "Nie benutzt", klasse: "bg-red-700 text-white", icon: AlertCircle },
 };
 
-export default async function GesundheitPage() {
+export const maxDuration = 60;
+
+export default async function GesundheitPage({ searchParams }: { searchParams: Promise<{ starthilfe?: string }> }) {
   await requireSystemAdmin();
+  const { starthilfe: starthilfeRoh } = await searchParams;
+  const starthilfeErgebnis = leseEinrichtungsErgebnis(starthilfeRoh);
   const jetzt = new Date();
   const { vereine, online } = await holeVereinsGesundheit(jetzt);
   const aktive = vereine.filter((v) => v.status === "aktiv");
@@ -30,8 +40,24 @@ export default async function GesundheitPage() {
       a.punkte.filter((p) => p.erfuellt).length - b.punkte.filter((p) => p.erfuellt).length
   );
 
+  // Starthilfe: aktive Vereine ohne öffentliche Seite (kein nuLiga-Import) bekommen Vorschläge aus dem nuLiga-Index.
+  const vergeben = new Set((await adminDb.select({ id: ligaVereine.nuligaClubId }).from(ligaVereine)).map((z) => z.id).filter((x): x is string => !!x));
+  const kandidaten = new Map<string, Awaited<ReturnType<typeof findeIndexKandidaten>>>();
+  for (const v of sortiert) {
+    if (v.status === "aktiv" && !v.punkte.find((p) => p.schluessel === "seite")?.erfuellt) {
+      kandidaten.set(v.id, await findeIndexKandidaten(adminDb, v.name, vergeben));
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      {starthilfeErgebnis && (
+        <section className="flex flex-col gap-2 rounded-xl border p-4">
+          <h2 className="font-heading text-base font-semibold">Starthilfe: {starthilfeErgebnis.verein}</h2>
+          <EinrichtungsChecklisteListe schritte={starthilfeErgebnis.schritte} />
+          <p className="text-xs text-muted-foreground">✓ automatisch geklappt · ! bitte prüfen · ✕ fehlgeschlagen. Es wurde keine Mail verschickt und nichts überschrieben, was der Verein schon selbst eingetragen hat.</p>
+        </section>
+      )}
       <div>
         <h1 className="font-heading text-2xl font-semibold">Vereins-Gesundheit</h1>
         <p className="text-sm text-muted-foreground">
@@ -166,6 +192,34 @@ export default async function GesundheitPage() {
                     ))}
                   </ul>
                 </div>
+
+                {kandidaten.has(v.id) && (
+                  <div className="flex flex-col gap-2 rounded-lg border border-dashed p-2.5 text-xs">
+                    <p className="font-medium">Starthilfe aus nuLiga</p>
+                    {kandidaten.get(v.id)!.length === 0 ? (
+                      <p className="text-muted-foreground">Kein passender Verein im nuLiga-Index gefunden (Index unter Vereine aktualisieren).</p>
+                    ) : (
+                      kandidaten.get(v.id)!.map((t) => (
+                        <form key={t.id} action={starthilfeImportieren} className="flex flex-wrap items-center justify-between gap-2">
+                          <input type="hidden" name="vereinId" value={v.id} />
+                          <input type="hidden" name="clubId" value={t.clubId} />
+                          <span className="min-w-0">
+                            <span className="font-medium">{t.name}</span>{" "}
+                            <span className="text-muted-foreground">{[t.bezirk, t.nummer && `VNr. ${t.nummer}`].filter(Boolean).join(" · ")}</span>
+                          </span>
+                          <ConfirmSubmitButton
+                            size="sm"
+                            variant="outline"
+                            pendingText="Importiert… (bis 1 Min.)"
+                            confirmText={`Mannschaften, Spiele, Termine, Hallen und Logo von „${t.name}“ aus nuLiga für ${v.name} importieren? Es wird keine Mail verschickt; Eingetragenes bleibt unverändert.`}
+                          >
+                            Importieren
+                          </ConfirmSubmitButton>
+                        </form>
+                      ))
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

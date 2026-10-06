@@ -589,6 +589,20 @@
       "when": 1791277182825,
       "tag": "0083_verein_kontakt",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1791283740482,
+      "tag": "0084_liga_verein_stammdaten",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1791283945635,
+      "tag": "0085_mannschaft_liga_verknuepfung",
+      "breakpoints": true
     }
   ]
 }

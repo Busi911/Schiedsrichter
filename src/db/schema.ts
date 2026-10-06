@@ -304,6 +304,10 @@ export const mannschaften = pgTable("mannschaft", {
     .references(() => vereine.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   altersklasse: text("altersklasse"),
+  // Verknüpfung zur öffentlichen Liga-Mannschaft (nuLiga/handball.net), falls diese Mannschaft daraus automatisch angelegt oder
+  // zugeordnet wurde (lib/nuliga/mannschaften-anlegen.ts). Exakte Zuordnung von Spielen statt über den Namen; fällt weg, wenn die
+  // Liga-Mannschaft gelöscht wird.
+  ligaMannschaftId: uuid("liga_mannschaft_id").references((): AnyPgColumn => ligaMannschaften.id, { onDelete: "set null" }),
   // Ab der 3. Liga läuft der Spielbetrieb zentral über handball.net statt
   // über die (Landesverbands-)nuLiga-Instanz (siehe
   // src/lib/handball-net-scraper.ts) — dort gibt es keine Hallen-, sondern
@@ -931,6 +935,13 @@ export const ligaVereine = pgTable(
     // täglich erneut versucht wird) und Abschalter, sobald der Verein sein Logo selbst entfernt hat.
     logoGeprueftAm: timestamp("logo_geprueft_am", { mode: "date" }),
     logoAutoAus: boolean("logo_auto_aus").notNull().default(false),
+    // Stammdaten laut nuLiga-Vereinsseite (lib/nuliga/stammdaten.ts): nur öffentliche Vereinsangaben, nie Kontakt-/Personendaten.
+    vereinsnummer: text("vereinsnummer"),
+    gruendungsjahr: integer("gruendungsjahr"),
+    website: text("website"),
+    // Stammvereine, ein Name pro Zeile (ohne Vereinsnummer).
+    stammvereine: text("stammvereine"),
+    stammdatenGelesenAm: timestamp("stammdaten_gelesen_am", { mode: "date" }),
     handballNetSynchronisiertAm: timestamp("handball_net_synchronisiert_am", { mode: "date" }),
     strukturSynchronisiertAm: timestamp("struktur_synchronisiert_am", { mode: "date" }),
     spieleSynchronisiertAm: timestamp("spiele_synchronisiert_am", { mode: "date" }),

@@ -179,7 +179,8 @@ describe("Echte Struktur (club=76446): ein Absatz mit VNr., Gründungsjahr und S
   });
   it("findet eine Website auch ohne Beschriftung als externen Link im Stammdaten-Absatz", () => {
     const mit = fixture("vereinsinfo-linden.html").replace("Stammvereine:", '<a href="http://www.tus-vollnkirchen.de/">www.tus-vollnkirchen.de</a><br />Stammvereine:');
-    expect(parseVereinsInfo(mit).daten.website).toBe("http://www.tus-vollnkirchen.de");
+    // "http://" von nuLiga wird als https abgelegt
+    expect(parseVereinsInfo(mit).daten.website).toBe("https://www.tus-vollnkirchen.de");
     // Links innerhalb von nuLiga (z.B. die Hallen) sind nie die Website
     expect(parseVereinsInfo(fixture("vereinsinfo-linden.html")).daten.website).toBeNull();
   });
@@ -187,5 +188,14 @@ describe("Echte Struktur (club=76446): ein Absatz mit VNr., Gründungsjahr und S
     const sicher = entferneKontaktbereich(fixture("vereinsinfo-linden.html"));
     expect(sicher).not.toMatch(/Mustermann|Beispielstra|Tel\./);
     expect(sicher).toContain("Stadthalle Linden");
+  });
+});
+
+import { suchbegriffeAusVereinsname } from "./vereinsindex";
+describe("suchbegriffeAusVereinsname", () => {
+  it("liefert den ganzen Namen und die markantesten Wörter, nie Kürzel", () => {
+    expect(suchbegriffeAusVereinsname("TSG Leihgestern")).toEqual(["TSG Leihgestern", "Leihgestern"]);
+    expect(suchbegriffeAusVereinsname("HSG Dutenhofen/Münchholzhausen e.V.")).toEqual(["HSG Dutenhofen/Münchholzhausen", "Münchholzhausen", "Dutenhofen"]);
+    expect(suchbegriffeAusVereinsname("TV 1860")).toEqual(["TV 1860"]);
   });
 });

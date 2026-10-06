@@ -507,3 +507,18 @@ Zwei-Spalten-Tabelle: sie werden über die Beschriftung im sichtbaren Text gesuc
 "Hallen" als `<b>Hallen</b>` + `<ul><li><a href=".../courtInfo?…">Stadthalle Linden (14151)</a></li>…`; Logo `<img height="100" alt="<Vereinsname>" src="…/wr?wodata=…">`; danach `<h2>Kontaktadresse</h2>` mit einer Ansprechperson (wird NIE gelesen;
 die Diagnose entfernt den Bereich per `entferneKontaktbereich`). Fixture: `__fixtures__/vereinsinfo-linden.html` (Strukturabbild, Kontaktdaten erfunden). Stammvereine stehen als Text im selben Absatz (`stammvereineAusHtml`), eine Website (HSG Linden hat keine)
 steht entweder mit Beschriftung im Text oder als externer Link im Absatz mit "VNr." (`websiteAusStammdatenAbsatz`) — für die Website-Struktur z.B. von club=54040 fehlen noch echte Auszüge.
+
+**Stammdaten am Verein (`lib/nuliga/stammdaten.ts`, Migration 0084):** `liga_verein.vereinsnummer`, `gruendungsjahr`, `website`, `stammvereine` (ein Name pro Zeile), `stammdaten_gelesen_am` — gelesen von der nuLiga-Vereinsseite beim automatischen Einrichten und im
+Logo-Cron (`/api/cron/nuliga-logos`, nur Vereine ohne `logo_auto_aus`). Es wird nur gesetzt, was die Seite zeigt: ein nicht gefundener Wert überschreibt nie einen vorhandenen. Die Website wird immer als `https://` abgelegt (nuLiga liefert oft `http://`).
+Mannschaften/Spiele kommen weiterhin über den Liga-Sync (`synchronisiereAlleQuellen`), Hallen als "Eure Spielhallen" (`vereine.eigene_hallen_namen`). Noch nicht angezeigt (öffentliche Vereinsseite zeigt weder Website noch Stammvereine).
+
+**Mannschaften des Vereins aus den Liga-Mannschaften (`lib/nuliga/mannschaften-anlegen.ts`, Migration 0085):** Die vom Liga-Sync geladenen aktiven `liga_mannschaft`-Zeilen werden beim automatischen Einrichten (und danach bei jedem Lauf von
+`uebernehmeLigaSpiele`) als Mannschaften des Vereins (Tabelle `mannschaft`) angelegt: Name = eigener Anzeigename sonst Quellname, `altersklasse` im Format des Hallenplan-Imports (`kategorieText`: "Mä/männl.", "mJC" …), `mannschaft.liga_mannschaft_id` = exakter
+Verweis (SET NULL beim Löschen der Liga-Mannschaft). NIE umbenennen, löschen oder doppelt anlegen. Modus: Verein ohne Mannschaften -> alle anlegen; früher automatisch angelegt (mind. eine verknüpfte) -> neue Liga-Mannschaften ergänzen; Verein mit eigenen, unverknüpften
+Mannschaften -> NICHTS anlegen (keine Dubletten zu selbst gewählten Namen). Neue Liga-Termine werden über den Verweis exakt zugeordnet (`baueMannschaftsAufloeser`: Teamtable-ID + Gruppe -> Teilnahme -> Liga-Mannschaft -> Vereins-Mannschaft; Heimmannschaft zuerst), sonst
+wie bisher über den Namen (`findeMannschaft`); bereits angelegte Liga-Termine ohne Mannschaft werden nachträglich zugeordnet (`verknuepfeTermineMitMannschaften`, setzt nur leere Zuordnungen).
+
+**Starthilfe für bereits registrierte Vereine (`/system/gesundheit`):** Aktive Vereine ohne öffentliche Seite (Einrichtungspunkt "Öffentliche Seite" fehlt) bekommen auf ihrer Gesundheits-Karte Vorschläge aus dem nuLiga-Index
+(`findeIndexKandidaten`/`suchbegriffeAusVereinsname`, ohne schon vergebene club-IDs) mit "Importieren" (`starthilfeImportieren`, Rückfrage). Es läuft derselbe Ablauf wie bei "Automatisch einrichten"
+(`lib/nuliga/einrichtung.ts` `fuehreNuligaEinrichtungAus`, geteilt) — OHNE Treuhand-Zugriff (nur adminDb), still (keine Mail) und nicht zerstörend: vorhandene Spielhallen werden nie überschrieben, Mannschaften nur nach den Regeln aus
+`mannschaften-anlegen.ts`, ein eigenes Logo bleibt, Protokoll "starthilfe_nuliga". Ergebnis als Checkliste (`components/einrichtungs-checkliste.tsx`) oben auf der Gesundheitsseite.
