@@ -517,3 +517,8 @@ Mannschaften/Spiele kommen weiterhin über den Liga-Sync (`synchronisiereAlleQue
 Verweis (SET NULL beim Löschen der Liga-Mannschaft). NIE umbenennen, löschen oder doppelt anlegen. Modus: Verein ohne Mannschaften -> alle anlegen; früher automatisch angelegt (mind. eine verknüpfte) -> neue Liga-Mannschaften ergänzen; Verein mit eigenen, unverknüpften
 Mannschaften -> NICHTS anlegen (keine Dubletten zu selbst gewählten Namen). Neue Liga-Termine werden über den Verweis exakt zugeordnet (`baueMannschaftsAufloeser`: Teamtable-ID + Gruppe -> Teilnahme -> Liga-Mannschaft -> Vereins-Mannschaft; Heimmannschaft zuerst), sonst
 wie bisher über den Namen (`findeMannschaft`); bereits angelegte Liga-Termine ohne Mannschaft werden nachträglich zugeordnet (`verknuepfeTermineMitMannschaften`, setzt nur leere Zuordnungen).
+
+**Starthilfe für bereits registrierte Vereine (`/system/gesundheit`):** Aktive Vereine ohne öffentliche Seite (Einrichtungspunkt "Öffentliche Seite" fehlt) bekommen auf ihrer Gesundheits-Karte Vorschläge aus dem nuLiga-Index
+(`findeIndexKandidaten`/`suchbegriffeAusVereinsname`, ohne schon vergebene club-IDs) mit "Importieren" (`starthilfeImportieren`, Rückfrage). Es läuft derselbe Ablauf wie bei "Automatisch einrichten"
+(`lib/nuliga/einrichtung.ts` `fuehreNuligaEinrichtungAus`, geteilt) — OHNE Treuhand-Zugriff (nur adminDb), still (keine Mail) und nicht zerstörend: vorhandene Spielhallen werden nie überschrieben, Mannschaften nur nach den Regeln aus
+`mannschaften-anlegen.ts`, ein eigenes Logo bleibt, Protokoll "starthilfe_nuliga". Ergebnis als Checkliste (`components/einrichtungs-checkliste.tsx`) oben auf der Gesundheitsseite.

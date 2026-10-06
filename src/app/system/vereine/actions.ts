@@ -2,9 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, count, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaVereine, nuligaVereinsindex, vereine, vereinKontakt } from "@/db/schema";
+import { ligaVereine, nuligaVereinsindex, vereine, vereinKontakt } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import {
@@ -18,18 +18,9 @@ import { erzeugeVorschauLink, widerrufeVorschauLink } from "@/lib/verein-vorscha
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { uebergabeInhalt } from "@/lib/uebergabe-mail";
-import { holeNuligaBild, holeNuligaHtml, holeNuligaSeiteMitKontext, type SeitenKontext } from "@/lib/nuliga/client";
-import { uebernehmeNuligaLogo, type LogoErgebnis } from "@/lib/nuliga/logo";
-import { speichereStammdaten } from "@/lib/nuliga/stammdaten";
-import { legeVereinsMannschaftenAn } from "@/lib/nuliga/mannschaften-anlegen";
-import { baueNuligaUrl } from "@/lib/nuliga/verbaende";
-import { parseVereinsInfo } from "@/lib/nuliga/parsers/vereinsinfo";
+import { fuehreNuligaEinrichtungAus } from "@/lib/nuliga/einrichtung";
+import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { aktualisiereVereinsindex } from "@/lib/nuliga/vereinsindex";
-import { bewerteEinrichtung } from "@/lib/nuliga/einrichtung-status";
-import { legeLigaVereinAn } from "@/lib/nuliga/sync";
-import { synchronisiereAlleQuellen } from "@/lib/liga-sync-quellen";
-import { holeHandballNetApi } from "@/lib/handball-net/client";
-import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { schreibeProtokoll } from "@/lib/treuhand";
 import { normalisiereInstagram } from "@/lib/verein-ansprache";
 
@@ -171,71 +162,7 @@ export async function vereinAusNuligaEinrichten(formData: FormData) {
   if (schonDa) throw new Error("Dieser Verein ist bereits eingerichtet.");
 
   const vereinId = await vereinVorbereitenLib(session.user.id, eintrag.name);
-  const ligaVerein = await legeLigaVereinAn(adminDb, { vereinId, nuligaClubId: clubId, name: eintrag.name });
-
-  // Vereinsseite (Stammdaten, Hallen): Fehler hier verhindern die Einrichtung nie.
-  let info = null;
-  let infoFehler: string | null = null;
-  let seitenKontext: SeitenKontext | undefined;
-  try {
-    const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl("HHV", "clubInfoDisplay", { club: clubId }));
-    const html = seite.html;
-    seitenKontext = seite.kontext;
-    const geparst = parseVereinsInfo(html);
-    info = geparst.daten;
-    if (geparst.warnungen.length) infoFehler = geparst.warnungen[0];
-  } catch (err) {
-    infoFehler = err instanceof Error ? err.message : String(err);
-  }
-  // Stammdaten (VNr., Gründungsjahr, Website, Stammvereine) gleich mit am Verein ablegen.
-  if (info) await speichereStammdaten(adminDb, ligaVerein.id, info);
-  const hallen = info?.hallen ?? [];
-  if (hallen.length > 0) {
-    await adminDb.update(vereine).set({ eigeneHallenNamen: hallen.join(", ").slice(0, 500) }).where(eq(vereine.id, vereinId));
-  }
-
-  // Logo gleich mit, als Teil desselben Vereinsobjekts (Pfad aus der AKTUELLEN Seite, nie gemerkt).
-  let logo: LogoErgebnis | null = null;
-  if (info) {
-    logo = await uebernehmeNuligaLogo({ db: adminDb, ligaVereinId: ligaVerein.id, logoPfad: info.logoPfad, holeBild: holeNuligaBild, kontext: seitenKontext });
-  }
-
-  const start = Date.now();
-  const sync = await synchronisiereAlleQuellen(ligaVerein.id, {
-    db: adminDb,
-    holeHtml: holeNuligaHtml,
-    holeJson: holeHandballNetApi,
-    frist: start + 35_000,
-  });
-  const [{ anzahl }] = await adminDb.select({ anzahl: count() }).from(ligaMannschaften).where(eq(ligaMannschaften.ligaVereinId, ligaVerein.id));
-
-  // Die geladenen Liga-Mannschaften gleich als Mannschaften des Vereins anlegen (aktiv, mit exaktem Verweis auf die Liga-Mannschaft).
-  const mannschaftenErgebnis = await legeVereinsMannschaftenAn(adminDb, vereinId);
-
-  let termineAngelegt: number | null = null;
-  if (hallen.length > 0 && Date.now() < start + 45_000) {
-    try {
-      termineAngelegt = (await uebernehmeLigaSpiele(vereinId, "Einrichtung")).angelegt;
-    } catch (err) {
-      console.error("Termin-Übernahme bei der automatischen Einrichtung fehlgeschlagen:", err);
-    }
-  }
-
-  const schritte = bewerteEinrichtung({
-    indexName: eintrag.name,
-    clubId,
-    info,
-    infoFehler,
-    hallenGespeichert: hallen,
-    syncStatus: sync.status,
-    syncUnvollstaendig: sync.unvollstaendig,
-    syncMeldungen: sync.meldungen,
-    mannschaften: anzahl,
-    mannschaftenAngelegt: mannschaftenErgebnis.angelegt,
-    termineAngelegt,
-    logo,
-    logoSicher: info?.logoSicher ?? false,
-  });
+  const schritte = await fuehreNuligaEinrichtungAus({ vereinId, clubId, indexName: eintrag.name });
   await schreibeProtokoll(
     vereinId,
     "einrichtung_automatisch",
@@ -287,4 +214,37 @@ export async function kontaktAngeschrieben(formData: FormData) {
     zuruecksetzen ? undefined : "Instagram (von Hand)"
   );
   revalidatePath("/system/vereine");
+}
+
+// Starthilfe für einen BEREITS registrierten (aktiven) Verein, der sich selbst angelegt hat und nicht weitergekommen ist: dieselbe
+// automatische Einrichtung wie bei "Automatisch einrichten", aber OHNE Zugriff auf den Verein (nur adminDb, kein Treuhand-Wechsel) und
+// nicht zerstörend (eigene Spielhallen, Mannschaften und Logo bleiben). Still: keine Mail an den Verein.
+export async function starthilfeImportieren(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const vereinId = text(formData, "vereinId");
+  const clubId = text(formData, "clubId");
+  const [verein] = await adminDb.select({ name: vereine.name, status: vereine.status }).from(vereine).where(eq(vereine.id, vereinId));
+  if (!verein) throw new Error("Verein nicht gefunden.");
+  if (verein.status !== "aktiv") throw new Error("Die Starthilfe ist für aktive Vereine gedacht (Vereine in Vorbereitung richtest du mit „Einrichten“ ein).");
+  const [eintrag] = await adminDb
+    .select()
+    .from(nuligaVereinsindex)
+    .where(and(eq(nuligaVereinsindex.verband, "HHV"), eq(nuligaVereinsindex.clubId, clubId)));
+  if (!eintrag) throw new Error("Verein nicht im nuLiga-Index gefunden.");
+  const belegt = await adminDb.query.ligaVereine.findFirst({
+    where: and(eq(ligaVereine.verband, "HHV"), eq(ligaVereine.nuligaClubId, clubId)),
+    columns: { vereinId: true },
+  });
+  if (belegt && belegt.vereinId !== vereinId) throw new Error("Diese nuLiga-Vereins-ID gehört schon zu einem anderen Verein.");
+
+  const schritte = await fuehreNuligaEinrichtungAus({ vereinId, clubId, indexName: verein.name });
+  await schreibeProtokoll(
+    vereinId,
+    "starthilfe_nuliga",
+    session.user.email ?? session.user.id,
+    `nuLiga ${eintrag.name} (club ${clubId}): ` + schritte.map((x) => `${x.label}: ${x.status}`).join("; ")
+  );
+  revalidatePath("/system/gesundheit");
+  const params = new URLSearchParams({ starthilfe: JSON.stringify({ verein: verein.name, vereinId, schritte }) });
+  redirect(`/system/gesundheit?${params.toString()}`);
 }

@@ -16,22 +16,12 @@ import { VorschauLinks } from "@/components/vorschau-links";
 import { istDauerhaft, supportFreigabeAktiv } from "@/lib/treuhand";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { sucheVereinsindex } from "@/lib/nuliga/vereinsindex";
-import { SCHRITT_SYMBOL, type EinrichtungsSchritt } from "@/lib/nuliga/einrichtung-status";
+import { EinrichtungsChecklisteListe, leseEinrichtungsErgebnis } from "@/components/einrichtungs-checkliste";
 import { Input } from "@/components/ui/input";
+import { formatDatum as formatDate } from "@/lib/format";
 import { treuhandStarten, vereinAusNuligaEinrichten, vereinsindexAktualisieren, vorbereitungsVereinLoeschen } from "./actions";
 
 export const maxDuration = 60;
-
-function leseEinrichtung(roh: string | undefined): { verein: string; vereinId?: string; schritte: EinrichtungsSchritt[] } | null {
-  if (!roh) return null;
-  try {
-    const d = JSON.parse(roh);
-    return Array.isArray(d?.schritte) && typeof d.verein === "string" ? d : null;
-  } catch {
-    return null;
-  }
-}
-import { formatDatum as formatDate } from "@/lib/format";
 
 export default async function SystemVereinePage({
   searchParams,
@@ -40,7 +30,7 @@ export default async function SystemVereinePage({
 }) {
   await requireSystemAdmin();
   const { suche = "", einrichtung: einrichtungRoh, index: indexMeldung } = await searchParams;
-  const einrichtung = leseEinrichtung(einrichtungRoh);
+  const einrichtung = leseEinrichtungsErgebnis(einrichtungRoh);
   const treffer = suche.trim().length >= 2 ? await sucheVereinsindex(adminDb, suche) : [];
   const eingerichtet = new Set(
     (await adminDb.select({ id: ligaVereine.nuligaClubId }).from(ligaVereine)).map((z) => z.id).filter(Boolean)
@@ -163,24 +153,7 @@ export default async function SystemVereinePage({
       {einrichtung && (
         <section className="flex flex-col gap-2 rounded-xl border p-4">
           <h2 className="font-heading text-base font-semibold">Automatische Einrichtung: {einrichtung.verein}</h2>
-          <ul className="flex flex-col gap-1.5 text-sm">
-            {einrichtung.schritte.map((x) => (
-              <li key={x.schluessel} className="flex items-start gap-2">
-                <span
-                  className={`mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${
-                    x.status === "ok" ? "bg-emerald-700" : x.status === "pruefen" ? "bg-slate-500" : "bg-red-700"
-                  }`}
-                  aria-label={x.status === "ok" ? "automatisch geklappt" : x.status === "pruefen" ? "bitte prüfen" : "fehlgeschlagen"}
-                >
-                  {SCHRITT_SYMBOL[x.status]}
-                </span>
-                <span>
-                  <span className="font-medium">{x.label}</span>
-                  <span className="text-muted-foreground"> — {x.detail}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
+          <EinrichtungsChecklisteListe schritte={einrichtung.schritte} />
           {einrichtung.vereinId && /^[0-9a-f-]{36}$/i.test(einrichtung.vereinId) && (
             <form action={treuhandStarten}>
               <input type="hidden" name="vereinId" value={einrichtung.vereinId} />

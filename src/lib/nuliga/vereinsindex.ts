@@ -98,3 +98,23 @@ export async function sucheVereinsindex(db: LigaDb, suche: string, opt: { verban
     .orderBy(asc(nuligaVereinsindex.name))
     .limit(opt.limit ?? 20);
 }
+
+const RECHTSFORM = /(?<=^|\s)e\.?\s?v\.?(?=\s|$)/gi;
+
+// Suchbegriffe für einen Vereinsnamen aus der App, vom genauesten zum gröbsten: der ganze Name (ohne "e.V."), dann die einzelnen
+// Wörter, längste zuerst (Kürzel wie "TSG"/"HSG"/"TV" und kurze Wörter bleiben draußen).
+export function suchbegriffeAusVereinsname(name: string): string[] {
+  const ganz = name.replace(RECHTSFORM, " ").replace(/\s+/g, " ").trim();
+  const woerter = [...new Set(ganz.split(/[\s/,\-–]+/).filter((w) => w.length >= 5 && !/^\d+$/.test(w)))].sort((a, b) => b.length - a.length);
+  return [...new Set([ganz, ...woerter])].filter((t) => t.length >= 3);
+}
+
+// Vorschläge aus dem nuLiga-Index zu einem Vereinsnamen (zuerst der genaueste Begriff mit Treffern), ohne Vereine, deren club-ID
+// schon zu einem Verein gehört (`vergeben`).
+export async function findeIndexKandidaten(db: LigaDb, vereinsname: string, vergeben: Set<string>, limit = 4) {
+  for (const begriff of suchbegriffeAusVereinsname(vereinsname)) {
+    const treffer = (await sucheVereinsindex(db, begriff, { limit: 10 })).filter((t) => !vergeben.has(t.clubId));
+    if (treffer.length > 0) return treffer.slice(0, limit);
+  }
+  return [];
+}

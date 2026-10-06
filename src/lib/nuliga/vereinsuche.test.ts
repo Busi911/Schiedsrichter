@@ -190,3 +190,12 @@ describe("Echte Struktur (club=76446): ein Absatz mit VNr., Gründungsjahr und S
     expect(sicher).toContain("Stadthalle Linden");
   });
 });
+
+import { suchbegriffeAusVereinsname } from "./vereinsindex";
+describe("suchbegriffeAusVereinsname", () => {
+  it("liefert den ganzen Namen und die markantesten Wörter, nie Kürzel", () => {
+    expect(suchbegriffeAusVereinsname("TSG Leihgestern")).toEqual(["TSG Leihgestern", "Leihgestern"]);
+    expect(suchbegriffeAusVereinsname("HSG Dutenhofen/Münchholzhausen e.V.")).toEqual(["HSG Dutenhofen/Münchholzhausen", "Münchholzhausen", "Dutenhofen"]);
+    expect(suchbegriffeAusVereinsname("TV 1860")).toEqual(["TV 1860"]);
+  });
+});
