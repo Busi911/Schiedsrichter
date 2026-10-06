@@ -30,4 +30,18 @@ describe("HBL-Rohanalyse", () => {
     expect(r.zeilen.some((z) => z.includes("apiBase=https://api.beispiel.test/v1"))).toBe(true);
     expect(r.auszuege.some((a) => a.titel.startsWith("Kleines Skript"))).toBe(true);
   });
+
+  it("findet Skript-Dateien und wertet ihren Inhalt aus", async () => {
+    const { skriptPfade, analysiereSkript } = await import("./diagnose");
+    const html = `<link rel="modulepreload" href="/_nuxt/abc123.js"><script type="module" src="/_nuxt/entry.9f8e.js"></script><script src="https://fremd.test/x.js"></script><link href="/_nuxt/entry.css">`;
+    expect(skriptPfade(html)).toEqual(["/_nuxt/entry.9f8e.js", "/_nuxt/abc123.js"]);
+    const js = `const a="https://api.beispiel.test/v2/standings";const b="https://www.googletagmanager.com/gtm.js";const c=\`/api/competitions/\${id}/teams\`;const d="/de/hbl/tabelle";const e="/_nuxt/x.js";const f={apiBase:"https://api.beispiel.test/v2"};$fetch(c)`;
+    const r = analysiereSkript(js);
+    expect(r.urls).toContain("https://api.beispiel.test/v2/standings");
+    expect(r.urls.some((u) => u.includes("googletagmanager"))).toBe(false);
+    expect(r.pfade).toContain("/api/competitions/${id}/teams");
+    expect(r.pfade).not.toContain("/_nuxt/x.js");
+    expect(r.konfig).toContain("apiBase=https://api.beispiel.test/v2");
+    expect(r.auszuege.some((a) => a.titel.includes("$fetch"))).toBe(true);
+  });
 });

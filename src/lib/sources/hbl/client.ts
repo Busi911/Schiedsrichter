@@ -8,13 +8,11 @@ import type { HoleHbl } from "./types";
 
 const MIN_ABSTAND_MS = Number(process.env.HBL_MIN_ABSTAND_MS ?? 1000);
 const TIMEOUT_MS = 20_000;
-const MAX_BYTES = 3_000_000;
 
 let letzterRequest = 0;
 const warte = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export const holeHblSeite: HoleHbl = async (pfad) => {
-  if (!pfad.startsWith("/de/")) throw new Error("HBL-Pfad muss mit /de/ beginnen");
+async function holeText(pfad: string, accept: string, maxBytes: number): Promise<string> {
   for (let versuch = 0; versuch < 2; versuch++) {
     const wartezeit = letzterRequest + MIN_ABSTAND_MS - Date.now();
     if (wartezeit > 0) await warte(wartezeit);
@@ -27,7 +25,7 @@ export const holeHblSeite: HoleHbl = async (pfad) => {
         signal: controller.signal,
         headers: {
           "User-Agent": process.env.HBL_USER_AGENT ?? "Handballerpate/1.0 (Vereinsseiten; öffentliche Spieldaten)",
-          Accept: "text/html",
+          Accept: accept,
           "Accept-Language": "de-DE,de;q=0.9",
         },
         cache: "no-store",
@@ -38,11 +36,22 @@ export const holeHblSeite: HoleHbl = async (pfad) => {
       }
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const text = await response.text();
-      if (text.length > MAX_BYTES) throw new Error("Antwort zu groß");
+      if (text.length > maxBytes) throw new Error("Antwort zu groß");
       return text;
     } finally {
       clearTimeout(timeout);
     }
   }
   throw new Error("HBL nicht erreichbar");
+}
+
+export const holeHblSeite: HoleHbl = async (pfad) => {
+  if (!pfad.startsWith("/de/")) throw new Error("HBL-Pfad muss mit /de/ beginnen");
+  return holeText(pfad, "text/html", 3_000_000);
 };
+
+// Nur für die Diagnose: öffentliche Skript-Dateien der Seite (…/_nuxt/….js), um zu sehen, woher die Seite ihre Daten lädt.
+export async function holeHblSkriptDatei(pfad: string): Promise<string> {
+  if (!/^\/_nuxt\/[A-Za-z0-9_.\-\/]+\.js$/.test(pfad)) throw new Error("Nur /_nuxt/…js erlaubt");
+  return holeText(pfad, "application/javascript, */*;q=0.5", 6_000_000);
+}

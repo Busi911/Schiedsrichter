@@ -1,7 +1,7 @@
 import "server-only";
 import { maskierePersonendaten } from "@/lib/bildtyp";
 import { HBL_BASIS, HBL_ENDPUNKTE, hblParser, matchIdAusUrl, teamAusUrl } from "./parser";
-import { holeHblSeite } from "./client";
+import { holeHblSeite, holeHblSkriptDatei } from "./client";
 import { parseHtml, textInhalt, alleMit, attr } from "./html";
 import type { HblWettbewerb } from "../match";
 
@@ -143,4 +143,77 @@ export async function diagnostiziereHbl(wettbewerb: HblWettbewerb): Promise<Seit
     ergebnisse.push(d);
   }
   return ergebnisse;
+}
+
+
+// ---------------------------------------------------------------------------------------------- Skript-Dateien
+// Die HBL-Seiten (Nuxt) liefern Teams/Tabelle/Spielplan nicht im HTML, sondern laden sie im Browser nach. Wohin die Anfragen gehen,
+// steht im öffentlichen JavaScript der Seite (/_nuxt/….js). Diese Auswertung liest NUR diese öffentlichen Dateien und sucht dort
+// Adressen und API-Pfade; sie ruft keine gefundene Schnittstelle selbst auf.
+
+export function skriptPfade(html: string): string[] {
+  const pfade = new Set<string>();
+  for (const m of html.matchAll(/(?:src|href)\s*=\s*["'](\/_nuxt\/[A-Za-z0-9_.\-\/]+\.js)["']/g)) pfade.add(m[1]);
+  // Einstieg ("entry") zuerst, dann die übrigen in Dokumentreihenfolge (Route-Teile stehen als modulepreload davor/dahinter)
+  return [...pfade].sort((a, b) => Number(/entry/i.test(b)) - Number(/entry/i.test(a)));
+}
+
+const UNWICHTIG = /(googletagmanager|google-analytics|w3\.org|vuejs\.org|github\.com|mozilla\.org|schema\.org|nuxt\.com|example\.|reactjs|npmjs|opencollective|fonts\.g|gstatic|cloudflare|jsdelivr)/i;
+const DATEI = /\.(png|jpe?g|gif|svg|webp|ico|woff2?|ttf|css|map)(\?|$)/i;
+const SCHLAGWORT = /(standing|tabelle|table|schedule|spielplan|fixture|ranking|competition|season|team|match|game|live|club|result)/i;
+
+export function analysiereSkript(text: string): { urls: string[]; pfade: string[]; konfig: string[]; auszuege: { titel: string; html: string }[] } {
+  const urls = new Set<string>();
+  for (const m of text.matchAll(/https?:\/\/[^\s"'`\\<>)\],]+/g)) {
+    const u = m[0].replace(/[.,;]+$/, "");
+    if (!UNWICHTIG.test(u) && !DATEI.test(u)) urls.add(u);
+  }
+  const pfade = new Set<string>();
+  for (const m of text.matchAll(/["'`](\/[A-Za-z0-9_\-./{}$:?=&%]{3,140})["'`]/g)) {
+    const p = m[1];
+    if (DATEI.test(p) || p.startsWith("/_nuxt") || p.startsWith("//")) continue;
+    if (/^\/(api|_api|v\d|graphql|backend|data|content)/i.test(p) || (SCHLAGWORT.test(p) && /[/{$]/.test(p.slice(1)))) pfade.add(p);
+  }
+  const konfig = [...text.matchAll(/["']?(api[A-Za-z]*|[A-Za-z]*(?:Url|URL|Endpoint|endpoint|BaseURL|Base)[A-Za-z]*)["']?\s*[:=]\s*["'`](https?:\/\/[^"'`]{3,160}|\/[^"'`]{2,160})["'`]/g)]
+    .map((m) => `${m[1]}=${m[2]}`)
+    .filter((k) => !UNWICHTIG.test(k));
+  const auszuege: { titel: string; html: string }[] = [];
+  const um = (titel: string, muster: RegExp, vor = 250, nach = 500) => {
+    const m = muster.exec(text);
+    if (m) auszuege.push({ titel, html: maskierePersonendaten(text.slice(Math.max(0, m.index - vor), m.index + nach)) });
+  };
+  um("Um „standings“", /standings/i);
+  um("Um „$fetch(“", /\$fetch\(/);
+  um("Um „useFetch(“", /useFetch\(/);
+  um("Um „baseURL“", /baseURL/);
+  return { urls: [...urls].slice(0, 60), pfade: [...pfade].slice(0, 80), konfig: [...new Set(konfig)].slice(0, 30), auszuege };
+}
+
+export type SkriptDiagnose = {
+  seite: string;
+  fehler: string | null;
+  dateien: { pfad: string; zeichen: number | null; fehler: string | null; urls: string[]; pfade: string[]; konfig: string[]; auszuege: { titel: string; html: string }[] }[];
+};
+
+export async function diagnostiziereSkripte(wettbewerb: HblWettbewerb, max = 10): Promise<SkriptDiagnose> {
+  const seite = HBL_ENDPUNKTE.tabelle({ wettbewerb, saison: "" });
+  const ergebnis: SkriptDiagnose = { seite, fehler: null, dateien: [] };
+  let html: string;
+  try {
+    html = await holeHblSeite(seite);
+  } catch (err) {
+    ergebnis.fehler = `Abruf: ${err instanceof Error ? err.message : String(err)}`;
+    return ergebnis;
+  }
+  const pfade = skriptPfade(html).slice(0, max);
+  if (pfade.length === 0) ergebnis.fehler = "Keine /_nuxt/…js-Dateien im HTML gefunden";
+  for (const pfad of pfade) {
+    try {
+      const text = await holeHblSkriptDatei(pfad);
+      ergebnis.dateien.push({ pfad, zeichen: text.length, fehler: null, ...analysiereSkript(text) });
+    } catch (err) {
+      ergebnis.dateien.push({ pfad, zeichen: null, fehler: err instanceof Error ? err.message : String(err), urls: [], pfade: [], konfig: [], auszuege: [] });
+    }
+  }
+  return ergebnis;
 }

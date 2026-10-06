@@ -6,7 +6,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSystemAdmin } from "@/lib/session";
-import { diagnostiziereHbl } from "@/lib/sources/hbl/diagnose";
+import { diagnostiziereHbl, diagnostiziereSkripte } from "@/lib/sources/hbl/diagnose";
 import { HBL_WETTBEWERBE, type HblWettbewerb } from "@/lib/sources/match";
 import { hblJetztLaden, hblTeamLoesen, hblTeamZuordnen } from "./actions";
 
@@ -24,10 +24,12 @@ function schlageVor(teamName: string, vereine: { id: string; name: string }[]): 
   return teil.length === 1 ? teil[0].id : null;
 }
 
-export default async function HblSeite({ searchParams }: { searchParams: Promise<{ ok?: string; fehler?: string; diagnose?: string }> }) {
+export default async function HblSeite({ searchParams }: { searchParams: Promise<{ ok?: string; fehler?: string; diagnose?: string; skripte?: string }> }) {
   await requireSystemAdmin();
-  const { ok, fehler, diagnose } = await searchParams;
-  const diag = diagnose === "hbl1" || diagnose === "hbl2" ? await diagnostiziereHbl(diagnose) : null;
+  const { ok, fehler, diagnose, skripte } = await searchParams;
+  const wettbewerbDiagnose = diagnose === "hbl1" || diagnose === "hbl2" ? diagnose : null;
+  const diag = wettbewerbDiagnose && !skripte ? await diagnostiziereHbl(wettbewerbDiagnose) : null;
+  const skriptDiag = wettbewerbDiagnose && skripte ? await diagnostiziereSkripte(wettbewerbDiagnose) : null;
 
   const gruppen = await adminDb.select().from(ligaGruppen).where(eq(ligaGruppen.quelle, "hbl")).orderBy(desc(ligaGruppen.nuligaGroupId));
   const aktuell = new Map<string, (typeof gruppen)[number]>();
@@ -96,6 +98,9 @@ export default async function HblSeite({ searchParams }: { searchParams: Promise
                 {g ? `Saison ${g.saison} · ${teams.length} Teams in der Tabelle` : "Noch nicht geladen — oben „Jetzt laden“."}{" "}
                 <Link href={`/system/hbl?diagnose=${liga}`} className="underline">
                   Diagnose
+                </Link>{" "}
+                <Link href={`/system/hbl?diagnose=${liga}&skripte=1`} className="underline">
+                  Skript-Dateien (langsam)
                 </Link>
               </CardDescription>
             </CardHeader>
@@ -148,6 +153,38 @@ export default async function HblSeite({ searchParams }: { searchParams: Promise
           </Card>
         );
       })}
+
+      {skriptDiag && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Skript-Dateien der Seite ({skriptDiag.seite})</CardTitle>
+            <CardDescription>
+              Die Seite lädt ihre Daten im Browser nach. Hier stehen Adressen und API-Pfade aus ihrem öffentlichen JavaScript. Es wird keine gefundene
+              Schnittstelle aufgerufen. Bitte die Zeilen „Adressen“, „Pfade“ und „Konfig“ sowie die Auszüge weitergeben.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {skriptDiag.fehler && <p className="break-words text-destructive">{skriptDiag.fehler}</p>}
+            {skriptDiag.dateien.map((d) => (
+              <div key={d.pfad} className="flex flex-col gap-1.5 text-xs">
+                <p className="font-mono font-medium break-all">
+                  {d.fehler ? "✕" : "✓"} {d.pfad} <span className="font-normal text-muted-foreground">({d.zeichen ?? "—"} Zeichen)</span>
+                </p>
+                {d.fehler && <p className="break-words text-destructive">{d.fehler}</p>}
+                {d.urls.length > 0 && <p className="break-words">Adressen: {d.urls.join(" | ")}</p>}
+                {d.pfade.length > 0 && <p className="break-words">Pfade: {d.pfade.join(" | ")}</p>}
+                {d.konfig.length > 0 && <p className="break-words">Konfig: {d.konfig.join(" | ")}</p>}
+                {d.auszuege.map((a) => (
+                  <details key={a.titel}>
+                    <summary className="cursor-pointer">{a.titel}</summary>
+                    <pre className="mt-1 max-h-72 overflow-auto rounded-md bg-muted p-2 break-all whitespace-pre-wrap">{a.html}</pre>
+                  </details>
+                ))}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {diag && (
         <Card>
