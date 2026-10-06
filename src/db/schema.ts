@@ -1140,6 +1140,8 @@ export const ligaSpiele = pgTable(
     halbzeitHeim: integer("halbzeit_heim"),
     halbzeitGast: integer("halbzeit_gast"),
     ergebnisBestaetigt: boolean("ergebnis_bestaetigt").notNull().default(false),
+    // Spieltag (nur Quellen mit Spieltagen, z.B. sport.de für die 1./2. HBL); nuLiga/handball.net: null.
+    spieltag: integer("spieltag"),
     // Spiel eines Freundschafts-/Turnier-Wettbewerbs (Kennzeichnung in der Anzeige).
     istFreundschaft: boolean("ist_freundschaft").notNull().default(false),
     status: ligaSpielStatusEnum("status").notNull().default("geplant"),
@@ -1169,8 +1171,8 @@ export const ligaSyncLaeufe = pgTable("liga_sync_lauf", {
 
 // Zuordnung eines Vereins (liga_verein) zu seinen Identitäten in den Datenquellen: EIN Verein kann Mannschaften aus
 // mehreren Quellen haben (nuLiga, handball.net, HBL). Für nuLiga/handball.net gelten weiter die Spalten
-// `nuliga_club_id`/`handball_net_club_id` an liga_verein; hier stehen die übrigen Quellen (derzeit "hbl": Team-UUID,
-// Kürzel wie "THW", Logo-URL der öffentlichen HBL-Seite). Gepflegt nur über adminDb (Systemadmin), nie automatisch
+// `nuliga_club_id`/`handball_net_club_id` an liga_verein; hier stehen die übrigen Quellen (derzeit "sportde": Team-Slug von sport.de,
+// Kürzel, Logo-URL der öffentlichen Seite). Gepflegt nur über adminDb (Systemadmin), nie automatisch
 // ein neuer Verein aus einem Quellen-Team. Ohne RLS wie die übrigen liga_*-Tabellen, aber app_user hat keinen Zugriff.
 export const ligaExterneIdentitaeten = pgTable(
   "liga_externe_identitaet",
@@ -1189,9 +1191,28 @@ export const ligaExterneIdentitaeten = pgTable(
   },
   (t) => [
     uniqueIndex("liga_externe_identitaet_verein_quelle_idx").on(t.ligaVereinId, t.quelle, t.externeId),
-    // Ein HBL-Team gehört genau einem Verein.
-    uniqueIndex("liga_externe_identitaet_hbl_idx").on(t.quelle, t.externeId).where(sql`${t.quelle} = 'hbl'`),
+    // Ein sport.de-Team gehört genau einem Verein.
+    uniqueIndex("liga_externe_identitaet_sportde_idx").on(t.quelle, t.externeId).where(sql`${t.quelle} = 'sportde'`),
   ]
+);
+
+// Abruf-Status je externer Seite (z.B. "sportde:hbl2:2025/26:md7"): wann zuletzt versucht, wann zuletzt erfolgreich, letzter Fehler und
+// Kennzahlen der Seite (meta). Macht den Import fortsetzbar und schonend (nur fällige Seiten) und lässt einen Ausfall der Quelle nachvollziehen,
+// ohne vorhandene Daten zu löschen. Nur adminDb (Systemadmin), app_user hat keinen Zugriff.
+export const ligaQuellenAbrufe = pgTable(
+  "liga_quelle_abruf",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    quelle: text("quelle").notNull(),
+    schluessel: text("schluessel").notNull(),
+    letzterVersuchAm: timestamp("letzter_versuch_am", { mode: "date" }),
+    letzterErfolgAm: timestamp("letzter_erfolg_am", { mode: "date" }),
+    status: text("status"),
+    letzterFehler: text("letzter_fehler"),
+    quellUrl: text("quell_url"),
+    meta: jsonb("meta").$type<Record<string, unknown>>(),
+  },
+  (t) => [uniqueIndex("liga_quelle_abruf_quelle_schluessel_idx").on(t.quelle, t.schluessel)]
 );
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({

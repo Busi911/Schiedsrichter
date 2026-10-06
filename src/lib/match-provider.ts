@@ -1,5 +1,5 @@
 import type { SpielAnsicht } from "./liga-spiele-hilfen";
-import { baueMatchUrl } from "./sources/hbl/parser";
+import { livetickerPfad, uebersichtPfad, vollUrl } from "./sources/sportde/urls";
 import { baueBerichtUrl, baueLiveSpielUrl, gruppenIdAusBerichtUrl } from "./nuliga/verbaende";
 
 // Schnittstelle für Spiel-Quellen (nuLiga, handball.net) — bewusst klein. Die Sync-Module
@@ -30,14 +30,15 @@ export const nuLigaQuelle: SpielQuelle = {
 // handball.net: noch kein Link/Live-Zugriff vorgesehen.
 export const handballNetQuelle: SpielQuelle = { berichtUrl: () => null, liveUrl: () => null };
 
-// HBL: die öffentliche Spielseite der HBL zeigt Spielbericht und Live-Stand (UUID = externe Spiel-ID). `getLiveState` wird
-// serverseitig über `sources/hbl/live.ts` angebunden, sobald die verifizierten Endpunkte vorliegen.
-export const hblQuelle: SpielQuelle = {
-  berichtUrl: (s) => (s.quelle === "hbl" && s.externeId ? baueMatchUrl(s.externeId) : null),
-  liveUrl: (s) => (s.quelle === "hbl" && s.externeId ? baueMatchUrl(s.externeId) : null),
+// sport.de (1./2. HBL): `berichtUrl` an liga_spiel speichert das Verzeichnis der Spielseiten (ohne Domain); daraus werden Spielübersicht
+// (Spielbericht) und Liveticker. Den Live-Stand liefert serverseitig `sources/sportde/live-cache.ts` über /api/liga/sportde-live/<ID>.
+const SPORTDE_PFAD = /^\/handball\/[a-z0-9\-]+\/ma\d+\/(?:[a-z0-9_\-]+\/)?$/;
+export const sportDeQuelle: SpielQuelle = {
+  berichtUrl: (s) => (s.quelle === "sportde" && s.berichtUrl && SPORTDE_PFAD.test(s.berichtUrl) ? vollUrl(uebersichtPfad(s.berichtUrl)) : null),
+  liveUrl: (s) => (s.quelle === "sportde" && s.berichtUrl && SPORTDE_PFAD.test(s.berichtUrl) ? vollUrl(livetickerPfad(s.berichtUrl)) : null),
 };
 
 export function quelleFuer(spiel: SpielAnsicht): SpielQuelle {
-  if (spiel.quelle === "hbl") return hblQuelle;
+  if (spiel.quelle === "sportde") return sportDeQuelle;
   return spiel.quelle === "handball_net" ? handballNetQuelle : nuLigaQuelle;
 }
