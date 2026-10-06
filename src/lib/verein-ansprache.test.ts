@@ -19,7 +19,7 @@ describe("ansprachetext", () => {
   it("enthält Verein, Link, Beta/kostenlos, Gültigkeit und Absender", () => {
     expect(text.startsWith("Guten Tag,")).toBe(true);
     expect(text).toContain("mein Name ist Dennis");
-    expect(text).toContain("Für den HSG Linden haben wir sie schon vorbereitet");
+    expect(text).toContain("Für den HSG Linden schon vorbereitet");
     expect(text).toContain("https://handballerpate.de/verein/hsg-linden/vorschau/abc");
     expect(text).toContain("Beta-Phase");
     expect(text).toContain("noch kostenlos");
@@ -27,11 +27,11 @@ describe("ansprachetext", () => {
     expect(text.trimEnd().endsWith("Dennis")).toBe(true);
   });
   it("sagt, wie man den Zugang bekommt: Name und E-Mail-Adresse der verwaltenden Person", () => {
-    expect(text).toContain("den Namen und die E-Mail-Adresse der Person, die den Verein verwalten soll");
+    expect(text).toContain("Namen und E-Mail-Adresse der Person, die den Verein verwalten soll");
     expect(text).toContain("mit einem Link an");
   });
   it("ist durchgehend in der Sie-Form (kein euch/eure/Schaut)", () => {
-    expect(text).toContain("Ihrer Mannschaften");
+    expect(text).toContain("sehen Sie auf einen Blick");
     expect(text).toContain("für Sie noch kostenlos");
     expect(text).not.toMatch(/\b(euch|eure[rnms]?|ihr|schaut|dir|dein)\b/i);
   });
