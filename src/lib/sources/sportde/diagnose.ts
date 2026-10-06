@@ -1,7 +1,7 @@
 import "server-only";
 import { maskierePersonendaten } from "@/lib/bildtyp";
 import { SPORTDE_LIGEN, type SportDeLiga } from "../match";
-import { holeSportDeSeite } from "./client";
+import { holeSportDeSeite, pruefeSportDeZugriff } from "./client";
 import { alleMit, attr, parseHtml, textInhalt } from "./html";
 import { parseLivetickerHtml } from "./live-parser";
 import { parseSpielUebersichtHtml } from "./match-parser";
@@ -117,4 +117,15 @@ export async function diagnostiziereSpiel(matchPfad: string, jetzt = new Date())
       return { ergebnis: [`Status ${l.status ?? "?"} (${l.statusText ?? "—"}) · Minute ${l.minute ?? "—"} · ${l.homeScore ?? "-"}:${l.awayScore ?? "-"} · HZ ${l.halftimeHomeScore ?? "-"}:${l.halftimeAwayScore ?? "-"}`, `${l.events.length} Ereignisse`, ...l.events.slice(0, 5).map((e) => `${e.minute}' ${e.type}${e.team ? ` (${e.team})` : ""}${e.homeScore !== undefined ? ` ${e.homeScore}:${e.awayScore}` : ""}`)] };
     }),
   ];
+}
+
+// Zugriffsprüfung: Was sagt sport.de zu automatisierten Abrufen (robots.txt) und wie antwortet es auf eine Spieltagsseite? Hilft bei 403/429.
+export async function pruefeZugriff(liga: SportDeLiga): Promise<{ robots: { status: number; text: string } | null; seite: { status: number; header: Record<string, string>; text: string } | null; fehler: string | null }> {
+  try {
+    const robots = await pruefeSportDeZugriff("/robots.txt").then((r) => ({ status: r.status, text: r.text }));
+    const seite = await pruefeSportDeZugriff(spieltagPfad(liga, 1));
+    return { robots, seite: { ...seite, text: maskierePersonendaten(seite.text.slice(0, 600)) }, fehler: null };
+  } catch (err) {
+    return { robots: null, seite: null, fehler: err instanceof Error ? err.message : String(err) };
+  }
 }

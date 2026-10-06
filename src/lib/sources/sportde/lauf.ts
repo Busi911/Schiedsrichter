@@ -29,6 +29,7 @@ export async function synchronisiereSportDeLiga(liga: SportDeLiga, opt: { voll?:
       frist: opt.frist,
       voll: opt.voll,
       nurTabelle: !zugeordnet && opt.erzwingen,
+      ohneWartezeit: opt.erzwingen,
     });
     return {
       liga,

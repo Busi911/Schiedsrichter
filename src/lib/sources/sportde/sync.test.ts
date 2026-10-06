@@ -12,7 +12,7 @@ import { legeLigaVereinAn } from "@/lib/nuliga/sync";
 import { verknuepfeSportDeTeam } from "../identitaet";
 import { normalizeSportDeMatch } from "../normalisierung";
 import { parseSpieltagSeite } from "./schedule-parser";
-import { berechneRundenMeta, ligaStatus, rundeFaellig, sportDeSpielFelder, synchronisiereSportDe } from "./sync";
+import { berechneRundenMeta, ligaStatus, rundeFaellig, sportDeSpielFelder, synchronisiereSportDe, wartezeitNachFehler } from "./sync";
 
 const SPIELTAG10 = readFileSync(path.join(__dirname, "__fixtures__", "spieltag-hbl2.html"), "utf8");
 const jetzt = new Date("2025-10-04T15:00:00Z");
@@ -44,6 +44,18 @@ describe("sport.de: Fälligkeit der Spieltagsseiten", () => {
   it("berechnet die Kennzahlen eines Spieltags", () => {
     const { spiele } = parseSpieltagSeite(SPIELTAG10, { liga: "hbl2", saison: "2025/26", spieltag: 10 });
     expect(berechneRundenMeta(spiele)).toEqual({ erstes: "2025-10-04", letztes: "2025-10-11", begonnen: 4, beendet: 2, gesamt: 5 });
+  });
+});
+
+describe("sport.de: Wartezeit nach abgelehnten Anfragen", () => {
+  it("403/429 lange, 5xx kurz, Layout- und Netzfehler keine", () => {
+    expect(wartezeitNachFehler("HTTP 403")).toBe(6 * 60 * 60_000);
+    expect(wartezeitNachFehler("HTTP 429")).toBe(6 * 60 * 60_000);
+    expect(wartezeitNachFehler("HTTP 503")).toBe(30 * 60_000);
+    expect(wartezeitNachFehler("HTTP 404")).toBe(0);
+    expect(wartezeitNachFehler("sport.de: keine Spiel-Links — Layout geändert")).toBe(0);
+    expect(wartezeitNachFehler("fetch failed")).toBe(0);
+    expect(wartezeitNachFehler(null)).toBe(0);
   });
 });
 

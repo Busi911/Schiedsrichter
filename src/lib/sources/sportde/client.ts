@@ -46,3 +46,29 @@ export const holeSportDeSeite: HoleSeite = async (pfad) => {
   }
   throw new Error("sport.de nicht erreichbar");
 };
+
+// Nur für die Diagnose: die Antwort OHNE Fehlerbehandlung (Status, ausgewählte Header, Anfang des Textes) — z.B. um eine Zugriffssperre (403) zu
+// verstehen. Ruft nur /robots.txt oder /handball/… auf, mit demselben ehrlichen User-Agent wie der Sync (keine Tarnung als Browser).
+export async function pruefeSportDeZugriff(pfad: string): Promise<{ status: number; header: Record<string, string>; text: string }> {
+  if (pfad !== "/robots.txt" && !/^\/handball\/[A-Za-z0-9\-_/]+$/.test(pfad)) throw new Error("Pfad nicht erlaubt");
+  const wartezeit = letzterRequest + MIN_ABSTAND_MS - Date.now();
+  if (wartezeit > 0) await warte(wartezeit);
+  letzterRequest = Date.now();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const response = await fetch(`${SPORTDE_BASIS}${pfad}`, {
+      signal: controller.signal,
+      headers: { "User-Agent": process.env.SPORTDE_USER_AGENT ?? "Handballerpate/1.0 (Vereinsseiten; öffentliche Spieldaten)", Accept: "text/html,text/plain" },
+      cache: "no-store",
+    });
+    const header: Record<string, string> = {};
+    for (const name of ["server", "content-type", "retry-after", "via", "x-cache", "cf-mitigated", "cf-ray", "x-akamai-error", "x-datadome", "x-sucuri-id", "x-robots-tag", "location"]) {
+      const v = response.headers.get(name);
+      if (v) header[name] = v.slice(0, 200);
+    }
+    return { status: response.status, header, text: (await response.text()).slice(0, 4000) };
+  } finally {
+    clearTimeout(timeout);
+  }
+}

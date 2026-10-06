@@ -6,7 +6,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSystemAdmin } from "@/lib/session";
-import { diagnostiziereSpiel, diagnostiziereSpieltag } from "@/lib/sources/sportde/diagnose";
+import { diagnostiziereSpiel, diagnostiziereSpieltag, pruefeZugriff } from "@/lib/sources/sportde/diagnose";
 import { SPORTDE_LIGEN, type SportDeLiga } from "@/lib/sources/match";
 import { sportDeJetztLaden, sportDeTeamLoesen, sportDeTeamZuordnen } from "./actions";
 
@@ -27,10 +27,12 @@ function schlageVor(teamName: string, vereine: { id: string; name: string }[]): 
 export default async function SportDeSeite({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; fehler?: string; diagnose?: string; spieltag?: string; spiel?: string }>;
+  searchParams: Promise<{ ok?: string; fehler?: string; diagnose?: string; spieltag?: string; spiel?: string; zugriff?: string }>;
 }) {
   await requireSystemAdmin();
-  const { ok, fehler, diagnose, spieltag, spiel } = await searchParams;
+  const { ok, fehler, diagnose, spieltag, spiel, zugriff } = await searchParams;
+  const zugriffLiga: SportDeLiga | null = zugriff === "hbl1" || zugriff === "hbl2" ? zugriff : null;
+  const zugriffErgebnis = zugriffLiga ? await pruefeZugriff(zugriffLiga) : null;
   const diagnoseLiga: SportDeLiga | null = diagnose === "hbl1" || diagnose === "hbl2" ? diagnose : null;
   const spieltagNr = Math.min(34, Math.max(1, Number(spieltag) || 1));
   const diag = spiel ? await diagnostiziereSpiel(spiel) : diagnoseLiga ? await diagnostiziereSpieltag(diagnoseLiga, spieltagNr) : null;
@@ -103,6 +105,9 @@ export default async function SportDeSeite({
                 {g ? `Saison ${g.saison} · ${teams.length} Teams in der Tabelle` : "Noch nicht geladen — oben „Jetzt laden“."}{" "}
                 <Link href={`/system/sportde?diagnose=${liga}&spieltag=1`} className="underline">
                   Diagnose
+                </Link>{" "}
+                <Link href={`/system/sportde?zugriff=${liga}`} className="underline">
+                  Zugriffsprüfung
                 </Link>
               </CardDescription>
             </CardHeader>
@@ -155,6 +160,36 @@ export default async function SportDeSeite({
           </Card>
         );
       })}
+
+      {zugriffErgebnis && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Zugriffsprüfung sport.de</CardTitle>
+            <CardDescription>
+              Was sagt sport.de zu automatisierten Abrufen (robots.txt), und wie antwortet es auf eine Spieltagsseite? Der Abruf nutzt den ehrlichen User-Agent des
+              Syncs — es wird nichts getarnt oder umgangen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-xs">
+            {zugriffErgebnis.fehler && <p className="break-words text-destructive">{zugriffErgebnis.fehler}</p>}
+            {zugriffErgebnis.robots && (
+              <div>
+                <p className="font-medium">robots.txt — HTTP {zugriffErgebnis.robots.status}</p>
+                <pre className="mt-1 max-h-72 overflow-auto rounded-md bg-muted p-2 break-all whitespace-pre-wrap">{zugriffErgebnis.robots.text || "(leer)"}</pre>
+              </div>
+            )}
+            {zugriffErgebnis.seite && (
+              <div>
+                <p className="font-medium">Spieltagsseite — HTTP {zugriffErgebnis.seite.status}</p>
+                <p className="break-words text-muted-foreground">
+                  {Object.entries(zugriffErgebnis.seite.header).map(([k, v]) => `${k}: ${v}`).join(" · ") || "keine auffälligen Header"}
+                </p>
+                <pre className="mt-1 max-h-72 overflow-auto rounded-md bg-muted p-2 break-all whitespace-pre-wrap">{zugriffErgebnis.seite.text || "(leer)"}</pre>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

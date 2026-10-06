@@ -76,6 +76,17 @@ export function rundeFaellig(a: { letzterErfolgAm: Date | null; meta: RundenMeta
   return alter >= 7 * TAG ? "ruhig" : null;
 }
 
+// Nach einer ABGELEHNTEN Anfrage (403/429/5xx) nicht alle 15 Minuten erneut anklopfen: Sperre/Ausfall brauchen Zeit. Layoutfehler (Seite gelesen, aber
+// nicht verstanden) und Netzfehler zählen nicht — die Seite kann sich bald ändern bzw. war ein Ausreißer. Manuelle Läufe (`ohneWartezeit`) ignorieren das.
+export function wartezeitNachFehler(fehler: string | null | undefined): number {
+  const m = fehler?.match(/HTTP (\d{3})/);
+  if (!m) return 0;
+  const code = Number(m[1]);
+  if (code === 403 || code === 429 || code === 401) return 6 * STUNDE;
+  if (code >= 500) return 30 * MIN;
+  return 0;
+}
+
 const RANG: Record<FaelligGrund, number> = { heiss: 0, nie: 1, voll: 1, offen: 2, ruhig: 3 };
 
 export type SportDeSyncOptionen = {
@@ -88,6 +99,7 @@ export type SportDeSyncOptionen = {
   voll?: boolean; // alle Spieltagsseiten neu holen
   nurTabelle?: boolean; // nur die Tabellenseite (z.B. zum Auflisten der Teams vor der Zuordnung)
   maxSeiten?: number;
+  ohneWartezeit?: boolean; // Wartezeit nach abgelehnten Anfragen ignorieren (manueller Lauf)
 };
 
 const excluded = (spalte: AnyPgColumn) => sql`excluded.${sql.identifier(spalte.name)}`;
@@ -202,10 +214,10 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
 
   // Abruf-Status aller Spieltagsseiten dieser Liga/Saison
   const abrufZeilen = await db.select().from(ligaQuellenAbrufe).where(and(eq(ligaQuellenAbrufe.quelle, SPORTDE_QUELLE), like(ligaQuellenAbrufe.schluessel, `${gruppenKey}:md%`)));
-  const abrufe = new Map<number, { letzterErfolgAm: Date | null; meta: RundenMeta | null }>();
+  const abrufe = new Map<number, { letzterErfolgAm: Date | null; meta: RundenMeta | null; letzterVersuchAm: Date | null; letzterFehler: string | null }>();
   for (const a of abrufZeilen) {
     const r = Number(a.schluessel.split(":md")[1]);
-    if (r) abrufe.set(r, { letzterErfolgAm: a.letzterErfolgAm, meta: leseRundenMeta(a.meta) });
+    if (r) abrufe.set(r, { letzterErfolgAm: a.letzterErfolgAm, meta: leseRundenMeta(a.meta), letzterVersuchAm: a.status === "fehler" ? a.letzterVersuchAm : null, letzterFehler: a.letzterFehler });
   }
   const metaJeRunde = new Map<number, RundenMeta>([...abrufe].filter(([, a]) => a.meta).map(([r, a]) => [r, a.meta!]));
   const hoechsteBegonnene = () => [...metaJeRunde].filter(([, m]) => m.begonnen > 0).map(([r]) => r).sort((a, b) => b - a)[0] ?? 1;
@@ -230,6 +242,11 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
     kandidaten = alleRunden
       .map((r) => ({ r, grund: rundeFaellig(abrufe.get(r), jetzt, voll, zuordnungsStand) }))
       .filter((x): x is { r: number; grund: FaelligGrund } => x.grund !== null)
+      .filter((x) => {
+        const a = abrufe.get(x.r);
+        if (opt.ohneWartezeit || !a?.letzterVersuchAm) return true;
+        return Date.now() - a.letzterVersuchAm.getTime() >= wartezeitNachFehler(a.letzterFehler);
+      })
       // Gleicher Rang: die am längsten nicht geholte Seite zuerst (bei knappem Zeitbudget kommen so alle nacheinander dran)
       .sort((a, b) => RANG[a.grund] - RANG[b.grund] || (abrufe.get(a.r)?.letzterErfolgAm?.getTime() ?? 0) - (abrufe.get(b.r)?.letzterErfolgAm?.getTime() ?? 0) || a.r - b.r)
       .map((x) => x.r);
