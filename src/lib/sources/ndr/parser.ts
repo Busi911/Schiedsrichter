@@ -1,31 +1,47 @@
-import type { SportDeLiga } from "../match";
-import { attr, alleMit, parseHtml, textGetrennt, textInhalt, type Knoten } from "../sportde/html";
-import type { ParserProfil } from "../sportde/profil";
-import { SportDeLayoutFehler, type SportDeSpiel, type SportDeTabellenzeile, type SportDeTeam } from "../sportde/types";
-import { absolutUrl, logoAusKnoten } from "../sportde/standings-parser";
-import { loeseDatum, mappeStatus, startZeit, zerlege, type Spielzeile, type Zeilenteil } from "../sportde/zeile";
-import { findeSpieltagLinks, matchSchluessel, NDR_BASIS, teamId, vollUrl } from "./urls";
+import type { BundesLiga } from "../match";
+import { attr, alleMit, nachfahren, parseHtml, textGetrennt, textInhalt, type Knoten } from "../spieltag/html";
+import { QuellLayoutFehler, type QuellSpiel, type QuellTabellenzeile, type QuellTeam } from "../spieltag/types";
+import { loeseDatum, mappeStatus, startZeit, zerlege, type Spielzeile, type Zeilenteil } from "../spieltag/zeile";
+import { findeSpieltagLinks, matchSchluessel, NDR_BASIS, teamId } from "./urls";
 
 // Parser für NDR-Ergebnisseiten (Männer-Bundesliga). Aufbau der Seite (laut Beschreibung): Abschnitte "N. Spieltag" mit Zeilen Datum/Uhrzeit,
 // Paarung, Erg. (Endstand, Halbzeitstand) und Abschnitte "Tabelle N. Spieltag" mit Platz, Verein, Spiele, Siege, Unentschieden, Niederlagen,
 // Tordifferenz, Tore, Punkte. Es werden KEINE Positionen (nth-child) oder CSS-Klassen angenommen: Abschnitte über ihre Überschriften, Zeilen über
 // den sichtbaren Text (innerstes Element, das sich als Zeile lesen lässt). Was nicht lesbar ist, wird gemeldet statt geraten.
 
-export const NDR_PROFIL: ParserProfil = {
-  name: "ndr.de",
-  basis: NDR_BASIS,
-  vollUrl,
-  matchLink: () => null,
-  teamKennung: () => null,
-  logoErlaubt: (url) => {
-    try {
-      const u = new URL(url);
-      return u.protocol === "https:" && (u.hostname === "ndr.de" || u.hostname.endsWith(".ndr.de"));
-    } catch {
-      return false;
+const QUELLE_NAME = "ndr.de";
+
+export function istErlaubteLogoUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && (u.hostname === "ndr.de" || u.hostname.endsWith(".ndr.de"));
+  } catch {
+    return false;
+  }
+}
+
+export function absolutUrl(href: string): string {
+  try {
+    return new URL(href, NDR_BASIS).toString();
+  } catch {
+    return href;
+  }
+}
+
+// Logo aus einem <img>: src, data-src oder das erste srcset-Element, nur von ndr.de (https). Nie aus Name oder Slug konstruiert.
+export function logoAusKnoten(k: Knoten): { url: string | null; gesehen: string | null } {
+  let gesehen: string | null = null;
+  for (const bild of [...nachfahren(k)].filter((n) => n.tag === "img")) {
+    const kandidaten = [attr(bild, "src"), attr(bild, "data-src"), attr(bild, "data-lazy-src"), attr(bild, "srcset")?.split(",")[0]?.trim().split(/\s+/)[0] ?? null];
+    for (const roh of kandidaten) {
+      if (!roh || roh.startsWith("data:")) continue;
+      const url = absolutUrl(roh);
+      gesehen ??= url;
+      if (istErlaubteLogoUrl(url)) return { url, gesehen };
     }
-  },
-};
+  }
+  return { url: null, gesehen };
+}
 
 const gueltigeZeit = (h: number, m: number) => h <= 23 && m <= 59;
 const zeitText = (h: number, m: number) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
@@ -93,23 +109,23 @@ const TAB_ZEILE = /^(\d{1,2})\.?\s+(.+?)\s+(\d{1,2})\s+(\d{1,2})\s+(\d{1,2})\s+(
 const tabellenText = (k: Knoten) => textGetrennt(k).replace(/\|/g, " ").replace(/\b(?:Spiele|Siege|Unentschieden|Niederlagen|Tore|Punkte|Sp\.)\b/gi, " ").replace(/[\s ]+/g, " ").trim();
 
 export type NdrSeite = {
-  spiele: SportDeSpiel[];
-  tabellen: Map<number | null, SportDeTabellenzeile[]>;
-  teams: SportDeTeam[];
+  spiele: QuellSpiel[];
+  tabellen: Map<number | null, QuellTabellenzeile[]>;
+  teams: QuellTeam[];
   spieltage: number[]; // Abschnitte "N. Spieltag" auf der Seite
   navigation: { spieltag: number; href: string }[];
   aktuellerSpieltag: number | null; // höchster Spieltag mit mindestens einem Ergebnis
   warnungen: string[];
 };
 
-export function parseNdrSeite(html: string, k: { liga: SportDeLiga; saison: string; jetzt?: Date }): NdrSeite {
+export function parseNdrSeite(html: string, k: { liga: BundesLiga; saison: string; jetzt?: Date }): NdrSeite {
   const jetzt = k.jetzt ?? new Date();
   const start = Number(k.saison.slice(0, 4)) || jetzt.getFullYear();
   const wurzel = parseHtml(html);
   const warnungen: string[] = [];
-  const rohSpiele = new Map<string, SportDeSpiel>();
-  const tabellen = new Map<number | null, SportDeTabellenzeile[]>();
-  const teams = new Map<string, SportDeTeam>();
+  const rohSpiele = new Map<string, QuellSpiel>();
+  const tabellen = new Map<number | null, QuellTabellenzeile[]>();
+  const teams = new Map<string, QuellTeam>();
   const ctx: { spiel: number | null; tabelle: number | null | undefined; datum: string | null } = { spiel: null, tabelle: undefined, datum: null };
   let nichtLesbar = 0;
 
@@ -144,7 +160,7 @@ export function parseNdrSeite(html: string, k: { liga: SportDeLiga; saison: stri
       if (!liste.some((z) => z.rang === rang)) {
         const name = m[2].trim();
         const diff = (m[7] ?? m[12]).replace(/[−–]/g, "-").replace(/\s/g, "");
-        const logo = logoAusKnoten(n, NDR_PROFIL);
+        const logo = logoAusKnoten(n);
         liste.push({
           teamId: teamId(name),
           name,
@@ -180,7 +196,7 @@ export function parseNdrSeite(html: string, k: { liga: SportDeLiga; saison: stri
           }
           const spieltag = ctx.spiel;
           const beginn = startZeit(datum, z.uhrzeit);
-          const logos = logoAusKnoten(n, NDR_PROFIL);
+          const logos = logoAusKnoten(n);
           const schluessel = matchSchluessel(k.liga, start, spieltag, z.heim, z.gast);
           const status = z.status === "scheduled" && beginn && beginn.getTime() < jetzt.getTime() ? null : z.status;
           rohSpiele.set(schluessel, {
@@ -227,17 +243,17 @@ export function parseNdrSeite(html: string, k: { liga: SportDeLiga; saison: stri
   }
 
   const hrefs = alleMit(wurzel, "a").map((a) => attr(a, "href") ?? "").filter(Boolean);
-  const navigation = findeSpieltagLinks(hrefs).map((l) => ({ spieltag: l.spieltag, href: absolutUrl(l.href, NDR_BASIS) }));
+  const navigation = findeSpieltagLinks(hrefs).map((l) => ({ spieltag: l.spieltag, href: absolutUrl(l.href) }));
   const spieltage = [...new Set(spiele.map((s) => s.spieltag).filter((x): x is number => x !== null))].sort((a, b) => a - b);
   const mitErgebnis = spiele.filter((s) => s.homeScore !== null && s.spieltag !== null).map((s) => s.spieltag!);
-  if (spiele.length === 0 && alleTabellenZeilen.length === 0) throw new SportDeLayoutFehler(NDR_PROFIL.name, "weder Spiele (Abschnitte „N. Spieltag“) noch Tabelle erkannt");
-  if (nichtLesbar > 0 && nichtLesbar > spiele.length) throw new SportDeLayoutFehler(NDR_PROFIL.name, `${nichtLesbar} Spielzeilen nicht lesbar`);
+  if (spiele.length === 0 && alleTabellenZeilen.length === 0) throw new QuellLayoutFehler(QUELLE_NAME, "weder Spiele (Abschnitte „N. Spieltag“) noch Tabelle erkannt");
+  if (nichtLesbar > 0 && nichtLesbar > spiele.length) throw new QuellLayoutFehler(QUELLE_NAME, `${nichtLesbar} Spielzeilen nicht lesbar`);
   return { spiele, tabellen, teams: [...teams.values()], spieltage, navigation, aktuellerSpieltag: mitErgebnis.length ? Math.max(...mitErgebnis) : null, warnungen };
 }
 
 // Für den Sync: Spiele und Tabelle für EINEN Spieltag aus der gelesenen Seite. Seiten mit mehreren Spieltagen (2. HBL) werden auf den
 // gewünschten Spieltag eingegrenzt; eine Seite mit genau einem Spieltag (1. HBL) gilt für diesen Spieltag.
-export function parseNdrSpieltag(html: string, k: { liga: SportDeLiga; saison: string; spieltag: number; jetzt?: Date }) {
+export function parseNdrSpieltag(html: string, k: { liga: BundesLiga; saison: string; spieltag: number; jetzt?: Date }) {
   const s = parseNdrSeite(html, k);
   const warnungen = [...s.warnungen];
   let spiele = s.spiele.filter((x) => x.spieltag === k.spieltag);

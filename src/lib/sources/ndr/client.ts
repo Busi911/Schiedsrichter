@@ -1,5 +1,5 @@
 import "server-only";
-import type { HoleSeite } from "../sportde/types";
+import type { HoleSeite } from "../spieltag/types";
 import { NDR_BASIS } from "./urls";
 
 // HTTP-Zugriff auf die ÖFFENTLICHEN Ergebnisseiten von ndr.de (kein Login, keine Cookies, keine private Schnittstelle, keine Browser-Tarnung).

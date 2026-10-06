@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { ZEITZONE } from "@/lib/format";
 import { istZwischenstand, laeuftVermutlich, liveTickerRelevant } from "@/lib/liga-spiel-status";
 import { quelleFuer } from "@/lib/match-provider";
-import { SportDeLiveAnzeige } from "./sportde-live-anzeige";
 import { hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "./favorit-stern";
 
@@ -65,14 +64,7 @@ export function SpielKarte({
   mitAusgang?: boolean;
 }) {
   const jetztSpiel = new Date();
-  // sport.de (1./2. HBL): rund um den Anwurf holt die Karte den Live-Stand selbst (siehe sportde-live-anzeige.tsx); sonst gilt die Anzeige aus den gespeicherten Daten.
-  const zeigeSportDeLive =
-    spiel.quelle === "sportde" &&
-    !!spiel.beginn &&
-    !spiel.ergebnisBestaetigt &&
-    spiel.status === "geplant" &&
-    jetztSpiel.getTime() >= spiel.beginn.getTime() - 30 * 60_000 &&
-    jetztSpiel.getTime() <= spiel.beginn.getTime() + 4 * 3_600_000;
+
   const laeuft = laeuftVermutlich(spiel, jetztSpiel);
   const zwischenstand = istZwischenstand(spiel, jetztSpiel);
   let ausgang: "S" | "U" | "N" | null = null;
@@ -126,10 +118,7 @@ export function SpielKarte({
           <p className={cn("truncate", fett(spiel.heimTeamtableId))}>{spiel.heimName}</p>
           <p className={cn("truncate", fett(spiel.gastTeamtableId))}>{spiel.gastName}</p>
         </div>
-        {zeigeSportDeLive && spiel.externeId && spiel.beginn && (
-          <SportDeLiveAnzeige matchId={spiel.externeId} beginnMs={spiel.beginn.getTime()} fallback={laeuft ? "Läuft gerade" : zwischenstand ? "Ergebnis folgt" : "gleich"} />
-        )}
-        {zwischenstand && !zeigeSportDeLive && (
+        {zwischenstand && (
           <p className="text-right text-xs font-medium text-muted-foreground">
             {laeuft ? "Läuft gerade" : "Ergebnis folgt"}
           </p>

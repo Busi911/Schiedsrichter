@@ -3,8 +3,8 @@ import { ligaExterneIdentitaeten, ligaVereine } from "@/db/schema";
 import type { LigaDb } from "@/lib/nuliga/sync";
 
 // Externe Identitäten eines Vereins über alle Quellen. nuLiga/handball.net liegen weiter an liga_verein
-// (`nuliga_club_id`, `handball_net_club_id`), alle übrigen Quellen (derzeit sport.de) in `liga_externe_identitaet`.
-export type ExterneIdentitaet = { quelle: "nuliga" | "handball_net" | "sportde" | "ndr"; externeId: string; externerCode: string | null };
+// (`nuliga_club_id`, `handball_net_club_id`), alle übrigen Quellen (derzeit ndr.de) in `liga_externe_identitaet`.
+export type ExterneIdentitaet = { quelle: "nuliga" | "handball_net" | "ndr"; externeId: string; externerCode: string | null };
 
 export async function holeIdentitaeten(db: LigaDb, ligaVereinId: string): Promise<ExterneIdentitaet[]> {
   const verein = await db.query.ligaVereine.findFirst({ where: eq(ligaVereine.id, ligaVereinId) });
@@ -17,11 +17,11 @@ export async function holeIdentitaeten(db: LigaDb, ligaVereinId: string): Promis
   return liste;
 }
 
-// Ordnet ein Team einer Zusatzquelle (sport.de: Slug, ndr.de: "name:<slug>") einem BESTEHENDEN Verein zu — legt nie einen Verein an. Ein Team gehört genau einem Verein;
+// Ordnet ein Team einer Zusatzquelle (ndr.de: "name:<slug>") einem BESTEHENDEN Verein zu — legt nie einen Verein an. Ein Team gehört genau einem Verein;
 // ist es schon einem anderen zugeordnet, wird nichts geändert und die Zuordnung gemeldet.
 export async function verknuepfeExternesTeam(
   db: LigaDb,
-  quelle: "sportde" | "ndr",
+  quelle: "ndr",
   ligaVereinId: string,
   team: { externalId: string; code?: string | null; name?: string | null }
 ): Promise<{ ok: true } | { ok: false; grund: string }> {
@@ -43,5 +43,3 @@ export async function verknuepfeExternesTeam(
   return { ok: true };
 }
 
-export const verknuepfeSportDeTeam = (db: LigaDb, ligaVereinId: string, team: { externalId: string; code?: string | null; name?: string | null }) =>
-  verknuepfeExternesTeam(db, "sportde", ligaVereinId, team);

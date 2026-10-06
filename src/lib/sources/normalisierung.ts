@@ -1,11 +1,10 @@
 import type { ligaGruppen, ligaSpiele } from "@/db/schema";
 import { berlinOffset } from "@/lib/format";
 import type { Match, MatchStatus } from "./match";
-import type { SportDeSpiel } from "./sportde/types";
-import { vollUrl } from "./sportde/urls";
+import type { QuellSpiel } from "./spieltag/types";
 
 // Normalisierung der drei Quellen auf EIN Spiel-Modell (`Match`). nuLiga/handball.net werden aus den bereits
-// gespeicherten liga_*-Zeilen normalisiert (deren Parser bleiben unverändert), sport.de (1./2. HBL) aus der Zwischenform des Adapters.
+// gespeicherten liga_*-Zeilen normalisiert (deren Parser bleiben unverändert), ndr.de (1./2. HBL) aus der Zwischenform des Adapters.
 
 type SpielZeile = typeof ligaSpiele.$inferSelect;
 type GruppeZeile = Pick<typeof ligaGruppen.$inferSelect, "nuligaGroupId" | "ligaName" | "saison">;
@@ -54,14 +53,14 @@ function ausZeile(s: SpielZeile, g: GruppeZeile, source: "nuliga" | "handball-ne
 export const normalizeNuligaMatch = (s: SpielZeile, g: GruppeZeile): Match => ausZeile(s, g, "nuliga");
 export const normalizeHandballNetMatch = (s: SpielZeile, g: GruppeZeile): Match => ausZeile(s, g, "handball-net");
 
-export function normalizeSportDeMatch(
-  s: SportDeSpiel,
-  k: { competitionId: string; competitionName: string; season: string; logos?: Map<string, string>; source?: "sportde" | "ndr" }
+export function normalizeNdrMatch(
+  s: QuellSpiel,
+  k: { competitionId: string; competitionName: string; season: string; logos?: Map<string, string> }
 ): Match {
   const datum = s.datum ?? "1970-01-01";
   return {
-    id: `${k.source ?? "sportde"}:${s.externalMatchId}`,
-    source: k.source ?? "sportde",
+    id: `ndr:${s.externalMatchId}`,
+    source: "ndr",
     externalMatchId: s.externalMatchId,
     competitionId: k.competitionId,
     competitionName: k.competitionName,
@@ -77,6 +76,6 @@ export function normalizeSportDeMatch(
     halftimeHomeScore: s.halftimeHomeScore ?? undefined,
     halftimeAwayScore: s.halftimeAwayScore ?? undefined,
     venue: s.venue ?? undefined,
-    sourceUrl: s.sourceUrl ?? (s.matchPfad ? vollUrl(s.matchPfad) : undefined),
+    sourceUrl: s.sourceUrl ?? undefined,
   };
 }

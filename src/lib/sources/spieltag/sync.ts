@@ -14,36 +14,23 @@ import { normalisiereMannschaft } from "@/lib/nuliga/normalisierung";
 import type { LigaDb, SyncErgebnis } from "@/lib/nuliga/sync";
 import { spielGeaendert, type SpielFelder } from "@/lib/nuliga/sync-hilfen";
 import type { SpielStatus } from "@/lib/nuliga/types";
-import { SPORTDE_LIGEN, type MatchStatus, type SportDeLiga } from "../match";
-import { parseSpieltagSeite } from "./schedule-parser";
-import type { HoleSeite, SportDeSpiel, SportDeTabellenzeile, SportDeTeam } from "./types";
-import { spieltagPfad, vollUrl } from "./urls";
+import { BUNDESLIGEN, type MatchStatus, type BundesLiga } from "../match";
+import type { HoleSeite, QuellSpiel, QuellTabellenzeile, QuellTeam } from "./types";
 
-// Synchronisation der Quelle sport.de (1./2. Handball-Bundesliga) -> liga_*-Tabellen. Je LIGA und Saison (nicht je Verein): die Tabelle
+// Synchronisation einer Spieltagsseiten-Quelle (ndr.de, 1./2. Handball-Bundesliga) -> liga_*-Tabellen. Je LIGA und Saison (nicht je Verein): die Tabelle
 // enthält alle Teams, Spiele und Teilnahmen aber nur die der Teams, die über `liga_externe_identitaet` einem BESTEHENDEN Verein zugeordnet
 // sind (nie ein automatisch neuer Verein). Idempotent und fehlertolerant: eine unlesbare Seite ändert nichts (nur der Abruf-Status in
 // `liga_quelle_abruf`), vorhandene Daten werden nie gelöscht, nur weil eine Seite einmal ausfällt. Schonend: nur FÄLLIGE Spieltagsseiten
 // werden geholt (siehe `rundeFaellig`), nicht alle 34 bei jedem Lauf. Unabhängig von nuLiga/handball.net.
 
-export const SPORTDE_VERBAND = "SPORTDE";
-export const SPORTDE_QUELLE = "sportde";
-
-// Der Sync ist für alle Spieltagsseiten-Quellen derselbe (sport.de, Sportschau); das Profil legt fest, wie die Quelle heißt, wie ihre
+// Der Sync ist für alle Spieltagsseiten-Quellen derselbe (derzeit nur ndr.de); das Profil legt fest, wie die Quelle heißt, wie ihre
 // Seiten adressiert und gelesen werden. Gruppen, Abruf-Status und Team-Zuordnungen sind je `quelle` getrennt.
 export type SyncProfil = {
-  quelle: string; // "sportde" | "sportschau": liga_gruppe.quelle, liga_spiel.quelle, liga_externe_identitaet.quelle, liga_quelle_abruf.quelle
+  quelle: string; // liga_gruppe.quelle, liga_spiel.quelle, liga_externe_identitaet.quelle, liga_quelle_abruf.quelle
   verband: string; // liga_gruppe.verband
-  spieltagPfad: (liga: SportDeLiga, spieltag: number) => string;
+  spieltagPfad: (liga: BundesLiga, spieltag: number) => string;
   vollUrl: (pfad: string) => string;
-  parse: (html: string, k: { liga: SportDeLiga; saison: string; spieltag: number }) => ReturnType<typeof parseSpieltagSeite>;
-};
-
-export const SPORTDE_SYNC_PROFIL: SyncProfil = {
-  quelle: SPORTDE_QUELLE,
-  verband: SPORTDE_VERBAND,
-  spieltagPfad,
-  vollUrl,
-  parse: (html, k) => parseSpieltagSeite(html, k),
+  parse: (html: string, k: { liga: BundesLiga; saison: string; spieltag: number }) => { spiele: QuellSpiel[]; tabelle: QuellTabellenzeile[]; teams: QuellTeam[]; warnungen: string[] };
 };
 
 // zuordnung = Stand der Team-Zuordnungen beim Abruf: wird ein Team später zugeordnet, müssen bereits geholte Seiten erneut gelesen werden, damit seine
@@ -52,7 +39,7 @@ export type RundenMeta = { erstes: string | null; letztes: string | null; begonn
 
 const BEGONNEN: MatchStatus[] = ["finished", "live", "halftime", "interrupted"];
 
-export function berechneRundenMeta(spiele: SportDeSpiel[]): RundenMeta {
+export function berechneRundenMeta(spiele: QuellSpiel[]): RundenMeta {
   const daten = spiele.map((s) => s.datum).filter((d): d is string => !!d).sort();
   return {
     erstes: daten[0] ?? null,
@@ -96,17 +83,17 @@ export function rundeFaellig(a: { letzterErfolgAm: Date | null; meta: RundenMeta
 
 const RANG: Record<FaelligGrund, number> = { heiss: 0, nie: 1, voll: 1, offen: 2, ruhig: 3 };
 
-export type SportDeSyncOptionen = {
+export type SpieltagSyncOptionen = {
   db: LigaDb;
   hole: HoleSeite;
-  liga: SportDeLiga;
+  liga: BundesLiga;
   saison: string; // "2025/26"
   jetzt?: Date;
   frist?: number; // Zeitpunkt (ms), bis zu dem neue Seiten angefangen werden dürfen
   voll?: boolean; // alle Spieltagsseiten neu holen
   nurTabelle?: boolean; // nur die Tabellenseite (z.B. zum Auflisten der Teams vor der Zuordnung)
   maxSeiten?: number;
-  profil?: SyncProfil; // Standard: sport.de
+  profil: SyncProfil;
 };
 
 const excluded = (spalte: AnyPgColumn) => sql`excluded.${sql.identifier(spalte.name)}`;
@@ -118,7 +105,7 @@ export function ligaStatus(status: MatchStatus): SpielStatus {
   return "geplant"; // geplant, läuft, Pause, unterbrochen: Zwischenstände zeigt die Anzeige nie als Ergebnis
 }
 
-export function sportDeSpielFelder(s: SportDeSpiel): SpielFelder & { spieltag: number | null } {
+export function quellSpielFelder(s: QuellSpiel): SpielFelder & { spieltag: number | null } {
   const status: MatchStatus = s.status ?? "scheduled";
   const hatStand = s.homeScore !== null && s.awayScore !== null;
   // Vor dem Anwurf ist ein "0:0" nur der Platzhalter — dann kein Ergebnis speichern.
@@ -185,14 +172,14 @@ async function sorgeFuerMannschaft(db: LigaDb, ligaVereinId: string, saison: str
 }
 const slugKurz = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-type GeholteRunde = { runde: number; spiele: SportDeSpiel[]; tabelle: SportDeTabellenzeile[]; teams: SportDeTeam[] };
+type GeholteRunde = { runde: number; spiele: QuellSpiel[]; tabelle: QuellTabellenzeile[]; teams: QuellTeam[] };
 
-export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<SyncErgebnis> {
+export async function synchronisiereSpieltage(opt: SpieltagSyncOptionen): Promise<SyncErgebnis> {
   const { db, hole, liga, saison, jetzt = new Date(), voll = false, nurTabelle = false } = opt;
-  const pf = opt.profil ?? SPORTDE_SYNC_PROFIL;
+  const pf = opt.profil;
   const frist = opt.frist ?? Date.now() + 45_000;
   const maxSeiten = opt.maxSeiten ?? 40;
-  const meta = SPORTDE_LIGEN[liga];
+  const meta = BUNDESLIGEN[liga];
   let anfragen = 0;
   let neu = 0;
   let aktualisiert = 0;
@@ -283,7 +270,7 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
 
   // Tabelle: die Seite des aktuellsten begonnenen Spieltags (nicht 34-mal importieren)
   const tabellenRunde = hoechsteBegonnene();
-  let tabelle: SportDeTabellenzeile[] | null = geholt.get(tabellenRunde)?.tabelle ?? null;
+  let tabelle: QuellTabellenzeile[] | null = geholt.get(tabellenRunde)?.tabelle ?? null;
   if (!tabelle || tabelle.length === 0) {
     const frisch = gruppe.tabelleSynchronisiertAm !== null && jetzt.getTime() - gruppe.tabelleSynchronisiertAm.getTime() < 15 * MIN;
     if (!frisch && !geholt.has(tabellenRunde) && (await ladeRunde(tabellenRunde))) tabelle = geholt.get(tabellenRunde)?.tabelle ?? null;
@@ -296,7 +283,7 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
   }
 
   // Teams (aus allen gelesenen Seiten; die Tabellenseite liefert alle Teams der Liga)
-  const teams = new Map<string, SportDeTeam>();
+  const teams = new Map<string, QuellTeam>();
   for (const g of geholt.values()) for (const t of g.teams) teams.set(t.externalId, { ...(teams.get(t.externalId) ?? t), ...t, logoUrl: t.logoUrl ?? teams.get(t.externalId)?.logoUrl ?? null });
 
   // Tabelle speichern
@@ -364,7 +351,7 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
     }
   }
 
-  // Spiele der zugeordneten Teams (Schlüssel: Gruppe + sport.de-Match-ID als spielcode)
+  // Spiele der zugeordneten Teams (Schlüssel: Gruppe + Spiel-Schlüssel als spielcode)
   const meine = new Set(zugeordnet);
   const gueltig = alleSpiele.filter((s) => s.datum);
   const eigene = gueltig.filter((s) => meine.has(s.home.externalId) || meine.has(s.away.externalId));
@@ -378,7 +365,7 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
   const nachCode = new Map(bestehende.map((b) => [b.spielcode, b]));
   const zuSchreiben: (typeof ligaSpiele.$inferInsert)[] = [];
   for (const s of eigene) {
-    const felder = sportDeSpielFelder(s);
+    const felder = quellSpielFelder(s);
     const alt = nachCode.get(s.externalMatchId);
     const { spieltag, ...ohneSpieltag } = felder;
     if (alt && !spielGeaendert({ ...alt } as SpielFelder, ohneSpieltag) && alt.spieltag === spieltag) continue;
@@ -396,7 +383,7 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
         set: { ...Object.fromEntries(spalten.map((c) => [c, excluded(ligaSpiele[c as keyof typeof ligaSpiele] as never)])), synchronisiertAm: new Date() },
       });
   }
-  // Künftige Spiele der zugeordneten Teams aus den JETZT gelesenen Spieltagen, die sport.de dort nicht mehr führt, entfernen (andere Spieltage
+  // Künftige Spiele der zugeordneten Teams aus den JETZT gelesenen Spieltagen, die die Quelle dort nicht mehr führt, entfernen (andere Spieltage
   // und ein ausgefallener Abruf lassen die vorhandenen Daten unberührt).
   const gelesenRunden = [...geholt.keys()];
   const alleCodes = gueltig.map((s) => s.externalMatchId);

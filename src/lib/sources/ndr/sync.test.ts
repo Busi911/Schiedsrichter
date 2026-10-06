@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
 import { legeLigaVereinAn } from "@/lib/nuliga/sync";
 import { verknuepfeExternesTeam } from "../identitaet";
-import { synchronisiereSportDe } from "../sportde/sync";
+import { synchronisiereSpieltage } from "../spieltag/sync";
 import { ndrSyncProfil } from "./sync-profil";
 
 const HBL2 = readFileSync(path.join(__dirname, "__fixtures__", "hbl2-saison.html"), "utf8");
@@ -27,7 +27,7 @@ describe.skipIf(!ADMIN_URL)("ndr-Sync (Postgres)", () => {
     return HBL2;
   };
   const lauf = (extra: { nurTabelle?: boolean; maxSeiten?: number } = {}) =>
-    synchronisiereSportDe({ db, hole, liga: "hbl2", saison: "2026/27", jetzt, profil: ndrSyncProfil(2026), maxSeiten: 8, ...extra });
+    synchronisiereSpieltage({ db, hole, liga: "hbl2", saison: "2026/27", jetzt, profil: ndrSyncProfil(2026), maxSeiten: 8, ...extra });
   const raeumeAuf = async () => {
     await db.delete(schema.ligaVereine);
     await db.delete(schema.ligaGruppen);
@@ -67,7 +67,5 @@ describe.skipIf(!ADMIN_URL)("ndr-Sync (Postgres)", () => {
     expect(spiele[0]).toMatchObject({ spielcode: "hbl2-2026-27-md6-tusem-essen_dhfk-leipzig", quelle: "ndr", toreHeim: 32, toreGast: 35, halbzeitHeim: 14, halbzeitGast: 19, ergebnisBestaetigt: true, status: "gespielt", spieltag: 6, berichtUrl: null });
     const zweiter = await lauf();
     expect(zweiter.aktualisiert).toBe(0);
-    // sport.de-Daten bleiben getrennt
-    expect(await db.query.ligaGruppen.findFirst({ where: eq(schema.ligaGruppen.verband, "SPORTDE") })).toBeUndefined();
   });
 });
