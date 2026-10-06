@@ -521,7 +521,7 @@ wie bisher über den Namen (`findeMannschaft`); bereits angelegte Liga-Termine o
 **Starthilfe für bereits registrierte Vereine (`/system/gesundheit`):** Aktive Vereine ohne öffentliche Seite (Einrichtungspunkt "Öffentliche Seite" fehlt) bekommen auf ihrer Gesundheits-Karte Vorschläge aus dem nuLiga-Index
 (`findeIndexKandidaten`/`suchbegriffeAusVereinsname`, ohne schon vergebene club-IDs) mit "Importieren" (`starthilfeImportieren`, Rückfrage). Es läuft derselbe Ablauf wie bei "Automatisch einrichten"
 (`lib/nuliga/einrichtung.ts` `fuehreNuligaEinrichtungAus`, geteilt) — OHNE Treuhand-Zugriff (nur adminDb), still (keine Mail) und nicht zerstörend: vorhandene Spielhallen werden nie überschrieben, Mannschaften nur nach den Regeln aus
-`mannschaften-anlegen.ts`, ein eigenes Logo bleibt, Protokoll "starthilfe_nuliga". Ergebnis als Checkliste (`components/einrichtungs-checkliste.tsx`) oben auf der Gesundheitsseite.
+`mannschaften-anlegen.ts`, ein eigenes Logo bleibt, Protokoll "starthilfe_nuliga". Ergebnis als Checkliste (`components/einrichtungs-checkliste.tsx`) oben auf der Gesundheitsseite. Der gemeinsame Ablauf schaltet `vereine.liga_uebernahme_aktiv` selbst ein (Protokoll `liga_uebernahme_an`), außer der Verein hat schon Termine aus dem Hallenplan-Import (`ics_uid` `rundenspiel:%`) — dann bleibt sie aus und die Checkliste verweist auf `/system/abgleich`.
 
 ## Dritte Quelle: HBL (1./2. Handball-Bundesliga) — öffentliche HTML-Seiten, Parser UNVERIFIZIERT
 
