@@ -23,6 +23,7 @@ import {
   vereinsdatenSpeichern,
 } from "./actions";
 import { ChevronDown } from "lucide-react";
+import { parseHallenNamen } from "@/lib/hallenplan-abgleich";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -411,11 +412,11 @@ export default async function EinstellungenPage({
               <textarea
                 id="eigeneHallenNamen"
                 name="eigeneHallenNamen"
-                rows={2}
+                rows={Math.max(3, parseHallenNamen(verein?.eigeneHallenNamen).length + 1)}
                 maxLength={500}
                 aria-label="Namen eurer Spielhallen"
                 placeholder={"z.B. Sporthalle Heuchelheim\nHalle am Seebach"}
-                defaultValue={verein?.eigeneHallenNamen ?? ""}
+                defaultValue={parseHallenNamen(verein?.eigeneHallenNamen).join("\n")}
                 className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
               <p className="text-xs text-muted-foreground">
