@@ -74,7 +74,7 @@ export default async function AdminLayout({
               Logout-Button unten neben den Badges (gleiche Zeile wie Nav),
               hier bleibt dann nur der Vereinsname übrig. */}
           <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-start">
-            <div className="flex items-center gap-3">
+            <Link href="/profil" className="flex min-w-0 items-center gap-3" aria-label="Mein Profil">
               <Logo className="size-8 shrink-0 text-primary" />
               <div>
                 <p className="font-heading text-lg font-semibold">
@@ -87,30 +87,38 @@ export default async function AdminLayout({
                   · {session.user.name ?? session.user.email}
                 </p>
               </div>
-            </div>
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/login" });
-              }}
-              className="md:hidden"
-            >
-              <SubmitButton
-                variant="outline"
-                size="icon-sm"
-                aria-label="Logout"
-                pendingText=""
+            </Link>
+            {/* Mobil: Profil = Tipp auf den Namen, Hilfe liegt unter "Mehr" —
+                oben bleiben nur Feedback und Logout. */}
+            <div className="flex shrink-0 items-center gap-2 md:hidden">
+              <FeedbackDialog />
+              <form
+                action={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/login" });
+                }}
               >
-                <LogOutIcon />
-              </SubmitButton>
-            </form>
+                <SubmitButton
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Logout"
+                  pendingText=""
+                >
+                  <LogOutIcon />
+                </SubmitButton>
+              </form>
+            </div>
           </div>
           <AdminNav />
           {/* Auf Mobile eine eigene, sonst leer wirkende Zeile (Nav ist dort
               hinter dem Hamburger versteckt) — dort zentriert statt wie auf
               Desktop (wo sie neben der Nav steht) am linken Rand mit viel
               Leerraum rechts danach. */}
-          <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
+          <div
+            className={`flex-wrap items-center justify-center gap-2 md:flex md:justify-start ${
+              offeneDiensteAnzahl > 0 || offeneSchiedsrichterAnzahl > 0 ? "flex" : "hidden"
+            }`}
+          >
             {offeneDiensteAnzahl > 0 && (
               <Link href="/admin/dienste">
                 <Badge variant="warning">{offeneDiensteAnzahl} Dienste offen</Badge>
@@ -134,13 +142,18 @@ export default async function AdminLayout({
             <Button
               variant="outline"
               size="sm"
+              className="hidden md:inline-flex"
               render={<Link href="/profil" />}
               nativeButton={false}
             >
               Mein Profil
             </Button>
-            <HilfeLink />
-            <FeedbackDialog />
+            <div className="hidden md:block">
+              <HilfeLink />
+            </div>
+            <div className="hidden md:block">
+              <FeedbackDialog />
+            </div>
             <form
               action={async () => {
                 "use server";
