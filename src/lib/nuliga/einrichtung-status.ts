@@ -15,6 +15,8 @@ export type EinrichtungsBefund = {
   syncUnvollstaendig: boolean;
   syncMeldungen: string[];
   mannschaften: number;
+  // Als Mannschaften des Vereins angelegt (aus den geladenen Liga-Mannschaften); null = nicht ermittelt.
+  mannschaftenAngelegt?: number | null;
   termineAngelegt: number | null;
   logo: LogoErgebnis | null;
   logoSicher: boolean;
@@ -49,7 +51,7 @@ export function bewerteEinrichtung(b: EinrichtungsBefund): EinrichtungsSchritt[]
       "mannschaften",
       "Mannschaften geladen",
       b.syncUnvollstaendig ? "pruefen" : "ok",
-      `${b.mannschaften} Mannschaften${b.syncUnvollstaendig ? " — Lauf unvollständig, setzt der Cron fort" : ""}`
+      `${b.mannschaften} Mannschaften${b.mannschaftenAngelegt ? `, ${b.mannschaftenAngelegt} als Vereins-Mannschaften angelegt` : ""}${b.syncUnvollstaendig ? " — Lauf unvollständig, setzt der Cron fort" : ""}`
     );
   }
 

@@ -304,6 +304,10 @@ export const mannschaften = pgTable("mannschaft", {
     .references(() => vereine.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   altersklasse: text("altersklasse"),
+  // Verknüpfung zur öffentlichen Liga-Mannschaft (nuLiga/handball.net), falls diese Mannschaft daraus automatisch angelegt oder
+  // zugeordnet wurde (lib/nuliga/mannschaften-anlegen.ts). Exakte Zuordnung von Spielen statt über den Namen; fällt weg, wenn die
+  // Liga-Mannschaft gelöscht wird.
+  ligaMannschaftId: uuid("liga_mannschaft_id").references((): AnyPgColumn => ligaMannschaften.id, { onDelete: "set null" }),
   // Ab der 3. Liga läuft der Spielbetrieb zentral über handball.net statt
   // über die (Landesverbands-)nuLiga-Instanz (siehe
   // src/lib/handball-net-scraper.ts) — dort gibt es keine Hallen-, sondern

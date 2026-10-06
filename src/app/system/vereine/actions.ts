@@ -21,6 +21,7 @@ import { uebergabeInhalt } from "@/lib/uebergabe-mail";
 import { holeNuligaBild, holeNuligaHtml, holeNuligaSeiteMitKontext, type SeitenKontext } from "@/lib/nuliga/client";
 import { uebernehmeNuligaLogo, type LogoErgebnis } from "@/lib/nuliga/logo";
 import { speichereStammdaten } from "@/lib/nuliga/stammdaten";
+import { legeVereinsMannschaftenAn } from "@/lib/nuliga/mannschaften-anlegen";
 import { baueNuligaUrl } from "@/lib/nuliga/verbaende";
 import { parseVereinsInfo } from "@/lib/nuliga/parsers/vereinsinfo";
 import { aktualisiereVereinsindex } from "@/lib/nuliga/vereinsindex";
@@ -208,6 +209,9 @@ export async function vereinAusNuligaEinrichten(formData: FormData) {
   });
   const [{ anzahl }] = await adminDb.select({ anzahl: count() }).from(ligaMannschaften).where(eq(ligaMannschaften.ligaVereinId, ligaVerein.id));
 
+  // Die geladenen Liga-Mannschaften gleich als Mannschaften des Vereins anlegen (aktiv, mit exaktem Verweis auf die Liga-Mannschaft).
+  const mannschaftenErgebnis = await legeVereinsMannschaftenAn(adminDb, vereinId);
+
   let termineAngelegt: number | null = null;
   if (hallen.length > 0 && Date.now() < start + 45_000) {
     try {
@@ -227,6 +231,7 @@ export async function vereinAusNuligaEinrichten(formData: FormData) {
     syncUnvollstaendig: sync.unvollstaendig,
     syncMeldungen: sync.meldungen,
     mannschaften: anzahl,
+    mannschaftenAngelegt: mannschaftenErgebnis.angelegt,
     termineAngelegt,
     logo,
     logoSicher: info?.logoSicher ?? false,

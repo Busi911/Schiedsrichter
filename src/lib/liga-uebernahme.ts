@@ -7,6 +7,7 @@ import { uebernehmeAenderungen } from "@/lib/liga-aenderungen";
 import { findeMannschaft, type RundenspielEreignis } from "@/lib/rundenspiel-import";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { schreibeProtokoll } from "@/lib/treuhand";
+import { baueMannschaftsAufloeser, legeVereinsMannschaftenAn, verknuepfeTermineMitMannschaften } from "@/lib/nuliga/mannschaften-anlegen";
 
 // Präfix der icsUid von Terminen, die aus den öffentlichen Liga-Daten entstehen.
 // Bewusst NICHT "rundenspiel:" — die Aufräumlogik des Hallenplan-Imports
@@ -52,6 +53,10 @@ export async function uebernehmeLigaSpiele(
   akteur: string,
   jetzt = new Date()
 ): Promise<UebernahmeErgebnis> {
+  // Mannschaften des Vereins aus den Liga-Mannschaften anlegen (nur für Vereine ohne eigene, unverknüpfte Mannschaften) und
+  // bereits angelegte Liga-Termine ohne Mannschaft nachträglich zuordnen — VOR dem Anlegen neuer Termine.
+  await legeVereinsMannschaftenAn(adminDb, vereinId);
+  await verknuepfeTermineMitMannschaften(adminDb, vereinId);
   const zuordnungenVorher = await zaehleZuordnungen(vereinId);
   const { sichere, neuSpiele } = await ermittleUebernahmeBasis(vereinId);
 
@@ -106,6 +111,7 @@ export async function uebernehmeLigaSpiele(
         .where(and(eq(termine.vereinId, vereinId), like(termine.icsUid, `${LIGA_UID_PRAEFIX}%`)))
     ).map((t) => t.uid)
   );
+  const mannschaftAufloeser = await baueMannschaftsAufloeser(adminDb, vereinId);
   let angelegt = 0;
   let uebersprungenOhneZeit = 0;
   for (const { spiel, kategorie } of neuSpiele) {
@@ -116,10 +122,13 @@ export async function uebernehmeLigaSpiele(
       uebersprungenOhneZeit++;
       continue;
     }
-    const mannschaftId = findeMannschaft(
-      { heimMannschaft: spiel.heimName, auswaertsMannschaft: spiel.gastName, kategorie } as RundenspielEreignis,
-      mannschaftsListe
-    );
+    // Exakt über die Teamtable-ID der verknüpften Liga-Mannschaft, sonst wie bisher über den Namen.
+    const mannschaftId =
+      mannschaftAufloeser(spiel) ??
+      findeMannschaft(
+        { heimMannschaft: spiel.heimName, auswaertsMannschaft: spiel.gastName, kategorie } as RundenspielEreignis,
+        mannschaftsListe
+      );
     const gefuegt = await adminDb
       .insert(termine)
       .values({
