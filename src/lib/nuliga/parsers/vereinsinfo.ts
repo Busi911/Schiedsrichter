@@ -1,4 +1,4 @@
-import { attribut, tabellen, textVon, zeilen, zellen } from "../html";
+import { attribut, ersteH1, tabellen, textVon, zeilen, zellen } from "../html";
 import type { ParseErgebnis, VereinsInfo } from "../types";
 
 // clubInfoDisplay: Stammdaten als Zeilen "Beschriftung | Wert". Gelesen wird NUR, was unten ausdrücklich
@@ -8,8 +8,8 @@ export function parseVereinsInfo(html: string): ParseErgebnis<VereinsInfo> {
   const warnungen: string[] = [];
   const info: VereinsInfo = { name: null, nummer: null, gruendung: null, website: null, stammvereine: [], hallen: [], hallenNummern: {}, logoPfad: null, logoSicher: false };
 
-  const h1 = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
-  if (h1) info.name = textVon(h1[1]) || null;
+  // Die <h1> trägt mehrere Zeilen: zuerst der Verband ("Hessischer Handball-Verband e.V."), zuletzt der Verein.
+  info.name = ersteH1(html).at(-1) ?? null;
 
   for (const tabelle of tabellen(html)) {
     for (const zeile of zeilen(tabelle)) {
@@ -33,6 +33,16 @@ export function parseVereinsInfo(html: string): ParseErgebnis<VereinsInfo> {
       }
     }
   }
+
+  // Stammdaten außerhalb von Zwei-Spalten-Tabellen (nuLiga mischt Überschriften, Textknoten, Links, Listen): über die
+  // BESCHRIFTUNG im sichtbaren Text suchen ("VNr. 14175", "Gründungsjahr 1965", "Website www.…") — egal in welchem Markup.
+  const sichtbar = textVon(html.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, " "));
+  if (!info.nummer) info.nummer = sichtbar.match(/\b(?:VNr\.?|Vereinsnummer|Vereins-Nr\.?)\s*:?\s*(\d{3,7})\b/i)?.[1] ?? null;
+  if (!info.gruendung) {
+    const j = sichtbar.match(/\bGr(?:ü|ue)ndungsjahr\s*:?\s*((?:18|19|20)\d{2})\b/i)?.[1] ?? sichtbar.match(/\bgegr(?:ü|ue)ndet\s*:?\s*((?:18|19|20)\d{2})\b/i)?.[1];
+    if (j) info.gruendung = Number(j);
+  }
+  if (!info.website) info.website = websiteAusText(sichtbar);
 
   // Hallen: kein Tabellenfeld, sondern ein eigener Abschnitt (Überschrift "Hallen" + Liste von Links).
   const hallen = findeHallen(html);
@@ -128,4 +138,19 @@ export function findeHallen(html: string): { gefunden: boolean; rohtexte: string
     if (eintraege.length > 0) return { gefunden: true, rohtexte, eintraege };
   }
   return { gefunden, rohtexte: [], eintraege: [] };
+}
+
+// "Website www.tus-vollnkirchen.de" / "Homepage: https://…" -> "https://www.tus-vollnkirchen.de". nuLiga-eigene Adressen zählen nie.
+function websiteAusText(sichtbar: string): string | null {
+  const m = sichtbar.match(/\b(?:Website|Homepage|Webseite|Internet)\s*:?\s*((?:https?:\/\/)?(?:[a-z0-9äöüß-]+\.)+[a-z]{2,}(?:\/[^\s"<>]*)?)/i);
+  if (!m) return null;
+  const roh = m[1].replace(/[.,;)]+$/, "");
+  const url = /^https?:\/\//i.test(roh) ? roh : `https://${roh}`;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.endsWith("liga.nu") || host.endsWith("handball.net")) return null;
+    return url;
+  } catch {
+    return null;
+  }
 }

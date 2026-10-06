@@ -8,7 +8,11 @@ import { istErlaubteNuligaBildUrl } from "./verbaende";
 // Der Abruf ist als Funktion injizierbar (HoleHtml), damit der Sync ohne
 // Netzwerk getestet werden kann.
 export type HoleHtml = (url: string) => Promise<string>;
-export type HoleBild = (url: string) => Promise<{ daten: Buffer; contentType: string; mime?: string }>;
+// Kontext der Vereinsseite, auf der das Bild eingebunden ist: nuLiga (WebObjects) liefert ein `wr?wodata=…`-Bild nur im
+// Zusammenhang mit der Seite aus — ohne die Cookies der Vereinsseite (Sitzungs-/Routing-Cookies) antwortet es mit
+// 200 und 0 Bytes (Diagnose club=76446: ohne Cookie 0 Bytes, mit Cookie + Referer ein 17-KB-PNG).
+export type SeitenKontext = { cookie: string; referer: string };
+export type HoleBild = (url: string, kontext?: SeitenKontext) => Promise<{ daten: Buffer; contentType: string; mime?: string }>;
 
 const MIN_ABSTAND_MS = Number(process.env.NULIGA_MIN_ABSTAND_MS ?? 1000);
 const TIMEOUT_MS = 20_000;
@@ -24,6 +28,7 @@ const USER_AGENT =
 let letzterRequest = 0;
 
 const BILD_MAX_BYTES = 2 * 1024 * 1024;
+const BILD_ACCEPT = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
 
 function warte(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -59,10 +64,29 @@ export const holeNuligaHtml: HoleHtml = async (url) => {
   throw new Error("nuLiga nicht erreichbar");
 };
 
+// Vereinsseite holen UND die Cookies mitnehmen, die nuLiga dabei setzt — Grundlage für den Bildabruf im selben Zusammenhang.
+// Die Cookies werden nie gespeichert oder angezeigt, nur für den Folgeabruf an denselben (freigegebenen) Host benutzt.
+export async function holeNuligaSeiteMitKontext(url: string): Promise<{ html: string; kontext: SeitenKontext }> {
+  await gedrosselt();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": USER_AGENT, Accept: "text/html,application/xhtml+xml", "Accept-Language": "de-DE,de;q=0.9" },
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const cookie = (response.headers.getSetCookie?.() ?? []).map((c) => c.split(";")[0].trim()).filter(Boolean).join("; ");
+    return { html: await response.text(), kontext: { cookie, referer: response.url || url } };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // Bild (Vereinslogo) von nuLiga holen — gleiche Rücksicht wie beim HTML (Mindestabstand, Timeout), dazu:
 // nur freigegebene Hosts (SSRF), Weiterleitungen nur auf ebenfalls freigegebene URLs (höchstens 2), Content-Type nur
 // als Hinweis, die Magic Bytes entscheiden (nie die URL-Endung), harte Größengrenze beim Lesen.
-export const holeNuligaBild: HoleBild = async (startUrl) => {
+export const holeNuligaBild: HoleBild = async (startUrl, kontext) => {
   let url = startUrl;
   for (let sprung = 0; sprung < 3; sprung++) {
     if (!istErlaubteNuligaBildUrl(url)) throw new Error("Bild-URL nicht erlaubt");
@@ -76,7 +100,13 @@ export const holeNuligaBild: HoleBild = async (startUrl) => {
       const response = await fetch(url, {
         signal: controller.signal,
         redirect: "manual",
-        headers: { "User-Agent": USER_AGENT, Accept: "image/*" },
+        // Ehrlicher User-Agent bleibt (Absprache mit dem HHV); mit Kontext zusätzlich Cookies + Referer der Vereinsseite.
+        headers: {
+          "User-Agent": USER_AGENT,
+          Accept: BILD_ACCEPT,
+          ...(kontext?.cookie ? { Cookie: kontext.cookie } : {}),
+          ...(kontext?.referer ? { Referer: kontext.referer } : {}),
+        },
       });
       if (response.status >= 300 && response.status < 400) {
         const ziel = response.headers.get("location");
@@ -202,7 +232,7 @@ export async function diagnoseNuligaBild(startUrl: string, variante: string, opt
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
       try {
-        const headers: Record<string, string> = { "User-Agent": opt.browserHeader ? BROWSER_UA : USER_AGENT, Accept: opt.browserHeader ? BROWSER_ACCEPT : "image/*,*/*;q=0.8" };
+        const headers: Record<string, string> = { "User-Agent": opt.browserHeader ? BROWSER_UA : USER_AGENT, Accept: opt.browserHeader || opt.cookie || opt.referer ? BROWSER_ACCEPT : "image/*,*/*;q=0.8" };
         if (opt.cookie) headers.Cookie = opt.cookie;
         if (opt.referer) headers.Referer = opt.referer;
         const response = await fetch(url, { signal: controller.signal, redirect: "manual", headers });

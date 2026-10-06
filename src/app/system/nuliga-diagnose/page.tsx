@@ -74,13 +74,15 @@ export default async function NuligaDiagnosePage({ searchParams }: { searchParam
   const hallen = seite && seite.html ? findeHallen(seite.html) : null;
   const info = geparst?.daten ?? null;
 
-  // Logo: zwei Abrufe zum Vergleich — wie der echte Download (ehrlicher User-Agent, keine Cookies) und wie ein Browser
-  // (Browser-User-Agent, Accept, Referer = Vereinsseite, Cookies der Vereinsseite).
+  // Logo: vier Abrufe zum Eingrenzen — A ohne alles, C nur Cookies, D Cookies + Referer (= echter Import), B wie ein Browser.
   const logoUrl = info?.logoPfad ? absoluteNuligaUrl("HHV", info.logoPfad) : null;
   const bilder: BildDiagnose[] = [];
   if (logoUrl && seite) {
     bilder.push(await diagnoseNuligaBild(logoUrl, "A) wie der echte Download (ohne Cookies, ohne Referer)"));
-    bilder.push(await diagnoseNuligaBild(logoUrl, "B) wie ein Browser (Browser-User-Agent, Referer = Vereinsseite, Cookies der Vereinsseite)", { browserHeader: true, referer: seite.finalUrl ?? seite.url, cookie: seite.cookieHeader }));
+    const referer = seite.finalUrl ?? seite.url;
+    bilder.push(await diagnoseNuligaBild(logoUrl, "C) ehrlicher User-Agent + nur Cookies der Vereinsseite", { cookie: seite.cookieHeader }));
+    bilder.push(await diagnoseNuligaBild(logoUrl, "D) ehrlicher User-Agent + Cookies + Referer = so lädt der echte Import jetzt", { cookie: seite.cookieHeader, referer }));
+    bilder.push(await diagnoseNuligaBild(logoUrl, "B) wie ein Browser (Browser-User-Agent, Referer, Cookies) — nur zum Vergleich", { browserHeader: true, referer, cookie: seite.cookieHeader }));
   }
 
   const imgTags = seite?.html ? [...seite.html.matchAll(/<img\b[^>]*>/gi)].map((m) => maskierePersonendaten(m[0])).slice(0, 25) : [];
@@ -163,7 +165,7 @@ export default async function NuligaDiagnosePage({ searchParams }: { searchParam
                 {bilder.map((b) => (
                   <BildBlock key={b.variante} b={b} />
                 ))}
-                <p className="text-xs text-muted-foreground">B nutzt den Browser-User-Agent „{BROWSER_UA.slice(0, 40)}…“ nur zum Vergleich in dieser Diagnose, nicht beim echten Download.</p>
+                <p className="text-xs text-muted-foreground">B nutzt den Browser-User-Agent „{BROWSER_UA.slice(0, 40)}…“ nur zum Vergleich in dieser Diagnose, nicht beim echten Import.</p>
               </section>
             </>
           )}

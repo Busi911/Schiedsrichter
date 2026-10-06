@@ -44,6 +44,9 @@ export function beschreibeFormat(daten: Uint8Array): string {
 }
 
 export function beschreibeNichtBild(daten: Uint8Array, contentType: string): string {
+  if (daten.length === 0) {
+    return "Logo-URL lieferte 0 Bytes ohne Content-Type (nuLiga gibt das Bild nur mit den Cookies und dem Referer der Vereinsseite aus)";
+  }
   const format = beschreibeFormat(daten);
   if (format.startsWith("text/html")) {
     const titel = kopf(daten).match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/\s+/g, " ").trim();

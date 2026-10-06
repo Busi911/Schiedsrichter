@@ -24,8 +24,10 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Logo (Postgres)", () => {
   const pfad = "/cgi-bin/WebObjects/nuLigaHBDE.woa/wr?wodata=123";
   const urls: string[] = [];
   let aktuell: Buffer;
-  const holeBild = async (url: string) => {
+  const kontexte: unknown[] = [];
+  const holeBild = async (url: string, kontext?: unknown) => {
     urls.push(url);
+    kontexte.push(kontext);
     return { daten: aktuell, contentType: "image/png" };
   };
   const logo = () => testDb.query.ligaVereinLogos.findFirst({ where: eq(schema.ligaVereinLogos.ligaVereinId, ligaVereinId) });
@@ -46,6 +48,10 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Logo (Postgres)", () => {
     const r = await uebernehmeNuligaLogo({ db: testDb, ligaVereinId, logoPfad: pfad, holeBild });
     expect(r.status).toBe("neu");
     expect(urls).toEqual(["https://hhv-handball.liga.nu" + pfad]);
+    // der Seitenkontext (Cookies/Referer) wird an den Download durchgereicht
+    const r2 = await uebernehmeNuligaLogo({ db: testDb, ligaVereinId, logoPfad: pfad, holeBild, kontext: { cookie: "a=b", referer: "https://x" }, jetzt: new Date(Date.now() + 8 * 864e5) });
+    expect(r2.status).toBe("unveraendert");
+    expect(kontexte.at(-1)).toEqual({ cookie: "a=b", referer: "https://x" });
     const l = (await logo())!;
     expect(l.quelle).toBe("nuliga");
     expect(l.quellHash).toHaveLength(64);

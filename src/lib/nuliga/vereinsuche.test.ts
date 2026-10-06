@@ -123,3 +123,35 @@ describe("Hallen (eigener Abschnitt, keine Tabelle)", () => {
     expect(bereinigeHallenname("Halle (12) Süd").name).toBe("Halle (12) Süd");
   });
 });
+
+// Aus der echten Diagnose (club=76446): Die <h1> trägt Verband UND Verein ("Hessischer Handball-Verband e.V. HSG Linden").
+// Die Seitenstruktur für VNr./Gründungsjahr/Website ist NICHT bekannt — die Parser suchen deshalb über die Beschriftung im
+// sichtbaren Text; die folgenden Varianten sind nachgebaute Möglichkeiten, keine Kopie der echten Seite.
+describe("Stammdaten über Beschriftungen (TUS Vollnkirchen, club 54040)", () => {
+  const erwartet = { name: "TUS Vollnkirchen", nummer: "14175", gruendung: 1965, website: "https://www.tus-vollnkirchen.de" };
+  const kopf = '<h1>Hessischer Handball-Verband e.V.<br />TUS Vollnkirchen</h1>';
+  const varianten: Record<string, string> = {
+    tabelle: `${kopf}<table><tr><td>VNr.</td><td>14175</td></tr><tr><td>Gründungsjahr</td><td>1965</td></tr><tr><td>Website</td><td><a href="http://www.tus-vollnkirchen.de">www.tus-vollnkirchen.de</a></td></tr></table>`,
+    definitionsliste: `${kopf}<dl><dt>VNr.</dt><dd>14175</dd><dt>Gründungsjahr</dt><dd>1965</dd><dt>Website</dt><dd><a href="https://www.tus-vollnkirchen.de/">www.tus-vollnkirchen.de</a></dd></dl>`,
+    textzeilen: `${kopf}<p><b>VNr.</b> 14175<br /><b>Gründungsjahr:</b> 1965<br /><b>Website:</b> <a href="x">www.tus-vollnkirchen.de</a></p>`,
+    ueberschrift: `<h1>Hessischer Handball-Verband e.V.<br />TUS Vollnkirchen</h1><h2>VNr. 14175</h2><div>Gründungsjahr 1965</div><div>Website www.tus-vollnkirchen.de</div>`,
+  };
+  for (const [titel, html] of Object.entries(varianten)) {
+    it(`erkennt Name, VNr., Gründungsjahr und Website (${titel})`, () => {
+      const { daten } = parseVereinsInfo(html);
+      expect(daten.name).toBe(erwartet.name);
+      expect(daten.nummer).toBe(erwartet.nummer);
+      expect(daten.gruendung).toBe(erwartet.gruendung);
+      expect(daten.website?.replace(/\/$/, "")).toBe(erwartet.website.replace("https://", daten.website?.startsWith("http://") ? "http://" : "https://"));
+    });
+  }
+  it("nimmt bei einer einzeiligen <h1> diese Zeile und ignoriert nuLiga-eigene Adressen als Website", () => {
+    const { daten } = parseVereinsInfo("<h1>HSG Linden</h1><p>Website www.hhv-handball.liga.nu</p>");
+    expect(daten.name).toBe("HSG Linden");
+    expect(daten.website).toBeNull();
+  });
+  it("findet bei fehlenden Angaben nichts (kein Raten)", () => {
+    const { daten } = parseVereinsInfo("<h1>X</h1><p>Telefon 0641 123456</p>");
+    expect([daten.nummer, daten.gruendung, daten.website]).toEqual([null, null, null]);
+  });
+});
