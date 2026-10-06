@@ -16,6 +16,10 @@ describe("Vereins-Web-App", () => {
     expect(vereinsInitialen("HSG Hungen/Lich")).toBe("HH");
     expect(vereinsInitialen("Handball e.V.")).toBe("HA");
     expect(vereinsInitialen("")).toBe("H");
+    expect(vereinsInitialen("HSG Linden")).toBe("HL");
+    expect(vereinsInitialen("TSV Griedel")).toBe("TG");
+    expect(vereinsInitialen("TV Hüttenberg")).toBe("TH");
+    expect(vereinsInitialen("HSG Dutenhofen/Münchholzhausen")).toBe("HD");
   });
 
   it("Manifest nutzt die Logo-Farbe und -Version, sonst die Slug-Farbe", () => {

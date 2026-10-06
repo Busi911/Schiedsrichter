@@ -18,6 +18,10 @@
       "schedule": "20 3 * * *"
     },
     {
+      "path": "/api/cron/nuliga-logos",
+      "schedule": "50 3 * * *"
+    },
+    {
       "path": "/api/cron/ics-sync",
       "schedule": "0 4 * * *"
     },

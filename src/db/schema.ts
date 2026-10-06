@@ -929,6 +929,10 @@ export const ligaVereine = pgTable(
     handballNetTeamIds: text("handball_net_team_ids"),
     // Vom Verein selbst gewählter Farbton (0-359) der öffentlichen Seite; null = aus dem Logo bzw. Slug (siehe lib/liga-farbe.ts).
     farbtonEigen: integer("farbton_eigen"),
+    // Automatische Logo-Übernahme aus nuLiga (lib/nuliga/logo.ts): letzte Prüfung (auch ohne Logo, damit nicht
+    // täglich erneut versucht wird) und Abschalter, sobald der Verein sein Logo selbst entfernt hat.
+    logoGeprueftAm: timestamp("logo_geprueft_am", { mode: "date" }),
+    logoAutoAus: boolean("logo_auto_aus").notNull().default(false),
     handballNetSynchronisiertAm: timestamp("handball_net_synchronisiert_am", { mode: "date" }),
     strukturSynchronisiertAm: timestamp("struktur_synchronisiert_am", { mode: "date" }),
     spieleSynchronisiertAm: timestamp("spiele_synchronisiert_am", { mode: "date" }),
@@ -1170,6 +1174,13 @@ export const ligaVereinLogos = pgTable("liga_verein_logo", {
   // (schwarz/weiß/grau), dann gilt die aus dem Slug abgeleitete Farbe.
   farbton: integer("farbton"),
   aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
+  // Herkunft: "upload" (vom Verein hochgeladen, wird nie automatisch überschrieben) oder "nuliga" (automatisch
+  // übernommen). quell_pfad = zuletzt gefundener Bildpfad auf nuLiga (der wodata-Wert ist NICHT stabil), quell_hash =
+  // SHA-256 der heruntergeladenen Originaldatei (erkennt Änderungen ohne erneutes Verarbeiten).
+  quelle: text("quelle").notNull().default("upload"),
+  quellPfad: text("quell_pfad"),
+  quellHash: text("quell_hash"),
+  abgerufenAm: timestamp("abgerufen_am", { mode: "date" }),
 });
 
 // Sponsor eines Vereins (übernimmt die technischen Kosten): kurzes Bild beim Öffnen der öffentlichen Seite

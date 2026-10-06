@@ -65,3 +65,29 @@ export function baueNuligaUrl(
   const query = new URLSearchParams(params).toString();
   return `https://${v.domain}${v.appPfad}/${seite}?${query}`;
 }
+
+// Relative Pfade der Seite ("/cgi-bin/.../wr?wodata=...") zu absoluten URLs des Verbands machen.
+export function absoluteNuligaUrl(verband: string, pfad: string): string {
+  return new URL(pfad, `https://${holeVerband(verband).domain}/`).toString();
+}
+
+// SSRF-Schutz für Bild-Downloads: nur https auf den Hosts der bekannten nuLiga-Verbände, nur die
+// Bilderauslieferung (/wr), kein Benutzername/Port.
+export function istErlaubteNuligaBildUrl(url: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  const hosts = new Set(Object.values(VERBAENDE).map((v) => v.domain));
+  return (
+    u.protocol === "https:" &&
+    hosts.has(u.hostname) &&
+    u.port === "" &&
+    !u.username &&
+    !u.password &&
+    /\/wr$/i.test(u.pathname) &&
+    u.searchParams.has("wodata")
+  );
+}

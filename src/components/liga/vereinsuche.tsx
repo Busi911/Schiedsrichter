@@ -5,8 +5,9 @@ import { useState } from "react";
 import { SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { FavoritStern } from "./favorit-stern";
+import { VereinsAvatar } from "./vereins-avatar";
 
-export type VereinEintrag = { id: string; name: string; slug: string };
+export type VereinEintrag = { id: string; name: string; slug: string; logoAktualisiertAm?: Date | null };
 
 export function Vereinsuche({ vereine }: { vereine: VereinEintrag[] }) {
   const [suche, setSuche] = useState("");
@@ -33,8 +34,9 @@ export function Vereinsuche({ vereine }: { vereine: VereinEintrag[] }) {
               key={v.id}
               className="flex items-center justify-between gap-2 rounded-xl bg-background px-4 py-1 ring-1 ring-foreground/[0.06]"
             >
-              <Link href={`/verein/${v.slug}`} className="min-w-0 flex-1 truncate py-3 font-medium hover:underline">
-                {v.name}
+              <Link href={`/verein/${v.slug}`} className="flex min-w-0 flex-1 items-center gap-3 py-2 font-medium hover:underline">
+                <VereinsAvatar name={v.name} slug={v.slug} logoVersion={v.logoAktualisiertAm ? v.logoAktualisiertAm.getTime() : null} />
+                <span className="truncate">{v.name}</span>
               </Link>
               <FavoritStern typ="verein" id={v.id} label={v.name} />
             </li>

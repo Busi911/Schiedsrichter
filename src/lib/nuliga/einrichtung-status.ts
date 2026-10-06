@@ -1,3 +1,4 @@
+import type { LogoErgebnis } from "./logo";
 import type { VereinsInfo } from "./types";
 
 export type SchrittStatus = "ok" | "pruefen" | "fehler";
@@ -15,6 +16,8 @@ export type EinrichtungsBefund = {
   syncMeldungen: string[];
   mannschaften: number;
   termineAngelegt: number | null;
+  logo: LogoErgebnis | null;
+  logoSicher: boolean;
 };
 
 // Rein: macht aus dem Ergebnis der automatischen Einrichtung die Checkliste für den Systemadmin.
@@ -39,7 +42,7 @@ export function bewerteEinrichtung(b: EinrichtungsBefund): EinrichtungsSchritt[]
     s("hallen", "Spielhallen", "pruefen", "keine erkannt — unter Einstellungen → „Eure Spielhallen“ eintragen");
   }
 
-  if (b.syncStatus === "fehlgeschlagen" || (b.mannschaften === 0 && !b.syncUnvollstaendig)) {
+  if (b.syncStatus === "fehler" || (b.mannschaften === 0 && !b.syncUnvollstaendig)) {
     s("mannschaften", "Mannschaften geladen", "fehler", b.syncMeldungen[0] ?? "keine Mannschaften gefunden");
   } else {
     s(
@@ -56,7 +59,18 @@ export function bewerteEinrichtung(b: EinrichtungsBefund): EinrichtungsSchritt[]
     s("termine", "Termine angelegt", "ok", `${b.termineAngelegt} künftige Heimspiele`);
   }
 
-  s("logo", "Logo", "pruefen", "wird nicht automatisch übernommen — unter Einstellungen hochladen");
+  const l = b.logo;
+  if (!l) {
+    s("logo", "Logo", "pruefen", "nicht geprüft — unter Einstellungen hochladen");
+  } else if (l.status === "neu" || l.status === "aktualisiert" || l.status === "unveraendert") {
+    s("logo", "Logo von nuLiga übernommen", b.logoSicher ? "ok" : "pruefen", b.logoSicher ? "Bild passt zum Vereinsnamen" : "Zuordnung unsicher (kein passender Bildtext) — bitte ansehen");
+  } else if (l.status === "kein_logo") {
+    s("logo", "Logo", "pruefen", "bei nuLiga keins gefunden — es erscheinen die Initialen; unter Einstellungen hochladen");
+  } else if (l.status === "fehler") {
+    s("logo", "Logo", "fehler", l.detail ?? "Download fehlgeschlagen");
+  } else {
+    s("logo", "Logo", "pruefen", l.status === "manuell" ? "vom Verein hochgeladen, bleibt unverändert" : "automatische Übernahme ist aus");
+  }
   return schritte;
 }
 

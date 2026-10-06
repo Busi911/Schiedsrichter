@@ -495,11 +495,13 @@ export async function logoHochladen(formData: FormData) {
 
   await adminDb
     .insert(ligaVereinLogos)
-    .values({ ligaVereinId: ligaVerein.id, png, farbton, aktualisiertAm: new Date() })
+    .values({ ligaVereinId: ligaVerein.id, png, farbton, aktualisiertAm: new Date(), quelle: "upload", quellPfad: null, quellHash: null, abgerufenAm: null })
     .onConflictDoUpdate({
       target: ligaVereinLogos.ligaVereinId,
-      set: { png, farbton, aktualisiertAm: new Date() },
+      set: { png, farbton, aktualisiertAm: new Date(), quelle: "upload", quellPfad: null, quellHash: null, abgerufenAm: null },
     });
+  // Eigenes Logo hat Vorrang vor der automatischen nuLiga-Übernahme.
+  await adminDb.update(ligaVereine).set({ logoAutoAus: false }).where(eq(ligaVereine.id, ligaVerein.id));
   revalidatePath("/admin/einstellungen");
   redirect("/admin/einstellungen");
 }
@@ -537,6 +539,8 @@ export async function logoEntfernen() {
   });
   if (ligaVerein) {
     await adminDb.delete(ligaVereinLogos).where(eq(ligaVereinLogos.ligaVereinId, ligaVerein.id));
+    // Bewusst entfernt: nicht beim nächsten Abgleich wieder von nuLiga holen (es erscheinen die Initialen).
+    await adminDb.update(ligaVereine).set({ logoAutoAus: true }).where(eq(ligaVereine.id, ligaVerein.id));
   }
   revalidatePath("/admin/einstellungen");
   redirect("/admin/einstellungen");

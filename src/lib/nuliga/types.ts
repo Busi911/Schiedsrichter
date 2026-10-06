@@ -144,4 +144,9 @@ export type VereinsInfo = {
   website: string | null;
   stammvereine: string[];
   hallen: string[];
+  // Pfad+Query des Vereinsbilds (relativ oder absolut, wie im HTML; der wodata-Wert ist NICHT stabil, deshalb
+  // nie speichern/vergleichen, sondern bei jedem Abruf neu aus der Seite lesen). logoSicher = der alt-Text
+  // entspricht dem Vereinsnamen; sonst ist es nur das einzige infrage kommende Bild (Menschen sollen prüfen).
+  logoPfad: string | null;
+  logoSicher: boolean;
 };

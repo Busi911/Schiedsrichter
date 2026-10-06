@@ -18,7 +18,8 @@ import { erzeugeVorschauLink, widerrufeVorschauLink } from "@/lib/verein-vorscha
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { uebergabeInhalt } from "@/lib/uebergabe-mail";
-import { holeNuligaHtml } from "@/lib/nuliga/client";
+import { holeNuligaBild, holeNuligaHtml } from "@/lib/nuliga/client";
+import { uebernehmeNuligaLogo, type LogoErgebnis } from "@/lib/nuliga/logo";
 import { baueNuligaUrl } from "@/lib/nuliga/verbaende";
 import { parseVereinsInfo } from "@/lib/nuliga/parsers/vereinsinfo";
 import { aktualisiereVereinsindex } from "@/lib/nuliga/vereinsindex";
@@ -185,6 +186,12 @@ export async function vereinAusNuligaEinrichten(formData: FormData) {
     await adminDb.update(vereine).set({ eigeneHallenNamen: hallen.join(", ").slice(0, 500) }).where(eq(vereine.id, vereinId));
   }
 
+  // Logo gleich mit, als Teil desselben Vereinsobjekts (Pfad aus der AKTUELLEN Seite, nie gemerkt).
+  let logo: LogoErgebnis | null = null;
+  if (info) {
+    logo = await uebernehmeNuligaLogo({ db: adminDb, ligaVereinId: ligaVerein.id, logoPfad: info.logoPfad, holeBild: holeNuligaBild });
+  }
+
   const start = Date.now();
   const sync = await synchronisiereAlleQuellen(ligaVerein.id, {
     db: adminDb,
@@ -214,6 +221,8 @@ export async function vereinAusNuligaEinrichten(formData: FormData) {
     syncMeldungen: sync.meldungen,
     mannschaften: anzahl,
     termineAngelegt,
+    logo,
+    logoSicher: info?.logoSicher ?? false,
   });
   await schreibeProtokoll(
     vereinId,
