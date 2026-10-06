@@ -1189,3 +1189,20 @@ export const vereinSponsoren = pgTable("verein_sponsor", {
   aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
 });
 
+
+// Index ALLER Vereine eines nuLiga-Landesverbands (Vereinssuche clubSearch), nur zum Finden und Einrichten.
+// Kein Mandantenbezug, bewusst ohne RLS (öffentliche Vereinsdaten, Schreiben/Lesen nur über adminDb).
+// clubId ist die INTERNE nuLiga-ID (aus dem Link), nummer die sichtbare Vereinsnummer — nie verwechseln.
+export const nuligaVereinsindex = pgTable(
+  "nuliga_vereinsindex",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    verband: text("verband").notNull().default("HHV"),
+    clubId: text("club_id").notNull(),
+    nummer: text("nummer"),
+    name: text("name").notNull(),
+    bezirk: text("bezirk"),
+    aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("nuliga_vereinsindex_verband_club_idx").on(t.verband, t.clubId)]
+);

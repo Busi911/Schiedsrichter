@@ -1,6 +1,6 @@
-import { and, desc, eq, gt, isNull } from "drizzle-orm";
+import { and, count, desc, eq, gt, isNull, max } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaVereine, users, vereinVorschauLinks } from "@/db/schema";
+import { ligaVereine, nuligaVereinsindex, users, vereinVorschauLinks } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
 import { Card, CardContent } from "@/components/ui/card";
 import { NeuerVereinDialog } from "@/components/neuer-verein-dialog";
@@ -12,11 +12,37 @@ import { appUrl } from "@/lib/app-url";
 import { VorschauLinks } from "@/components/vorschau-links";
 import { istDauerhaft, supportFreigabeAktiv } from "@/lib/treuhand";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
-import { treuhandStarten, vorbereitungsVereinLoeschen } from "./actions";
+import { sucheVereinsindex } from "@/lib/nuliga/vereinsindex";
+import { SCHRITT_SYMBOL, type EinrichtungsSchritt } from "@/lib/nuliga/einrichtung-status";
+import { Input } from "@/components/ui/input";
+import { treuhandStarten, vereinAusNuligaEinrichten, vereinsindexAktualisieren, vorbereitungsVereinLoeschen } from "./actions";
+
+export const maxDuration = 60;
+
+function leseEinrichtung(roh: string | undefined): { verein: string; schritte: EinrichtungsSchritt[] } | null {
+  if (!roh) return null;
+  try {
+    const d = JSON.parse(roh);
+    return Array.isArray(d?.schritte) && typeof d.verein === "string" ? d : null;
+  } catch {
+    return null;
+  }
+}
 import { formatDatum as formatDate } from "@/lib/format";
 
-export default async function SystemVereinePage() {
+export default async function SystemVereinePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ suche?: string; einrichtung?: string; index?: string }>;
+}) {
   await requireSystemAdmin();
+  const { suche = "", einrichtung: einrichtungRoh, index: indexMeldung } = await searchParams;
+  const einrichtung = leseEinrichtung(einrichtungRoh);
+  const treffer = suche.trim().length >= 2 ? await sucheVereinsindex(adminDb, suche) : [];
+  const eingerichtet = new Set(
+    (await adminDb.select({ id: ligaVereine.nuligaClubId }).from(ligaVereine)).map((z) => z.id).filter(Boolean)
+  );
+  const [indexInfo] = await adminDb.select({ anzahl: count(), stand: max(nuligaVereinsindex.aktualisiertAm) }).from(nuligaVereinsindex);
 
   // Bewusst adminDb (privilegiert, RLS-frei): der Systemadmin muss
   // vereinsübergreifend sehen können — das ist genau seine Aufgabe.
@@ -63,6 +89,87 @@ export default async function SystemVereinePage() {
           <NeuerVereinDialog />
         </div>
       </div>
+
+
+      <section className="flex flex-col gap-3 rounded-xl border p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-heading text-base font-semibold">Verein bei nuLiga (HHV) suchen und einrichten</h2>
+          <span className="text-xs text-muted-foreground">
+            {indexInfo.anzahl > 0
+              ? `${indexInfo.anzahl} Vereine im Index${indexInfo.stand ? `, Stand ${formatDate(indexInfo.stand)}` : ""}`
+              : "Index noch leer"}
+          </span>
+        </div>
+        <form className="flex gap-2" action="/system/vereine">
+          <Input name="suche" defaultValue={suche} placeholder="z.B. HSG Linden oder Linden" />
+          <SubmitButton variant="outline" pendingText="Sucht…">
+            Suchen
+          </SubmitButton>
+        </form>
+        {suche.trim().length >= 2 && treffer.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Nichts gefunden{indexInfo.anzahl === 0 ? " — der Index ist noch leer, bitte unten aktualisieren." : "."}
+          </p>
+        )}
+        {treffer.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {treffer.map((t) => (
+              <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm">
+                <span>
+                  <span className="font-medium">{t.name}</span>{" "}
+                  <span className="text-muted-foreground">
+                    {[t.bezirk, t.nummer && `VNr. ${t.nummer}`, `club ${t.clubId}`].filter(Boolean).join(" · ")}
+                  </span>
+                </span>
+                {eingerichtet.has(t.clubId) ? (
+                  <Badge variant="secondary">schon eingerichtet</Badge>
+                ) : (
+                  <form action={vereinAusNuligaEinrichten}>
+                    <input type="hidden" name="clubId" value={t.clubId} />
+                    <SubmitButton size="sm" pendingText="Richtet ein… (bis 1 Min.)">
+                      Automatisch einrichten
+                    </SubmitButton>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        <form action={vereinsindexAktualisieren} className="flex flex-wrap items-center gap-2">
+          <SubmitButton size="sm" variant="outline" pendingText="Lädt Vereinsliste… (bis 1 Min.)">
+            Vereinsindex aktualisieren
+          </SubmitButton>
+          <span className="text-xs text-muted-foreground">sonst täglich automatisch</span>
+        </form>
+        {indexMeldung && <p className="text-xs text-muted-foreground">Index: {indexMeldung}</p>}
+      </section>
+
+      {einrichtung && (
+        <section className="flex flex-col gap-2 rounded-xl border p-4">
+          <h2 className="font-heading text-base font-semibold">Automatische Einrichtung: {einrichtung.verein}</h2>
+          <ul className="flex flex-col gap-1.5 text-sm">
+            {einrichtung.schritte.map((x) => (
+              <li key={x.schluessel} className="flex items-start gap-2">
+                <span
+                  className={`mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${
+                    x.status === "ok" ? "bg-emerald-700" : x.status === "pruefen" ? "bg-slate-500" : "bg-red-700"
+                  }`}
+                  aria-label={x.status === "ok" ? "automatisch geklappt" : x.status === "pruefen" ? "bitte prüfen" : "fehlgeschlagen"}
+                >
+                  {SCHRITT_SYMBOL[x.status]}
+                </span>
+                <span>
+                  <span className="font-medium">{x.label}</span>
+                  <span className="text-muted-foreground"> — {x.detail}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            ✓ automatisch geklappt · ! bitte prüfen · ✕ fehlgeschlagen. Der Verein ist in Vorbereitung (unsichtbar, keine Mails).
+          </p>
+        </section>
+      )}
 
       {alleVereine.length === 0 ? (
         <p className="text-sm text-muted-foreground">Noch keine Vereine angelegt.</p>

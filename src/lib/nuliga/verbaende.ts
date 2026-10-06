@@ -58,7 +58,7 @@ export function gruppenIdAusBerichtUrl(berichtUrl: string | null): string | null
 
 export function baueNuligaUrl(
   verband: string,
-  seite: "clubTeams" | "groupPage" | "teamPortrait",
+  seite: "clubTeams" | "groupPage" | "teamPortrait" | "clubSearch" | "clubInfoDisplay",
   params: Record<string, string>
 ): string {
   const v = holeVerband(verband);

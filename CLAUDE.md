@@ -454,3 +454,18 @@ Der Admin sieht dieselben Mannschaftskarten unter `/admin/statistik` ("Mannschaf
 Erweiterung (Schritt 2): Karte je Mannschaft hat zusätzlich Saisonverlauf (Punkte 2/1/0 nach jedem Spiel, SVG-Kurve) und "Duelle" (je Gegner Hin-/Rückspiel über die
 Teamtable-ID, auch ausstehende); die Ergebnis-Seite zeigt oben "Diese Woche in Zahlen" (`berechneWoche`, Mo-So deutsche Zeit, jedes Spiel einmal). WICHTIG: `liga_spiel` enthält nur Spiele
 der EIGENEN Mannschaften (nuLiga: Team-Portrait, handball.net: Abfrage mit team_id) — ein Tabellenverlauf (Platz je Spieltag) braucht alle Spiele der Staffel und damit einen erweiterten Sync.
+
+## nuLiga-Vereinsindex und automatische Einrichtung (Systemadmin)
+
+`nuliga_vereinsindex` (Migration 0079, nur `adminDb`, `app_user` ohne Zugriff) enthält ALLE Vereine des Verbands aus der nuLiga-Vereinssuche
+(`clubSearch?federation=HHV`, Startseite → je Bezirk eine Seite; `parsers/vereinsuche.ts`, bewusst über Links statt Tabellenpositionen:
+Anker mit `club=` = Verein, Anker mit `regionName=` = Bezirk). WICHTIG: die sichtbare Vereinsnummer (z.B. 14194) ist NIE die interne
+club-ID (z.B. 76446) — nur die ID aus dem Link zählt, `nummer` wird getrennt geführt. Befüllt vom Cron `/api/cron/nuliga-vereinsindex` (täglich
+3:20 UTC, Frist 45 s, `lib/nuliga/vereinsindex.ts`; ein Teillauf löscht nie, nur ein vollständiger Lauf entfernt Veraltetes) oder per Button.
+`/system/vereine`: Suche im Index → "Automatisch einrichten" (`vereinAusNuligaEinrichten`): Verein in Vorbereitung anlegen, `liga_verein` mit
+club-ID, Vereinsseite lesen (`parsers/vereinsinfo.ts`: Whitelist Name/Nummer/Gründung/Website/Stammvereine/Hallen — nie Telefon, E-Mail,
+Anschrift, Ansprechpartner), Hallen als "Eure Spielhallen" vorschlagen, Mannschaften/Spiele laden, Termine anlegen; Ergebnis als Checkliste
+(`einrichtung-status.ts`: ✓ automatisch / ! prüfen / ✕ Fehler) und im Vereinsprotokoll. Logo wird NICHT automatisch übernommen (keine
+verifizierte Quelle). Die Fixtures `vereinsuche-bezirk.html`/`vereinsinfo.html` sind nach Beschreibung NACHGEBAUT, nicht von der echten Seite:
+die Parser sind gegen die echte Struktur NICHT verifiziert (Warnungen statt Absturz) — sobald echtes HTML vorliegt, Fixture ersetzen.
+Unregistrierte Vereine haben keine öffentliche Seite/Favoriten (die liga_*-Tabellen hängen an einem registrierten Verein).
