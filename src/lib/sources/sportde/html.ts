@@ -74,3 +74,21 @@ export function textInhalt(k: Knoten): string {
 export function alleMit(k: Knoten, tag: string): Knoten[] {
   return [...nachfahren(k)].filter((n) => n.tag === tag);
 }
+
+// Wie textInhalt, aber jede Elementgrenze wird zu " | ": so bleiben Mannschaftsnamen, die in getrennten Elementen stehen
+// (<span>TuSEM Essen</span><span>TV Großwallstadt</span>), auch ohne Trennzeichen getrennt.
+export function textGetrennt(k: Knoten): string {
+  const teile: string[] = [];
+  const geh = (n: Knoten) => {
+    for (const kind of n.kinder) {
+      if (typeof kind === "string") teile.push(kind);
+      else {
+        teile.push(" | ");
+        geh(kind);
+        teile.push(" | ");
+      }
+    }
+  };
+  geh(k);
+  return teile.join("").replace(/[\s ]+/g, " ").replace(/(\|\s)+\|/g, "|").trim();
+}

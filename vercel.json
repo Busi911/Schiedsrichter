@@ -14,12 +14,20 @@
       "schedule": "15 5-21 * * *"
     },
     {
-      "path": "/api/cron/hbl-sync",
-      "schedule": "5,20,35,50 5-21 * * *"
+      "path": "/api/cron/sportde-sync?liga=hbl1",
+      "schedule": "3,18,33,48 5-23 * * *"
     },
     {
-      "path": "/api/cron/hbl-sync?teams=1",
-      "schedule": "10 3 * * *"
+      "path": "/api/cron/sportde-sync?liga=hbl2",
+      "schedule": "8,23,38,53 5-23 * * *"
+    },
+    {
+      "path": "/api/cron/sportde-sync?liga=hbl1&voll=1",
+      "schedule": "10 2 * * *"
+    },
+    {
+      "path": "/api/cron/sportde-sync?liga=hbl2&voll=1",
+      "schedule": "40 2 * * *"
     },
     {
       "path": "/api/cron/nuliga-vereinsindex",

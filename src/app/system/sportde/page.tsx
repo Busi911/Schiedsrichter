@@ -6,16 +6,16 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSystemAdmin } from "@/lib/session";
-import { diagnostiziereHbl } from "@/lib/sources/hbl/diagnose";
-import { HBL_WETTBEWERBE, type HblWettbewerb } from "@/lib/sources/match";
-import { hblJetztLaden, hblTeamLoesen, hblTeamZuordnen } from "./actions";
+import { diagnostiziereSpiel, diagnostiziereSpieltag } from "@/lib/sources/sportde/diagnose";
+import { SPORTDE_LIGEN, type SportDeLiga } from "@/lib/sources/match";
+import { sportDeJetztLaden, sportDeTeamLoesen, sportDeTeamZuordnen } from "./actions";
 
 export const maxDuration = 60;
 
-const LIGEN: HblWettbewerb[] = ["hbl1", "hbl2"];
+const LIGEN: SportDeLiga[] = ["hbl1", "hbl2"];
 const norm = (s: string) => s.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "");
 
-// Verein-Vorschlag zu einem HBL-Teamnamen: gleicher Name, sonst der eine Verein, dessen Name im Teamnamen steckt (oder umgekehrt).
+// Verein-Vorschlag zu einem Bundesliga-Teamnamen: gleicher Name, sonst der eine Verein, dessen Name im Teamnamen steckt (oder umgekehrt).
 function schlageVor(teamName: string, vereine: { id: string; name: string }[]): string | null {
   const t = norm(teamName);
   const gleich = vereine.filter((v) => norm(v.name) === t);
@@ -24,12 +24,19 @@ function schlageVor(teamName: string, vereine: { id: string; name: string }[]): 
   return teil.length === 1 ? teil[0].id : null;
 }
 
-export default async function HblSeite({ searchParams }: { searchParams: Promise<{ ok?: string; fehler?: string; diagnose?: string }> }) {
+export default async function SportDeSeite({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; fehler?: string; diagnose?: string; spieltag?: string; spiel?: string }>;
+}) {
   await requireSystemAdmin();
-  const { ok, fehler, diagnose } = await searchParams;
-  const diag = diagnose === "hbl1" || diagnose === "hbl2" ? await diagnostiziereHbl(diagnose) : null;
+  const { ok, fehler, diagnose, spieltag, spiel } = await searchParams;
+  const diagnoseLiga: SportDeLiga | null = diagnose === "hbl1" || diagnose === "hbl2" ? diagnose : null;
+  const spieltagNr = Math.min(34, Math.max(1, Number(spieltag) || 1));
+  const diag = spiel ? await diagnostiziereSpiel(spiel) : diagnoseLiga ? await diagnostiziereSpieltag(diagnoseLiga, spieltagNr) : null;
+  const diagTitel = spiel ? `Spiel ${spiel}` : diagnoseLiga ? `${SPORTDE_LIGEN[diagnoseLiga].kurz}, Spieltag ${spieltagNr}` : "";
 
-  const gruppen = await adminDb.select().from(ligaGruppen).where(eq(ligaGruppen.quelle, "hbl")).orderBy(desc(ligaGruppen.nuligaGroupId));
+  const gruppen = await adminDb.select().from(ligaGruppen).where(eq(ligaGruppen.quelle, "sportde")).orderBy(desc(ligaGruppen.nuligaGroupId));
   const aktuell = new Map<string, (typeof gruppen)[number]>();
   for (const g of gruppen) {
     const liga = g.nuligaGroupId.split(":")[0];
@@ -42,18 +49,18 @@ export default async function HblSeite({ searchParams }: { searchParams: Promise
     .select({ teamId: ligaExterneIdentitaeten.externeId, name: ligaVereine.name })
     .from(ligaExterneIdentitaeten)
     .innerJoin(ligaVereine, eq(ligaVereine.id, ligaExterneIdentitaeten.ligaVereinId))
-    .where(eq(ligaExterneIdentitaeten.quelle, "hbl"));
+    .where(eq(ligaExterneIdentitaeten.quelle, "sportde"));
   const vereinJeTeam = new Map(identitaeten.map((i) => [i.teamId, i.name]));
   const vereine = await adminDb.select({ id: ligaVereine.id, name: ligaVereine.name }).from(ligaVereine).orderBy(ligaVereine.name);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold">HBL (1. und 2. Handball-Bundesliga)</h1>
+        <h1 className="font-heading text-2xl font-semibold">Bundesliga (1. und 2. Handball-Bundesliga, sport.de)</h1>
         <p className="text-sm text-muted-foreground">
-          Dritte Datenquelle neben nuLiga und handball.net, aus den öffentlichen Seiten der HBL (HTML). Ein HBL-Team wird einem
-          bestehenden Verein zugeordnet — es entsteht nie automatisch ein neuer Verein. Mannschaft, Tabelle und Spiele erscheinen dann
-          auf der Vereinsseite wie alle anderen. Alle 15 Minuten tagsüber (Cron), solange mindestens ein Team zugeordnet ist.
+          Dritte Datenquelle neben nuLiga und handball.net, aus den öffentlichen HTML-Seiten von sport.de. Ein Bundesliga-Team wird einem
+          bestehenden Verein zugeordnet — es entsteht nie automatisch ein neuer Verein. Mannschaft, Tabelle und Spiele erscheinen dann auf der
+          Vereinsseite wie alle anderen. Der Cron (alle 15 Minuten tagsüber) holt nur fällige Spieltage und tut nichts, solange kein Team zugeordnet ist.
         </p>
       </div>
 
@@ -64,21 +71,21 @@ export default async function HblSeite({ searchParams }: { searchParams: Promise
         <CardHeader>
           <CardTitle className="text-base">Jetzt laden</CardTitle>
           <CardDescription>
-            Lädt Tabelle und Spielplan (auch ohne Zuordnung, damit die Teams unten erscheinen). Dauert bis ca. 50 Sekunden — nicht doppelt klicken.
+            Ohne Zuordnung lädt es nur die Tabellenseite, damit die Teams unten erscheinen; danach den normalen Lauf (fällige Spieltage, der Erstimport holt alle Spieltage nach und nach). Dauert bis ca. 50 Sekunden — nicht doppelt klicken.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={hblJetztLaden} className="flex flex-wrap items-center gap-3">
+          <form action={sportDeJetztLaden} className="flex flex-wrap items-center gap-3">
             <select name="liga" className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm" aria-label="Liga">
-              <option value="">1. und 2. HBL</option>
+              <option value="">1. und 2. Liga</option>
               {LIGEN.map((l) => (
                 <option key={l} value={l}>
-                  {HBL_WETTBEWERBE[l].kurz}
+                  {SPORTDE_LIGEN[l].kurz}
                 </option>
               ))}
             </select>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="teams" value="1" defaultChecked /> mit Teamübersicht (Logos)
+              <input type="checkbox" name="voll" value="1" /> alle 34 Spieltage neu
             </label>
             <SubmitButton pendingText="Lädt …">Jetzt laden</SubmitButton>
           </form>
@@ -91,10 +98,10 @@ export default async function HblSeite({ searchParams }: { searchParams: Promise
         return (
           <Card key={liga}>
             <CardHeader>
-              <CardTitle className="text-base">{HBL_WETTBEWERBE[liga].name}</CardTitle>
+              <CardTitle className="text-base">{SPORTDE_LIGEN[liga].name}</CardTitle>
               <CardDescription>
                 {g ? `Saison ${g.saison} · ${teams.length} Teams in der Tabelle` : "Noch nicht geladen — oben „Jetzt laden“."}{" "}
-                <Link href={`/system/hbl?diagnose=${liga}`} className="underline">
+                <Link href={`/system/sportde?diagnose=${liga}&spieltag=1`} className="underline">
                   Diagnose
                 </Link>
               </CardDescription>
@@ -112,7 +119,7 @@ export default async function HblSeite({ searchParams }: { searchParams: Promise
                       <span className="font-mono text-[11px] text-muted-foreground">{t.nuligaTeamtableId.slice(0, 8)}…</span>
                     </div>
                     {verein ? (
-                      <form action={hblTeamLoesen} className="flex flex-wrap items-center justify-between gap-2">
+                      <form action={sportDeTeamLoesen} className="flex flex-wrap items-center justify-between gap-2">
                         <input type="hidden" name="teamId" value={t.nuligaTeamtableId} />
                         <span>
                           → Verein <strong>{verein}</strong>
@@ -122,7 +129,7 @@ export default async function HblSeite({ searchParams }: { searchParams: Promise
                         </ConfirmSubmitButton>
                       </form>
                     ) : (
-                      <form action={hblTeamZuordnen} className="flex flex-wrap items-center gap-2">
+                      <form action={sportDeTeamZuordnen} className="flex flex-wrap items-center gap-2">
                         <input type="hidden" name="teamId" value={t.nuligaTeamtableId} />
                         <input type="hidden" name="name" value={t.name} />
                         <select name="ligaVereinId" defaultValue={vorschlag ?? ""} required className="h-8 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2 text-sm" aria-label={`Verein für ${t.name}`}>
@@ -149,13 +156,38 @@ export default async function HblSeite({ searchParams }: { searchParams: Promise
         );
       })}
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Diagnose eines Spiels</CardTitle>
+          <CardDescription>Spielübersicht und Liveticker lesen. Pfad wie /handball/deutschland-2-hbl/ma11406368/tusem-essen_tv-grosswallstadt/</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form method="get" action="/system/sportde" className="flex flex-wrap items-center gap-2">
+            <input name="spiel" required placeholder="/handball/deutschland-2-hbl/ma…/…/" className="h-9 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2.5 text-sm" aria-label="Spiel-Pfad" />
+            <SubmitButton size="sm" variant="outline" pendingText="Liest …">
+              Lesen
+            </SubmitButton>
+          </form>
+        </CardContent>
+      </Card>
+
       {diag && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Diagnose {HBL_WETTBEWERBE[diagnose as HblWettbewerb].kurz}</CardTitle>
+            <CardTitle className="text-base">Diagnose {diagTitel}</CardTitle>
             <CardDescription>
-              Nur lesend. Zeigt je Seite, was der Parser erkennt, plus Auszüge des HTML. Die Parser sind nur gegen nachgebaute Seiten geprüft — bei ✕
-              bitte den Auszug weitergeben.
+              Nur lesend. Zeigt je Seite, was der Parser erkennt (Spiele, Tabelle, Link-Formen, Bild-Hosts), plus Auszüge des HTML. Die Parser sind nur
+              gegen nachgebaute Seiten geprüft — bei ✕ bitte die Zeilen und Auszüge weitergeben.{" "}
+              {diagnoseLiga && (
+                <>
+                  Anderer Spieltag:{" "}
+                  {[1, 10, 20, 34].map((n) => (
+                    <Link key={n} href={`/system/sportde?diagnose=${diagnoseLiga}&spieltag=${n}`} className="underline">
+                      {n}{" "}
+                    </Link>
+                  ))}
+                </>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -175,19 +207,12 @@ export default async function HblSeite({ searchParams }: { searchParams: Promise
                     ))}
                   </ul>
                 )}
-                {d.roh.zeilen.length > 0 && (
+                {d.roh.length > 0 && (
                   <div className="rounded-md border p-2 text-xs">
-                    <p className="font-medium">Rohanalyse des Quelltextes (inkl. Skripte)</p>
-                    {d.roh.zeilen.map((z, i) => (
+                    {d.roh.map((z, i) => (
                       <p key={i} className="break-words text-muted-foreground">
                         {z}
                       </p>
-                    ))}
-                    {d.roh.auszuege.map((a) => (
-                      <details key={a.titel} className="mt-1">
-                        <summary className="cursor-pointer">{a.titel}</summary>
-                        <pre className="mt-1 max-h-72 overflow-auto rounded-md bg-muted p-2 break-all whitespace-pre-wrap">{a.html}</pre>
-                      </details>
                     ))}
                   </div>
                 )}
