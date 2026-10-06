@@ -249,17 +249,15 @@ export const vereine = pgTable("verein", {
   // Zuletzt vom Übernahme-Cron geprüft: sorgt dafür, dass bei Zeitnot die am längsten
   // nicht geprüften Vereine zuerst drankommen (rundenweise, nichts bleibt liegen).
   ligaUebernahmeGeprueftAm: timestamp("liga_uebernahme_geprueft_am", { mode: "date" }),
-  // Opt-in für den Vereinsadmin: E-Mail bei geänderten Spielen (Zeit/Ort
-  // verlegt) bzw. neu eingetragenen Ergebnissen im Hallenspielplan, siehe
-  // rundenspiel-benachrichtigung.ts. Default false, da nicht jeder Verein
-  // diesen zusätzlichen Kanal will (die Änderungen sind im
-  // Hallenspielplan-Tab von /admin/termine ohnehin jederzeit passiv
-  // einsehbar).
+  // E-Mail an den Vereinsadmin bei geänderten Spielen (Zeit/Ort verlegt) bzw. neu
+  // eingetragenen Ergebnissen im Hallenspielplan, siehe rundenspiel-benachrichtigung.ts.
+  // Default für NEUE Vereine: an (Migration 0081); bestehende Vereine behalten ihre Wahl,
+  // abschaltbar unter Einstellungen.
   rundenspielAenderungenBenachrichtigungAktiviert: boolean(
     "rundenspiel_aenderungen_benachrichtigung_aktiviert"
   )
     .notNull()
-    .default(false),
+    .default(true),
   // Opt-in für den Vereinsadmin: bei unbesetztem Ordner-/Kioskdienst-/
   // Kassierer-/Zeitnehmer-/Sekretär-Bedarf (3-Tage-Fenster wie in
   // dienste-erinnerung.ts) zusätzlich ALLE aktiven Inhaber der betroffenen

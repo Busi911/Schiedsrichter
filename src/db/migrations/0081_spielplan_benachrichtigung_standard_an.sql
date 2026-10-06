@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ALTER COLUMN "rundenspiel_aenderungen_benachrichtigung_aktiviert" SET DEFAULT true;
