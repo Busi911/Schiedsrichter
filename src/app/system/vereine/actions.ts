@@ -9,6 +9,7 @@ import { requireSystemAdmin } from "@/lib/session";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import {
   beendeTreuhand,
+  loescheVorbereitungsVerein,
   starteTreuhand,
   uebergebeVerein,
   vereinVorbereiten as vereinVorbereitenLib,
@@ -116,5 +117,12 @@ export async function vorschauLinkErzeugen(formData: FormData) {
 export async function vorschauLinkWiderrufen(formData: FormData) {
   const session = await requireSystemAdmin();
   await widerrufeVorschauLink(text(formData, "linkId"), session.user.email ?? session.user.id);
+  revalidatePath("/system/vereine");
+}
+
+// Verein in Vorbereitung endgültig löschen (z.B. Test oder Abbruch). Übergebene Vereine nie.
+export async function vorbereitungsVereinLoeschen(formData: FormData) {
+  const session = await requireSystemAdmin();
+  await loescheVorbereitungsVerein(session.user.id, text(formData, "vereinId"));
   revalidatePath("/system/vereine");
 }
