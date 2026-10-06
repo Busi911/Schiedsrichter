@@ -43,6 +43,7 @@ export function logoAusKnoten(k: Knoten): { url: string | null; gesehen: string 
   return { url: null, gesehen };
 }
 
+const namensSchluessel = (n: string) => teamId(n);
 const gueltigeZeit = (h: number, m: number) => h <= 23 && m <= 59;
 const zeitText = (h: number, m: number) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
@@ -108,6 +109,35 @@ export function deuteNdrZeile(teile: Zeilenteil[]): Spielzeile | null {
 const TAB_ZEILE = /^(\d{1,2})\.?\s+(.+?)\s+(\d{1,2})\s+(\d{1,2})\s+(\d{1,2})\s+(\d{1,2})\s+(?:([+\-−–]?\s?\d{1,4})\s+(\d{1,4})\s*:\s*(\d{1,4})|(\d{1,4})\s*:\s*(\d{1,4})\s+([+\-−–]?\s?\d{1,4}))\s+(\d{1,3})\s*:\s*(\d{1,3})$/;
 const tabellenText = (k: Knoten) => textGetrennt(k).replace(/\|/g, " ").replace(/\b(?:Spiele|Siege|Unentschieden|Niederlagen|Tore|Punkte|Sp\.)\b/gi, " ").replace(/[\s ]+/g, " ").trim();
 
+// Echte Struktur (ndr.de, geprüft per Diagnose): je Spiel ein <tr class="sport-match"> mit span.date ("27.08."), div.time ("19:00"), zwei Teamblöcken
+// (Link …_gameplan-mannschafthandball276.html = stabile Team-ID; span.nb-xs = Langname, span.ob-xs = Kurzname) und td.erg mit span.finalresult ("35:27")
+// und span.interimresult ("(17:15)"). Die Team-ID aus dem Link ist der Schlüssel; der Name nie.
+const TEAM_HREF = /_gameplan-(mannschaft[a-z]*\d+)\.html/i;
+const hatKlasse = (k: Knoten, name: string) => (attr(k, "class") ?? "").split(/\s+/).includes(name);
+const mitKlasse = (k: Knoten, name: string) => [...nachfahren(k)].filter((x) => hatKlasse(x, name));
+const sauber = (t: string) => t.replace(/[\s ]+/g, " ").trim();
+
+type TeamBlock = { id: string; name: string; logoUrl: string | null };
+function teamBloecke(n: Knoten): TeamBlock[] {
+  const res: TeamBlock[] = [];
+  for (const a of alleMit(n, "a")) {
+    const m = (attr(a, "href") ?? "").match(TEAM_HREF);
+    if (!m) continue;
+    const id = m[1].toLowerCase();
+    if (res.some((r) => r.id === id)) continue;
+    const spans = [...nachfahren(a)].filter((x) => x.tag === "span");
+    const lang = spans.find((x) => hatKlasse(x, "nb-xs")) ?? spans[0];
+    const name = sauber(textInhalt(lang ?? a));
+    if (!name) continue;
+    res.push({ id, name, logoUrl: logoAusKnoten(a.eltern ?? a).url });
+  }
+  return res;
+}
+const zahlenpaar = (k: Knoten | undefined) => {
+  const m = k ? textInhalt(k).match(/(\d{1,3})\s*:\s*(\d{1,3})/) : null;
+  return m ? ([Number(m[1]), Number(m[2])] as const) : null;
+};
+
 export type NdrSeite = {
   spiele: QuellSpiel[];
   tabellen: Map<number | null, QuellTabellenzeile[]>;
@@ -159,13 +189,14 @@ export function parseNdrSeite(html: string, k: { liga: BundesLiga; saison: strin
       const liste = tabellen.get(gruppe) ?? [];
       const rang = Number(m[1]);
       if (!liste.some((z) => z.rang === rang)) {
-        const name = m[2].trim();
+        const bloecke = teamBloecke(n);
+        const name = bloecke[0]?.name ?? m[2].trim();
         const diff = (m[7] ?? m[12]).replace(/[−–]/g, "-").replace(/\s/g, "");
         const logo = logoAusKnoten(n);
         liste.push({
-          teamId: teamId(name),
+          teamId: bloecke[0]?.id ?? teamId(name),
           name,
-          logoUrl: logo.url,
+          logoUrl: bloecke[0]?.logoUrl ?? logo.url,
           rang,
           spiele: Number(m[3]),
           siege: Number(m[4]),
@@ -183,8 +214,47 @@ export function parseNdrSeite(html: string, k: { liga: BundesLiga; saison: strin
       return true;
     }
 
-    // Spielzeile (nur innerhalb eines Abschnitts "N. Spieltag")
+    // Spielzeile (nur innerhalb eines Abschnitts "N. Spieltag"): zuerst über die Teamblöcke der echten Seite, sonst über den sichtbaren Text.
     if (ctx.spiel !== null) {
+      const bloecke = teamBloecke(n);
+      const datumKn = mitKlasse(n, "date")[0];
+      const zeitKn = mitKlasse(n, "time")[0];
+      const final = mitKlasse(n, "finalresult")[0];
+      if (bloecke.length === 2 && (datumKn || zeitKn || final)) {
+        const d = datumKn ? zerlege(textInhalt(datumKn)).find((t) => t.art === "datum") : undefined;
+        const datum = (d && d.art === "datum" ? loeseDatum(d, start) : null) ?? ctx.datum;
+        const zeit = zeitKn ? textInhalt(zeitKn).match(/(\d{1,2}):(\d{2})/) : null;
+        const uhrzeit = zeit && gueltigeZeit(Number(zeit[1]), Number(zeit[2])) ? zeitText(Number(zeit[1]), Number(zeit[2])) : null;
+        if (!datum) {
+          nichtLesbar++;
+          warnungen.push(`${bloecke[0].name} – ${bloecke[1].name}: Datum nicht lesbar`);
+          return true;
+        }
+        const ergebnis = zahlenpaar(final);
+        const halb = zahlenpaar(mitKlasse(n, "interimresult")[0]);
+        const beginn = startZeit(datum, uhrzeit);
+        const schluessel = matchSchluessel(k.liga, start, ctx.spiel, bloecke[0].id, bloecke[1].id);
+        rohSpiele.set(schluessel, {
+          externalMatchId: schluessel,
+          matchPfad: null,
+          spieltag: ctx.spiel,
+          datum,
+          uhrzeit,
+          startTime: beginn,
+          status: ergebnis ? "finished" : beginn && beginn.getTime() < jetzt.getTime() ? null : "scheduled",
+          minute: null,
+          home: { externalId: bloecke[0].id, name: bloecke[0].name, logoUrl: bloecke[0].logoUrl },
+          away: { externalId: bloecke[1].id, name: bloecke[1].name, logoUrl: bloecke[1].logoUrl },
+          homeScore: ergebnis?.[0] ?? null,
+          awayScore: ergebnis?.[1] ?? null,
+          halftimeHomeScore: ergebnis && halb ? halb[0] : null,
+          halftimeAwayScore: ergebnis && halb ? halb[1] : null,
+          venue: null,
+          ort: null,
+          sourceUrl: null,
+        });
+        return true;
+      }
       const roh = textGetrennt(n);
       if (roh.length >= 5 && roh.length <= 400) {
         const z = deuteNdrZeile(zerlege(roh));
@@ -226,6 +296,11 @@ export function parseNdrSeite(html: string, k: { liga: BundesLiga; saison: strin
     return false;
   };
   besuche(wurzel);
+
+  // Tabellenzeilen ohne Team-Link bekommen die Team-ID aus den Spielen (gleicher Name).
+  const idJeName = new Map<string, string>();
+  for (const sp of rohSpiele.values()) for (const t of [sp.home, sp.away]) idJeName.set(namensSchluessel(t.name), t.externalId);
+  for (const liste of tabellen.values()) for (const z of liste) if (z.teamId.startsWith("name:")) z.teamId = idJeName.get(namensSchluessel(z.name)) ?? z.teamId;
 
   // Logos der Tabelle für die Spiele, Teams aus Tabelle und Spielen
   const alleTabellenZeilen = [...tabellen.values()].flat();

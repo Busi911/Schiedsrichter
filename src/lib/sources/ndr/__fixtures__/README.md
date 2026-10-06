@@ -1,2 +1,3 @@
-Nachgebaute Fixtures (NICHT von der echten Seite): Aufbau nach Beschreibung (Abschnitte "N. Spieltag" mit Datum/Paarung/Erg., "Tabelle N. Spieltag").
-Die echten ndr.de-Seiten sind unverifiziert — Parser gegen die echte Struktur prüfen über /system/ndr → Diagnose. Nur öffentliche Spieldaten, keine Personen.
+Nachgebaute Fixtures nach der ECHTEN Struktur von ndr.de (aus der Diagnose: tr.sport-match, span.date, div.time, teamwrapper mit Link …_gameplan-mannschafthandball<ID>.html,
+span.nb-xs/ob-xs, td.erg mit span.finalresult/interimresult; Abschnitte h2 "N. Spieltag"). Team-IDs und Ergebnisse sind frei gewählt; die Tabellenzeilen sind NICHT bestätigt
+(die echte erste Tabellenzeile wurde noch nicht gesehen). Nur öffentliche Spieldaten, keine Personen.

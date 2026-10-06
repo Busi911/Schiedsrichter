@@ -44,7 +44,7 @@ describe("ndr: 2. HBL (zentrale Saisonseite)", () => {
     expect(luebbecke).toMatchObject({ spieltag: 6, datum: "2026-10-02", uhrzeit: "19:00", homeScore: 26, awayScore: 26, halftimeHomeScore: 13, halftimeAwayScore: 12, status: "finished", away: { name: "HSC 2000 Coburg" } });
     const essen = s.spiele.find((x) => x.home.name === "TuSEM Essen")!;
     expect(essen).toMatchObject({ homeScore: 32, awayScore: 35, halftimeHomeScore: 14, halftimeAwayScore: 19, away: { name: "DHfK Leipzig" } });
-    expect(essen.home.logoUrl).toBe("https://www.ndr.de/resources/logos/essen.png"); // aus dem tatsächlichen img/src, nicht konstruiert
+    expect(essen.home.logoUrl).toBe("https://images.ndr.de/image/x403/original/wappen403.svg"); // aus dem tatsächlichen img/src, nicht konstruiert
     expect(s.spiele.find((x) => x.home.name === "TV Großwallstadt")).toMatchObject({ homeScore: 30, awayScore: 28, halftimeHomeScore: 17, halftimeAwayScore: 17 });
     expect(s.aktuellerSpieltag).toBe(6);
   });
@@ -53,14 +53,14 @@ describe("ndr: 2. HBL (zentrale Saisonseite)", () => {
   });
   it("liest die Tabelle mit Toren und Punkten als Paar", () => {
     const t = s.tabellen.get(6)!;
-    expect(t).toHaveLength(3);
-    expect(t[0]).toMatchObject({ rang: 1, name: "1. VfL Potsdam", spiele: 6, siege: 6, unentschieden: 0, niederlagen: 0, tordifferenz: 17, torePlus: 182, toreMinus: 165, punktePlus: 12, punkteMinus: 0, logoUrl: "https://www.ndr.de/resources/logos/potsdam.png" });
+    expect(t).toHaveLength(2);
+    expect(t[0]).toMatchObject({ rang: 1, name: "1. VfL Potsdam", spiele: 6, siege: 6, unentschieden: 0, niederlagen: 0, tordifferenz: 17, torePlus: 182, toreMinus: 165, punktePlus: 12, punkteMinus: 0, teamId: "mannschafthandball407" });
     expect(t[1]).toMatchObject({ name: "HC Elbflorenz 2006", tordifferenz: 44, torePlus: 228, toreMinus: 184, punktePlus: 10, punkteMinus: 2 });
   });
-  it("Teams aus Tabelle und Spielen, Schlüssel aus dem Namen", () => {
+  it("Teams aus Tabelle und Spielen, Schlüssel = Team-ID aus dem Link", () => {
     const leipzig = s.teams.find((t) => t.name === "DHfK Leipzig");
-    expect(leipzig?.externalId).toBe("name:dhfk-leipzig");
-    expect(s.spiele.find((x) => x.away.name === "1. VfL Potsdam")?.away.logoUrl).toBe("https://www.ndr.de/resources/logos/potsdam.png"); // Logo aus der Tabelle
+    expect(leipzig?.externalId).toBe("mannschafthandball404"); // stabile Team-ID aus dem Link
+    expect(s.spiele.find((x) => x.away.name === "1. VfL Potsdam")?.away.externalId).toBe("mannschafthandball407");
   });
   it("grenzt einen Spieltag ein; Spieltag ohne Abschnitt bleibt leer (Warnung statt Fehler)", () => {
     expect(parseNdrSpieltag(HBL2, { liga: "hbl2", saison: "2026/27", spieltag: 6, jetzt: JETZT }).spiele).toHaveLength(3);
@@ -73,8 +73,10 @@ describe("ndr: 2. HBL (zentrale Saisonseite)", () => {
 describe("ndr: 1. HBL (Seite je Spieltag)", () => {
   const r = parseNdrSpieltag(HBL1, { liga: "hbl1", saison: "2026/27", spieltag: 2, jetzt: JETZT });
   it("liest HC Hamburg gegen TVB Stuttgart 34:34 (12:14)", () => {
-    expect(r.spiele).toHaveLength(3);
+    expect(r.spiele).toHaveLength(4);
     expect(r.spiele.find((x) => x.home.name === "HC Hamburg")).toMatchObject({ homeScore: 34, awayScore: 34, halftimeHomeScore: 12, halftimeAwayScore: 14, away: { name: "TVB Stuttgart" }, status: "finished", datum: "2026-09-10", spieltag: 2 });
+    expect(r.spiele.find((x) => x.home.name === "HSG Wetzlar")).toMatchObject({ status: null, homeScore: null, uhrzeit: "15:00", datum: "2026-09-13" }) // Termin vorbei, kein Ergebnis: Status unbekannt, nicht "geplant";
+    expect(r.spiele.find((x) => x.home.name === "THW Kiel")).toMatchObject({ homeScore: 35, awayScore: 27, halftimeHomeScore: 17, halftimeAwayScore: 15, away: { name: "TBV Lemgo Lippe", externalId: "mannschafthandball274" } });
     expect(r.spiele.find((x) => x.home.name === "MT Melsungen")).toMatchObject({ homeScore: 31, awayScore: 18, halftimeHomeScore: 14, halftimeAwayScore: 10 });
   });
   it("liest die Tabelle mit Beschriftungen und der Reihenfolge Tore, Differenz", () => {
