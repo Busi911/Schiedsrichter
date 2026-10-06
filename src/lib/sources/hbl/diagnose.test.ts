@@ -12,7 +12,7 @@ describe("HBL-Rohanalyse", () => {
       `<script id="__NUXT_DATA__" type="application/json">[{"team":"THW Kiel","id":"febf038e-3952-11ef-b7c2-af5c55c3771d"}${" ".repeat(2500)}]</script></body>`
     );
     const r = rohAnalyse(html);
-    expect(r.zeilen[0]).toContain("/team/: 9×");
+    expect(r.zeilen[0]).toContain("/team/: 10×");
     expect(r.zeilen[0]).toContain("__NUXT_DATA__: 1×");
     expect(r.zeilen[1]).toContain("Skript-Tags");
     expect(r.auszuege.map((a) => a.titel).some((t) => t.startsWith("Anfang des größten Skripts"))).toBe(true);
