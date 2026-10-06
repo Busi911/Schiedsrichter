@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { and, count, desc, eq, gt, isNull, max } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaVereine, nuligaVereinsindex, users, vereinVorschauLinks } from "@/db/schema";
@@ -140,6 +141,9 @@ export default async function SystemVereinePage({
             Vereinsindex aktualisieren
           </SubmitButton>
           <span className="text-xs text-muted-foreground">sonst täglich automatisch</span>
+          <Link href="/system/nuliga-diagnose" className="text-xs underline">
+            nuLiga-Diagnose (Hallen/Logo)
+          </Link>
         </form>
         {indexMeldung && <p className="text-xs text-muted-foreground">Index: {indexMeldung}</p>}
       </section>

@@ -4,7 +4,7 @@ import { bewerteEinrichtung, type EinrichtungsBefund } from "./einrichtung-statu
 const basis: EinrichtungsBefund = {
   indexName: "HSG Linden",
   clubId: "76446",
-  info: { name: "HSG Linden", nummer: "14194", gruendung: 2019, website: "https://x.invalid", stammvereine: [], hallen: ["Halle A"], logoPfad: "/x/wr?wodata=1", logoSicher: true },
+  info: { name: "HSG Linden", nummer: "14194", gruendung: 2019, website: "https://x.invalid", stammvereine: [], hallen: ["Halle A"], hallenNummern: {}, logoPfad: "/x/wr?wodata=1", logoSicher: true },
   infoFehler: null,
   hallenGespeichert: ["Halle A"],
   syncStatus: "erfolgreich",

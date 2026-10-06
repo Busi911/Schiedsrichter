@@ -495,10 +495,10 @@ export async function logoHochladen(formData: FormData) {
 
   await adminDb
     .insert(ligaVereinLogos)
-    .values({ ligaVereinId: ligaVerein.id, png, farbton, aktualisiertAm: new Date(), quelle: "upload", quellPfad: null, quellHash: null, abgerufenAm: null })
+    .values({ ligaVereinId: ligaVerein.id, png, farbton, aktualisiertAm: new Date(), mime: "image/png", quelle: "upload", quellPfad: null, quellHash: null, abgerufenAm: null })
     .onConflictDoUpdate({
       target: ligaVereinLogos.ligaVereinId,
-      set: { png, farbton, aktualisiertAm: new Date(), quelle: "upload", quellPfad: null, quellHash: null, abgerufenAm: null },
+      set: { png, farbton, aktualisiertAm: new Date(), mime: "image/png", quelle: "upload", quellPfad: null, quellHash: null, abgerufenAm: null },
     });
   // Eigenes Logo hat Vorrang vor der automatischen nuLiga-Übernahme.
   await adminDb.update(ligaVereine).set({ logoAutoAus: false }).where(eq(ligaVereine.id, ligaVerein.id));

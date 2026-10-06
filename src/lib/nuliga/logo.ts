@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { ligaVereine, ligaVereinLogos } from "@/db/schema";
-import { ermittleFarbton, LogoFehler, verarbeiteLogo } from "@/lib/liga-logo";
+import { ermittleFarbton, LogoFehler, pruefeOriginalLogo } from "@/lib/liga-logo";
 import type { HoleBild } from "./client";
 import type { LigaDb } from "./sync";
 import { absoluteNuligaUrl } from "./verbaende";
@@ -13,7 +13,7 @@ export type LogoErgebnis = {
   detail?: string;
 };
 
-// Übernimmt das nuLiga-Vereinslogo in unser eigenes Logo des Vereins (liga_verein_logo, normalisiertes PNG
+// Übernimmt das nuLiga-Vereinslogo in unser eigenes Logo des Vereins (liga_verein_logo, das UNVERÄNDERTE Original
 // in der Datenbank — dieselbe Ablage wie beim Upload; die Seite liefert es über /verein/[slug]/logo, nie per
 // Hotlink von nuLiga). Regeln:
 // - ein vom Verein selbst hochgeladenes Logo wird NIE überschrieben, ein vom Verein entfernte Logo nicht neu geholt;
@@ -57,9 +57,10 @@ export async function uebernehmeNuligaLogo(opt: {
       await markiere();
       return { status: "unveraendert" };
     }
-    const png = await verarbeiteLogo(daten);
-    const farbton = await ermittleFarbton(png);
-    const werte = { png, farbton, aktualisiertAm: jetzt, quelle: "nuliga", quellPfad: opt.logoPfad, quellHash: hash, abgerufenAm: jetzt };
+    // Original unverändert speichern (Proportionen bleiben, die Anzeige nutzt object-contain); nur prüfen.
+    const { mime } = await pruefeOriginalLogo(daten);
+    const farbton = await ermittleFarbton(daten);
+    const werte = { png: daten, mime, farbton, aktualisiertAm: jetzt, quelle: "nuliga", quellPfad: opt.logoPfad, quellHash: hash, abgerufenAm: jetzt };
     await opt.db
       .insert(ligaVereinLogos)
       .values({ ligaVereinId: opt.ligaVereinId, ...werte })

@@ -1,5 +1,6 @@
 import "server-only";
 import sharp from "sharp";
+import { erkenneBildtyp } from "@/lib/bildtyp";
 
 // Vereinslogo -> Web-App-Icon/Kopfbild. Das Logo kommt vom Vereinsadmin
 // (Upload), wird hier GEPRÜFT und auf ein einheitliches PNG normalisiert:
@@ -29,6 +30,21 @@ export async function verarbeiteLogo(eingabe: Buffer): Promise<Buffer> {
     .resize(512, 512, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png({ compressionLevel: 9 })
     .toBuffer();
+}
+
+// Für das Original-Logo aus nuLiga: NICHT umformen (kein Zuschneiden, Strecken, Quadrat, Neukodieren), nur prüfen,
+// dass es wirklich ein gültiges, nicht zu großes Bild in einem erlaubten Format ist (Magic Bytes UND Decoder).
+export async function pruefeOriginalLogo(eingabe: Buffer): Promise<{ mime: string }> {
+  const typ = erkenneBildtyp(eingabe);
+  if (!typ) throw new LogoFehler("Die Datei ist kein PNG, JPEG, GIF oder WebP.");
+  if (eingabe.length === 0 || eingabe.length > LOGO_MAX_BYTES) throw new LogoFehler("Das Logo darf höchstens 5 MB groß sein.");
+  try {
+    const meta = await sharp(eingabe, { limitInputPixels: 40_000_000 }).metadata();
+    if (meta.format !== typ.format || !meta.width || !meta.height) throw new Error("Format passt nicht");
+  } catch {
+    throw new LogoFehler("Die Datei ist keine gültige Bilddatei.");
+  }
+  return { mime: typ.mime };
 }
 
 // App-Icon in gewünschter Größe: Logo mit Rand (Sicherheitszone für
