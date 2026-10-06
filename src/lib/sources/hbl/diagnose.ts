@@ -48,6 +48,18 @@ export function rohAnalyse(html: string): SeitenDiagnose["roh"] {
   const gross = [...skripte].sort((a, b) => b.laenge - a.laenge)[0];
   if (gross && gross.laenge > 2000) auszuege.push({ titel: `Anfang des größten Skripts (${gross.laenge} Zeichen)`, html: maskierePersonendaten(gross.inhalt.slice(0, 1500)) });
 
+  // Adressen und API-Pfade in allen Skripten (Konfiguration der Seite): hier steht, woher die Seite ihre Daten nachlädt.
+  const alleSkripte = skripte.map((x) => x.inhalt).join("\n");
+  const urls = new Set<string>();
+  for (const m of alleSkripte.matchAll(/https?:\/\/[^\s"'\\<>)\],]+/g)) urls.add(m[0].replace(/[.,;]+$/, ""));
+  for (const m of alleSkripte.matchAll(/["'](\/(?:api|_api|v\d|graphql|data|backend)[^"'\s\\]{0,120})["']/gi)) urls.add(m[1]);
+  const ohneBilder = [...urls].filter((u) => !/\.(png|jpe?g|gif|svg|webp|ico|woff2?|ttf|css)(\?|$)/i.test(u));
+  zeilen.push(`Adressen/API-Pfade in Skripten (${ohneBilder.length}): ${ohneBilder.slice(0, 40).join(" | ") || "—"}`);
+  const klein = skripte.filter((x) => x.laenge > 100 && x.laenge <= 3000 && !x.attrs.includes("src="));
+  for (const k of klein.slice(0, 3)) auszuege.push({ titel: `Kleines Skript [${k.attrs || "ohne Attribute"}] (${k.laenge} Zeichen)`, html: maskierePersonendaten(k.inhalt.slice(0, 3000)) });
+  const schluessel = [...alleSkripte.matchAll(/["']?(api[A-Za-z]*|[A-Za-z]*(?:Url|URL|Endpoint|endpoint|Base|base)[A-Za-z]*)["']?\s*[:=,]\s*["']([^"']{3,160})["']/g)].slice(0, 25).map((m) => `${m[1]}=${m[2]}`);
+  if (schluessel.length) zeilen.push(`Konfig-Schlüssel mit URL/API/Base: ${schluessel.join(" | ")}`);
+
   const um = (titel: string, muster: RegExp, vor = 300, nach = 900) => {
     const m = muster.exec(html);
     if (m) auszuege.push({ titel, html: maskierePersonendaten(html.slice(Math.max(0, m.index - vor), m.index + nach)) });

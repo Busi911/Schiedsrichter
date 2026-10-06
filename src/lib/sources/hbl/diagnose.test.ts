@@ -18,4 +18,16 @@ describe("HBL-Rohanalyse", () => {
     expect(r.auszuege.map((a) => a.titel).some((t) => t.startsWith("Anfang des größten Skripts"))).toBe(true);
     expect(r.auszuege.some((a) => a.titel.includes("THW Kiel"))).toBe(true);
   });
+
+  it("findet Adressen und API-Pfade in der Seitenkonfiguration", async () => {
+    const { rohAnalyse } = await import("./diagnose");
+    const html = `<html><body><script>window.__NUXT__={config:{public:{apiBase:"https://api.beispiel.test/v1",logo:"https://x.test/a.png",pfad:"/api/tabelle"}}}${" ".repeat(150)}</script></body></html>`;
+    const r = rohAnalyse(html);
+    const zeile = r.zeilen.find((z) => z.startsWith("Adressen/API-Pfade")) ?? "";
+    expect(zeile).toContain("https://api.beispiel.test/v1");
+    expect(zeile).toContain("/api/tabelle");
+    expect(zeile).not.toContain("a.png");
+    expect(r.zeilen.some((z) => z.includes("apiBase=https://api.beispiel.test/v1"))).toBe(true);
+    expect(r.auszuege.some((a) => a.titel.startsWith("Kleines Skript"))).toBe(true);
+  });
 });
