@@ -1,5 +1,5 @@
 import "server-only";
-import { contentTypeKannBildSein, erkenneBildtyp } from "@/lib/bildtyp";
+import { beschreibeFormat, beschreibeNichtBild, contentTypeKannBildSein, erkenneBildtyp, maskierePersonendaten } from "@/lib/bildtyp";
 import { istErlaubteNuligaBildUrl } from "./verbaende";
 
 // HTTP-Zugriff auf nuLiga mit Rücksicht auf die Server des Verbands:
@@ -106,7 +106,7 @@ export const holeNuligaBild: HoleBild = async (startUrl) => {
       }
       const daten = Buffer.concat(teile);
       const typ = erkenneBildtyp(daten);
-      if (!typ) throw new Error(`Kein erlaubtes Bildformat (Content-Type ${contentType || "unbekannt"}, Magic Bytes passen zu keinem PNG/JPEG/GIF/WebP)`);
+      if (!typ) throw new Error(beschreibeNichtBild(daten, contentType));
       return { daten, contentType, mime: typ.mime };
     } finally {
       clearTimeout(timeout);
@@ -115,38 +115,51 @@ export const holeNuligaBild: HoleBild = async (startUrl) => {
   throw new Error("Zu viele Weiterleitungen");
 };
 
-// Nur für die Diagnose (Systemadmin): EIN Abruf ohne Wirkung, meldet Status, Content-Type, Größe und erkannten
-// Bildtyp statt bei Problemen zu werfen. Gleiche Host-Prüfung wie der echte Download.
-export type BildDiagnose = {
-  url: string;
-  erlaubt: boolean;
-  status: number | null;
-  location: string | null;
-  contentType: string | null;
-  bytes: number | null;
-  erkannterTyp: string | null;
-  fehler: string | null;
-};
+// ---------------------------------------------------------------------------------------------------------
+// Diagnose (nur Systemadmin, /system/nuliga-diagnose): Abrufe ohne Wirkung, die NIE werfen, sondern alles
+// melden, was zum Eingrenzen nötig ist (Status, Weiterleitungskette, Cookies, Content-Type, Bytes). Gleiche
+// Host-Prüfung und gleiches Tempolimit wie der echte Abruf; Sicherheitsprüfungen bleiben an.
+// ---------------------------------------------------------------------------------------------------------
+const BROWSER_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+const BROWSER_ACCEPT = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
 
-export async function diagnoseNuligaBild(url: string): Promise<BildDiagnose> {
-  const d: BildDiagnose = { url, erlaubt: istErlaubteNuligaBildUrl(url), status: null, location: null, contentType: null, bytes: null, erkannterTyp: null, fehler: null };
-  if (!d.erlaubt) {
-    d.fehler = "URL nicht erlaubt (Host/Pfad)";
-    return d;
-  }
+async function gedrosselt(): Promise<void> {
   const wartezeit = letzterRequest + MIN_ABSTAND_MS - Date.now();
   if (wartezeit > 0) await warte(wartezeit);
   letzterRequest = Date.now();
+}
+
+export type SeitenDiagnose = {
+  url: string;
+  status: number | null;
+  finalUrl: string | null;
+  weitergeleitet: boolean;
+  contentType: string | null;
+  cookieNamen: string[];
+  // Nur für den Folgeabruf (Cookie-Header), wird nie angezeigt.
+  cookieHeader: string;
+  html: string;
+  titel: string | null;
+  fehler: string | null;
+};
+
+export async function diagnoseNuligaSeite(url: string): Promise<SeitenDiagnose> {
+  const d: SeitenDiagnose = { url, status: null, finalUrl: null, weitergeleitet: false, contentType: null, cookieNamen: [], cookieHeader: "", html: "", titel: null, fehler: null };
+  await gedrosselt();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const response = await fetch(url, { signal: controller.signal, redirect: "manual", headers: { "User-Agent": USER_AGENT, Accept: "image/*,*/*;q=0.8" } });
+    const response = await fetch(url, { signal: controller.signal, headers: { "User-Agent": USER_AGENT, Accept: "text/html,application/xhtml+xml", "Accept-Language": "de-DE,de;q=0.9" } });
     d.status = response.status;
-    d.location = response.headers.get("location");
+    d.finalUrl = response.url;
+    d.weitergeleitet = response.redirected;
     d.contentType = response.headers.get("content-type");
-    const daten = Buffer.from(await response.arrayBuffer());
-    d.bytes = daten.length;
-    d.erkannterTyp = erkenneBildtyp(daten)?.mime ?? null;
+    const cookies = response.headers.getSetCookie?.() ?? [];
+    d.cookieNamen = cookies.map((c) => c.split("=")[0].trim());
+    d.cookieHeader = cookies.map((c) => c.split(";")[0].trim()).join("; ");
+    d.html = await response.text();
+    d.titel = d.html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/\s+/g, " ").trim() ?? null;
   } catch (err) {
     d.fehler = err instanceof Error ? err.message : String(err);
   } finally {
@@ -154,3 +167,76 @@ export async function diagnoseNuligaBild(url: string): Promise<BildDiagnose> {
   }
   return d;
 }
+
+export type BildDiagnose = {
+  variante: string;
+  startUrl: string;
+  kette: { url: string; status: number; location: string | null }[];
+  finalUrl: string | null;
+  finalerHost: string | null;
+  status: number | null;
+  contentType: string | null;
+  contentLength: string | null;
+  bytes: number | null;
+  hex32: string | null;
+  // Nur wenn es KEIN erkanntes Bild ist: die ersten Zeichen als Text (E-Mail-Adressen/Telefonnummern maskiert).
+  textVorschau: string | null;
+  htmlTitel: string | null;
+  format: string | null;
+  fehler: string | null;
+};
+
+export type BildOptionen = { cookie?: string; referer?: string; browserHeader?: boolean };
+
+// EIN Logo-Abruf, Weiterleitungen von Hand (höchstens 5, jede Station wird wie beim echten Download geprüft).
+export async function diagnoseNuligaBild(startUrl: string, variante: string, opt: BildOptionen = {}): Promise<BildDiagnose> {
+  const d: BildDiagnose = { variante, startUrl, kette: [], finalUrl: null, finalerHost: null, status: null, contentType: null, contentLength: null, bytes: null, hex32: null, textVorschau: null, htmlTitel: null, format: null, fehler: null };
+  let url = startUrl;
+  try {
+    for (let sprung = 0; sprung < 5; sprung++) {
+      if (!istErlaubteNuligaBildUrl(url)) {
+        d.fehler = `URL nicht erlaubt (Host/Pfad): ${url}`;
+        return d;
+      }
+      await gedrosselt();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      try {
+        const headers: Record<string, string> = { "User-Agent": opt.browserHeader ? BROWSER_UA : USER_AGENT, Accept: opt.browserHeader ? BROWSER_ACCEPT : "image/*,*/*;q=0.8" };
+        if (opt.cookie) headers.Cookie = opt.cookie;
+        if (opt.referer) headers.Referer = opt.referer;
+        const response = await fetch(url, { signal: controller.signal, redirect: "manual", headers });
+        const location = response.headers.get("location");
+        d.kette.push({ url, status: response.status, location });
+        d.status = response.status;
+        d.finalUrl = url;
+        d.finalerHost = new URL(url).hostname;
+        if (response.status >= 300 && response.status < 400 && location) {
+          url = new URL(location, url).toString();
+          await response.arrayBuffer().catch(() => undefined);
+          continue;
+        }
+        d.contentType = response.headers.get("content-type");
+        d.contentLength = response.headers.get("content-length");
+        const daten = Buffer.from(await response.arrayBuffer());
+        d.bytes = daten.length;
+        d.hex32 = [...daten.subarray(0, 32)].map((b) => b.toString(16).padStart(2, "0")).join(" ");
+        d.format = beschreibeFormat(daten);
+        if (!erkenneBildtyp(daten)) {
+          const text = daten.subarray(0, 200).toString("utf8");
+          d.textVorschau = maskierePersonendaten(text.replace(/\s+/g, " "));
+          d.htmlTitel = text.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? daten.toString("utf8", 0, 4000).match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? null;
+        }
+        return d;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    d.fehler = "Zu viele Weiterleitungen";
+  } catch (err) {
+    d.fehler = err instanceof Error ? err.message : String(err);
+  }
+  return d;
+}
+
+export { BROWSER_UA };

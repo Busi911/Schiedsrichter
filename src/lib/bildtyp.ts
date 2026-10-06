@@ -21,3 +21,35 @@ export function contentTypeKannBildSein(contentType: string): boolean {
   const ct = contentType.split(";")[0].trim().toLowerCase();
   return BILD_MIME.has(ct) || GENERISCH.has(ct);
 }
+
+const kopf = (daten: Uint8Array, n = 4000) => Buffer.from(daten.subarray(0, n)).toString("utf8");
+
+// E-Mail-Adressen und Telefonnummern aus Diagnose-Ausgaben entfernen (nur Anzeige, nie speichern).
+export function maskierePersonendaten(text: string): string {
+  return text
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[mail]")
+    .replace(/(?<![\w.])\+?\d[\d ()/.-]{7,}\d(?![\w])/g, "[tel]");
+}
+
+// Für Diagnose und Fehlermeldungen: was ist das, wenn es kein erlaubtes Rasterbild ist? SVG ist KEIN Rasterbild und
+// bewusst noch nicht erlaubt (Skripte); die Meldung benennt es aber, statt "unbekanntes Format" zu behaupten.
+export function beschreibeFormat(daten: Uint8Array): string {
+  const typ = erkenneBildtyp(daten);
+  if (typ) return typ.mime;
+  const text = kopf(daten, 512).trimStart().toLowerCase();
+  if (text.startsWith("<svg") || (text.startsWith("<?xml") && kopf(daten).toLowerCase().includes("<svg"))) return "image/svg+xml (SVG)";
+  if (text.startsWith("<!doctype html") || text.startsWith("<html") || text.includes("<head")) return "text/html (HTML-Seite)";
+  if (text.startsWith("http/")) return "HTTP-Antwort im Text";
+  return "unbekannt";
+}
+
+export function beschreibeNichtBild(daten: Uint8Array, contentType: string): string {
+  const format = beschreibeFormat(daten);
+  if (format.startsWith("text/html")) {
+    const titel = kopf(daten).match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/\s+/g, " ").trim();
+    return `Logo-URL liefert HTML statt Bild${titel ? ` (Titel: ${titel.slice(0, 80)})` : ""}`;
+  }
+  if (format.startsWith("image/svg")) return "Das Logo ist ein SVG (noch nicht unterstützt)";
+  if (format.startsWith("HTTP")) return "Logo-URL liefert eine Textantwort statt Bild";
+  return `Kein erlaubtes Bildformat (Content-Type ${contentType || "unbekannt"}, die ersten Bytes passen zu keinem PNG/JPEG/GIF/WebP)`;
+}

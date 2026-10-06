@@ -491,3 +491,8 @@ Für Vereine in Vorbereitung zeigt `/system/vereine` unter "Verein ansprechen (I
 (`normalisiereInstagram`: nur Namen nach `[A-Za-z0-9._]`, fremde Adressen abgelehnt) und "angeschrieben am"/Notiz. Gesendet wird bewusst NIE automatisch (Instagram erlaubt keine automatisierten Erstnachrichten).
 Die Notizen liegen in `verein_kontakt` (Migration 0083, nur `adminDb`, `app_user` ohne Zugriff — nie auf der mandantenfähigen Tabelle `verein`, der Verein darf sie nicht sehen); Protokoll "ansprache_angeschrieben".
 Wenn sich die Konditionen ändern (Ende der Beta, Preis), den Text in `ansprachetext` anpassen. Rechtliche Prüfung unaufgeforderter Erstnachrichten bleibt offen.
+
+**nuLiga-Diagnose (`/system/nuliga-diagnose`)** zeigt je club-ID: Club Page (HTTP, finale URL, Cookies nur als Namen), Stammdaten (VNr., Gründungsjahr, Website), Hallen (raw, bereinigt, Nummer, Quelle `club-page`), Logo
+(img-src, aufgelöste URL) mit ZWEI Abrufen zum Vergleich (A wie der echte Download; B mit Browser-User-Agent, Referer und den Cookies der Vereinsseite) inkl. Weiterleitungskette, finalem Host, Content-Type, Content-Length, Bytes, ersten 32 Bytes (hex), erkanntem Format
+(auch HTML/SVG, `beschreibeFormat`), Textvorschau/HTML-Titel bei Nicht-Bildern, dazu maskierte (E-Mail/Telefon) HTML-Auszüge um "Hallen"/"VNr"/"Gründung"/"www", alle `<img>`-Tags und den Quelltext zum Kopieren. Der echte Download meldet bei einer HTML-Antwort
+"Logo-URL liefert HTML statt Bild" (statt "unbekanntes Format"). SVG ist bewusst noch NICHT erlaubt (Skripte): erst nach der Diagnose entscheiden, dann nur mit Bereinigung bzw. restriktiver Auslieferung (CSP `sandbox`).
