@@ -231,6 +231,6 @@ export async function vereinAusNuligaEinrichten(formData: FormData) {
     schritte.map((x) => `${x.label}: ${x.status}`).join("; ")
   );
   revalidatePath("/system/vereine");
-  const params = new URLSearchParams({ einrichtung: JSON.stringify({ verein: eintrag.name, schritte }) });
+  const params = new URLSearchParams({ einrichtung: JSON.stringify({ verein: eintrag.name, vereinId, schritte }) });
   redirect(`/system/vereine?${params.toString()}`);
 }

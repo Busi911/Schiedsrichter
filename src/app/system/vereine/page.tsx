@@ -19,7 +19,7 @@ import { treuhandStarten, vereinAusNuligaEinrichten, vereinsindexAktualisieren, 
 
 export const maxDuration = 60;
 
-function leseEinrichtung(roh: string | undefined): { verein: string; schritte: EinrichtungsSchritt[] } | null {
+function leseEinrichtung(roh: string | undefined): { verein: string; vereinId?: string; schritte: EinrichtungsSchritt[] } | null {
   if (!roh) return null;
   try {
     const d = JSON.parse(roh);
@@ -165,6 +165,14 @@ export default async function SystemVereinePage({
               </li>
             ))}
           </ul>
+          {einrichtung.vereinId && /^[0-9a-f-]{36}$/i.test(einrichtung.vereinId) && (
+            <form action={treuhandStarten}>
+              <input type="hidden" name="vereinId" value={einrichtung.vereinId} />
+              <SubmitButton size="sm" pendingText="Öffnet…">
+                Jetzt prüfen und ergänzen (Einrichten)
+              </SubmitButton>
+            </form>
+          )}
           <p className="text-xs text-muted-foreground">
             ✓ automatisch geklappt · ! bitte prüfen · ✕ fehlgeschlagen. Der Verein ist in Vorbereitung (unsichtbar, keine Mails).
           </p>
