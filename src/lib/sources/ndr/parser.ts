@@ -130,7 +130,8 @@ export function parseNdrSeite(html: string, k: { liga: BundesLiga; saison: strin
   let nichtLesbar = 0;
 
   const besuche = (n: Knoten): boolean => {
-    if (["script", "style", "head", "title", "noscript"].includes(n.tag)) return false;
+    // Auswahlmenüs ("1. Spieltag" … als <option>) sind keine Überschriften.
+    if (["script", "style", "head", "title", "noscript", "select", "option"].includes(n.tag)) return false;
     const text = textInhalt(n);
     if (text.length <= 60) {
       const sp = text.match(/^(?:Ergebnisse\s+)?(\d{1,2})\.\s*Spieltag$/i);
