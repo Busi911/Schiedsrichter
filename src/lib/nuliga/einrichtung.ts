@@ -1,10 +1,11 @@
 import "server-only";
-import { count, eq } from "drizzle-orm";
+import { and, count, eq, like } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, vereine } from "@/db/schema";
+import { ligaMannschaften, termine, vereine } from "@/db/schema";
 import { synchronisiereAlleQuellen } from "@/lib/liga-sync-quellen";
 import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
+import { schreibeProtokoll } from "@/lib/treuhand";
 import { holeNuligaBild, holeNuligaHtml, holeNuligaSeiteMitKontext, type SeitenKontext } from "./client";
 import { bewerteEinrichtung, type EinrichtungsSchritt } from "./einrichtung-status";
 import { uebernehmeNuligaLogo, type LogoErgebnis } from "./logo";
@@ -68,6 +69,21 @@ export async function fuehreNuligaEinrichtungAus(opt: {
 
   const mannschaftenErgebnis = await legeVereinsMannschaftenAn(adminDb, vereinId);
 
+  // Die Starthilfe soll alles in Gang setzen: Verlegungen, Ergebnisse und neue Spiele kommen dann von selbst. Nur wenn der Verein
+  // schon Termine aus dem Hallenplan-Import hat, bleibt die Übernahme aus — die müssen erst unter /system/abgleich verknüpft werden.
+  let uebernahmeEingeschaltet = false;
+  if (v && !v.uebernahme) {
+    const [{ importiert }] = await adminDb
+      .select({ importiert: count() })
+      .from(termine)
+      .where(and(eq(termine.vereinId, vereinId), like(termine.icsUid, "rundenspiel:%")));
+    if (Number(importiert) === 0) {
+      await adminDb.update(vereine).set({ ligaUebernahmeAktiv: true }).where(eq(vereine.id, vereinId));
+      await schreibeProtokoll(vereinId, "liga_uebernahme_an", "Einrichtung", "Automatische Übernahme bei der Starthilfe eingeschaltet");
+      uebernahmeEingeschaltet = true;
+    }
+  }
+
   let termineAngelegt: number | null = null;
   if ((hallen.length > 0 || vorhandeneHallen) && Date.now() < start + 45_000) {
     try {
@@ -94,8 +110,10 @@ export async function fuehreNuligaEinrichtungAus(opt: {
     logo,
     logoSicher: info?.logoSicher ?? false,
   });
-  if (v && !v.uebernahme) {
-    schritte.push({ schluessel: "uebernahme", label: "Automatische Übernahme", status: "pruefen", detail: "ist für diesen Verein ausgeschaltet — Verlegungen und neue Spiele kommen erst nach dem Einschalten unter /system/abgleich" });
+  if (uebernahmeEingeschaltet) {
+    schritte.push({ schluessel: "uebernahme", label: "Automatische Übernahme", status: "ok", detail: "eingeschaltet — Verlegungen, Ergebnisse und neue Spiele kommen von selbst" });
+  } else if (v && !v.uebernahme) {
+    schritte.push({ schluessel: "uebernahme", label: "Automatische Übernahme", status: "pruefen", detail: "bleibt aus, weil der Verein schon Termine aus dem Hallenplan-Import hat — erst unter /system/abgleich verknüpfen und dann einschalten; ist für diesen Verein ausgeschaltet — Verlegungen und neue Spiele kommen erst nach dem Einschalten unter /system/abgleich" });
   }
   return schritte;
 }
