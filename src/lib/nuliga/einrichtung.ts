@@ -43,14 +43,15 @@ export async function fuehreNuligaEinrichtungAus(opt: {
   if (info) await speichereStammdaten(adminDb, ligaVerein.id, info);
 
   // Spielhallen nur setzen, wenn der Verein noch keine eingetragen hat.
-  const hallen = info?.hallen ?? [];
+  // Hallen ohne HHV-Spielbetrieb ("… (Aktuell kein HHV-Spielbetrieb)") tragen keine Spiele aus und stören nur.
+  const hallen = (info?.hallen ?? []).filter((h) => !/kein\s+HHV-Spielbetrieb/i.test(h));
   const [v] = await adminDb
     .select({ hallen: vereine.eigeneHallenNamen, uebernahme: vereine.ligaUebernahmeAktiv })
     .from(vereine)
     .where(eq(vereine.id, vereinId));
   let hallenGespeichert = hallen;
   if (hallen.length > 0 && !v?.hallen?.trim()) {
-    await adminDb.update(vereine).set({ eigeneHallenNamen: hallen.join(", ").slice(0, 500) }).where(eq(vereine.id, vereinId));
+    await adminDb.update(vereine).set({ eigeneHallenNamen: hallen.join("\n").slice(0, 500) }).where(eq(vereine.id, vereinId));
   } else if (v?.hallen?.trim()) {
     hallenGespeichert = [];
   }
