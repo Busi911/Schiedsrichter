@@ -49,6 +49,7 @@ export function VereinsNav({ basis }: { basis: string }) {
 
       <nav
         aria-label="Bereiche des Vereins"
+        data-vereins-nav
         className="fixed inset-x-0 bottom-0 z-40 border-t border-foreground/15 bg-card dark:border-foreground/25 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:hidden"
       >
         <ul className="mx-auto grid max-w-3xl grid-cols-4 gap-1 px-2 pt-2 pb-2">
