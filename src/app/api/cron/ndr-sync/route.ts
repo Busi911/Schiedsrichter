@@ -1,5 +1,5 @@
 import { pruefeCronSecret } from "@/lib/cron-auth";
-import { SPORTDE_LIGEN, type SportDeLiga } from "@/lib/sources/match";
+import { BUNDESLIGEN, type BundesLiga } from "@/lib/sources/match";
 import { synchronisiereNdrLiga } from "@/lib/sources/ndr/lauf";
 
 export const maxDuration = 60;
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   if (unauthorized) return unauthorized;
   const params = new URL(request.url).searchParams;
   const liga = params.get("liga");
-  if (!liga || !(liga in SPORTDE_LIGEN)) return Response.json({ fehler: "liga=hbl1|hbl2 fehlt" }, { status: 400 });
-  const ergebnis = await synchronisiereNdrLiga(liga as SportDeLiga, { voll: params.get("voll") === "1", frist: Date.now() + 45_000 });
+  if (!liga || !(liga in BUNDESLIGEN)) return Response.json({ fehler: "liga=hbl1|hbl2 fehlt" }, { status: 400 });
+  const ergebnis = await synchronisiereNdrLiga(liga as BundesLiga, { voll: params.get("voll") === "1", frist: Date.now() + 45_000 });
   return Response.json({ ergebnis });
 }

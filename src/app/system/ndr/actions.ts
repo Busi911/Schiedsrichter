@@ -8,7 +8,7 @@ import { ligaExterneIdentitaeten, ligaGruppen, ligaSpiele, ligaTeilnahmen } from
 import { requireSystemAdmin } from "@/lib/session";
 import { verknuepfeExternesTeam } from "@/lib/sources/identitaet";
 import { NDR_LIGA_LISTE, synchronisiereNdrLiga } from "@/lib/sources/ndr/lauf";
-import type { SportDeLiga } from "@/lib/sources/match";
+import type { BundesLiga } from "@/lib/sources/match";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TEAM_ID = /^name:[a-z0-9-]{1,120}$/;
@@ -19,7 +19,7 @@ const meldung = (art: "ok" | "fehler", text: string) => `/system/ndr?${art}=${en
 export async function ndrJetztLaden(formData: FormData) {
   await requireSystemAdmin();
   const liga = formData.get("liga");
-  const ligen: SportDeLiga[] = liga === "hbl1" || liga === "hbl2" ? [liga] : NDR_LIGA_LISTE;
+  const ligen: BundesLiga[] = liga === "hbl1" || liga === "hbl2" ? [liga] : NDR_LIGA_LISTE;
   const voll = formData.get("voll") === "1";
   const texte: string[] = [];
   const ende = Date.now() + 48_000;

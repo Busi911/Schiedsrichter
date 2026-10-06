@@ -2,9 +2,9 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { SportDeLayoutFehler } from "../sportde/types";
+import { QuellLayoutFehler } from "../spieltag/types";
 import { deuteNdrZeile, parseNdrSeite, parseNdrSpieltag } from "./parser";
-import { zerlege } from "../sportde/zeile";
+import { zerlege } from "../spieltag/zeile";
 import { findeSpieltagLinks, matchSchluessel, spieltagPfad } from "./urls";
 
 const fixture = (n: string) => readFileSync(path.join(__dirname, "__fixtures__", n), "utf8");
@@ -85,6 +85,6 @@ describe("ndr: 1. HBL (Seite je Spieltag)", () => {
     expect(parseNdrSeite(HBL1, { liga: "hbl1", saison: "2026/27", jetzt: JETZT }).navigation.map((n) => n.spieltag)).toEqual([1, 3]);
   });
   it("Seite ohne Spiele und Tabelle ist ein Layoutfehler", () => {
-    expect(() => parseNdrSeite("<html><body><p>Nichts</p></body></html>", { liga: "hbl1", saison: "2026/27" })).toThrow(SportDeLayoutFehler);
+    expect(() => parseNdrSeite("<html><body><p>Nichts</p></body></html>", { liga: "hbl1", saison: "2026/27" })).toThrow(QuellLayoutFehler);
   });
 });

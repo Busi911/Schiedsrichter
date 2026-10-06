@@ -7,12 +7,12 @@ import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSystemAdmin } from "@/lib/session";
 import { diagnostiziereNdr } from "@/lib/sources/ndr/diagnose";
-import { SPORTDE_LIGEN, type SportDeLiga } from "@/lib/sources/match";
+import { BUNDESLIGEN, type BundesLiga } from "@/lib/sources/match";
 import { ndrJetztLaden, ndrTeamLoesen, ndrTeamZuordnen } from "./actions";
 
 export const maxDuration = 60;
 
-const LIGEN: SportDeLiga[] = ["hbl1", "hbl2"];
+const LIGEN: BundesLiga[] = ["hbl1", "hbl2"];
 const norm = (s: string) => s.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "");
 
 // Verein-Vorschlag zu einem Bundesliga-Teamnamen: gleicher Name, sonst der eine Verein, dessen Name im Teamnamen steckt (oder umgekehrt).
@@ -31,10 +31,10 @@ export default async function NdrSeite({
 }) {
   await requireSystemAdmin();
   const { ok, fehler, diagnose, spieltag } = await searchParams;
-  const diagnoseLiga: SportDeLiga | null = diagnose === "hbl1" || diagnose === "hbl2" ? diagnose : null;
+  const diagnoseLiga: BundesLiga | null = diagnose === "hbl1" || diagnose === "hbl2" ? diagnose : null;
   const spieltagNr = Math.min(34, Math.max(1, Number(spieltag) || 1));
   const diag = diagnoseLiga ? await diagnostiziereNdr(diagnoseLiga, spieltagNr) : null;
-  const diagTitel = diagnoseLiga ? `${SPORTDE_LIGEN[diagnoseLiga].kurz}, Spieltag ${spieltagNr}` : "";
+  const diagTitel = diagnoseLiga ? `${BUNDESLIGEN[diagnoseLiga].kurz}, Spieltag ${spieltagNr}` : "";
 
   const gruppen = await adminDb.select().from(ligaGruppen).where(eq(ligaGruppen.quelle, "ndr")).orderBy(desc(ligaGruppen.nuligaGroupId));
   const aktuell = new Map<string, (typeof gruppen)[number]>();
@@ -80,7 +80,7 @@ export default async function NdrSeite({
               <option value="">1. und 2. Liga</option>
               {LIGEN.map((l) => (
                 <option key={l} value={l}>
-                  {SPORTDE_LIGEN[l].kurz}
+                  {BUNDESLIGEN[l].kurz}
                 </option>
               ))}
             </select>
@@ -98,7 +98,7 @@ export default async function NdrSeite({
         return (
           <Card key={liga}>
             <CardHeader>
-              <CardTitle className="text-base">{SPORTDE_LIGEN[liga].name}</CardTitle>
+              <CardTitle className="text-base">{BUNDESLIGEN[liga].name}</CardTitle>
               <CardDescription>
                 {g ? `Saison ${g.saison} · ${teams.length} Teams in der Tabelle` : "Noch nicht geladen — oben „Jetzt laden“."}{" "}
                 <Link href={`/system/ndr?diagnose=${liga}&spieltag=1`} className="underline">

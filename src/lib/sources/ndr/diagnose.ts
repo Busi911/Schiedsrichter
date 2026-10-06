@@ -1,9 +1,8 @@
 import "server-only";
 import { maskierePersonendaten } from "@/lib/bildtyp";
 import { saisonLabel } from "@/lib/saison";
-import { SPORTDE_LIGEN, type SportDeLiga } from "../match";
-import { alleMit, attr, parseHtml, textInhalt } from "../sportde/html";
-import type { SeitenDiagnose } from "../sportde/diagnose";
+import { BUNDESLIGEN, type BundesLiga } from "../match";
+import { alleMit, attr, parseHtml, textInhalt } from "../spieltag/html";
 import { holeNdrSeite } from "./client";
 import { parseNdrSeite } from "./parser";
 import { NDR_BASIS, spieltagPfad } from "./urls";
@@ -12,12 +11,24 @@ import { NDR_BASIS, spieltagPfad } from "./urls";
 // Tabellenzeilen, Parsingfehler), Link-Formen, Bild-Hosts und maskierte HTML-Auszüge. Die Parser sind aus der Beschreibung gebaut und gegen
 // nachgebaute Fixtures geprüft — hier zeigt sich, ob sie zur echten Seite passen.
 
+export type SeitenDiagnose = {
+  name: string;
+  pfad: string;
+  url: string;
+  ms: number;
+  zeichen: number | null;
+  fehler: string | null;
+  ergebnis: string[];
+  roh: string[];
+  auszuege: { titel: string; html: string }[];
+};
+
 const auszug = (html: string, index: number, vor = 200, nach = 1200) => maskierePersonendaten(html.slice(Math.max(0, index - vor), index + nach));
 
-export async function diagnostiziereNdr(liga: SportDeLiga, spieltag = 1, jetzt = new Date()): Promise<SeitenDiagnose[]> {
+export async function diagnostiziereNdr(liga: BundesLiga, spieltag = 1, jetzt = new Date()): Promise<SeitenDiagnose[]> {
   const saison = saisonLabel(jetzt);
   const pfad = spieltagPfad(liga, spieltag, Number(saison.slice(0, 4)));
-  const d: SeitenDiagnose = { name: `${SPORTDE_LIGEN[liga].kurz} (Spieltag ${spieltag})`, pfad, url: `${NDR_BASIS}${pfad}`, ms: 0, zeichen: null, fehler: null, ergebnis: [], roh: [], auszuege: [] };
+  const d: SeitenDiagnose = { name: `${BUNDESLIGEN[liga].kurz} (Spieltag ${spieltag})`, pfad, url: `${NDR_BASIS}${pfad}`, ms: 0, zeichen: null, fehler: null, ergebnis: [], roh: [], auszuege: [] };
   const start = Date.now();
   try {
     const html = await holeNdrSeite(pfad);
