@@ -175,6 +175,22 @@ export default async function HblSeite({ searchParams }: { searchParams: Promise
                     ))}
                   </ul>
                 )}
+                {d.roh.zeilen.length > 0 && (
+                  <div className="rounded-md border p-2 text-xs">
+                    <p className="font-medium">Rohanalyse des Quelltextes (inkl. Skripte)</p>
+                    {d.roh.zeilen.map((z, i) => (
+                      <p key={i} className="break-words text-muted-foreground">
+                        {z}
+                      </p>
+                    ))}
+                    {d.roh.auszuege.map((a) => (
+                      <details key={a.titel} className="mt-1">
+                        <summary className="cursor-pointer">{a.titel}</summary>
+                        <pre className="mt-1 max-h-72 overflow-auto rounded-md bg-muted p-2 break-all whitespace-pre-wrap">{a.html}</pre>
+                      </details>
+                    ))}
+                  </div>
+                )}
                 {d.auszuege.map((a) => (
                   <details key={a.titel} className="text-xs">
                     <summary className="cursor-pointer">{a.titel}</summary>

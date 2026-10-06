@@ -18,7 +18,47 @@ export type SeitenDiagnose = {
   fehler: string | null;
   ergebnis: string[];
   auszuege: { titel: string; html: string }[];
+  // Rohanalyse des unveränderten Quelltextes (inkl. Skripte): WO stehen die Daten, wenn nicht als Links im sichtbaren HTML?
+  roh: { zeilen: string[]; auszuege: { titel: string; html: string }[] };
 };
+
+const zaehle = (html: string, muster: RegExp) => (html.match(muster) ?? []).length;
+
+export function rohAnalyse(html: string): SeitenDiagnose["roh"] {
+  const zeilen: string[] = [];
+  const auszuege: { titel: string; html: string }[] = [];
+  const marker: [string, RegExp][] = [
+    ["/team/", /\/team\//g],
+    ["/match/", /\/match\//g],
+    ["UUID (8-4-4-4-12)", /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi],
+    ["febf038e (THW-UUID)", /febf038e/gi],
+    ["__NUXT_DATA__", /__NUXT_DATA__/g],
+    ["window.__NUXT__", /window\.__NUXT__/g],
+    ["application/json", /application\/json/g],
+    ["ld+json", /ld\+json/g],
+    ["THW Kiel", /THW Kiel/g],
+    ["sportradar", /sportradar/gi],
+    ["Beendet", /Beendet/g],
+  ];
+  zeilen.push(marker.map(([n, r]) => `${n}: ${zaehle(html, r)}×`).join(" · "));
+
+  // Skript-Tags: Kopf (Attribute) und Länge des Inhalts
+  const skripte = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)].map((m) => ({ attrs: m[1].trim().slice(0, 140), laenge: m[2].length, inhalt: m[2] }));
+  zeilen.push(`${skripte.length} Skript-Tags; die größten: ${[...skripte].sort((a, b) => b.laenge - a.laenge).slice(0, 5).map((x) => `[${x.attrs || "ohne Attribute"}] ${x.laenge} Zeichen`).join(" | ")}`);
+  const gross = [...skripte].sort((a, b) => b.laenge - a.laenge)[0];
+  if (gross && gross.laenge > 2000) auszuege.push({ titel: `Anfang des größten Skripts (${gross.laenge} Zeichen)`, html: maskierePersonendaten(gross.inhalt.slice(0, 1500)) });
+
+  const um = (titel: string, muster: RegExp, vor = 300, nach = 900) => {
+    const m = muster.exec(html);
+    if (m) auszuege.push({ titel, html: maskierePersonendaten(html.slice(Math.max(0, m.index - vor), m.index + nach)) });
+  };
+  um("Um das erste „/team/“", /\/team\//);
+  um("Um das erste „/match/“", /\/match\//);
+  um("Um die erste UUID", /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  um("Um „THW Kiel“", /THW Kiel/);
+  um("Um „Flensburg“", /Flensburg/);
+  return { zeilen, auszuege };
+}
 
 function auszug(html: string, index: number, vor = 200, nach = 700): string {
   return maskierePersonendaten(html.slice(Math.max(0, index - vor), index + nach));
@@ -69,10 +109,11 @@ export async function diagnostiziereHbl(wettbewerb: HblWettbewerb): Promise<Seit
   const ergebnisse: SeitenDiagnose[] = [];
   for (const s of seiten) {
     const start = Date.now();
-    const d: SeitenDiagnose = { name: s.name, pfad: s.pfad, url: `${HBL_BASIS}${s.pfad}`, ms: 0, zeichen: null, fehler: null, ergebnis: [], auszuege: [] };
+    const d: SeitenDiagnose = { name: s.name, pfad: s.pfad, url: `${HBL_BASIS}${s.pfad}`, ms: 0, zeichen: null, fehler: null, ergebnis: [], auszuege: [], roh: { zeilen: [], auszuege: [] } };
     try {
       const html = await holeHblSeite(s.pfad);
       d.zeichen = html.length;
+      d.roh = rohAnalyse(html);
       try {
         const r = s.pruefe(html);
         d.ergebnis = r.ergebnis;
