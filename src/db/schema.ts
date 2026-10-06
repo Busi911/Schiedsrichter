@@ -1217,3 +1217,14 @@ export const nuligaVereinsindex = pgTable(
   },
   (t) => [uniqueIndex("nuliga_vereinsindex_verband_club_idx").on(t.verband, t.clubId)]
 );
+
+// Interne Notizen des Systemadmins zur Ansprache eines Vereins (Instagram, Status). Nur adminDb, `app_user` hat
+// keinen Zugriff: der Verein selbst darf das nie sehen (deshalb NICHT auf der mandantenfähigen Tabelle verein).
+export const vereinKontakt = pgTable("verein_kontakt", {
+  vereinId: uuid("verein_id")
+    .primaryKey()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  instagram: text("instagram"),
+  angeschriebenAm: timestamp("angeschrieben_am", { mode: "date" }),
+  notiz: text("notiz"),
+});

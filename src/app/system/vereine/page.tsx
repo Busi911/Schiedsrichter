@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { and, count, desc, eq, gt, isNull, max } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaVereine, nuligaVereinsindex, users, vereinVorschauLinks } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, nuligaVereinsindex, users, vereinKontakt, vereinVorschauLinks } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
+import { VereinAnsprechen } from "@/components/verein-ansprechen";
+import { ansprachetext, normalisiereInstagram } from "@/lib/verein-ansprache";
 import { Card, CardContent } from "@/components/ui/card";
 import { NeuerVereinDialog } from "@/components/neuer-verein-dialog";
 import { VereinVorbereitenDialog } from "@/components/verein-vorbereiten-dialog";
@@ -36,7 +38,7 @@ export default async function SystemVereinePage({
 }: {
   searchParams: Promise<{ suche?: string; einrichtung?: string; index?: string }>;
 }) {
-  await requireSystemAdmin();
+  const session = await requireSystemAdmin();
   const { suche = "", einrichtung: einrichtungRoh, index: indexMeldung } = await searchParams;
   const einrichtung = leseEinrichtung(einrichtungRoh);
   const treffer = suche.trim().length >= 2 ? await sucheVereinsindex(adminDb, suche) : [];
@@ -60,6 +62,16 @@ export default async function SystemVereinePage({
       z.vereinId,
       z.slug,
     ])
+  );
+  const kontakte = new Map((await adminDb.select().from(vereinKontakt)).map((k) => [k.vereinId, k]));
+  const mannschaftsAnzahl = new Map(
+    (
+      await adminDb
+        .select({ vereinId: ligaVereine.vereinId, anzahl: count() })
+        .from(ligaMannschaften)
+        .innerJoin(ligaVereine, eq(ligaVereine.id, ligaMannschaften.ligaVereinId))
+        .groupBy(ligaVereine.vereinId)
+    ).map((z) => [z.vereinId, z.anzahl])
   );
   const vorschauLinks = await adminDb
     .select()
@@ -191,6 +203,21 @@ export default async function SystemVereinePage({
             const vereinsAdmins = admins.filter((a) => a.vereinId === v.id);
             const vorbereitung = v.status === "vorbereitung";
             const links = vorschauLinks.filter((l) => l.vereinId === v.id);
+            const kontakt = kontakte.get(v.id);
+            // Längster noch gültiger Link: er steht in der Nachricht, damit er möglichst lange hält.
+            const linkFuerText = [...links].sort((a, b) => b.gueltigBis.getTime() - a.gueltigBis.getTime())[0];
+            const ansprache = linkFuerText && slugs.get(v.id)
+              ? ansprachetext({
+                  vereinsname: v.name,
+                  vorschauUrl: `${basisUrl}/verein/${slugs.get(v.id)}/vorschau/${linkFuerText.token}`,
+                  gueltigBis: linkFuerText.gueltigBis,
+                  absender: session.user.name?.split(" ")[0] ?? "[Dein Name]",
+                })
+              : null;
+            const ansprachHinweise = [
+              (mannschaftsAnzahl.get(v.id) ?? 0) === 0 ? "Noch keine Mannschaften geladen — den Verein erst fertig einrichten." : null,
+              linkFuerText && linkFuerText.gueltigBis.getTime() - new Date().getTime() < 2 * 24 * 3600 * 1000 ? "Der Vorschau-Link läuft in weniger als 2 Tagen ab — besser einen neuen mit 7 Tagen erzeugen." : null,
+            ].filter((h): h is string => !!h);
             return (
               <Card key={v.id} className="gap-3">
                 <CardContent className="flex flex-col gap-3">
@@ -274,6 +301,26 @@ export default async function SystemVereinePage({
                         slug={slugs.get(v.id) ?? null}
                         basisUrl={basisUrl}
                         links={links}
+                      />
+                    </details>
+                  )}
+
+                  {vorbereitung && (
+                    <details className="rounded-lg border px-3 py-2">
+                      <summary className="cursor-pointer text-sm font-medium">
+                        Verein ansprechen (Instagram)
+                        {kontakt?.angeschriebenAm && (
+                          <span className="font-normal text-muted-foreground"> · angeschrieben am {formatDate(kontakt.angeschriebenAm)}</span>
+                        )}
+                      </summary>
+                      <VereinAnsprechen
+                        vereinId={v.id}
+                        text={ansprache}
+                        instagram={kontakt?.instagram ?? null}
+                        profilUrl={kontakt?.instagram ? (normalisiereInstagram(kontakt.instagram)?.url ?? null) : null}
+                        angeschriebenAm={kontakt?.angeschriebenAm ? formatDate(kontakt.angeschriebenAm) : null}
+                        notiz={kontakt?.notiz ?? null}
+                        hinweise={ansprachHinweise}
                       />
                     </details>
                   )}

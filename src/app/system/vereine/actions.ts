@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, count, eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaVereine, nuligaVereinsindex, vereine } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, nuligaVereinsindex, vereine, vereinKontakt } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import {
@@ -29,6 +29,7 @@ import { synchronisiereAlleQuellen } from "@/lib/liga-sync-quellen";
 import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { schreibeProtokoll } from "@/lib/treuhand";
+import { normalisiereInstagram } from "@/lib/verein-ansprache";
 
 export async function vereinErstellen(formData: FormData) {
   await requireSystemAdmin();
@@ -233,4 +234,46 @@ export async function vereinAusNuligaEinrichten(formData: FormData) {
   revalidatePath("/system/vereine");
   const params = new URLSearchParams({ einrichtung: JSON.stringify({ verein: eintrag.name, vereinId, schritte }) });
   redirect(`/system/vereine?${params.toString()}`);
+}
+
+// Ansprache eines Vereins in Vorbereitung (Instagram von Hand, siehe lib/verein-ansprache.ts): interne Notizen
+// des Systemadmins, nie für den Verein sichtbar (Tabelle verein_kontakt, nur adminDb).
+async function pruefeVorbereitung(vereinId: string) {
+  const [v] = await adminDb.select({ status: vereine.status }).from(vereine).where(eq(vereine.id, vereinId));
+  if (v?.status !== "vorbereitung") throw new Error("Nur für Vereine in Vorbereitung.");
+}
+
+export async function kontaktSpeichern(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const vereinId = text(formData, "vereinId");
+  await pruefeVorbereitung(vereinId);
+  const roh = text(formData, "instagram");
+  const instagram = roh ? normalisiereInstagram(roh)?.name : null;
+  if (roh && !instagram) throw new Error("Der Instagram-Name ist ungültig (nur Buchstaben, Ziffern, Punkt, Unterstrich).");
+  const notiz = text(formData, "notiz").slice(0, 1000) || null;
+  await adminDb
+    .insert(vereinKontakt)
+    .values({ vereinId, instagram: instagram ?? null, notiz })
+    .onConflictDoUpdate({ target: vereinKontakt.vereinId, set: { instagram: instagram ?? null, notiz } });
+  revalidatePath("/system/vereine");
+  void session;
+}
+
+export async function kontaktAngeschrieben(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const vereinId = text(formData, "vereinId");
+  const zuruecksetzen = text(formData, "zuruecksetzen") === "1";
+  await pruefeVorbereitung(vereinId);
+  const angeschriebenAm = zuruecksetzen ? null : new Date();
+  await adminDb
+    .insert(vereinKontakt)
+    .values({ vereinId, angeschriebenAm })
+    .onConflictDoUpdate({ target: vereinKontakt.vereinId, set: { angeschriebenAm } });
+  await schreibeProtokoll(
+    vereinId,
+    zuruecksetzen ? "ansprache_zurueckgesetzt" : "ansprache_angeschrieben",
+    session.user.email ?? session.user.id,
+    zuruecksetzen ? undefined : "Instagram (von Hand)"
+  );
+  revalidatePath("/system/vereine");
 }
