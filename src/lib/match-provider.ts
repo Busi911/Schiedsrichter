@@ -38,7 +38,11 @@ export const sportDeQuelle: SpielQuelle = {
   liveUrl: (s) => (s.quelle === "sportde" && s.berichtUrl && SPORTDE_PFAD.test(s.berichtUrl) ? vollUrl(livetickerPfad(s.berichtUrl)) : null),
 };
 
+// ndr.de (1./2. HBL, Phase 1: Spielplan, Ergebnisse, Tabelle): keine Spielseiten, kein Live — nur die Anzeige der gespeicherten Daten.
+export const ndrQuelle: SpielQuelle = { berichtUrl: () => null, liveUrl: () => null };
+
 export function quelleFuer(spiel: SpielAnsicht): SpielQuelle {
+  if (spiel.quelle === "ndr") return ndrQuelle;
   if (spiel.quelle === "sportde") return sportDeQuelle;
   return spiel.quelle === "handball_net" ? handballNetQuelle : nuLigaQuelle;
 }

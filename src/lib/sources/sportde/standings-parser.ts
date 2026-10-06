@@ -1,5 +1,6 @@
 import { alleMit, attr, nachfahren, parseHtml, textInhalt, type Knoten } from "./html";
-import { SPORTDE_BASIS, teamIdAusNamen, teamSlugAusHref, vollUrl } from "./urls";
+import { teamIdAusNamen } from "./urls";
+import { SPORTDE_PROFIL, type ParserProfil } from "./profil";
 import { SportDeLayoutFehler, type SportDeTabellenzeile, type SportDeTeam } from "./types";
 import type { SportDeLiga } from "../match";
 
@@ -9,42 +10,32 @@ import type { SportDeLiga } from "../match";
 
 const ZEILE = /^(\d{1,2})\.?\s+(.+?)\s+(\d{1,2})\s+(\d{1,2})\s+(\d{1,2})\s+(\d{1,2})\s+(\d{1,4})\s*:\s*(\d{1,4})\s+([+\-−–]?\s?\d{1,4})\s+(\d{1,3})\s*:\s*(\d{1,3})$/;
 
-// Logos nur von sport.de selbst (https). Weitere Hosts erst eintragen, wenn die Diagnose sie zeigt.
-export const ERLAUBTE_LOGO_HOSTS: string[] = [];
-export function istErlaubteLogoUrl(url: string | null | undefined): url is string {
-  if (!url) return false;
-  try {
-    const u = new URL(url);
-    return u.protocol === "https:" && (u.hostname === "sport.de" || u.hostname.endsWith(".sport.de") || ERLAUBTE_LOGO_HOSTS.includes(u.hostname));
-  } catch {
-    return false;
-  }
-}
+export { ERLAUBTE_LOGO_HOSTS, istErlaubteLogoUrl } from "./profil";
 
-export function absolutUrl(href: string): string {
+export function absolutUrl(href: string, basis: string = SPORTDE_PROFIL.basis): string {
   try {
-    return new URL(href, SPORTDE_BASIS).toString();
+    return new URL(href, basis).toString();
   } catch {
     return href;
   }
 }
 
 // Logo aus einem <img>: src, data-src oder das erste srcset-Element. Nie aus Name oder Slug konstruiert.
-export function logoAusKnoten(k: Knoten): { url: string | null; gesehen: string | null } {
+export function logoAusKnoten(k: Knoten, profil: ParserProfil = SPORTDE_PROFIL): { url: string | null; gesehen: string | null } {
   let gesehen: string | null = null;
   for (const bild of [...nachfahren(k)].filter((n) => n.tag === "img")) {
     const kandidaten = [attr(bild, "src"), attr(bild, "data-src"), attr(bild, "data-lazy-src"), attr(bild, "srcset")?.split(",")[0]?.trim().split(/\s+/)[0] ?? null];
     for (const roh of kandidaten) {
       if (!roh || roh.startsWith("data:")) continue;
-      const url = absolutUrl(roh);
+      const url = absolutUrl(roh, profil.basis);
       gesehen ??= url;
-      if (istErlaubteLogoUrl(url)) return { url, gesehen };
+      if (profil.logoErlaubt(url)) return { url, gesehen };
     }
   }
   return { url: null, gesehen };
 }
 
-export function parseTabelleHtml(html: string, liga: SportDeLiga): { zeilen: SportDeTabellenzeile[]; teams: SportDeTeam[]; warnungen: string[] } {
+export function parseTabelleHtml(html: string, liga: SportDeLiga, profil: ParserProfil = SPORTDE_PROFIL): { zeilen: SportDeTabellenzeile[]; teams: SportDeTeam[]; warnungen: string[] } {
   const wurzel = parseHtml(html);
   const warnungen: string[] = [];
   const zeilen: SportDeTabellenzeile[] = [];
@@ -65,11 +56,12 @@ export function parseTabelleHtml(html: string, liga: SportDeLiga): { zeilen: Spo
     }
     gesehenRaenge.add(rang);
     erkannt++;
-    const name = m[2].trim();
-    const link = alleMit(n, "a").map((a) => ({ a, slug: teamSlugAusHref(attr(a, "href") ?? "") })).find((x) => x.slug);
-    const teamId = link?.slug ?? teamIdAusNamen(name);
+    const link = alleMit(n, "a").map((a) => ({ a, kennung: profil.teamKennung(attr(a, "href") ?? "") })).find((x) => x.kennung);
+    const linkText = profil.nameAusLink && link ? textInhalt(link.a).trim() : "";
+    const name = linkText || m[2].trim();
+    const teamId = link?.kennung?.id ?? teamIdAusNamen(name);
     if (!link) warnungen.push(`Tabellenplatz ${rang}: kein Team-Link, Schlüssel aus dem Namen ("${name}")`);
-    const logo = logoAusKnoten(n);
+    const logo = logoAusKnoten(n, profil);
     const punkte = [Number(m[10]), Number(m[11])] as const;
     zeilen.push({
       teamId,
@@ -89,14 +81,14 @@ export function parseTabelleHtml(html: string, liga: SportDeLiga): { zeilen: Spo
     });
     teams.push({
       externalId: teamId,
-      slug: link?.slug ?? null,
+      slug: link?.kennung?.slug ?? null,
       name,
       shortName: null,
       logoUrl: logo.url,
       league: liga,
-      sourceUrl: link ? vollUrl(new URL(absolutUrl(attr(link.a, "href") ?? "")).pathname) : null,
+      sourceUrl: link ? profil.vollUrl(new URL(absolutUrl(attr(link.a, "href") ?? "", profil.basis)).pathname) : null,
     });
   }
-  if (erkannt === 0) throw new SportDeLayoutFehler("keine Tabellenzeilen (#, Mannschaft, Sp., S, U, N, Tore, Diff., Pkt.) erkannt");
+  if (erkannt === 0) throw new SportDeLayoutFehler(profil.name, "keine Tabellenzeilen (#, Mannschaft, Sp., S, U, N, Tore, Diff., Pkt.) erkannt");
   return { zeilen: zeilen.sort((a, b) => a.rang - b.rang), teams, warnungen };
 }

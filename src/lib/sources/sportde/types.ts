@@ -89,7 +89,7 @@ export type SportDeLiveStand = {
 export type HoleSeite = (pfad: string) => Promise<string>;
 
 export class SportDeLayoutFehler extends Error {
-  constructor(was: string) {
-    super(`sport.de: ${was} — Layout geändert oder Struktur unerwartet`);
+  constructor(quelleOderWas: string, was?: string) {
+    super(was === undefined ? `sport.de: ${quelleOderWas} — Layout geändert oder Struktur unerwartet` : `${quelleOderWas}: ${was} — Layout geändert oder Struktur unerwartet`);
   }
 }

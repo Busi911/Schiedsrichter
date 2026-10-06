@@ -56,12 +56,12 @@ export const normalizeHandballNetMatch = (s: SpielZeile, g: GruppeZeile): Match 
 
 export function normalizeSportDeMatch(
   s: SportDeSpiel,
-  k: { competitionId: string; competitionName: string; season: string; logos?: Map<string, string> }
+  k: { competitionId: string; competitionName: string; season: string; logos?: Map<string, string>; source?: "sportde" | "ndr" }
 ): Match {
   const datum = s.datum ?? "1970-01-01";
   return {
-    id: `sportde:${s.externalMatchId}`,
-    source: "sportde",
+    id: `${k.source ?? "sportde"}:${s.externalMatchId}`,
+    source: k.source ?? "sportde",
     externalMatchId: s.externalMatchId,
     competitionId: k.competitionId,
     competitionName: k.competitionName,

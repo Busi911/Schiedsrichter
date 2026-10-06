@@ -28,6 +28,24 @@ import { spieltagPfad, vollUrl } from "./urls";
 export const SPORTDE_VERBAND = "SPORTDE";
 export const SPORTDE_QUELLE = "sportde";
 
+// Der Sync ist für alle Spieltagsseiten-Quellen derselbe (sport.de, Sportschau); das Profil legt fest, wie die Quelle heißt, wie ihre
+// Seiten adressiert und gelesen werden. Gruppen, Abruf-Status und Team-Zuordnungen sind je `quelle` getrennt.
+export type SyncProfil = {
+  quelle: string; // "sportde" | "sportschau": liga_gruppe.quelle, liga_spiel.quelle, liga_externe_identitaet.quelle, liga_quelle_abruf.quelle
+  verband: string; // liga_gruppe.verband
+  spieltagPfad: (liga: SportDeLiga, spieltag: number) => string;
+  vollUrl: (pfad: string) => string;
+  parse: (html: string, k: { liga: SportDeLiga; saison: string; spieltag: number }) => ReturnType<typeof parseSpieltagSeite>;
+};
+
+export const SPORTDE_SYNC_PROFIL: SyncProfil = {
+  quelle: SPORTDE_QUELLE,
+  verband: SPORTDE_VERBAND,
+  spieltagPfad,
+  vollUrl,
+  parse: (html, k) => parseSpieltagSeite(html, k),
+};
+
 // zuordnung = Stand der Team-Zuordnungen beim Abruf: wird ein Team später zugeordnet, müssen bereits geholte Seiten erneut gelesen werden, damit seine
 // Spiele nachgeladen werden (sonst fehlten sie bis zum nächsten Auffrischen).
 export type RundenMeta = { erstes: string | null; letztes: string | null; begonnen: number; beendet: number; gesamt: number; zuordnung?: string };
@@ -88,6 +106,7 @@ export type SportDeSyncOptionen = {
   voll?: boolean; // alle Spieltagsseiten neu holen
   nurTabelle?: boolean; // nur die Tabellenseite (z.B. zum Auflisten der Teams vor der Zuordnung)
   maxSeiten?: number;
+  profil?: SyncProfil; // Standard: sport.de
 };
 
 const excluded = (spalte: AnyPgColumn) => sql`excluded.${sql.identifier(spalte.name)}`;
@@ -131,7 +150,7 @@ export function sportDeSpielFelder(s: SportDeSpiel): SpielFelder & { spieltag: n
 
 // Mannschaft des Vereins zum Bundesliga-Team: die erste Männermannschaft. Hat der Verein unter diesem Schlüssel schon eine aktive Teilnahme einer
 // anderen Quelle in derselben Saison, ist es vermutlich eine andere Mannschaft: getrennt führen ("… (1. HBL)") und melden, nie still vermischen.
-async function sorgeFuerMannschaft(db: LigaDb, ligaVereinId: string, saison: string, ligaKurz: string, neu: () => void, warn: (t: string) => void) {
+async function sorgeFuerMannschaft(db: LigaDb, ligaVereinId: string, saison: string, ligaKurz: string, quelle: string, neu: () => void, warn: (t: string) => void) {
   const norm = normalisiereMannschaft("Männer");
   let schluessel = norm.schluessel;
   let slugBasis = norm.slug;
@@ -142,11 +161,11 @@ async function sorgeFuerMannschaft(db: LigaDb, ligaVereinId: string, saison: str
       .select({ id: ligaTeilnahmen.id })
       .from(ligaTeilnahmen)
       .innerJoin(ligaGruppen, eq(ligaGruppen.id, ligaTeilnahmen.gruppeId))
-      .where(and(eq(ligaTeilnahmen.mannschaftId, mit.id), eq(ligaTeilnahmen.aktiv, true), eq(ligaTeilnahmen.saison, saison), sql`${ligaGruppen.quelle} <> ${SPORTDE_QUELLE}`))
+      .where(and(eq(ligaTeilnahmen.mannschaftId, mit.id), eq(ligaTeilnahmen.aktiv, true), eq(ligaTeilnahmen.saison, saison), sql`${ligaGruppen.quelle} <> ${quelle}`))
       .limit(1);
     if (fremd.length > 0) {
       warn(`Bundesliga-Mannschaft kollidiert mit "${mit.name}" aus einer anderen Quelle – getrennt geführt (${ligaKurz})`);
-      schluessel = `${schluessel}:sportde`;
+      schluessel = `${schluessel}:${quelle}`;
       slugBasis = `${slugBasis}-${slugKurz(ligaKurz)}`;
       name = `${name} (${ligaKurz})`;
     }
@@ -170,6 +189,7 @@ type GeholteRunde = { runde: number; spiele: SportDeSpiel[]; tabelle: SportDeTab
 
 export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<SyncErgebnis> {
   const { db, hole, liga, saison, jetzt = new Date(), voll = false, nurTabelle = false } = opt;
+  const pf = opt.profil ?? SPORTDE_SYNC_PROFIL;
   const frist = opt.frist ?? Date.now() + 45_000;
   const maxSeiten = opt.maxSeiten ?? 40;
   const meta = SPORTDE_LIGEN[liga];
@@ -185,23 +205,23 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
   const schluessel = (r: number) => `${liga}:${saison}:md${r}`;
 
   // Gruppe (je Liga und Saison)
-  const gruppenWerte = { quelle: SPORTDE_QUELLE, championship: meta.name, saison, ligaName: meta.name, geschlecht: "m", altersklasse: null, spielklasse: meta.kurz, gruppe: null, istMeldeliste: false };
+  const gruppenWerte = { quelle: pf.quelle, championship: meta.name, saison, ligaName: meta.name, geschlecht: "m", altersklasse: null, spielklasse: meta.kurz, gruppe: null, istMeldeliste: false };
   const gruppenKey = `${liga}:${saison}`;
-  let gruppe = await db.query.ligaGruppen.findFirst({ where: and(eq(ligaGruppen.verband, SPORTDE_VERBAND), eq(ligaGruppen.nuligaGroupId, gruppenKey)) });
+  let gruppe = await db.query.ligaGruppen.findFirst({ where: and(eq(ligaGruppen.verband, pf.verband), eq(ligaGruppen.nuligaGroupId, gruppenKey)) });
   if (gruppe) await db.update(ligaGruppen).set(gruppenWerte).where(eq(ligaGruppen.id, gruppe.id));
   else {
-    [gruppe] = await db.insert(ligaGruppen).values({ verband: SPORTDE_VERBAND, nuligaGroupId: gruppenKey, ...gruppenWerte }).returning();
+    [gruppe] = await db.insert(ligaGruppen).values({ verband: pf.verband, nuligaGroupId: gruppenKey, ...gruppenWerte }).returning();
     neu++;
   }
   const gruppeId = gruppe.id;
 
   // Zuordnung Team -> bestehender Verein (nur diese bekommen Mannschaft, Teilnahme und Spiele)
-  const identitaeten = await db.query.ligaExterneIdentitaeten.findMany({ where: eq(ligaExterneIdentitaeten.quelle, SPORTDE_QUELLE) });
+  const identitaeten = await db.query.ligaExterneIdentitaeten.findMany({ where: eq(ligaExterneIdentitaeten.quelle, pf.quelle) });
   const vereinJeTeam = new Map(identitaeten.map((i) => [i.externeId, i.ligaVereinId]));
   const zuordnungsStand = [...vereinJeTeam.keys()].sort().join(",");
 
   // Abruf-Status aller Spieltagsseiten dieser Liga/Saison
-  const abrufZeilen = await db.select().from(ligaQuellenAbrufe).where(and(eq(ligaQuellenAbrufe.quelle, SPORTDE_QUELLE), like(ligaQuellenAbrufe.schluessel, `${gruppenKey}:md%`)));
+  const abrufZeilen = await db.select().from(ligaQuellenAbrufe).where(and(eq(ligaQuellenAbrufe.quelle, pf.quelle), like(ligaQuellenAbrufe.schluessel, `${gruppenKey}:md%`)));
   const abrufe = new Map<number, { letzterErfolgAm: Date | null; meta: RundenMeta | null }>();
   for (const a of abrufZeilen) {
     const r = Number(a.schluessel.split(":md")[1]);
@@ -212,7 +232,7 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
 
   const speichereAbruf = async (r: number, ok: boolean, fehler: string | null, m: RundenMeta | null) => {
     const jetztDb = new Date();
-    const werte = { quelle: SPORTDE_QUELLE, schluessel: schluessel(r), letzterVersuchAm: jetztDb, status: ok ? "ok" : "fehler", letzterFehler: ok ? null : fehler, quellUrl: vollUrl(spieltagPfad(liga, r)) };
+    const werte = { quelle: pf.quelle, schluessel: schluessel(r), letzterVersuchAm: jetztDb, status: ok ? "ok" : "fehler", letzterFehler: ok ? null : fehler, quellUrl: pf.vollUrl(pf.spieltagPfad(liga, r)) };
     await db
       .insert(ligaQuellenAbrufe)
       .values({ ...werte, letzterErfolgAm: ok ? jetztDb : null, meta: m })
@@ -244,8 +264,8 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
     }
     try {
       anfragen++;
-      const html = await hole(spieltagPfad(liga, r));
-      const p = parseSpieltagSeite(html, { liga, saison, spieltag: r });
+      const html = await hole(pf.spieltagPfad(liga, r));
+      const p = pf.parse(html, { liga, saison, spieltag: r });
       const m = { ...berechneRundenMeta(p.spiele), zuordnung: zuordnungsStand };
       metaJeRunde.set(r, m);
       geholt.set(r, { runde: r, spiele: p.spiele, tabelle: p.tabelle, teams: p.teams });
@@ -320,9 +340,9 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
         await db
           .update(ligaExterneIdentitaeten)
           .set({ externerCode: team.slug, name: team.name, ...(team.logoUrl ? { logoUrl: team.logoUrl } : {}), aktualisiertAm: new Date() })
-          .where(and(eq(ligaExterneIdentitaeten.quelle, SPORTDE_QUELLE), eq(ligaExterneIdentitaeten.externeId, teamId)));
+          .where(and(eq(ligaExterneIdentitaeten.quelle, pf.quelle), eq(ligaExterneIdentitaeten.externeId, teamId)));
       }
-      const mannschaft = await sorgeFuerMannschaft(db, ligaVereinId, saison, meta.kurz, () => neu++, warn);
+      const mannschaft = await sorgeFuerMannschaft(db, ligaVereinId, saison, meta.kurz, pf.quelle, () => neu++, warn);
       const vorher = await db.query.ligaTeilnahmen.findFirst({ where: and(eq(ligaTeilnahmen.mannschaftId, mannschaft.id), eq(ligaTeilnahmen.gruppeId, gruppeId)) });
       const werte = {
         saison,
@@ -362,7 +382,7 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
     const alt = nachCode.get(s.externalMatchId);
     const { spieltag, ...ohneSpieltag } = felder;
     if (alt && !spielGeaendert({ ...alt } as SpielFelder, ohneSpieltag) && alt.spieltag === spieltag) continue;
-    zuSchreiben.push({ gruppeId, spielcode: s.externalMatchId, quelle: SPORTDE_QUELLE, externeId: s.externalMatchId, ...felder });
+    zuSchreiben.push({ gruppeId, spielcode: s.externalMatchId, quelle: pf.quelle, externeId: s.externalMatchId, ...felder });
     if (alt) aktualisiert++;
     else neu++;
   }
@@ -383,7 +403,7 @@ export async function synchronisiereSportDe(opt: SportDeSyncOptionen): Promise<S
   await db.delete(ligaSpiele).where(
     and(
       eq(ligaSpiele.gruppeId, gruppeId),
-      eq(ligaSpiele.quelle, SPORTDE_QUELLE),
+      eq(ligaSpiele.quelle, pf.quelle),
       inArray(ligaSpiele.spieltag, gelesenRunden),
       gte(ligaSpiele.datum, tagKey(jetzt)),
       notInArray(ligaSpiele.spielcode, alleCodes),
