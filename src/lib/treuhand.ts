@@ -106,6 +106,18 @@ export async function starteTreuhand(userId: string, vereinId: string, art: Treu
   );
 }
 
+// Löscht einen Verein, der noch in Vorbereitung ist (nie übergeben), samt allen Daten (FK-Kaskade).
+// Aktive Vereine sind hier bewusst nicht löschbar.
+export async function loescheVorbereitungsVerein(userId: string, vereinId: string): Promise<string> {
+  await pruefeSystemAdmin(userId);
+  const [v] = await adminDb.select({ name: vereine.name, status: vereine.status }).from(vereine).where(eq(vereine.id, vereinId));
+  if (!v) throw new Error("Verein nicht gefunden.");
+  if (v.status !== "vorbereitung") throw new Error("Nur Vereine in Vorbereitung können gelöscht werden.");
+  await adminDb.delete(treuhandZugriffe).where(eq(treuhandZugriffe.vereinId, vereinId));
+  await adminDb.delete(vereine).where(eq(vereine.id, vereinId));
+  return v.name;
+}
+
 export async function beendeTreuhand(userId: string) {
   await adminDb.delete(treuhandZugriffe).where(eq(treuhandZugriffe.systemAdminUserId, userId));
 }

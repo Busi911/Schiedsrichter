@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { appUrl } from "@/lib/app-url";
 import { VorschauLinks } from "@/components/vorschau-links";
 import { istDauerhaft, supportFreigabeAktiv } from "@/lib/treuhand";
-import { treuhandStarten } from "./actions";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { treuhandStarten, vorbereitungsVereinLoeschen } from "./actions";
 import { formatDatum as formatDate } from "@/lib/format";
 
 export default async function SystemVereinePage() {
@@ -111,6 +112,18 @@ export default async function SystemVereinePage() {
                           </SubmitButton>
                         </form>
                         <VereinUebergebenDialog vereinId={v.id} vereinName={v.name} />
+                        <form action={vorbereitungsVereinLoeschen}>
+                          <input type="hidden" name="vereinId" value={v.id} />
+                          <ConfirmSubmitButton
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive"
+                            pendingText="Löscht…"
+                            confirmText={`Verein „${v.name}“ mit allen Daten endgültig löschen? Das kann nicht rückgängig gemacht werden.`}
+                          >
+                            Löschen
+                          </ConfirmSubmitButton>
+                        </form>
                       </>
                     ) : supportFreigabeAktiv(v.supportZugriffBis) ? (
                       <form action={treuhandStarten} className="flex flex-wrap items-center gap-2">

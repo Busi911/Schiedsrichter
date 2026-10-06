@@ -43,6 +43,22 @@ describe.skipIf(!ADMIN_URL)("Treuhand (Postgres)", () => {
     await pool.end();
   });
 
+  it("löscht nur Vereine in Vorbereitung, samt Daten", async () => {
+    const t = await import("./treuhand");
+    const id = await t.vereinVorbereiten(sysAdminId, "Wegwerf-Verein");
+    angelegt.push(id);
+    await t.starteTreuhand(sysAdminId, id, "einrichtung");
+    await testDb.insert(schema.mannschaften).values({ vereinId: id, name: "Test" });
+    await expect(t.loescheVorbereitungsVerein(normalId, id)).rejects.toThrow("Systemadmins");
+    await t.loescheVorbereitungsVerein(sysAdminId, id);
+    expect(await testDb.select().from(schema.vereine).where(eq(schema.vereine.id, id))).toHaveLength(0);
+    expect(await testDb.select().from(schema.mannschaften).where(eq(schema.mannschaften.vereinId, id))).toHaveLength(0);
+
+    const aktiv = await testDb.insert(schema.vereine).values({ name: "Aktiv", status: "aktiv" }).returning({ id: schema.vereine.id });
+    angelegt.push(aktiv[0].id);
+    await expect(t.loescheVorbereitungsVerein(sysAdminId, aktiv[0].id)).rejects.toThrow("Vorbereitung");
+  });
+
   it("nur Systemadmins dürfen vorbereiten und wechseln", async () => {
     const t = await import("./treuhand");
     await expect(t.vereinVorbereiten(normalId, "Nicht erlaubt")).rejects.toThrow("Systemadmins");
