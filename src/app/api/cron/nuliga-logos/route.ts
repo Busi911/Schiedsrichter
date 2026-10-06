@@ -2,7 +2,7 @@ import { and, asc, eq, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaVereine } from "@/db/schema";
 import { pruefeCronSecret } from "@/lib/cron-auth";
-import { holeNuligaBild, holeNuligaHtml } from "@/lib/nuliga/client";
+import { holeNuligaBild, holeNuligaSeiteMitKontext } from "@/lib/nuliga/client";
 import { LOGO_REFRESH_TAGE, uebernehmeNuligaLogo } from "@/lib/nuliga/logo";
 import { parseVereinsInfo } from "@/lib/nuliga/parsers/vereinsinfo";
 import { baueNuligaUrl } from "@/lib/nuliga/verbaende";
@@ -34,9 +34,9 @@ export async function GET(request: Request) {
   for (const v of vereine) {
     if (Date.now() > frist) break;
     try {
-      const html = await holeNuligaHtml(baueNuligaUrl(v.verband, "clubInfoDisplay", { club: v.clubId! }));
-      const { daten } = parseVereinsInfo(html);
-      const r = await uebernehmeNuligaLogo({ db: adminDb, ligaVereinId: v.id, verband: v.verband, logoPfad: daten.logoPfad, holeBild: holeNuligaBild });
+      const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl(v.verband, "clubInfoDisplay", { club: v.clubId! }));
+      const { daten } = parseVereinsInfo(seite.html);
+      const r = await uebernehmeNuligaLogo({ db: adminDb, ligaVereinId: v.id, verband: v.verband, logoPfad: daten.logoPfad, holeBild: holeNuligaBild, kontext: seite.kontext });
       ergebnis[r.status] = (ergebnis[r.status] ?? 0) + 1;
     } catch (err) {
       // Seite nicht lesbar: bewusst NICHT als geprüft markieren, damit es der nächste Lauf wieder versucht.

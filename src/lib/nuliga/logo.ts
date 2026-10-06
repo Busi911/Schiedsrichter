@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { ligaVereine, ligaVereinLogos } from "@/db/schema";
 import { ermittleFarbton, LogoFehler, pruefeOriginalLogo } from "@/lib/liga-logo";
-import type { HoleBild } from "./client";
+import type { HoleBild, SeitenKontext } from "./client";
 import type { LigaDb } from "./sync";
 import { absoluteNuligaUrl } from "./verbaende";
 
@@ -25,6 +25,8 @@ export async function uebernehmeNuligaLogo(opt: {
   verband?: string;
   logoPfad: string | null;
   holeBild: HoleBild;
+  // Cookies + Referer der Vereinsseite, auf der der Bildpfad gelesen wurde (ohne sie liefert nuLiga 0 Bytes).
+  kontext?: SeitenKontext;
   jetzt?: Date;
 }): Promise<LogoErgebnis> {
   const jetzt = opt.jetzt ?? new Date();
@@ -47,7 +49,7 @@ export async function uebernehmeNuligaLogo(opt: {
   }
 
   try {
-    const { daten } = await opt.holeBild(absoluteNuligaUrl(verband, opt.logoPfad));
+    const { daten } = await opt.holeBild(absoluteNuligaUrl(verband, opt.logoPfad), opt.kontext);
     const hash = createHash("sha256").update(daten).digest("hex");
     if (bestehend && bestehend.quellHash === hash) {
       await opt.db

@@ -44,6 +44,9 @@ export function beschreibeFormat(daten: Uint8Array): string {
 }
 
 export function beschreibeNichtBild(daten: Uint8Array, contentType: string): string {
+  if (daten.length === 0) {
+    return "Logo-URL lieferte 0 Bytes ohne Content-Type (nuLiga gibt das Bild nur mit den Cookies und dem Referer der Vereinsseite aus)";
+  }
   const format = beschreibeFormat(daten);
   if (format.startsWith("text/html")) {
     const titel = kopf(daten).match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/\s+/g, " ").trim();
@@ -52,4 +55,10 @@ export function beschreibeNichtBild(daten: Uint8Array, contentType: string): str
   if (format.startsWith("image/svg")) return "Das Logo ist ein SVG (noch nicht unterstützt)";
   if (format.startsWith("HTTP")) return "Logo-URL liefert eine Textantwort statt Bild";
   return `Kein erlaubtes Bildformat (Content-Type ${contentType || "unbekannt"}, die ersten Bytes passen zu keinem PNG/JPEG/GIF/WebP)`;
+}
+
+// Diagnose-Ausgaben: den Kontaktbereich der nuLiga-Vereinsseite (Name, Anschrift der Ansprechperson unter einer
+// Überschrift "Kontakt…") vollständig entfernen — er wird nie gelesen und soll auch nicht angezeigt werden.
+export function entferneKontaktbereich(html: string): string {
+  return html.replace(/<h[1-6]\b[^>]*>\s*(?:Kontakt|Ansprech)[\s\S]*?(?=<h[1-6]\b|$)/gi, "<!-- [Kontaktbereich entfernt] -->");
 }

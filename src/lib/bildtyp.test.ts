@@ -52,6 +52,27 @@ describe("holeNuligaBild (Download)", () => {
     return (await import("./nuliga/client")).holeNuligaBild;
   };
 
+  it("sendet mit Seitenkontext Cookies und Referer, bleibt aber beim ehrlichen User-Agent", async () => {
+    let gesehen: Record<string, string> = {};
+    vi.stubGlobal("fetch", async (_u: string, init: { headers: Record<string, string> }) => {
+      gesehen = init.headers;
+      return antwort(PNG, "image/png");
+    });
+    const kontext = { cookie: "nusportingress=a; routeid_nuligahbde=b", referer: "https://hhv-handball.liga.nu/cgi-bin/WebObjects/nuLigaHBDE.woa/wa/clubInfoDisplay?club=76446" };
+    await (await lade())(URL_OK, kontext);
+    expect(gesehen.Cookie).toBe(kontext.cookie);
+    expect(gesehen.Referer).toBe(kontext.referer);
+    expect(gesehen["User-Agent"]).toContain("Handballerpate");
+    expect(gesehen.Accept).toContain("image/svg+xml");
+    // ohne Kontext: weder Cookie noch Referer
+    await (await lade())(URL_OK);
+    expect(gesehen.Cookie).toBeUndefined();
+    expect(gesehen.Referer).toBeUndefined();
+  });
+  it("meldet 0 Bytes ohne Content-Type verständlich (so antwortete nuLiga ohne Cookies)", async () => {
+    vi.stubGlobal("fetch", async () => new Response(new Uint8Array(0), { status: 200 }));
+    await expect((await lade())(URL_OK)).rejects.toThrow("0 Bytes");
+  });
   it("akzeptiert application/octet-stream, wenn die Magic Bytes ein Bild belegen", async () => {
     vi.stubGlobal("fetch", async () => antwort(PNG, "application/octet-stream"));
     const r = await (await lade())(URL_OK);

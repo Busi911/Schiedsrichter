@@ -496,3 +496,14 @@ Wenn sich die Konditionen ändern (Ende der Beta, Preis), den Text in `ansprache
 (img-src, aufgelöste URL) mit ZWEI Abrufen zum Vergleich (A wie der echte Download; B mit Browser-User-Agent, Referer und den Cookies der Vereinsseite) inkl. Weiterleitungskette, finalem Host, Content-Type, Content-Length, Bytes, ersten 32 Bytes (hex), erkanntem Format
 (auch HTML/SVG, `beschreibeFormat`), Textvorschau/HTML-Titel bei Nicht-Bildern, dazu maskierte (E-Mail/Telefon) HTML-Auszüge um "Hallen"/"VNr"/"Gründung"/"www", alle `<img>`-Tags und den Quelltext zum Kopieren. Der echte Download meldet bei einer HTML-Antwort
 "Logo-URL liefert HTML statt Bild" (statt "unbekanntes Format"). SVG ist bewusst noch NICHT erlaubt (Skripte): erst nach der Diagnose entscheiden, dann nur mit Bereinigung bzw. restriktiver Auslieferung (CSP `sandbox`).
+
+**Befund aus der echten Diagnose (club=76446, 06.10.2026):** (1) Das Logo (`wr?wodata=…`) liefert OHNE die Cookies der Vereinsseite HTTP 200 mit 0 Bytes und ohne Content-Type; mit Cookies + Referer (und Browser-User-Agent) ein
+PNG. Der echte Import holt deshalb die Vereinsseite mit `holeNuligaSeiteMitKontext` (Cookies `nusportingress`/`routeid_nuligahbde`, nur für den Folgeabruf an denselben freigegebenen Host, nie gespeichert/angezeigt) und lädt das Bild mit
+Cookie + Referer (`SeitenKontext` an `holeNuligaBild`/`uebernehmeNuligaLogo`), weiterhin mit dem EHRLICHEN User-Agent (die Diagnose vergleicht A/C/D/B, um zu sehen, ob der User-Agent zusätzlich nötig ist — ungeprüft). 0 Bytes werden als solche gemeldet.
+(2) Die `<h1>` der Vereinsseite enthält mehrere Zeilen (Verband, dann Verein): der Vereinsname ist die LETZTE Zeile. (3) Die Hallen werden auf der Vereinsseite erkannt (`findeHallen`, bestätigt). (4) VNr./Gründungsjahr/Website stehen nicht in einer
+Zwei-Spalten-Tabelle: sie werden über die Beschriftung im sichtbaren Text gesucht (`VNr.`, `Gründungsjahr`, `Website`); die genaue Struktur der echten Seite ist weiterhin unbekannt (Diagnose-Auszüge liefern sie).
+
+**Echte Struktur der Vereinsseite (clubInfoDisplay, club=76446, aus den Diagnose-Auszügen):** `<h1>` = Verband + `<br />` + Verein; EIN `<p>` mit "VNr.:&nbsp;14194, Gründungsjahr:&nbsp;2019 `<br/>` Stammvereine: A (14133), B (14146) `<br/>`";
+"Hallen" als `<b>Hallen</b>` + `<ul><li><a href=".../courtInfo?…">Stadthalle Linden (14151)</a></li>…`; Logo `<img height="100" alt="<Vereinsname>" src="…/wr?wodata=…">`; danach `<h2>Kontaktadresse</h2>` mit einer Ansprechperson (wird NIE gelesen;
+die Diagnose entfernt den Bereich per `entferneKontaktbereich`). Fixture: `__fixtures__/vereinsinfo-linden.html` (Strukturabbild, Kontaktdaten erfunden). Stammvereine stehen als Text im selben Absatz (`stammvereineAusHtml`), eine Website (HSG Linden hat keine)
+steht entweder mit Beschriftung im Text oder als externer Link im Absatz mit "VNr." (`websiteAusStammdatenAbsatz`) — für die Website-Struktur z.B. von club=54040 fehlen noch echte Auszüge.

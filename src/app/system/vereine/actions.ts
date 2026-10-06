@@ -18,7 +18,7 @@ import { erzeugeVorschauLink, widerrufeVorschauLink } from "@/lib/verein-vorscha
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { uebergabeInhalt } from "@/lib/uebergabe-mail";
-import { holeNuligaBild, holeNuligaHtml } from "@/lib/nuliga/client";
+import { holeNuligaBild, holeNuligaHtml, holeNuligaSeiteMitKontext, type SeitenKontext } from "@/lib/nuliga/client";
 import { uebernehmeNuligaLogo, type LogoErgebnis } from "@/lib/nuliga/logo";
 import { baueNuligaUrl } from "@/lib/nuliga/verbaende";
 import { parseVereinsInfo } from "@/lib/nuliga/parsers/vereinsinfo";
@@ -174,8 +174,11 @@ export async function vereinAusNuligaEinrichten(formData: FormData) {
   // Vereinsseite (Stammdaten, Hallen): Fehler hier verhindern die Einrichtung nie.
   let info = null;
   let infoFehler: string | null = null;
+  let seitenKontext: SeitenKontext | undefined;
   try {
-    const html = await holeNuligaHtml(baueNuligaUrl("HHV", "clubInfoDisplay", { club: clubId }));
+    const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl("HHV", "clubInfoDisplay", { club: clubId }));
+    const html = seite.html;
+    seitenKontext = seite.kontext;
     const geparst = parseVereinsInfo(html);
     info = geparst.daten;
     if (geparst.warnungen.length) infoFehler = geparst.warnungen[0];
@@ -190,7 +193,7 @@ export async function vereinAusNuligaEinrichten(formData: FormData) {
   // Logo gleich mit, als Teil desselben Vereinsobjekts (Pfad aus der AKTUELLEN Seite, nie gemerkt).
   let logo: LogoErgebnis | null = null;
   if (info) {
-    logo = await uebernehmeNuligaLogo({ db: adminDb, ligaVereinId: ligaVerein.id, logoPfad: info.logoPfad, holeBild: holeNuligaBild });
+    logo = await uebernehmeNuligaLogo({ db: adminDb, ligaVereinId: ligaVerein.id, logoPfad: info.logoPfad, holeBild: holeNuligaBild, kontext: seitenKontext });
   }
 
   const start = Date.now();
