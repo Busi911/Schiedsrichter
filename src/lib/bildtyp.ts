@@ -56,3 +56,9 @@ export function beschreibeNichtBild(daten: Uint8Array, contentType: string): str
   if (format.startsWith("HTTP")) return "Logo-URL liefert eine Textantwort statt Bild";
   return `Kein erlaubtes Bildformat (Content-Type ${contentType || "unbekannt"}, die ersten Bytes passen zu keinem PNG/JPEG/GIF/WebP)`;
 }
+
+// Diagnose-Ausgaben: den Kontaktbereich der nuLiga-Vereinsseite (Name, Anschrift der Ansprechperson unter einer
+// Überschrift "Kontakt…") vollständig entfernen — er wird nie gelesen und soll auch nicht angezeigt werden.
+export function entferneKontaktbereich(html: string): string {
+  return html.replace(/<h[1-6]\b[^>]*>\s*(?:Kontakt|Ansprech)[\s\S]*?(?=<h[1-6]\b|$)/gi, "<!-- [Kontaktbereich entfernt] -->");
+}

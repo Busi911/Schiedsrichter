@@ -2,7 +2,7 @@ import { requireSystemAdmin } from "@/lib/session";
 import { BROWSER_UA, diagnoseNuligaBild, diagnoseNuligaSeite, type BildDiagnose } from "@/lib/nuliga/client";
 import { bereinigeHallenname, findeHallen, parseVereinsInfo } from "@/lib/nuliga/parsers/vereinsinfo";
 import { absoluteNuligaUrl, baueNuligaUrl } from "@/lib/nuliga/verbaende";
-import { maskierePersonendaten } from "@/lib/bildtyp";
+import { entferneKontaktbereich, maskierePersonendaten } from "@/lib/bildtyp";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 
@@ -85,13 +85,14 @@ export default async function NuligaDiagnosePage({ searchParams }: { searchParam
     bilder.push(await diagnoseNuligaBild(logoUrl, "B) wie ein Browser (Browser-User-Agent, Referer, Cookies) — nur zum Vergleich", { browserHeader: true, referer, cookie: seite.cookieHeader }));
   }
 
+  const sichereHtml = seite ? entferneKontaktbereich(seite.html) : "";
   const imgTags = seite?.html ? [...seite.html.matchAll(/<img\b[^>]*>/gi)].map((m) => maskierePersonendaten(m[0])).slice(0, 25) : [];
-  const auszuege: [string, string | null][] = seite?.html
+  const auszuege: [string, string | null][] = sichereHtml
     ? [
-        ['um „Hallen“', auszug(seite.html, />\s*(?:hallen|spielst(?:ä|ae|&auml;)tten)\s*:?\s*</i)],
-        ['um „VNr“', auszug(seite.html, /vnr|vereinsnummer|vereins-nr/i)],
-        ['um „Gründung“', auszug(seite.html, /gr(?:ü|ue|&uuml;)ndung/i)],
-        ['um „Website / www“', auszug(seite.html, /homepage|website|www\./i)],
+        ['um „Hallen“', auszug(sichereHtml, />\s*(?:hallen|spielst(?:ä|ae|&auml;)tten)\s*:?\s*</i)],
+        ['um „VNr“', auszug(sichereHtml, /vnr|vereinsnummer|vereins-nr/i)],
+        ['um „Gründung“', auszug(sichereHtml, /gr(?:ü|ue|&uuml;)ndung/i)],
+        ['um „Website / www“', auszug(sichereHtml, /homepage|website|www\./i)],
       ]
     : [];
 
@@ -172,7 +173,7 @@ export default async function NuligaDiagnosePage({ searchParams }: { searchParam
 
           <section className="flex flex-col gap-2">
             <h2 className="font-heading text-base font-semibold">Rohdaten der Seite (maskiert)</h2>
-            <p className="text-xs text-muted-foreground">E-Mail-Adressen und Telefonnummern sind ersetzt. Die Seite kann trotzdem Namen enthalten — vor dem Weitergeben ansehen.</p>
+            <p className="text-xs text-muted-foreground">E-Mail-Adressen und Telefonnummern sind ersetzt, der Kontaktbereich der Seite (Ansprechperson, Anschrift) ist entfernt.</p>
             {auszuege.map(([titel, text]) => (
               <details key={titel} className="rounded-lg border px-3 py-2" open={!!text}>
                 <summary className="cursor-pointer text-sm">Auszug {titel} {text ? "" : "(nicht gefunden)"}</summary>
@@ -185,7 +186,7 @@ export default async function NuligaDiagnosePage({ searchParams }: { searchParam
             </details>
             <details className="rounded-lg border px-3 py-2">
               <summary className="cursor-pointer text-sm">Seitenquelltext (erste 20.000 Zeichen, zum Kopieren)</summary>
-              <textarea readOnly rows={20} className="mt-2 w-full rounded-md border bg-background p-2 font-mono text-xs" value={maskierePersonendaten(seite.html).slice(0, 20000)} />
+              <textarea readOnly rows={20} className="mt-2 w-full rounded-md border bg-background p-2 font-mono text-xs" value={maskierePersonendaten(sichereHtml).slice(0, 20000)} />
             </details>
           </section>
         </>

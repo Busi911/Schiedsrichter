@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { parseVereinsuche } from "./parsers/vereinsuche";
 import { bereinigeHallenname, parseVereinsInfo } from "./parsers/vereinsinfo";
 import { absoluteNuligaUrl, istErlaubteNuligaBildUrl } from "./verbaende";
+import { entferneKontaktbereich } from "@/lib/bildtyp";
 
 // ACHTUNG: Die Fixtures sind nach Beschreibung NACHGEBAUT (kein Zugriff auf die echte Seite) —
 // sie belegen die Logik, nicht, dass nuLiga genau so aussieht.
@@ -153,5 +154,38 @@ describe("Stammdaten über Beschriftungen (TUS Vollnkirchen, club 54040)", () =>
   it("findet bei fehlenden Angaben nichts (kein Raten)", () => {
     const { daten } = parseVereinsInfo("<h1>X</h1><p>Telefon 0641 123456</p>");
     expect([daten.nummer, daten.gruendung, daten.website]).toEqual([null, null, null]);
+  });
+});
+
+describe("Echte Struktur (club=76446): ein Absatz mit VNr., Gründungsjahr und Stammvereinen", () => {
+  const { daten, warnungen } = parseVereinsInfo(fixture("vereinsinfo-linden.html"));
+  it("liest alles, was die Seite zeigt", () => {
+    expect(daten).toMatchObject({
+      name: "HSG Linden",
+      nummer: "14194",
+      gruendung: 2019,
+      stammvereine: ["TV Großen-Linden", "TSV Klein-Linden", "TSV 2006 Lützellinden"],
+      hallen: ["Stadthalle Linden", "Sporthalle GS Linden", "Sporthalle Lützellinden", "Sph. Br.-Grimm-Schule Kl.-Linden"],
+      logoPfad: "/cgi-bin/WebObjects/nuLigaHBDE.woa/wr?wodata=214535274107372611",
+      logoSicher: true,
+    });
+    expect(daten.hallenNummern["Stadthalle Linden"]).toBe("14151");
+    // HSG Linden zeigt keine Website: kein Raten
+    expect(daten.website).toBeNull();
+    expect(warnungen).toEqual([]);
+  });
+  it("übernimmt nichts aus dem Kontaktbereich", () => {
+    expect(JSON.stringify(daten)).not.toMatch(/Mustermann|Beispielstra|0641|geheim/);
+  });
+  it("findet eine Website auch ohne Beschriftung als externen Link im Stammdaten-Absatz", () => {
+    const mit = fixture("vereinsinfo-linden.html").replace("Stammvereine:", '<a href="http://www.tus-vollnkirchen.de/">www.tus-vollnkirchen.de</a><br />Stammvereine:');
+    expect(parseVereinsInfo(mit).daten.website).toBe("http://www.tus-vollnkirchen.de");
+    // Links innerhalb von nuLiga (z.B. die Hallen) sind nie die Website
+    expect(parseVereinsInfo(fixture("vereinsinfo-linden.html")).daten.website).toBeNull();
+  });
+  it("die Diagnose entfernt den Kontaktbereich vollständig", () => {
+    const sicher = entferneKontaktbereich(fixture("vereinsinfo-linden.html"));
+    expect(sicher).not.toMatch(/Mustermann|Beispielstra|Tel\./);
+    expect(sicher).toContain("Stadthalle Linden");
   });
 });

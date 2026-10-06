@@ -42,7 +42,8 @@ export function parseVereinsInfo(html: string): ParseErgebnis<VereinsInfo> {
     const j = sichtbar.match(/\bGr(?:ü|ue)ndungsjahr\s*:?\s*((?:18|19|20)\d{2})\b/i)?.[1] ?? sichtbar.match(/\bgegr(?:ü|ue)ndet\s*:?\s*((?:18|19|20)\d{2})\b/i)?.[1];
     if (j) info.gruendung = Number(j);
   }
-  if (!info.website) info.website = websiteAusText(sichtbar);
+  if (!info.website) info.website = websiteAusText(sichtbar) ?? websiteAusStammdatenAbsatz(html);
+  if (info.stammvereine.length === 0) info.stammvereine = stammvereineAusHtml(html);
 
   // Hallen: kein Tabellenfeld, sondern ein eigener Abschnitt (Überschrift "Hallen" + Liste von Links).
   const hallen = findeHallen(html);
@@ -153,4 +154,39 @@ function websiteAusText(sichtbar: string): string | null {
   } catch {
     return null;
   }
+}
+
+// Echte Struktur (club=76446): ein <p> mit "VNr.: 14194, Gründungsjahr: 2019 <br/> … Stammvereine: A (1), B (2) <br/>" —
+// die Stammdaten stehen also in EINEM Absatz, getrennt durch <br>. Die Stammvereine laufen bis zum nächsten <br> bzw. Absatzende
+// und sind durch Kommas getrennt; die abschließende Vereinsnummer in Klammern gehört nicht zum Namen.
+function stammvereineAusHtml(html: string): string[] {
+  const m = html.match(/Stammvereine?\s*:(?:&nbsp;|\s)*([\s\S]*?)(?:<br\b|<\/p>|<h[1-6]\b)/i);
+  if (!m) return [];
+  const namen: string[] = [];
+  for (const teil of textVon(m[1]).split(/,(?![^()]*\))/)) {
+    const name = teil.replace(/\s*\(\d+\)\s*$/, "").trim();
+    if (name && !namen.includes(name)) namen.push(name);
+  }
+  return namen;
+}
+
+// Fehlt eine Beschriftung, steht die Website als externer Link im Stammdaten-Absatz (dem <p> mit "VNr."): ein absoluter
+// http(s)-Link auf einen Host außerhalb von nuLiga/handball.net. Nur dieser Absatz, nie die ganze Seite (Werbung, Kontakt).
+function websiteAusStammdatenAbsatz(html: string): string | null {
+  const i = html.search(/\bVNr\b/i);
+  if (i < 0) return null;
+  const start = Math.max(0, html.lastIndexOf("<p", i));
+  const ende = html.indexOf("</p>", i);
+  const absatz = html.slice(start, ende < 0 ? i + 2000 : ende);
+  for (const a of absatz.matchAll(/<a\b[^>]*>/gi)) {
+    const href = attribut(a[0], "href");
+    if (!href || !/^https?:\/\//i.test(href)) continue;
+    try {
+      const host = new URL(href).hostname.toLowerCase();
+      if (!host.endsWith("liga.nu") && !host.endsWith("handball.net")) return href.replace(/\/$/, "");
+    } catch {
+      /* ungültige Adresse: ignorieren */
+    }
+  }
+  return null;
 }
