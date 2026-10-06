@@ -212,11 +212,51 @@ export default async function ProfilPage({
     ? `webcal://${appUrl().replace(/^https?:\/\//, "")}/kalender/${eigeneStammdaten.kalenderToken}`
     : null;
 
+  const einstellungen = (liste?: boolean) => (
+            <ProfilEinstellungenMenu
+              liste={liste}
+              kalenderAboLink={kalenderAboLink}
+              kalenderWebcalLink={kalenderWebcalLink}
+              name={eigeneStammdaten?.name ?? ""}
+              telefonnummer={eigeneStammdaten?.telefonnummer ?? null}
+              email={eigeneStammdaten?.email ?? session.user.email ?? ""}
+              pendingEmail={eigeneStammdaten?.pendingEmail ?? null}
+              wochenDigestAktiviert={eigeneStammdaten?.wochenDigestAktiviert ?? true}
+              terminErinnerungAktiviert={eigeneStammdaten?.terminErinnerungAktiviert ?? true}
+              offeneSchiedsrichterErinnerungAktiviert={
+                eigeneStammdaten?.offeneSchiedsrichterErinnerungAktiviert ?? true
+              }
+              offeneZeitnehmerErinnerungAktiviert={
+                eigeneStammdaten?.offeneZeitnehmerErinnerungAktiviert ?? true
+              }
+              offeneDiensteBroadcastAktiviert={
+                eigeneStammdaten?.offeneDiensteBroadcastAktiviert ?? true
+              }
+              istSchiedsrichterwart={istSchiedsrichterwart}
+              istZeitnehmerwart={istZeitnehmerwart}
+              istDienstRolleninhaber={istDienstRolleninhaber}
+              istSchiedsrichter={istSchiedsrichter}
+              icsFeedUrl={profil?.icsFeedUrl ?? null}
+              letzterSyncAm={profil?.letzterSyncAm ?? null}
+              letzterSyncStatus={profil?.letzterSyncStatus ?? null}
+              saisonLabelText={saisonLabel(new Date())}
+              kalenderLinkErneuern={kalenderLinkErneuern}
+              kalenderLinkDeaktivieren={kalenderLinkDeaktivieren}
+              updateStammdaten={updateStammdaten}
+              emailAendernAnfordern={emailAendernAnfordern}
+              emailAenderungAbbrechen={emailAenderungAbbrechen}
+              updateBenachrichtigungen={updateBenachrichtigungen}
+              updateIcsFeedUrl={updateIcsFeedUrl}
+              syncJetzt={syncJetzt}
+            />
+  );
+
   return (
     <div className="min-h-screen">
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <div className="flex items-center gap-3">
+          <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-start">
+           <div className="flex min-w-0 items-center gap-3">
             <Logo className="size-8 shrink-0 text-primary" />
             <div>
               <p className="font-heading text-lg font-semibold">
@@ -226,13 +266,18 @@ export default async function ProfilPage({
                 {session.user.name ?? session.user.email}
               </p>
             </div>
+           </div>
+            {/* Mobil: Admin/Wart-Bereiche, Hilfe und Logout stehen in der unteren Leiste ("Mehr"). */}
+            <div className="md:hidden">
+              <FeedbackDialog />
+            </div>
           </div>
           {/* Auf Mobile wraps diese Zeile (bis zu 7 Buttons je nach Rollen)
               als eigene Zeile unter das Logo — links gepackt wirkte das mit
               viel Leerraum rechts unbalanciert (gleiches Muster wie im
               Admin-Header, siehe dort). Auf Desktop steht sie ohnehin am
               rechten Rand (justify-between am äußeren Header-Container). */}
-          <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
+          <div className="hidden flex-wrap items-center justify-center gap-2 md:flex md:justify-start">
             {(session.user.istAdmin || session.user.istAdminLesend) && (
               <Button
                 variant="outline"
@@ -273,41 +318,9 @@ export default async function ProfilPage({
                 {TYP_LABEL.ordnerwart}
               </Button>
             )}
-            <ProfilEinstellungenMenu
-              kalenderAboLink={kalenderAboLink}
-              kalenderWebcalLink={kalenderWebcalLink}
-              name={eigeneStammdaten?.name ?? ""}
-              telefonnummer={eigeneStammdaten?.telefonnummer ?? null}
-              email={eigeneStammdaten?.email ?? session.user.email ?? ""}
-              pendingEmail={eigeneStammdaten?.pendingEmail ?? null}
-              wochenDigestAktiviert={eigeneStammdaten?.wochenDigestAktiviert ?? true}
-              terminErinnerungAktiviert={eigeneStammdaten?.terminErinnerungAktiviert ?? true}
-              offeneSchiedsrichterErinnerungAktiviert={
-                eigeneStammdaten?.offeneSchiedsrichterErinnerungAktiviert ?? true
-              }
-              offeneZeitnehmerErinnerungAktiviert={
-                eigeneStammdaten?.offeneZeitnehmerErinnerungAktiviert ?? true
-              }
-              offeneDiensteBroadcastAktiviert={
-                eigeneStammdaten?.offeneDiensteBroadcastAktiviert ?? true
-              }
-              istSchiedsrichterwart={istSchiedsrichterwart}
-              istZeitnehmerwart={istZeitnehmerwart}
-              istDienstRolleninhaber={istDienstRolleninhaber}
-              istSchiedsrichter={istSchiedsrichter}
-              icsFeedUrl={profil?.icsFeedUrl ?? null}
-              letzterSyncAm={profil?.letzterSyncAm ?? null}
-              letzterSyncStatus={profil?.letzterSyncStatus ?? null}
-              saisonLabelText={saisonLabel(new Date())}
-              kalenderLinkErneuern={kalenderLinkErneuern}
-              kalenderLinkDeaktivieren={kalenderLinkDeaktivieren}
-              updateStammdaten={updateStammdaten}
-              emailAendernAnfordern={emailAendernAnfordern}
-              emailAenderungAbbrechen={emailAenderungAbbrechen}
-              updateBenachrichtigungen={updateBenachrichtigungen}
-              updateIcsFeedUrl={updateIcsFeedUrl}
-              syncJetzt={syncJetzt}
-            />
+            <div className="hidden md:block">
+              {einstellungen()}
+            </div>
             <HilfeLink />
             <FeedbackDialog />
             <form
@@ -542,6 +555,9 @@ export default async function ProfilPage({
             })()}
           </CardContent>
         </Card>
+        <div className="md:hidden">
+          {einstellungen(true)}
+        </div>
       </main>
     </div>
   );

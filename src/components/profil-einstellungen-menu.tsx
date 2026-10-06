@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { SettingsIcon } from "lucide-react";
+import { ChevronRightIcon, SettingsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -64,7 +64,10 @@ export function ProfilEinstellungenMenu({
   updateBenachrichtigungen,
   updateIcsFeedUrl,
   syncJetzt,
+  liste = false,
 }: {
+  // Mobil: statt Zahnrad-Menü eine Liste (Karte) am Seitenende, die dieselben Dialoge öffnet.
+  liste?: boolean;
   kalenderAboLink: string | null;
   kalenderWebcalLink: string | null;
   name: string;
@@ -94,33 +97,56 @@ export function ProfilEinstellungenMenu({
   syncJetzt: () => Promise<void>;
 }) {
   const [offen, setOffen] = useState<DialogSchluessel | null>(null);
+  const eintraege = [
+    ["kalender", "Kalender abonnieren"],
+    ["stammdaten", "Stammdaten"],
+    ["benachrichtigungen", "Benachrichtigungen"],
+    ...(istSchiedsrichter ? ([["ics", "HHV Funktionsträger ICS-Feed"]] as const) : []),
+  ] as const;
 
   return (
     <>
+      {liste ? (
+        <section id="einstellungen" className="rounded-xl border bg-card p-2">
+          <h2 className="px-3 py-2 font-heading text-base font-semibold">Einstellungen</h2>
+          {eintraege.map(([schluessel, text]) => (
+            <button
+              key={schluessel}
+              type="button"
+              onClick={() => setOffen(schluessel)}
+              className="flex min-h-11 w-full items-center justify-between rounded-lg px-3 text-left text-sm hover:bg-muted"
+            >
+              {text}
+              <ChevronRightIcon className="size-4 text-muted-foreground" />
+            </button>
+          ))}
+        </section>
+      ) : (
       <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label="Einstellungen"
-          className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }))}
-        >
-          <SettingsIcon className="size-4" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setOffen("kalender")}>
-            Kalender abonnieren
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setOffen("stammdaten")}>
-            Stammdaten
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setOffen("benachrichtigungen")}>
-            Benachrichtigungen
-          </DropdownMenuItem>
-          {istSchiedsrichter && (
-            <DropdownMenuItem onClick={() => setOffen("ics")}>
-              HHV Funktionsträger ICS-Feed
+          <DropdownMenuTrigger
+            aria-label="Einstellungen"
+            className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }))}
+          >
+            <SettingsIcon className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setOffen("kalender")}>
+              Kalender abonnieren
             </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <DropdownMenuItem onClick={() => setOffen("stammdaten")}>
+              Stammdaten
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setOffen("benachrichtigungen")}>
+              Benachrichtigungen
+            </DropdownMenuItem>
+            {istSchiedsrichter && (
+              <DropdownMenuItem onClick={() => setOffen("ics")}>
+                HHV Funktionsträger ICS-Feed
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       <Dialog
         open={offen === "kalender"}

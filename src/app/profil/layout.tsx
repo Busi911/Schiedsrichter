@@ -100,6 +100,7 @@ export default async function ProfilLayout({
       <BottomNav
         tabs={tabs}
         mehrItems={[
+          { href: "/profil#einstellungen", label: "Einstellungen", icon: "einstellungen" },
           { href: "/profil/passwort-aendern", label: "Passwort ändern", icon: "passwort" },
           ...(nurProfil ? [] : [{ href: "/hilfe", label: "Hilfe", icon: "hilfe" } as const]),
         ]}
