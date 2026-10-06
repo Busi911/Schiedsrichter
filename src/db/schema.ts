@@ -1193,6 +1193,8 @@ export const ligaExterneIdentitaeten = pgTable(
     uniqueIndex("liga_externe_identitaet_verein_quelle_idx").on(t.ligaVereinId, t.quelle, t.externeId),
     // Ein sport.de-Team gehört genau einem Verein.
     uniqueIndex("liga_externe_identitaet_sportde_idx").on(t.quelle, t.externeId).where(sql`${t.quelle} = 'sportde'`),
+    // Ebenso ein ndr.de-Team (Schlüssel "name:<slug>").
+    uniqueIndex("liga_externe_identitaet_ndr_idx").on(t.quelle, t.externeId).where(sql`${t.quelle} = 'ndr'`),
   ]
 );
 

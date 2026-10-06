@@ -4,7 +4,7 @@ import type { LigaDb } from "@/lib/nuliga/sync";
 
 // Externe Identitäten eines Vereins über alle Quellen. nuLiga/handball.net liegen weiter an liga_verein
 // (`nuliga_club_id`, `handball_net_club_id`), alle übrigen Quellen (derzeit sport.de) in `liga_externe_identitaet`.
-export type ExterneIdentitaet = { quelle: "nuliga" | "handball_net" | "sportde"; externeId: string; externerCode: string | null };
+export type ExterneIdentitaet = { quelle: "nuliga" | "handball_net" | "sportde" | "ndr"; externeId: string; externerCode: string | null };
 
 export async function holeIdentitaeten(db: LigaDb, ligaVereinId: string): Promise<ExterneIdentitaet[]> {
   const verein = await db.query.ligaVereine.findFirst({ where: eq(ligaVereine.id, ligaVereinId) });
@@ -17,15 +17,16 @@ export async function holeIdentitaeten(db: LigaDb, ligaVereinId: string): Promis
   return liste;
 }
 
-// Ordnet ein sport.de-Team (Slug) einem BESTEHENDEN Verein zu — legt nie einen Verein an. Ein Team gehört genau einem Verein;
+// Ordnet ein Team einer Zusatzquelle (sport.de: Slug, ndr.de: "name:<slug>") einem BESTEHENDEN Verein zu — legt nie einen Verein an. Ein Team gehört genau einem Verein;
 // ist es schon einem anderen zugeordnet, wird nichts geändert und die Zuordnung gemeldet.
-export async function verknuepfeSportDeTeam(
+export async function verknuepfeExternesTeam(
   db: LigaDb,
+  quelle: "sportde" | "ndr",
   ligaVereinId: string,
   team: { externalId: string; code?: string | null; name?: string | null }
 ): Promise<{ ok: true } | { ok: false; grund: string }> {
   const vorhanden = await db.query.ligaExterneIdentitaeten.findFirst({
-    where: and(eq(ligaExterneIdentitaeten.quelle, "sportde"), eq(ligaExterneIdentitaeten.externeId, team.externalId)),
+    where: and(eq(ligaExterneIdentitaeten.quelle, quelle), eq(ligaExterneIdentitaeten.externeId, team.externalId)),
   });
   if (vorhanden && vorhanden.ligaVereinId !== ligaVereinId) {
     return { ok: false, grund: "Das Team ist bereits einem anderen Verein zugeordnet." };
@@ -33,7 +34,7 @@ export async function verknuepfeSportDeTeam(
   if (!vorhanden) {
     await db.insert(ligaExterneIdentitaeten).values({
       ligaVereinId,
-      quelle: "sportde",
+      quelle,
       externeId: team.externalId,
       externerCode: team.code ?? null,
       name: team.name ?? null,
@@ -41,3 +42,6 @@ export async function verknuepfeSportDeTeam(
   }
   return { ok: true };
 }
+
+export const verknuepfeSportDeTeam = (db: LigaDb, ligaVereinId: string, team: { externalId: string; code?: string | null; name?: string | null }) =>
+  verknuepfeExternesTeam(db, "sportde", ligaVereinId, team);

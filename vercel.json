@@ -14,19 +14,19 @@
       "schedule": "15 5-21 * * *"
     },
     {
-      "path": "/api/cron/sportde-sync?liga=hbl1",
+      "path": "/api/cron/ndr-sync?liga=hbl1",
       "schedule": "3,18,33,48 5-23 * * *"
     },
     {
-      "path": "/api/cron/sportde-sync?liga=hbl2",
+      "path": "/api/cron/ndr-sync?liga=hbl2",
       "schedule": "8,23,38,53 5-23 * * *"
     },
     {
-      "path": "/api/cron/sportde-sync?liga=hbl1&voll=1",
+      "path": "/api/cron/ndr-sync?liga=hbl1&voll=1",
       "schedule": "10 2 * * *"
     },
     {
-      "path": "/api/cron/sportde-sync?liga=hbl2&voll=1",
+      "path": "/api/cron/ndr-sync?liga=hbl2&voll=1",
       "schedule": "40 2 * * *"
     },
     {

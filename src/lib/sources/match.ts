@@ -1,7 +1,7 @@
-// Gemeinsames Spiel-Modell aller Datenquellen (nuLiga, handball.net, sport.de für 1./2. HBL). Jede Quelle hat ihren eigenen Parser/Adapter
+// Gemeinsames Spiel-Modell aller Datenquellen (nuLiga, handball.net, sport.de/ndr.de für 1./2. HBL). Jede Quelle hat ihren eigenen Parser/Adapter
 // und wird hier normalisiert (`normalisierung.ts`); die Anzeige muss nie wissen, woher ein Spiel kommt.
 
-export type MatchSource = "nuliga" | "handball-net" | "sportde";
+export type MatchSource = "nuliga" | "handball-net" | "sportde" | "ndr";
 
 export type MatchStatus = "scheduled" | "live" | "halftime" | "finished" | "interrupted" | "postponed" | "cancelled";
 

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "liga_externe_identitaet_ndr_idx" ON "liga_externe_identitaet" USING btree ("quelle","externe_id") WHERE "liga_externe_identitaet"."quelle" = 'ndr';
