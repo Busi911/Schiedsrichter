@@ -3,11 +3,11 @@ import sharp from "sharp";
 
 // Vereinslogo -> Web-App-Icon/Kopfbild. Das Logo kommt vom Vereinsadmin
 // (Upload), wird hier GEPRÜFT und auf ein einheitliches PNG normalisiert:
-// nur Rastergrafiken (PNG/JPEG/WebP — kein SVG wegen Script-/XSS-Risiko),
+// nur Rastergrafiken (PNG/JPEG/WebP/GIF, bei GIF das erste Bild — kein SVG wegen Script-/XSS-Risiko),
 // begrenzte Größe, EXIF-Drehung angewendet, Metadaten entfernt (sharp gibt
 // beim Neu-Kodieren standardmäßig keine EXIF/GPS-Daten aus).
 export const LOGO_MAX_BYTES = 5 * 1024 * 1024;
-const ERLAUBTE_FORMATE = new Set(["png", "jpeg", "webp"]);
+const ERLAUBTE_FORMATE = new Set(["png", "jpeg", "webp", "gif"]);
 
 export class LogoFehler extends Error {}
 
@@ -22,7 +22,7 @@ export async function verarbeiteLogo(eingabe: Buffer): Promise<Buffer> {
     throw new LogoFehler("Die Datei ist keine gültige Bilddatei.");
   }
   if (!format || !ERLAUBTE_FORMATE.has(format)) {
-    throw new LogoFehler("Bitte ein Logo als PNG, JPEG oder WebP hochladen.");
+    throw new LogoFehler("Bitte ein Logo als PNG, JPEG, WebP oder GIF hochladen.");
   }
   return sharp(eingabe, { limitInputPixels: 40_000_000 })
     .rotate()

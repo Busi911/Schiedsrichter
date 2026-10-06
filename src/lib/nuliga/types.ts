@@ -118,3 +118,35 @@ export type TeamPortraitSeite = {
   } | null;
   spiele: NuligaSpiel[];
 };
+
+// Vereinssuche (clubSearch): ein Eintrag je Verein. Die sichtbare Vereinsnummer
+// (z.B. 14194) ist NICHT die interne club-ID (z.B. 76446) — die steht nur im Link.
+export type VereinsSucheEintrag = {
+  clubId: string;
+  name: string;
+  nummer: string | null;
+  bezirk: string | null;
+};
+
+export type VereinsSucheRegion = { name: string; searchPattern: string | null };
+
+export type VereinsSucheSeite = {
+  vereine: VereinsSucheEintrag[];
+  regionen: VereinsSucheRegion[];
+};
+
+// Stammdaten der Vereinsseite (clubInfoDisplay). Whitelist: keine Telefonnummern,
+// E-Mail-Adressen, Anschriften oder Ansprechpartner.
+export type VereinsInfo = {
+  name: string | null;
+  nummer: string | null;
+  gruendung: number | null;
+  website: string | null;
+  stammvereine: string[];
+  hallen: string[];
+  // Pfad+Query des Vereinsbilds (relativ oder absolut, wie im HTML; der wodata-Wert ist NICHT stabil, deshalb
+  // nie speichern/vergleichen, sondern bei jedem Abruf neu aus der Seite lesen). logoSicher = der alt-Text
+  // entspricht dem Vereinsnamen; sonst ist es nur das einzige infrage kommende Bild (Menschen sollen prüfen).
+  logoPfad: string | null;
+  logoSicher: boolean;
+};

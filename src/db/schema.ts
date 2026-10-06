@@ -249,17 +249,15 @@ export const vereine = pgTable("verein", {
   // Zuletzt vom Übernahme-Cron geprüft: sorgt dafür, dass bei Zeitnot die am längsten
   // nicht geprüften Vereine zuerst drankommen (rundenweise, nichts bleibt liegen).
   ligaUebernahmeGeprueftAm: timestamp("liga_uebernahme_geprueft_am", { mode: "date" }),
-  // Opt-in für den Vereinsadmin: E-Mail bei geänderten Spielen (Zeit/Ort
-  // verlegt) bzw. neu eingetragenen Ergebnissen im Hallenspielplan, siehe
-  // rundenspiel-benachrichtigung.ts. Default false, da nicht jeder Verein
-  // diesen zusätzlichen Kanal will (die Änderungen sind im
-  // Hallenspielplan-Tab von /admin/termine ohnehin jederzeit passiv
-  // einsehbar).
+  // E-Mail an den Vereinsadmin bei geänderten Spielen (Zeit/Ort verlegt) bzw. neu
+  // eingetragenen Ergebnissen im Hallenspielplan, siehe rundenspiel-benachrichtigung.ts.
+  // Default für NEUE Vereine: an (Migration 0081); bestehende Vereine behalten ihre Wahl,
+  // abschaltbar unter Einstellungen.
   rundenspielAenderungenBenachrichtigungAktiviert: boolean(
     "rundenspiel_aenderungen_benachrichtigung_aktiviert"
   )
     .notNull()
-    .default(false),
+    .default(true),
   // Opt-in für den Vereinsadmin: bei unbesetztem Ordner-/Kioskdienst-/
   // Kassierer-/Zeitnehmer-/Sekretär-Bedarf (3-Tage-Fenster wie in
   // dienste-erinnerung.ts) zusätzlich ALLE aktiven Inhaber der betroffenen
@@ -929,6 +927,10 @@ export const ligaVereine = pgTable(
     handballNetTeamIds: text("handball_net_team_ids"),
     // Vom Verein selbst gewählter Farbton (0-359) der öffentlichen Seite; null = aus dem Logo bzw. Slug (siehe lib/liga-farbe.ts).
     farbtonEigen: integer("farbton_eigen"),
+    // Automatische Logo-Übernahme aus nuLiga (lib/nuliga/logo.ts): letzte Prüfung (auch ohne Logo, damit nicht
+    // täglich erneut versucht wird) und Abschalter, sobald der Verein sein Logo selbst entfernt hat.
+    logoGeprueftAm: timestamp("logo_geprueft_am", { mode: "date" }),
+    logoAutoAus: boolean("logo_auto_aus").notNull().default(false),
     handballNetSynchronisiertAm: timestamp("handball_net_synchronisiert_am", { mode: "date" }),
     strukturSynchronisiertAm: timestamp("struktur_synchronisiert_am", { mode: "date" }),
     spieleSynchronisiertAm: timestamp("spiele_synchronisiert_am", { mode: "date" }),
@@ -1170,6 +1172,13 @@ export const ligaVereinLogos = pgTable("liga_verein_logo", {
   // (schwarz/weiß/grau), dann gilt die aus dem Slug abgeleitete Farbe.
   farbton: integer("farbton"),
   aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
+  // Herkunft: "upload" (vom Verein hochgeladen, wird nie automatisch überschrieben) oder "nuliga" (automatisch
+  // übernommen). quell_pfad = zuletzt gefundener Bildpfad auf nuLiga (der wodata-Wert ist NICHT stabil), quell_hash =
+  // SHA-256 der heruntergeladenen Originaldatei (erkennt Änderungen ohne erneutes Verarbeiten).
+  quelle: text("quelle").notNull().default("upload"),
+  quellPfad: text("quell_pfad"),
+  quellHash: text("quell_hash"),
+  abgerufenAm: timestamp("abgerufen_am", { mode: "date" }),
 });
 
 // Sponsor eines Vereins (übernimmt die technischen Kosten): kurzes Bild beim Öffnen der öffentlichen Seite
@@ -1189,3 +1198,20 @@ export const vereinSponsoren = pgTable("verein_sponsor", {
   aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
 });
 
+
+// Index ALLER Vereine eines nuLiga-Landesverbands (Vereinssuche clubSearch), nur zum Finden und Einrichten.
+// Kein Mandantenbezug, bewusst ohne RLS (öffentliche Vereinsdaten, Schreiben/Lesen nur über adminDb).
+// clubId ist die INTERNE nuLiga-ID (aus dem Link), nummer die sichtbare Vereinsnummer — nie verwechseln.
+export const nuligaVereinsindex = pgTable(
+  "nuliga_vereinsindex",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    verband: text("verband").notNull().default("HHV"),
+    clubId: text("club_id").notNull(),
+    nummer: text("nummer"),
+    name: text("name").notNull(),
+    bezirk: text("bezirk"),
+    aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("nuliga_vereinsindex_verband_club_idx").on(t.verband, t.clubId)]
+);

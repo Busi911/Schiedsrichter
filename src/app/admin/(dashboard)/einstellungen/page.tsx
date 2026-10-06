@@ -920,10 +920,10 @@ export default async function EinstellungenPage({
                   Admin-Mail bei verlegten Spielen/neuen Ergebnissen
                 </Label>
                 <Switch
-                  key={String(verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false)}
+                  key={String(verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? true)}
                   id="rundenspielAenderungenBenachrichtigungAktiviert"
                   name="rundenspielAenderungenBenachrichtigungAktiviert"
-                  defaultChecked={verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? false}
+                  defaultChecked={verein?.rundenspielAenderungenBenachrichtigungAktiviert ?? true}
                 />
               </div>
             </fieldset>

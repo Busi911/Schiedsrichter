@@ -134,9 +134,16 @@ export const holeLogoPng = async (ligaVereinId: string): Promise<Buffer | null> 
 export const holeAlleVereine = async () =>
   mitColdStartRetry(() =>
     adminDb
-      .select({ id: ligaVereine.id, name: ligaVereine.name, slug: ligaVereine.slug })
+      .select({
+        id: ligaVereine.id,
+        name: ligaVereine.name,
+        slug: ligaVereine.slug,
+        // Nur der Zeitstempel (Cache-Buster); das Bild selbst lädt erst die Logo-Route.
+        logoAktualisiertAm: ligaVereinLogos.aktualisiertAm,
+      })
       .from(ligaVereine)
       .innerJoin(vereine, eq(vereine.id, ligaVereine.vereinId))
+      .leftJoin(ligaVereinLogos, eq(ligaVereinLogos.ligaVereinId, ligaVereine.id))
       .where(eq(vereine.status, "aktiv"))
       .orderBy(asc(ligaVereine.name))
   );

@@ -2,9 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { vereine } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, nuligaVereinsindex, vereine } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import {
@@ -18,6 +18,17 @@ import { erzeugeVorschauLink, widerrufeVorschauLink } from "@/lib/verein-vorscha
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { uebergabeInhalt } from "@/lib/uebergabe-mail";
+import { holeNuligaBild, holeNuligaHtml } from "@/lib/nuliga/client";
+import { uebernehmeNuligaLogo, type LogoErgebnis } from "@/lib/nuliga/logo";
+import { baueNuligaUrl } from "@/lib/nuliga/verbaende";
+import { parseVereinsInfo } from "@/lib/nuliga/parsers/vereinsinfo";
+import { aktualisiereVereinsindex } from "@/lib/nuliga/vereinsindex";
+import { bewerteEinrichtung } from "@/lib/nuliga/einrichtung-status";
+import { legeLigaVereinAn } from "@/lib/nuliga/sync";
+import { synchronisiereAlleQuellen } from "@/lib/liga-sync-quellen";
+import { holeHandballNetApi } from "@/lib/handball-net/client";
+import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
+import { schreibeProtokoll } from "@/lib/treuhand";
 
 export async function vereinErstellen(formData: FormData) {
   await requireSystemAdmin();
@@ -125,4 +136,101 @@ export async function vorbereitungsVereinLoeschen(formData: FormData) {
   const session = await requireSystemAdmin();
   await loescheVorbereitungsVerein(session.user.id, text(formData, "vereinId"));
   revalidatePath("/system/vereine");
+}
+
+// Vereinsindex von Hand neu laden (sonst täglich per Cron).
+export async function vereinsindexAktualisieren() {
+  await requireSystemAdmin();
+  const r = await aktualisiereVereinsindex({ db: adminDb, holeHtml: holeNuligaHtml, frist: Date.now() + 50_000 });
+  const params = new URLSearchParams({
+    index: `${r.vereine} Vereine aus ${r.regionen} Bezirken${r.vollstaendig ? "" : " (unvollständig, bitte erneut)"}${r.warnungen.length ? ` · ${r.warnungen[0]}` : ""}`,
+  });
+  revalidatePath("/system/vereine");
+  redirect(`/system/vereine?${params.toString()}`);
+}
+
+// Verein aus dem nuLiga-Index im Hintergrund einrichten (Vorbereitung, unsichtbar, keine Mails): Verein
+// anlegen, Vereinsseite lesen (Hallen), Mannschaften/Spiele laden, Termine anlegen — und eine Checkliste
+// liefern, was automatisch geklappt hat und was ein Mensch prüfen muss. Nichts davon ist öffentlich,
+// bis der Verein übergeben wird.
+export async function vereinAusNuligaEinrichten(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const clubId = text(formData, "clubId");
+  const [eintrag] = await adminDb
+    .select()
+    .from(nuligaVereinsindex)
+    .where(and(eq(nuligaVereinsindex.verband, "HHV"), eq(nuligaVereinsindex.clubId, clubId)));
+  if (!eintrag) throw new Error("Verein nicht im Index gefunden.");
+  const schonDa = await adminDb.query.ligaVereine.findFirst({
+    where: and(eq(ligaVereine.verband, "HHV"), eq(ligaVereine.nuligaClubId, clubId)),
+    columns: { id: true },
+  });
+  if (schonDa) throw new Error("Dieser Verein ist bereits eingerichtet.");
+
+  const vereinId = await vereinVorbereitenLib(session.user.id, eintrag.name);
+  const ligaVerein = await legeLigaVereinAn(adminDb, { vereinId, nuligaClubId: clubId, name: eintrag.name });
+
+  // Vereinsseite (Stammdaten, Hallen): Fehler hier verhindern die Einrichtung nie.
+  let info = null;
+  let infoFehler: string | null = null;
+  try {
+    const html = await holeNuligaHtml(baueNuligaUrl("HHV", "clubInfoDisplay", { club: clubId }));
+    const geparst = parseVereinsInfo(html);
+    info = geparst.daten;
+    if (geparst.warnungen.length) infoFehler = geparst.warnungen[0];
+  } catch (err) {
+    infoFehler = err instanceof Error ? err.message : String(err);
+  }
+  const hallen = info?.hallen ?? [];
+  if (hallen.length > 0) {
+    await adminDb.update(vereine).set({ eigeneHallenNamen: hallen.join(", ").slice(0, 500) }).where(eq(vereine.id, vereinId));
+  }
+
+  // Logo gleich mit, als Teil desselben Vereinsobjekts (Pfad aus der AKTUELLEN Seite, nie gemerkt).
+  let logo: LogoErgebnis | null = null;
+  if (info) {
+    logo = await uebernehmeNuligaLogo({ db: adminDb, ligaVereinId: ligaVerein.id, logoPfad: info.logoPfad, holeBild: holeNuligaBild });
+  }
+
+  const start = Date.now();
+  const sync = await synchronisiereAlleQuellen(ligaVerein.id, {
+    db: adminDb,
+    holeHtml: holeNuligaHtml,
+    holeJson: holeHandballNetApi,
+    frist: start + 35_000,
+  });
+  const [{ anzahl }] = await adminDb.select({ anzahl: count() }).from(ligaMannschaften).where(eq(ligaMannschaften.ligaVereinId, ligaVerein.id));
+
+  let termineAngelegt: number | null = null;
+  if (hallen.length > 0 && Date.now() < start + 45_000) {
+    try {
+      termineAngelegt = (await uebernehmeLigaSpiele(vereinId, "Einrichtung")).angelegt;
+    } catch (err) {
+      console.error("Termin-Übernahme bei der automatischen Einrichtung fehlgeschlagen:", err);
+    }
+  }
+
+  const schritte = bewerteEinrichtung({
+    indexName: eintrag.name,
+    clubId,
+    info,
+    infoFehler,
+    hallenGespeichert: hallen,
+    syncStatus: sync.status,
+    syncUnvollstaendig: sync.unvollstaendig,
+    syncMeldungen: sync.meldungen,
+    mannschaften: anzahl,
+    termineAngelegt,
+    logo,
+    logoSicher: info?.logoSicher ?? false,
+  });
+  await schreibeProtokoll(
+    vereinId,
+    "einrichtung_automatisch",
+    session.user.email ?? session.user.id,
+    schritte.map((x) => `${x.label}: ${x.status}`).join("; ")
+  );
+  revalidatePath("/system/vereine");
+  const params = new URLSearchParams({ einrichtung: JSON.stringify({ verein: eintrag.name, vereinId, schritte }) });
+  redirect(`/system/vereine?${params.toString()}`);
 }

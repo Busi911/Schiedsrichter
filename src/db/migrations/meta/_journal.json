@@ -554,6 +554,27 @@
       "when": 1791230762726,
       "tag": "0078_user_letzte_aktivitaet",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1791269456336,
+      "tag": "0079_nuliga_vereinsindex",
+      "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1791269730072,
+      "tag": "0080_liga_logo_nuliga",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1791270414539,
+      "tag": "0081_spielplan_benachrichtigung_standard_an",
+      "breakpoints": true
     }
   ]
 }
