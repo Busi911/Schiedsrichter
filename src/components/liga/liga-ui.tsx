@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { ZEITZONE } from "@/lib/format";
 import { istZwischenstand, laeuftVermutlich, liveTickerRelevant } from "@/lib/liga-spiel-status";
 import { quelleFuer } from "@/lib/match-provider";
+import { HblLiveAnzeige } from "./hbl-live-anzeige";
 import { hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "./favorit-stern";
 
@@ -117,7 +118,10 @@ export function SpielKarte({
           <p className={cn("truncate", fett(spiel.heimTeamtableId))}>{spiel.heimName}</p>
           <p className={cn("truncate", fett(spiel.gastTeamtableId))}>{spiel.gastName}</p>
         </div>
-        {zwischenstand && (
+        {zwischenstand && spiel.quelle === "hbl" && spiel.externeId && (
+          <HblLiveAnzeige matchId={spiel.externeId} fallback={laeuft ? "Läuft gerade" : "Ergebnis folgt"} />
+        )}
+        {zwischenstand && !(spiel.quelle === "hbl" && spiel.externeId) && (
           <p className="text-right text-xs font-medium text-muted-foreground">
             {laeuft ? "Läuft gerade" : "Ergebnis folgt"}
           </p>
