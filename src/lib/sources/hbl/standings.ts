@@ -1,13 +1,13 @@
-import type { HblAbfrage, HblEndpunkte, HblParser, HblTabellenzeile, HoleHbl } from "./types";
+import type { HblAbfrage, HblEndpunkte, HblParser, HblTabellenzeile, HblTeamRef, HoleHbl } from "./types";
 
-// Tabelle eines Wettbewerbs; null, wenn die Antwort keine Tabelle enthält (Pokal, Super Cup) oder unbrauchbar ist.
+// Tabelle einer Liga, nach Platz sortiert; Zeilen werden über die UUID aus dem Team-Link (sonst über die Teamliste) zugeordnet.
 export async function holeTabelle(
   hole: HoleHbl,
   ep: HblEndpunkte,
   parser: HblParser,
-  a: HblAbfrage
-): Promise<HblTabellenzeile[] | null> {
-  const zeilen = parser.tabelle(await hole(ep.tabelle(a)));
-  if (!zeilen || zeilen.length === 0) return null;
-  return [...new Map(zeilen.map((z) => [z.teamId, z])).values()].sort((x, y) => x.rang - y.rang);
+  a: HblAbfrage,
+  teams: HblTeamRef[]
+): Promise<{ zeilen: HblTabellenzeile[]; warnungen: string[] }> {
+  const { zeilen, warnungen } = parser.tabelle(await hole(ep.tabelle(a)), { teams });
+  return { zeilen: [...new Map(zeilen.map((z) => [z.teamId, z])).values()].sort((x, y) => x.rang - y.rang), warnungen };
 }

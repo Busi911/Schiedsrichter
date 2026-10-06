@@ -1,40 +1,26 @@
-import type { HblWettbewerb } from "../match";
+import type { HblWettbewerb, MatchStatus } from "../match";
 
 // Typen der HBL-Quelle (https://www.opel-hbl.de, Daten von Sportradar). Das ist die ZWISCHENFORM, die der Parser aus
 // den öffentlichen Antworten der HBL-Seite erzeugt — und zugleich eine WHITELIST: was hier kein Feld hat, wird nie
 // gelesen und nie gespeichert (die Antworten können Personendaten enthalten: Schiedsrichter, Spieler, Offizielle).
 // Verwendet wird NUR die öffentliche Seite, nie die private Sportradar-Plattform/DataCore-API.
 
-// Sportradar-Spielzustände (Handball).
-export type SportradarStatus =
-  | "NOT_STARTED"
-  | "FIRST_HALF"
-  | "HALFTIME"
-  | "SECOND_HALF"
-  | "ENDED"
-  | "AWAITING_OT"
-  | "FIRST_HALF_OT"
-  | "OT_HALFTIME"
-  | "SECOND_HALF_OT"
-  | "AFTER_OT"
-  | "AWAITING_PENALTIES"
-  | "PENALTY_SHOOTING"
-  | "AFTER_PENALTIES"
-  | "INTERRUPTED"
-  | "ABANDONED";
-
 export type HblTeam = {
   externalId: string; // Team-UUID aus /de/team/<Code>/<UUID>
   code: string | null; // z.B. "THW"
   name: string;
   shortName: string | null;
-  logoUrl: string | null; // nur von der öffentlichen HBL-Seite (Host images.dc.connect.sportradar.com)
+  logoUrl: string | null; // nur aus dem HTML der öffentlichen HBL-Seite (Host images.dc.connect.sportradar.com), nie konstruiert
+  league: "hbl1" | "hbl2";
+  sourceUrl: string | null;
 };
 
 export type HblSpiel = {
   externalMatchId: string; // Spiel-UUID aus /de/match/<UUID> — primärer externer Schlüssel
-  startTime: Date;
-  status: SportradarStatus | null; // null = unbekannter Wert (wird als geplant behandelt und gemeldet)
+  datum: string; // yyyy-mm-dd (deutsche Ortszeit)
+  uhrzeit: string | null; // HH:MM; beendete Spiele zeigen die Uhrzeit auf der Spielplanseite nicht
+  startTime: Date | null; // nur mit Uhrzeit bekannt
+  status: MatchStatus | null; // aus dem sichtbaren Text ("Beendet", "Live"); null = künftig/unbekannt (gilt als geplant)
   matchday: number | null;
   home: { externalId: string; name: string; shortName: string | null };
   away: { externalId: string; name: string; shortName: string | null };
@@ -59,34 +45,35 @@ export type HblTabellenzeile = {
   punkteMinus: number | null;
 };
 
-// Zustand eines Spiels live (für den späteren Liveticker). Die Ereignisliste (Tore, Zeitstrafen, Paraden …) kommt später.
+// Stand eines Spiels laut öffentlicher Spielseite (für den einfachen Live-Stand; Ereignisse folgen später).
 export type HblLiveStand = {
   externalMatchId: string;
-  status: SportradarStatus | null;
+  status: MatchStatus | null;
   homeScore: number | null;
   awayScore: number | null;
-  spielzeit: string | null;
 };
 
 export type HblAbfrage = { wettbewerb: HblWettbewerb; saison: string };
 
-// Die HTTP-Adressen sind bewusst NICHT im Code geraten: sie werden von außen geliefert (Konfiguration), sobald die
-// Request-URLs der HBL-Seite verifiziert sind. Jede Funktion baut den Pfad (relativ zu https://www.opel-hbl.de).
+// Referenz Name <-> UUID für die Zuordnung der Spielplan-/Tabellenzeilen (aus Teams- und Tabellenseite).
+export type HblTeamRef = { externalId: string; name: string };
+
+// Öffentliche HTML-Seiten (relativ zu https://www.opel-hbl.de). Für DHB-Pokal und Super Cup sind keine Adressen bekannt.
 export type HblEndpunkte = {
   teams(a: HblAbfrage): string;
   spielplan(a: HblAbfrage): string;
   tabelle(a: HblAbfrage): string;
-  live(externalMatchId: string): string;
+  spiel(externalMatchId: string): string;
 };
 
-// Aus der Antwort (JSON oder HTML-Text, je nach Endpunkt) erzeugt der Parser die Zwischenformen. Die echte Umsetzung
-// kommt mit den Beispielantworten; bis dahin gibt es nur den Vertrag und Tests mit einem Testparser.
+// Aus dem HTML der Seiten entstehen die Zwischenformen. Zeilen, die nicht eindeutig lesbar sind, werden nie geraten,
+// sondern als Warnung gemeldet; eine Seite ohne erkennbare Struktur wirft `HblLayoutFehler`.
 export interface HblParser {
-  teams(roh: unknown): HblTeam[];
-  spielplan(roh: unknown): HblSpiel[];
-  tabelle(roh: unknown): HblTabellenzeile[] | null;
-  live(roh: unknown): HblLiveStand | null;
+  teams(html: string, k: { league: "hbl1" | "hbl2" }): HblTeam[];
+  spielplan(html: string, k: { teams: HblTeamRef[] }): { spiele: HblSpiel[]; warnungen: string[] };
+  tabelle(html: string, k: { teams: HblTeamRef[] }): { zeilen: HblTabellenzeile[]; warnungen: string[] };
+  spiel(html: string, externalMatchId: string): HblLiveStand | null;
 }
 
-// Holt eine Antwort der HBL-Seite (Pfad relativ zur Basis-URL). Injizierbar, damit alles ohne Netzwerk testbar ist.
-export type HoleHbl = (pfad: string) => Promise<unknown>;
+// Holt eine Seite der HBL (Pfad relativ zur Basis-URL) als Text. Injizierbar, damit alles ohne Netzwerk testbar ist.
+export type HoleHbl = (pfad: string) => Promise<string>;

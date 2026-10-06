@@ -9,17 +9,15 @@ import {
   ligaTeilnahmen,
 } from "@/db/schema";
 import { tagKey } from "@/lib/kalender";
-import { ZEITZONE } from "@/lib/format";
 import { normalisiereMannschaft } from "@/lib/nuliga/normalisierung";
 import type { LigaDb, SyncErgebnis } from "@/lib/nuliga/sync";
 import { spielGeaendert, type SpielFelder } from "@/lib/nuliga/sync-hilfen";
 import type { SpielStatus } from "@/lib/nuliga/types";
 import { HBL_WETTBEWERBE, type HblWettbewerb, type MatchStatus } from "../match";
 import { holeSpielplan } from "./matches";
-import { mappeHblStatus } from "./parser";
 import { holeTabelle } from "./standings";
 import { holeTeams } from "./teams";
-import type { HblEndpunkte, HblParser, HblSpiel, HblTeam, HoleHbl } from "./types";
+import type { HblEndpunkte, HblParser, HblSpiel, HblTabellenzeile, HblTeam, HblTeamRef, HoleHbl } from "./types";
 
 // Synchronisation der HBL-Quelle -> liga_*-Tabellen. Je WETTBEWERB und Saison (nicht je Verein): die Tabelle enthält alle
 // Teams, Spiele und Teilnahmen aber nur die der Teams, die über `liga_externe_identitaet` einem bestehenden Verein
@@ -37,15 +35,11 @@ export type HblSyncOptionen = {
   wettbewerb: HblWettbewerb;
   saison: string; // "2026/27"
   jetzt?: Date;
+  // Teamübersicht (Logos, Kürzel) mitladen; sonst nur, wenn die Tabelle allein nicht reicht, um Namen den UUIDs zuzuordnen.
+  mitTeams?: boolean;
 };
 
 const excluded = (spalte: AnyPgColumn) => sql`excluded.${sql.identifier(spalte.name)}`;
-
-function berlinZeit(d: Date): { datum: string; uhrzeit: string } {
-  const teile = new Intl.DateTimeFormat("de-DE", { timeZone: ZEITZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d);
-  const t = (typ: string) => teile.find((x) => x.type === typ)?.value ?? "00";
-  return { datum: tagKey(d), uhrzeit: `${t("hour")}:${t("minute")}` };
-}
 
 export function ligaStatus(status: MatchStatus): SpielStatus {
   if (status === "finished") return "gespielt";
@@ -55,13 +49,13 @@ export function ligaStatus(status: MatchStatus): SpielStatus {
 }
 
 export function hblSpielFelder(s: HblSpiel): SpielFelder {
-  const status = mappeHblStatus(s.status) ?? "scheduled";
-  const { datum, uhrzeit } = berlinZeit(s.startTime);
+  const hatStand = s.homeScore !== null && s.awayScore !== null;
+  const status: MatchStatus = s.status ?? "scheduled";
   // Vor dem Anwurf ist ein "0:0" nur der Platzhalter — dann kein Ergebnis speichern.
-  const mitStand = status !== "scheduled" && status !== "postponed" && status !== "cancelled";
+  const mitStand = hatStand && status !== "scheduled" && status !== "postponed" && status !== "cancelled";
   return {
-    datum,
-    uhrzeit,
+    datum: s.datum,
+    uhrzeit: s.uhrzeit,
     beginn: s.startTime,
     urspruenglicherBeginn: null,
     halleName: s.venue,
@@ -139,7 +133,7 @@ async function sorgeFuerMannschaft(db: LigaDb, ligaVereinId: string, saison: str
 }
 
 export async function synchronisiereHbl(opt: HblSyncOptionen): Promise<SyncErgebnis> {
-  const { db, hole, endpunkte, parser, wettbewerb, saison, jetzt = new Date() } = opt;
+  const { db, hole, endpunkte, parser, wettbewerb, saison, jetzt = new Date(), mitTeams = false } = opt;
   const meta = HBL_WETTBEWERBE[wettbewerb];
   const abfrage = { wettbewerb, saison };
   let anfragen = 0;
@@ -147,30 +141,96 @@ export async function synchronisiereHbl(opt: HblSyncOptionen): Promise<SyncErgeb
   let aktualisiert = 0;
   const meldungen: string[] = [];
   const warn = (t: string) => meldungen.push(t);
+  // Jede Seite höchstens einmal je Lauf holen (Tabelle und Spielplan werten sie ggf. mehrfach aus).
+  const seiten = new Map<string, string>();
   const zaehlendHole: HoleHbl = async (pfad) => {
+    const bekannt = seiten.get(pfad);
+    if (bekannt !== undefined) return bekannt;
     anfragen++;
-    return hole(pfad);
+    const html = await hole(pfad);
+    seiten.set(pfad, html);
+    return html;
   };
   const ergebnis = (status: SyncErgebnis["status"]): SyncErgebnis => ({ status, anfragen, neu, aktualisiert, meldungen, unvollstaendig: false });
+  const fehlertext = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
-  let teams: HblTeam[];
-  let spiele: HblSpiel[];
+  // 1. Tabelle zuerst: ihre Team-Links liefern die UUIDs aller Teams der Liga.
+  let tabelle: HblTabellenzeile[] | null = null;
+  let tabellenWarnungen: string[] = [];
   try {
-    teams = await holeTeams(zaehlendHole, endpunkte, parser, abfrage);
-    spiele = await holeSpielplan(zaehlendHole, endpunkte, parser, abfrage);
+    const t = await holeTabelle(zaehlendHole, endpunkte, parser, abfrage, []);
+    tabelle = t.zeilen.length > 0 ? t.zeilen : null;
+    tabellenWarnungen = t.warnungen;
   } catch (err) {
-    warn(`HBL ${meta.kurz}: ${err instanceof Error ? err.message : String(err)}`);
-    return ergebnis("fehler");
+    warn(`HBL ${meta.kurz}: Tabelle nicht lesbar (${fehlertext(err)})`);
   }
-  if (teams.length === 0 && spiele.length === 0) {
-    warn(`HBL ${meta.kurz}: keine Teams und keine Spiele gefunden — nichts geändert`);
-    return ergebnis("fehler");
+
+  // 2. Teamübersicht (Logos, Kürzel, Namen für die Zuordnung): auf Wunsch, oder sobald Namen nicht zuordenbar waren.
+  let teams: HblTeam[] = [];
+  let problem = false;
+  const refs = new Map<string, HblTeamRef>();
+  const merkeRefs = () => {
+    for (const t of teams) refs.set(t.externalId, { externalId: t.externalId, name: t.name });
+    for (const z of tabelle ?? []) refs.set(z.teamId, { externalId: z.teamId, name: z.name });
+  };
+  let teamsGeladen = false;
+  const ladeTeams = async () => {
+    if (teamsGeladen) return;
+    teamsGeladen = true;
+    try {
+      teams = await holeTeams(zaehlendHole, endpunkte, parser, abfrage);
+    } catch (err) {
+      problem = true;
+      warn(`HBL ${meta.kurz}: Teamübersicht nicht lesbar (${fehlertext(err)})`);
+    }
+    merkeRefs();
+  };
+  if (mitTeams || tabellenWarnungen.length > 0 || !tabelle) await ladeTeams();
+  merkeRefs();
+
+  // Tabelle mit allen bekannten Teams erneut zuordnen, wenn vorher etwas fehlte.
+  if (tabellenWarnungen.length > 0 || !tabelle) {
+    try {
+      const t = await holeTabelle(zaehlendHole, endpunkte, parser, abfrage, [...refs.values()]);
+      tabelle = t.zeilen.length > 0 ? t.zeilen : null;
+      for (const w of t.warnungen) warn(`HBL ${meta.kurz}: ${w}`);
+    } catch {
+      // schon oben gemeldet
+    }
+    merkeRefs();
   }
-  let tabelle = null as Awaited<ReturnType<typeof holeTabelle>>;
-  try {
-    tabelle = await holeTabelle(zaehlendHole, endpunkte, parser, abfrage);
-  } catch (err) {
-    warn(`HBL ${meta.kurz}: Tabelle nicht lesbar (${err instanceof Error ? err.message : String(err)})`);
+  if (!tabelle) problem = true;
+
+  // 3. Spielplan; bei nicht zuordenbaren Teams einmal mit der Teamübersicht wiederholen.
+  let spiele: HblSpiel[] = [];
+  let spielplanWarnungen: string[] = [];
+  let spielplanFehler: string | null = null;
+  const leseSpielplan = async () => {
+    try {
+      const r = await holeSpielplan(zaehlendHole, endpunkte, parser, abfrage, [...refs.values()]);
+      spiele = r.spiele;
+      spielplanWarnungen = r.warnungen;
+      spielplanFehler = null;
+    } catch (err) {
+      spielplanFehler = fehlertext(err);
+    }
+  };
+  await leseSpielplan();
+  if ((spielplanFehler || spielplanWarnungen.length > 0) && !teamsGeladen) {
+    await ladeTeams();
+    await leseSpielplan();
+  }
+  if (spielplanFehler) {
+    problem = true;
+    warn(`HBL ${meta.kurz}: Spielplan nicht lesbar (${spielplanFehler})`);
+    if (!tabelle) return ergebnis("fehler");
+  }
+  for (const w of spielplanWarnungen.slice(0, 5)) warn(`HBL ${meta.kurz}: ${w}`);
+  if (spielplanWarnungen.length > 5) warn(`HBL ${meta.kurz}: … und ${spielplanWarnungen.length - 5} weitere Spiele nicht lesbar`);
+  if (spielplanWarnungen.length > 0) problem = true;
+  if (!tabelle && spiele.length === 0) {
+    warn(`HBL ${meta.kurz}: weder Tabelle noch Spielplan gelesen — nichts geändert`);
+    return ergebnis("fehler");
   }
 
   // Gruppe (je Wettbewerb und Saison)
@@ -213,7 +273,7 @@ export async function synchronisiereHbl(opt: HblSyncOptionen): Promise<SyncErgeb
   const identitaeten = await db.query.ligaExterneIdentitaeten.findMany({ where: eq(ligaExterneIdentitaeten.quelle, HBL_QUELLE) });
   const vereinJeTeam = new Map(identitaeten.map((i) => [i.externeId, i.ligaVereinId]));
   const teamJeId = new Map(teams.map((t) => [t.externalId, t]));
-  const ohneVerein = teams.filter((t) => !vereinJeTeam.has(t.externalId));
+  const ohneVerein = [...refs.values()].filter((t) => !vereinJeTeam.has(t.externalId));
   if (ohneVerein.length > 0) warn(`HBL ${meta.kurz}: ${ohneVerein.length} Team(s) keinem Verein zugeordnet (kein neuer Verein angelegt)`);
 
   const zugeordnet = [...vereinJeTeam.keys()].filter((id) => teamJeId.has(id) || spiele.some((s) => s.home.externalId === id || s.away.externalId === id));
@@ -256,7 +316,7 @@ export async function synchronisiereHbl(opt: HblSyncOptionen): Promise<SyncErgeb
   const eigene = spiele.filter((s) => meine.has(s.home.externalId) || meine.has(s.away.externalId));
   if (eigene.length === 0) {
     if (zugeordnet.length > 0) warn(`HBL ${meta.kurz}: keine Spiele der zugeordneten Teams gefunden`);
-    return ergebnis(meldungen.some((m) => m.startsWith("Team ")) ? "teilweise" : "erfolgreich");
+    return ergebnis(problem || meldungen.some((m) => m.startsWith("Team ")) ? "teilweise" : "erfolgreich");
   }
   const codes = eigene.map((s) => s.externalMatchId);
   const bestehende = await db.query.ligaSpiele.findMany({ where: and(eq(ligaSpiele.gruppeId, gruppeId), inArray(ligaSpiele.spielcode, codes)) });
@@ -290,5 +350,5 @@ export async function synchronisiereHbl(opt: HblSyncOptionen): Promise<SyncErgeb
       or(inArray(ligaSpiele.heimTeamtableId, [...meine]), inArray(ligaSpiele.gastTeamtableId, [...meine]))
     )
   );
-  return ergebnis(meldungen.some((m) => m.startsWith("Team ")) ? "teilweise" : "erfolgreich");
+  return ergebnis(problem || meldungen.some((m) => m.startsWith("Team ")) ? "teilweise" : "erfolgreich");
 }

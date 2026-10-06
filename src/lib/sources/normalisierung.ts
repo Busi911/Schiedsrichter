@@ -1,7 +1,7 @@
 import type { ligaGruppen, ligaSpiele } from "@/db/schema";
 import { berlinOffset } from "@/lib/format";
 import type { Match, MatchStatus } from "./match";
-import { mappeHblStatus, baueMatchUrl } from "./hbl/parser";
+import { baueMatchUrl } from "./hbl/parser";
 import type { HblSpiel } from "./hbl/types";
 
 // Normalisierung der drei Quellen auf EIN Spiel-Modell (`Match`). nuLiga/handball.net werden aus den bereits
@@ -66,8 +66,9 @@ export function normalizeHblMatch(
     competitionName: k.competitionName,
     season: k.season,
     matchday: s.matchday ?? undefined,
-    startTime: s.startTime,
-    status: mappeHblStatus(s.status) ?? "scheduled",
+    // Beendete Spiele zeigen auf der Spielplanseite keine Uhrzeit: dann 12:00 des Spieltags als Platzhalter für die Sortierung.
+    startTime: s.startTime ?? new Date(`${s.datum}T12:00:00${berlinOffset(s.datum)}`),
+    status: s.status ?? "scheduled",
     homeTeam: { externalId: s.home.externalId, name: s.home.name, shortName: s.home.shortName ?? undefined, logoUrl: k.logos?.get(s.home.externalId) },
     awayTeam: { externalId: s.away.externalId, name: s.away.name, shortName: s.away.shortName ?? undefined, logoUrl: k.logos?.get(s.away.externalId) },
     homeScore: s.homeScore ?? undefined,
