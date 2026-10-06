@@ -12,6 +12,7 @@ import {
 import { tagKey } from "@/lib/kalender";
 import { normalisiereMannschaft } from "@/lib/nuliga/normalisierung";
 import type { LigaDb, SyncErgebnis } from "@/lib/nuliga/sync";
+import { teamIdAusNamen } from "./urls";
 import { spielGeaendert, type SpielFelder } from "@/lib/nuliga/sync-hilfen";
 import type { SpielStatus } from "@/lib/nuliga/types";
 import { BUNDESLIGEN, type MatchStatus, type BundesLiga } from "../match";
@@ -285,6 +286,19 @@ export async function synchronisiereSpieltage(opt: SpieltagSyncOptionen): Promis
   // Teams (aus allen gelesenen Seiten; die Tabellenseite liefert alle Teams der Liga)
   const teams = new Map<string, QuellTeam>();
   for (const g of geholt.values()) for (const t of g.teams) teams.set(t.externalId, { ...(teams.get(t.externalId) ?? t), ...t, logoUrl: t.logoUrl ?? teams.get(t.externalId)?.logoUrl ?? null });
+
+  // Ältere Zuordnungen über den Namen ("name:<slug>") auf die stabile Team-ID der Quelle umstellen, sobald das Team mit ID gelesen wurde.
+  for (const t of teams.values()) {
+    const alt = teamIdAusNamen(t.name);
+    if (t.externalId === alt || vereinJeTeam.has(t.externalId) || !vereinJeTeam.has(alt)) continue;
+    await db
+      .update(ligaExterneIdentitaeten)
+      .set({ externeId: t.externalId, name: t.name, aktualisiertAm: new Date() })
+      .where(and(eq(ligaExterneIdentitaeten.quelle, pf.quelle), eq(ligaExterneIdentitaeten.externeId, alt)));
+    vereinJeTeam.set(t.externalId, vereinJeTeam.get(alt)!);
+    vereinJeTeam.delete(alt);
+    warn(`Zuordnung von "${t.name}" auf die Team-ID ${t.externalId} umgestellt`);
+  }
 
   // Tabelle speichern
   if (tabelle) {

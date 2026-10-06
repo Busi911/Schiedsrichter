@@ -50,12 +50,12 @@ describe.skipIf(!ADMIN_URL)("ndr-Sync (Postgres)", () => {
     const g = (await db.query.ligaGruppen.findFirst({ where: and(eq(schema.ligaGruppen.verband, "NDR"), eq(schema.ligaGruppen.nuligaGroupId, "hbl2:2026/27")) }))!;
     expect(g).toMatchObject({ quelle: "ndr", spielklasse: "2. HBL" });
     const zeilen = await db.select().from(schema.ligaTabellenzeilen).where(eq(schema.ligaTabellenzeilen.gruppeId, g.id));
-    expect(zeilen.map((z) => z.nuligaTeamtableId).sort()).toEqual(["name:1-vfl-potsdam", "name:hc-elbflorenz-2006", "name:vfl-eintracht-hagen"]);
+    expect(zeilen.map((z) => z.nuligaTeamtableId).sort()).toEqual(["mannschafthandball407", "mannschafthandball408"]);
     expect(await db.select().from(schema.ligaSpiele).where(eq(schema.ligaSpiele.gruppeId, g.id))).toHaveLength(0);
     expect(await db.select().from(schema.ligaVereine)).toHaveLength(1);
   });
 
-  it("mit Zuordnung: Spiele des Teams mit stabilem Schlüssel, Halbzeitstand und Ergebnis; erneuter Lauf ändert nichts", async () => {
+  it("mit (älterer) Zuordnung über den Namen: wird auf die Team-ID umgestellt; Spiele des Teams mit stabilem Schlüssel, Halbzeitstand und Ergebnis; erneuter Lauf ändert nichts", async () => {
     expect(await verknuepfeExternesTeam(db, "ndr", ligaVereinId, { externalId: "name:tusem-essen", name: "TuSEM Essen" })).toEqual({ ok: true });
     aufrufe = [];
     const r = await lauf();
@@ -64,7 +64,9 @@ describe.skipIf(!ADMIN_URL)("ndr-Sync (Postgres)", () => {
     const g = (await db.query.ligaGruppen.findFirst({ where: eq(schema.ligaGruppen.verband, "NDR") }))!;
     const spiele = await db.select().from(schema.ligaSpiele).where(eq(schema.ligaSpiele.gruppeId, g.id));
     expect(spiele).toHaveLength(1);
-    expect(spiele[0]).toMatchObject({ spielcode: "hbl2-2026-27-md6-tusem-essen_dhfk-leipzig", quelle: "ndr", toreHeim: 32, toreGast: 35, halbzeitHeim: 14, halbzeitGast: 19, ergebnisBestaetigt: true, status: "gespielt", spieltag: 6, berichtUrl: null });
+    expect(spiele[0]).toMatchObject({ spielcode: "hbl2-2026-27-md6-mannschafthandball403_mannschafthandball404", quelle: "ndr", toreHeim: 32, toreGast: 35, halbzeitHeim: 14, halbzeitGast: 19, ergebnisBestaetigt: true, status: "gespielt", spieltag: 6, berichtUrl: null });
+    const ident = await db.select().from(schema.ligaExterneIdentitaeten).where(eq(schema.ligaExterneIdentitaeten.quelle, "ndr"));
+    expect(ident.map((i) => i.externeId)).toEqual(["mannschafthandball403"]);
     const zweiter = await lauf();
     expect(zweiter.aktualisiert).toBe(0);
   });

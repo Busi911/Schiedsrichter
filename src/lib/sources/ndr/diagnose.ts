@@ -58,8 +58,9 @@ export async function diagnostiziereNdr(liga: BundesLiga, spieltag = 1, jetzt = 
       let idx = -1;
       if (muster) idx = html.search(muster);
       else {
-        const erstes = html.match(/Platz[\s\S]{0,1500}?<td[^>]*>\s*1\.?\s*<\/td>/) ?? html.match(/Platz[\s\S]{0,600}/);
-        idx = erstes ? (erstes.index ?? -1) + erstes[0].length : -1;
+        // Erste Zeile im Tabellenkörper der Tabelle: erstes <tbody> nach dem Spaltenkopf "league-col"
+        const kopf = html.search(/league-col-\d/);
+        idx = kopf >= 0 ? html.indexOf("<tbody", kopf) : -1;
       }
       if (idx >= 0) d.auszuege.push({ titel, html: auszug(html, idx, vor, nach) });
     }
@@ -73,6 +74,7 @@ export async function diagnostiziereNdr(liga: BundesLiga, spieltag = 1, jetzt = 
         tab.join(" · ") || "keine Tabelle erkannt",
         ...r.spiele.slice(0, 5).map((s) => `${s.spieltag}. ST · ${s.datum ?? "?"} ${s.uhrzeit ?? ""} · ${s.home.name} ${s.homeScore ?? "-"}:${s.awayScore ?? "-"} ${s.away.name}${s.halftimeHomeScore !== null ? ` · HZ ${s.halftimeHomeScore}:${s.halftimeAwayScore}` : ""} · ${s.status ?? "?"}`),
         ...[...r.tabellen.values()].slice(0, 1).flatMap((z) => z.slice(0, 3).map((x) => `${x.rang}. ${x.name} · ${x.spiele} Sp. ${x.siege}/${x.unentschieden}/${x.niederlagen} · ${x.torePlus}:${x.toreMinus} (${x.tordifferenz}) · ${x.punkteRoh}`)),
+        `Tabellenplätze: ${[...r.tabellen.values()].map((z) => z.map((x) => x.rang).join(",")).join(" | ") || "—"}`,
         `Navigation: ${r.navigation.map((n) => n.spieltag).join(", ") || "keine Spieltag-Links"}`,
         ...r.warnungen.slice(0, 6).map((w) => `Warnung: ${w}`),
       ];

@@ -11,7 +11,7 @@ import { NDR_LIGA_LISTE, synchronisiereNdrLiga } from "@/lib/sources/ndr/lauf";
 import type { BundesLiga } from "@/lib/sources/match";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const TEAM_ID = /^name:[a-z0-9-]{1,120}$/;
+const TEAM_ID = /^(?:name:[a-z0-9-]{1,120}|mannschaft[a-z]*\d{1,10})$/;
 const meldung = (art: "ok" | "fehler", text: string) => `/system/ndr?${art}=${encodeURIComponent(text.slice(0, 1500))}`;
 
 // Von Hand laden (auch ohne Zuordnung: dann nur die Tabellenseite, damit die Teams zum Zuordnen erscheinen; mit Zuordnung der normale Lauf).
