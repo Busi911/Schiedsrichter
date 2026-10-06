@@ -603,6 +603,13 @@
       "when": 1791283945635,
       "tag": "0085_mannschaft_liga_verknuepfung",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1791312933923,
+      "tag": "0086_liga_externe_identitaet",
+      "breakpoints": true
     }
   ]
 }

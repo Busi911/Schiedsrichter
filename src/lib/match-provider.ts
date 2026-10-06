@@ -1,4 +1,5 @@
 import type { SpielAnsicht } from "./liga-spiele-hilfen";
+import { baueMatchUrl } from "./sources/hbl/parser";
 import { baueBerichtUrl, baueLiveSpielUrl, gruppenIdAusBerichtUrl } from "./nuliga/verbaende";
 
 // Schnittstelle für Spiel-Quellen (nuLiga, handball.net) — bewusst klein. Die Sync-Module
@@ -29,6 +30,14 @@ export const nuLigaQuelle: SpielQuelle = {
 // handball.net: noch kein Link/Live-Zugriff vorgesehen.
 export const handballNetQuelle: SpielQuelle = { berichtUrl: () => null, liveUrl: () => null };
 
+// HBL: die öffentliche Spielseite der HBL zeigt Spielbericht und Live-Stand (UUID = externe Spiel-ID). `getLiveState` wird
+// serverseitig über `sources/hbl/live.ts` angebunden, sobald die verifizierten Endpunkte vorliegen.
+export const hblQuelle: SpielQuelle = {
+  berichtUrl: (s) => (s.quelle === "hbl" && s.externeId ? baueMatchUrl(s.externeId) : null),
+  liveUrl: (s) => (s.quelle === "hbl" && s.externeId ? baueMatchUrl(s.externeId) : null),
+};
+
 export function quelleFuer(spiel: SpielAnsicht): SpielQuelle {
+  if (spiel.quelle === "hbl") return hblQuelle;
   return spiel.quelle === "handball_net" ? handballNetQuelle : nuLigaQuelle;
 }

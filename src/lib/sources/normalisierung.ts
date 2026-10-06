@@ -1,0 +1,80 @@
+import type { ligaGruppen, ligaSpiele } from "@/db/schema";
+import { berlinOffset } from "@/lib/format";
+import type { Match, MatchStatus } from "./match";
+import { mappeHblStatus, baueMatchUrl } from "./hbl/parser";
+import type { HblSpiel } from "./hbl/types";
+
+// Normalisierung der drei Quellen auf EIN Spiel-Modell (`Match`). nuLiga/handball.net werden aus den bereits
+// gespeicherten liga_*-Zeilen normalisiert (deren Parser bleiben unverändert), HBL aus der Zwischenform des Adapters.
+
+type SpielZeile = typeof ligaSpiele.$inferSelect;
+type GruppeZeile = Pick<typeof ligaGruppen.$inferSelect, "nuligaGroupId" | "ligaName" | "saison">;
+
+function statusAusZeile(s: SpielZeile): MatchStatus {
+  switch (s.status) {
+    case "gespielt":
+    case "nicht_angetreten":
+      return "finished";
+    case "verlegt":
+      return "postponed";
+    case "abgesagt":
+      return "cancelled";
+    default:
+      return "scheduled";
+  }
+}
+
+function startZeit(s: SpielZeile): Date {
+  if (s.beginn) return s.beginn;
+  const uhr = s.uhrzeit ?? "00:00";
+  return new Date(`${s.datum}T${uhr}:00${berlinOffset(s.datum)}`);
+}
+
+function ausZeile(s: SpielZeile, g: GruppeZeile, source: "nuliga" | "handball-net"): Match {
+  const extern = source === "nuliga" ? (s.meetingId ?? `${s.gruppeId}:${s.spielnummer ?? ""}`) : (s.externeId ?? s.spielcode ?? s.id);
+  return {
+    id: s.id,
+    source,
+    externalMatchId: extern,
+    competitionId: g.nuligaGroupId,
+    competitionName: g.ligaName,
+    season: g.saison ?? "",
+    startTime: startZeit(s),
+    status: statusAusZeile(s),
+    homeTeam: { externalId: s.heimTeamtableId ?? undefined, name: s.heimName },
+    awayTeam: { externalId: s.gastTeamtableId ?? undefined, name: s.gastName },
+    homeScore: s.toreHeim ?? undefined,
+    awayScore: s.toreGast ?? undefined,
+    halftimeHomeScore: s.halbzeitHeim ?? undefined,
+    halftimeAwayScore: s.halbzeitGast ?? undefined,
+    venue: s.halleName ?? undefined,
+  };
+}
+
+export const normalizeNuligaMatch = (s: SpielZeile, g: GruppeZeile): Match => ausZeile(s, g, "nuliga");
+export const normalizeHandballNetMatch = (s: SpielZeile, g: GruppeZeile): Match => ausZeile(s, g, "handball-net");
+
+export function normalizeHblMatch(
+  s: HblSpiel,
+  k: { competitionId: string; competitionName: string; season: string; logos?: Map<string, string> }
+): Match {
+  return {
+    id: `hbl:${s.externalMatchId}`,
+    source: "hbl",
+    externalMatchId: s.externalMatchId,
+    competitionId: k.competitionId,
+    competitionName: k.competitionName,
+    season: k.season,
+    matchday: s.matchday ?? undefined,
+    startTime: s.startTime,
+    status: mappeHblStatus(s.status) ?? "scheduled",
+    homeTeam: { externalId: s.home.externalId, name: s.home.name, shortName: s.home.shortName ?? undefined, logoUrl: k.logos?.get(s.home.externalId) },
+    awayTeam: { externalId: s.away.externalId, name: s.away.name, shortName: s.away.shortName ?? undefined, logoUrl: k.logos?.get(s.away.externalId) },
+    homeScore: s.homeScore ?? undefined,
+    awayScore: s.awayScore ?? undefined,
+    halftimeHomeScore: s.halftimeHomeScore ?? undefined,
+    halftimeAwayScore: s.halftimeAwayScore ?? undefined,
+    venue: s.venue ?? undefined,
+    sourceUrl: baueMatchUrl(s.externalMatchId),
+  };
+}

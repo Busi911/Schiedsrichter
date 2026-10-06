@@ -14,6 +14,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
+import { sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -1165,6 +1166,33 @@ export const ligaSyncLaeufe = pgTable("liga_sync_lauf", {
   status: ligaSyncStatusEnum("status").notNull(),
   meldungen: jsonb("meldungen").$type<string[]>().notNull().default([]),
 });
+
+// Zuordnung eines Vereins (liga_verein) zu seinen Identitäten in den Datenquellen: EIN Verein kann Mannschaften aus
+// mehreren Quellen haben (nuLiga, handball.net, HBL). Für nuLiga/handball.net gelten weiter die Spalten
+// `nuliga_club_id`/`handball_net_club_id` an liga_verein; hier stehen die übrigen Quellen (derzeit "hbl": Team-UUID,
+// Kürzel wie "THW", Logo-URL der öffentlichen HBL-Seite). Gepflegt nur über adminDb (Systemadmin), nie automatisch
+// ein neuer Verein aus einem Quellen-Team. Ohne RLS wie die übrigen liga_*-Tabellen, aber app_user hat keinen Zugriff.
+export const ligaExterneIdentitaeten = pgTable(
+  "liga_externe_identitaet",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ligaVereinId: uuid("liga_verein_id")
+      .notNull()
+      .references(() => ligaVereine.id, { onDelete: "cascade" }),
+    quelle: text("quelle").notNull(),
+    externeId: text("externe_id").notNull(),
+    externerCode: text("externer_code"),
+    name: text("name"),
+    logoUrl: text("logo_url"),
+    erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+    aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("liga_externe_identitaet_verein_quelle_idx").on(t.ligaVereinId, t.quelle, t.externeId),
+    // Ein HBL-Team gehört genau einem Verein.
+    uniqueIndex("liga_externe_identitaet_hbl_idx").on(t.quelle, t.externeId).where(sql`${t.quelle} = 'hbl'`),
+  ]
+);
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType: () => "bytea",

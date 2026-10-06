@@ -522,3 +522,17 @@ wie bisher über den Namen (`findeMannschaft`); bereits angelegte Liga-Termine o
 (`findeIndexKandidaten`/`suchbegriffeAusVereinsname`, ohne schon vergebene club-IDs) mit "Importieren" (`starthilfeImportieren`, Rückfrage). Es läuft derselbe Ablauf wie bei "Automatisch einrichten"
 (`lib/nuliga/einrichtung.ts` `fuehreNuligaEinrichtungAus`, geteilt) — OHNE Treuhand-Zugriff (nur adminDb), still (keine Mail) und nicht zerstörend: vorhandene Spielhallen werden nie überschrieben, Mannschaften nur nach den Regeln aus
 `mannschaften-anlegen.ts`, ein eigenes Logo bleibt, Protokoll "starthilfe_nuliga". Ergebnis als Checkliste (`components/einrichtungs-checkliste.tsx`) oben auf der Gesundheitsseite.
+
+## Dritte Quelle: HBL (1./2. Handball-Bundesliga, DHB-Pokal, Super Cup) — Adapter fertig, Endpunkte offen
+
+`src/lib/sources/` (neu, die alten Ordner `nuliga/` und `handball-net/` bleiben unverändert): `match.ts` = gemeinsames Spiel-Modell (`Match`, Quellen `nuliga` | `handball-net` | `hbl`, Wettbewerbe `hbl1`/`hbl2`/`dhb-pokal`/`super-cup`);
+`normalisierung.ts` = `normalizeNuligaMatch`/`normalizeHandballNetMatch` (aus gespeicherten liga_*-Zeilen) und `normalizeHblMatch`; `identitaet.ts` = Zuordnung eines Vereins zu Quell-Identitäten
+(`liga_externe_identitaet`, Migration 0086, nur adminDb: Quelle "hbl" = Team-UUID + Kürzel + Logo-URL; nuLiga/handball.net bleiben an `liga_verein`). `verknuepfeHblTeam` ordnet ein HBL-Team einem BESTEHENDEN Verein zu
+(legt nie einen Verein an; ein Team gehört genau einem Verein). `sources/hbl/`: `types.ts` (Whitelist-Zwischenform `HblTeam`/`HblSpiel`/…, `HblEndpunkte`, `HblParser`), `parser.ts` (IDs aus Adressen, Sportradar-Status -> Match-Status, Logo-Host-Whitelist
+`images.dc.connect.sportradar.com`, Platzhalter-Parser), `client.ts` (öffentliche Seite opel-hbl.de, sequenziell, ehrlicher User-Agent; NIE die private Sportradar-/DataCore-API), `teams.ts`/`matches.ts`/`standings.ts`/`live.ts`, `sync.ts`.
+Schlüssel: Team-UUID und Spiel-UUID (nie der Name). Persistenz in den vorhandenen `liga_*`-Tabellen: `liga_gruppe.quelle = "hbl"`, `verband = "HBL"`, `nuliga_group_id = "<wettbewerb>:<saison>"`; Tabellenzeilen aller Teams (Team-UUID in `nuliga_teamtable_id`);
+Mannschaft/Teilnahme/Spiele NUR für zugeordnete Teams; `liga_spiel.spielcode = externe_id = Spiel-UUID`. Die erste Männermannschaft läuft unter dem Schlüssel `herren::1`; kollidiert er mit einer aktiven Teilnahme einer anderen Quelle derselben Saison, wird sie
+getrennt geführt ("Männer (HBL)") und gemeldet. Vor dem Anwurf wird kein "0:0" gespeichert; Zwischenstände (läuft/Halbzeit/unterbrochen) bleiben unbestätigt (`ergebnisBestaetigt` nur bei beendet), die Anzeige zeigt sie wie bisher nie als Ergebnis.
+Anzeige: `hblQuelle` in `match-provider.ts` (Spielbericht/Live = öffentliche HBL-Spielseite `/de/match/<UUID>`).
+**NOCH OFFEN (braucht die verifizierten Request-URLs und Beispielantworten):** `HblEndpunkte` (`setzeHblEndpunkte`), der echte `HblParser` (Teams, Spielplan, Tabelle, Live; ersetzt `holeHblParser`), ein Cron/Systemseite, die `synchronisiereHbl` je Wettbewerb und Saison aufruft,
+eine Oberfläche für die Team-Zuordnung (bisher nur `verknuepfeHblTeam`), Logo-Caching (die URL liegt in `liga_externe_identitaet.logo_url`; Download mit der bestehenden Logo-Logik und Host-Whitelist), Live-Ereignisse (Tore, Zeitstrafen, Paraden …) und `getLiveState` im match-provider.
