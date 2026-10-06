@@ -56,7 +56,7 @@ export function GefilterteListe({ eintraege, leerText }: { eintraege: ListenEint
 
   const chip = (aktiv: boolean) =>
     cn(
-      "inline-flex min-h-11 shrink-0 items-center rounded-full border-2 px-5 text-base font-semibold shadow-sm transition active:scale-95",
+      "inline-flex min-h-10 flex-auto items-center justify-center rounded-full border-2 px-3 text-sm font-semibold whitespace-nowrap shadow-sm transition active:scale-95",
       aktiv
         ? "border-primary bg-primary text-primary-foreground shadow-md"
         : "border-border bg-card text-foreground hover:bg-muted"
@@ -65,7 +65,7 @@ export function GefilterteListe({ eintraege, leerText }: { eintraege: ListenEint
   return (
     <div className="space-y-4">
       {(vorhanden.length > 1 || hatFavoriten) && (
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label="Filter">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter">
           {hatFavoriten && (
             <button
               type="button"
