@@ -20,6 +20,7 @@ import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { uebergabeInhalt } from "@/lib/uebergabe-mail";
 import { holeNuligaBild, holeNuligaHtml, holeNuligaSeiteMitKontext, type SeitenKontext } from "@/lib/nuliga/client";
 import { uebernehmeNuligaLogo, type LogoErgebnis } from "@/lib/nuliga/logo";
+import { speichereStammdaten } from "@/lib/nuliga/stammdaten";
 import { baueNuligaUrl } from "@/lib/nuliga/verbaende";
 import { parseVereinsInfo } from "@/lib/nuliga/parsers/vereinsinfo";
 import { aktualisiereVereinsindex } from "@/lib/nuliga/vereinsindex";
@@ -185,6 +186,8 @@ export async function vereinAusNuligaEinrichten(formData: FormData) {
   } catch (err) {
     infoFehler = err instanceof Error ? err.message : String(err);
   }
+  // Stammdaten (VNr., Gründungsjahr, Website, Stammvereine) gleich mit am Verein ablegen.
+  if (info) await speichereStammdaten(adminDb, ligaVerein.id, info);
   const hallen = info?.hallen ?? [];
   if (hallen.length > 0) {
     await adminDb.update(vereine).set({ eigeneHallenNamen: hallen.join(", ").slice(0, 500) }).where(eq(vereine.id, vereinId));

@@ -507,3 +507,7 @@ Zwei-Spalten-Tabelle: sie werden über die Beschriftung im sichtbaren Text gesuc
 "Hallen" als `<b>Hallen</b>` + `<ul><li><a href=".../courtInfo?…">Stadthalle Linden (14151)</a></li>…`; Logo `<img height="100" alt="<Vereinsname>" src="…/wr?wodata=…">`; danach `<h2>Kontaktadresse</h2>` mit einer Ansprechperson (wird NIE gelesen;
 die Diagnose entfernt den Bereich per `entferneKontaktbereich`). Fixture: `__fixtures__/vereinsinfo-linden.html` (Strukturabbild, Kontaktdaten erfunden). Stammvereine stehen als Text im selben Absatz (`stammvereineAusHtml`), eine Website (HSG Linden hat keine)
 steht entweder mit Beschriftung im Text oder als externer Link im Absatz mit "VNr." (`websiteAusStammdatenAbsatz`) — für die Website-Struktur z.B. von club=54040 fehlen noch echte Auszüge.
+
+**Stammdaten am Verein (`lib/nuliga/stammdaten.ts`, Migration 0084):** `liga_verein.vereinsnummer`, `gruendungsjahr`, `website`, `stammvereine` (ein Name pro Zeile), `stammdaten_gelesen_am` — gelesen von der nuLiga-Vereinsseite beim automatischen Einrichten und im
+Logo-Cron (`/api/cron/nuliga-logos`, nur Vereine ohne `logo_auto_aus`). Es wird nur gesetzt, was die Seite zeigt: ein nicht gefundener Wert überschreibt nie einen vorhandenen. Die Website wird immer als `https://` abgelegt (nuLiga liefert oft `http://`).
+Mannschaften/Spiele kommen weiterhin über den Liga-Sync (`synchronisiereAlleQuellen`), Hallen als "Eure Spielhallen" (`vereine.eigene_hallen_namen`). Noch nicht angezeigt (öffentliche Vereinsseite zeigt weder Website noch Stammvereine).

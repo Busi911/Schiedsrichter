@@ -5,6 +5,7 @@ import { pruefeCronSecret } from "@/lib/cron-auth";
 import { holeNuligaBild, holeNuligaSeiteMitKontext } from "@/lib/nuliga/client";
 import { LOGO_REFRESH_TAGE, uebernehmeNuligaLogo } from "@/lib/nuliga/logo";
 import { parseVereinsInfo } from "@/lib/nuliga/parsers/vereinsinfo";
+import { speichereStammdaten } from "@/lib/nuliga/stammdaten";
 import { baueNuligaUrl } from "@/lib/nuliga/verbaende";
 
 export const maxDuration = 60;
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
     try {
       const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl(v.verband, "clubInfoDisplay", { club: v.clubId! }));
       const { daten } = parseVereinsInfo(seite.html);
+      await speichereStammdaten(adminDb, v.id, daten);
       const r = await uebernehmeNuligaLogo({ db: adminDb, ligaVereinId: v.id, verband: v.verband, logoPfad: daten.logoPfad, holeBild: holeNuligaBild, kontext: seite.kontext });
       ergebnis[r.status] = (ergebnis[r.status] ?? 0) + 1;
     } catch (err) {

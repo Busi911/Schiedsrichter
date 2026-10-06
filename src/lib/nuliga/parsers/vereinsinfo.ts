@@ -52,6 +52,9 @@ export function parseVereinsInfo(html: string): ParseErgebnis<VereinsInfo> {
   if (!hallen.gefunden) warnungen.push('Kein Abschnitt "Hallen" gefunden (HTML-Struktur geändert?)');
   else if (hallen.eintraege.length === 0) warnungen.push('Abschnitt "Hallen" ohne erkennbare Einträge');
 
+  // Website immer als https speichern (nuLiga liefert oft "http://…"; praktisch jede Vereinsseite leitet ohnehin auf https).
+  if (info.website) info.website = info.website.replace(/^http:\/\//i, "https://").replace(/\/$/, "");
+
   const logo = findeLogo(html, info.name);
   info.logoPfad = logo?.pfad ?? null;
   info.logoSicher = logo?.sicher ?? false;

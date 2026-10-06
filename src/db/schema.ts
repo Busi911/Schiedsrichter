@@ -931,6 +931,13 @@ export const ligaVereine = pgTable(
     // täglich erneut versucht wird) und Abschalter, sobald der Verein sein Logo selbst entfernt hat.
     logoGeprueftAm: timestamp("logo_geprueft_am", { mode: "date" }),
     logoAutoAus: boolean("logo_auto_aus").notNull().default(false),
+    // Stammdaten laut nuLiga-Vereinsseite (lib/nuliga/stammdaten.ts): nur öffentliche Vereinsangaben, nie Kontakt-/Personendaten.
+    vereinsnummer: text("vereinsnummer"),
+    gruendungsjahr: integer("gruendungsjahr"),
+    website: text("website"),
+    // Stammvereine, ein Name pro Zeile (ohne Vereinsnummer).
+    stammvereine: text("stammvereine"),
+    stammdatenGelesenAm: timestamp("stammdaten_gelesen_am", { mode: "date" }),
     handballNetSynchronisiertAm: timestamp("handball_net_synchronisiert_am", { mode: "date" }),
     strukturSynchronisiertAm: timestamp("struktur_synchronisiert_am", { mode: "date" }),
     spieleSynchronisiertAm: timestamp("spiele_synchronisiert_am", { mode: "date" }),

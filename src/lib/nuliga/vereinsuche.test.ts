@@ -179,7 +179,8 @@ describe("Echte Struktur (club=76446): ein Absatz mit VNr., Gründungsjahr und S
   });
   it("findet eine Website auch ohne Beschriftung als externen Link im Stammdaten-Absatz", () => {
     const mit = fixture("vereinsinfo-linden.html").replace("Stammvereine:", '<a href="http://www.tus-vollnkirchen.de/">www.tus-vollnkirchen.de</a><br />Stammvereine:');
-    expect(parseVereinsInfo(mit).daten.website).toBe("http://www.tus-vollnkirchen.de");
+    // "http://" von nuLiga wird als https abgelegt
+    expect(parseVereinsInfo(mit).daten.website).toBe("https://www.tus-vollnkirchen.de");
     // Links innerhalb von nuLiga (z.B. die Hallen) sind nie die Website
     expect(parseVereinsInfo(fixture("vereinsinfo-linden.html")).daten.website).toBeNull();
   });
