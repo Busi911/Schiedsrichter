@@ -155,3 +155,10 @@
     padding-bottom: calc(4rem + env(safe-area-inset-bottom));
   }
 }
+
+/* Die feste Bottom-Bar der Vereins-App (vereins-nav.tsx, nur unter md) verdeckt sonst die globale Fußzeile ganz unten: Platz für Bar + Sicherheitsabstand schaffen. */
+@media (max-width: 767px) {
+  body:has([data-vereins-nav]) footer {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+}
