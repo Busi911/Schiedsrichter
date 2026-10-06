@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { contentTypeKannBildSein, erkenneBildtyp } from "./bildtyp";
+import { beschreibeFormat, beschreibeNichtBild, contentTypeKannBildSein, erkenneBildtyp, maskierePersonendaten } from "./bildtyp";
 
 vi.mock("server-only", () => ({}));
 
@@ -29,6 +29,18 @@ describe("contentTypeKannBildSein", () => {
   });
 });
 
+describe("Fehlerbeschreibung statt 'unbekanntes Format'", () => {
+  it("nennt HTML beim Namen (mit Titel), erkennt SVG und maskiert Personendaten", () => {
+    const html = Buffer.from("<!DOCTYPE html><html><head><title>Sitzung abgelaufen</title></head>");
+    expect(beschreibeNichtBild(html, "text/html")).toBe("Logo-URL liefert HTML statt Bild (Titel: Sitzung abgelaufen)");
+    expect(beschreibeNichtBild(Buffer.from('<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"/>'), "image/svg+xml")).toContain("SVG");
+    expect(beschreibeFormat(Buffer.from("<svg viewBox='0 0 1 1'/>"))).toContain("svg");
+    expect(beschreibeFormat(Buffer.from("HTTP/1.1 302 Found"))).toContain("HTTP");
+    expect(beschreibeNichtBild(Buffer.from([1, 2, 3]), "")).toContain("Kein erlaubtes Bildformat");
+    expect(maskierePersonendaten("mail a.b@c.de, Tel 0641 123456, 14175")).toBe("mail [mail], Tel [tel], 14175");
+  });
+});
+
 describe("holeNuligaBild (Download)", () => {
   afterEach(() => vi.unstubAllGlobals());
   const URL_OK = "https://hhv-handball.liga.nu/cgi-bin/WebObjects/nuLigaHBDE.woa/wr?wodata=1";
@@ -49,12 +61,16 @@ describe("holeNuligaBild (Download)", () => {
     vi.stubGlobal("fetch", async () => antwort(JPEG, "image/png"));
     expect((await (await lade())(URL_OK)).mime).toBe("image/jpeg");
   });
+  it("meldet 'liefert HTML statt Bild', wenn die Antwort eine Seite ist", async () => {
+    vi.stubGlobal("fetch", async () => antwort(Buffer.from("<html><head><title>Fehler</title></head></html>"), "image/png"));
+    await expect((await lade())(URL_OK)).rejects.toThrow("Logo-URL liefert HTML statt Bild (Titel: Fehler)");
+  });
   it("lehnt HTML (auch als image/png getarnt) und falsche Hosts ab", async () => {
     const holeBild = await lade();
     vi.stubGlobal("fetch", async () => antwort(Buffer.from("<html>Login</html>"), "text/html"));
     await expect(holeBild(URL_OK)).rejects.toThrow("Kein Bild");
     vi.stubGlobal("fetch", async () => antwort(Buffer.from("<html>Login</html>"), "image/png"));
-    await expect(holeBild(URL_OK)).rejects.toThrow("Magic Bytes");
+    await expect(holeBild(URL_OK)).rejects.toThrow("HTML statt Bild");
     await expect(holeBild("https://evil.example/x/wr?wodata=1")).rejects.toThrow("nicht erlaubt");
   });
   it("folgt Weiterleitungen nur auf freigegebene Adressen", async () => {
