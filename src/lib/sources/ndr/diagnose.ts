@@ -50,6 +50,19 @@ export async function diagnostiziereNdr(liga: BundesLiga, spieltag = 1, jetzt = 
     d.roh.push(`Spieltag-Links (_matchDay-…): ${spieltagLinks.length ? [...new Set(spieltagLinks)].slice(0, 6).join(" · ") : "keine"}`);
     const h = /\d{1,2}\.\s*Spieltag/.exec(html);
     if (h) d.auszuege.push({ titel: "Um die erste Überschrift „N. Spieltag“", html: auszug(html, h.index) });
+    for (const [titel, muster, vor, nach] of [
+      ["Um „Paarung“ (Ergebnis-Tabellenkopf)", /Paarung/, 400, 2600],
+      ["Um „Erg.“", /Erg\./, 300, 1800],
+      ["Um die erste Tabellenzeile (Teamname aus der Tabelle)", null, 700, 1500],
+    ] as [string, RegExp | null, number, number][]) {
+      let idx = -1;
+      if (muster) idx = html.search(muster);
+      else {
+        const erstes = html.match(/Platz[\s\S]{0,1500}?<td[^>]*>\s*1\.?\s*<\/td>/) ?? html.match(/Platz[\s\S]{0,600}/);
+        idx = erstes ? (erstes.index ?? -1) + erstes[0].length : -1;
+      }
+      if (idx >= 0) d.auszuege.push({ titel, html: auszug(html, idx, vor, nach) });
+    }
     const t = /Platz[\s\S]{0,300}?Punkte/.exec(html);
     if (t) d.auszuege.push({ titel: "Um den Tabellenkopf (Platz … Punkte)", html: auszug(html, t.index, 300, 1600) });
     try {
