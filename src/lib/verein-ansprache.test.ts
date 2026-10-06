@@ -19,12 +19,16 @@ describe("ansprachetext", () => {
   it("enthält Verein, Link, Beta/kostenlos, Gültigkeit und Absender", () => {
     expect(text.startsWith("Guten Tag,")).toBe(true);
     expect(text).toContain("mein Name ist Dennis");
-    expect(text).toContain("für den HSG Linden bereits vorbereitet");
+    expect(text).toContain("Für den HSG Linden haben wir sie schon vorbereitet");
     expect(text).toContain("https://handballerpate.de/verein/hsg-linden/vorschau/abc");
     expect(text).toContain("Beta-Phase");
     expect(text).toContain("noch kostenlos");
-    expect(text).toContain("bis 13.10.2026 gültig");
+    expect(text).toContain("Die Vorschau gilt bis 13.10.2026");
     expect(text.trimEnd().endsWith("Dennis")).toBe(true);
+  });
+  it("sagt, wie man den Zugang bekommt: Name und E-Mail-Adresse der verwaltenden Person", () => {
+    expect(text).toContain("den Namen und die E-Mail-Adresse der Person, die den Verein verwalten soll");
+    expect(text).toContain("mit einem Link an");
   });
   it("ist durchgehend in der Sie-Form (kein euch/eure/Schaut)", () => {
     expect(text).toContain("Ihrer Mannschaften");
