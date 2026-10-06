@@ -483,3 +483,11 @@ Cron `/api/cron/nuliga-logos` (täglich 3:50 UTC, je Verein höchstens alle 7 Ta
 **Hallen auf der nuLiga-Vereinsseite:** kein Tabellenfeld, sondern ein Abschnitt "Hallen" mit Links (`findeHallen` in `parsers/vereinsinfo.ts`): ein Element, dessen ganzer Text "Hallen" ist, danach die Links bis zur
 nächsten Überschrift bzw. zum Zeilenende der Tabelle; mit Nummer in Klammern zählen nur diese. `bereinigeHallenname` entfernt NUR eine abschließende `(Zahl)` (Nummer separat in `hallenNummern`). Die Struktur ist aus
 der Beschreibung abgeleitet, nicht verifiziert — `/system/nuliga-diagnose` (nur Systemadmin, schreibt nichts) zeigt je club-ID Hallenabschnitt, Rohtexte, Logo-src, HTTP-Status, Content-Type, Größe und erkannten Bildtyp.
+
+## Verein ansprechen (Instagram, von Hand)
+
+Für Vereine in Vorbereitung zeigt `/system/vereine` unter "Verein ansprechen (Instagram)" (`components/verein-ansprechen.tsx`) einen Nachrichtenvorschlag (`lib/verein-ansprache.ts`
+`ansprachetext`: Verein, Vorschau-Link, Beta-Phase/kostenlos, Gültigkeit, Absender = Vorname des Systemadmins; bearbeitbar), "Text kopieren", "Instagram öffnen"
+(`normalisiereInstagram`: nur Namen nach `[A-Za-z0-9._]`, fremde Adressen abgelehnt) und "angeschrieben am"/Notiz. Gesendet wird bewusst NIE automatisch (Instagram erlaubt keine automatisierten Erstnachrichten).
+Die Notizen liegen in `verein_kontakt` (Migration 0083, nur `adminDb`, `app_user` ohne Zugriff — nie auf der mandantenfähigen Tabelle `verein`, der Verein darf sie nicht sehen); Protokoll "ansprache_angeschrieben".
+Wenn sich die Konditionen ändern (Ende der Beta, Preis), den Text in `ansprachetext` anpassen. Rechtliche Prüfung unaufgeforderter Erstnachrichten bleibt offen.
