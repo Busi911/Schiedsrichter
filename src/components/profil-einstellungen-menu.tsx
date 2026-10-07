@@ -97,6 +97,11 @@ export function ProfilEinstellungenMenu({
   syncJetzt: () => Promise<void>;
 }) {
   const [offen, setOffen] = useState<DialogSchluessel | null>(null);
+  // Ein Schalter für alle "offene Dienste"-Mails; angezeigt als an, wenn irgendeine für die Person geltende Mailart an ist.
+  const offeneDiensteHinweiseAktiv =
+    (istSchiedsrichterwart && offeneSchiedsrichterErinnerungAktiviert) ||
+    (istZeitnehmerwart && offeneZeitnehmerErinnerungAktiviert) ||
+    (istDienstRolleninhaber && offeneDiensteBroadcastAktiviert);
   const eintraege = [
     ["kalender", "Kalender abonnieren"],
     ["stammdaten", "Stammdaten"],
@@ -336,54 +341,17 @@ export function ProfilEinstellungenMenu({
                 defaultChecked={terminErinnerungAktiviert}
               />
             </div>
-            {istSchiedsrichterwart && (
+            {(istSchiedsrichterwart || istZeitnehmerwart || istDienstRolleninhaber) && (
               <div className="flex items-center justify-between gap-3">
-                <Label
-                  htmlFor="offeneSchiedsrichterErinnerungAktiviert"
-                  className="font-normal"
-                >
-                  Als Schiedsrichterwart: Erinnerung an unbesetzte Spiele
+                <Label htmlFor="offeneDiensteHinweise" className="font-normal">
+                  Hinweise zu offenen Diensten (als Wart oder Dienst-Rolle:
+                  unbesetzte Spiele und Posten, kurzfristige Anfragen)
                 </Label>
                 <Switch
-                  key={String(offeneSchiedsrichterErinnerungAktiviert)}
-                  id="offeneSchiedsrichterErinnerungAktiviert"
-                  name="offeneSchiedsrichterErinnerungAktiviert"
-                  defaultChecked={offeneSchiedsrichterErinnerungAktiviert}
-                />
-              </div>
-            )}
-            {istZeitnehmerwart && (
-              <div className="flex items-center justify-between gap-3">
-                <Label
-                  htmlFor="offeneZeitnehmerErinnerungAktiviert"
-                  className="font-normal"
-                >
-                  Als Zeitnehmerwart: Erinnerung an unbesetzte
-                  Zeitnehmer-/Sekretär-Posten
-                </Label>
-                <Switch
-                  key={String(offeneZeitnehmerErinnerungAktiviert)}
-                  id="offeneZeitnehmerErinnerungAktiviert"
-                  name="offeneZeitnehmerErinnerungAktiviert"
-                  defaultChecked={offeneZeitnehmerErinnerungAktiviert}
-                />
-              </div>
-            )}
-            {istDienstRolleninhaber && (
-              <div className="flex items-center justify-between gap-3">
-                <Label
-                  htmlFor="offeneDiensteBroadcastAktiviert"
-                  className="font-normal"
-                >
-                  Anfrage, wenn deine Dienst-Rolle (Ordner/Kioskdienst/
-                  Kassierer/Zeitnehmer/Sekretär) kurzfristig noch gesucht
-                  wird
-                </Label>
-                <Switch
-                  key={String(offeneDiensteBroadcastAktiviert)}
-                  id="offeneDiensteBroadcastAktiviert"
-                  name="offeneDiensteBroadcastAktiviert"
-                  defaultChecked={offeneDiensteBroadcastAktiviert}
+                  key={String(offeneDiensteHinweiseAktiv)}
+                  id="offeneDiensteHinweise"
+                  name="offeneDiensteHinweise"
+                  defaultChecked={offeneDiensteHinweiseAktiv}
                 />
               </div>
             )}

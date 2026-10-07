@@ -238,17 +238,16 @@ export async function updateBenachrichtigungen(formData: FormData) {
     wochenDigestAktiviert,
     terminErinnerungAktiviert,
   };
+  // Ein gemeinsamer Schalter in der Oberfläche; er gilt für jede Mailart, die für die Person überhaupt in Frage kommt.
+  const offeneDiensteHinweise = formData.get("offeneDiensteHinweise") === "on";
   if (darfSchiedsrichterwartFeldAendern) {
-    werteZumSpeichern.offeneSchiedsrichterErinnerungAktiviert =
-      formData.get("offeneSchiedsrichterErinnerungAktiviert") === "on";
+    werteZumSpeichern.offeneSchiedsrichterErinnerungAktiviert = offeneDiensteHinweise;
   }
   if (darfZeitnehmerwartFeldAendern) {
-    werteZumSpeichern.offeneZeitnehmerErinnerungAktiviert =
-      formData.get("offeneZeitnehmerErinnerungAktiviert") === "on";
+    werteZumSpeichern.offeneZeitnehmerErinnerungAktiviert = offeneDiensteHinweise;
   }
   if (dienstRollen) {
-    werteZumSpeichern.offeneDiensteBroadcastAktiviert =
-      formData.get("offeneDiensteBroadcastAktiviert") === "on";
+    werteZumSpeichern.offeneDiensteBroadcastAktiviert = offeneDiensteHinweise;
   }
 
   await withTenant(vereinId, (tx) =>
