@@ -326,9 +326,12 @@ export function gruppiereMannschaften(mannschaften: MannschaftAnsicht[]) {
     ...g,
     mannschaften: mannschaften
       .filter((m) => g.kategorien.includes(m.kategorie))
-      .sort(
-        (a, b) =>
-          (a.altersklasse ?? "").localeCompare(b.altersklasse ?? "") || a.nummer - b.nummer
+      .sort((a, b) =>
+        // Herren/Damen: nach Mannschaftsnummer (I, II, III …) — die Altersklasse trägt dort keine Ordnung (je Quelle "Mä/männl.", leer …), sie würde
+        // z.B. die Bundesliga-Mannschaft hinter die 3. Liga sortieren. Jugend: erst Altersklasse (A, B, C …), dann Nummer.
+        g.schluessel === "herren" || g.schluessel === "damen"
+          ? a.nummer - b.nummer || a.name.localeCompare(b.name)
+          : (a.altersklasse ?? "").localeCompare(b.altersklasse ?? "") || a.nummer - b.nummer
       ),
   })).filter((g) => g.mannschaften.length > 0);
 }
