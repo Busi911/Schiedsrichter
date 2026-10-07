@@ -82,4 +82,14 @@ describe.skipIf(!ADMIN_URL)("Zahlungs-Mails (Postgres)", () => {
     await pruefeZahlungen(tag("2027-11-05"));
     expect(alleAn()).toContain("rechnung@beta.test");
   });
+  it("Bestätigung nach 'bezahlt': nur Beta-Verein (Admin + Rechnungs-E-Mail), nie Sponsor-/befreiter Verein", async () => {
+    const { sendeZahlungBestaetigung } = await import("./zahlung-erinnerung");
+    await testDb.update(schema.vereine).set({ zahlungBis: new Date("2027-12-31T12:00:00+01:00") }).where(inArray(schema.vereine.id, Object.values(ids)));
+    expect(await sendeZahlungBestaetigung(ids.sponsor)).toBe(0);
+    expect(await sendeZahlungBestaetigung(ids.befreit)).toBe(0);
+    expect(mailSpy).not.toHaveBeenCalled();
+    expect(await sendeZahlungBestaetigung(ids.beta)).toBe(2);
+    expect(alleAn().sort()).toEqual(["admin@beta.test", "rechnung@beta.test"]);
+    expect(mailSpy.mock.calls[0][1]).toContain("Zahlung ist eingegangen");
+  });
 });
