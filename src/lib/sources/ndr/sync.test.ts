@@ -56,7 +56,8 @@ describe.skipIf(!ADMIN_URL)("ndr-Sync (Postgres)", () => {
   });
 
   it("mit (älterer) Zuordnung über den Namen: wird auf die Team-ID umgestellt; Spiele des Teams mit stabilem Schlüssel, Halbzeitstand und Ergebnis; erneuter Lauf ändert nichts", async () => {
-    expect(await verknuepfeExternesTeam(db, "ndr", ligaVereinId, { externalId: "name:tusem-essen", name: "TuSEM Essen" })).toEqual({ ok: true });
+    // Zuordnung unter einem verunreinigten Schlüssel (so entstand sie, als die Tabelle noch Zusatztexte im Namen hatte)
+    expect(await verknuepfeExternesTeam(db, "ndr", ligaVereinId, { externalId: "name:aufstieg-tusem-essen-ess", name: "Aufstieg TuSEM Essen ESS" })).toEqual({ ok: true });
     aufrufe = [];
     const r = await lauf();
     expect(r.status).not.toBe("fehler");
