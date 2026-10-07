@@ -550,5 +550,5 @@ Systemseite `/system/ndr` (Reiter "Bundesliga"): Jetzt laden, Teams zuordnen/lö
 
 ## Beta-Konditionen (Stand 07.10.2026)
 
-`lib/beta-konditionen.ts` hält die Zahlen an EINER Stelle: Beta voraussichtlich bis 30.11.2026, Beta-Vereine zahlen danach 200 € statt 300 € im Jahr, optional ein Sponsor für 200 € im Jahr (Sponsorenbild "Präsentiert von …", übernimmt die jährlichen Kosten des Vereins).
+`lib/beta-konditionen.ts` hält die Zahlen an EINER Stelle: Beta voraussichtlich bis 30.11.2026, Beta-Vereine zahlen danach 200 € statt 300 € im Jahr, optional ein Sponsor (Sponsorenbild "Präsentiert von …"): er zahlt ALLES — 200 € im Jahr für den Sponsor-Platz plus den Vereinspreis von 200 €, der Verein zahlt dann nichts. Alle Preise NETTO (zzgl. MwSt.).
 Angezeigt auf der Startseite (Infokasten unter den Beta-Plätzen), auf `/registrieren` (Kurztext) und im Ansprache-Text (`ansprachetext`, höchstens 1000 Zeichen). Dazu `KEIN_RISIKO`: vor Ende der Beta kann der Verein einfach absagen, dann wird alles gelöscht und es fallen keine Zahlungen an (Startseite und `/registrieren`). Bei Änderung nur die Konstanten anpassen. Der Badge "Beta · 100% kostenlos" bleibt, solange die Beta läuft.
