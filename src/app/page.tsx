@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { auth } from "@/auth";
 import { holeAlleVereine } from "@/lib/liga-oeffentlich";
+import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER, SPONSOR_KURZ } from "@/lib/beta-konditionen";
 import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import { Vereinsuche } from "@/components/liga/vereinsuche";
 import { Badge } from "@/components/ui/badge";
@@ -191,6 +192,13 @@ export default async function Home() {
               ? `Noch ${freiePlaetze} von ${betaVereinLimit} Beta-Plätzen frei — danach Warteliste.`
               : "Die Beta-Plätze sind gerade ausgeschöpft — Registrierung landet auf der Warteliste."}
           </p>
+          <div className="max-w-xl space-y-1 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+            <p>
+              <span className="font-medium text-foreground">Beta bis voraussichtlich {BETA_ENDE}.</span> Wer in der Beta-Phase dabei ist,
+              zahlt danach nur {PREIS_BETA} € statt {PREIS_REGULAER} € im Jahr.
+            </p>
+            <p>{SPONSOR_KURZ}</p>
+          </div>
         </section>
 
         <section className="border-t bg-muted/30">

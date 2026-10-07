@@ -1,6 +1,8 @@
 // Ansprache eines Vereins in Vorbereitung (z.B. per Instagram-Nachricht): Text und Instagram-Name, rein/testbar.
 // Gesendet wird bewusst von Hand — es gibt keinen automatischen Versand.
 
+import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER } from "./beta-konditionen";
+
 const NAME = /^[A-Za-z0-9._]{1,30}$/;
 
 // "@hsg_linden", "hsg_linden", "instagram.com/hsg_linden/" oder die volle Profil-URL -> Name + Profil-Link.
@@ -32,7 +34,7 @@ export function ansprachetext(opt: { vereinsname: string; vorschauUrl: string; g
     "",
     "2. Für den Verein: Schiedsrichter, Zeitnehmer, Ordner und Kiosk bei Heimspielen einteilen. Der Spielplan kommt automatisch aus nuLiga, Verlegungen und Erinnerungen gehen per Mail raus, offene Dienste sehen Sie auf einen Blick.",
     "",
-    `HandballerPate ist in der Beta-Phase und für Sie noch kostenlos. Die Vorschau gilt bis ${DATUM.format(opt.gueltigBis)}.`,
+    `HandballerPate ist in der Beta-Phase und für Sie noch kostenlos (bis ca. ${BETA_ENDE}, danach ${PREIS_BETA} statt ${PREIS_REGULAER} € im Jahr). Die Vorschau gilt bis ${DATUM.format(opt.gueltigBis)}.`,
     "",
     "Zum Übernehmen brauche ich nur Namen und E-Mail-Adresse der Person, die den Verein verwalten soll; sie meldet sich mit einem Link an, den ich per E-Mail schicke. Wenn es nicht passt, genügt ein kurzes „Kein Interesse“.",
     "",
