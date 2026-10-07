@@ -92,6 +92,34 @@ async function sende(to: string, betreff: string, inhalt: EmailInhalt) {
   }
 }
 
+async function vereinsEmpfaenger(v: Zeile): Promise<string[]> {
+  const admins = await adminDb.select({ email: users.email }).from(users).where(and(eq(users.vereinId, v.id), eq(users.istAdmin, true)));
+  return [...new Set([...admins.map((a) => a.email), ...(v.rechnungEmail ? [v.rechnungEmail] : [])].map((e) => e.toLowerCase()))];
+}
+
+export function zahlungBestaetigungInhalt(v: Zeile, bis: Date): EmailInhalt {
+  return {
+    vereinName: v.name,
+    ueberschrift: "Eure Zahlung ist eingegangen.",
+    zeilen: [`Vielen Dank! Der Zugang für ${v.name} ist jetzt bis ${formatDatum(bis)} bezahlt.`, `Bei Fragen: ${KONTAKT_EMAIL}.`],
+  };
+}
+
+// Kurze Bestätigung, wenn der Systemadmin "bezahlt" erfasst hat. Nicht für befreite und Sponsor-Vereine (wie die übrigen Zahlungs-Mails); gibt die Zahl der Mails zurück.
+export async function sendeZahlungBestaetigung(vereinId: string): Promise<number> {
+  try {
+    const v = await adminDb.query.vereine.findFirst({ where: eq(vereine.id, vereinId) });
+    if (!v || !v.zahlungBis || v.tarif === "befreit" || v.sponsorUebernimmt || v.status !== "aktiv") return 0;
+    const inhalt = zahlungBestaetigungInhalt(v, v.zahlungBis);
+    let n = 0;
+    for (const e of await vereinsEmpfaenger(v)) if (await sende(e, `HandballerPate: ${inhalt.ueberschrift}`, inhalt)) n++;
+    return n;
+  } catch (err) {
+    console.error("Zahlungs-Bestätigung fehlgeschlagen:", err);
+    return 0;
+  }
+}
+
 export async function pruefeZahlungen(jetzt = new Date()): Promise<{ geprueft: number; gesendet: number }> {
   const alle = await adminDb.select().from(vereine).where(and(eq(vereine.status, "aktiv"), ne(vereine.tarif, "befreit")));
   const systemAdmins = await adminDb.select({ email: users.email }).from(users).where(eq(users.istSystemAdmin, true));
@@ -104,8 +132,7 @@ export async function pruefeZahlungen(jetzt = new Date()): Promise<{ geprueft: n
 
     for (const a of systemAdmins) if (await sende(a.email, `Zahlung: ${v.name} — ${ZAHLUNGS_TEXT[stand.art]}`, systemAdminInhalt(v, stufe, stand.faelligAm, stand.sperreAb))) gesendet++;
     if (!v.sponsorUebernimmt) {
-      const admins = await adminDb.select({ email: users.email }).from(users).where(and(eq(users.vereinId, v.id), eq(users.istAdmin, true)));
-      const empfaenger = [...new Set([...admins.map((a) => a.email), ...(v.rechnungEmail ? [v.rechnungEmail] : [])].map((e) => e.toLowerCase()))];
+      const empfaenger = await vereinsEmpfaenger(v);
       for (const e of empfaenger) if (await sende(e, `HandballerPate: ${vereinInhalt(v, stufe, stand.faelligAm, stand.sperreAb).ueberschrift}`, vereinInhalt(v, stufe, stand.faelligAm, stand.sperreAb))) gesendet++;
     }
     await adminDb.update(vereine).set({ zahlungMailMarke: zahlungsMarke(stand.faelligAm, stufe) }).where(eq(vereine.id, v.id));

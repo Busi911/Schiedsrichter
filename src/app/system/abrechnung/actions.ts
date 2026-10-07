@@ -7,6 +7,7 @@ import { adminDb } from "@/db/admin";
 import { vereine } from "@/db/schema";
 import { betragNetto, type Tarif } from "@/lib/abrechnung";
 import { berlinOffset, formatDatum } from "@/lib/format";
+import { sendeZahlungBestaetigung } from "@/lib/zahlung-erinnerung";
 import { requireSystemAdmin } from "@/lib/session";
 import { schreibeProtokoll } from "@/lib/treuhand";
 
@@ -44,8 +45,9 @@ export async function alsBezahltMarkieren(formData: FormData) {
   if (Number.isNaN(bis.getTime()) || bis.getTime() < Date.now()) redirect(meldung("fehler", "Das Datum muss in der Zukunft liegen."));
   await adminDb.update(vereine).set({ zahlungBis: bis, zahlungFaelligAm: null, zahlungMailMarke: null }).where(eq(vereine.id, v.id));
   await schreibeProtokoll(v.id, "zahlung_erfasst", session.user.email ?? "Systemadmin", `Bezahlt bis ${formatDatum(bis)}`);
+  const mails = await sendeZahlungBestaetigung(v.id);
   revalidatePath("/system/abrechnung");
-  redirect(meldung("ok", `${v.name}: bezahlt bis ${formatDatum(bis)}.`));
+  redirect(meldung("ok", `${v.name}: bezahlt bis ${formatDatum(bis)}.${mails ? ` Bestätigung an ${mails} Empfänger gesendet.` : ""}`));
 }
 
 // Notbremse: Sperre für diesen Verein aussetzen bzw. wieder scharf stellen (z.B. Zahlungsziel individuell verlängert).
