@@ -206,7 +206,7 @@ export function StandHinweis({ stand }: { stand: Date | null }) {
   }).format(stand);
   return (
     <p className="text-xs text-muted-foreground">
-      Stand: {text} · Quellen: nuLiga (Hessischer Handball-Verband), handball.net (DHB)
+      Stand: {text} · Quellen: nuLiga (Hessischer Handball-Verband), handball.net (DHB), NDR (1./2. Handball-Bundesliga)
     </p>
   );
 }
