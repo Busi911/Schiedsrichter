@@ -60,8 +60,9 @@ export function zahlungsStand(v: ZahlungsEingabe, jetzt: Date): ZahlungsStand {
   const ergebnis = (art: ZahlungsArt): ZahlungsStand => ({ art, faelligAm, sperreAb, tageBisFaellig: tage });
   if (jetzt.getTime() > faelligAm.getTime()) return ergebnis(jetzt.getTime() > sperreAb.getTime() && !v.zahlungSperreAus ? "gesperrt" : "ueberfaellig");
   if (!v.zahlungBis) {
-    // noch nichts bezahlt: während der Beta kostenlos, danach läuft die Zahlungsfrist
-    return ergebnis(betaVorbei(jetzt) || tage <= VORLAUF_TAGE ? "bald_faellig" : "beta_kostenlos");
+    // noch nichts bezahlt: kostenlos, bis die Frist in den Vorlauf kommt. Ohne eigenes Zahlungsziel gilt die Standard-Frist ab dem Beta-Ende sofort als "bald fällig";
+    // ein vom Systemadmin gesetztes (verschobenes) Ziel erst 30 Tage davor.
+    return ergebnis(tage <= VORLAUF_TAGE || (betaVorbei(jetzt) && !v.zahlungFaelligAm) ? "bald_faellig" : "beta_kostenlos");
   }
   return ergebnis(tage <= VORLAUF_TAGE ? "bald_faellig" : "bezahlt");
 }

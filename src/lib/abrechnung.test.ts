@@ -73,4 +73,11 @@ describe("bezahlt bis (Vorschlag) und Mail-Stufen", () => {
     expect(sollMailSenden(zahlungsMarke(f, 3), f, 2)).toBe(false);
     expect(sollMailSenden(zahlungsMarke(f, 3), tag("2027-11-30"), 1)).toBe(true);
   });
+
+  it("verschobenes Zahlungsziel (Beta für einen Verein verlängert): kostenlos bis 30 Tage vor dem neuen Ziel, dann bald fällig", () => {
+    const v = { ...basis, zahlungFaelligAm: tag("2027-03-31") };
+    expect(zahlungsStand(v, tag("2026-12-05")).art).toBe("beta_kostenlos");
+    expect(zahlungsStand(v, tag("2027-03-05")).art).toBe("bald_faellig");
+    expect(zahlungsStand(v, tag("2027-04-05")).art).toBe("ueberfaellig");
+  });
 });
