@@ -3,8 +3,10 @@
 export const BETA_ENDE = "30.11.2026";
 export const PREIS_REGULAER = 300; // € im Jahr
 export const PREIS_BETA = 200; // € im Jahr für Vereine, die in der Beta-Phase dabei sind
-export const PREIS_SPONSOR = 200; // € im Jahr für einen Sponsor (optional)
+export const PREIS_SPONSOR = 200; // € im Jahr für den Sponsor-Platz (optional), zusätzlich zur Übernahme des Vereinspreises
+export const NETTO = "Alle Preise netto (zzgl. gesetzl. MwSt.).";
 
-export const BETA_KURZ = `Die Beta läuft voraussichtlich bis ${BETA_ENDE}. Wer in der Beta-Phase dabei ist, zahlt danach nur ${PREIS_BETA} € statt ${PREIS_REGULAER} € im Jahr.`;
+export const BETA_KURZ = `Die Beta läuft voraussichtlich bis ${BETA_ENDE}. Wer in der Beta-Phase dabei ist, zahlt danach nur ${PREIS_BETA} € statt ${PREIS_REGULAER} € im Jahr (netto).`;
 export const KEIN_RISIKO = "Vor dem Ende der Beta-Phase könnt ihr einfach Bescheid sagen, dass ihr HandballerPate nicht braucht: Dann wird alles gelöscht, und es fallen keine Zahlungen an.";
-export const SPONSOR_KURZ = `Optional: Ein Sponsor kann für ${PREIS_SPONSOR} € im Jahr beim Öffnen der Vereinsseite eingeblendet werden („Präsentiert von …“) und übernimmt damit die jährlichen Kosten des Vereins.`;
+// Der Sponsor zahlt ALLES: den Vereinspreis (Beta: 200 €) UND den Sponsor-Platz (200 €) — der Verein selbst zahlt dann nichts.
+export const SPONSOR_KURZ = `Optional: Ein Sponsor kann beim Öffnen der Vereinsseite eingeblendet werden („Präsentiert von …“). Er zahlt ${PREIS_SPONSOR} € im Jahr für den Platz und übernimmt zusätzlich den Jahrespreis des Vereins (${PREIS_BETA} €) — der Verein zahlt dann nichts.`;

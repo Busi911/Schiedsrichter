@@ -34,7 +34,7 @@ export function ansprachetext(opt: { vereinsname: string; vorschauUrl: string; g
     "",
     "2. Für den Verein: Schiedsrichter, Zeitnehmer, Ordner und Kiosk bei Heimspielen einteilen. Der Spielplan kommt automatisch aus nuLiga, Verlegungen und Erinnerungen gehen per Mail raus, offene Dienste sehen Sie auf einen Blick.",
     "",
-    `HandballerPate ist in der Beta-Phase und für Sie noch kostenlos (bis ca. ${BETA_ENDE}, danach ${PREIS_BETA} statt ${PREIS_REGULAER} € im Jahr). Die Vorschau gilt bis ${DATUM.format(opt.gueltigBis)}.`,
+    `HandballerPate ist in der Beta-Phase und für Sie noch kostenlos (bis ca. ${BETA_ENDE}, danach ${PREIS_BETA} statt ${PREIS_REGULAER} € netto im Jahr). Die Vorschau gilt bis ${DATUM.format(opt.gueltigBis)}.`,
     "",
     "Zum Übernehmen brauche ich nur Namen und E-Mail-Adresse der Person, die den Verein verwalten soll; sie meldet sich mit einem Link an, den ich per E-Mail schicke. Wenn es nicht passt, genügt ein kurzes „Kein Interesse“.",
     "",
