@@ -4,6 +4,7 @@ import { requireSystemAdmin } from "@/lib/session";
 import { signOut } from "@/auth";
 import { SubmitButton } from "@/components/submit-button";
 import { SystemNav } from "@/components/system-nav";
+import { SYSTEM_BEREICHE } from "@/lib/system-navigation";
 import { BottomNav } from "@/components/bottom-nav";
 import { HilfeLink } from "@/components/hilfe-link";
 import { Logo } from "@/components/logo";
@@ -17,6 +18,14 @@ export const metadata: Metadata = {
     apple: "/icons/system-apple.png",
   },
 };
+
+const bereicheFuerBottomNav = SYSTEM_BEREICHE.map((b) => ({
+  href: b.unter[0].href,
+  label: b.label,
+  icon: b.icon,
+  exact: b.exact,
+  pfade: b.exact ? undefined : b.unter.map((s) => s.href),
+}));
 
 export default async function SystemLayout({
   children,
@@ -86,14 +95,9 @@ export default async function SystemLayout({
       </header>
       <main className="mx-auto max-w-6xl p-6">{children}</main>
       <BottomNav
-        // Muss mit NAV_ITEMS in system-nav.tsx übereinstimmen (Desktop-Pendant).
-        tabs={[
-          { href: "/system", label: "Übersicht", icon: "home", exact: true },
-          { href: "/system/vereine", label: "Vereine", icon: "vereine" },
-          { href: "/system/warteliste", label: "Warteliste", icon: "warteliste" },
-          { href: "/system/feedback", label: "Feedback", icon: "feedback" },
-        ]}
-        mehrItems={[{ href: "/hilfe", label: "Hilfe", icon: "hilfe" }]}
+        // Dieselben Bereiche wie in der Kopfzeile (SYSTEM_BEREICHE); die ersten vier direkt, der Rest im "Mehr"-Sheet.
+        tabs={bereicheFuerBottomNav.slice(0, 4)}
+        mehrItems={[...bereicheFuerBottomNav.slice(4), { href: "/hilfe", label: "Hilfe", icon: "hilfe" }]}
         logoutAction={async () => {
           "use server";
           await signOut({ redirectTo: "/login" });

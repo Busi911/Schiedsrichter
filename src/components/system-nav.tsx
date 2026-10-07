@@ -4,48 +4,43 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { aktuellerBereich, seiteAktiv, SYSTEM_BEREICHE } from "@/lib/system-navigation";
 
-const NAV_ITEMS = [
-  { href: "/system", label: "Übersicht", exact: true },
-  { href: "/system/vereine", label: "Vereine" },
-  { href: "/system/gesundheit", label: "Gesundheit" },
-  { href: "/system/abrechnung", label: "Abrechnung" },
-  { href: "/system/warteliste", label: "Warteliste" },
-  { href: "/system/feedback", label: "Feedback" },
-  { href: "/system/abgleich", label: "Abgleich" },
-  { href: "/system/sync", label: "Liga-Sync" },
-  { href: "/system/ndr", label: "Bundesliga" },
-  { href: "/system/mail", label: "Mail-Test" },
-  { href: "/system/sponsor", label: "Sponsor" },
-];
-
+// Zwei Ebenen: oben die Bereiche, darunter (nur bei Bereichen mit mehreren Seiten) die Unterseiten des aktuellen Bereichs. Auf Mobile wrappt die Nav als
+// eigene Zeile unter das Logo (zentriert, siehe CLAUDE.md "Mobile-Optimierung").
 export function SystemNav() {
   const pathname = usePathname();
+  const bereich = aktuellerBereich(pathname);
+  const unter = bereich && bereich.unter.length > 1 ? bereich.unter : null;
 
   return (
-    // Auf Mobile wraps diese Nav (kein Hamburger-Menü wie im Admin-Bereich,
-    // siehe admin-nav.tsx) als eigene Zeile unter das Logo — links gepackt
-    // wirkte das mit viel Leerraum rechts unbalanciert.
-    <nav className="flex flex-wrap justify-center gap-1 md:justify-start">
-      {NAV_ITEMS.map((item) => {
-        const active = item.exact
-          ? pathname === item.href
-          : pathname === item.href || pathname?.startsWith(item.href + "/");
-        return (
+    <div className="flex flex-col items-center gap-1.5 md:items-start">
+      <nav className="flex flex-wrap justify-center gap-1 md:justify-start" aria-label="Bereiche">
+        {SYSTEM_BEREICHE.map((b) => (
           <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              buttonVariants({
-                variant: active ? "secondary" : "ghost",
-                size: "sm",
-              })
-            )}
+            key={b.key}
+            href={b.unter[0].href}
+            aria-current={bereich?.key === b.key ? "page" : undefined}
+            className={cn(buttonVariants({ variant: bereich?.key === b.key ? "secondary" : "ghost", size: "sm" }))}
           >
-            {item.label}
+            {b.label}
           </Link>
-        );
-      })}
-    </nav>
+        ))}
+      </nav>
+      {unter && (
+        <nav className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm md:justify-start" aria-label={`${bereich!.label}: Unterseiten`}>
+          {unter.map((s) => (
+            <Link
+              key={s.href}
+              href={s.href}
+              aria-current={seiteAktiv(pathname, s.href) ? "page" : undefined}
+              className={cn("py-1 hover:text-foreground", seiteAktiv(pathname, s.href) ? "border-b-2 border-primary font-medium text-foreground" : "text-muted-foreground")}
+            >
+              {s.label}
+            </Link>
+          ))}
+        </nav>
+      )}
+    </div>
   );
 }

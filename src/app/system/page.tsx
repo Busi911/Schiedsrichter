@@ -2,6 +2,7 @@ import { count, desc, eq, isNotNull } from "drizzle-orm";
 import Link from "next/link";
 import { adminDb } from "@/db/admin";
 import { funktionstraegerRollen, users, warteliste } from "@/db/schema";
+import { zahlungsStand } from "@/lib/abrechnung";
 import { requireSystemAdmin } from "@/lib/session";
 import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import { betaVereinLimitSpeichern } from "./actions";
@@ -57,6 +58,12 @@ export default async function SystemDashboardPage() {
     .from(users)
     .where(eq(users.istAdmin, true));
 
+  // Zahlungen: was braucht jetzt Aufmerksamkeit (siehe /system/abrechnung)?
+  const jetzt = new Date();
+  const staende = (await adminDb.query.vereine.findMany()).map((v) => zahlungsStand(v, jetzt).art);
+  const zahlungDringend = staende.filter((a) => a === "gesperrt" || a === "ueberfaellig").length;
+  const zahlungBald = staende.filter((a) => a === "bald_faellig").length;
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -66,7 +73,7 @@ export default async function SystemDashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Vereine</CardTitle>
@@ -78,6 +85,19 @@ export default async function SystemDashboardPage() {
               className="mt-1 inline-block text-xs text-muted-foreground underline"
             >
               Alle Vereine verwalten
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Zahlungen</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-heading text-3xl font-semibold">{zahlungDringend + zahlungBald}</p>
+            <Link href="/system/abrechnung" className="mt-1 inline-block text-xs text-muted-foreground underline">
+              {zahlungDringend > 0 ? `${zahlungDringend} überfällig/gesperrt, ` : ""}
+              {zahlungBald} bald fällig — zur Abrechnung
             </Link>
           </CardContent>
         </Card>
@@ -111,7 +131,7 @@ export default async function SystemDashboardPage() {
 
       <Card className="max-w-md">
         <CardHeader>
-          <CardTitle className="text-base">Beta-Registrierung</CardTitle>
+          <CardTitle className="text-base">Registrierung: Vereinslimit</CardTitle>
           <CardDescription>
             Vereine können sich unter /registrieren selbst anlegen, bis
             diese Grenze erreicht ist — danach landen weitere Anfragen auf
