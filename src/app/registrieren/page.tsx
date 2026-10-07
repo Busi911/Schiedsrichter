@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { BETA_KURZ, KEIN_RISIKO } from "@/lib/beta-konditionen";
+import { BETA_KURZ, KEIN_RISIKO, NETTO, PREIS_REGULAER, SPONSOR_KURZ } from "@/lib/beta-konditionen";
+import { betaVorbei } from "@/lib/abrechnung";
 import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import {
   Card,
@@ -27,6 +28,8 @@ export default async function RegistrierenPage() {
   const { betaVereinLimit } = await holeSystemEinstellungen();
   const vereineCount = await zaehleVereineFuerBetaLimit();
   const freiePlaetze = Math.max(betaVereinLimit - vereineCount, 0);
+  // Nach dem Beta-Ende ist die Registrierung kostenpflichtig (Preis, Rechnung, Rechnungs-E-Mail Pflicht).
+  const kostenpflichtig = betaVorbei(new Date());
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
@@ -35,15 +38,16 @@ export default async function RegistrierenPage() {
           <Logo className="mb-1 size-10 text-primary" />
           <CardTitle className="text-xl">Verein registrieren</CardTitle>
           <CardDescription>
-            HandballerPate befindet sich in der Beta und ist aktuell
-            komplett kostenlos. {BETA_KURZ} {KEIN_RISIKO}{" "}
+            {kostenpflichtig
+              ? `${PREIS_REGULAER} € im Jahr, Rechnung per E-Mail, Zahlungsziel 30 Tage. ${NETTO} ${SPONSOR_KURZ}`
+              : `HandballerPate befindet sich in der Beta und ist aktuell komplett kostenlos. ${BETA_KURZ} ${KEIN_RISIKO}`}{" "}
             {freiePlaetze > 0
               ? `Noch ${freiePlaetze} von ${betaVereinLimit} Plätzen frei.`
               : "Die Beta-Plätze sind aktuell ausgeschöpft — ihr landet auf der Warteliste und werdet benachrichtigt, sobald ein Platz frei wird."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RegistrierenFormular />
+          <RegistrierenFormular kostenpflichtig={kostenpflichtig} />
         </CardContent>
       </Card>
       <Link

@@ -13,7 +13,7 @@ import { vereinRegistrieren } from "./actions";
 // unterschiedliche Ausgänge hat (sofort registriert vs. Warteliste), die
 // beide auf DERSELBEN Seite angezeigt werden müssen, statt nur bei einem
 // Fehler in ein generisches Error-Overlay zu laufen.
-export function RegistrierenFormular() {
+export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflichtig?: boolean }) {
   const [ergebnis, formAction] = useActionState(
     async (_zustand: unknown, formData: FormData) => vereinRegistrieren(formData),
     null
@@ -70,9 +70,17 @@ export function RegistrierenFormular() {
           <Input id="ort" name="ort" required />
         </div>
       </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="rechnungEmail">
+          E-Mail des Verantwortlichen für die Rechnung{kostenpflichtig ? "" : " (optional)"}
+        </Label>
+        <Input id="rechnungEmail" name="rechnungEmail" type="email" required={kostenpflichtig} />
+      </div>
       <p className="text-xs text-muted-foreground">
-        Brauchen wir für spätere Rechnungen — einmal hier eintragen statt
-        separat nachfragen.
+        Adresse und E-Mail brauchen wir für die Rechnung — einmal hier eintragen statt separat nachfragen.
+        {kostenpflichtig
+          ? " Die Rechnung kommt per E-Mail, Zahlungsziel 30 Tage."
+          : " Wer in der Beta-Phase dabei ist, bekommt die erste Rechnung ab 1.12.2026."}
       </p>
       {ergebnis && "fehler" in ergebnis && (
         <p className="text-sm text-destructive">{ergebnis.fehler}</p>

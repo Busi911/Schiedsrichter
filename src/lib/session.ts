@@ -1,5 +1,6 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { istVereinGesperrt } from "./zahlung-sperre";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { withTenant } from "@/db";
@@ -42,6 +43,8 @@ export async function requireSession() {
     redirect("/login");
   }
   erzwingePasswortAenderungFallsNoetig(session.user.mussPasswortAendern);
+  // Zahlung offen und Karenz abgelaufen: Zugang des Vereins gesperrt (nicht für Systemadmins im Treuhand-/Support-Kontext, siehe lib/abrechnung.ts).
+  if (!session.user.treuhand && !session.user.istSystemAdmin && (await istVereinGesperrt(session.user.vereinId))) redirect("/gesperrt");
   // Aktivität des Vereinsmitglieds festhalten — nicht die eines Systemadmins, der als Treuhänder/Support im Verein arbeitet.
   if (!session.user.treuhand && !session.user.istSystemAdmin) markiereAktivitaet(session.user.id);
   return session;

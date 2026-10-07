@@ -14,6 +14,7 @@ import {
 import { auth } from "@/auth";
 import { holeAlleVereine } from "@/lib/liga-oeffentlich";
 import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER, KEIN_RISIKO, NETTO, SPONSOR_KURZ } from "@/lib/beta-konditionen";
+import { betaVorbei } from "@/lib/abrechnung";
 import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import { Vereinsuche } from "@/components/liga/vereinsuche";
 import { Badge } from "@/components/ui/badge";
@@ -128,6 +129,7 @@ export default async function Home() {
 
   const { betaVereinLimit } = await holeSystemEinstellungen();
   const vereineCount = await zaehleVereineFuerBetaLimit();
+  const live = betaVorbei(new Date()); // nach dem Beta-Ende ist die Registrierung kostenpflichtig
   const freiePlaetze = Math.max(betaVereinLimit - vereineCount, 0);
   // Vereine mit öffentlicher Seite (Spielpläne/Ergebnisse) — stehen vor dem Beta-Hinweis.
   const vereineMitSeite = await holeAlleVereine();
@@ -158,7 +160,7 @@ export default async function Home() {
 
       <main className="flex-1">
         <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-16 text-center">
-          <Badge variant="secondary">Beta · 100% kostenlos</Badge>
+          <Badge variant="secondary">{live ? `${PREIS_REGULAER} € netto im Jahr` : "Beta · 100% kostenlos"}</Badge>
           <h1 className="font-heading text-4xl font-semibold text-balance sm:text-5xl">
             Die Vereinsverwaltung für euren Handballspielbetrieb
           </h1>
@@ -169,7 +171,7 @@ export default async function Home() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Button className={GROSSER_BUTTON} render={<Link href="/registrieren" />} nativeButton={false}>
-              Jetzt kostenlos registrieren
+              {live ? "Jetzt registrieren" : "Jetzt kostenlos registrieren"}
             </Button>
             <Button
               variant="outline"
@@ -187,18 +189,28 @@ export default async function Home() {
             <SmartphoneIcon className="size-5 text-primary" />
             Euren Verein als App finden
           </Link>
-          <p className="text-sm text-muted-foreground">
-            {freiePlaetze > 0
-              ? `Noch ${freiePlaetze} von ${betaVereinLimit} Beta-Plätzen frei — danach Warteliste.`
-              : "Die Beta-Plätze sind gerade ausgeschöpft — Registrierung landet auf der Warteliste."}
-          </p>
-          <div className="max-w-xl space-y-1 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-            <p>
-              <span className="font-medium text-foreground">Beta bis voraussichtlich {BETA_ENDE}.</span> Wer in der Beta-Phase dabei ist,
-              zahlt danach nur {PREIS_BETA} € statt {PREIS_REGULAER} € im Jahr.
+          {!live && (
+            <p className="text-sm text-muted-foreground">
+              {freiePlaetze > 0
+                ? `Noch ${freiePlaetze} von ${betaVereinLimit} Beta-Plätzen frei — danach Warteliste.`
+                : "Die Beta-Plätze sind gerade ausgeschöpft — Registrierung landet auf der Warteliste."}
             </p>
+          )}
+          <div className="max-w-xl space-y-1 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+            {live ? (
+              <p>
+                <span className="font-medium text-foreground">{PREIS_REGULAER} € im Jahr.</span> Rechnung per E-Mail, Zahlungsziel 30 Tage.
+              </p>
+            ) : (
+              <>
+                <p>
+                  <span className="font-medium text-foreground">Beta bis voraussichtlich {BETA_ENDE}.</span> Wer in der Beta-Phase dabei ist,
+                  zahlt danach nur {PREIS_BETA} € statt {PREIS_REGULAER} € im Jahr.
+                </p>
+                <p>{KEIN_RISIKO}</p>
+              </>
+            )}
             <p>{SPONSOR_KURZ}</p>
-            <p>{KEIN_RISIKO}</p>
             <p className="text-xs">{NETTO}</p>
           </div>
         </section>
@@ -312,7 +324,7 @@ export default async function Home() {
             <ul className="flex flex-col gap-3 text-sm text-muted-foreground">
               <li className="flex gap-3">
                 <ShieldCheckIcon className="size-5 shrink-0 text-primary" />
-                Aktuell komplett kostenlos, keine versteckten Kosten.
+                {live ? `${PREIS_REGULAER} € netto im Jahr, keine versteckten Kosten.` : "Aktuell komplett kostenlos, keine versteckten Kosten."}
               </li>
               <li className="flex gap-3">
                 <UsersIcon className="size-5 shrink-0 text-primary" />

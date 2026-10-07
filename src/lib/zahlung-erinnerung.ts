@@ -1,0 +1,115 @@
+import "server-only";
+import { and, eq, ne } from "drizzle-orm";
+import { adminDb } from "@/db/admin";
+import { users, vereine } from "@/db/schema";
+import { appUrl } from "./app-url";
+import { betragNetto, sollMailSenden, stufeFuer, zahlungsMarke, zahlungsStand, ZAHLUNGS_TEXT, type ZahlungsStufe } from "./abrechnung";
+import { KONTAKT_EMAIL } from "./beta-konditionen";
+import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
+import { formatDatum } from "./format";
+import { sendMail } from "./mailer";
+import { schreibeProtokoll } from "./treuhand";
+
+// Zahlungs-Mails (täglicher Cron /api/cron/zahlung). Je Periode und Stufe EINMAL (Marke am Verein): 1 = Periode/Frist läuft in höchstens 30 Tagen ab
+// bzw. die erste Rechnung ist fällig, 2 = überfällig, 3 = gesperrt. Die Systemadmins bekommen jede Stufe (damit sie die Rechnung rechtzeitig stellen),
+// der Verein die Stufen mit Hinweis auf Rechnung bzw. Sperre. Kein Verein mit Sponsor (der Sponsor zahlt) und kein befreiter Verein bekommt Mails.
+// Diese Mails sind bewusst NICHT abbestellbar (Rechnungs-/Vertragsthema).
+
+type Zeile = typeof vereine.$inferSelect;
+
+const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
+
+function rechnungsZeilen(v: Zeile): string[] {
+  const adresse = [v.strasse, [v.plz, v.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  return [
+    `Verein: ${v.name}`,
+    `Tarif: ${v.tarif === "beta" ? "Beta-Tester" : "Regulär"}${v.sponsorUebernimmt ? " · Sponsor übernimmt alles" : ""} — ${euro(betragNetto(v.tarif, v.sponsorUebernimmt))} netto im Jahr`,
+    `Rechnung an: ${v.rechnungAnsprechpartner ?? "—"}, ${v.rechnungEmail ?? "(keine Rechnungs-E-Mail hinterlegt)"}`,
+    `Anschrift: ${adresse || "(keine Anschrift hinterlegt)"}`,
+  ];
+}
+
+export function systemAdminInhalt(v: Zeile, stufe: ZahlungsStufe, faelligAm: Date, sperreAb: Date): EmailInhalt {
+  const ueberschrift =
+    stufe === 1
+      ? v.zahlungBis
+        ? `Neue Zahlungsperiode beginnt bald: ${v.name}`
+        : `Erste Rechnung fällig: ${v.name}`
+      : stufe === 2
+        ? `Zahlung überfällig: ${v.name}`
+        : `Zugang gesperrt: ${v.name}`;
+  return {
+    ueberschrift,
+    zeilen: [
+      ...rechnungsZeilen(v),
+      v.zahlungBis ? `Bezahlt bis: ${formatDatum(v.zahlungBis)}` : `Zahlungsziel: ${formatDatum(faelligAm)}`,
+      stufe === 1
+        ? "Bitte die Rechnung stellen und nach Zahlungseingang unter „Abrechnung“ als bezahlt eintragen."
+        : stufe === 2
+          ? `Gesperrt wird am ${formatDatum(sperreAb)}, wenn bis dahin nichts bezahlt ist (unter „Abrechnung“ aussetzbar).`
+          : "Der Zugang des Vereins ist gesperrt. Mit „Als bezahlt markieren“ ist er sofort wieder frei.",
+    ],
+    cta: { text: "Zur Abrechnung", url: `${appUrl()}/system/abrechnung` },
+  };
+}
+
+export function vereinInhalt(v: Zeile, stufe: ZahlungsStufe, faelligAm: Date, sperreAb: Date): EmailInhalt {
+  const betrag = euro(betragNetto(v.tarif, v.sponsorUebernimmt));
+  const an = v.rechnungEmail ?? "eure Admin-E-Mail-Adresse";
+  return {
+    vereinName: v.name,
+    ueberschrift:
+      stufe === 1
+        ? v.zahlungBis
+          ? `Eure Zahlungsperiode endet am ${formatDatum(v.zahlungBis)}.`
+          : "Eure Rechnung folgt in Kürze."
+        : stufe === 2
+          ? "Die Zahlung ist überfällig."
+          : "Der Zugang ist gesperrt.",
+    zeilen:
+      stufe === 1
+        ? [
+            `Die Rechnung über ${betrag} netto (12 Monate HandballerPate) geht per E-Mail an ${an}.`,
+            `Zahlungsziel: ${formatDatum(faelligAm)}.`,
+            `Falls ihr HandballerPate nicht weiter nutzen wollt, gebt uns bitte vorher kurz Bescheid (${KONTAKT_EMAIL}): Dann wird alles gelöscht und es fällt nichts an.`,
+          ]
+        : stufe === 2
+          ? [
+              `Die Rechnung über ${betrag} netto war bis ${formatDatum(faelligAm)} fällig.`,
+              `Bitte zahlt bis ${formatDatum(sperreAb)}, sonst wird der Zugang für euren Verein gesperrt. Bei Fragen: ${KONTAKT_EMAIL}.`,
+            ]
+          : [`Der Zugang ist gesperrt, weil die Zahlung noch aussteht. Sobald sie eingegangen ist, wird er wieder freigeschaltet. Bei Fragen: ${KONTAKT_EMAIL}.`],
+  };
+}
+
+async function sende(to: string, betreff: string, inhalt: EmailInhalt) {
+  try {
+    await sendMail(to, betreff, emailAlsText(inhalt), emailAlsHtml(inhalt));
+    return true;
+  } catch (err) {
+    console.error("Zahlungs-Mail fehlgeschlagen:", err);
+    return false;
+  }
+}
+
+export async function pruefeZahlungen(jetzt = new Date()): Promise<{ geprueft: number; gesendet: number }> {
+  const alle = await adminDb.select().from(vereine).where(and(eq(vereine.status, "aktiv"), ne(vereine.tarif, "befreit")));
+  const systemAdmins = await adminDb.select({ email: users.email }).from(users).where(eq(users.istSystemAdmin, true));
+  let gesendet = 0;
+  for (const v of alle) {
+    const stand = zahlungsStand(v, jetzt);
+    const stufe = stufeFuer(stand.art);
+    if (!stufe || !stand.faelligAm || !stand.sperreAb) continue;
+    if (!sollMailSenden(v.zahlungMailMarke, stand.faelligAm, stufe)) continue;
+
+    for (const a of systemAdmins) if (await sende(a.email, `Zahlung: ${v.name} — ${ZAHLUNGS_TEXT[stand.art]}`, systemAdminInhalt(v, stufe, stand.faelligAm, stand.sperreAb))) gesendet++;
+    if (!v.sponsorUebernimmt) {
+      const admins = await adminDb.select({ email: users.email }).from(users).where(and(eq(users.vereinId, v.id), eq(users.istAdmin, true)));
+      const empfaenger = [...new Set([...admins.map((a) => a.email), ...(v.rechnungEmail ? [v.rechnungEmail] : [])].map((e) => e.toLowerCase()))];
+      for (const e of empfaenger) if (await sende(e, `HandballerPate: ${vereinInhalt(v, stufe, stand.faelligAm, stand.sperreAb).ueberschrift}`, vereinInhalt(v, stufe, stand.faelligAm, stand.sperreAb))) gesendet++;
+    }
+    await adminDb.update(vereine).set({ zahlungMailMarke: zahlungsMarke(stand.faelligAm, stufe) }).where(eq(vereine.id, v.id));
+    await schreibeProtokoll(v.id, "zahlung_mail", "System", `Stufe ${stufe} (${ZAHLUNGS_TEXT[stand.art]}), fällig ${formatDatum(stand.faelligAm)}`);
+  }
+  return { geprueft: alle.length, gesendet };
+}

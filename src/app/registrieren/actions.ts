@@ -2,6 +2,7 @@
 
 import { adminDb } from "@/db/admin";
 import { warteliste as wartelisteTabelle } from "@/db/schema";
+import { betaVorbei } from "@/lib/abrechnung";
 import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import { sendMail } from "@/lib/mailer";
@@ -23,6 +24,12 @@ export async function vereinRegistrieren(
   const strasse = formData.get("strasse");
   const plz = formData.get("plz");
   const ort = formData.get("ort");
+  const rechnungEmailRoh = formData.get("rechnungEmail");
+  // Nach dem Beta-Ende ist die Registrierung kostenpflichtig: dann ist die Rechnungs-E-Mail des Verantwortlichen Pflicht.
+  const kostenpflichtig = betaVorbei(new Date());
+  const rechnungEmail = typeof rechnungEmailRoh === "string" ? rechnungEmailRoh.trim().toLowerCase() : "";
+  if (kostenpflichtig && !rechnungEmail) return { fehler: "Bitte die E-Mail-Adresse des Verantwortlichen für die Rechnung angeben." };
+  if (rechnungEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rechnungEmail)) return { fehler: "Die Rechnungs-E-Mail-Adresse ist ungültig." };
 
   if (
     typeof vereinsname !== "string" ||
@@ -58,7 +65,7 @@ export async function vereinRegistrieren(
       strasse,
       plz,
       ort,
-    });
+    }, rechnungEmail ? { email: rechnungEmail, ansprechpartner: adminName } : undefined);
   } catch (err) {
     return {
       fehler:
