@@ -30,6 +30,10 @@
       "schedule": "40 2 * * *"
     },
     {
+      "path": "/api/cron/zahlung",
+      "schedule": "10 6 * * *"
+    },
+    {
       "path": "/api/cron/nuliga-vereinsindex",
       "schedule": "20 3 * * *"
     },

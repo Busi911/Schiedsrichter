@@ -10,3 +10,5 @@ export const BETA_KURZ = `Die Beta läuft voraussichtlich bis ${BETA_ENDE}. Wer 
 export const KEIN_RISIKO = "Vor dem Ende der Beta-Phase könnt ihr einfach Bescheid sagen, dass ihr HandballerPate nicht braucht: Dann wird alles gelöscht, und es fallen keine Zahlungen an.";
 // Der Sponsor zahlt ALLES: den Vereinspreis (Beta: 200 €) UND den Sponsor-Platz (200 €) — der Verein selbst zahlt dann nichts.
 export const SPONSOR_KURZ = `Optional: Ein Sponsor kann beim Öffnen der Vereinsseite eingeblendet werden („Präsentiert von …“). Er zahlt ${PREIS_SPONSOR} € im Jahr für den Platz und übernimmt zusätzlich den Jahrespreis des Vereins (${PREIS_BETA} €) — der Verein zahlt dann nichts.`;
+
+export const KONTAKT_EMAIL = "info@deweconsulting.de";

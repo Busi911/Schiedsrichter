@@ -156,8 +156,8 @@ export default async function EinstellungenPage({
         </Alert>
       )}
 
-      <EinstellungsBereich titel="Vereinsdaten" kurz="Adresse und Kontaktdaten des Vereins" beschreibung={<>Wird aktuell nur informativ hinterlegt (z.B. für spätere
-            Rechnungen) — bislang nirgends in der App sichtbar.</>}>
+      <EinstellungsBereich titel="Vereinsdaten und Rechnung" kurz="Rechnungsadresse und E-Mail des Verantwortlichen" beschreibung={<>Adresse und E-Mail des Verantwortlichen bekommt die Rechnung
+            (per E-Mail). Nirgends in der App öffentlich sichtbar.</>}>
           <form action={vereinsdatenSpeichern} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="strasse">Straße und Hausnummer</Label>
@@ -181,6 +181,14 @@ export default async function EinstellungenPage({
                 <Label htmlFor="ort">Ort</Label>
                 <Input id="ort" name="ort" defaultValue={verein?.ort ?? ""} />
               </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="rechnungAnsprechpartner">Verantwortliche Person (für die Rechnung)</Label>
+              <Input id="rechnungAnsprechpartner" name="rechnungAnsprechpartner" defaultValue={verein?.rechnungAnsprechpartner ?? ""} />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="rechnungEmail">E-Mail des Verantwortlichen (Rechnung)</Label>
+              <Input id="rechnungEmail" name="rechnungEmail" type="email" defaultValue={verein?.rechnungEmail ?? ""} />
             </div>
             <SubmitButton size="sm" className="self-start" pendingText="Wird gespeichert…">
               Speichern

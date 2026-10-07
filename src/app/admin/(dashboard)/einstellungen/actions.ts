@@ -35,6 +35,8 @@ export async function vereinsdatenSpeichern(formData: FormData) {
   const strasse = formData.get("strasse");
   const plz = formData.get("plz");
   const ort = formData.get("ort");
+  const rechnungEmail = formData.get("rechnungEmail");
+  const rechnungAnsprechpartner = formData.get("rechnungAnsprechpartner");
   if (
     typeof strasse !== "string" ||
     typeof plz !== "string" ||
@@ -42,6 +44,8 @@ export async function vereinsdatenSpeichern(formData: FormData) {
   ) {
     throw new Error("Ungültige Adresse.");
   }
+  const email = typeof rechnungEmail === "string" ? rechnungEmail.trim().toLowerCase() : "";
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Die Rechnungs-E-Mail-Adresse ist ungültig.");
 
   await withTenant(vereinId, (tx) =>
     tx
@@ -50,6 +54,8 @@ export async function vereinsdatenSpeichern(formData: FormData) {
         strasse: strasse.trim() || null,
         plz: plz.trim() || null,
         ort: ort.trim() || null,
+        rechnungEmail: email || null,
+        rechnungAnsprechpartner: typeof rechnungAnsprechpartner === "string" ? rechnungAnsprechpartner.trim().slice(0, 120) || null : null,
       })
       .where(eq(vereine.id, vereinId))
   );

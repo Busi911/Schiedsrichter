@@ -161,6 +161,18 @@ export const vereine = pgTable("verein", {
   // bestehenden).
   status: text("status").$type<"vorbereitung" | "aktiv">().notNull().default("aktiv"),
   uebergebenAm: timestamp("uebergeben_am", { mode: "date" }),
+  // Abrechnung (Live-Gang Ende 11.2026, Rechnung von Hand, siehe lib/abrechnung.ts): Tarif "befreit" (zahlt nichts), "beta" (Beta-Tester, 200 €
+  // netto/Jahr) oder "regulaer" (300 €). Der Sponsor übernimmt auf Wunsch ALLES (Vereinspreis + Werbeplatz 200 €). "bezahlt bis" setzt der
+  // Systemadmin nach Zahlungseingang; "fällig am" ist die erste Zahlungsfrist, solange noch nichts bezahlt ist. Sperre erst nach Karenz, aussetzbar.
+  tarif: text("tarif").$type<"befreit" | "beta" | "regulaer">().notNull().default("beta"),
+  sponsorUebernimmt: boolean("sponsor_uebernimmt").notNull().default(false),
+  rechnungEmail: text("rechnung_email"),
+  rechnungAnsprechpartner: text("rechnung_ansprechpartner"),
+  zahlungBis: timestamp("zahlung_bis", { mode: "date" }),
+  zahlungFaelligAm: timestamp("zahlung_faellig_am", { mode: "date" }),
+  zahlungSperreAus: boolean("zahlung_sperre_aus").notNull().default(false),
+  // Zuletzt verschickte Zahlungs-Mail der laufenden Periode ("<fällig-Datum>:<Stufe>"), damit jede Stufe nur einmal rausgeht.
+  zahlungMailMarke: text("zahlung_mail_marke"),
   // Ausdrückliche Freigabe des Vereinsadmins, dass ein Systemadmin zu
   // Supportzwecken bis zu diesem Zeitpunkt in den Verein wechseln darf.
   // null = kein Zugriff.

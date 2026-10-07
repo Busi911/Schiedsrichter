@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/system", label: "Übersicht", exact: true },
   { href: "/system/vereine", label: "Vereine" },
   { href: "/system/gesundheit", label: "Gesundheit" },
+  { href: "/system/abrechnung", label: "Abrechnung" },
   { href: "/system/warteliste", label: "Warteliste" },
   { href: "/system/feedback", label: "Feedback" },
   { href: "/system/abgleich", label: "Abgleich" },
