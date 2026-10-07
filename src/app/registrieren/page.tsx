@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BETA_KURZ, KEIN_RISIKO } from "@/lib/beta-konditionen";
 import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import {
   Card,
@@ -35,7 +36,7 @@ export default async function RegistrierenPage() {
           <CardTitle className="text-xl">Verein registrieren</CardTitle>
           <CardDescription>
             HandballerPate befindet sich in der Beta und ist aktuell
-            komplett kostenlos.{" "}
+            komplett kostenlos. {BETA_KURZ} {KEIN_RISIKO}{" "}
             {freiePlaetze > 0
               ? `Noch ${freiePlaetze} von ${betaVereinLimit} Plätzen frei.`
               : "Die Beta-Plätze sind aktuell ausgeschöpft — ihr landet auf der Warteliste und werdet benachrichtigt, sobald ein Platz frei wird."}

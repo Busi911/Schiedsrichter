@@ -547,3 +547,8 @@ Persistenz: `liga_gruppe.quelle = "ndr"`, `verband = "NDR"`, `nuliga_group_id = 
 Status: Ergebnis vorhanden = finished (nur dann `ergebnisBestaetigt`), sonst scheduled bzw. unbekannt, wenn der Termin schon vorbei ist. Cron `/api/cron/ndr-sync?liga=hbl1|hbl2` (tagsüber alle 15 Min., nachts `&voll=1`), holt nur FÄLLIGE Spieltage (Fälligkeit siehe oben) und tut nichts ohne Team-Zuordnung.
 Systemseite `/system/ndr` (Reiter "Bundesliga"): Jetzt laden, Teams zuordnen/lösen, "Testimport (nur lesen)" je Liga/Spieltag (Spiele, Teams, Spieltage, aktueller Spieltag, Tabellenzeilen, Parsingfehler, Link-Formen, Bild-Hosts, maskierte HTML-Auszüge).
 **OFFEN:** Die Fixtures (`ndr/__fixtures__/`) sind aus der Beschreibung NACHGEBAUT — erst `/system/ndr` → Testimport gegen die echten Seiten prüfen. Live, Spielort, Spielseiten, Tabellenverlauf, Caching-Feinschliff folgen später; die 2. HBL-Saisonseite hängt im Pfad an der Saison (`saisonLabel`).
+
+## Beta-Konditionen (Stand 07.10.2026)
+
+`lib/beta-konditionen.ts` hält die Zahlen an EINER Stelle: Beta voraussichtlich bis 30.11.2026, Beta-Vereine zahlen danach 200 € statt 300 € im Jahr, optional ein Sponsor (Sponsorenbild "Präsentiert von …"): er zahlt ALLES — 200 € im Jahr für den Sponsor-Platz plus den Vereinspreis von 200 €, der Verein zahlt dann nichts. Alle Preise NETTO (zzgl. MwSt.).
+Angezeigt auf der Startseite (Infokasten unter den Beta-Plätzen), auf `/registrieren` (Kurztext) und im Ansprache-Text (`ansprachetext`, höchstens 1000 Zeichen). Dazu `KEIN_RISIKO`: vor Ende der Beta kann der Verein einfach absagen, dann wird alles gelöscht und es fallen keine Zahlungen an (Startseite und `/registrieren`). Bei Änderung nur die Konstanten anpassen. Der Badge "Beta · 100% kostenlos" bleibt, solange die Beta läuft.
