@@ -213,12 +213,23 @@ export default async function SystemVereinePage({
                     )}
                   </div>
 
-                  <p className="text-sm">
-                    <span className="text-muted-foreground">Admin: </span>
-                    {vereinsAdmins.length > 0
-                      ? vereinsAdmins.map((a) => a.name ?? a.email).join(", ")
-                      : "—"}
-                  </p>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">{vereinsAdmins.length > 1 ? "Admins:" : "Admin:"} </span>
+                    {vereinsAdmins.length > 0 ? (
+                      <ul className="mt-0.5 flex flex-col gap-0.5">
+                        {vereinsAdmins.map((a) => (
+                          <li key={a.email} className="[overflow-wrap:anywhere]">
+                            {a.name && <span>{a.name} · </span>}
+                            <a href={`mailto:${a.email}`} className="underline underline-offset-2 hover:text-primary">
+                              {a.email}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "—"
+                    )}
+                  </div>
 
                   <div className="flex flex-wrap items-center gap-2 border-t pt-3">
                     {vorbereitung ? (
