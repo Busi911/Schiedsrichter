@@ -288,9 +288,18 @@ export async function synchronisiereSpieltage(opt: SpieltagSyncOptionen): Promis
   for (const g of geholt.values()) for (const t of g.teams) teams.set(t.externalId, { ...(teams.get(t.externalId) ?? t), ...t, logoUrl: t.logoUrl ?? teams.get(t.externalId)?.logoUrl ?? null });
 
   // Ältere Zuordnungen über den Namen ("name:<slug>") auf die stabile Team-ID der Quelle umstellen, sobald das Team mit ID gelesen wurde.
-  for (const t of teams.values()) {
-    const alt = teamIdAusNamen(t.name);
-    if (t.externalId === alt || vereinJeTeam.has(t.externalId) || !vereinJeTeam.has(alt)) continue;
+  // Der alte Schlüssel kann durch Zusatztexte der Tabelle verunreinigt sein (z.B. "name:champions-league-thw-kiel-thw"): dann zählt der
+  // eindeutige Treffer, bei dem der saubere Teamname im alten Schlüssel steckt (der längste Name gewinnt; bei Gleichstand wird nichts umgestellt).
+  const alteSchluessel = [...vereinJeTeam.keys()].filter((id) => id.startsWith("name:") && !teams.has(id));
+  for (const alt of alteSchluessel) {
+    const slug = alt.slice("name:".length);
+    const treffer = [...teams.values()]
+      .filter((t) => !vereinJeTeam.has(t.externalId) && !t.externalId.startsWith("name:"))
+      .map((t) => ({ t, name: teamIdAusNamen(t.name).slice("name:".length) }))
+      .filter((x) => x.name.length >= 4 && (slug === x.name || slug.startsWith(`${x.name}-`) || slug.endsWith(`-${x.name}`) || slug.includes(`-${x.name}-`)))
+      .sort((a, b) => b.name.length - a.name.length);
+    if (treffer.length === 0 || (treffer.length > 1 && treffer[0].name.length === treffer[1].name.length)) continue;
+    const t = treffer[0].t;
     await db
       .update(ligaExterneIdentitaeten)
       .set({ externeId: t.externalId, name: t.name, aktualisiertAm: new Date() })
