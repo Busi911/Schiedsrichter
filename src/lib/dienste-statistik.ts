@@ -139,7 +139,7 @@ export async function holeMannschaftsBilanzenAlleSpiele(
 // Leer, wenn der Verein keine Liga-Daten hat. href = öffentliche Mannschaftsseite.
 export async function holeMannschaftsKennzahlenAlleSpiele(
   vereinId: string
-): Promise<{ id: string; name: string; href: string; k: MannschaftsKennzahlen }[]> {
+): Promise<{ id: string; name: string; liga: string; href: string; k: MannschaftsKennzahlen }[]> {
   const ligaVerein = await adminDb.query.ligaVereine.findFirst({
     where: eq(ligaVereine.vereinId, vereinId),
     columns: { id: true, slug: true },
@@ -147,11 +147,11 @@ export async function holeMannschaftsKennzahlenAlleSpiele(
   if (!ligaVerein) return [];
   const ansichten = await holeMannschaften(ligaVerein.id);
   const jetzt = new Date();
-  const liste: { id: string; name: string; href: string; k: MannschaftsKennzahlen }[] = [];
+  const liste: { id: string; name: string; liga: string; href: string; k: MannschaftsKennzahlen }[] = [];
   const reihenfolge = mannschaftsReihenfolge(ansichten);
   for (const m of ansichten) {
     const k = berechneMannschaftsKennzahlen(m, jetzt);
-    if (k) liste.push({ id: m.id, name: m.name, href: `/verein/${ligaVerein.slug}/${m.slug}`, k });
+    if (k) liste.push({ id: m.id, name: m.name, liga: m.ligaName, href: `/verein/${ligaVerein.slug}/${m.slug}`, k });
   }
   return liste.sort((a, b) => (reihenfolge.get(a.id) ?? 999) - (reihenfolge.get(b.id) ?? 999));
 }

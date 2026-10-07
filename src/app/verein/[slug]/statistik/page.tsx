@@ -69,7 +69,7 @@ export default async function StatistikSeite({ params }: Props) {
               tag: "Mannschaften",
               gruppe: spielGruppe(m.kategorie),
               mannschaftIds: [m.id],
-              knoten: <StatistikKarte name={m.name} href={`${basis}/${m.slug}`} k={k} />,
+              knoten: <StatistikKarte name={m.name} liga={m.ligaName} href={`${basis}/${m.slug}`} k={k} />,
             }))}
           />
           <p className="text-xs text-muted-foreground">

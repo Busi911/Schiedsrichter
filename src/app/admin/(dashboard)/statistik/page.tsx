@@ -107,7 +107,7 @@ export default async function StatistikPage() {
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {mannschaftsDetails.map((m) => (
-              <StatistikKarte key={m.id} name={m.name} href={m.href} k={m.k} />
+              <StatistikKarte key={m.id} name={m.name} liga={m.liga} href={m.href} k={m.k} />
             ))}
           </div>
         </div>

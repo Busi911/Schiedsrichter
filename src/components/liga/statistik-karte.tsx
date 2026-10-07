@@ -108,14 +108,17 @@ export function WochenKarte({ w }: { w: Woche }) {
 
 // Statistik einer Mannschaft für den Reiter "Statistik" der öffentlichen App (mobil zuerst, nur Kennzahlen aus
 // Ergebnissen: keine Personen, keine Zwischenstände).
-export function StatistikKarte({ name, href, k }: { name: string; href: string; k: MannschaftsKennzahlen }) {
+export function StatistikKarte({ name, liga, href, k }: { name: string; liga?: string; href: string; k: MannschaftsKennzahlen }) {
   const hz = k.halbzeit;
   return (
     <Card size="sm" className="gap-3 px-4">
       <div className="flex items-start justify-between gap-3">
-        <Link href={href} className="min-w-0 font-heading text-base leading-snug font-semibold [overflow-wrap:anywhere] hover:underline">
-          {name}
-        </Link>
+        <div className="min-w-0">
+          <Link href={href} className="font-heading text-base leading-snug font-semibold [overflow-wrap:anywhere] hover:underline">
+            {name}
+          </Link>
+          {liga && <p className="truncate text-xs text-muted-foreground">{liga}</p>}
+        </div>
         <FormChips form={k.form} />
       </div>
 
