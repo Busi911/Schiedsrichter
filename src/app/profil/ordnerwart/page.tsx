@@ -9,6 +9,7 @@ import {
   holeOrdnerRelevanteTermine,
   istOrdnerwart,
   ORDNER_ROLLEN,
+  ORDNER_ROLLE_LABEL,
 } from "@/lib/ordnerwart";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
@@ -20,6 +21,7 @@ import {
   ordnerSelbstanmeldungDeaktivieren,
   ordnerSelbstanmeldungLinkErneuern,
   ordnerVorschlagBestaetigen,
+  ordnerOhneLoginZuordnen,
   ordnerZuordnen,
   ordnerZuordnungEntfernen,
 } from "./actions";
@@ -52,6 +54,8 @@ import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/labeled-select";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
+
+const ORDNER_ROLLE_OPTIONEN = ORDNER_ROLLEN.map((r) => ({ value: r, label: ORDNER_ROLLE_LABEL[r] }));
 
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
@@ -742,6 +746,23 @@ export default async function OrdnerwartPage({
                       </form>
                     </details>
                   )}
+                  {/* Ohne Login immer anbieten (Fallback, z.B. Elternteil) — Pendant zum Zeitnehmerwart. */}
+                  <details className="group mt-2">
+                    <DisclosureSummary>
+                      <span className="group-open:hidden">Ohne Login zuordnen (Fallback)</span>
+                      <span className="hidden group-open:inline">Schließen</span>
+                    </DisclosureSummary>
+                    <form action={ordnerOhneLoginZuordnen} className="mt-2 flex flex-wrap items-center gap-2">
+                      <input type="hidden" name="terminId" value={t.id} />
+                      <Input name="name" placeholder="Name ohne Login (z.B. Elternteil)" required className="h-8 min-w-56 flex-1" />
+                      <div className="w-40">
+                        <LabeledSelect name="rolle" placeholder="Rolle…" options={ORDNER_ROLLE_OPTIONEN} required />
+                      </div>
+                      <SubmitButton size="xs" variant="ghost">
+                        Zuordnen
+                      </SubmitButton>
+                    </form>
+                  </details>
                 </div>
               );
             }}

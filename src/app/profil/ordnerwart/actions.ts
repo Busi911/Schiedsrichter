@@ -19,7 +19,12 @@ import {
 } from "@/lib/zuordnung";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
-import { istOrdnerwart, ORDNER_ROLLEN } from "@/lib/ordnerwart";
+import {
+  istOrdnerwart,
+  ORDNER_ROLLEN,
+  pruefeKeineOrdnerDoppelrolle,
+  pruefeOrdnerBesetzungsgrenze,
+} from "@/lib/ordnerwart";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
 import { generiereOeffentlichenToken } from "@/lib/token";
@@ -44,6 +49,51 @@ async function requireOrdnerwartZugriff() {
     throw new Error("Keine Berechtigung als Ordner-/Kioskdienstwart.");
   }
   return { session, vereinId };
+}
+
+// Zuordnung einer Person OHNE Zugang im System (nur Name, z.B. ein Elternteil) —
+// Pendant zu zeitnehmerOhneLoginZuordnen. Dieselben Prüfungen wie bei der
+// Zuordnung mit Konto: Besetzungsgrenze (Dienste-Bedarf) und Doppelrolle
+// (hier nur ein Hinweis über die Rollen hinweg, dieselbe Rolle bleibt blockiert).
+export async function ordnerOhneLoginZuordnen(formData: FormData) {
+  const { vereinId } = await requireOrdnerwartZugriff();
+
+  const terminId = formData.get("terminId");
+  const name = formData.get("name");
+  const rolleRoh = formData.get("rolle");
+
+  if (typeof terminId !== "string" || !terminId) {
+    throw new Error("Termin ist erforderlich.");
+  }
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Name ist erforderlich.");
+  }
+  if (typeof rolleRoh !== "string" || !(ORDNER_ROLLEN as readonly string[]).includes(rolleRoh)) {
+    throw new Error("Bitte eine Rolle auswählen.");
+  }
+  const rolle = rolleRoh as OrdnerRolle;
+  const externerName = name.trim();
+
+  await withTenant(vereinId, async (tx) => {
+    const termin = await tx.query.termine.findFirst({
+      where: and(eq(termine.id, terminId), eq(termine.vereinId, vereinId)),
+    });
+    if (!termin) throw new Error("Termin nicht gefunden.");
+
+    await pruefeOrdnerBesetzungsgrenze(tx, vereinId, terminId, termin, rolle);
+    await pruefeKeineOrdnerDoppelrolle(tx, terminId, { externerName }, rolle);
+
+    await tx.insert(terminZuordnungen).values({
+      terminId,
+      userId: null,
+      externerName,
+      funktionstraegerTyp: rolle,
+      quelle: "zugeordnet_durch_admin",
+    });
+  });
+
+  revalidatePath("/profil/ordnerwart");
+  revalidatePath("/admin/kalender");
 }
 
 export async function ordnerZuordnen(formData: FormData) {
