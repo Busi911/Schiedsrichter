@@ -156,46 +156,6 @@ export default async function EinstellungenPage({
         </Alert>
       )}
 
-      <EinstellungsBereich titel="Vereinsdaten und Rechnung" kurz="Rechnungsadresse und E-Mail des Verantwortlichen" beschreibung={<>Adresse und E-Mail des Verantwortlichen bekommt die Rechnung
-            (per E-Mail). Nirgends in der App öffentlich sichtbar.</>}>
-          <form action={vereinsdatenSpeichern} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="strasse">Straße und Hausnummer</Label>
-              <Input
-                id="strasse"
-                name="strasse"
-                defaultValue={verein?.strasse ?? ""}
-              />
-            </div>
-            <div className="flex gap-3">
-              <div className="flex w-28 flex-col gap-2">
-                <Label htmlFor="plz">PLZ</Label>
-                <Input
-                  id="plz"
-                  name="plz"
-                  inputMode="numeric"
-                  defaultValue={verein?.plz ?? ""}
-                />
-              </div>
-              <div className="flex flex-1 flex-col gap-2">
-                <Label htmlFor="ort">Ort</Label>
-                <Input id="ort" name="ort" defaultValue={verein?.ort ?? ""} />
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="rechnungAnsprechpartner">Verantwortliche Person (für die Rechnung)</Label>
-              <Input id="rechnungAnsprechpartner" name="rechnungAnsprechpartner" defaultValue={verein?.rechnungAnsprechpartner ?? ""} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="rechnungEmail">E-Mail des Verantwortlichen (Rechnung)</Label>
-              <Input id="rechnungEmail" name="rechnungEmail" type="email" defaultValue={verein?.rechnungEmail ?? ""} />
-            </div>
-            <SubmitButton size="sm" className="self-start" pendingText="Wird gespeichert…">
-              Speichern
-            </SubmitButton>
-          </form>
-        </EinstellungsBereich>
-
       {nuligaErgebnis.ligaStatus !== undefined && (
         <Alert
           variant={nuligaErgebnis.ligaStatus === "fehler" ? "destructive" : "default"}
@@ -224,71 +184,14 @@ export default async function EinstellungenPage({
         </Alert>
       )}
 
-      <EinstellungsBereich titel="Support-Zugriff" kurz="Freigabe für den Support (befristet oder dauerhaft), Protokoll" beschreibung={<>Standardmäßig kommt niemand vom HandballerPate-Support in euren Verein. Wenn ihr Hilfe
-            braucht, könnt ihr den Zugriff ausdrücklich und befristet freigeben und jederzeit
-            wieder widerrufen. Jeder Zugriff wird unten protokolliert.</>}>
-          <p className="text-sm">
-            {supportAktiv
-              ? istDauerhaft(verein!.supportZugriffBis)
-                ? "Dauerhaft freigegeben (bis ihr den Zugriff widerruft)."
-                : `Freigegeben bis ${verein!.supportZugriffBis!.toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "medium", timeStyle: "short" })}.`
-              : "Aktuell nicht freigegeben."}
-          </p>
-          {session.user.istAdmin && !session.user.treuhand && (
-            <div className="flex flex-wrap gap-2">
-              {[1, 3, 7].map((tage) => (
-                <form key={tage} action={supportZugriffSetzen}>
-                  <input type="hidden" name="tage" value={tage} />
-                  <SubmitButton size="sm" variant="outline" pendingText="Wird gespeichert…">
-                    {tage === 1 ? "1 Tag freigeben" : `${tage} Tage freigeben`}
-                  </SubmitButton>
-                </form>
-              ))}
-              <form action={supportZugriffSetzen}>
-                <input type="hidden" name="tage" value="dauerhaft" />
-                <ConfirmSubmitButton
-                  size="sm"
-                  variant="outline"
-                  pendingText="Wird gespeichert…"
-                  confirmText="Support-Zugriff dauerhaft freigeben? Der Support kann dann ohne weitere Rückfrage auf eure Vereinsdaten zugreifen, bis ihr ihn selbst widerruft. Jeder Zugriff wird protokolliert, und ihr könnt ihn hier jederzeit mit „Jetzt widerrufen“ beenden."
-                >
-                  Dauerhaft freigeben
-                </ConfirmSubmitButton>
-              </form>
-              {supportAktiv && (
-                <form action={supportZugriffSetzen}>
-                  <input type="hidden" name="tage" value="widerrufen" />
-                  <SubmitButton size="sm" variant="outline" pendingText="Wird widerrufen…">
-                    Jetzt widerrufen
-                  </SubmitButton>
-                </form>
-              )}
-            </div>
-          )}
-          {protokoll.length > 0 && (
-            <div className="flex flex-col gap-1 border-t pt-3">
-              <h3 className="text-sm font-medium">Protokoll</h3>
-              <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
-                {protokoll.map((p) => (
-                  <li key={p.id}>
-                    {p.zeitpunkt.toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" })}{" "}
-                    · {PROTOKOLL_LABEL[p.aktion] ?? p.aktion}
-                    {p.akteur ? ` (${p.akteur})` : ""}
-                    {p.details ? ` · ${p.details}` : ""}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </EinstellungsBereich>
-
+      <h2 className="mt-2 text-sm font-medium text-muted-foreground">Erste Schritte</h2>
       <EinstellungsBereich titel="Öffentliche Vereinsseite" kurz="Ligadaten aus nuLiga und handball.net, Namen, Logo" beschreibung={<>Zeigt Mannschaften, Spielpläne, Ergebnisse und Tabellen eures Vereins
             aus nuLiga und handball.net auf einer öffentlichen Seite (ohne Login, für Suchmaschinen
             auffindbar). Es werden nur öffentliche Sportdaten übernommen — keine
             Personen.{" "}
             <Link href="/hilfe#oeffentliche-seite" className="font-medium underline">
               Anleitung: So richtet ihr die öffentliche Seite ein
-            </Link></>} offen>
+            </Link></>} offen={!ligaVerein}>
           {ligaVerein && (
             <p className="text-sm">
               Eure Seite:{" "}
@@ -668,7 +571,6 @@ export default async function EinstellungenPage({
           )}
         </EinstellungsBereich>
 
-      <div className="flex flex-col gap-3">
         <EinstellungsBereich titel="Dienste-Bedarf pro Termin" kurz="Wie viele Helfer pro Termin gebraucht werden" beschreibung={<>Wie viele Ordner-, Kioskdienst-, Kassierer- und Zeitnehmer/
               Sekretär-Kräfte pro Freundschaftsspiel, Turnier bzw. Rundenspiel
               benötigt werden.
@@ -921,6 +823,106 @@ export default async function EinstellungenPage({
             </form>
           </EinstellungsBereich>
 
+      <EinstellungsBereich titel="Vereinsdaten und Rechnung" kurz="Rechnungsadresse und E-Mail des Verantwortlichen" beschreibung={<>Adresse und E-Mail des Verantwortlichen bekommt die Rechnung
+            (per E-Mail). Nirgends in der App öffentlich sichtbar.</>}>
+          <form action={vereinsdatenSpeichern} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="strasse">Straße und Hausnummer</Label>
+              <Input
+                id="strasse"
+                name="strasse"
+                defaultValue={verein?.strasse ?? ""}
+              />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex w-28 flex-col gap-2">
+                <Label htmlFor="plz">PLZ</Label>
+                <Input
+                  id="plz"
+                  name="plz"
+                  inputMode="numeric"
+                  defaultValue={verein?.plz ?? ""}
+                />
+              </div>
+              <div className="flex flex-1 flex-col gap-2">
+                <Label htmlFor="ort">Ort</Label>
+                <Input id="ort" name="ort" defaultValue={verein?.ort ?? ""} />
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="rechnungAnsprechpartner">Verantwortliche Person (für die Rechnung)</Label>
+              <Input id="rechnungAnsprechpartner" name="rechnungAnsprechpartner" defaultValue={verein?.rechnungAnsprechpartner ?? ""} />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="rechnungEmail">E-Mail des Verantwortlichen (Rechnung)</Label>
+              <Input id="rechnungEmail" name="rechnungEmail" type="email" defaultValue={verein?.rechnungEmail ?? ""} />
+            </div>
+            <SubmitButton size="sm" className="self-start" pendingText="Wird gespeichert…">
+              Speichern
+            </SubmitButton>
+          </form>
+        </EinstellungsBereich>
+
+      <EinstellungsBereich titel="Weitere Einstellungen" kurz="Support-Zugriff, Benachrichtigungen, Rechtliches">
+        <div className="flex flex-col gap-3">
+      <EinstellungsBereich titel="Support-Zugriff" kurz="Freigabe für den Support (befristet oder dauerhaft), Protokoll" beschreibung={<>Standardmäßig kommt niemand vom HandballerPate-Support in euren Verein. Wenn ihr Hilfe
+            braucht, könnt ihr den Zugriff ausdrücklich und befristet freigeben und jederzeit
+            wieder widerrufen. Jeder Zugriff wird unten protokolliert.</>}>
+          <p className="text-sm">
+            {supportAktiv
+              ? istDauerhaft(verein!.supportZugriffBis)
+                ? "Dauerhaft freigegeben (bis ihr den Zugriff widerruft)."
+                : `Freigegeben bis ${verein!.supportZugriffBis!.toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "medium", timeStyle: "short" })}.`
+              : "Aktuell nicht freigegeben."}
+          </p>
+          {session.user.istAdmin && !session.user.treuhand && (
+            <div className="flex flex-wrap gap-2">
+              {[1, 3, 7].map((tage) => (
+                <form key={tage} action={supportZugriffSetzen}>
+                  <input type="hidden" name="tage" value={tage} />
+                  <SubmitButton size="sm" variant="outline" pendingText="Wird gespeichert…">
+                    {tage === 1 ? "1 Tag freigeben" : `${tage} Tage freigeben`}
+                  </SubmitButton>
+                </form>
+              ))}
+              <form action={supportZugriffSetzen}>
+                <input type="hidden" name="tage" value="dauerhaft" />
+                <ConfirmSubmitButton
+                  size="sm"
+                  variant="outline"
+                  pendingText="Wird gespeichert…"
+                  confirmText="Support-Zugriff dauerhaft freigeben? Der Support kann dann ohne weitere Rückfrage auf eure Vereinsdaten zugreifen, bis ihr ihn selbst widerruft. Jeder Zugriff wird protokolliert, und ihr könnt ihn hier jederzeit mit „Jetzt widerrufen“ beenden."
+                >
+                  Dauerhaft freigeben
+                </ConfirmSubmitButton>
+              </form>
+              {supportAktiv && (
+                <form action={supportZugriffSetzen}>
+                  <input type="hidden" name="tage" value="widerrufen" />
+                  <SubmitButton size="sm" variant="outline" pendingText="Wird widerrufen…">
+                    Jetzt widerrufen
+                  </SubmitButton>
+                </form>
+              )}
+            </div>
+          )}
+          {protokoll.length > 0 && (
+            <div className="flex flex-col gap-1 border-t pt-3">
+              <h3 className="text-sm font-medium">Protokoll</h3>
+              <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
+                {protokoll.map((p) => (
+                  <li key={p.id}>
+                    {p.zeitpunkt.toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" })}{" "}
+                    · {PROTOKOLL_LABEL[p.aktion] ?? p.aktion}
+                    {p.akteur ? ` (${p.akteur})` : ""}
+                    {p.details ? ` · ${p.details}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </EinstellungsBereich>
+
         <EinstellungsBereich titel="Benachrichtigung bei Spielplan-Änderungen" kurz={verein?.rundenspielAenderungenBenachrichtigungAktiviert ? "An — Admin bekommt eine Mail bei Verlegungen und neuen Ergebnissen" : "Aus"} beschreibung={<>Wird ein Spiel verlegt oder trägt der Verband ein Ergebnis ein, bekommt der Admin auf Wunsch eine Mail. Die eingetragenen Personen werden bei einer Verlegung immer benachrichtigt.</>}>
           <form action={spielplanBenachrichtigungSpeichern} className="flex flex-col gap-4">
             <fieldset disabled={!session.user.istAdmin} className="contents">
@@ -944,6 +946,7 @@ export default async function EinstellungenPage({
           </form>
         </EinstellungsBereich>
 
+      {!verein?.hallenplanImportAus && (
         <EinstellungsBereich titel="Hallenplan-Import (Hallen-ID)" kurz={verein?.hallenplanImportAus ? "Abgeschaltet — Freundschaftsspiele und Turniere von Hand anlegen" : "Hallen-IDs und täglicher Import des Hallenspielplans"} beschreibung={verein?.hallenplanImportAus ? undefined : <>Bis zu drei Hallen-IDs eintragen (leere Felder werden
               übersprungen). Spielplan, Ergebnisse und Verlegungen kommen künftig
               über die Vereins-ID aus den öffentlichen Liga-Daten; die Hallen-ID liefert
@@ -1067,6 +1070,7 @@ export default async function EinstellungenPage({
               </>
             )}
           </EinstellungsBereich>
+      )}
 
         <EinstellungsBereich titel="Rechtliches" kurz="AVV und Datenschutzerklärung">
             <Link href="/admin/avv" className="underline">
@@ -1076,7 +1080,8 @@ export default async function EinstellungenPage({
               Datenschutzerklärung
             </Link>
           </EinstellungsBereich>
-      </div>
+        </div>
+      </EinstellungsBereich>
 
       {session.user.istAdmin && verein && (
         <EinstellungsBereich titel="Gefahrenzone" kurz="Verein unwiderruflich löschen" beschreibung={<>Löscht den gesamten Verein samt aller Funktionsträger,
