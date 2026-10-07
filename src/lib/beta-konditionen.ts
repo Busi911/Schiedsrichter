@@ -6,4 +6,5 @@ export const PREIS_BETA = 200; // € im Jahr für Vereine, die in der Beta-Phas
 export const PREIS_SPONSOR = 200; // € im Jahr für einen Sponsor (optional)
 
 export const BETA_KURZ = `Die Beta läuft voraussichtlich bis ${BETA_ENDE}. Wer in der Beta-Phase dabei ist, zahlt danach nur ${PREIS_BETA} € statt ${PREIS_REGULAER} € im Jahr.`;
+export const KEIN_RISIKO = "Vor dem Ende der Beta-Phase könnt ihr einfach Bescheid sagen, dass ihr HandballerPate nicht braucht: Dann wird alles gelöscht, und es fallen keine Zahlungen an.";
 export const SPONSOR_KURZ = `Optional: Ein Sponsor kann für ${PREIS_SPONSOR} € im Jahr beim Öffnen der Vereinsseite eingeblendet werden („Präsentiert von …“) und übernimmt damit die jährlichen Kosten des Vereins.`;

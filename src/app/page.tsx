@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { auth } from "@/auth";
 import { holeAlleVereine } from "@/lib/liga-oeffentlich";
-import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER, SPONSOR_KURZ } from "@/lib/beta-konditionen";
+import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER, KEIN_RISIKO, SPONSOR_KURZ } from "@/lib/beta-konditionen";
 import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import { Vereinsuche } from "@/components/liga/vereinsuche";
 import { Badge } from "@/components/ui/badge";
@@ -198,6 +198,7 @@ export default async function Home() {
               zahlt danach nur {PREIS_BETA} € statt {PREIS_REGULAER} € im Jahr.
             </p>
             <p>{SPONSOR_KURZ}</p>
+            <p>{KEIN_RISIKO}</p>
           </div>
         </section>
 
