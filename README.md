@@ -588,6 +588,28 @@ gerade läuft, und der Ticker erreichbar sein.
 **Reihenfolge:** Stufe 1 bauen, sobald eine Ticker-Adresse vorliegt. Stufe 2
 erst nach Zustimmung des HHV und nach Sichtung der Daten.
 
+### Vereinfachung und Angleichen der Wart-Seiten (Stand 07.10.2026)
+
+Aus der Durchsicht auf Bedienbarkeit/Komplexität. **Umgesetzt:** Einstellungen (Erste Schritte oben, Rest unter "Weitere
+Einstellungen", Hallenplan-Bereich nur bei aktivem Import), Mail-Schalter im Profil (ein gemeinsamer "Hinweise zu offenen Diensten"),
+Ordnerwart: Person ohne Login zuordnen. **Offen (in dieser Reihenfolge):**
+
+- **Ordnerwart: Bedarf pro Termin überschreiben** (wie `zeitnehmerBedarfUeberschreiben`). Braucht eine Migration (Override je Rolle
+  Ordner/Kioskdienst/Kassierer; heute gibt es nur `termin.zeitnehmer_bedarf_override`) und eine Änderung in `bedarfFuer`
+  (`lib/dienste.ts`) sowie die Besetzungsprüfung in `lib/ordnerwart.ts`.
+- **Ordnerwart: inaktive Rolle beim Bestätigen aktivieren** (wie `zeitnehmerInaktiveRolleAktivierenUndZuordnen`). Aktiviert eine
+  Rolle, vergibt bei Bedarf ein Einmal-Passwort und verschickt Willkommens- und Zuordnungsmail — deshalb als eigener, besonders
+  sorgfältig geprüfter PR; dazu `holeInaktiveOrdnerKandidaten` und die Vorschlagslogik in `profil/ordnerwart/page.tsx`.
+- **Wart-Seiten/Eintragen-Aktionen zusammenlegen** (Zeitnehmer · Ordner · Schiedsrichter; öffentliche Eintragen-Aktionen je ~500 Zeilen).
+  Sie sind KEINE reinen Kopien (Ordner: Warnung statt Sperre bei Doppelrolle, eigene Besetzungs-/Rollenprüfung; Zeitnehmer: harte
+  Sperre Zeitnehmer/Sekretär). Zuerst Tests für die Eintragen-Aktionen schreiben (Zusage ohne Doppelbelegung, falsche Rolle, ungültiger
+  Token), erst dann schrittweise zusammenlegen — die Aktionen sind öffentlich und schreiben per Token in den Verein.
+- **Hallenplan-/Hallen-ID-Weg abschalten** (~4.000 Zeilen: `rundenspiel-sync`, `rundenspiel-import`, `ics-sync`, `hallenplan-*`): erst,
+  wenn Freundschaftsspiele und Turniere anders gepflegt werden. Bis dahin ist der Bereich für Vereine mit abgeschaltetem Import
+  ausgeblendet und bleibt als Systemadmin-Werkzeug (`/system/abgleich`).
+- **Prüfen, ob Funktionen ungenutzt sind** (Training, Auswertung & Export, Turnier-Links) und gegebenenfalls ausblenden; dazu Nutzungsdaten
+  bzw. Rückmeldung der Vereine abwarten.
+
 ### Stand der Abstimmung (30.09.2026)
 
 Sammelstelle für alles, was in den letzten Arbeitsschritten besprochen wurde,
