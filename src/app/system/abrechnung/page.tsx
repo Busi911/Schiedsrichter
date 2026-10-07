@@ -12,7 +12,7 @@ import { NETTO } from "@/lib/beta-konditionen";
 import { formatDatum } from "@/lib/format";
 import { tagKey } from "@/lib/kalender";
 import { requireSystemAdmin } from "@/lib/session";
-import { alsBezahltMarkieren, sperreUmschalten, tarifSpeichern } from "./actions";
+import { alsBezahltMarkieren, sperreUmschalten, tarifSpeichern, zahlungszielSetzen } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -124,6 +124,21 @@ export default async function AbrechnungSeite({ searchParams }: { searchParams: 
                     Als bezahlt markieren
                   </ConfirmSubmitButton>
                 </form>
+
+                {!v.zahlungBis && v.tarif !== "befreit" && (
+                  <form action={zahlungszielSetzen} className="flex flex-wrap items-end gap-2">
+                    <input type="hidden" name="vereinId" value={v.id} />
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor={`ziel-${v.id}`} className="text-xs">
+                        Erstes Zahlungsziel (Beta verlängern; leer = Standard)
+                      </Label>
+                      <Input id={`ziel-${v.id}`} name="ziel" type="date" defaultValue={v.zahlungFaelligAm ? tagKey(v.zahlungFaelligAm) : ""} className="h-8 w-40" />
+                    </div>
+                    <SubmitButton size="sm" variant="outline" pendingText="Speichert…">
+                      Ziel speichern
+                    </SubmitButton>
+                  </form>
+                )}
 
                 <form action={tarifSpeichern} className="flex flex-wrap items-center gap-2">
                   <input type="hidden" name="vereinId" value={v.id} />

@@ -50,6 +50,23 @@ export async function alsBezahltMarkieren(formData: FormData) {
   redirect(meldung("ok", `${v.name}: bezahlt bis ${formatDatum(bis)}.${mails ? ` Bestätigung an ${mails} Empfänger gesendet.` : ""}`));
 }
 
+// Erstes Zahlungsziel je Verein verschieben (z.B. Beta für diesen Verein verlängern). Leeres Datum = Standard (Beta-Tester: 31.12.2026). Gilt nur, solange noch nichts bezahlt ist.
+export async function zahlungszielSetzen(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const v = await ladeVerein(formData);
+  const datum = String(formData.get("ziel") ?? "");
+  let ziel: Date | null = null;
+  if (datum) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) redirect(meldung("fehler", "Bitte ein Datum angeben."));
+    ziel = new Date(`${datum}T23:59:59${berlinOffset(datum)}`);
+    if (Number.isNaN(ziel.getTime())) redirect(meldung("fehler", "Ungültiges Datum."));
+  }
+  await adminDb.update(vereine).set({ zahlungFaelligAm: ziel, zahlungMailMarke: null }).where(eq(vereine.id, v.id));
+  await schreibeProtokoll(v.id, "zahlungsziel_geaendert", session.user.email ?? "Systemadmin", ziel ? `Zahlungsziel ${formatDatum(ziel)}` : "Zahlungsziel auf Standard");
+  revalidatePath("/system/abrechnung");
+  redirect(meldung("ok", `${v.name}: ${ziel ? `Zahlungsziel ${formatDatum(ziel)}` : "Zahlungsziel auf Standard zurückgesetzt"}.`));
+}
+
 // Notbremse: Sperre für diesen Verein aussetzen bzw. wieder scharf stellen (z.B. Zahlungsziel individuell verlängert).
 export async function sperreUmschalten(formData: FormData) {
   const session = await requireSystemAdmin();
