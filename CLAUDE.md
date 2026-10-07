@@ -55,6 +55,7 @@ schaltet denselben persönlichen Schalter aus wie Profil → Benachrichtigungen.
 Art in `ABMELDE_ARTEN` + `FELD` ergänzen, `abmelden: abmeldeInfo(userId, art)` in den `EmailInhalt` und
 `{ abmeldeUrl }` als 5. Argument an `sendMail`. Login-Link, Verlegungen, Admin-/System-Mails sind bewusst
 NICHT abbestellbar.
+Im Profil (Benachrichtigungen) gibt es dafür nur zwei Schalter plus EINEN gemeinsamen "Hinweise zu offenen Diensten" (`offeneDiensteHinweise`): er setzt in `updateBenachrichtigungen` die drei Einzel-Flags (Schiedsrichter-/Zeitnehmer-Erinnerung, Dienste-Broadcast), soweit sie für die Rollen der Person gelten; die Spalten bleiben getrennt (Abmelde-Link je Mailart).
 
 ## Formular-Buttons (Server Actions)
 
