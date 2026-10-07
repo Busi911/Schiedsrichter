@@ -23,6 +23,9 @@ import {
   HandHelpingIcon,
   KeyRoundIcon,
   ShieldIcon,
+  WalletIcon,
+  DatabaseIcon,
+  WrenchIcon,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -54,6 +57,9 @@ const ICONS = {
   vereine: Building2Icon,
   warteliste: ListOrderedIcon,
   feedback: MessageSquareIcon,
+  abrechnung: WalletIcon,
+  spieldaten: DatabaseIcon,
+  betrieb: WrenchIcon,
 } satisfies Record<string, LucideIcon>;
 
 export type BottomNavIcon = keyof typeof ICONS;
@@ -63,6 +69,8 @@ export type BottomNavItem = {
   label: string;
   icon: BottomNavIcon;
   exact?: boolean;
+  // Weitere Pfade, die zu diesem Eintrag gehören (z.B. Unterseiten eines Bereichs, die nicht unter `href` liegen).
+  pfade?: string[];
   // Zähler als Badge (z.B. offene Dienste) — bei Einträgen im Sheet wirkt er
   // zusätzlich auf den Mehr-Tab.
   badge?: number;
@@ -75,10 +83,9 @@ function Icon({ name, className }: { name: BottomNavIcon; className?: string }) 
   return <Komponente className={className} />;
 }
 
-function istAktiv(pathname: string | null, href: string, exact?: boolean) {
-  return exact
-    ? pathname === href
-    : pathname === href || !!pathname?.startsWith(href + "/");
+function istAktiv(pathname: string | null, href: string, exact?: boolean, pfade?: string[]) {
+  const trifft = (h: string) => (exact ? pathname === h : pathname === h || !!pathname?.startsWith(h + "/"));
+  return trifft(href) || !!pfade?.some((p) => pathname === p || !!pathname?.startsWith(p + "/"));
 }
 
 export function BottomNav({
@@ -96,7 +103,7 @@ export function BottomNav({
   const direkt = tabs.slice(0, MAX_TABS);
   const sheetItems = [...tabs.slice(MAX_TABS), ...mehrItems];
   const mehrBadge = sheetItems.reduce((summe, i) => summe + (i.badge ?? 0), 0);
-  const mehrAktiv = sheetItems.some((i) => istAktiv(pathname, i.href, i.exact));
+  const mehrAktiv = sheetItems.some((i) => istAktiv(pathname, i.href, i.exact, i.pfade));
 
   useEffect(() => {
     if (!offen) return;
@@ -127,7 +134,7 @@ export function BottomNav({
               onClick={() => setOffen(false)}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm",
-                istAktiv(pathname, item.href, item.exact) ? "bg-secondary font-medium" : "hover:bg-muted"
+                istAktiv(pathname, item.href, item.exact, item.pfade) ? "bg-secondary font-medium" : "hover:bg-muted"
               )}
             >
               <LinkSymbol className="size-4 text-muted-foreground">
@@ -156,7 +163,7 @@ export function BottomNav({
       >
         <ul className="mx-auto flex h-16 max-w-md items-stretch">
           {direkt.map((tab) => {
-            const aktiv = istAktiv(pathname, tab.href, tab.exact);
+            const aktiv = istAktiv(pathname, tab.href, tab.exact, tab.pfade);
             return (
               <li key={tab.href} className="flex-1">
                 <Link

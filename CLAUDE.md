@@ -564,3 +564,9 @@ Zugang: sofort nutzbar; fällig + 30 Tage Karenz ohne Zahlung = gesperrt (`istVe
 Systemseite `/system/abrechnung` (Reiter "Abrechnung"): je Verein Status, Betrag, Rechnungsdaten zum Kopieren, "Als bezahlt markieren" (Datum), Tarif/Sponsor, Sperre aussetzen; Protokoll im Verein. Cron `/api/cron/zahlung` (täglich 6:10 UTC, `lib/zahlung-erinnerung.ts`): je Periode und Stufe EINE Mail
 (1 = ≤ 30 Tage vor Ablauf bzw. erste Rechnung fällig, 2 = überfällig, 3 = gesperrt) an alle Systemadmins und an Vereinsadmins + Rechnungs-E-Mail (nicht abbestellbar). Vereinsadmins sehen im Admin-Bereich einen Hinweis (`components/zahlungs-hinweis.tsx`).
 Noch NICHT automatisiert: Rechnungsstellung/-nummer, Sponsor-Rechnungsanschrift (Sponsor wird bei `/system/sponsor` gepflegt, hier nur das Kennzeichen), Zahlungseingang. Das Beta-Vereinslimit (`betaVereinLimit`, Warteliste) gilt weiterhin, solange es nicht erhöht wird.
+
+## Systemadmin-Portal: Navigation
+
+`lib/system-navigation.ts` (`SYSTEM_BEREICHE`) ist die EINE Quelle für die Navigation: fünf Bereiche — Übersicht, Vereine (Vereine · Warteliste · Gesundheit), Abrechnung (Abrechnung · Sponsor), Spieldaten (Liga-Sync · Bundesliga · Abgleich · nuLiga-Diagnose),
+Betrieb (Feedback · Mail-Test). `components/system-nav.tsx` zeigt oben die Bereiche und darunter die Unterseiten des aktuellen Bereichs; `system/layout.tsx` leitet daraus auch die Bottom-Bar auf dem Handy ab (die ersten vier Bereiche, der Rest unter "Mehr").
+Die Seiten liegen unverändert unter `/system/…`. Neue Systemseite: in `SYSTEM_BEREICHE` unter dem passenden Bereich eintragen (Test `system-navigation.test.ts` prüft, dass jede Seite genau einmal vorkommt).
