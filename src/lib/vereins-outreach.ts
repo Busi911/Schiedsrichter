@@ -18,7 +18,7 @@ import { scrapeImpressum } from "./impressum";
 import { appUrl } from "./app-url";
 
 const OUTREACH_KONSTANTEN = {
-  MAX_PRO_LAUF: 10,
+  MAX_PRO_LAUF: 5,
   VORSCHAU_TAGE: 7,
   FOLLOWUP_TAGE: 7,
 };

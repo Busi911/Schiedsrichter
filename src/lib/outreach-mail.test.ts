@@ -35,6 +35,12 @@ describe("outreachInhalt", () => {
     expect(inhalt.kleingedrucktes).toContain("berechtigtes Interesse");
   });
 
+  it("erwähnt Spielgemeinschaften und Zusatzquellen", () => {
+    const text = JSON.stringify(inhalt.zeilen);
+    expect(text).toContain("Spielgemeinschaften");
+    expect(text).toContain("Zusatzquellen");
+  });
+
   it("erwähnt die zwei Funktionen (App + Verein)", () => {
     const text = JSON.stringify(inhalt.zeilen);
     expect(text).toContain("Schiedsrichter");

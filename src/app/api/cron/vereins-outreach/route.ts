@@ -1,6 +1,6 @@
 import { fuehreOutreachAus, fuehreOutreachFollowupAus } from "@/lib/vereins-outreach";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 // Täglicher Outreach-Cron: Findet neue Vereine aus dem nuLiga-Index, richtet
 // sie ein, sucht die E-Mail aus dem Impressum und sendet die Ansprache-Mail.
