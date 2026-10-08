@@ -306,6 +306,16 @@ export async function resetOutreachVerein(clubId: string): Promise<{ geloescht: 
   const [ligaV] = await adminDb.select({ id: ligaVereine.id, slug: ligaVereine.slug }).from(ligaVereine).where(eq(ligaVereine.vereinId, neu.id));
   if (!ligaV) return { geloescht: !!bestehend, neu: false, email: kontaktEmail, fehler: "Liga-Verein nicht angelegt" };
 
+  // Einrichtung vollständig? — siehe fuehreOutreachAus (gleicher Check).
+  const [{ anzahlMannschaften }] = await adminDb
+    .select({ anzahlMannschaften: count() })
+    .from(ligaMannschaften)
+    .where(eq(ligaMannschaften.ligaVereinId, ligaV.id));
+  if (Number(anzahlMannschaften) === 0) {
+    await schreibeProtokoll(neu.id, "outreach_einrichtung_unvollstaendig", "Outreach-Reset", `${eintrag.name} · 0 Mannschaften nach Reset — E-Mail nicht gesendet`);
+    return { geloescht: !!bestehend, neu: false, email: kontaktEmail, fehler: "Einrichtung unvollständig — 0 Mannschaften geladen, E-Mail nicht gesendet" };
+  }
+
   await erzeugeVorschauLink(neu.id, OUTREACH_KONSTANTEN.VORSCHAU_TAGE, "Outreach-Reset");
   const [link] = await adminDb.select().from(vereinVorschauLinks).where(eq(vereinVorschauLinks.vereinId, neu.id));
   if (!link) return { geloescht: !!bestehend, neu: false, email: kontaktEmail, fehler: "Vorschau-Link nicht erzeugt" };
