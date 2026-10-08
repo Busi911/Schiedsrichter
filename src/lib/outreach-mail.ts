@@ -14,6 +14,7 @@ export function outreachInhalt(opt: {
   gueltigBis: Date;
   email: string;
   abmeldeUrl: string;
+  istWiederholung?: boolean;
 }): EmailInhalt {
   const DATUM = new Intl.DateTimeFormat("de-DE", {
     day: "2-digit",
@@ -21,13 +22,20 @@ export function outreachInhalt(opt: {
     year: "numeric",
     timeZone: "Europe/Berlin",
   });
+  const einleitung = opt.istWiederholung
+    ? `mein Name ist Dennis, ich komme von HandballerPate, einer App für Handballvereine. Sie machen zwei Dinge:`
+    : `mein Name ist Dennis, ich komme von HandballerPate, einer App für Handballvereine. Sie macht zwei Dinge:`;
+  const retryHinweis = opt.istWiederholung
+    ? { text: `Hinweis: Bei meiner letzten Mail waren die Daten Ihres Vereins noch nicht vollständig geladen — das ist nun korrigiert. Der Vorschau-Link führt jetzt zur vollständigen App-Version.`, neueGruppe: true }
+    : null;
   return {
     vereinName: opt.vereinsname,
     ueberschrift: `HandballerPate — eine App für den ${opt.vereinsname}`,
     zeilen: [
       `Guten Tag,`,
-      { text: `mein Name ist Dennis, ich komme von HandballerPate, einer App für Handballvereine. Sie macht zwei Dinge:`, neueGruppe: true },
+      { text: einleitung, neueGruppe: true },
       `1. Eine App für Spieler, Eltern und Fans: Spielplan, Ergebnisse, Tabellen, Statistik, Favoriten und Live-Hinweise, installierbar wie eine App. Für den ${opt.vereinsname} habe ich bereits eine Vorschau eingerichtet — Sie können sie direkt ausprobieren:`,
+      ...(retryHinweis ? [retryHinweis] : []),
       { text: opt.vorschauUrl, stark: true, neueGruppe: true },
       `2. Für den Verein: Schiedsrichter, Zeitnehmer, Ordner und Kiosk bei Heimspielen einteilen. Der Spielplan kommt automatisch aus nuLiga, Verlegungen und Erinnerungen gehen per Mail raus, offene Dienste sehen Sie auf einen Blick.`,
       `Falls der ${opt.vereinsname} Spielgemeinschaften oder höherklassige Mannschaften hat, die unter einem anderen Verein bei nuLiga geführt werden — die lassen sich nach der Übernahme unter „Einstellungen → Zusatzquellen“ hinzufügen, sodass auch diese Spiele im Plan erscheinen.`,

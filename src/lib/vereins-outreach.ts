@@ -225,12 +225,14 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
       // 8. Ansprache-Mail generieren und senden.
       const vorschauUrl = `${appUrl()}/verein/${ligaV.slug}/vorschau/${link.token}`;
       const abmeldeUrl = outreachAbmeldeUrl(vereinId);
+      const istWiederholung = !!bestehend;
       const inhalt = outreachInhalt({
         vereinsname: k.name,
         vorschauUrl,
         gueltigBis: link.gueltigBis,
         email: kontaktEmail,
         abmeldeUrl,
+        istWiederholung,
       });
 
       await sendMail(
