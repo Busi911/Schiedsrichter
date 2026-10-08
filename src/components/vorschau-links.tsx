@@ -31,7 +31,7 @@ export function VorschauLinks({
         <select
           id={`tage-${vereinId}`}
           name="tage"
-          defaultValue="3"
+          defaultValue="7"
           className="h-8 rounded-md border bg-background px-2"
         >
           {VORSCHAU_TAGE.map((t) => (
