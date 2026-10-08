@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
-  const ergebnis = fuehreOutreachAbmeldungAus(token);
+  const ergebnis = await fuehreOutreachAbmeldungAus(token);
   if (!ergebnis.ok) {
     return new Response("Abmeldung nicht möglich — der Link ist ungültig.", {
       status: 400,
