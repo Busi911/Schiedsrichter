@@ -13,7 +13,7 @@ import "server-only";
 // selbst — sie liest Kontaktdaten, die der Verein bei nuLiga hinterlegt hat.
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
-const ENCODE_EMAIL_RE = /encodeEmail\(\s*['"]([a-zA-Z]{2,})['"]\s*,\s*['"]([a-zA-Z0-9._%+-]+)['"]\s*,\s*['"]([a-zA-Z0-9.-]+)['"]\s*,\s*['"]?[^'"]*['"]?\s*\)/gi;
+const ENCODE_EMAIL_RE = /encodeEmail\(\s*['"]([a-zA-Z]{2,})['"]\s*,\s*['"]([a-zA-Z0-9._%+-]+)['"]\s*,\s*['"]([a-zA-Z0-9.-]+)['"]\s*(?:,\s*['"]?([^'"]*)['"]?)?\s*\)/gi;
 const BLACKLIST_DOMAINS = ["beispiel.invalid", "example.com", "example.org", "example.net", "w3.org", "liga.nu"];
 
 export function extrahiereKontaktEmail(html: string): string | null {
@@ -24,16 +24,38 @@ export function extrahiereKontaktEmail(html: string): string | null {
     if (istGueltig(addr)) return addr;
   }
 
-  // 2. encodeEmail-Aufrufe (nuLiga-Spam-Schutz): encodeEmail('de', 'local', 'domain', '')
-  //    → local@domain.de. Die TLD ist der erste Parameter, local-part der zweite,
-  //    domain der dritte. Reihenfolge: encodeEmail(tld, local, domain, extra).
+  // 2. encodeEmail-Aufrufe (nuLiga-Spam-Schutz): encodeEmail('de', 'local', 'domain', 'nachname')
+  //    → local@domain.de (ohne Nachname) oder local.nachname@domain.de (mit Nachname).
+  //    Die TLD ist der erste Parameter, local-part der zweite, domain der dritte.
+  //    Der vierte Parameter (falls nicht leer) ist der Nachname und wird an den local-part
+  //    angehängt: encodeEmail('de', 'Matthias', 'tus-kriftel', 'Brand') → matthias.brand@tus-kriftel.de
+  //
+  //    Bei mehreren encodeEmail-Aufrufen: bevorzuge Vereins-Adressen (local-part = "info",
+  //    "vorstand", "mail", "geschaeftsstelle" etc.) über Personen-Adressen — die Vereins-
+  //    adresse ist die richtige Ansprechpartner-E-Mail für den Outreach.
   const encodedMatches = [...html.matchAll(ENCODE_EMAIL_RE)];
+  const decoded: { addr: string; isVerein: boolean }[] = [];
   for (const m of encodedMatches) {
     const tld = m[1].toLowerCase();
-    const local = m[2].toLowerCase();
+    let local = m[2].toLowerCase();
     const domain = m[3].toLowerCase();
+    // 4. Parameter = Nachname → local-part = vorname.nachname
+    const nachnameRaw = (m[4] ?? "").trim();
+    if (nachnameRaw) {
+      local = `${local}.${nachnameRaw.toLowerCase()}`;
+    }
     const addr = `${local}@${domain}.${tld}`;
-    if (istGueltig(addr)) return addr;
+    if (istGueltig(addr)) {
+      // Vereins-Adressen: local-part ist ein generisches Postfach (info, mail, vorstand, ...)
+      const vereinsLocals = ["info", "mail", "vorstand", "geschaeftsstelle", "kontakt", "office", "admin"];
+      const isVerein = vereinsLocals.includes(local) || local.includes("@");
+      decoded.push({ addr, isVerein });
+    }
+  }
+  // Bevorzuge Vereins-Adressen, sonst die erste gefundene.
+  if (decoded.length > 0) {
+    const verein = decoded.find((d) => d.isVerein);
+    return (verein ?? decoded[0]).addr;
   }
 
   // 3. Nackte E-Mail-Adressen im Kontaktadresse-Abschnitt.

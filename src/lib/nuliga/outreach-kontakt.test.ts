@@ -59,8 +59,17 @@ describe("extrahiereKontaktEmail", () => {
     expect(extrahiereKontaktEmail(html)).toBe("handball@svc1946.de");
   });
 
-  it("decodiert encodeEmail mit Grossbuchstaben und gemischten Quotes", () => {
-    const html = `<html><body><h2>Kontakt</h2><p>encodeEmail("de", "vorstand", "mein-verein", "")</p></body></html>`;
-    expect(extrahiereKontaktEmail(html)).toBe("vorstand@mein-verein.de");
+  it("decodiert encodeEmail mit Nachname (4. Parameter)", () => {
+    // encodeEmail('de', 'Matthias', 'tus-kriftel', 'Brand') → matthias.brand@tus-kriftel.de
+    const html = `<html><body><h2>Kontaktadresse</h2><p>encodeEmail('de', 'Matthias', 'tus-kriftel', 'Brand')</p></body></html>`;
+    expect(extrahiereKontaktEmail(html)).toBe("matthias.brand@tus-kriftel.de");
+  });
+
+  it("bevorzugt Vereins-Adresse ueber Personen-Adresse bei mehreren encodeEmail", () => {
+    // HSG Schwarzbach: zwei encodeEmail-Aufrufe
+    // 1. encodeEmail('de', 'Matthias', 'tus-kriftel', 'Brand') → matthias.brand@tus-kriftel.de (Person)
+    // 2. encodeEmail('de', 'mail', 'hsg-schwarzbach', '') → mail@hsg-schwarzbach.de (Verein)
+    const html = `<html><body><h2>Kontaktadresse</h2><p>encodeEmail('de', 'Matthias', 'tus-kriftel', 'Brand') encodeEmail('de', 'mail', 'hsg-schwarzbach', '')</p></body></html>`;
+    expect(extrahiereKontaktEmail(html)).toBe("mail@hsg-schwarzbach.de");
   });
 });
