@@ -119,9 +119,14 @@ export function SpielKarte({
           <p className={cn("truncate", fett(spiel.gastTeamtableId))}>{spiel.gastName}</p>
         </div>
         {zwischenstand && (
-          <p className="text-right text-xs font-medium text-muted-foreground">
-            {laeuft ? "Läuft gerade" : "Ergebnis folgt"}
-          </p>
+          <div className="text-right">
+            <p className="font-heading text-xl leading-tight font-bold tabular-nums text-muted-foreground">
+              {spiel.toreHeim}:{spiel.toreGast}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {laeuft ? "Live" : "vorläufig"}
+            </p>
+          </div>
         )}
         {hatErgebnis(spiel) && !zwischenstand && (
           <div className="text-right">
