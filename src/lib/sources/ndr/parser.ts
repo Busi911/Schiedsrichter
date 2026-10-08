@@ -1,4 +1,4 @@
-import type { BundesLiga } from "../match";
+import type { BundesLiga, MatchStatus } from "../match";
 import { attr, alleMit, nachfahren, parseHtml, textGetrennt, textInhalt, type Knoten } from "../spieltag/html";
 import { QuellLayoutFehler, type QuellSpiel, type QuellTabellenzeile, type QuellTeam } from "../spieltag/types";
 import { loeseDatum, mappeStatus, startZeit, zerlege, type Spielzeile, type Zeilenteil } from "../spieltag/zeile";
@@ -220,7 +220,9 @@ export function parseNdrSeite(html: string, k: { liga: BundesLiga; saison: strin
       const datumKn = mitKlasse(n, "date")[0];
       const zeitKn = mitKlasse(n, "time")[0];
       const final = mitKlasse(n, "finalresult")[0];
-      if (bloecke.length === 2 && (datumKn || zeitKn || final)) {
+      const live = mitKlasse(n, "liveresult")[0];
+      const statusKn = mitKlasse(n, "match-state")[0];
+      if (bloecke.length === 2 && (datumKn || zeitKn || final || live)) {
         const d = datumKn ? zerlege(textInhalt(datumKn)).find((t) => t.art === "datum") : undefined;
         const datum = (d && d.art === "datum" ? loeseDatum(d, start) : null) ?? ctx.datum;
         const zeit = zeitKn ? textInhalt(zeitKn).match(/(\d{1,2}):(\d{2})/) : null;
@@ -231,9 +233,20 @@ export function parseNdrSeite(html: string, k: { liga: BundesLiga; saison: strin
           return true;
         }
         const ergebnis = zahlenpaar(final);
+        const liveErgebnis = zahlenpaar(live);
         const halb = zahlenpaar(mitKlasse(n, "interimresult")[0]);
         const beginn = startZeit(datum, uhrzeit);
         const schluessel = matchSchluessel(k.liga, start, ctx.spiel, bloecke[0].id, bloecke[1].id);
+        // Status: finalresult → finished; liveresult → live (mit match-state
+        // als Statuswort: "Pause", "2. HZ", "1. HZ" → halftime/live).
+        const statusWort = statusKn ? textInhalt(statusKn).trim() : null;
+        const status: MatchStatus | null = ergebnis
+          ? "finished"
+          : liveErgebnis
+            ? mappeStatus(statusWort) ?? "live"
+            : beginn && beginn.getTime() < jetzt.getTime()
+              ? null
+              : "scheduled";
         rohSpiele.set(schluessel, {
           externalMatchId: schluessel,
           matchPfad: null,
@@ -241,12 +254,12 @@ export function parseNdrSeite(html: string, k: { liga: BundesLiga; saison: strin
           datum,
           uhrzeit,
           startTime: beginn,
-          status: ergebnis ? "finished" : beginn && beginn.getTime() < jetzt.getTime() ? null : "scheduled",
+          status,
           minute: null,
           home: { externalId: bloecke[0].id, name: bloecke[0].name, logoUrl: bloecke[0].logoUrl },
           away: { externalId: bloecke[1].id, name: bloecke[1].name, logoUrl: bloecke[1].logoUrl },
-          homeScore: ergebnis?.[0] ?? null,
-          awayScore: ergebnis?.[1] ?? null,
+          homeScore: ergebnis?.[0] ?? liveErgebnis?.[0] ?? null,
+          awayScore: ergebnis?.[1] ?? liveErgebnis?.[1] ?? null,
           halftimeHomeScore: ergebnis && halb ? halb[0] : null,
           halftimeAwayScore: ergebnis && halb ? halb[1] : null,
           venue: null,
