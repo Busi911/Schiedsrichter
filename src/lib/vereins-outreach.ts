@@ -71,28 +71,7 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
     })
     .from(nuligaVereinsindex)
     .where(
-      sql`(
-        -- Neu: noch kein liga_verein
-        NOT EXISTS (
-          SELECT 1 FROM ${ligaVereine} lv
-          WHERE ${eq(ligaVereine.nuligaClubId, nuligaVereinsindex.clubId)}
-            AND lv.verband = ${nuligaVereinsindex.verband}
-        )
-        OR (
-          -- Oder: liga_verein existiert, aber verein wurde noch nicht
-          -- angeschrieben (angeschrieben_am ist NULL) — die Einrichtung war
-          -- unvollständig und wird beim nächsten Lauf erneut versucht.
-          EXISTS (
-            SELECT 1 FROM ${ligaVereine} lv
-            JOIN ${vereine} v ON v.id = lv.verein_id
-            LEFT JOIN ${vereinKontakt} vk ON vk.verein_id = v.id
-            WHERE ${eq(ligaVereine.nuligaClubId, nuligaVereinsindex.clubId)}
-              AND lv.verband = ${nuligaVereinsindex.verband}
-              AND v.status = 'vorbereitung'
-              AND vk.angeschrieben_am IS NULL
-          )
-        )
-      )`
+      sql`(NOT EXISTS (SELECT 1 FROM ${ligaVereine} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband}) OR EXISTS (SELECT 1 FROM ${ligaVereine} JOIN ${vereine} ON ${vereine.id} = ${ligaVereine.vereinId} LEFT JOIN ${vereinKontakt} ON ${vereinKontakt.vereinId} = ${vereine.id} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband} AND ${vereine.status} = 'vorbereitung' AND ${vereinKontakt.angeschriebenAm} IS NULL))`
     )
     .limit(OUTREACH_KONSTANTEN.MAX_PRO_LAUF);
 
