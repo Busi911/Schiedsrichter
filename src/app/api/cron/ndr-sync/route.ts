@@ -8,9 +8,8 @@ export const maxDuration = 60;
 // (nachts). Holt nur fällige Spieltage (Erstimport nach und nach, Spieltage mit Spielen alle 10 Minuten, der Rest selten) und tut NICHTS, solange
 // kein Team einem Verein zugeordnet ist (/system/ndr).
 export async function GET(request: Request) {
-  // VORÜBERGEHEND ohne Auth — Testlauf (wird wieder aktiviert)
-  // const unauthorized = pruefeCronSecret(request);
-  // if (unauthorized) return unauthorized;
+  const unauthorized = pruefeCronSecret(request);
+  if (unauthorized) return unauthorized;
   const params = new URL(request.url).searchParams;
   const liga = params.get("liga");
   if (!liga || !(liga in BUNDESLIGEN)) return Response.json({ fehler: "liga=hbl1|hbl2 fehlt" }, { status: 400 });
