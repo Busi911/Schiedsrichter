@@ -47,4 +47,20 @@ describe("extrahiereKontaktEmail", () => {
     const html = `<html><body><h1>HHV</h1><h2>Kontaktadresse</h2><p>Vorstand<br/><a href="mailto:vorstand@tv1886-trebur.de">vorstand@tv1886-trebur.de</a></p></body></html>`;
     expect(extrahiereKontaktEmail(html)).toBe("vorstand@tv1886-trebur.de");
   });
+
+  it("decodiert encodeEmail-Aufrufe (nuLiga-Spam-Schutz)", () => {
+    // encodeEmail('de', 'beate', 'voegele-online', '') → beate@voegele-online.de
+    const html = `<html><body><h2>Kontaktadresse</h2><p>Beate Voegele<br/>Tel. 06158 85540<br/>encodeEmail('de', 'beate', 'voegele-online', '')</p></body></html>`;
+    expect(extrahiereKontaktEmail(html)).toBe("beate@voegele-online.de");
+  });
+
+  it("decodiert encodeEmail für Handball@SVC1946.de", () => {
+    const html = `<html><body><h2>Kontaktadresse</h2><p>encodeEmail('de', 'Handball', 'SVC1946', '')</p></body></html>`;
+    expect(extrahiereKontaktEmail(html)).toBe("handball@svc1946.de");
+  });
+
+  it("decodiert encodeEmail mit Grossbuchstaben und gemischten Quotes", () => {
+    const html = `<html><body><h2>Kontakt</h2><p>encodeEmail("de", "vorstand", "mein-verein", "")</p></body></html>`;
+    expect(extrahiereKontaktEmail(html)).toBe("vorstand@mein-verein.de");
+  });
 });
