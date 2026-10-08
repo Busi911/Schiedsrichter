@@ -65,7 +65,7 @@ describe.skipIf(!ADMIN_URL)("ndr-Sync (Postgres)", () => {
     const g = (await db.query.ligaGruppen.findFirst({ where: eq(schema.ligaGruppen.verband, "NDR") }))!;
     const spiele = await db.select().from(schema.ligaSpiele).where(eq(schema.ligaSpiele.gruppeId, g.id));
     expect(spiele).toHaveLength(1);
-    expect(spiele[0]).toMatchObject({ spielcode: "hbl2-2026-27-md6-mannschafthandball403_mannschafthandball404", quelle: "ndr", toreHeim: 32, toreGast: 35, halbzeitHeim: 14, halbzeitGast: 19, ergebnisBestaetigt: true, status: "gespielt", spieltag: 6, berichtUrl: null });
+    expect(spiele[0]).toMatchObject({ spielcode: "hbl2-2026-27-md6-mannschafthandball403_mannschafthandball404", quelle: "ndr", toreHeim: 32, toreGast: 35, halbzeitHeim: 14, halbzeitGast: 19, ergebnisBestaetigt: true, status: "gespielt", spieltag: 6, berichtUrl: "/sport/ergebnisse/spielstatistik-4961.html" });
     const ident = await db.select().from(schema.ligaExterneIdentitaeten).where(eq(schema.ligaExterneIdentitaeten.quelle, "ndr"));
     expect(ident.map((i) => i.externeId)).toEqual(["mannschafthandball403"]);
     const zweiter = await lauf();

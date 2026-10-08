@@ -26,11 +26,24 @@ export const nuLigaQuelle: SpielQuelle = {
   // getLiveState: absichtlich nicht implementiert (kein verifizierter Endpunkt).
 };
 
-// handball.net: noch kein Link/Live-Zugriff vorgesehen.
+// handball.net: Die API liefert kein report-Feld mit URL. Spielbericht-Seiten unter
+// /spiele/{code} sind eine Angular-SPA ohne serverseitig gelieferte, stabile URLs —
+// alle /spiele/-Varianten (mit code, ID, /spielbericht, /info) liefern HTTP 404.
+// Bekannte Limitierung: kein Spielbericht-Link für handball.net-Spiele.
 export const handballNetQuelle: SpielQuelle = { berichtUrl: () => null, liveUrl: () => null };
 
-// ndr.de (1./2. HBL, Phase 1: Spielplan, Ergebnisse, Tabelle): keine Spielseiten, kein Live — nur die Anzeige der gespeicherten Daten.
-export const ndrQuelle: SpielQuelle = { berichtUrl: () => null, liveUrl: () => null };
+// ndr.de (1./2. HBL, Phase 1): Spielbericht-Link aus der Spielstatistik-Seite.
+// Der NDR-Parser extrahiert den 'spielstatistik-NNNN.html'-Link aus dem HTML und
+// speichert ihn als berichtUrl (relativer Pfad). Hier wird die absolute URL gebaut.
+export const ndrQuelle: SpielQuelle = {
+  berichtUrl: (s) => {
+    if (s.quelle !== "ndr" || !s.berichtUrl) return null;
+    // Validiere: Pfad muss mit /sport/ergebnisse/spielstatistik- beginnen.
+    if (!s.berichtUrl.startsWith("/sport/ergebnisse/spielstatistik-")) return null;
+    return `https://www.ndr.de${s.berichtUrl}`;
+  },
+  liveUrl: () => null,
+};
 
 export function quelleFuer(spiel: SpielAnsicht): SpielQuelle {
   if (spiel.quelle === "ndr") return ndrQuelle;

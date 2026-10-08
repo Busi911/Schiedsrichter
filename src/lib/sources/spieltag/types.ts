@@ -17,7 +17,7 @@ export type QuellTeamRef = { externalId: string; name: string };
 
 export type QuellSpiel = {
   externalMatchId: string; // Schlüssel des Spiels (bei ndr.de aus Liga, Saison, Spieltag und Paarung)
-  matchPfad: string | null; // Pfad der Spielseite ohne Domain (derzeit nicht genutzt)
+  matchPfad: string | null; // Pfad der Spielstatistik-Seite ohne Domain (z.B. /sport/ergebnisse/spielstatistik-4970.html)
   spieltag: number | null;
   datum: string | null; // yyyy-mm-dd (deutsche Ortszeit)
   uhrzeit: string | null; // HH:MM

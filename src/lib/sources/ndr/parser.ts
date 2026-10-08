@@ -115,7 +115,22 @@ const tabellenText = (k: Knoten) => textGetrennt(k).replace(/\|/g, " ").replace(
 const TEAM_HREF = /_gameplan-(mannschaft[a-z]*\d+)\.html/i;
 const hatKlasse = (k: Knoten, name: string) => (attr(k, "class") ?? "").split(/\s+/).includes(name);
 const mitKlasse = (k: Knoten, name: string) => [...nachfahren(k)].filter((x) => hatKlasse(x, name));
-const sauber = (t: string) => t.replace(/[\s ]+/g, " ").trim();
+const sauber = (t: string) => t.replace(/[\s　]+/g, " ").trim();
+
+// Spielstatistik-Link aus einer Spielzeile extrahieren (relativer Pfad ohne Domain).
+// NDR verlinkt jeden Spiel mit '[Ticker](/sport/ergebnisse/spielstatistik-NNNN.html)'
+// oder '[Statistik](…)'; der Link steht im Aktionsbereich (td.col-actions) neben dem Ergebnis.
+const SPIELSTATISTIK_HREF = /\/sport\/ergebnisse\/spielstatistik-\d+\.html/i;
+function spielstatistikPfad(k: Knoten): string | null {
+  for (const a of alleMit(k, "a")) {
+    const href = attr(a, "href");
+    if (!href) continue;
+    // Kann absolut (https://www.ndr.de/…) oder relativ (/sport/…) sein.
+    const pfad = href.match(SPIELSTATISTIK_HREF)?.[0];
+    if (pfad) return pfad; // bereits relativ (Pfad ohne Domain)
+  }
+  return null;
+}
 
 type TeamBlock = { id: string; name: string; logoUrl: string | null };
 function teamBloecke(n: Knoten): TeamBlock[] {
@@ -249,7 +264,7 @@ export function parseNdrSeite(html: string, k: { liga: BundesLiga; saison: strin
               : "scheduled";
         rohSpiele.set(schluessel, {
           externalMatchId: schluessel,
-          matchPfad: null,
+          matchPfad: spielstatistikPfad(n),
           spieltag: ctx.spiel,
           datum,
           uhrzeit,
@@ -285,7 +300,7 @@ export function parseNdrSeite(html: string, k: { liga: BundesLiga; saison: strin
           const status = z.status === "scheduled" && beginn && beginn.getTime() < jetzt.getTime() ? null : z.status;
           rohSpiele.set(schluessel, {
             externalMatchId: schluessel,
-            matchPfad: null,
+            matchPfad: spielstatistikPfad(n),
             spieltag,
             datum,
             uhrzeit: z.uhrzeit,

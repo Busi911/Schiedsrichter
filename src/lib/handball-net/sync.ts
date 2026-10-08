@@ -165,6 +165,8 @@ function spielFelder(s: HnetSpiel, teamId: string): SpielFelder {
     heimTeamtableId: s.heim.id,
     gastTeamtableId: s.gast.id,
     meetingId: null,
+    // Bekannte Limitierung: handball.net hat keine stabilen Spielbericht-URLs
+    // (Angular-SPA, /spiele/{code} liefert 404). Siehe match-provider.ts.
     berichtUrl: null,
     toreHeim: s.toreHeim,
     toreGast: s.toreGast,
