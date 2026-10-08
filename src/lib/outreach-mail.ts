@@ -5,9 +5,9 @@ import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER } from "./beta-konditionen";
 
 // Outreach-Mail an einen Verein, der über den nuLiga-Index gefunden und
 // automatisch eingerichtet wurde. Enthält einen Vorschau-Link (7 Tage gültig),
-// damit der Verein die App direkt ausprobieren kann. Die Mail ist im
-//berechtigtes-Interesse (Art. 6 Abs. 1 lit. f DSGVO) — die E-Mail-Adresse stammt
-// aus dem Impressum der Vereinswebsite (§ 5 TMG / § 55 RStV).
+// damit der Verein die App direkt ausprobieren kann. Die E-Mail-Adresse stammt
+// aus dem nuLiga-Kontaktbereich oder dem Impressum der Vereinswebsite — der
+// DSGVO-Hinweis ist deshalb bewusst generisch (Art. 6 Abs. 1 lit. f DSGVO).
 export function outreachInhalt(opt: {
   vereinsname: string;
   vorschauUrl: string;
@@ -15,6 +15,7 @@ export function outreachInhalt(opt: {
   email: string;
   abmeldeUrl: string;
   istWiederholung?: boolean;
+  hatteInstagramKontakt?: boolean;
 }): EmailInhalt {
   const DATUM = new Intl.DateTimeFormat("de-DE", {
     day: "2-digit",
@@ -24,7 +25,9 @@ export function outreachInhalt(opt: {
   });
   const einleitung = opt.istWiederholung
     ? `mein Name ist Dennis, ich komme von HandballerPate, einer App für Handballvereine. Sie machen zwei Dinge:`
-    : `mein Name ist Dennis, ich komme von HandballerPate, einer App für Handballvereine. Sie macht zwei Dinge:`;
+    : opt.hatteInstagramKontakt
+      ? `mein Name ist Dennis, ich komme von HandballerPate. Ende vergangene Woche hatte ich Sie bereits per Instagram kontaktiert — jetzt melde ich mich per E-Mail, weil sich das besser besprechen lässt. HandballerPate ist eine App für Handballvereine und macht zwei Dinge:`
+      : `mein Name ist Dennis, ich komme von HandballerPate, einer App für Handballvereine. Sie macht zwei Dinge:`;
   const retryHinweis = opt.istWiederholung
     ? { text: `Hinweis: Bei meiner letzten Mail waren die Daten Ihres Vereins noch nicht vollständig geladen — das ist nun korrigiert. Der Vorschau-Link führt jetzt zur vollständigen App-Version.`, neueGruppe: true }
     : null;
@@ -45,7 +48,7 @@ export function outreachInhalt(opt: {
       `Dennis · HandballerPate · ${appUrl()}`,
     ],
     cta: { text: "Vorschau öffnen", url: opt.vorschauUrl },
-    kleingedrucktes: `Diese E-Mail wurde auf Basis des Impressums Ihrer Vereinswebsite verschickt (berechtigtes Interesse gemäß Art. 6 Abs. 1 lit. f DSGVO). Wenn Sie keine weiteren Mails erhalten möchten:`,
+    kleingedrucktes: `Diese E-Mail wurde im berechtigten Interesse versendet (gemäß Art. 6 Abs. 1 lit. f DSGVO). Wenn Sie keine weiteren Mails erhalten möchten:`,
     abmelden: { url: opt.abmeldeUrl, text: "Keine weiteren Mails von HandballerPate:" },
   };
 }
