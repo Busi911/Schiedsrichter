@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, isNull, ne, notExists } from "drizzle-orm";
+import { and, eq, isNull, ne, notExists, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaVereine, nuligaVereinsindex, vereine, vereinKontakt, vereinVorschauLinks } from "@/db/schema";
 import { erzeugeVorschauLink } from "./verein-vorschau";
@@ -240,7 +240,66 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
   return ergebnis;
 }
 
-// Followup: Nach 7 Tagen ohne Reaktion (kein registrierter User) eine
+// Reset eines einzelnen Vereins (über nuLiga club ID): löscht den Verein
+// samt allen Daten (Kaskade) und führt den Outreach für diesen einen Club
+// neu aus — mit dem korrigierten E-Mail-Decoder. Nur für den manuellen
+// Testlauf gedacht (temporärer ?reset=clubId Parameter).
+export async function resetOutreachVerein(clubId: string): Promise<{ geloescht: boolean; neu: boolean; email: string | null; fehler: string | null }> {
+  // 1. Bestehenden Verein mit dieser nuligaClubId finden und löschen.
+  const [bestehend] = await adminDb
+    .select({ vereinId: ligaVereine.vereinId, id: ligaVereine.id })
+    .from(ligaVereine)
+    .where(and(eq(ligaVereine.nuligaClubId, clubId), eq(ligaVereine.verband, "HHV")));
+
+  if (bestehend) {
+    await adminDb.delete(vereine).where(eq(vereine.id, bestehend.vereinId));
+  }
+
+  // 2. nuLiga-Vereinsseite laden und E-Mail extrahieren.
+  const [eintrag] = await adminDb
+    .select()
+    .from(nuligaVereinsindex)
+    .where(and(eq(nuligaVereinsindex.verband, "HHV"), eq(nuligaVereinsindex.clubId, clubId)));
+
+  if (!eintrag) return { geloescht: !!bestehend, neu: false, email: null, fehler: "Verein nicht im nuLiga-Index gefunden" };
+
+  const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl("HHV", "clubInfoDisplay", { club: clubId }));
+  const kontaktEmail = extrahiereKontaktEmail(seite.html);
+
+  if (!kontaktEmail) return { geloescht: !!bestehend, neu: false, email: null, fehler: "Keine E-Mail nach Reset gefunden" };
+
+  // 3. Verein neu anlegen und Outreach durchführen.
+  const [neu] = await adminDb.insert(vereine).values({ name: eintrag.name, status: "vorbereitung" }).returning({ id: vereine.id });
+
+  try {
+    await fuehreNuligaEinrichtungAus({ vereinId: neu.id, clubId, indexName: eintrag.name });
+  } catch (err) {
+    await schreibeProtokoll(neu.id, "outreach_einrichtung_fehler", "Outreach-Reset", err instanceof Error ? err.message : String(err));
+  }
+
+  const [ligaV] = await adminDb.select({ id: ligaVereine.id, slug: ligaVereine.slug }).from(ligaVereine).where(eq(ligaVereine.vereinId, neu.id));
+  if (!ligaV) return { geloescht: !!bestehend, neu: false, email: kontaktEmail, fehler: "Liga-Verein nicht angelegt" };
+
+  await erzeugeVorschauLink(neu.id, OUTREACH_KONSTANTEN.VORSCHAU_TAGE, "Outreach-Reset");
+  const [link] = await adminDb.select().from(vereinVorschauLinks).where(eq(vereinVorschauLinks.vereinId, neu.id));
+  if (!link) return { geloescht: !!bestehend, neu: false, email: kontaktEmail, fehler: "Vorschau-Link nicht erzeugt" };
+
+  const vorschauUrl = `${appUrl()}/verein/${ligaV.slug}/vorschau/${link.token}`;
+  const abmeldeUrl = outreachAbmeldeUrl(neu.id);
+  const inhalt = outreachInhalt({ vereinsname: eintrag.name, vorschauUrl, gueltigBis: link.gueltigBis, email: kontaktEmail, abmeldeUrl });
+  await sendMail(kontaktEmail, `HandballerPate — eine App für den ${eintrag.name}`, emailAlsText(inhalt), emailAlsHtml(inhalt), { abmeldeUrl });
+
+  await adminDb
+    .insert(vereinKontakt)
+    .values({ vereinId: neu.id, anspracheKanal: "email", anspracheEmail: kontaktEmail, anspracheGesendetAm: new Date(), angeschriebenAm: new Date() })
+    .onConflictDoUpdate({
+      target: vereinKontakt.vereinId,
+      set: { anspracheKanal: "email", anspracheEmail: kontaktEmail, anspracheGesendetAm: new Date(), angeschriebenAm: new Date() },
+    });
+
+  await schreibeProtokoll(neu.id, "outreach_angeschrieben", "Outreach-Reset", `${eintrag.name} · E-Mail: ${kontaktEmail}`);
+  return { geloescht: !!bestehend, neu: true, email: kontaktEmail, fehler: null };
+}
 // Erinnerungsmail senden — genau eine, dann Schluss.
 export async function fuehreOutreachFollowupAus(): Promise<OutreachFollowupErgebnis> {
   const ergebnis: OutreachFollowupErgebnis = { versendet: 0, fehler: 0, details: [] };
