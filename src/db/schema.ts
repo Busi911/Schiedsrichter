@@ -1299,4 +1299,15 @@ export const vereinKontakt = pgTable("verein_kontakt", {
   instagram: text("instagram"),
   angeschriebenAm: timestamp("angeschrieben_am", { mode: "date" }),
   notiz: text("notiz"),
+  // --- Automatisiertes Outreach (E-Mail-Ansprache aus Impressum) ---
+  // Kanal der automatischen Ansprache ("email" = Impressum-Mail, Instagram bleibt von Hand).
+  anspracheKanal: text("ansprache_kanal").$type<"email" | "instagram">(),
+  // E-Mail-Adresse aus dem Impressum, an die die Outreach-Mail ging.
+  anspracheEmail: text("ansprache_email"),
+  // Zeitpunkt der ersten automatischen Ansprache-Mail.
+  anspracheGesendetAm: timestamp("ansprache_gesendet_am", { mode: "date" }),
+  // Follow-up-Mail nach 7 Tagen ohne Reaktion (nur eine, dann Schluss).
+  followupGesendetAm: timestamp("followup_gesendet_am", { mode: "date" }),
+  // Vom Empfänger ausgelöste Abmeldung (Klick auf den Abmelde-Link in der Mail).
+  outreachAbgemeldetAm: timestamp("outreach_abgemeldet_am", { mode: "date" }),
 });
