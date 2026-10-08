@@ -336,6 +336,124 @@ export async function resetOutreachVerein(clubId: string): Promise<{ geloescht: 
   await schreibeProtokoll(neu.id, "outreach_angeschrieben", "Outreach-Reset", `${eintrag.name} · E-Mail: ${kontaktEmail}`);
   return { geloescht: !!bestehend, neu: true, email: kontaktEmail, fehler: null };
 }
+
+// Instagram-Nachfass: Vereine, die per Instagram angeschrieben wurden (angeschrieben_am
+// gesetzt, aber keine ansprache_email), die aber bereits Daten haben (Mannschaften > 0).
+// Für diese Vereine wird die E-Mail-Adresse aus dem nuLiga-Kontakt extrahiert und
+// eine Ansprache-Mail mit Hinweis auf den vorherigen Instagram-Kontakt gesendet.
+export async function fuehreInstagramNachfassAus(): Promise<OutreachErgebnis> {
+  const ergebnis: OutreachErgebnis = {
+    verarbeitet: 0,
+    angeschrieben: 0,
+    keineEmail: 0,
+    schonEingerichtet: 0,
+    fehler: 0,
+    details: [],
+  };
+
+  // Vereine mit Instagram-Ansprache (angeschrieben_am gesetzt, keine E-Mail),
+  // Status "vorbereitung", und mit Mannschaften (App nicht leer).
+  const kandidaten = await adminDb
+    .select({
+      id: vereine.id,
+      name: vereine.name,
+      clubId: ligaVereine.nuligaClubId,
+      verband: ligaVereine.verband,
+      slug: ligaVereine.slug,
+      ligaVereinId: ligaVereine.id,
+      mannschaften: sql<number>`(SELECT count(*)::int FROM ${ligaMannschaften} WHERE ${ligaMannschaften.ligaVereinId} = ${ligaVereine.id})`,
+    })
+    .from(vereine)
+    .innerJoin(ligaVereine, eq(ligaVereine.vereinId, vereine.id))
+    .innerJoin(vereinKontakt, eq(vereinKontakt.vereinId, vereine.id))
+    .where(
+      and(
+        eq(vereine.status, "vorbereitung"),
+        isNull(vereinKontakt.anspracheEmail),
+        sql`${vereinKontakt.angeschriebenAm} IS NOT NULL`,
+        sql`(SELECT count(*) FROM ${ligaMannschaften} WHERE ${ligaMannschaften.ligaVereinId} = ${ligaVereine.id}) > 0`
+      )
+    )
+    .limit(20);
+
+  for (const k of kandidaten) {
+    ergebnis.verarbeitet++;
+    try {
+      if (!k.clubId) {
+        ergebnis.fehler++;
+        ergebnis.details.push({ name: k.name, clubId: "", status: "fehler", fehler: "Keine clubId" });
+        continue;
+      }
+      // E-Mail aus nuLiga-Kontaktseite extrahieren.
+      const seite = await holeNuligaSeiteMitKontext(
+        baueNuligaUrl(k.verband ?? "HHV", "clubInfoDisplay", { club: k.clubId })
+      );
+      let kontaktEmail = extrahiereKontaktEmail(seite.html);
+
+      // Fallback: Impressum der Vereinswebsite.
+      if (!kontaktEmail) {
+        const geparst = parseVereinsInfo(seite.html);
+        const website = geparst.daten?.website;
+        if (website) {
+          try {
+            const impressum = await scrapeImpressum(website);
+            kontaktEmail = impressum.email;
+          } catch {}
+        }
+      }
+
+      if (!kontaktEmail) {
+        ergebnis.keineEmail++;
+        ergebnis.details.push({ name: k.name, clubId: k.clubId, status: "keine_email", fehler: "Keine E-Mail in nuLiga oder Impressum" });
+        continue;
+      }
+
+      // Vorschau-Link erzeugen (7 Tage).
+      await erzeugeVorschauLink(k.id, OUTREACH_KONSTANTEN.VORSCHAU_TAGE, "Instagram-Nachfass");
+      const [link] = await adminDb.select().from(vereinVorschauLinks).where(eq(vereinVorschauLinks.vereinId, k.id));
+      if (!link) {
+        ergebnis.fehler++;
+        ergebnis.details.push({ name: k.name, clubId: k.clubId, status: "fehler", fehler: "Vorschau-Link nicht erzeugt" });
+        continue;
+      }
+
+      const vorschauUrl = `${appUrl()}/verein/${k.slug ?? k.id}/vorschau/${link.token}`;
+      const abmeldeUrl = outreachAbmeldeUrl(k.id);
+      const inhalt = outreachInhalt({
+        vereinsname: k.name,
+        vorschauUrl,
+        gueltigBis: link.gueltigBis,
+        email: kontaktEmail,
+        abmeldeUrl,
+        hatteInstagramKontakt: true,
+      });
+
+      await sendMail(
+        kontaktEmail,
+        `HandballerPate — eine App für den ${k.name}`,
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt),
+        { abmeldeUrl }
+      );
+
+      // Kontakt aktualisieren: E-Mail und Sende-Datum setzen.
+      await adminDb
+        .update(vereinKontakt)
+        .set({ anspracheEmail: kontaktEmail, anspracheGesendetAm: new Date() })
+        .where(eq(vereinKontakt.vereinId, k.id));
+
+      await schreibeProtokoll(k.id, "outreach_instagram_nachfass", "Instagram-Nachfass", `${k.name} · E-Mail: ${kontaktEmail}`);
+      ergebnis.angeschrieben++;
+      ergebnis.details.push({ name: k.name, clubId: k.clubId, status: "angeschrieben", email: kontaktEmail });
+    } catch (err) {
+      ergebnis.fehler++;
+      ergebnis.details.push({ name: k.name, clubId: k.clubId ?? "", status: "fehler", fehler: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  return ergebnis;
+}
+
 // Erinnerungsmail senden — genau eine, dann Schluss.
 export async function fuehreOutreachFollowupAus(): Promise<OutreachFollowupErgebnis> {
   const ergebnis: OutreachFollowupErgebnis = { versendet: 0, fehler: 0, details: [] };
