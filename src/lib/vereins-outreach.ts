@@ -196,7 +196,8 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
         { abmeldeUrl }
       );
 
-      // 9. Kontakt protokollieren.
+      // 9. Kontakt protokollieren — anspracheGesendetAm (neu) UND
+      //    angeschriebenAm (alt, für die UI: "angeschrieben am …").
       await adminDb
         .insert(vereinKontakt)
         .values({
@@ -204,6 +205,7 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
           anspracheKanal: "email",
           anspracheEmail: kontaktEmail,
           anspracheGesendetAm: new Date(),
+          angeschriebenAm: new Date(),
         })
         .onConflictDoUpdate({
           target: vereinKontakt.vereinId,
@@ -211,6 +213,7 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
             anspracheKanal: "email",
             anspracheEmail: kontaktEmail,
             anspracheGesendetAm: new Date(),
+            angeschriebenAm: new Date(),
           },
         });
 
