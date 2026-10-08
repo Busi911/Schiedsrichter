@@ -13,6 +13,7 @@ import { sendMail } from "./mailer";
 import { emailAlsHtml, emailAlsText } from "./email-layout";
 import { outreachInhalt } from "./outreach-mail";
 import { outreachAbmeldeUrl } from "./outreach-abmelden";
+import { extrahiereKontaktEmail } from "./nuliga/outreach-kontakt";
 import { scrapeImpressum } from "./impressum";
 import { appUrl } from "./app-url";
 
@@ -85,7 +86,9 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
   for (const k of kandidaten) {
     ergebnis.verarbeitet++;
     try {
-      // 2. Vereinsseite aus nuLiga laden (für Website/Stammdaten).
+      // 2. Vereinsseite aus nuLiga laden (für Website, Stammdaten und
+      //    Kontaktadresse). Die Seite wird EINMAL geladen und für beide
+      //    E-Mail-Quellen genutzt (nuLiga-Kontakt + Website-Impressum).
       const seite = await holeNuligaSeiteMitKontext(
         baueNuligaUrl(k.verband, "clubInfoDisplay", { club: k.clubId })
       );
@@ -93,26 +96,32 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
       const info = geparst.daten;
       const website = info.website;
 
-      // 3. E-Mail aus dem Impressum der Vereinswebsite suchen.
-      if (!website) {
-        ergebnis.keineEmail++;
-        ergebnis.details.push({
-          name: k.name,
-          clubId: k.clubId,
-          status: "keine_email",
-          fehler: "Keine Website im nuLiga-Eintrag",
-        });
-        continue;
+      // 3a. E-Mail aus der nuLiga-Kontaktadresse extrahieren ( primär).
+      //     Die nuLiga-Vereinsseite hat oft einen "Kontaktadresse"-Abschnitt
+      //     mit E-Mail — das ist die zuverlässigste Quelle.
+      let kontaktEmail = extrahiereKontaktEmail(seite.html);
+
+      // 3b. Fallback: E-Mail aus dem Impressum der Vereinswebsite.
+      let impressumFehler: string | null = null;
+      if (!kontaktEmail && website) {
+        try {
+          const impressum = await scrapeImpressum(website);
+          kontaktEmail = impressum.email;
+          if (!impressum.email) impressumFehler = impressum.fehler;
+        } catch (err) {
+          impressumFehler = err instanceof Error ? err.message : String(err);
+        }
       }
 
-      const impressum = await scrapeImpressum(website);
-      if (!impressum.email) {
+      if (!kontaktEmail) {
         ergebnis.keineEmail++;
         ergebnis.details.push({
           name: k.name,
           clubId: k.clubId,
           status: "keine_email",
-          fehler: impressum.fehler ?? "Keine E-Mail im Impressum gefunden",
+          fehler: !website
+            ? "Keine Website und keine Kontakt-E-Mail im nuLiga-Eintrag"
+            : impressumFehler ?? "Keine E-Mail in nuLiga-Kontakt oder Impressum gefunden",
         });
         continue;
       }
@@ -131,8 +140,6 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
           indexName: k.name,
         });
       } catch (err) {
-        // Einrichtung kann teilweise scheitern — der Verein ist trotzdem
-        // angelegt, die Mail geht trotzdem raus. Protokollieren und weiter.
         await schreibeProtokoll(neu.id, "outreach_einrichtung_fehler", "Outreach-Cron", err instanceof Error ? err.message : String(err));
       }
 
@@ -177,12 +184,12 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
         vereinsname: k.name,
         vorschauUrl,
         gueltigBis: link.gueltigBis,
-        email: impressum.email,
+        email: kontaktEmail,
         abmeldeUrl,
       });
 
       await sendMail(
-        impressum.email,
+        kontaktEmail,
         `HandballerPate — eine App für den ${k.name}`,
         emailAlsText(inhalt),
         emailAlsHtml(inhalt),
@@ -195,26 +202,26 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
         .values({
           vereinId: neu.id,
           anspracheKanal: "email",
-          anspracheEmail: impressum.email,
+          anspracheEmail: kontaktEmail,
           anspracheGesendetAm: new Date(),
         })
         .onConflictDoUpdate({
           target: vereinKontakt.vereinId,
           set: {
             anspracheKanal: "email",
-            anspracheEmail: impressum.email,
+            anspracheEmail: kontaktEmail,
             anspracheGesendetAm: new Date(),
           },
         });
 
-      await schreibeProtokoll(neu.id, "outreach_angeschrieben", "Outreach-Cron", `${k.name} · E-Mail: ${impressum.email} · Vorschau bis ${link.gueltigBis.toISOString()}`);
+      await schreibeProtokoll(neu.id, "outreach_angeschrieben", "Outreach-Cron", `${k.name} · E-Mail: ${kontaktEmail} · Vorschau bis ${link.gueltigBis.toISOString()}`);
 
       ergebnis.angeschrieben++;
       ergebnis.details.push({
         name: k.name,
         clubId: k.clubId,
         status: "angeschrieben",
-        email: impressum.email,
+        email: kontaktEmail,
       });
     } catch (err) {
       ergebnis.fehler++;
