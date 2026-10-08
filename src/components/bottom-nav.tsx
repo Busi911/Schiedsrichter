@@ -159,7 +159,7 @@ export function BottomNav({
       <nav
         aria-label="Hauptnavigation"
         data-bottom-nav
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-foreground/15 bg-card shadow-[0_-4px_16px_rgba(0,0,0,0.08)] dark:border-foreground/25 dark:shadow-[0_-6px_20px_rgba(0,0,0,0.6)] pb-[max(env(safe-area-inset-bottom),1rem)]"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-foreground/15 bg-card shadow-[0_-4px_16px_rgba(0,0,0,0.08)] dark:border-foreground/25 dark:shadow-[0_-6px_20px_rgba(0,0,0,0.6)] pb-[env(safe-area-inset-bottom)]"
       >
         <ul className="mx-auto flex h-16 max-w-md items-stretch px-2">
           {direkt.map((tab) => {
