@@ -1,7 +1,7 @@
 import "server-only";
-import { and, eq, isNull, ne, notExists, sql } from "drizzle-orm";
+import { and, count, eq, isNull, ne, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaVereine, nuligaVereinsindex, vereine, vereinKontakt, vereinVorschauLinks } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, nuligaVereinsindex, vereine, vereinKontakt, vereinVorschauLinks } from "@/db/schema";
 import { erzeugeVorschauLink } from "./verein-vorschau";
 import { fuehreNuligaEinrichtungAus } from "./nuliga/einrichtung";
 import { schreibeProtokoll } from "./treuhand";
@@ -58,7 +58,9 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
   };
 
   // 1. Alle Vereine aus dem nuLiga-Index, die noch keinen Eintrag in
-  //    liga_vereine haben (also noch nicht eingerichtet wurden).
+  //    liga_vereine haben (also noch nicht eingerichtet wurden), ODER die
+  //    einen liga_verein haben, aber noch nicht angeschrieben wurden (Einrichtung
+  //    war unvollständig, beim nächsten Lauf erneut versuchen).
   const kandidaten = await adminDb
     .select({
       id: nuligaVereinsindex.id,
@@ -69,17 +71,28 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
     })
     .from(nuligaVereinsindex)
     .where(
-      notExists(
-        adminDb
-          .select()
-          .from(ligaVereine)
-          .where(
-            and(
-              eq(ligaVereine.nuligaClubId, nuligaVereinsindex.clubId),
-              eq(ligaVereine.verband, nuligaVereinsindex.verband)
-            )
+      sql`(
+        -- Neu: noch kein liga_verein
+        NOT EXISTS (
+          SELECT 1 FROM ${ligaVereine} lv
+          WHERE ${eq(ligaVereine.nuligaClubId, nuligaVereinsindex.clubId)}
+            AND lv.verband = ${nuligaVereinsindex.verband}
+        )
+        OR (
+          -- Oder: liga_verein existiert, aber verein wurde noch nicht
+          -- angeschrieben (angeschrieben_am ist NULL) — die Einrichtung war
+          -- unvollständig und wird beim nächsten Lauf erneut versucht.
+          EXISTS (
+            SELECT 1 FROM ${ligaVereine} lv
+            JOIN ${vereine} v ON v.id = lv.verein_id
+            LEFT JOIN ${vereinKontakt} vk ON vk.verein_id = v.id
+            WHERE ${eq(ligaVereine.nuligaClubId, nuligaVereinsindex.clubId)}
+              AND lv.verband = ${nuligaVereinsindex.verband}
+              AND v.status = 'vorbereitung'
+              AND vk.angeschrieben_am IS NULL
           )
-      )
+        )
+      )`
     )
     .limit(OUTREACH_KONSTANTEN.MAX_PRO_LAUF);
 
@@ -126,28 +139,38 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
         continue;
       }
 
-      // 4. Verein in der App anlegen (Status "vorbereitung").
-      const [neu] = await adminDb
-        .insert(vereine)
-        .values({ name: k.name, status: "vorbereitung" })
-        .returning({ id: vereine.id });
+      // 4. Verein in der App anlegen (Status "vorbereitung") — falls er
+      //    noch nicht existiert (beim Retry ist er schon angelegt).
+      const [bestehend] = await adminDb
+        .select({ id: vereine.id })
+        .from(vereine)
+        .innerJoin(ligaVereine, eq(ligaVereine.vereinId, vereine.id))
+        .where(and(eq(ligaVereine.nuligaClubId, k.clubId), eq(ligaVereine.verband, k.verband)));
+
+      const vereinId = bestehend?.id ?? (
+        await adminDb
+          .insert(vereine)
+          .values({ name: k.name, status: "vorbereitung" })
+          .returning({ id: vereine.id })
+      )[0].id;
 
       // 5. Automatisch einrichten (Mannschaften, Hallen, Logo, Liga-Verein).
+      //    Beim Retry: nicht zerstörend, ergänzt nur (siehe einrichtung.ts).
       try {
         await fuehreNuligaEinrichtungAus({
-          vereinId: neu.id,
+          vereinId,
           clubId: k.clubId,
           indexName: k.name,
         });
       } catch (err) {
-        await schreibeProtokoll(neu.id, "outreach_einrichtung_fehler", "Outreach-Cron", err instanceof Error ? err.message : String(err));
+        await schreibeProtokoll(vereinId, "outreach_einrichtung_fehler", "Outreach-Cron", err instanceof Error ? err.message : String(err));
       }
 
       // 6. Liga-Verein holen (für Slug — brauchen wir für den Vorschau-Link).
       const [ligaV] = await adminDb
         .select({ id: ligaVereine.id, slug: ligaVereine.slug })
         .from(ligaVereine)
-        .where(eq(ligaVereine.vereinId, neu.id));
+        .where(eq(ligaVereine.vereinId, vereinId));
 
       if (!ligaV) {
         ergebnis.fehler++;
@@ -160,12 +183,34 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
         continue;
       }
 
+      // 6a. Einrichtung vollständig? — wenn keine Mannschaften geladen
+      //     wurden, schicken wir keine E-Mail: der Empfänger würde auf eine
+      //     leere App schauen. Der nächste Cron-Lauf versucht es erneut
+      //     (die Kandidaten-Query findet Vereine mit liga_verein aber ohne
+      //     angeschrieben_am automatisch wieder).
+      const [{ anzahlMannschaften }] = await adminDb
+        .select({ anzahlMannschaften: count() })
+        .from(ligaMannschaften)
+        .where(eq(ligaMannschaften.ligaVereinId, ligaV.id));
+
+      if (Number(anzahlMannschaften) === 0) {
+        await schreibeProtokoll(vereinId, "outreach_einrichtung_unvollstaendig", "Outreach-Cron", `${k.name} · 0 Mannschaften nach Einrichtung — E-Mail nicht gesendet, nächster Lauf versucht es erneut`);
+        ergebnis.keineEmail++;
+        ergebnis.details.push({
+          name: k.name,
+          clubId: k.clubId,
+          status: "keine_email",
+          fehler: "Einrichtung unvollständig — 0 Mannschaften geladen, E-Mail nicht gesendet",
+        });
+        continue;
+      }
+
       // 7. Vorschau-Link erzeugen (7 Tage).
-      await erzeugeVorschauLink(neu.id, OUTREACH_KONSTANTEN.VORSCHAU_TAGE, "Outreach-Cron");
+      await erzeugeVorschauLink(vereinId, OUTREACH_KONSTANTEN.VORSCHAU_TAGE, "Outreach-Cron");
       const [link] = await adminDb
         .select()
         .from(vereinVorschauLinks)
-        .where(eq(vereinVorschauLinks.vereinId, neu.id));
+        .where(eq(vereinVorschauLinks.vereinId, vereinId));
       if (!link) {
         ergebnis.fehler++;
         ergebnis.details.push({
@@ -179,7 +224,7 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
 
       // 8. Ansprache-Mail generieren und senden.
       const vorschauUrl = `${appUrl()}/verein/${ligaV.slug}/vorschau/${link.token}`;
-      const abmeldeUrl = outreachAbmeldeUrl(neu.id);
+      const abmeldeUrl = outreachAbmeldeUrl(vereinId);
       const inhalt = outreachInhalt({
         vereinsname: k.name,
         vorschauUrl,
@@ -201,7 +246,7 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
       await adminDb
         .insert(vereinKontakt)
         .values({
-          vereinId: neu.id,
+          vereinId: vereinId,
           anspracheKanal: "email",
           anspracheEmail: kontaktEmail,
           anspracheGesendetAm: new Date(),
@@ -217,7 +262,7 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
           },
         });
 
-      await schreibeProtokoll(neu.id, "outreach_angeschrieben", "Outreach-Cron", `${k.name} · E-Mail: ${kontaktEmail} · Vorschau bis ${link.gueltigBis.toISOString()}`);
+      await schreibeProtokoll(vereinId, "outreach_angeschrieben", "Outreach-Cron", `${k.name} · E-Mail: ${kontaktEmail} · Vorschau bis ${link.gueltigBis.toISOString()}`);
 
       ergebnis.angeschrieben++;
       ergebnis.details.push({
