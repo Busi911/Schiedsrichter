@@ -93,7 +93,7 @@ export default async function SystemLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl p-6">{children}</main>
+      <main className="mx-auto max-w-6xl p-6 pb-24 md:pb-6">{children}</main>
       <BottomNav
         // Dieselben Bereiche wie in der Kopfzeile (SYSTEM_BEREICHE); die ersten vier direkt, der Rest im "Mehr"-Sheet.
         tabs={bereicheFuerBottomNav.slice(0, 4)}

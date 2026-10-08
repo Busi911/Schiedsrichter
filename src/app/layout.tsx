@@ -59,7 +59,7 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col overflow-x-hidden bg-muted/40">
+      <body className="min-h-full flex flex-col overflow-x-hidden bg-muted/40 [overflow-y:scroll]">
         <ServiceWorkerRegistrar />
         <div className="flex flex-1 flex-col">{children}</div>
         <Footer />

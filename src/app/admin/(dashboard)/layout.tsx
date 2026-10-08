@@ -175,7 +175,7 @@ export default async function AdminLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-screen-2xl p-6">{children}</main>
+      <main className="mx-auto max-w-screen-2xl p-6 pb-24 md:pb-6">{children}</main>
       <BottomNav
         // Muss mit PRIMARY_ITEMS/VERWALTUNG_ITEMS in admin-nav.tsx
         // übereinstimmen (Desktop-Pendant).

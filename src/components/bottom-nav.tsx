@@ -125,7 +125,7 @@ export function BottomNav({
         <div
           role="dialog"
           aria-label="Weitere Bereiche"
-          className="fixed inset-x-0 bottom-16 z-50 mx-3 flex flex-col gap-1 rounded-xl border bg-background p-2 shadow-xl"
+          className="fixed inset-x-0 bottom-20 z-50 mx-3 flex flex-col gap-1 rounded-xl border bg-background p-2 shadow-xl"
         >
           {sheetItems.map((item) => (
             <Link
@@ -159,9 +159,9 @@ export function BottomNav({
       <nav
         aria-label="Hauptnavigation"
         data-bottom-nav
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-foreground/15 bg-card shadow-[0_-4px_16px_rgba(0,0,0,0.08)] dark:border-foreground/25 dark:shadow-[0_-6px_20px_rgba(0,0,0,0.6)] pb-[env(safe-area-inset-bottom)]"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-foreground/15 bg-card shadow-[0_-4px_16px_rgba(0,0,0,0.08)] dark:border-foreground/25 dark:shadow-[0_-6px_20px_rgba(0,0,0,0.6)] pb-[max(env(safe-area-inset-bottom),0.5rem)]"
       >
-        <ul className="mx-auto flex h-16 max-w-md items-stretch">
+        <ul className="mx-auto flex h-16 max-w-md items-stretch px-2">
           {direkt.map((tab) => {
             const aktiv = istAktiv(pathname, tab.href, tab.exact, tab.pfade);
             return (
