@@ -6,6 +6,7 @@ import { holeLigaErgebnisse } from "@/lib/liga-dashboard";
 import { formatTagKopf, SpielKarte } from "@/components/liga/liga-ui";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
+import { betaVorbei } from "@/lib/abrechnung";
 import {
   formatMannschaft,
   holeLetzteErgebnisse,
@@ -123,6 +124,20 @@ export default async function AdminDashboardPage() {
     helferdienstOffen: t.helferdienstOffen,
   }));
 
+  // Rechnungsdaten-Hinweis: nach dem Beta-Ende (kostenpflichtig) prüfen, ob
+  // Rechnungsadresse vorhanden ist — fehlt sie, im Dashboard auffordern.
+  const rechnungsHinweis = (() => {
+    if (!betaVorbei(new Date())) return null;
+    if (!verein) return null;
+    if (verein.tarif === "befreit") return null;
+    const fehltEmail = !verein.rechnungEmail;
+    const fehltAdresse = !verein.strasse || !verein.plz || !verein.ort;
+    if (fehltEmail && fehltAdresse) return "Bitte tragt unter Einstellungen -> Vereinsdaten und Rechnung eine Rechnungsadresse und E-Mail-Adresse ein — ohne sie können wir keine Rechnung stellen.";
+    if (fehltEmail) return "Bitte tragt unter Einstellungen -> Vereinsdaten und Rechnung eine E-Mail-Adresse für die Rechnung ein.";
+    if (fehltAdresse) return "Bitte tragt unter Einstellungen -> Vereinsdaten und Rechnung eine Rechnungsadresse (Straße, PLZ, Ort) ein.";
+    return null;
+  })();
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -131,6 +146,18 @@ export default async function AdminDashboardPage() {
           {verein?.name ?? "Verein"}
         </p>
       </div>
+
+      {rechnungsHinweis && (
+        <Card className="border-amber-600/40">
+          <CardContent className="flex flex-col gap-2 pt-4">
+            <p className="text-sm font-medium">Rechnungsdaten fehlen</p>
+            <p className="text-sm text-muted-foreground">{rechnungsHinweis}</p>
+            <Link href="/admin/einstellungen#vereinsdaten" className="inline-flex min-h-11 items-center self-start rounded-lg border px-4 text-sm font-medium hover:bg-muted">
+              Rechnungsdaten eintragen
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {offeneSelbsteintragungen.length > 0 && (
         <Card>

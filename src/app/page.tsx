@@ -316,6 +316,51 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* Angebundene Datenquellen / Landesverbände */}
+        <section className="border-t bg-muted/30">
+          <div className="mx-auto max-w-3xl px-6 py-12">
+            <h2 className="font-heading text-2xl font-semibold">
+              Welche Verbände sind angebunden?
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              HandballerPate synchronisiert Spielpläne, Ergebnisse und Tabellen aus drei Quellen:
+            </p>
+            <div className="mt-6 flex flex-col gap-4">
+              <div className="rounded-lg border bg-background p-4">
+                <h3 className="font-heading font-medium">nuLiga — Landesverbände</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Den vollständigen Hallenspielplan (Mannschaften, Spiele, Tabellen, Hallen) gibt es
+                  automatisch für Vereine aus diesen Landesverbänden:
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Badge variant="secondary">Hessischer Handball-Verband (HHV)</Badge>
+                  <Badge variant="secondary">Handball-Verband Berlin (HVBerlin)</Badge>
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Weitere nuLiga-Verbände (Bayern, Brandenburg, Niedersachsen-Bremen, Nordrhein,
+                  Sachsen, Sachsen-Anhalt, Thüringen, Mecklenburg-Vorpommern) können auf Anfrage
+                  freigeschaltet werden.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-background p-4">
+                <h3 className="font-heading font-medium">handball.net — DHB-Wettbewerbe</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Ab der 3. Liga und in allen DHB-Wettbewerben (Jugendbundesliga u.a.) automatisch
+                  und verbandsunabhängig — inklusive Ergebnissen und Verlegungen. Die Vereins-ID
+                  wird beim Einrichten automatisch ermittelt.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-background p-4">
+                <h3 className="font-heading font-medium">NDR — 1. &amp; 2. Handball-Bundesliga</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Live-Scores der 1. und 2. HBL während der Spieltage — Ergebnisse und Zwischenstände
+                  in Echtzeit, sobald der NDR sie liefert.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="border-t">
           <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-16">
             <h2 className="font-heading text-2xl font-semibold">

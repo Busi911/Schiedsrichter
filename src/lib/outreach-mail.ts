@@ -1,7 +1,7 @@
 import "server-only";
 import { appUrl } from "./app-url";
 import type { EmailInhalt } from "./email-layout";
-import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER } from "./beta-konditionen";
+import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER, PREIS_SPONSOR } from "./beta-konditionen";
 
 // Outreach-Mail an einen Verein, der über den nuLiga-Index gefunden und
 // automatisch eingerichtet wurde. Enthält einen Vorschau-Link (7 Tage gültig),
@@ -44,6 +44,7 @@ export function outreachInhalt(opt: {
       `2. Für den Verein: Schiedsrichter, Zeitnehmer, Ordner und Kiosk bei Heimspielen einteilen. Der Spielplan kommt automatisch aus nuLiga, Verlegungen und Erinnerungen gehen per Mail raus, offene Dienste sehen Sie auf einen Blick.`,
       `Falls der ${opt.vereinsname} Spielgemeinschaften oder höherklassige Mannschaften hat, die unter einem anderen Verein bei nuLiga geführt werden — die lassen sich nach der Übernahme unter „Einstellungen → Zusatzquellen“ hinzufügen, sodass auch diese Spiele im Plan erscheinen.`,
       { text: `HandballerPate ist in der Beta-Phase und für Sie noch kostenlos (bis ca. ${BETA_ENDE}, danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto im Jahr). Die Vorschau gilt bis ${DATUM.format(opt.gueltigBis)}.`, neueGruppe: true },
+      `Optional: Ein Sponsor kann die Kosten übernehmen — dafür erscheint beim Öffnen der Vereinsseite kurz sein Bild. Der Sponsor zahlt ${PREIS_SPONSOR} € im Jahr für den Platz und zusätzlich den Jahrespreis des Vereins (${PREIS_BETA} €). Falls das interessant ist, einfach bei der Übernahme Bescheid geben.`,
       `Wenn Sie den ${opt.vereinsname} übernehmen möchten: Klicken Sie unten auf „Verein übernehmen", geben Sie Namen und E-Mail-Adresse der Person an, die den Verein verwalten soll — Sie bekommt einen Login-Link per E-Mail. Wenn es nicht passt, genügt ein kurzes „Kein Interesse“.`,
       { text: `Viele Grüße`, neueGruppe: true },
       `Dennis · HandballerPate · ${appUrl()}`,

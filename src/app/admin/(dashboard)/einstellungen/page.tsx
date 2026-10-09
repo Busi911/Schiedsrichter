@@ -35,6 +35,7 @@ import { VereinLoeschenDialog } from "@/components/verein-loeschen-dialog";
 import { LigaAutoWeiter } from "@/components/liga-auto-weiter";
 import { farbtonZuHex } from "@/lib/liga-farbe";
 import { vereinsFarbton } from "@/lib/liga-pwa";
+import { PREIS_SPONSOR, KONTAKT_EMAIL } from "@/lib/beta-konditionen";
 
 // Der erste Sync der öffentlichen Vereinsseite fragt nuLiga bewusst langsam
 // ab (siehe lib/nuliga/client.ts) und braucht dafür mehr als das Standard-
@@ -862,6 +863,23 @@ export default async function EinstellungenPage({
             </SubmitButton>
           </form>
         </EinstellungsBereich>
+
+      <EinstellungsBereich titel="Sponsor" kurz="Kosten von einem Sponsor übernehmen lassen" beschreibung={<>Ein Sponsor kann die technischen Kosten übernehmen — dafür erscheint beim Öffnen eurer
+            Vereinsseite kurz sein Bild („Präsentiert von …"). Der Sponsor zahlt {PREIS_SPONSOR} € im Jahr für den
+            Platz und zusätzlich den Jahrespreis des Vereins — ihr zahlt dann nichts. Der Sponsor wird
+            vom HandballerPate-Team eingerichtet; sagt Bescheid, wenn ihr einen Sponsor habt.</>}>
+        <p className="text-sm">
+          {verein?.sponsorUebernimmt
+            ? "Ein Sponsor übernimmt derzeit die Kosten für euren Verein."
+            : "Aktuell ist kein Sponsor eingerichtet."}
+        </p>
+        <a
+          href={`mailto:${KONTAKT_EMAIL}?subject=${encodeURIComponent("Sponsor für " + (verein?.name ?? "unseren Verein"))}`}
+          className="inline-flex min-h-11 items-center rounded-lg border px-4 text-sm font-medium hover:bg-muted"
+        >
+          Sponsor anmelden
+        </a>
+      </EinstellungsBereich>
 
       <EinstellungsBereich titel="Weitere Einstellungen" kurz="Support-Zugriff, Benachrichtigungen, Rechtliches">
         <div className="flex flex-col gap-3">
