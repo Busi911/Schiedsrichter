@@ -40,7 +40,7 @@ export default async function AvvPage() {
   const bereitsAkzeptiert = !!verein?.avvAkzeptiertAm;
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex max-w-2xl flex-col gap-6 p-4 sm:p-6">
       <div>
         {/* Diese Seite liegt bewusst AUSSERHALB von admin/(dashboard)/layout.tsx
             (siehe Kommentar oben) und hat deshalb keine geerbte Navigation
@@ -264,10 +264,12 @@ export default async function AvvPage() {
         </CardHeader>
         {!bereitsAkzeptiert && session.user.istAdmin && (
           <CardContent>
-            <form action={avvAkzeptieren}>
-              <SubmitButton className="w-full">
-                Als {vereinName} zustimmen (Fassung {AVV_VERSION})
-              </SubmitButton>
+            <form action={avvAkzeptieren} className="flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground">
+                Mit dem Klick stimmst du als {vereinName} der Fassung{" "}
+                {AVV_VERSION} zu.
+              </p>
+              <SubmitButton className="w-full">Zustimmen</SubmitButton>
             </form>
           </CardContent>
         )}
