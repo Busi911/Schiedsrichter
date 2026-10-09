@@ -26,7 +26,7 @@ export function NeuerTerminDialog({
   return (
     <Dialog>
       <DialogTrigger render={<Button />}>Neuer Termin</DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Neuer Termin</DialogTitle>
         </DialogHeader>

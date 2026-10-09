@@ -80,7 +80,7 @@ export function FunktionstraegerBearbeitenDialog({
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
         Bearbeiten
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{p.name ?? p.email}</DialogTitle>
         </DialogHeader>
