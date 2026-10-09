@@ -123,8 +123,8 @@ function faqEintraege(live: boolean) {
     {
       frage: "Was kostet HandballerPate?",
       antwort: live
-        ? `HandballerPate kostet ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Die Rechnung kommt per E-Mail, das Zahlungsziel beträgt 30 Tage.`
-        : `Die Beta-Phase läuft voraussichtlich bis ${BETA_ENDE} und ist kostenlos. Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Vor dem Ende der Beta kann jeder Verein ohne Kosten aussteigen, dann werden alle Daten gelöscht.`,
+        ? `HandballerPate kostet ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Die Rechnung kommt per E-Mail, das Zahlungsziel beträgt 30 Tage. Optional kann ein Sponsor die Kosten übernehmen („Präsentiert von …“ beim Öffnen der Vereinsseite).`
+        : `Die Beta-Phase läuft voraussichtlich bis ${BETA_ENDE} und ist kostenlos. Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Vor dem Ende der Beta kann jeder Verein ohne Kosten aussteigen, dann werden alle Daten gelöscht. ${SPONSOR_KURZ}`,
     },
     {
       frage: "Müssen sich Spieler und Eltern registrieren?",
@@ -134,12 +134,12 @@ function faqEintraege(live: boolean) {
     {
       frage: "Wie tragen sich Eltern für Dienste ein?",
       antwort:
-        "Der Zeitnehmerwart oder Ordnerwart schaltet einen Link frei. Darüber wählen Eltern und Helfer ohne Login ihre Termine und tragen sich als Zeitnehmer, Sekretär, Ordner, Kioskdienst oder Kassierer ein. Mit einer E-Mail-Adresse entsteht auf Wunsch ein eigener Zugang mit Kalender und Erinnerungen.",
+        "Es gibt einen gemeinsamen Eintragungs-Link: Der Zeitnehmerwart schaltet den Teil für Zeitnehmer und Sekretär frei, der Ordnerwart den für Ordner, Kioskdienst und Kassierer. Darüber wählen Eltern und Helfer ohne Login ihre Termine und tragen sich ein. Mit einer E-Mail-Adresse entsteht auf Wunsch ein eigener Zugang mit Kalender und Erinnerungen.",
     },
     {
       frage: "Wie steht es um den Datenschutz?",
       antwort:
-        "Die Daten der Vereine sind strikt voneinander getrennt. Ein Auftragsverarbeitungsvertrag und die Datenschutzerklärung liegen von Anfang an bei. Von nuLiga und handball.net werden nur öffentliche Sport-Daten übernommen, keine Personendaten wie Schiedsrichter-Namen.",
+        "Die Daten der Vereine sind strikt voneinander getrennt. Ein Auftragsverarbeitungsvertrag und die Datenschutzerklärung liegen von Anfang an bei. Auf den öffentlichen Vereinsseiten erscheinen nur Sport-Daten (Spielpläne, Ergebnisse, Tabellen) aus nuLiga, handball.net und NDR, keine Personendaten wie Schiedsrichter-Namen. Ansetzungen landen nur in den privaten Terminen des Vereins.",
     },
   ];
 }
@@ -277,25 +277,12 @@ export default async function Home() {
             und Mannschaften ohne Login — für Spieler, Eltern und Fans. */}
         <section id="vereine" className="scroll-mt-4 border-t bg-muted/30">
           <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10">
-            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-              <div>
-                <h2 className="font-heading text-2xl font-semibold">Spielpläne &amp; Ergebnisse</h2>
-                <p className="text-sm text-muted-foreground">
-                  Euren Verein finden: Mannschaften, nächste Spiele, Ergebnisse und Live-Ticker, ohne Login — und als App aufs
-                  Handy installieren (im Browser „Teilen“ → „Zum Home-Bildschirm“).
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3 text-base">
-                <Link href="/verein" className="inline-flex min-h-12 items-center rounded-full border bg-background px-5 font-medium transition hover:bg-muted active:scale-[0.97]">
-                  Alle Vereine
-                </Link>
-                <Link href="/meine" className="inline-flex min-h-12 items-center rounded-full border bg-background px-5 font-medium transition hover:bg-muted active:scale-[0.97]">
-                  Meine Mannschaften
-                </Link>
-                <Link href="/app-hilfe" className="inline-flex min-h-12 items-center rounded-full border bg-background px-5 font-medium transition hover:bg-muted active:scale-[0.97]">
-                  Hilfe zur App
-                </Link>
-              </div>
+            <div>
+              <h2 className="font-heading text-2xl font-semibold">Spielpläne &amp; Ergebnisse</h2>
+              <p className="text-sm text-muted-foreground">
+                Euren Verein finden: Mannschaften, nächste Spiele, Ergebnisse und Live-Ticker, ohne Login — und als App aufs
+                Handy installieren (im Browser „Teilen“ → „Zum Home-Bildschirm“).
+              </p>
             </div>
             {vereineMitSeite.length === 0 ? (
               <p className="text-sm text-muted-foreground">Noch keine Vereine freigeschaltet.</p>
