@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/password-input";
 import { Logo } from "@/components/logo";
-import { SubmitButton } from "@/components/submit-button";
+import { ModusButton } from "@/components/modus-button";
 
 const FEHLER_TEXT: Record<string, string> = {
   CredentialsSignin: "E-Mail oder Passwort falsch.",
@@ -46,19 +46,19 @@ export default async function LoginPage({
       <div className="w-full max-w-sm">
         <Link
           href="/"
-          className="text-sm text-muted-foreground underline"
+          className="inline-flex min-h-11 items-center text-base text-muted-foreground underline"
         >
           ← Zur Startseite
         </Link>
       </div>
       <div className="flex w-full max-w-sm flex-col items-center gap-1 text-center">
-        <Logo className="mb-1 size-10 text-primary" />
-        <h1 className="text-xl font-semibold">Login</h1>
+        <Logo className="mb-1 size-16 text-primary" />
+        <h1 className="text-2xl font-semibold">Login</h1>
       </div>
 
       {passwortGeaendert && (
         <p className="w-full max-w-sm rounded-md border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-center text-sm text-emerald-700 dark:text-emerald-400">
-          Passwort geändert — melde dich damit neu an.
+          Passwort geändert — meldet euch damit neu an.
         </p>
       )}
       {error && (
@@ -69,9 +69,14 @@ export default async function LoginPage({
 
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-base">Mit Passwort einloggen</CardTitle>
+          <CardTitle className="text-lg">Einloggen</CardTitle>
+          <CardDescription>
+            Mit Passwort — oder ganz ohne: Wir schicken euch auf Wunsch einen Login-Link per E-Mail.
+          </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* EIN Formular für beide Wege: die E-Mail-Adresse muss nur einmal eingegeben werden. "Einloggen" (Standard-Absenden) nutzt das
+              Passwort, die beiden formAction-Buttons schicken stattdessen einen Link (Login bzw. Passwort zurücksetzen). */}
           <form
             action={async (formData) => {
               "use server";
@@ -99,38 +104,62 @@ export default async function LoginPage({
             className="flex flex-col gap-4"
           >
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password-email">E-Mail-Adresse</Label>
+              <Label htmlFor="email" className="text-base">
+                E-Mail-Adresse
+              </Label>
               <Input
-                id="password-email"
+                id="email"
                 name="email"
                 type="email"
                 required
                 placeholder="name@verein.de"
                 autoComplete="email"
+                className="h-12 px-3"
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Passwort</Label>
-              <PasswordInput
-                id="password"
-                name="password"
-                autoComplete="current-password"
-              />
+              <Label htmlFor="password" className="text-base">
+                Passwort
+              </Label>
+              <PasswordInput id="password" name="password" autoComplete="current-password" className="h-12 px-3 pr-12" />
             </div>
-            <SubmitButton className="w-full" pendingText="Wird geprüft…">
+            {/* Das Passwort-Feld ist bewusst NICHT required, sonst würde die Browser-Validierung auch die Link-Buttons blockieren,
+                obwohl sie kein Passwort brauchen. Ein leeres Passwort führt beim normalen Login serverseitig ohnehin nur zu
+                "falsches Passwort" (siehe authorize() in auth.ts), kein Absturz. Das E-Mail-Feld bleibt für alle Buttons required. */}
+            <ModusButton className="h-12 w-full text-base" pendingText="Wird geprüft…">
               Einloggen
-            </SubmitButton>
-            {/* Kein formNoValidate hier: das E-Mail-Feld oben bleibt required
-                und soll das auch für diesen Button bleiben (sonst lässt sich
-                mit leerem E-Mail-Feld klicken, ohne dass sichtbar etwas
-                passiert — die Server-Funktion tut dann still nichts). Das
-                Passwort-Feld ist bewusst NICHT required, sonst würde die
-                Browser-Validierung auch diesen Button blockieren, obwohl er
-                gar kein Passwort braucht. Ein leeres Passwort führt beim
-                normalen Login serverseitig ohnehin nur zu "falsches
-                Passwort" (siehe authorize() in auth.ts), kein Absturz. */}
-            <button
-              type="submit"
+            </ModusButton>
+
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <div className="h-px flex-1 bg-border" />
+              oder ohne Passwort
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
+            <ModusButton
+              variant="outline"
+              className="h-12 w-full text-base"
+              pendingText="Wird gesendet…"
+              formAction={async (formData) => {
+                "use server";
+                const email = formData.get("email");
+                if (typeof email !== "string" || !email) return;
+                try {
+                  await signIn("nodemailer", { email, redirectTo });
+                } catch (err) {
+                  if (err instanceof AuthError) {
+                    redirect(`/login?error=${err.type}`);
+                  }
+                  throw err;
+                }
+              }}
+            >
+              Login-Link per E-Mail senden
+            </ModusButton>
+            <ModusButton
+              variant="ghost"
+              className="h-12 w-full text-base text-muted-foreground"
+              pendingText="Wird gesendet…"
               formAction={async (formData) => {
                 "use server";
                 const email = formData.get("email");
@@ -147,58 +176,9 @@ export default async function LoginPage({
                   throw err;
                 }
               }}
-              className="text-center text-xs text-muted-foreground underline"
             >
-              Passwort vergessen? Login-Link zum Zurücksetzen senden
-            </button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <div className="flex w-full max-w-sm items-center gap-3 text-xs text-muted-foreground">
-        <div className="h-px flex-1 bg-border" />
-        oder
-        <div className="h-px flex-1 bg-border" />
-      </div>
-
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-base">Login-Link per E-Mail</CardTitle>
-          <CardDescription>
-            Kein Passwort nötig — wir schicken dir einen Login-Link.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            action={async (formData) => {
-              "use server";
-              const email = formData.get("email");
-              if (typeof email !== "string" || !email) return;
-              try {
-                await signIn("nodemailer", { email, redirectTo });
-              } catch (err) {
-                if (err instanceof AuthError) {
-                  redirect(`/login?error=${err.type}`);
-                }
-                throw err;
-              }
-            }}
-            className="flex flex-col gap-4"
-          >
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">E-Mail-Adresse</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                required
-                placeholder="name@verein.de"
-                autoComplete="email"
-              />
-            </div>
-            <SubmitButton className="w-full" pendingText="Wird gesendet…">
-              Login-Link senden
-            </SubmitButton>
+              Passwort vergessen?
+            </ModusButton>
           </form>
         </CardContent>
       </Card>

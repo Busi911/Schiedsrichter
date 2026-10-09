@@ -326,25 +326,23 @@ export default async function ZeitnehmerwartPage({
                   der ganzen Seite — die Warnung gehört ohnehin eher in eine
                   Rückfrage als ins Label, siehe Deaktivieren-Button unten. */}
               {verein?.zeitnehmerSelbstanmeldungToken ? (
-                <ConfirmSubmitButton
+                <ConfirmSubmitButton className="h-11 px-4 text-sm"
                   confirmText="Neuen Link generieren? Der bisherige Link funktioniert danach nicht mehr."
                   variant="outline"
-                  size="sm"
                 >
                   Link neu generieren
                 </ConfirmSubmitButton>
               ) : (
-                <SubmitButton variant="outline" size="sm">
+                <SubmitButton className="h-11 px-4 text-sm" variant="outline">
                   Aktivieren
                 </SubmitButton>
               )}
             </form>
             {verein?.zeitnehmerSelbstanmeldungToken && (
               <form action={zeitnehmerSelbstanmeldungDeaktivieren}>
-                <ConfirmSubmitButton
+                <ConfirmSubmitButton className="h-11 px-4 text-sm"
                   confirmText="Selbsteintragung deaktivieren? Der bisherige Link funktioniert danach nicht mehr."
                   variant="ghost"
-                  size="sm"
                 >
                   Deaktivieren
                 </ConfirmSubmitButton>
@@ -376,8 +374,7 @@ export default async function ZeitnehmerwartPage({
                 <span>{m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name}</span>
                 <form action={zeitnehmerMannschaftBedarfUmschalten}>
                   <input type="hidden" name="mannschaftId" value={m.id} />
-                  <SubmitButton
-                    size="xs"
+                  <SubmitButton className="h-11 px-4 text-sm"
                     variant={m.zeitnehmerBedarfDeaktiviert ? "outline" : "secondary"}
                   >
                     Zeitnehmer/Sekretär {m.zeitnehmerBedarfDeaktiviert ? "deaktiviert" : "aktiv"}
@@ -437,7 +434,7 @@ export default async function ZeitnehmerwartPage({
                     {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
                   </p>
                   {kandidaten.length === 0 ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       Keine passende Person im Verein angelegt.
                     </p>
                   ) : (
@@ -455,7 +452,7 @@ export default async function ZeitnehmerwartPage({
                           required
                         />
                       </div>
-                      <SubmitButton size="sm">Bestätigen</SubmitButton>
+                      <SubmitButton className="h-11 px-4 text-sm">Bestätigen</SubmitButton>
                     </form>
                   )}
                   {/* Immer verfügbar, nicht nur als Fallback ohne
@@ -465,7 +462,7 @@ export default async function ZeitnehmerwartPage({
                       Rolle anlegen, statt den Umweg über
                       /admin/funktionstraeger zu erzwingen. */}
                   <details className="group mt-1.5">
-                    <DisclosureSummary>
+                    <DisclosureSummary className="h-11 px-4 text-sm">
                       <span className="group-open:hidden">
                         Neue Person anlegen
                       </span>
@@ -483,9 +480,9 @@ export default async function ZeitnehmerwartPage({
                         type="email"
                         placeholder="E-Mail (Platzhalter reicht)"
                         required
-                        className="h-8 min-w-56 flex-1"
+                        className="h-11 min-w-56 flex-1 px-3 text-base"
                       />
-                      <SubmitButton size="xs" variant="outline">
+                      <SubmitButton className="h-11 px-4 text-sm" variant="outline">
                         {z.externerName} anlegen &amp; als{" "}
                         {z.funktionstraegerTyp === "zeitnehmer"
                           ? "Zeitnehmer"
@@ -505,7 +502,7 @@ export default async function ZeitnehmerwartPage({
                         name="rolleId"
                         value={inaktivVorschlag.rolleId}
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         Ähnlich:{" "}
                         <span className="font-medium text-foreground">
                           {inaktivVorschlag.name ?? inaktivVorschlag.email}
@@ -513,9 +510,8 @@ export default async function ZeitnehmerwartPage({
                         — als {inaktivVorschlag.typ === "zeitnehmer" ? "Zeitnehmer" : "Sekretär"}{" "}
                         aktuell inaktiv.
                       </p>
-                      <ConfirmSubmitButton
+                      <ConfirmSubmitButton className="h-11 px-4 text-sm"
                         confirmText={`${inaktivVorschlag.name ?? inaktivVorschlag.email} aktivieren und dieser Zuordnung zuordnen?`}
-                        size="xs"
                         variant="outline"
                       >
                         Aktivieren &amp; zuordnen
@@ -555,11 +551,11 @@ export default async function ZeitnehmerwartPage({
                 <div className="flex gap-2">
                   <form action={abmeldungGenehmigen}>
                     <input type="hidden" name="zuordnungId" value={z.id} />
-                    <SubmitButton size="sm">Bestätigen</SubmitButton>
+                    <SubmitButton className="h-11 px-4 text-sm">Bestätigen</SubmitButton>
                   </form>
                   <form action={abmeldungAblehnen}>
                     <input type="hidden" name="zuordnungId" value={z.id} />
-                    <SubmitButton variant="outline" size="sm">
+                    <SubmitButton className="h-11 px-4 text-sm" variant="outline">
                       Ablehnen
                     </SubmitButton>
                   </form>
@@ -629,7 +625,7 @@ export default async function ZeitnehmerwartPage({
             </CardTitle>
             <Link
               href={terminFilterHref({ nurOffene: !nurOffene })}
-              className="text-xs text-muted-foreground underline"
+              className="text-sm text-muted-foreground underline"
             >
               {nurOffene ? "Alle anzeigen" : "Nur offene anzeigen"}
             </Link>
@@ -731,12 +727,12 @@ export default async function ZeitnehmerwartPage({
                     </p>
                   )}
                   {t.handballNetZeitnehmer && (
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       handball.net-Ansetzung: {t.handballNetZeitnehmer}
                     </p>
                   )}
                   <details className="group mt-1">
-                    <DisclosureSummary className="text-[0.7rem]">
+                    <DisclosureSummary className="h-11 px-4 text-sm">
                       <span className="group-open:hidden">
                         Bedarf: {t.zeitnehmerBedarf}
                         {t.zeitnehmerBedarfOverride != null && " (angepasst)"}
@@ -751,7 +747,7 @@ export default async function ZeitnehmerwartPage({
                         <input type="hidden" name="terminId" value={t.id} />
                         <Label
                           htmlFor={`bedarf-${t.id}`}
-                          className="text-xs text-muted-foreground"
+                          className="text-sm text-muted-foreground"
                         >
                           Bedarf für diesen Termin
                         </Label>
@@ -762,16 +758,16 @@ export default async function ZeitnehmerwartPage({
                           min={0}
                           defaultValue={t.zeitnehmerBedarfOverride ?? ""}
                           placeholder="Standard"
-                          className="h-8 w-20"
+                          className="h-11 w-24 px-3 text-base"
                         />
-                        <SubmitButton size="xs" variant="outline">
+                        <SubmitButton className="h-11 px-4 text-sm" variant="outline">
                           Speichern
                         </SubmitButton>
                       </form>
                       {t.zeitnehmerBedarfOverride != null && (
                         <form action={zeitnehmerBedarfUeberschreiben}>
                           <input type="hidden" name="terminId" value={t.id} />
-                          <SubmitButton size="xs" variant="ghost">
+                          <SubmitButton className="h-11 px-4 text-sm" variant="ghost">
                             Zurücksetzen (Standard)
                           </SubmitButton>
                         </form>
@@ -825,7 +821,7 @@ export default async function ZeitnehmerwartPage({
                             <div className="flex items-center gap-3">
                               {auswaehlbareErsatzOptionen > 0 && (
                                 <details className="group">
-                                  <DisclosureSummary>
+                                  <DisclosureSummary className="h-11 px-4 text-sm">
                                     <span className="group-open:hidden">
                                       Ersetzen
                                     </span>
@@ -855,7 +851,7 @@ export default async function ZeitnehmerwartPage({
                                         required
                                       />
                                     </div>
-                                    <SubmitButton size="xs" variant="outline">
+                                    <SubmitButton className="h-11 px-4 text-sm" variant="outline">
                                       Ersetzen
                                     </SubmitButton>
                                   </form>
@@ -867,10 +863,9 @@ export default async function ZeitnehmerwartPage({
                                   name="zuordnungId"
                                   value={z.id}
                                 />
-                                <ConfirmSubmitButton
+                                <ConfirmSubmitButton className="h-11 px-4 text-sm"
                                   confirmText={`${z.name ?? z.externerName ?? z.email} entfernen?`}
                                   variant="destructive"
-                                  size="xs"
                                 >
                                   Entfernen
                                 </ConfirmSubmitButton>
@@ -885,7 +880,7 @@ export default async function ZeitnehmerwartPage({
                   {t.zeitnehmerBedarf > 0 && !t.besetzung.zeitnehmerSekretaerVoll && (
                     <div className="mt-2 flex flex-col gap-2">
                       {auswaehlbareOptionen === 0 && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           Keine Person zu diesem Zeitpunkt verfügbar.
                         </p>
                       )}
@@ -904,11 +899,11 @@ export default async function ZeitnehmerwartPage({
                                 required
                               />
                             </div>
-                            <SubmitButton size="sm">Zuordnen</SubmitButton>
+                            <SubmitButton className="h-11 px-4 text-sm">Zuordnen</SubmitButton>
                           </form>
                         ) : (
                           <details className="group">
-                            <DisclosureSummary>
+                            <DisclosureSummary className="h-11 px-4 text-sm">
                               <span className="group-open:hidden">
                                 Weitere Person hinzufügen
                               </span>
@@ -933,7 +928,7 @@ export default async function ZeitnehmerwartPage({
                                   required
                                 />
                               </div>
-                              <SubmitButton size="sm">
+                              <SubmitButton className="h-11 px-4 text-sm">
                                 Weitere zuordnen
                               </SubmitButton>
                             </form>
@@ -944,7 +939,7 @@ export default async function ZeitnehmerwartPage({
                           schiedsrichterwart/page.tsx. Standardmäßig
                           eingeklappt: nur ein Fallback. */}
                       <details className="group">
-                        <DisclosureSummary>
+                        <DisclosureSummary className="h-11 px-4 text-sm">
                           <span className="group-open:hidden">
                             Ohne Login zuordnen (Fallback)
                           </span>
@@ -961,17 +956,17 @@ export default async function ZeitnehmerwartPage({
                             name="name"
                             placeholder="Name ohne Login (z.B. Gast-Zeitnehmer)"
                             required
-                            className="h-8 min-w-56 flex-1"
+                            className="h-11 min-w-56 flex-1 px-3 text-base"
                           />
-                          <div className="w-36">
-                            <LabeledSelect
+                          <div className="w-44">
+                            <LabeledSelect triggerClassName="h-11 text-base"
                               name="rolle"
                               placeholder="Rolle…"
                               options={ROLLE_OPTIONEN}
                               required
                             />
                           </div>
-                          <SubmitButton size="xs" variant="ghost">
+                          <SubmitButton className="h-11 px-4 text-sm" variant="ghost">
                             Zuordnen
                           </SubmitButton>
                         </form>

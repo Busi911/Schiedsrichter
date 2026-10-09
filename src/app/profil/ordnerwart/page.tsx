@@ -279,25 +279,23 @@ export default async function OrdnerwartPage({
                   ist whitespace-nowrap) — siehe gleicher Kommentar in
                   profil/zeitnehmerwart/page.tsx. */}
               {verein?.ordnerSelbstanmeldungToken ? (
-                <ConfirmSubmitButton
+                <ConfirmSubmitButton className="h-11 px-4 text-sm"
                   confirmText="Neuen Link generieren? Der bisherige Link funktioniert danach nicht mehr."
                   variant="outline"
-                  size="sm"
                 >
                   Link neu generieren
                 </ConfirmSubmitButton>
               ) : (
-                <SubmitButton variant="outline" size="sm">
+                <SubmitButton className="h-11 px-4 text-sm" variant="outline">
                   Aktivieren
                 </SubmitButton>
               )}
             </form>
             {verein?.ordnerSelbstanmeldungToken && (
               <form action={ordnerSelbstanmeldungDeaktivieren}>
-                <ConfirmSubmitButton
+                <ConfirmSubmitButton className="h-11 px-4 text-sm"
                   confirmText="Selbsteintragung deaktivieren? Der bisherige Link funktioniert danach nicht mehr."
                   variant="ghost"
-                  size="sm"
                 >
                   Deaktivieren
                 </ConfirmSubmitButton>
@@ -339,8 +337,7 @@ export default async function OrdnerwartPage({
                       <form key={rolle} action={ordnerMannschaftBedarfUmschalten}>
                         <input type="hidden" name="mannschaftId" value={m.id} />
                         <input type="hidden" name="rolle" value={rolle} />
-                        <SubmitButton
-                          size="xs"
+                        <SubmitButton className="h-11 px-4 text-sm"
                           variant={deaktiviert ? "outline" : "secondary"}
                         >
                           {ROLLE_LABEL[rolle]} {deaktiviert ? "deaktiviert" : "aktiv"}
@@ -387,7 +384,7 @@ export default async function OrdnerwartPage({
                     {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
                   </p>
                   {kandidaten.length === 0 ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       Keine passende Person im Verein angelegt.
                     </p>
                   ) : (
@@ -397,7 +394,7 @@ export default async function OrdnerwartPage({
                     >
                       <input type="hidden" name="zuordnungId" value={z.id} />
                       <div className="min-w-56">
-                        <LabeledSelect
+                        <LabeledSelect triggerClassName="h-11 text-base"
                           name="userId"
                           placeholder="Person wählen…"
                           defaultValue={z.matchVorschlagUserId ?? undefined}
@@ -405,7 +402,7 @@ export default async function OrdnerwartPage({
                           required
                         />
                       </div>
-                      <SubmitButton size="sm">Bestätigen</SubmitButton>
+                      <SubmitButton className="h-11 px-4 text-sm">Bestätigen</SubmitButton>
                     </form>
                   )}
                   {/* Immer verfügbar, nicht nur als Fallback ohne
@@ -417,7 +414,7 @@ export default async function OrdnerwartPage({
                       /admin/funktionstraeger zu erzwingen. Analog zum
                       gleichen Fallback in profil/zeitnehmerwart/page.tsx. */}
                   <details className="group mt-1.5">
-                    <DisclosureSummary>
+                    <DisclosureSummary className="h-11 px-4 text-sm">
                       <span className="group-open:hidden">
                         Neue Person anlegen
                       </span>
@@ -435,9 +432,9 @@ export default async function OrdnerwartPage({
                         type="email"
                         placeholder="E-Mail (Platzhalter reicht)"
                         required
-                        className="h-8 min-w-56 flex-1"
+                        className="h-11 min-w-56 flex-1 px-3 text-base"
                       />
-                      <SubmitButton size="xs" variant="outline">
+                      <SubmitButton className="h-11 px-4 text-sm" variant="outline">
                         {z.externerName} anlegen &amp; als{" "}
                         {ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}{" "}
                         bestätigen
@@ -477,11 +474,11 @@ export default async function OrdnerwartPage({
                 <div className="flex gap-2">
                   <form action={abmeldungGenehmigen}>
                     <input type="hidden" name="zuordnungId" value={z.id} />
-                    <SubmitButton size="sm">Bestätigen</SubmitButton>
+                    <SubmitButton className="h-11 px-4 text-sm">Bestätigen</SubmitButton>
                   </form>
                   <form action={abmeldungAblehnen}>
                     <input type="hidden" name="zuordnungId" value={z.id} />
-                    <SubmitButton variant="outline" size="sm">
+                    <SubmitButton className="h-11 px-4 text-sm" variant="outline">
                       Ablehnen
                     </SubmitButton>
                   </form>
@@ -548,7 +545,7 @@ export default async function OrdnerwartPage({
             </CardTitle>
             <Link
               href={terminFilterHref({ nurOffene: !nurOffene })}
-              className="text-xs text-muted-foreground underline"
+              className="text-sm text-muted-foreground underline"
             >
               {nurOffene ? "Alle anzeigen" : "Nur offene anzeigen"}
             </Link>
@@ -639,7 +636,7 @@ export default async function OrdnerwartPage({
                             <div className="flex items-center gap-3">
                               {auswaehlbareOptionen > 0 && (
                                 <details className="group">
-                                  <DisclosureSummary>
+                                  <DisclosureSummary className="h-11 px-4 text-sm">
                                     <span className="group-open:hidden">
                                       Ersetzen
                                     </span>
@@ -662,14 +659,14 @@ export default async function OrdnerwartPage({
                                       value={z.id}
                                     />
                                     <div className="min-w-56">
-                                      <LabeledSelect
+                                      <LabeledSelect triggerClassName="h-11 text-base"
                                         name="personRolle"
                                         placeholder="Ersatz wählen…"
                                         options={personOptionen}
                                         required
                                       />
                                     </div>
-                                    <SubmitButton size="xs" variant="outline">
+                                    <SubmitButton className="h-11 px-4 text-sm" variant="outline">
                                       Ersetzen
                                     </SubmitButton>
                                   </form>
@@ -681,10 +678,9 @@ export default async function OrdnerwartPage({
                                   name="zuordnungId"
                                   value={z.id}
                                 />
-                                <ConfirmSubmitButton
+                                <ConfirmSubmitButton className="h-11 px-4 text-sm"
                                   confirmText={`${z.name ?? z.externerName ?? z.email} entfernen?`}
                                   variant="destructive"
-                                  size="xs"
                                 >
                                   Entfernen
                                 </ConfirmSubmitButton>
@@ -697,7 +693,7 @@ export default async function OrdnerwartPage({
                   )}
                   {auswaehlbareOptionen === 0 ? (
                     !t.vollstaendig && (
-                      <p className="mt-2 text-xs text-muted-foreground">
+                      <p className="mt-2 text-sm text-muted-foreground">
                         Keine Person zu diesem Zeitpunkt verfügbar.
                       </p>
                     )
@@ -708,18 +704,18 @@ export default async function OrdnerwartPage({
                     >
                       <input type="hidden" name="terminId" value={t.id} />
                       <div className="min-w-56">
-                        <LabeledSelect
+                        <LabeledSelect triggerClassName="h-11 text-base"
                           name="personRolle"
                           placeholder="Person wählen…"
                           options={personOptionen}
                           required
                         />
                       </div>
-                      <SubmitButton size="sm">Zuordnen</SubmitButton>
+                      <SubmitButton className="h-11 px-4 text-sm">Zuordnen</SubmitButton>
                     </form>
                   ) : (
                     <details className="group mt-2">
-                      <DisclosureSummary>
+                      <DisclosureSummary className="h-11 px-4 text-sm">
                         <span className="group-open:hidden">
                           Weitere Person hinzufügen
                         </span>
@@ -733,14 +729,14 @@ export default async function OrdnerwartPage({
                       >
                         <input type="hidden" name="terminId" value={t.id} />
                         <div className="min-w-56">
-                          <LabeledSelect
+                          <LabeledSelect triggerClassName="h-11 text-base"
                             name="personRolle"
                             placeholder="Person wählen…"
                             options={personOptionen}
                             required
                           />
                         </div>
-                        <SubmitButton size="sm">
+                        <SubmitButton className="h-11 px-4 text-sm">
                           Weitere zuordnen
                         </SubmitButton>
                       </form>
@@ -748,17 +744,17 @@ export default async function OrdnerwartPage({
                   )}
                   {/* Ohne Login immer anbieten (Fallback, z.B. Elternteil) — Pendant zum Zeitnehmerwart. */}
                   <details className="group mt-2">
-                    <DisclosureSummary>
+                    <DisclosureSummary className="h-11 px-4 text-sm">
                       <span className="group-open:hidden">Ohne Login zuordnen (Fallback)</span>
                       <span className="hidden group-open:inline">Schließen</span>
                     </DisclosureSummary>
                     <form action={ordnerOhneLoginZuordnen} className="mt-2 flex flex-wrap items-center gap-2">
                       <input type="hidden" name="terminId" value={t.id} />
-                      <Input name="name" placeholder="Name ohne Login (z.B. Elternteil)" required className="h-8 min-w-56 flex-1" />
+                      <Input name="name" placeholder="Name ohne Login (z.B. Elternteil)" required className="h-11 min-w-56 flex-1 px-3 text-base" />
                       <div className="w-40">
-                        <LabeledSelect name="rolle" placeholder="Rolle…" options={ORDNER_ROLLE_OPTIONEN} required />
+                        <LabeledSelect triggerClassName="h-11 text-base" name="rolle" placeholder="Rolle…" options={ORDNER_ROLLE_OPTIONEN} required />
                       </div>
-                      <SubmitButton size="xs" variant="ghost">
+                      <SubmitButton className="h-11 px-4 text-sm" variant="ghost">
                         Zuordnen
                       </SubmitButton>
                     </form>

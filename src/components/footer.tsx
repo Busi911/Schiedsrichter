@@ -17,40 +17,35 @@ export async function Footer() {
 
   return (
     <footer className="mt-auto border-t bg-background px-6 py-4">
-      <p className="text-center text-xs text-muted-foreground">
-        <Link href="/verein" className="underline">
+      <nav aria-label="Weitere Seiten" className="flex flex-wrap items-center justify-center gap-x-5 text-sm text-muted-foreground">
+        <Link href="/verein" className="inline-flex min-h-11 items-center underline">
           Vereine
         </Link>
-        {" · "}
         {!eingeloggt && (
           <>
-            <Link href="/app-hilfe" className="underline">
+            <Link href="/app-hilfe" className="inline-flex min-h-11 items-center underline">
               Hilfe zur App
             </Link>
-            {" · "}
-            <Link href="/registrieren" className="underline">
+            <Link href="/registrieren" className="inline-flex min-h-11 items-center underline">
               Verein registrieren
             </Link>
-            {" · "}
           </>
         )}
         {eingeloggt && (
           <>
-            <Link href="/hilfe" className="underline">
+            <Link href="/hilfe" className="inline-flex min-h-11 items-center underline">
               Hilfe
             </Link>
-            {" · "}
           </>
         )}
-        <Link href="/datenschutz" className="underline">
+        <Link href="/datenschutz" className="inline-flex min-h-11 items-center underline">
           Datenschutz
         </Link>
-        {" · "}
-        <Link href="/impressum" className="underline">
+        <Link href="/impressum" className="inline-flex min-h-11 items-center underline">
           Impressum
         </Link>
-      </p>
-      <div className="mt-3 flex justify-center">
+      </nav>
+      <div className="mt-2 flex justify-center">
         <ThemeUmschalter />
       </div>
     </footer>

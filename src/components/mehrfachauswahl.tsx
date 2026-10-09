@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { CheckCircle2Icon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
 import { SubmitButton } from "@/components/submit-button";
 import { cn } from "@/lib/utils";
@@ -138,6 +140,12 @@ export function TerminMehrfachAuswahl({
     }
   }
 
+  // Rückmeldung nach dem Absenden (Erfolg ODER Fehler) in den sichtbaren Bereich holen — das Formular klebt unten, die Meldung steht oben.
+  const rueckmeldungRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (status) rueckmeldungRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [status]);
+
   function toggle(id: string) {
     setAusgewaehlt((bisherige) => {
       const naechste = new Set(bisherige);
@@ -149,29 +157,41 @@ export function TerminMehrfachAuswahl({
 
   return (
     <div className="flex flex-col gap-3">
+      {status && status.eingetragen > 0 && (
+        <div ref={rueckmeldungRef}>
+          <Alert className="border-emerald-500/50 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300">
+            <CheckCircle2Icon />
+            <AlertDescription className="text-base font-medium text-emerald-800 dark:text-emerald-300">
+              {status.eingetragen === status.gesamt
+                ? status.gesamt === 1
+                  ? "Erledigt: Der Termin ist eingetragen."
+                  : `Erledigt: Alle ${status.gesamt} Termine sind eingetragen.`
+                : `${status.eingetragen} von ${status.gesamt} Terminen eingetragen.`}{" "}
+              Danke! Die Einträge stehen jetzt an den Terminen.
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       {// Außerhalb des Formulars, da das Formular nach einem Teilerfolg
       // (mindestens ein Termin eingetragen) ausgeblendet wird, sobald die
       // Auswahl zurückgesetzt ist — die Fehlermeldung zu den restlichen,
       // fehlgeschlagenen Terminen soll trotzdem sichtbar bleiben.
       status?.fehler && (
-        <Alert variant="destructive">
-          <AlertDescription>
-            {status.eingetragen > 0 && (
-              <p>
-                {status.eingetragen} von {status.gesamt}{" "}
-                {status.gesamt === 1 ? "Termin" : "Terminen"} eingetragen.
-              </p>
-            )}
-            {status.fehler.split(" | ").map((f) => (
-              <p key={f}>{f}</p>
-            ))}
-          </AlertDescription>
-        </Alert>
+        <div ref={status.eingetragen > 0 ? undefined : rueckmeldungRef}>
+          <Alert variant="destructive">
+            <AlertDescription className="text-base">
+              {status.fehler.split(" | ").map((f) => (
+                <p key={f}>{f}</p>
+              ))}
+            </AlertDescription>
+          </Alert>
+        </div>
       )}
 
       {status?.warnung && (
         <Alert>
-          <AlertDescription>
+          <AlertDescription className="text-base">
             {status.warnung.split(" | ").map((w) => (
               <p key={w}>{w}</p>
             ))}
@@ -179,11 +199,13 @@ export function TerminMehrfachAuswahl({
         </Alert>
       )}
 
-      <div className="flex w-fit gap-1 rounded-lg border bg-muted p-1 text-xs">
+      <p className="text-base text-muted-foreground">Tippt einen Termin an, um ihn auszuwählen — mehrere gleichzeitig sind möglich.</p>
+
+      <div className="flex w-fit gap-1 rounded-lg border bg-muted p-1">
         <Button
           type="button"
           variant={sortierung === "datum" ? "secondary" : "ghost"}
-          size="xs"
+          className="h-11 px-4 text-base"
           onClick={() => setSortierung("datum")}
         >
           Nach Datum
@@ -191,7 +213,7 @@ export function TerminMehrfachAuswahl({
         <Button
           type="button"
           variant={sortierung === "offen" ? "secondary" : "ghost"}
-          size="xs"
+          className="h-11 px-4 text-base"
           onClick={() => setSortierung("offen")}
         >
           Offene zuerst
@@ -211,16 +233,18 @@ export function TerminMehrfachAuswahl({
               // Ganze Karte als Tippfläche statt nur der kleinen Checkbox —
               // auf dem Handy (Hauptnutzung dieser Seite, z.B. während eines
               // Turniers) deutlich leichter zu treffen.
-              t.eintragbar && "cursor-pointer select-none"
+              t.eintragbar && "cursor-pointer select-none transition active:scale-[0.99]",
+              ausgewaehlt.has(t.id) && "bg-primary/5 ring-2 ring-primary"
             )}
             onClick={t.eintragbar ? () => toggle(t.id) : undefined}
           >
-            <CardContent className="flex flex-col gap-2 text-sm">
+            <CardContent className="flex flex-col gap-3 text-base">
               <div className="flex flex-wrap items-center gap-2">
                 {t.eintragbar && (
                   <input
                     type="checkbox"
                     aria-label={`${t.zeit} auswählen`}
+                    className="size-6 shrink-0 accent-primary"
                     checked={ausgewaehlt.has(t.id)}
                     onChange={() => toggle(t.id)}
                     // Klick nicht zusätzlich zur Karte durchbubbeln lassen,
@@ -230,7 +254,7 @@ export function TerminMehrfachAuswahl({
                     onClick={(e) => e.stopPropagation()}
                   />
                 )}
-                <span className="font-medium">{t.zeit}</span>
+                <span className="text-lg font-semibold">{t.zeit}</span>
                 <Badge variant="outline">{t.typLabel}</Badge>
                 <Badge variant={t.vollstaendig ? "secondary" : "outline"}>
                   {t.vollstaendig ? "Besetzung vollständig" : "Besetzung offen"}
@@ -272,21 +296,21 @@ export function TerminMehrfachAuswahl({
         // Container; am Listenende sitzt es einfach an seiner normalen Stelle).
         <form
           action={submitActionState}
-          className="sticky bottom-3 z-20 flex flex-col gap-2 rounded-lg border bg-background p-3 shadow-lg"
+          className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-lg border bg-background p-4 shadow-lg"
         >
           <input type="hidden" name="token" value={token} />
           {[...ausgewaehlt].map((id) => (
             <input key={id} type="hidden" name="terminIds" value={id} />
           ))}
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-medium">
+            <span className="text-base font-semibold">
               {ausgewaehlt.size} {ausgewaehlt.size === 1 ? "Termin" : "Termine"}{" "}
               ausgewählt
             </span>
             <Button
               type="button"
               variant="ghost"
-              size="xs"
+              className="h-10 px-3 text-sm"
               onClick={() => setAusgewaehlt(new Set())}
             >
               Zurücksetzen
@@ -298,7 +322,7 @@ export function TerminMehrfachAuswahl({
             // einer braucht nur noch einen Zeitnehmer, ein anderer nur noch
             // einen Sekretär) — Hinweis statt einem Rollen-Dropdown ohne
             // Optionen.
-            <span className="text-xs text-destructive">
+            <span className="text-sm text-destructive">
               Für die ausgewählte Kombination gibt es keine gemeinsame offene
               Rolle mehr — bitte Auswahl anpassen oder Termine einzeln
               eintragen.
@@ -306,38 +330,51 @@ export function TerminMehrfachAuswahl({
           ) : (
             <>
               {eingeloggtAls ? (
-                <span className="text-sm">
+                <span className="text-base">
                   Eintragen als <strong>{eingeloggtAls}</strong>
                 </span>
               ) : (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Input
-                    name="name"
-                    placeholder="Dein Name"
-                    required
-                    className="h-8"
-                  />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="eintragen-name" className="text-base">
+                      Name
+                    </Label>
+                    <Input id="eintragen-name" name="name" placeholder="Vor- und Nachname" autoComplete="name" required className="h-12 px-3" />
+                  </div>
                   {zeigeEmailFeld && (
-                    <Input
-                      name="email"
-                      type="email"
-                      placeholder="E-Mail (optional, für eigenen Zugang)"
-                      className="h-8"
-                    />
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="eintragen-email" className="text-base">
+                        E-Mail (optional)
+                      </Label>
+                      <Input
+                        id="eintragen-email"
+                        name="email"
+                        type="email"
+                        placeholder="name@verein.de"
+                        autoComplete="email"
+                        className="h-12 px-3"
+                      />
+                      <p className="text-sm text-muted-foreground">Nur nötig, wenn ihr einen eigenen Zugang möchtet.</p>
+                    </div>
                   )}
                 </div>
               )}
-              <div className="flex items-center gap-2">
-                <div className="min-w-0 flex-1 sm:w-36 sm:flex-none">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Label htmlFor="eintragen-rolle" className="text-base">
+                    Rolle
+                  </Label>
                   <LabeledSelect
+                    id="eintragen-rolle"
                     name="rolle"
-                    placeholder="Rolle…"
+                    placeholder="Rolle wählen…"
                     options={rolleOptionenGefiltert}
+                    triggerClassName="h-12 text-base"
                     required
                   />
                 </div>
-                <SubmitButton size="sm" pendingText="Wird eingetragen…">
-                  Für alle eintragen
+                <SubmitButton className="h-12 px-6 text-base sm:flex-none" pendingText="Wird eingetragen…">
+                  {ausgewaehlt.size === 1 ? "Eintragen" : `Für alle ${ausgewaehlt.size} eintragen`}
                 </SubmitButton>
               </div>
             </>
