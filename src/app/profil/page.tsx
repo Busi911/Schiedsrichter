@@ -259,10 +259,10 @@ export default async function ProfilPage({
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4">
           <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-start">
-           <div className="flex min-w-0 items-center gap-3">
+           <div className="flex min-w-0 flex-1 items-center gap-3 md:flex-none">
             <KopfLogo logo={vereinsLogo} className="size-10" />
-            <div>
-              <p className="font-heading text-lg font-semibold">
+            <div className="min-w-0">
+              <p className="font-heading text-lg leading-tight font-semibold break-words">
                 {verein?.name ?? "Verein"}
               </p>
               <p className="text-xs text-muted-foreground">

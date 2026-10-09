@@ -23,6 +23,7 @@ import {
 } from "@/app/admin/(dashboard)/trainingsplan/actions";
 import { TrainingsplanWoche } from "@/components/trainingsplan-woche";
 import {
+  SchliesseNachSpeichern,
   TrainingszeitDialog,
   type TrainingszeitEintrag,
 } from "@/components/trainingszeit-dialog";
@@ -65,6 +66,7 @@ function NeueHalleDialog() {
           <DialogTitle>Halle anlegen</DialogTitle>
         </DialogHeader>
         <form action={halleAnlegen} className="flex flex-col gap-3">
+          <SchliesseNachSpeichern onFertig={() => setOpen(false)} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="halle-name">Name</Label>
             <Input id="halle-name" name="name" required placeholder="z.B. Sporthalle Nord" />
@@ -109,6 +111,7 @@ function HalleBearbeitenDialog({ halle }: { halle: Halle }) {
           <DialogTitle>Halle bearbeiten</DialogTitle>
         </DialogHeader>
         <form action={halleBearbeiten} className="flex flex-col gap-3">
+          <SchliesseNachSpeichern onFertig={() => setOpen(false)} />
           <input type="hidden" name="halleId" value={halle.id} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="halle-bearbeiten-name">Name</Label>

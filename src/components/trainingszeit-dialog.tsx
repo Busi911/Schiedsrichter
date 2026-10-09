@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LabeledSelect } from "@/components/labeled-select";
+import { PersonSelect } from "@/components/person-select";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
@@ -54,7 +55,7 @@ function minutenZuZeitwert(minuten: number): string {
 // Dialog nach z.B. "Löschen" einfach offen stehenbleiben und dabei auf eine
 // inzwischen nicht mehr existierende Trainingszeit zeigen. Muss innerhalb
 // des <form> gerendert werden, useFormStatus liest sonst nichts.
-function SchliesseNachSpeichern({ onFertig }: { onFertig: () => void }) {
+export function SchliesseNachSpeichern({ onFertig }: { onFertig: () => void }) {
   const { pending } = useFormStatus();
   const warPending = useRef(false);
   useEffect(() => {
@@ -157,7 +158,7 @@ export function TrainingszeitDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="tz-mannschaft">Mannschaft</Label>
-            <LabeledSelect
+            <PersonSelect
               id="tz-mannschaft"
               name="mannschaftId"
               required
@@ -346,7 +347,7 @@ function ZusatzAktionen({
             Diese Mannschaft übernimmt den Platz der gewählten (Zeit, Halle und Abteil bleiben), und umgekehrt — z.B. um Hallenseite oder Viertel zu
             tauschen.
           </p>
-          <LabeledSelect id="tz-tausch" name="idB" required placeholder={`Tauschen mit … (${WOCHENTAGE_LABEL_KURZ[eintrag.wochentag]})`} options={partner} />
+          <PersonSelect id="tz-tausch" name="idB" required placeholder={`Tauschen mit … (${WOCHENTAGE_LABEL_KURZ[eintrag.wochentag]})`} options={partner} />
           <SubmitButton variant="outline" pendingText="Wird getauscht…">
             Tauschen
           </SubmitButton>
@@ -358,9 +359,9 @@ function ZusatzAktionen({
           <SchliesseNachSpeichern onFertig={onFertig} />
           <input type="hidden" name="id" value={eintrag.id} />
           <input type="hidden" name="wechselMinuten" />
-          <Label htmlFor="tz-wechsel">In zwei Abschnitte teilen (Wechsel)</Label>
+          <Label htmlFor="tz-wechsel">Wechsel einfügen (Abschnitt teilen)</Label>
           <p className="text-xs text-muted-foreground">
-            Der zweite Abschnitt beginnt zur Wechselzeit und kann ein anderes Abteil belegen — z.B. erste halbe Stunde Nord, zweite Süd.
+            Der zweite Abschnitt beginnt zur Wechselzeit und kann ein anderes Abteil belegen — z.B. erste halbe Stunde Nord, zweite Süd. Für weitere Wechsel öffnest du danach den zweiten Abschnitt und teilst ihn erneut — so sind beliebig viele Wechsel möglich.
           </p>
           <div className="flex gap-2">
             <div className="flex flex-1 flex-col gap-1.5">

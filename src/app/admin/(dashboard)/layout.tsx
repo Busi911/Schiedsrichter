@@ -78,10 +78,10 @@ export default async function AdminLayout({
               Logout-Button unten neben den Badges (gleiche Zeile wie Nav),
               hier bleibt dann nur der Vereinsname übrig. */}
           <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-start">
-            <Link href="/profil" className="flex min-w-0 items-center gap-3" aria-label="Mein Profil">
-              <KopfLogo logo={vereinsLogo} className="size-10" />
-              <div>
-                <p className="font-heading text-lg font-semibold">
+            <Link href="/profil" className="flex min-w-0 flex-1 items-center gap-3 md:flex-none" aria-label="Mein Profil">
+              <KopfLogo logo={vereinsLogo} className="size-10 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-heading text-lg leading-tight font-semibold break-words">
                   {verein?.name ?? "Verein"}
                 </p>
                 <p className="text-xs text-muted-foreground">
