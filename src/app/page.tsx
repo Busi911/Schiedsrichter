@@ -134,7 +134,7 @@ function faqEintraege(live: boolean) {
     {
       frage: "Wie tragen sich Eltern für Dienste ein?",
       antwort:
-        "Der Zeitnehmerwart oder Ordnerwart schaltet einen Link frei. Darüber wählen Eltern und Helfer ohne Login ihre Termine und tragen sich als Zeitnehmer, Sekretär, Ordner, Kioskdienst oder Kassierer ein. Mit einer E-Mail-Adresse entsteht auf Wunsch ein eigener Zugang mit Kalender und Erinnerungen.",
+        "Es gibt einen gemeinsamen Eintragungs-Link: Der Zeitnehmerwart schaltet den Teil für Zeitnehmer und Sekretär frei, der Ordnerwart den für Ordner, Kioskdienst und Kassierer. Darüber wählen Eltern und Helfer ohne Login ihre Termine und tragen sich ein. Mit einer E-Mail-Adresse entsteht auf Wunsch ein eigener Zugang mit Kalender und Erinnerungen.",
     },
     {
       frage: "Wie steht es um den Datenschutz?",
