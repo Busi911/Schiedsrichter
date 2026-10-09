@@ -66,7 +66,12 @@ async function extrahiereOutreachEmail(seiteHtml: string): Promise<string | null
 }
 
 const OUTREACH_KONSTANTEN = {
-  MAX_PRO_LAUF: 5,
+  // Ziel: 5 erfolgreich angeschriebene Vereine pro Lauf. Die Kandidaten-Query
+  // holt bis zu MAX_VERSUCH_PRO_LAUF Vereine — viele fallen durch (keine
+  // E-Mail, 0 Mannschaften nach Einrichtung), deshalb probieren wir mehr,
+  // bis ZIEL_ANGESCHRIEBEN erreicht ist. Anti-Spam-Limit bleibt bei 5 Mails.
+  ZIEL_ANGESCHRIEBEN: 5,
+  MAX_VERSUCH_PRO_LAUF: 25,
   VORSCHAU_TAGE: 7,
   FOLLOWUP_TAGE: 7,
 };
@@ -121,9 +126,10 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
     .where(
       sql`(NOT EXISTS (SELECT 1 FROM ${ligaVereine} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband}) OR EXISTS (SELECT 1 FROM ${ligaVereine} JOIN ${vereine} ON ${vereine.id} = ${ligaVereine.vereinId} LEFT JOIN ${vereinKontakt} ON ${vereinKontakt.vereinId} = ${vereine.id} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband} AND ${vereine.status} = 'vorbereitung' AND ${vereinKontakt.angeschriebenAm} IS NULL))`
     )
-    .limit(OUTREACH_KONSTANTEN.MAX_PRO_LAUF);
+    .limit(OUTREACH_KONSTANTEN.MAX_VERSUCH_PRO_LAUF);
 
   for (const k of kandidaten) {
+    if (ergebnis.angeschrieben >= OUTREACH_KONSTANTEN.ZIEL_ANGESCHRIEBEN) break;
     ergebnis.verarbeitet++;
     try {
       // 2. Vereinsseite aus nuLiga laden (für Website, Stammdaten und
