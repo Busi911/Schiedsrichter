@@ -3,8 +3,8 @@ import { and, eq, ne } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { users, vereine } from "@/db/schema";
 import { appUrl } from "./app-url";
-import { betragNetto, sollMailSenden, stufeFuer, zahlungsMarke, zahlungsStand, ZAHLUNGS_TEXT, type ZahlungsStufe } from "./abrechnung";
-import { KONTAKT_EMAIL } from "./beta-konditionen";
+import { BETA_ENDE_MARKE, BETA_ERSTE_FRIST, betragNetto, KARENZ_TAGE, sollBetaEndeMailSenden, sollMailSenden, stufeFuer, zahlungsMarke, zahlungsStand, ZAHLUNGS_TEXT, type ZahlungsStufe } from "./abrechnung";
+import { BETA_ENDE, KONTAKT_EMAIL, NETTO, PREIS_BETA, PREIS_REGULAER } from "./beta-konditionen";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
 import { formatDatum } from "./format";
 import { sendMail } from "./mailer";
@@ -82,6 +82,23 @@ export function vereinInhalt(v: Zeile, stufe: ZahlungsStufe, faelligAm: Date, sp
   };
 }
 
+// Ankündigung vor dem Beta-Ende: was ab wann gilt, was passiert, wenn nicht gezahlt wird, und wie der Verein stattdessen aussteigt.
+export function betaEndeInhalt(v: Zeile): EmailInhalt {
+  const sperre = formatDatum(new Date(BETA_ERSTE_FRIST.getTime() + KARENZ_TAGE * 24 * 3600 * 1000));
+  return {
+    vereinName: v.name,
+    ueberschrift: `Die Beta-Phase von HandballerPate endet am ${BETA_ENDE}.`,
+    zeilen: [
+      `Danach ist HandballerPate kostenpflichtig. Weil ihr in der Beta-Phase dabei seid, zahlt ihr ${euro(PREIS_BETA)} statt ${euro(PREIS_REGULAER)} im Jahr (netto). ${NETTO}`,
+      `Die Rechnung geht ab dem 01.12.2026 per E-Mail an ${v.rechnungEmail ?? "eure Admin-E-Mail-Adresse"}, Zahlungsziel ist der ${formatDatum(BETA_ERSTE_FRIST)}. Ihr müsst nichts weiter tun.`,
+      `Wird die Rechnung nicht bezahlt, wird der Zugang für euren Verein deaktiviert (frühestens am ${sperre}). Eure Daten bleiben dabei erhalten; sobald die Zahlung eingegangen ist, ist der Zugang sofort wieder frei.`,
+      `Ihr wollt HandballerPate nicht weiter nutzen? Dann löscht euren Verein bitte vor dem ${BETA_ENDE}, dann fällt nichts an: Als Admin unter Einstellungen ganz unten bei „Gefahrenzone“ auf „Verein löschen“ gehen und den Vereinsnamen eintippen. Dabei werden alle Daten unwiderruflich gelöscht. Alternativ schreibt uns kurz an ${KONTAKT_EMAIL}, dann übernehmen wir das.`,
+      `Rechnungsadresse und -E-Mail könnt ihr unter Einstellungen → „Vereinsdaten und Rechnung“ prüfen. Bei Fragen: ${KONTAKT_EMAIL}.`,
+    ],
+    cta: { text: "Zu den Einstellungen", url: `${appUrl()}/admin/einstellungen` },
+  };
+}
+
 async function sende(to: string, betreff: string, inhalt: EmailInhalt) {
   try {
     await sendMail(to, betreff, emailAlsText(inhalt), emailAlsHtml(inhalt));
@@ -125,6 +142,18 @@ export async function pruefeZahlungen(jetzt = new Date()): Promise<{ geprueft: n
   const systemAdmins = await adminDb.select({ email: users.email }).from(users).where(eq(users.istSystemAdmin, true));
   let gesendet = 0;
   for (const v of alle) {
+    if (sollBetaEndeMailSenden(v, jetzt)) {
+      const inhalt = betaEndeInhalt(v);
+      const empfaenger = await vereinsEmpfaenger(v);
+      let ok = 0;
+      for (const e of empfaenger) if (await sende(e, `HandballerPate: ${inhalt.ueberschrift}`, inhalt)) ok++;
+      if (ok > 0) {
+        gesendet += ok;
+        await adminDb.update(vereine).set({ zahlungMailMarke: BETA_ENDE_MARKE }).where(eq(vereine.id, v.id));
+        await schreibeProtokoll(v.id, "zahlung_mail", "System", "Ankündigung Beta-Ende");
+      }
+      continue;
+    }
     const stand = zahlungsStand(v, jetzt);
     const stufe = stufeFuer(stand.art);
     if (!stufe || !stand.faelligAm || !stand.sperreAb) continue;
