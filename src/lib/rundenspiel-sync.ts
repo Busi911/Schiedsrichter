@@ -12,6 +12,7 @@ import {
 import { holeNuligaJson, type NuligaDiagnose } from "./nuliga-scraper";
 import {
   sendeRundenspielAenderungenBenachrichtigung,
+  sendeVerlegungAnSchiedsrichterUndTrainerBenachrichtigungen,
   sendeZuordnungEntferntWegenVerlegungBenachrichtigungen,
 } from "./rundenspiel-benachrichtigung";
 import { sendeDuplikatBenachrichtigungen } from "./duplikat-benachrichtigung";
@@ -564,6 +565,16 @@ export async function synchronisiereAlleAktivenNuligaVereine() {
       try {
         await sendeZuordnungEntferntWegenVerlegungBenachrichtigungen(
           verein,
+          ergebnis.entfernteZuordnungen
+        );
+      } catch {
+        // ignoriert — der Sync selbst war bereits erfolgreich.
+      }
+
+      try {
+        await sendeVerlegungAnSchiedsrichterUndTrainerBenachrichtigungen(
+          verein,
+          ergebnis.aenderungen,
           ergebnis.entfernteZuordnungen
         );
       } catch {

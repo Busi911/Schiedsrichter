@@ -667,6 +667,7 @@ hier abhaken bzw. entfernen.
 
 **Noch zu entscheiden / bewusst nicht gebaut**
 
+- (Entschieden 09.10.2026: keine Sammelmail an Admins bei Änderung manueller Termine; `/hilfe` ohne Bottom-Navigation; Schiedsrichter und Trainer werden bei Sync-Verlegungen per Mail informiert, umgesetzt.)
 - Sammelmail an Admins bei Änderung manueller Termine — nicht gebaut, da
   zunächst nur die Eingetragenen informiert werden sollten.
 - Mails bei geänderten ICS-Terminen (`spiel_ics`, persönlicher Feed eines
