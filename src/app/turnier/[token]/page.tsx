@@ -20,7 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Logo } from "@/components/logo";
+import { KopfLogo } from "@/components/kopf-logo";
+import { holeVereinsLogoInfo } from "@/lib/vereins-logo";
 import {
   formatDatumZeit as formatDateTime,
   formatWochentagDatum,
@@ -51,8 +52,9 @@ export default async function OeffentlicheTurnierseite({
     notFound();
   }
 
-  const [verein, spiele] = await Promise.all([
+  const [verein, vereinsLogo, spiele] = await Promise.all([
     adminDb.query.vereine.findFirst({ where: eq(vereine.id, turnier.vereinId) }),
+    holeVereinsLogoInfo(turnier.vereinId),
     adminDb.query.termine.findMany({
       where: eq(termine.turnierId, turnier.id),
       orderBy: (t, { asc }) => [asc(t.start)],
@@ -177,7 +179,7 @@ export default async function OeffentlicheTurnierseite({
       }`}
     >
       <div className="flex items-center gap-3">
-        <Logo className="size-8 shrink-0 text-primary" />
+        <KopfLogo logo={vereinsLogo} className="size-10" />
         <div>
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             {verein?.name ?? "Turnier"}

@@ -39,7 +39,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Logo } from "@/components/logo";
+import { KopfLogo } from "@/components/kopf-logo";
+import { holeVereinsLogoInfo } from "@/lib/vereins-logo";
 import { MonatsKalender } from "@/components/monats-kalender";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { HilfeLink } from "@/components/hilfe-link";
@@ -78,6 +79,7 @@ export default async function ProfilPage({
   const [
     { eigeneStammdaten, rollen, profil, eigeneTermine, verein, meineTurniere },
     eintraegeProTag,
+    vereinsLogo,
   ] = await Promise.all([
     withTenant(vereinId, async (tx) => {
       const verein = await tx.query.vereine.findFirst({
@@ -166,6 +168,7 @@ export default async function ProfilPage({
       };
     }),
     holeEigeneKalenderEintraege(vereinId, userId, von, bis),
+    holeVereinsLogoInfo(vereinId),
   ]);
 
   const istSchiedsrichter = rollen.some(
@@ -257,7 +260,7 @@ export default async function ProfilPage({
         <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4">
           <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-start">
            <div className="flex min-w-0 items-center gap-3">
-            <Logo className="size-8 shrink-0 text-primary" />
+            <KopfLogo logo={vereinsLogo} className="size-10" />
             <div>
               <p className="font-heading text-lg font-semibold">
                 {verein?.name ?? "Verein"}

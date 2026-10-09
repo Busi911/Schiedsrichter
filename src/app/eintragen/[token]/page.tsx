@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { adminDb } from "@/db/admin";
 import { vereine } from "@/db/schema";
-import { Logo } from "@/components/logo";
+import { KopfLogo } from "@/components/kopf-logo";
+import { holeVereinsLogoInfo } from "@/lib/vereins-logo";
 import { LinkSpinner } from "@/components/link-spinner";
 import { TerminMehrfachAuswahl, type EintragbarerTermin } from "@/components/mehrfachauswahl";
 import { SubmitButton } from "@/components/submit-button";
@@ -44,6 +45,7 @@ export default async function EintragenPage({
   const eingeloggtePerson = session?.user?.vereinId === verein.id ? { name: session.user.name ?? session.user.email ?? "" } : null;
 
   const { alleMannschaften, termine } = await ladeEintragungsTermine(verein, aktiv);
+  const vereinsLogo = await holeVereinsLogoInfo(verein.id);
 
   // Nur Mannschaften als Filter anbieten, die auch mindestens einen eintragbaren Termin haben.
   const mannschaftenMitTerminen = new Set(termine.map((t) => t.mannschaftId).filter((id): id is string => !!id));
@@ -56,7 +58,7 @@ export default async function EintragenPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-6">
       <div className="flex items-center gap-3">
-        <Logo className="size-10 shrink-0 text-primary" />
+        <KopfLogo logo={vereinsLogo} className="size-12" />
         <div>
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{verein.name}</p>
           <h1 className="font-heading text-2xl font-semibold">Für Dienste eintragen</h1>

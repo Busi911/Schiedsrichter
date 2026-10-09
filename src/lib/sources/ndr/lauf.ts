@@ -1,7 +1,8 @@
 import "server-only";
 import { eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaExterneIdentitaeten } from "@/db/schema";
+import { ligaExterneIdentitaeten, ligaVereine } from "@/db/schema";
+import { holeSyncBerechtigteVereinIds } from "@/lib/sync-berechtigung";
 import type { SyncErgebnis } from "@/lib/nuliga/sync";
 import { saisonLabel } from "@/lib/saison";
 import { BUNDESLIGEN, type BundesLiga } from "../match";
@@ -20,8 +21,16 @@ export type NdrLaufErgebnis = { liga: BundesLiga; status: SyncErgebnis["status"]
 export async function synchronisiereNdrLiga(liga: BundesLiga, opt: { voll?: boolean; erzwingen?: boolean; jetzt?: Date; frist?: number } = {}): Promise<NdrLaufErgebnis> {
   const jetzt = opt.jetzt ?? new Date();
   const saison = saisonLabel(jetzt);
-  const zugeordnet = await adminDb.query.ligaExterneIdentitaeten.findFirst({ where: eq(ligaExterneIdentitaeten.quelle, NDR_QUELLE), columns: { id: true } });
-  if (!zugeordnet && !opt.erzwingen) return { liga, status: "uebersprungen", text: `${BUNDESLIGEN[liga].kurz}: kein Team einem Verein zugeordnet` };
+  // "Zugeordnet" heißt: mindestens ein NDR-Team gehört zu einem Verein, den jemand nutzt (aktiv oder in Vorbereitung mit gültigem
+  // Vorschau-Link) — ein Team bei einem ungenutzten Verein löst keinen Abruf aus (siehe lib/sync-berechtigung.ts).
+  const berechtigte = await holeSyncBerechtigteVereinIds(jetzt);
+  const identitaeten = await adminDb
+    .select({ vereinId: ligaVereine.vereinId })
+    .from(ligaExterneIdentitaeten)
+    .innerJoin(ligaVereine, eq(ligaVereine.id, ligaExterneIdentitaeten.ligaVereinId))
+    .where(eq(ligaExterneIdentitaeten.quelle, NDR_QUELLE));
+  const zugeordnet = identitaeten.some((i) => berechtigte.has(i.vereinId));
+  if (!zugeordnet && !opt.erzwingen) return { liga, status: "uebersprungen", text: `${BUNDESLIGEN[liga].kurz}: kein Team einem genutzten Verein zugeordnet` };
   try {
     const r = await synchronisiereSpieltage({
       db: adminDb,
