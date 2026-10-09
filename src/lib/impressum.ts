@@ -31,7 +31,10 @@ const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 const BLACKLIST_DOMAINS = ["example.com", "example.org", "example.net", "w3.org", "schema.org"];
 
 // Blacklist: lokale Teile, die nie ein Ansprechpartner sind.
-const BLACKLIST_LOCAL = ["info", " Impressum", "datenschutz", "webmaster", "hostmaster", "postmaster", "noreply", "no-reply", "donotreply", "abuse", "root", "admin"];
+// "info" ist NICHT enthalten — bei Vereinen ist info@verein.de häufig DIE
+// Hauptkontaktadresse (§ 5 TMG Impressum). Andere generische Postfächer
+// (webmaster, postmaster, …) sind technische Adressen, keine Ansprechpartner.
+const BLACKLIST_LOCAL = [" Impressum", "datenschutz", "webmaster", "hostmaster", "postmaster", "noreply", "no-reply", "donotreply", "abuse", "root", "admin"];
 
 export type ImpressumErgebnis = {
   email: string | null;

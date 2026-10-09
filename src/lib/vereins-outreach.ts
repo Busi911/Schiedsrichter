@@ -17,6 +17,44 @@ import { extrahiereKontaktEmail } from "./nuliga/outreach-kontakt";
 import { scrapeImpressum } from "./impressum";
 import { appUrl } from "./app-url";
 
+// Shared E-Mail-Extraktion für Outreach: nuLiga-Kontakt → Impressum der
+// Vereinswebsite → Impressum der E-Mail-Domain. Gibt die beste gefundene
+// E-Mail zurück (oder null). Die Reihenfolge:
+// 1. nuLiga-Kontaktadresse (encodeEmail-Decodierung + mailto:)
+// 2. Impressum der Vereinswebsite (wenn nuLiga eine Website liefert)
+// 3. Wenn nuLiga eine E-Mail, aber keine Website liefert: Domain der
+//    nuLiga-E-Mail als Website versuchen → deren Impressum (§ 5 TMG).
+//    Die Impressum-Adresse ist per TMG veröffentlicht und eher erreichbar
+//    als die nuLiga-Adresse (die ein generisches Postfach sein kann).
+async function extrahiereOutreachEmail(seiteHtml: string): Promise<string | null> {
+  let kontaktEmail = extrahiereKontaktEmail(seiteHtml);
+  const geparst = parseVereinsInfo(seiteHtml);
+  const website = geparst.daten?.website;
+
+  // 2. Fallback: Impressum der Vereinswebsite.
+  if (!kontaktEmail && website) {
+    try {
+      const impressum = await scrapeImpressum(website);
+      kontaktEmail = impressum.email;
+    } catch {}
+  }
+
+  // 3. Fallback: E-Mail-Domain als Website.
+  if (kontaktEmail && !website) {
+    const domain = kontaktEmail.split("@")[1];
+    if (domain && !domain.endsWith("liga.nu") && !domain.endsWith("handball.net")) {
+      try {
+        const impressum = await scrapeImpressum(`https://${domain}`);
+        if (impressum.email) {
+          kontaktEmail = impressum.email;
+        }
+      } catch {}
+    }
+  }
+
+  return kontaktEmail;
+}
+
 const OUTREACH_KONSTANTEN = {
   MAX_PRO_LAUF: 5,
   VORSCHAU_TAGE: 7,
@@ -88,22 +126,10 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
       const info = geparst.daten;
       const website = info.website;
 
-      // 3a. E-Mail aus der nuLiga-Kontaktadresse extrahieren ( primär).
-      //     Die nuLiga-Vereinsseite hat oft einen "Kontaktadresse"-Abschnitt
-      //     mit E-Mail — das ist die zuverlässigste Quelle.
-      let kontaktEmail = extrahiereKontaktEmail(seite.html);
-
-      // 3b. Fallback: E-Mail aus dem Impressum der Vereinswebsite.
+      // 3. E-Mail extrahieren: nuLiga-Kontakt → Impressum der Website →
+      //    Impressum der E-Mail-Domain (siehe extrahiereOutreachEmail).
+      let kontaktEmail = await extrahiereOutreachEmail(seite.html);
       let impressumFehler: string | null = null;
-      if (!kontaktEmail && website) {
-        try {
-          const impressum = await scrapeImpressum(website);
-          kontaktEmail = impressum.email;
-          if (!impressum.email) impressumFehler = impressum.fehler;
-        } catch (err) {
-          impressumFehler = err instanceof Error ? err.message : String(err);
-        }
-      }
 
       if (!kontaktEmail) {
         ergebnis.keineEmail++;
@@ -290,7 +316,7 @@ export async function resetOutreachVerein(clubId: string): Promise<{ geloescht: 
   if (!eintrag) return { geloescht: !!bestehend, neu: false, email: null, fehler: "Verein nicht im nuLiga-Index gefunden" };
 
   const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl("HHV", "clubInfoDisplay", { club: clubId }));
-  const kontaktEmail = extrahiereKontaktEmail(seite.html);
+  const kontaktEmail = await extrahiereOutreachEmail(seite.html);
 
   if (!kontaktEmail) return { geloescht: !!bestehend, neu: false, email: null, fehler: "Keine E-Mail nach Reset gefunden" };
 
@@ -384,23 +410,11 @@ export async function fuehreInstagramNachfassAus(): Promise<OutreachErgebnis> {
         ergebnis.details.push({ name: k.name, clubId: "", status: "fehler", fehler: "Keine clubId" });
         continue;
       }
-      // E-Mail aus nuLiga-Kontaktseite extrahieren.
+      // E-Mail aus nuLiga-Kontaktseite extrahieren (mit Impressum-Fallback).
       const seite = await holeNuligaSeiteMitKontext(
         baueNuligaUrl(k.verband ?? "HHV", "clubInfoDisplay", { club: k.clubId })
       );
-      let kontaktEmail = extrahiereKontaktEmail(seite.html);
-
-      // Fallback: Impressum der Vereinswebsite.
-      if (!kontaktEmail) {
-        const geparst = parseVereinsInfo(seite.html);
-        const website = geparst.daten?.website;
-        if (website) {
-          try {
-            const impressum = await scrapeImpressum(website);
-            kontaktEmail = impressum.email;
-          } catch {}
-        }
-      }
+      let kontaktEmail = await extrahiereOutreachEmail(seite.html);
 
       if (!kontaktEmail) {
         ergebnis.keineEmail++;
