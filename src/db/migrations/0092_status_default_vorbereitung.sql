@@ -5,12 +5,13 @@
 -- Vereinsadmin und sollen nicht öffentlich sein oder Traffic erzeugen.
 
 -- 1. Spalten-Default ändern.
-ALTER TABLE "verein" ALTER COLUMN "status" SET DEFAULT 'vorbereitung';
+ALTER TABLE "verein" ALTER COLUMN "status" SET DEFAULT 'vorbereitung';--> statement-breakpoint
 
 -- 2. Vereine ohne Admin-User, die "aktiv" sind, auf "vorbereitung" zurücksetzen.
 --    (Outreach-Kandidaten, die nie übergeben wurden, aber durch den alten
 --    Default "aktiv" landeten.)
+--    (NOT EXISTS statt NOT IN: "user"."verein_id" ist bei Systemadmins NULL.)
 UPDATE "verein"
 SET "status" = 'vorbereitung'
 WHERE "status" = 'aktiv'
-  AND "id" NOT IN (SELECT "verein_id" FROM "users" WHERE "ist_admin" = true);
+  AND NOT EXISTS (SELECT 1 FROM "user" WHERE "user"."verein_id" = "verein"."id" AND "user"."ist_admin" = true);
