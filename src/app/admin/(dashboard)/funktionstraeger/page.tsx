@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { FunktionstraegerTabelle } from "@/components/funktionstraeger-tabelle";
+import { fasseRollenZusammen } from "@/lib/funktionstraeger-rollen";
 import { LabeledSelect } from "@/components/labeled-select";
 import { NeuerFunktionstraegerDialog } from "@/components/neuer-funktionstraeger-dialog";
 import { Label } from "@/components/ui/label";
@@ -235,13 +236,10 @@ export default async function FunktionstraegerPage({
                         {p.istAdminLesend && (
                           <Badge variant="outline">Admin (nur lesend)</Badge>
                         )}
-                        {p.rollen.map((r) => (
-                          <Badge
-                            key={r.rolleId}
-                            variant={r.aktiv ? "secondary" : "outline"}
-                          >
-                            {TYP_LABEL[r.typ] ?? r.typ}
-                            {!r.aktiv && " · inaktiv"}
+                        {fasseRollenZusammen(p.rollen, TYP_LABEL).map((e) => (
+                          <Badge key={e.schluessel} variant={e.aktiv ? "secondary" : "outline"}>
+                            {e.label}
+                            {!e.aktiv && " · inaktiv"}
                           </Badge>
                         ))}
                       </div>
@@ -292,18 +290,18 @@ export default async function FunktionstraegerPage({
           <CardDescription>
             Kopfzeile mit den Spalten <strong>Name</strong>,{" "}
             <strong>E-Mail</strong>, <strong>Rolle</strong> (Schiedsrichter,
-            Zeitnehmer, Sekretär, Trainer, Ordner oder Kioskdienst),
-            optional <strong>Mannschaft</strong> (nur bei Trainer, muss einer
-            bestehenden Mannschaft entsprechen) und optional{" "}
-            <strong>Lizenz gültig bis</strong> (nur bei Schiedsrichter/
-            Zeitnehmer/Sekretär, Format TT.MM.JJJJ — praktisch für die
-            Erstanlage, statt das Ablaufdatum hinterher für jede Person
-            einzeln nachzutragen; Zeitnehmer- und Sekretär-Lizenz sind
-            dieselbe, es reicht also eine der beiden Zeilen mit Datum, falls
-            eine Person beide Rollen bekommt). Bereits vorhandene
-            Personen/Rollen werden übersprungen, nicht dupliziert. Für
-            mehrere Rollen pro Person einfach mehrere Zeilen mit derselben
-            E-Mail-Adresse verwenden.
+            Zeitnehmer/Sekretär, Trainer, Ordner, Kioskdienst oder
+            Kassierer), optional <strong>Mannschaft</strong> (nur bei
+            Trainer, muss einer bestehenden Mannschaft entsprechen) und
+            optional <strong>Lizenz gültig bis</strong> (nur bei
+            Schiedsrichter/Zeitnehmer/Sekretär, Format TT.MM.JJJJ —
+            praktisch für die Erstanlage, statt das Ablaufdatum hinterher
+            für jede Person einzeln nachzutragen). Zeitnehmer und Sekretär
+            sind eine Funktion: Eine Zeile mit „Zeitnehmer“, „Sekretär“ oder
+            „Zeitnehmer/Sekretär“ legt beides an, mit derselben Lizenz.
+            Bereits vorhandene Personen/Rollen werden übersprungen, nicht
+            dupliziert. Für mehrere Rollen pro Person einfach mehrere Zeilen
+            mit derselben E-Mail-Adresse verwenden.
           </CardDescription>
         </CardHeader>
         <CardContent>

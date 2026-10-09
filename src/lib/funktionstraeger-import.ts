@@ -16,6 +16,11 @@ const ROLLE_ALIASE: Record<string, (typeof FUNKTIONSTRAEGER_TYPEN)[number]> = {
   zeitnehmer: "zeitnehmer",
   sekretär: "sekretaer",
   sekretaer: "sekretaer",
+  // Zeitnehmer und Sekretär sind EINE Funktion: die Anwendungsstelle legt je Zeile beide Rollen an (siehe funktionstraegerImportieren).
+  "zeitnehmer/sekretär": "zeitnehmer",
+  "zeitnehmer/sekretaer": "zeitnehmer",
+  "zeitnehmer-sekretär": "zeitnehmer",
+  "zeitnehmer-sekretaer": "zeitnehmer",
   trainer: "trainer",
   ordner: "ordner",
   kioskdienst: "kioskdienst",
