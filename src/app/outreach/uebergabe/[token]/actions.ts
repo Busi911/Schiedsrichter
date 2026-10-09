@@ -6,11 +6,15 @@ import { redirect } from "next/navigation";
 import { adminDb } from "@/db/admin";
 import { vereine, users, treuhandZugriffe, vereinProtokoll } from "@/db/schema";
 import { pruefeOutreachUebergabeToken } from "@/lib/outreach-uebergabe";
+import { sendMail } from "@/lib/mailer";
+import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
+import { appUrl } from "@/lib/app-url";
 import { signIn } from "@/auth";
 
 // Selbstbedienungs-Übergabe: Der Outreach-Empfänger übernimmt den Verein
 // direkt aus der Mail heraus. Legt den User an, setzt den Verein auf "aktiv",
 // löscht Treuhand-Zugriffe, und sendet einen Magic-Link zum Einloggen.
+// Danach wird eine Benachrichtigung an den Betreiber (SMTP_USER) gesendet.
 //
 // Sicherheit: Der Token ist HMAC-signiert und an diesen einen Verein gebunden.
 // Die E-Mail-Verifikation erfolgt über den Magic-Link (Auth.js Nodemailer).
@@ -72,7 +76,7 @@ export async function uebergebeVereinSelbstbedienung(formData: FormData) {
       vereinId,
       aktion: "uebergeben",
       akteur: "Outreach-Selbstbedienung",
-      details: `an ${email}`,
+      details: `${name} <${email}>`,
     });
   });
 
@@ -84,12 +88,34 @@ export async function uebergebeVereinSelbstbedienung(formData: FormData) {
       redirectTo: "/admin",
     });
   } catch (err) {
-    // signIn wirft bei erfolgreichem Redirect einen Redirect-Fehler —
-    // das ist normal, die Mail wurde gesendet.
     if (err instanceof AuthError) {
       throw new Error("Login-Link konnte nicht gesendet werden. Bitte versuche es später erneut.");
     }
     // Redirect-Fehler: Mail wurde gesendet, weiterleitung zur Bestätigung.
+  }
+
+  // Benachrichtigung an den Betreiber (SMTP_USER = Absenderadresse).
+  const benachrichtigung: EmailInhalt = {
+    ueberschrift: `Verein übernommen: ${verein.name}`,
+    zeilen: [
+      `${name} hat den Verein ${verein.name} über die Outreach-Selbstbedienung übernommen.`,
+      `E-Mail-Adresse: ${email}`,
+      `Login-Link wurde versendet. Der Verein ist jetzt aktiv.`,
+    ],
+    cta: { text: "Verein im Systemadmin", url: `${appUrl()}/system/vereine` },
+  };
+  try {
+    const betreiber = process.env.SMTP_USER;
+    if (betreiber) {
+      await sendMail(
+        betreiber,
+        `Verein übernommen: ${verein.name}`,
+        emailAlsText(benachrichtigung),
+        emailAlsHtml(benachrichtigung)
+      );
+    }
+  } catch {
+    // Benachrichtigung ist best-effort — die Übergabe selbst ist schon erfolgt.
   }
 
   redirect(
