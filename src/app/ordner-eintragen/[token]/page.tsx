@@ -209,12 +209,12 @@ export default async function OrdnerEintragenPage({
       </div>
 
       {eingeloggtePerson ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           Angemeldet als <strong>{eingeloggtePerson.name}</strong> — einen
           oder mehrere Termine auswählen, Rolle wählen und absenden.
         </p>
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           Kein Login nötig: einen oder mehrere Termine auswählen, Namen
           eintragen, Rolle wählen und absenden. Bereits im System angelegte
           Personen werden dabei automatisch erkannt — bei Unsicherheit prüft
@@ -222,7 +222,7 @@ export default async function OrdnerEintragenPage({
           eigener Zugang anlegen (E-Mail-Adresse angeben).{" "}
           <Link
             href={`/login?redirect=${encodeURIComponent(`/ordner-eintragen/${token}`)}`}
-            className="underline"
+            className="inline-block py-2 underline"
           >
             Schon einen Zugang? Hier einloggen.
           </Link>
@@ -230,7 +230,7 @@ export default async function OrdnerEintragenPage({
       )}
 
       {gefilterteTermine.length > 0 && (
-        <p className="text-sm font-medium">
+        <p className="text-base font-medium">
           {offeneAnzahl} von {gefilterteTermine.length}{" "}
           {gefilterteTermine.length === 1 ? "Termin" : "Terminen"} noch nicht
           vollständig besetzt
@@ -241,7 +241,7 @@ export default async function OrdnerEintragenPage({
         <div className="flex flex-wrap gap-2">
           <Button
             variant={!mannschaftFilter ? "default" : "outline"}
-            size="sm"
+            className="h-11 px-4 text-base"
             render={<Link href="?" />}
             nativeButton={false}
           >
@@ -252,7 +252,7 @@ export default async function OrdnerEintragenPage({
             <Button
               key={m.id}
               variant={mannschaftFilter === m.id ? "default" : "outline"}
-              size="sm"
+              className="h-11 px-4 text-base"
               render={<Link href={`?mannschaft=${m.id}`} />}
               nativeButton={false}
             >
@@ -264,7 +264,7 @@ export default async function OrdnerEintragenPage({
       )}
 
       {gefilterteTermine.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           Keine anstehenden Termine.
         </p>
       ) : (

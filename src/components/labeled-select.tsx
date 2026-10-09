@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -47,6 +48,7 @@ export function LabeledSelect({
   placeholder,
   options,
   onValueChange,
+  triggerClassName,
 }: {
   id?: string;
   name: string;
@@ -59,6 +61,8 @@ export function LabeledSelect({
   // weiteres Feld ein-/ausblendet). Ohne diesen Fall bleibt die Auswahl wie
   // bisher unkontrolliert (nur defaultValue).
   onValueChange?: (value: string) => void;
+  // Zusätzliche Klassen für das Auswahlfeld (z.B. "h-12" für große Touch-Flächen).
+  triggerClassName?: string;
 }) {
   return (
     <Select
@@ -73,7 +77,7 @@ export function LabeledSelect({
         if (value != null) onValueChange?.(value);
       }}
     >
-      <SelectTrigger id={id} className="w-full">
+      <SelectTrigger id={id} className={cn("w-full", triggerClassName)}>
         <SelectValue placeholder={placeholder}>
           {(value: string) => {
             const gewaehlt = options.find((o) => o.value === value);

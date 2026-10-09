@@ -19,19 +19,19 @@ export function PasswordInput({
       <Input
         {...props}
         type={sichtbar ? "text" : "password"}
-        className={cn("pr-8", className)}
+        className={cn("pr-11", className)}
       />
       <button
         type="button"
         onClick={() => setSichtbar((s) => !s)}
-        className="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-muted-foreground hover:text-foreground"
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground hover:text-foreground"
         aria-label={sichtbar ? "Passwort verbergen" : "Passwort anzeigen"}
         tabIndex={-1}
       >
         {sichtbar ? (
-          <EyeOffIcon className="size-4" />
+          <EyeOffIcon className="size-5" />
         ) : (
-          <EyeIcon className="size-4" />
+          <EyeIcon className="size-5" />
         )}
       </button>
     </div>

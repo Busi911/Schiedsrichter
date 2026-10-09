@@ -60,11 +60,11 @@ export function ThemeUmschalter() {
           aria-pressed={aktuell === wert}
           title={label}
           className={cn(
-            "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+            "inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
             aktuell === wert ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
           )}
         >
-          <Icon className="size-3.5" aria-hidden />
+          <Icon className="size-4" aria-hidden />
           {label}
         </button>
       ))}
