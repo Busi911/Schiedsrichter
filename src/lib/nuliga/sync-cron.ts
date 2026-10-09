@@ -1,5 +1,5 @@
 import { and, eq, gte, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
-import { ligaMannschaften, ligaSpiele, ligaSyncLaeufe, ligaTeilnahmen, ligaVereine } from "@/db/schema";
+import { ligaMannschaften, ligaSpiele, ligaSyncLaeufe, ligaTeilnahmen, ligaVereine, vereine, vereinVorschauLinks } from "@/db/schema";
 import { tagKey } from "@/lib/kalender";
 import {
   STRUKTUR_INTERVALL_MINUTEN,
@@ -83,14 +83,58 @@ export async function synchronisiereFaellige(
   const start = Date.now();
   const schritt = opt.beiSchritt ?? (() => {});
   schritt("Vereine laden");
+  // Nur Vereine syncen, die entweder aktiv sind ODER sich in Vorbereitung
+  // mit einem gültigen (nicht widerrufenen, nicht abgelaufenen) Vorschau-Link
+  // befinden — sonst syncen wir Vereine, die niemand nutzt (Outreach-Kandidaten
+  // ohne Interesse, die nur Datenverkehr erzeugen).
+  const jetzts = jetzt.getTime();
   const alleVereine = await db.query.ligaVereine.findMany({
     where: opt.nurVereinId ? eq(ligaVereine.id, opt.nurVereinId) : sql`true`,
   });
+  // Vereine im Status "vorbereitung" ohne gültigen Vorschau-Link herausfiltern.
+  const aktiveIds = new Set<string>();
+  if (!opt.nurVereinId) {
+    // Join mit vereine-Tabelle, um den Status zu prüfen.
+    const vereineStatus = await db
+      .select({ id: vereine.id, status: vereine.status })
+      .from(vereine)
+      .where(inArray(vereine.id, alleVereine.map((v) => v.vereinId)));
+    const vorbereitungVereinIds = new Set(
+      vereineStatus.filter((v) => v.status === "vorbereitung").map((v) => v.id)
+    );
+    if (vorbereitungVereinIds.size > 0) {
+      // Gültige Vorschau-Links: nicht widerrufen, nicht abgelaufen.
+      const gueltigeLinks = await db
+        .select({ vereinId: vereinVorschauLinks.vereinId })
+        .from(vereinVorschauLinks)
+        .where(
+          and(
+            inArray(vereinVorschauLinks.vereinId, [...vorbereitungVereinIds]),
+            sql`${vereinVorschauLinks.widerrufenAm} IS NULL`,
+            sql`${vereinVorschauLinks.gueltigBis} > ${jetzts}`
+          )
+        );
+      const mitGueltigemLink = new Set(gueltigeLinks.map((l) => l.vereinId));
+      // Nur Vorbereitungs-Vereine mit gültigem Link dürfen in den Sync;
+      // aktive Vereine immer.
+      for (const lv of alleVereine) {
+        if (vorbereitungVereinIds.has(lv.vereinId) && !mitGueltigemLink.has(lv.vereinId)) {
+          continue; // überspringen — kein gültiger Vorschau-Link
+        }
+        aktiveIds.add(lv.id);
+      }
+    } else {
+      for (const lv of alleVereine) aktiveIds.add(lv.id);
+    }
+  } else {
+    for (const lv of alleVereine) aktiveIds.add(lv.id);
+  }
+  const syncVereine = alleVereine.filter((v) => aktiveIds.has(v.id));
   // Vereine mit Spielen heute zuerst, dann der am längsten nicht geladene: bei knapper Zeit
   // sind die aktuellen Ergebnisse sicher dran, der Rest folgt beim nächsten Lauf.
   const naehe = new Map<string, 0 | 1 | 2>();
   schritt("Spieltagsnähe berechnen");
-  for (const v of alleVereine) naehe.set(v.id, await spieltagsNaehe(db, v.id, jetzt));
+  for (const v of syncVereine) naehe.set(v.id, await spieltagsNaehe(db, v.id, jetzt));
   // Innerhalb gleicher Dringlichkeit reihum nach dem letzten VERSUCH: ein Verein, dessen Lauf wegen des
   // Zeitlimits nie ganz fertig wird, behält seinen Zeitstempel "zuletzt vollständig" und stünde sonst
   // bei jedem Lauf wieder vorn — die übrigen kämen nie dran. Jeder Lauf schreibt ein Protokoll.
@@ -100,15 +144,15 @@ export async function synchronisiereFaellige(
     .where(inArray(ligaSyncLaeufe.art, ["spiele", "handball_net"]))
     .groupBy(ligaSyncLaeufe.ligaVereinId);
   const letzterVersuch = new Map(versuche.map((r) => [r.id, r.zuletzt ? new Date(r.zuletzt) : null]));
-  const vereine = sortiereNachDringlichkeit(
-    alleVereine,
+  const sortierteVereine = sortiereNachDringlichkeit(
+    syncVereine,
     (v) => naehe.get(v.id) ?? 0,
     (v) => letzterVersuch.get(v.id) ?? v.spieleSynchronisiertAm
   );
   const ergebnis: FaelligeErgebnis = [];
   const frist = start + budgetMs;
 
-  for (const v of vereine) {
+  for (const v of sortierteVereine) {
     if (Date.now() - start > budgetMs) break;
     const eintrag: FaelligeErgebnis[number] = { ligaVereinId: v.id, slug: v.slug };
     // Jede Quelle für sich: ein Fehler/Ausfall einer Quelle betrifft die andere nicht.
