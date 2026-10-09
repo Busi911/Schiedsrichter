@@ -88,15 +88,32 @@ export default async function AvvPage() {
             <p>Verarbeitete Datenkategorien:</p>
             <ul className="list-disc pl-5">
               <li>Name, E-Mail-Adresse, optional Telefonnummer</li>
-              <li>Rolle(n) im Verein und Zuordnung zu Terminen/Einsätzen</li>
+              <li>Rolle(n) im Verein, Lizenzdaten (Gültigkeit) und Zuordnung zu Terminen/Einsätzen</li>
               <li>
-                Login-Daten (Session, Passwort-Hash bei Passwort-Login)
+                Login-Daten (Session, Passwort-Hash bei Passwort-Login),
+                Zeitpunkt des letzten Logins und der letzten Aktivität
+              </li>
+              <li>
+                persönlicher Kalender-Link (Token) und persönliche
+                Benachrichtigungs-Einstellungen
+              </li>
+              <li>
+                Rechnungsdaten des Vereins: Ansprechpartner, Rechnungs-E-Mail
+                und Anschrift
+              </li>
+              <li>Freitext-Rückmeldungen (Feedback) an die Betreiberin</li>
+              <li>
+                Namen von Schiedsrichtern und Zeitnehmern, soweit der Verein
+                Ansetzungen aus dem Spielbetrieb (nuLiga, handball.net) in
+                seine privaten Termine übernimmt
               </li>
             </ul>
             <p>
               Betroffene: Funktionsträger des Verantwortlichen (Schiedsrichter,
               Zeitnehmer, Sekretäre, Ordner, Kioskdienst, Kassierer, Trainer,
-              Admins). Zweck: Organisation des Vereinsspielbetriebs, siehe{" "}
+              Admins) sowie die vom Verein benannten Ansprechpartner für die
+              Rechnung und die in Ansetzungen genannten Schiedsrichter und
+              Zeitnehmer. Zweck: Organisation des Vereinsspielbetriebs, siehe{" "}
               <Link href="/datenschutz" className="underline">
                 Datenschutzerklärung
               </Link>
@@ -162,10 +179,17 @@ export default async function AvvPage() {
               <li>Vercel Inc. — Hosting der Webanwendung</li>
               <li>Neon — Hosting der Datenbank (Postgres, EU-Region)</li>
               <li>
-                der vom Verantwortlichen konfigurierte SMTP-Anbieter für
-                E-Mail-Versand
+                der von der Auftragsverarbeiterin eingesetzte SMTP-Anbieter
+                für den E-Mail-Versand (Login-Links, Erinnerungen,
+                Benachrichtigungen)
               </li>
             </ul>
+            <p>
+              Öffentliche Sportdaten (nuLiga, handball.net, NDR) werden von
+              der Auftragsverarbeiterin abgerufen, die Anbieter erhalten
+              dabei keine Daten des Verantwortlichen und sind keine
+              Unterauftragsverarbeiter.
+            </p>
             <p>
               Die Auftragsverarbeiterin unterrichtet den Verantwortlichen
               über beabsichtigte Änderungen in Bezug auf die Hinzuziehung
@@ -188,6 +212,24 @@ export default async function AvvPage() {
 
           <section className="flex flex-col gap-2">
             <h2 className="font-heading text-base font-medium text-foreground">
+              § 7 Zugriff durch die Auftragsverarbeiterin (Einrichtung und Support)
+            </h2>
+            <p>
+              Auf Wunsch des Verantwortlichen richtet die
+              Auftragsverarbeiterin den Verein im Vorbereitungs-Modus ein
+              (nicht öffentlich sichtbar, ohne E-Mail-Versand); mit der
+              Übergabe an den Vereinsadmin endet dieser Zugriff vollständig.
+              Danach greift sie auf die Daten des Verantwortlichen nur zu,
+              wenn dieser den Support-Zugriff ausdrücklich freigibt
+              (befristet auf 1, 3 oder 7 Tage oder auf eigenen Wunsch
+              dauerhaft bis zum Widerruf). Die Freigabe kann jederzeit
+              widerrufen werden. Übergabe, Freigaben und Zugriffe werden
+              protokolliert und sind für den Verantwortlichen einsehbar.
+            </p>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <h2 className="font-heading text-base font-medium text-foreground">
               Anlage: Technische und organisatorische Maßnahmen (Art. 32 DSGVO)
             </h2>
             <ul className="list-disc pl-5">
@@ -199,6 +241,11 @@ export default async function AvvPage() {
               <li>
                 Mandantentrennung auf Datenbankebene (Row-Level-Security je
                 Verein)
+              </li>
+              <li>
+                Zugriff der Auftragsverarbeiterin auf Vereinsdaten nur im
+                Rahmen von Einrichtung oder freigegebenem Support, mit
+                Protokollierung
               </li>
               <li>Hosting bei Vercel/Neon mit deren jeweiligen TOM</li>
             </ul>

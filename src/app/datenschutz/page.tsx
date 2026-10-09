@@ -45,8 +45,19 @@ export default function DatenschutzPage() {
             im Klartext gespeichert)
           </li>
           <li>
-            Bei aktivierten Push-Benachrichtigungen: die vom Browser
-            vergebene Push-Abonnement-Adresse
+            Lizenzdaten (Gültigkeit), Zeitpunkt des letzten Logins und der
+            letzten Aktivität sowie persönliche Benachrichtigungs-Einstellungen
+            und ein persönlicher Kalender-Link
+          </li>
+          <li>
+            Bei Vereinsadmins: Ansprechpartner, Rechnungs-E-Mail und
+            Anschrift des Vereins für die Rechnung
+          </li>
+          <li>Freitext-Rückmeldungen, die du über „Feedback“ sendest</li>
+          <li>
+            Namen von Schiedsrichtern und Zeitnehmern, wenn ein Verein
+            Ansetzungen aus dem Spielbetrieb in seine privaten Termine
+            übernimmt (nur sichtbar für den jeweiligen Verein)
           </li>
         </ul>
       </section>
@@ -59,7 +70,7 @@ export default function DatenschutzPage() {
           Die Daten werden ausschließlich zur Organisation des
           Vereinsbetriebs verarbeitet: Planung und Zuordnung von Einsätzen
           (z.B. Schiedsrichter-Ansetzungen), Versand von Terminerinnerungen
-          per E-Mail bzw. Push-Benachrichtigung, und zur Anmeldung
+          per E-Mail, und zur Anmeldung
           (Authentifizierung).
         </p>
       </section>
@@ -87,14 +98,9 @@ export default function DatenschutzPage() {
             <strong>Neon</strong> — Hosting der Datenbank (Postgres).
           </li>
           <li>
-            <strong>E-Mail-Versand</strong> über einen vom Verein
-            konfigurierten SMTP-Anbieter, für Login-Links und
+            <strong>E-Mail-Versand</strong> über einen vom Betreiber
+            eingesetzten SMTP-Anbieter, für Login-Links und
             Benachrichtigungen.
-          </li>
-          <li>
-            <strong>Web-Push</strong> (sofern aktiviert) — läuft über die
-            Push-Infrastruktur des jeweiligen Browsers/Betriebssystems
-            (z.B. Google, Mozilla, Apple).
           </li>
         </ul>
         <p className="text-sm text-muted-foreground">
@@ -114,15 +120,17 @@ export default function DatenschutzPage() {
         <p className="text-sm">
           Vereine können eine öffentliche Seite mit Mannschaften, Spielplänen,
           Ergebnissen und Tabellen freischalten (/verein/…). Die Sportdaten
-          stammen aus dem öffentlichen Spielbetrieb des jeweiligen
-          Landesverbands (nuLiga, z.B. Hessischer Handball-Verband) und werden
+          stammen aus dem öffentlichen Spielbetrieb: den Landesverbänden
+          (nuLiga, z.B. Hessischer Handball-Verband), dem Deutschen
+          Handballbund (handball.net, ab der 3. Liga) und, für die 1. und
+          2. Handball-Bundesliga, aus den Ergebnisseiten des NDR. Sie werden
           regelmäßig abgeglichen. Übernommen werden nur Vereine, Mannschaften,
           Wettbewerbe, Termine, Spielorte, Ergebnisse und Tabellen —
           keine Mannschaftsverantwortlichen, Schiedsrichter oder sonstigen
-          Personen. Der Besuch dieser Seiten erfordert kein Konto. Wer
-          eingeloggt ist, kann Vereine und Mannschaften als Favoriten
-          markieren; gespeichert wird dabei nur die Zuordnung zu deinem Konto,
-          die du jederzeit wieder entfernen kannst.
+          Personen. Der Besuch dieser Seiten erfordert kein Konto. Vereine und
+          Mannschaften lassen sich als Favoriten markieren; das geschieht ohne
+          Konto nur in deinem Browser (siehe Cookies) und wird nicht in einer
+          Datenbank beim Betreiber gespeichert.
         </p>
       </section>
 
