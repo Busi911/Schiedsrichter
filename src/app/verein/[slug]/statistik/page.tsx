@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const verein = await holeVerein(slug);
   if (!verein) return { title: "Verein nicht gefunden" };
   return {
-    title: `${verein.name} – Statistik | Handballerpate`,
+    title: `${verein.name} – Statistik | HandballerPate`,
     description: `Bilanz, Tore und Form aller Mannschaften des ${verein.name}.`,
     alternates: { canonical: `${appUrl()}/verein/${verein.slug}/statistik` },
   };

@@ -4,7 +4,9 @@ import {
   formKurve,
   hatErgebnis,
   holeTabelle,
+  istAnstehend,
 } from "@/lib/liga-oeffentlich";
+import { jsonLdText, mannschaftJsonLd } from "@/lib/liga-seo";
 import { FormChips, SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
 import { ladeTeam } from "./laden";
 
@@ -14,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, team } = await params;
   const { verein, m } = await ladeTeam(slug, team);
   return {
-    title: `${verein.name} ${m.name} – Spielplan, Ergebnisse & Tabelle | Handballerpate`,
+    title: `${verein.name} ${m.name} – Spielplan, Ergebnisse & Tabelle | HandballerPate`,
     description: `Spielplan, Ergebnisse und Tabelle der Mannschaft ${m.name} (${m.ligaName}) des ${verein.name}.`,
     alternates: { canonical: `${appUrl()}/verein/${verein.slug}/${m.slug}` },
   };
@@ -27,9 +29,19 @@ export default async function Uebersicht({ params }: Props) {
   const zeile = tabelle.find((z) => z.nuligaTeamtableId === m.teamtableId);
   const letztes = [...m.spiele].reverse().find(hatErgebnis);
   const form = formKurve(m);
+  const teamUrl = `${appUrl()}/verein/${verein.slug}/${m.slug}`;
+  const jsonLd = mannschaftJsonLd({
+    vereinsName: verein.name,
+    vereinsUrl: `${appUrl()}/verein/${verein.slug}`,
+    name: m.name,
+    liga: m.ligaName || null,
+    url: teamUrl,
+    anstehend: m.spiele.filter((s) => istAnstehend(s, new Date())).map((s) => ({ ...s, url: `${teamUrl}/spielplan` })),
+  });
 
   return (
     <div className="space-y-6">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdText(jsonLd) }} />
       <section className="space-y-2">
         <h2 className="font-heading text-lg font-semibold">Nächstes Spiel</h2>
         {m.naechstesSpiel ? (

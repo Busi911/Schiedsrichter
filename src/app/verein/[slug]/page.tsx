@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { appUrl } from "@/lib/app-url";
-import { holeVerein } from "@/lib/liga-oeffentlich";
+import { holeVerein, holeVereinsDesign } from "@/lib/liga-oeffentlich";
+import { jsonLdText, vereinJsonLd } from "@/lib/liga-seo";
 import { sammleVereinsSpiele } from "@/lib/liga-spiele-hilfen";
 import { BereichsKopf } from "@/components/liga/bereichs-kopf";
 import { GefilterteListe } from "@/components/liga/gefilterte-liste";
@@ -18,10 +19,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const verein = await holeVerein(slug);
   if (!verein) return { title: "Verein nicht gefunden" };
   return {
-    title: `${verein.name} – Ergebnisse, Spielplan & Mannschaften | Handballerpate`,
-    description: `Letzte Ergebnisse, nächste Spiele und alle Mannschaften des ${verein.name} auf Handballerpate.`,
+    title: `${verein.name} – Ergebnisse, Spielplan & Mannschaften | HandballerPate`,
+    description: `Letzte Ergebnisse, nächste Spiele und alle Mannschaften des ${verein.name} auf HandballerPate.`,
     alternates: { canonical: `${appUrl()}/verein/${verein.slug}` },
-    openGraph: { title: verein.name, type: "website", locale: "de_DE" },
   };
 }
 
@@ -33,19 +33,19 @@ export default async function ErgebnisseSeite({ params }: Props) {
   const { ergebnisse } = sammleVereinsSpiele(mannschaften, jetzt);
   const woche = berechneWoche(mannschaften, jetzt, tagKey(jetzt));
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "SportsOrganization",
+  const design = await holeVereinsDesign(verein.id);
+  const jsonLd = vereinJsonLd({
     name: verein.name,
-    sport: "Handball",
     url: `${appUrl()}${basis}`,
-  };
+    logoUrl: design.logoVersion ? `${appUrl()}/verein/${verein.slug}/logo?v=${design.logoVersion}` : null,
+    mannschaften: mannschaften.map((m) => ({ name: m.name, url: `${appUrl()}${basis}/${m.slug}` })),
+  });
 
   return (
     <div className="space-y-5 pb-28 md:pb-0">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+        dangerouslySetInnerHTML={{ __html: jsonLdText(jsonLd) }}
       />
       <BereichsKopf titel="Letzte Ergebnisse" vereinId={verein.id} vereinName={verein.name} />
       <InstallHinweis appName={verein.name} appId={verein.slug} />

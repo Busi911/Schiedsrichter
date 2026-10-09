@@ -1,12 +1,21 @@
 import { appUrl } from "@/lib/app-url";
 import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER } from "@/lib/beta-konditionen";
+import { holeAlleVereine } from "@/lib/liga-oeffentlich";
 
 // Kurzbeschreibung für KI-Assistenten und Crawler (llms.txt-Konvention): was HandballerPate ist, was es kann und wo die öffentlichen Seiten stehen.
 // Nur öffentliche, dauerhaft gültige Aussagen — private Bereiche (Admin, Profil, Eintragungs-Links) stehen bewusst nicht drin.
-export const dynamic = "force-static";
+// Dynamisch (stündlich neu): die Liste der Vereine mit öffentlicher Seite ändert sich, sobald ein Verein freigeschaltet wird.
+export const revalidate = 3600;
 
-export function GET() {
+export async function GET() {
   const basis = appUrl();
+  let vereine: { name: string; slug: string }[] = [];
+  try {
+    vereine = await holeAlleVereine();
+  } catch {
+    // Ohne Datenbank bleibt die Datei trotzdem gültig, nur ohne Vereinsliste.
+  }
+  const vereinsListe = vereine.map((v) => `- [${v.name}](${basis}/verein/${v.slug}): Ergebnisse, nächste Spiele, Mannschaften, Statistik`).join("\n");
   const text = `# HandballerPate
 
 > HandballerPate ist eine Plattform für Handballvereine in Deutschland: Funktionsträger verwalten, Dienste einteilen, den Hallenspielplan automatisch aus nuLiga und handball.net übernehmen und Spielpläne, Ergebnisse und Tabellen als App für Spieler, Eltern und Fans bereitstellen.
@@ -33,6 +42,6 @@ export function GET() {
 - [Impressum](${basis}/impressum)
 - Jeder Verein: ${basis}/verein/<verein> mit Ergebnissen, nächsten Spielen, Mannschaften, Statistik und je Mannschaft Spielplan, Ergebnisse und Tabelle.
 - Sitemap: ${basis}/sitemap.xml
-`;
+${vereinsListe ? `\n## Vereine mit öffentlicher Seite\n${vereinsListe}\n` : ""}`;
   return new Response(text, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
 }

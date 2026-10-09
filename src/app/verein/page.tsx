@@ -5,8 +5,8 @@ import { holeAlleVereine } from "@/lib/liga-oeffentlich";
 import { appUrl } from "@/lib/app-url";
 
 export const metadata: Metadata = {
-  title: "Handballvereine – Mannschaften, Spielpläne & Ergebnisse | Handballerpate",
-  description: "Alle Vereine auf Handballerpate mit Mannschaften, Spielplänen und Ergebnissen.",
+  title: "Handballvereine – Mannschaften, Spielpläne & Ergebnisse | HandballerPate",
+  description: "Alle Vereine auf HandballerPate mit Mannschaften, Spielplänen und Ergebnissen.",
   alternates: { canonical: `${appUrl()}/verein` },
 };
 

@@ -27,7 +27,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   // Absolute Basis für relative Pfade (Canonical, Open-Graph-Bilder) — ohne sie lösen Suchmaschinen/Link-Vorschauen sie falsch auf.
   metadataBase: new URL(appUrl()),
-  title: { default: "HandballerPate – Hallenspielplan, Spielplan & Dienste für Handballvereine", template: "%s | HandballerPate" },
+  title: "HandballerPate – Hallenspielplan, Spielplan & Dienste für Handballvereine",
   description:
     "HandballerPate organisiert Handballvereine: Schiedsrichter, Zeitnehmer, Ordner und Kiosk einteilen, Hallenspielplan aus nuLiga und handball.net automatisch übernehmen, Spielpläne und Ergebnisse als App für Spieler und Eltern.",
   applicationName: "HandballerPate",

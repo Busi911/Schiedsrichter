@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, team } = await params;
   const { verein, m } = await ladeTeam(slug, team);
   return {
-    title: `${verein.name} ${m.name} – Spielplan | Handballerpate`,
+    title: `${verein.name} ${m.name} – Spielplan | HandballerPate`,
     description: `Kommende Spiele der Mannschaft ${m.name} des ${verein.name}.`,
     alternates: { canonical: `${appUrl()}/verein/${verein.slug}/${m.slug}/spielplan` },
   };

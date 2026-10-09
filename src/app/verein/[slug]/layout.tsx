@@ -28,6 +28,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       apple: `/verein/${verein.slug}/icon/180?v=${v}`,
     },
     appleWebApp: { capable: true, title: verein.name, statusBarStyle: "default" },
+    // Link-Vorschau (Messenger, soziale Netze, KI-Antworten): das Vereinslogo als Bild, wenn der Verein eines hat.
+    openGraph: {
+      type: "website",
+      locale: "de_DE",
+      siteName: "HandballerPate",
+      ...(v ? { images: [{ url: `/verein/${verein.slug}/logo?v=${v}`, alt: `Logo ${verein.name}` }] } : {}),
+    },
+    twitter: { card: v ? "summary" : "summary_large_image" },
   };
 }
 
