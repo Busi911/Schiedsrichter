@@ -3,4 +3,4 @@
 // dann erneut zustimmen (siehe erzwingeAvvZustimmungFallsNoetig in
 // lib/session.ts). Rein kosmetische Änderungen (Tippfehler) brauchen
 // keinen Bump.
-export const AVV_VERSION = "1.0";
+export const AVV_VERSION = "1.1";
