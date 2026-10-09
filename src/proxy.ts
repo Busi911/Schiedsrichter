@@ -13,6 +13,7 @@ const publicRoutes = [
   "/app-hilfe",
   "/sitemap.xml",
   "/robots.txt",
+  "/llms.txt",
 ];
 
 export default auth((req) => {

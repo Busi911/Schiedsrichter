@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { auth } from "@/auth";
 import { holeAlleVereine } from "@/lib/liga-oeffentlich";
+import { appUrl } from "@/lib/app-url";
 import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER, KEIN_RISIKO, NETTO, SPONSOR_KURZ } from "@/lib/beta-konditionen";
 import { betaVorbei } from "@/lib/abrechnung";
 import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
@@ -97,6 +99,79 @@ const PRODUKTTOUR = [
   },
 ];
 
+// Suchmaschinen und KI-Assistenten (Titel, Beschreibung, kanonische Adresse): gezielt auf die Begriffe, mit denen Vereine suchen.
+export const metadata: Metadata = {
+  title: { absolute: "HandballerPate – Hallenspielplan, Spielplan & Dienste für Handballvereine" },
+  description:
+    "Schiedsrichter, Zeitnehmer, Ordner und Kiosk einteilen, Hallenspielplan aus nuLiga und handball.net automatisch übernehmen, Spielpläne und Ergebnisse als App für Spieler und Eltern. Für Handballvereine.",
+  alternates: { canonical: "/" },
+};
+
+// Häufige Fragen: sichtbar auf der Seite UND als FAQPage-Daten (JSON-LD) — so finden und zitieren Suchmaschinen und KI-Assistenten die Antworten.
+function faqEintraege(live: boolean) {
+  return [
+    {
+      frage: "Was ist HandballerPate?",
+      antwort:
+        "HandballerPate ist eine Plattform für Handballvereine. Vereine verwalten ihre Funktionsträger (Schiedsrichter, Zeitnehmer, Sekretäre, Ordner, Kioskdienst, Kassierer, Trainer), teilen Einsätze fair ein und übernehmen den Hallenspielplan automatisch aus nuLiga oder handball.net. Spieler, Eltern und Fans sehen Spielpläne, Ergebnisse und Tabellen ihres Vereins als App.",
+    },
+    {
+      frage: "Welche Verbände und Ligen werden unterstützt?",
+      antwort:
+        "Über nuLiga der Hessische Handball-Verband (HHV) und der Handball-Verband Berlin (HVBerlin), weitere nuLiga-Verbände auf Anfrage. Über handball.net alle DHB-Wettbewerbe ab der 3. Liga, inklusive Jugendbundesliga. Die 1. und 2. Handball-Bundesliga kommen über den NDR.",
+    },
+    {
+      frage: "Was kostet HandballerPate?",
+      antwort: live
+        ? `HandballerPate kostet ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Die Rechnung kommt per E-Mail, das Zahlungsziel beträgt 30 Tage.`
+        : `Die Beta-Phase läuft voraussichtlich bis ${BETA_ENDE} und ist kostenlos. Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Vor dem Ende der Beta kann jeder Verein ohne Kosten aussteigen, dann werden alle Daten gelöscht.`,
+    },
+    {
+      frage: "Müssen sich Spieler und Eltern registrieren?",
+      antwort:
+        "Nein. Spielplan, Ergebnisse und Tabellen sind ohne Login sichtbar, und die Seite des Vereins lässt sich als App aufs Handy installieren. Favoriten werden nur im eigenen Browser gespeichert, es gibt kein Konto und kein Tracking.",
+    },
+    {
+      frage: "Wie tragen sich Eltern für Dienste ein?",
+      antwort:
+        "Der Zeitnehmerwart oder Ordnerwart schaltet einen Link frei. Darüber wählen Eltern und Helfer ohne Login ihre Termine und tragen sich als Zeitnehmer, Sekretär, Ordner, Kioskdienst oder Kassierer ein. Mit einer E-Mail-Adresse entsteht auf Wunsch ein eigener Zugang mit Kalender und Erinnerungen.",
+    },
+    {
+      frage: "Wie steht es um den Datenschutz?",
+      antwort:
+        "Die Daten der Vereine sind strikt voneinander getrennt. Ein Auftragsverarbeitungsvertrag und die Datenschutzerklärung liegen von Anfang an bei. Von nuLiga und handball.net werden nur öffentliche Sport-Daten übernommen, keine Personendaten wie Schiedsrichter-Namen.",
+    },
+  ];
+}
+
+// Strukturierte Daten (schema.org): Organisation, Website, Software und FAQ der Startseite.
+function startseiteJsonLd(live: boolean) {
+  const basis = appUrl();
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "Organization", "@id": `${basis}/#organisation`, name: "HandballerPate", url: basis, logo: `${basis}/brand/logo-rund.png` },
+      { "@type": "WebSite", "@id": `${basis}/#website`, url: basis, name: "HandballerPate", inLanguage: "de-DE", publisher: { "@id": `${basis}/#organisation` } },
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${basis}/#software`,
+        name: "HandballerPate",
+        url: basis,
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web, iOS, Android (als installierbare Web-App)",
+        inLanguage: "de-DE",
+        description:
+          "Plattform für Handballvereine: Funktionsträger verwalten, Einsätze einteilen, Hallenspielplan aus nuLiga und handball.net übernehmen, Spielpläne und Ergebnisse als App.",
+        publisher: { "@id": `${basis}/#organisation` },
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: faqEintraege(live).map((e) => ({ "@type": "Question", name: e.frage, acceptedAnswer: { "@type": "Answer", text: e.antwort } })),
+      },
+    ],
+  };
+}
+
 // Zeigt bei jedem Aufruf die aktuelle Beta-Platzzahl (siehe unten) — ohne
 // diese Direktive würde Next.js die Seite statisch vorrendern (kein
 // erzwungener cookies()-Zugriff wie auf eingeloggten Seiten) und die Zahl
@@ -120,8 +195,14 @@ export default async function Home() {
   // Vereine mit öffentlicher Seite (Spielpläne/Ergebnisse) — stehen vor dem Beta-Hinweis.
   const vereineMitSeite = await holeAlleVereine();
 
+  const faq = faqEintraege(live);
+
   return (
     <div className="flex min-h-screen flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(startseiteJsonLd(live)).replace(/</g, "\\u003c") }}
+      />
       {/* Oben bewusst NUR der Login-Zugang (kein Registrieren-Button) —
           wiederkehrende Funktionsträger/Admins wollen direkt einloggen,
           ohne erst an der Beta-Werbung vorbeiklicken zu müssen. Der
@@ -325,6 +406,27 @@ export default async function Home() {
               <Button className={GROSSER_BUTTON} render={<Link href="/registrieren" />} nativeButton={false}>
                 Verein registrieren
               </Button>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t bg-muted/30" aria-labelledby="faq-titel">
+          <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-16">
+            <h2 id="faq-titel" className="font-heading text-2xl font-semibold">
+              Häufige Fragen
+            </h2>
+            <div className="flex flex-col gap-2">
+              {faq.map((e) => (
+                <details key={e.frage} className="group rounded-lg border bg-background px-4">
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 text-base font-medium [&::-webkit-details-marker]:hidden">
+                    {e.frage}
+                    <span aria-hidden="true" className="text-xl text-muted-foreground transition-transform group-open:rotate-45">
+                      +
+                    </span>
+                  </summary>
+                  <p className="pb-4 text-base text-muted-foreground">{e.antwort}</p>
+                </details>
+              ))}
             </div>
           </div>
         </section>

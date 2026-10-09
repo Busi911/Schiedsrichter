@@ -16,6 +16,7 @@ import {
   UsersIcon,
   UsersRoundIcon,
   BarChart3Icon,
+  TrendingUpIcon,
   Building2Icon,
   ClipboardCheckIcon,
   ListOrderedIcon,
@@ -48,6 +49,7 @@ const ICONS = {
   mannschaften: UsersRoundIcon,
   funktionstraeger: UsersIcon,
   auswertung: BarChart3Icon,
+  statistik: TrendingUpIcon,
   einstellungen: SettingsIcon,
   profil: UserIcon,
   hilfe: CircleHelpIcon,
@@ -125,7 +127,7 @@ export function BottomNav({
         <div
           role="dialog"
           aria-label="Weitere Bereiche"
-          className="fixed inset-x-0 bottom-20 z-50 mx-3 flex flex-col gap-1 rounded-xl border bg-background p-2 shadow-xl"
+          className="fixed inset-x-0 bottom-20 z-50 mx-3 flex max-h-[calc(100dvh-7rem)] flex-col gap-1 overflow-y-auto rounded-xl border bg-background p-2 shadow-xl"
         >
           {sheetItems.map((item) => (
             <Link
@@ -133,12 +135,12 @@ export function BottomNav({
               href={item.href}
               onClick={() => setOffen(false)}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm",
+                "flex min-h-12 items-center gap-3 rounded-lg px-3 text-base",
                 istAktiv(pathname, item.href, item.exact, item.pfade) ? "bg-secondary font-medium" : "hover:bg-muted"
               )}
             >
-              <LinkSymbol className="size-4 text-muted-foreground">
-                <Icon name={item.icon} className="size-4 text-muted-foreground" />
+              <LinkSymbol className="size-5 text-muted-foreground">
+                <Icon name={item.icon} className="size-5 text-muted-foreground" />
               </LinkSymbol>
               <span className="flex-1">{item.label}</span>
               {!!item.badge && <Badge variant="warning">{item.badge}</Badge>}
@@ -147,9 +149,9 @@ export function BottomNav({
           <form action={logoutAction}>
             <SubmitButton
               variant="ghost"
-              className="h-auto w-full justify-start gap-3 px-3 py-2.5 text-sm font-normal"
+              className="h-12 w-full justify-start gap-3 px-3 text-base font-normal"
             >
-              <LogOutIcon className="size-4 text-muted-foreground" />
+              <LogOutIcon className="size-5 text-muted-foreground" />
               Logout
             </SubmitButton>
           </form>
@@ -171,7 +173,7 @@ export function BottomNav({
                   onClick={() => setOffen(false)}
                   aria-current={aktiv ? "page" : undefined}
                   className={cn(
-                    "flex h-full flex-col items-center justify-center gap-0.5 text-[11px]",
+                    "flex h-full flex-col items-center justify-center gap-0.5 text-xs",
                     aktiv ? "font-medium text-primary" : "text-muted-foreground"
                   )}
                 >
@@ -189,7 +191,7 @@ export function BottomNav({
               onClick={() => setOffen((o) => !o)}
               aria-expanded={offen}
               className={cn(
-                "relative flex h-full w-full flex-col items-center justify-center gap-0.5 text-[11px]",
+                "relative flex h-full w-full flex-col items-center justify-center gap-0.5 text-xs",
                 offen || mehrAktiv ? "font-medium text-primary" : "text-muted-foreground"
               )}
             >

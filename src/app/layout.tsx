@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { Footer } from "@/components/footer";
+import { appUrl } from "@/lib/app-url";
 import { ServiceWorkerRegistrar } from "@/components/sw-register";
 import "./globals.css";
 
@@ -24,8 +25,22 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "HandballerPate",
-  description: "Verwaltungsplattform für Funktionsträger im Handballverein",
+  // Absolute Basis für relative Pfade (Canonical, Open-Graph-Bilder) — ohne sie lösen Suchmaschinen/Link-Vorschauen sie falsch auf.
+  metadataBase: new URL(appUrl()),
+  title: { default: "HandballerPate – Hallenspielplan, Spielplan & Dienste für Handballvereine", template: "%s | HandballerPate" },
+  description:
+    "HandballerPate organisiert Handballvereine: Schiedsrichter, Zeitnehmer, Ordner und Kiosk einteilen, Hallenspielplan aus nuLiga und handball.net automatisch übernehmen, Spielpläne und Ergebnisse als App für Spieler und Eltern.",
+  applicationName: "HandballerPate",
+  openGraph: {
+    type: "website",
+    locale: "de_DE",
+    siteName: "HandballerPate",
+    title: "HandballerPate – Dienste, Hallenspielplan und Ergebnisse für Handballvereine",
+    description:
+      "Schiedsrichter, Zeitnehmer, Ordner und Kiosk einteilen, Hallenspielplan automatisch aus nuLiga und handball.net, Spielpläne und Ergebnisse als App.",
+    images: [{ url: "/brand/logo-gross.png", width: 900, height: 634, alt: "HandballerPate" }],
+  },
+  twitter: { card: "summary_large_image", title: "HandballerPate", description: "Dienste, Hallenspielplan und Ergebnisse für Handballvereine." },
   manifest: "/manifest.json",
   // Favicon selbst kommt bereits automatisch aus src/app/icon.png (Next.js
   // Metadata-File-Convention) — hier nur das Apple-Touch-Icon ergänzt, für
