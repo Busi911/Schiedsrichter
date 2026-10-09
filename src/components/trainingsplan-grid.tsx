@@ -26,10 +26,14 @@ import {
   TrainingszeitDialog,
   type TrainingszeitEintrag,
 } from "@/components/trainingszeit-dialog";
+import { AlertTriangleIcon } from "lucide-react";
 import {
   ABTEIL_ANZAHL_OPTIONEN,
   abteilLabel,
+  findeKonflikte,
   formatUhrzeit,
+  type Konflikt,
+  type KonfliktArt,
   WOCHENTAGE_LABEL,
   type HalleMitAbteilen,
 } from "@/lib/trainingsplan";
@@ -163,11 +167,13 @@ function MobileAgenda({
   mannschaftLabelZuId,
   halle,
   onBearbeiten,
+  konflikte,
 }: {
   trainingszeiten: TrainingszeitEintrag[];
   mannschaftLabelZuId: Map<string, string>;
   halle: HalleMitAbteilen;
   onBearbeiten: (eintrag: TrainingszeitEintrag) => void;
+  konflikte: Map<string, KonfliktArt>;
 }) {
   if (trainingszeiten.length === 0) {
     return (
@@ -194,7 +200,11 @@ function MobileAgenda({
                 key={t.id}
                 type="button"
                 onClick={() => onBearbeiten(t)}
-                className="flex items-center justify-between gap-2 rounded-lg border p-2 text-left text-sm"
+                className={cn(
+                  "flex min-h-12 items-center justify-between gap-2 rounded-lg border p-2 text-left text-base",
+                  konflikte.get(t.id) === "ohne_abteil" && "border-amber-400",
+                  konflikte.has(t.id) && konflikte.get(t.id) !== "ohne_abteil" && "border-red-500"
+                )}
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span
@@ -211,7 +221,13 @@ function MobileAgenda({
                     )}
                   </span>
                 </span>
-                <span className="shrink-0 text-xs text-muted-foreground">
+                <span className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground">
+                  {konflikte.has(t.id) && (
+                    <AlertTriangleIcon
+                      className={cn("size-4", konflikte.get(t.id) === "ohne_abteil" ? "text-amber-500" : "text-red-600")}
+                      aria-label="Konflikt"
+                    />
+                  )}
                   {formatUhrzeit(t.startMinuten)}–{formatUhrzeit(t.endMinuten)}
                 </span>
               </button>
@@ -256,6 +272,32 @@ export function TrainingsplanGrid({
   const halleAktiv = hallen.find((h) => h.id === halleAktivId) ?? hallen[0] ?? null;
   const zeitenAktiv = trainingszeiten.filter((t) => t.halleId === halleAktiv?.id);
   const mannschaftLabelZuId = new Map(mannschaften.map((m) => [m.id, m.label]));
+
+  // Konflikte über ALLE Hallen (dieselbe Mannschaft kann nicht zweimal gleichzeitig trainieren), angezeigt werden die der aktiven Halle.
+  const abteileJeHalle = new Map(hallen.map((h) => [h.id, h.abteilAnzahl]));
+  const alleKonflikte = findeKonflikte(trainingszeiten, abteileJeHalle);
+  const konflikteAktiv = alleKonflikte.filter((k) => {
+    const idsAktiv = new Set(zeitenAktiv.map((t) => t.id));
+    return idsAktiv.has(k.a) || idsAktiv.has(k.b);
+  });
+  const konfliktArtJeId = new Map<string, KonfliktArt>();
+  for (const k of konflikteAktiv) {
+    for (const id of [k.a, k.b]) {
+      // "doppelt"/"abteil" (rot) gehen vor "ohne_abteil" (gelb)
+      if (konfliktArtJeId.get(id) !== "doppelt" && konfliktArtJeId.get(id) !== "abteil") konfliktArtJeId.set(id, k.art);
+    }
+  }
+  const eintragNachId = new Map(trainingszeiten.map((t) => [t.id, t]));
+  const konfliktText = (k: Konflikt) => {
+    const a = eintragNachId.get(k.a);
+    const b = eintragNachId.get(k.b);
+    const wer = `${mannschaftLabelZuId.get(a?.mannschaftId ?? "") ?? "?"} und ${mannschaftLabelZuId.get(b?.mannschaftId ?? "") ?? "?"}`;
+    const wann = `${WOCHENTAGE_LABEL[k.wochentag]} ${formatUhrzeit(k.von)}–${formatUhrzeit(k.bis)}`;
+    const halle = hallen.find((h) => h.id === k.halleId);
+    if (k.art === "doppelt") return `${wann}: ${mannschaftLabelZuId.get(a?.mannschaftId ?? "") ?? "?"} ist zweimal gleichzeitig eingeplant.`;
+    if (k.art === "abteil") return `${wann}: ${wer} im selben Abteil${halle && k.abteilNummer ? ` (${abteilLabel(halle, k.abteilNummer)})` : ""}.`;
+    return `${wann}: ${wer} — bei mindestens einem fehlt das Abteil (belegt ggf. die ganze Halle).`;
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -304,6 +346,30 @@ export function TrainingsplanGrid({
             </div>
           </div>
 
+          {konflikteAktiv.length > 0 && (
+            <div
+              role="alert"
+              className={cn(
+                "flex gap-2 rounded-lg border p-3 text-sm",
+                konflikteAktiv.some((k) => k.art !== "ohne_abteil")
+                  ? "border-red-500/50 bg-red-500/10"
+                  : "border-amber-400/60 bg-amber-400/10"
+              )}
+            >
+              <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+              <div className="flex flex-col gap-1">
+                <p className="font-medium">
+                  {konflikteAktiv.length === 1 ? "1 Überschneidung" : `${konflikteAktiv.length} Überschneidungen`} in dieser Halle
+                </p>
+                <ul className="list-disc pl-4">
+                  {konflikteAktiv.map((k) => (
+                    <li key={`${k.a}-${k.b}`}>{konfliktText(k)}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           {mannschaften.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Noch keine Mannschaften angelegt (siehe /admin/mannschaften).
@@ -320,6 +386,7 @@ export function TrainingsplanGrid({
                   gridEndMinuten={gridEndMinuten}
                   onBlockClick={(eintrag) => setDialog({ modus: "bearbeiten", eintrag })}
                   onSlotClick={(vorgabe) => setDialog({ modus: "neu", vorgabe })}
+                  konflikte={konfliktArtJeId}
                 />
               </div>
               <div className="flex flex-col gap-3 md:hidden">
@@ -328,9 +395,11 @@ export function TrainingsplanGrid({
                   mannschaftLabelZuId={mannschaftLabelZuId}
                   halle={halleAktiv}
                   onBearbeiten={(eintrag) => setDialog({ modus: "bearbeiten", eintrag })}
+                  konflikte={konfliktArtJeId}
                 />
                 <Button
                   variant="outline"
+                  className="h-12 text-base"
                   onClick={() =>
                     setDialog({
                       modus: "neu",
@@ -361,6 +430,7 @@ export function TrainingsplanGrid({
           hallen={hallen}
           eintrag={dialog.modus === "bearbeiten" ? dialog.eintrag : undefined}
           vorgabe={dialog.modus === "neu" ? dialog.vorgabe : undefined}
+          alleEintraege={trainingszeiten}
         />
       )}
     </div>

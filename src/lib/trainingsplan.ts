@@ -163,3 +163,84 @@ export function platziereZeitbloecke<T extends ZeitBlock>(
 
   return ergebnis;
 }
+
+// ---------------------------------------------------------------------------
+// Abteile, Konflikte, Teilen und Tauschen
+// ---------------------------------------------------------------------------
+
+// Spur eines Abteils im Tagesstreifen einer unterteilten Halle: Abteil n von N belegt das n-te Stück der Breite (links/Breite in Anteilen 0-1).
+// Ein Training OHNE Abteil in einer unterteilten Halle gilt als "ganze Halle" und nimmt die volle Breite.
+export function abteilSpur(abteilAnzahl: number, abteilNummer: number | null): { links: number; breite: number } {
+  if (abteilAnzahl <= 0 || abteilNummer == null || abteilNummer < 1 || abteilNummer > abteilAnzahl) return { links: 0, breite: 1 };
+  return { links: (abteilNummer - 1) / abteilAnzahl, breite: 1 / abteilAnzahl };
+}
+
+// Welches Abteil liegt unter einer waagerechten Position (Anteil 0-1 der Tagesspalte)? Bei einer nicht unterteilten Halle: null.
+export function abteilAusPosition(abteilAnzahl: number, anteil: number): number | null {
+  if (abteilAnzahl <= 0) return null;
+  const n = Math.floor(Math.min(0.999999, Math.max(0, anteil)) * abteilAnzahl) + 1;
+  return n;
+}
+
+export type BelegungsEintrag = {
+  id: string;
+  mannschaftId: string;
+  halleId: string;
+  wochentag: number;
+  startMinuten: number;
+  endMinuten: number;
+  abteilNummer: number | null;
+};
+
+// "doppelt": dieselbe Mannschaft zur selben Zeit zweimal (egal wo). "abteil": zwei Mannschaften im selben Abteil derselben Halle.
+// "ohne_abteil": in einer unterteilten Halle hat mindestens eine der beiden Belegungen kein Abteil (belegt ggf. die ganze Halle) — nur ein
+// Hinweis. In einer NICHT unterteilten Halle sind gleichzeitige Trainings weiter erlaubt (z.B. Vorhang, ohne dass der Verein Abteile pflegt).
+export type KonfliktArt = "doppelt" | "abteil" | "ohne_abteil";
+
+export type Konflikt = {
+  art: KonfliktArt;
+  a: string;
+  b: string;
+  wochentag: number;
+  von: number;
+  bis: number;
+  halleId: string;
+  abteilNummer: number | null;
+};
+
+export function findeKonflikte(eintraege: BelegungsEintrag[], abteilAnzahlJeHalle: Map<string, number>): Konflikt[] {
+  const konflikte: Konflikt[] = [];
+  for (let i = 0; i < eintraege.length; i++) {
+    for (let j = i + 1; j < eintraege.length; j++) {
+      const a = eintraege[i];
+      const b = eintraege[j];
+      if (a.wochentag !== b.wochentag) continue;
+      const von = Math.max(a.startMinuten, b.startMinuten);
+      const bis = Math.min(a.endMinuten, b.endMinuten);
+      if (von >= bis) continue; // keine Überschneidung (direkt aneinander ist kein Konflikt)
+
+      let art: KonfliktArt | null = null;
+      let abteil: number | null = null;
+      if (a.mannschaftId === b.mannschaftId) {
+        art = "doppelt";
+      } else if (a.halleId === b.halleId && (abteilAnzahlJeHalle.get(a.halleId) ?? 0) > 0) {
+        if (a.abteilNummer != null && a.abteilNummer === b.abteilNummer) {
+          art = "abteil";
+          abteil = a.abteilNummer;
+        } else if (a.abteilNummer == null || b.abteilNummer == null) {
+          art = "ohne_abteil";
+        }
+      }
+      if (art) konflikte.push({ art, a: a.id, b: b.id, wochentag: a.wochentag, von, bis, halleId: a.halleId, abteilNummer: abteil });
+    }
+  }
+  return konflikte;
+}
+
+// Aufteilen einer Trainingszeit in zwei Abschnitte (Wechsel, z.B. erste halbe Stunde Abteil Nord, zweite Abteil Süd): der Wechselzeitpunkt muss
+// aufs Raster passen und beide Teile mindestens einen Rasterschritt lang lassen. Gibt eine Fehlermeldung oder null zurück.
+export function pruefeTeilung(start: number, ende: number, teil: number): string | null {
+  if (!Number.isInteger(teil) || teil % RASTER_MINUTEN !== 0) return "Der Wechsel muss auf eine Viertelstunde fallen.";
+  if (teil <= start || teil >= ende) return "Der Wechsel muss innerhalb des Trainings liegen.";
+  return null;
+}

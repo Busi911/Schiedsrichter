@@ -18,13 +18,17 @@ import {
   abteilLabel,
   formatUhrzeit,
   TRAININGSFARBEN,
+  rundeAufRaster,
   WOCHENTAGE_LABEL,
+  WOCHENTAGE_LABEL_KURZ,
   type HalleMitAbteilen,
 } from "@/lib/trainingsplan";
 import {
   trainingszeitAktualisieren,
   trainingszeitAnlegen,
+  trainingszeitenTauschen,
   trainingszeitLoeschen,
+  trainingszeitTeilen,
 } from "@/app/admin/(dashboard)/trainingsplan/actions";
 
 export type TrainingszeitEintrag = {
@@ -76,6 +80,7 @@ export function TrainingszeitDialog({
   hallen,
   eintrag,
   vorgabe,
+  alleEintraege = [],
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -91,6 +96,8 @@ export function TrainingszeitDialog({
     startMinuten: number;
     endMinuten: number;
   };
+  // Alle Trainingszeiten (für "Tauschen mit …"), nur beim Bearbeiten genutzt.
+  alleEintraege?: TrainingszeitEintrag[];
 }) {
   const bearbeiten = !!eintrag;
   const [farbe, setFarbe] = useState(eintrag?.farbe ?? TRAININGSFARBEN[0]);
@@ -111,6 +118,14 @@ export function TrainingszeitDialog({
       <DialogContent
         onSubmit={(e) => {
           const form = e.target as HTMLFormElement;
+          // Zusätzliche Formulare im Dialog (Teilen/Tauschen) haben keine Zeitfelder des Hauptformulars.
+          const wechsel = form.elements.namedItem("wechselZeit") as HTMLInputElement | null;
+          if (wechsel) {
+            const [wh, wm] = wechsel.value.split(":").map(Number);
+            (form.elements.namedItem("wechselMinuten") as HTMLInputElement).value = String(wh * 60 + wm);
+            return;
+          }
+          if (!form.elements.namedItem("startZeit")) return;
           const startZeit = (form.elements.namedItem("startZeit") as HTMLInputElement)
             .value;
           const endeZeit = (form.elements.namedItem("endeZeit") as HTMLInputElement)
@@ -269,7 +284,114 @@ export function TrainingszeitDialog({
             <SubmitButton pendingText="Wird gespeichert…">Speichern</SubmitButton>
           </DialogFooter>
         </form>
+
+        {bearbeiten && eintrag && (
+          <ZusatzAktionen
+            eintrag={eintrag}
+            alleEintraege={alleEintraege}
+            mannschaften={mannschaften}
+            hallen={hallen}
+            onFertig={() => onOpenChange(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Teilen (Wechsel innerhalb einer Einheit) und Tauschen (zwei Mannschaften tauschen Platz) — eigene Formulare unter dem Hauptformular, wirken auf
+// die GESPEICHERTE Trainingszeit (ungespeicherte Änderungen oben bitte erst speichern).
+function ZusatzAktionen({
+  eintrag,
+  alleEintraege,
+  mannschaften,
+  hallen,
+  onFertig,
+}: {
+  eintrag: TrainingszeitEintrag;
+  alleEintraege: TrainingszeitEintrag[];
+  mannschaften: { id: string; label: string }[];
+  hallen: ({ id: string; name: string } & HalleMitAbteilen)[];
+  onFertig: () => void;
+}) {
+  const halle = hallen.find((h) => h.id === eintrag.halleId);
+  const mannschaftLabel = new Map(mannschaften.map((m) => [m.id, m.label]));
+  const hallenName = new Map(hallen.map((h) => [h.id, h.name]));
+  const mitte = rundeAufRaster((eintrag.startMinuten + eintrag.endMinuten) / 2);
+  const dauer = eintrag.endMinuten - eintrag.startMinuten;
+  const kannTeilen = dauer >= 30;
+  const naechstesAbteil = halle && halle.abteilAnzahl > 1 ? ((eintrag.abteilNummer ?? 0) % halle.abteilAnzahl) + 1 : null;
+
+  // Tauschpartner: andere Trainingszeiten am selben Wochentag (jede Halle), nach Beginn sortiert.
+  const partner = alleEintraege
+    .filter((t) => t.id !== eintrag.id && t.wochentag === eintrag.wochentag)
+    .sort((a, b) => a.startMinuten - b.startMinuten)
+    .map((t) => {
+      const h = hallen.find((x) => x.id === t.halleId);
+      const abteil = h && t.abteilNummer != null ? ` · ${abteilLabel(h, t.abteilNummer)}` : "";
+      return {
+        value: t.id,
+        label: `${formatUhrzeit(t.startMinuten)}–${formatUhrzeit(t.endMinuten)} · ${mannschaftLabel.get(t.mannschaftId) ?? "?"} · ${hallenName.get(t.halleId) ?? ""}${abteil}`,
+      };
+    });
+
+  return (
+    <div className="flex flex-col gap-4 border-t pt-4">
+      {partner.length > 0 && (
+        <form action={trainingszeitenTauschen} className="flex flex-col gap-2">
+          <SchliesseNachSpeichern onFertig={onFertig} />
+          <input type="hidden" name="idA" value={eintrag.id} />
+          <Label htmlFor="tz-tausch">Mannschaften tauschen</Label>
+          <p className="text-xs text-muted-foreground">
+            Diese Mannschaft übernimmt den Platz der gewählten (Zeit, Halle und Abteil bleiben), und umgekehrt — z.B. um Hallenseite oder Viertel zu
+            tauschen.
+          </p>
+          <LabeledSelect id="tz-tausch" name="idB" required placeholder={`Tauschen mit … (${WOCHENTAGE_LABEL_KURZ[eintrag.wochentag]})`} options={partner} />
+          <SubmitButton variant="outline" pendingText="Wird getauscht…">
+            Tauschen
+          </SubmitButton>
+        </form>
+      )}
+
+      {kannTeilen && (
+        <form action={trainingszeitTeilen} className="flex flex-col gap-2">
+          <SchliesseNachSpeichern onFertig={onFertig} />
+          <input type="hidden" name="id" value={eintrag.id} />
+          <input type="hidden" name="wechselMinuten" />
+          <Label htmlFor="tz-wechsel">In zwei Abschnitte teilen (Wechsel)</Label>
+          <p className="text-xs text-muted-foreground">
+            Der zweite Abschnitt beginnt zur Wechselzeit und kann ein anderes Abteil belegen — z.B. erste halbe Stunde Nord, zweite Süd.
+          </p>
+          <div className="flex gap-2">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <span className="text-xs text-muted-foreground">Wechsel um</span>
+              <input
+                id="tz-wechsel"
+                name="wechselZeit"
+                type="time"
+                step={900}
+                required
+                defaultValue={formatUhrzeit(mitte)}
+                className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+              />
+            </div>
+            {halle && halle.abteilAnzahl > 0 && (
+              <div className="flex flex-1 flex-col gap-1.5">
+                <span className="text-xs text-muted-foreground">Danach in</span>
+                <LabeledSelect
+                  name="abteilNummer"
+                  defaultValue={naechstesAbteil != null ? String(naechstesAbteil) : undefined}
+                  placeholder="Gleiches Abteil"
+                  options={Array.from({ length: halle.abteilAnzahl }, (_, i) => i + 1).map((n) => ({ value: String(n), label: abteilLabel(halle, n) }))}
+                />
+              </div>
+            )}
+          </div>
+          <SubmitButton variant="outline" pendingText="Wird geteilt…">
+            Teilen
+          </SubmitButton>
+        </form>
+      )}
+    </div>
   );
 }

@@ -122,9 +122,12 @@ export default async function TrainingsplanPage() {
         <CardHeader>
           <CardTitle className="text-base">Hallenbelegung</CardTitle>
           <CardDescription>
-            Mehrere Trainings zur selben Zeit in derselben Halle sind
-            möglich — z.B. wenn die Halle geteilt wird — und werden
-            nebeneinander dargestellt statt als Konflikt behandelt.
+            In einer unterteilten Halle hat jedes Abteil seine eigene Spalte —
+            beim Ziehen entscheidet die Spalte, in der du loslässt. Zwei
+            Mannschaften im selben Abteil zur selben Zeit (oder dieselbe
+            Mannschaft doppelt) werden rot markiert. Ein Training lässt sich
+            über „Bearbeiten“ in zwei Abschnitte teilen (Abteilwechsel) und
+            mit einem anderen Training tauschen.
           </CardDescription>
         </CardHeader>
         <CardContent>

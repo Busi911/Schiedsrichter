@@ -7,7 +7,9 @@ import {
   trainingszeitVerschieben,
 } from "@/app/admin/(dashboard)/trainingsplan/actions";
 import {
+  abteilAusPosition,
   abteilLabel,
+  abteilSpur,
   begrenze,
   formatUhrzeit,
   platziereZeitbloecke,
@@ -15,6 +17,7 @@ import {
   standardFarbeFuerMannschaft,
   WOCHENTAGE_LABEL_KURZ,
   type HalleMitAbteilen,
+  type KonfliktArt,
 } from "@/lib/trainingsplan";
 import type { TrainingszeitEintrag } from "@/components/trainingszeit-dialog";
 
@@ -39,7 +42,7 @@ type DragZustand =
     }
   | { modus: "resize"; block: TrainingszeitEintrag };
 
-type Vorschau = { wochentag: number; startMinuten: number; endMinuten: number };
+type Vorschau = { wochentag: number; startMinuten: number; endMinuten: number; abteilNummer: number | null };
 
 // Interaktive Wochenansicht EINER Halle (siehe TrainingsplanGrid, das pro
 // Halle eine Instanz rendert) — Pointer-Events statt natives HTML5-
@@ -57,6 +60,7 @@ export function TrainingsplanWoche({
   gridEndMinuten,
   onBlockClick,
   onSlotClick,
+  konflikte,
 }: {
   halleId: string;
   // Für das Abteil-Label im Block (siehe abteilLabel) — nur die Halle des
@@ -79,7 +83,14 @@ export function TrainingsplanWoche({
     startMinuten: number;
     endMinuten: number;
   }) => void;
+  // Art des Konflikts je Trainingszeit-ID (siehe findeKonflikte): rot umrandet bei "doppelt"/"abteil", gelb bei "ohne_abteil".
+  konflikte: Map<string, KonfliktArt>;
 }) {
+  // Unterteilte Halle: jeder Tag bekommt je Abteil eine feste Spur (Abteil n von N nimmt das n-te Stück der Breite). Ohne Unterteilung bleibt es
+  // bei der bisherigen Darstellung (überlappende Trainings nebeneinander).
+  const abteilAnzahl = halle.abteilAnzahl;
+  const unterteilt = abteilAnzahl > 0;
+  const TAG_BREITE = unterteilt ? Math.max(128, abteilAnzahl * 80) : 128;
   // Lokale Alias-Konstanten statt die Props überall im Rechenteil unten
   // umzubenennen — hält den Diff zum vormals modulweiten Fixwert klein.
   const GRID_START_MINUTEN = gridStartMinuten;
@@ -94,7 +105,7 @@ export function TrainingsplanWoche({
   function berechnePosition(
     clientX: number,
     clientY: number
-  ): { wochentag: number; minuten: number } | null {
+  ): { wochentag: number; minuten: number; anteil: number } | null {
     for (let tag = 0; tag < 7; tag++) {
       const el = spaltenRefs.current[tag];
       if (!el) continue;
@@ -105,7 +116,7 @@ export function TrainingsplanWoche({
           GRID_START_MINUTEN,
           GRID_END_MINUTEN
         );
-        return { wochentag: tag, minuten };
+        return { wochentag: tag, minuten, anteil: (clientX - rect.left) / rect.width };
       }
     }
     return null;
@@ -129,6 +140,7 @@ export function TrainingsplanWoche({
           wochentag: zustand.block.wochentag,
           startMinuten: zustand.block.startMinuten,
           endMinuten: ende,
+          abteilNummer: zustand.block.abteilNummer,
         };
         vorschauRef.current = naechste;
         setVorschau(naechste);
@@ -153,10 +165,18 @@ export function TrainingsplanWoche({
         GRID_START_MINUTEN,
         GRID_END_MINUTEN - dauerMinuten
       );
+      // Abteil unter dem Zeiger: neue Trainings und Trainings MIT Abteil folgen der Spur, eine ganze-Halle-Belegung (ohne Abteil) bleibt es.
+      const abteilNummer =
+        zustand.modus === "neu"
+          ? abteilAusPosition(abteilAnzahl, pos.anteil)
+          : zustand.block.abteilNummer != null
+            ? abteilAusPosition(abteilAnzahl, pos.anteil)
+            : null;
       const naechste: Vorschau = {
         wochentag: pos.wochentag,
         startMinuten: start,
         endMinuten: start + dauerMinuten,
+        abteilNummer,
       };
       vorschauRef.current = naechste;
       setVorschau(naechste);
@@ -191,6 +211,7 @@ export function TrainingsplanWoche({
         fd.set("startMinuten", String(v.startMinuten));
         fd.set("endMinuten", String(v.endMinuten));
         fd.set("farbe", zustand.farbe);
+        if (unterteilt && v.abteilNummer != null) fd.set("abteilNummer", String(v.abteilNummer));
         startTransition(() => {
           trainingszeitAnlegen(fd);
         });
@@ -203,6 +224,7 @@ export function TrainingsplanWoche({
         fd.set("wochentag", String(v.wochentag));
         fd.set("startMinuten", String(v.startMinuten));
         fd.set("endMinuten", String(v.endMinuten));
+        if (unterteilt && zustand.block.abteilNummer != null && v.abteilNummer != null) fd.set("abteilNummer", String(v.abteilNummer));
         startTransition(() => {
           trainingszeitVerschieben(fd);
         });
@@ -276,11 +298,21 @@ export function TrainingsplanWoche({
           <div className="flex">
             <div className="w-12 shrink-0" />
             {WOCHENTAGE_LABEL_KURZ.map((label) => (
-              <div
-                key={label}
-                className="w-32 shrink-0 border-b py-1 text-center text-xs font-medium"
-              >
-                {label}
+              <div key={label} className="shrink-0 border-b" style={{ width: TAG_BREITE }}>
+                <div className="py-1 text-center text-xs font-medium">{label}</div>
+                {unterteilt && (
+                  <div className="flex border-t">
+                    {Array.from({ length: abteilAnzahl }, (_, i) => i + 1).map((n) => (
+                      <div
+                        key={n}
+                        className="min-w-0 flex-1 truncate border-l px-0.5 py-0.5 text-center text-[10px] text-muted-foreground first:border-l-0"
+                        title={abteilLabel(halle, n)}
+                      >
+                        {abteilLabel(halle, n)}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -297,7 +329,21 @@ export function TrainingsplanWoche({
               ))}
             </div>
             {Array.from({ length: 7 }, (_, tag) => tag).map((tag) => {
-              const platziert = platziereZeitbloecke(bloeckeProTag[tag]);
+              // Unterteilte Halle: je Abteil-Spur (und "ganze Halle") getrennt platzieren, damit sich auch ein Konflikt im SELBEN Abteil sichtbar
+              // nebeneinander statt verdeckt darstellt; ohne Unterteilung wie bisher alle zusammen.
+              const gruppen = new Map<string, TrainingszeitEintrag[]>();
+              for (const b of bloeckeProTag[tag]) {
+                const schluessel = unterteilt && b.abteilNummer != null ? String(b.abteilNummer) : "alle";
+                gruppen.set(schluessel, [...(gruppen.get(schluessel) ?? []), b]);
+              }
+              const platziert = [...gruppen.values()].flatMap((g) => {
+                const spur = abteilSpur(unterteilt ? abteilAnzahl : 0, g[0].abteilNummer);
+                return platziereZeitbloecke(g).map((b) => ({
+                  ...b,
+                  links: spur.links + (b.lane / b.lanesGesamt) * spur.breite,
+                  breite: spur.breite / b.lanesGesamt,
+                }));
+              });
               return (
                 <div
                   key={tag}
@@ -320,9 +366,17 @@ export function TrainingsplanWoche({
                       endMinuten: start + 60,
                     });
                   }}
-                  className="relative w-32 shrink-0 border-l"
-                  style={{ height: GRID_HOEHE }}
+                  className="relative shrink-0 border-l"
+                  style={{ height: GRID_HOEHE, width: TAG_BREITE }}
                 >
+                  {unterteilt &&
+                    Array.from({ length: abteilAnzahl - 1 }, (_, i) => i + 1).map((n) => (
+                      <div
+                        key={`spur-${n}`}
+                        className="pointer-events-none absolute inset-y-0 border-l border-dashed"
+                        style={{ left: `${(n / abteilAnzahl) * 100}%` }}
+                      />
+                    ))}
                   {stunden.map((h) => (
                     <div
                       key={h}
@@ -345,13 +399,19 @@ export function TrainingsplanWoche({
                           bewegt: false,
                         });
                       }}
-                      className="absolute flex touch-none cursor-grab flex-col overflow-hidden rounded-md px-1.5 py-1 text-[11px] leading-tight text-white shadow-sm active:cursor-grabbing"
+                      className={`absolute flex touch-none cursor-grab flex-col overflow-hidden rounded-md px-1.5 py-1 text-[11px] leading-tight text-white shadow-sm active:cursor-grabbing ${
+                        konflikte.get(block.id) === "ohne_abteil"
+                          ? "ring-2 ring-amber-400 ring-offset-1"
+                          : konflikte.has(block.id)
+                            ? "ring-2 ring-red-600 ring-offset-1"
+                            : ""
+                      }`}
                       style={{
                         top: (block.startMinuten - GRID_START_MINUTEN) * PX_PRO_MINUTE,
                         height:
                           (block.endMinuten - block.startMinuten) * PX_PRO_MINUTE,
-                        left: `${(block.lane / block.lanesGesamt) * 100}%`,
-                        width: `${100 / block.lanesGesamt}%`,
+                        left: `${block.links * 100}%`,
+                        width: `${block.breite * 100}%`,
                         backgroundColor: block.farbe,
                       }}
                     >
@@ -403,8 +463,10 @@ export function TrainingsplanWoche({
                             : null;
                       return (
                         <div
-                          className="pointer-events-none absolute inset-x-0 flex flex-col overflow-hidden rounded-md border-2 border-dashed px-1.5 py-1 text-[11px] leading-tight font-medium opacity-80"
+                          className="pointer-events-none absolute flex flex-col overflow-hidden rounded-md border-2 border-dashed px-1.5 py-1 text-[11px] leading-tight font-medium opacity-80"
                           style={{
+                            left: `${abteilSpur(abteilAnzahl, vorschau.abteilNummer).links * 100}%`,
+                            width: `${abteilSpur(abteilAnzahl, vorschau.abteilNummer).breite * 100}%`,
                             top:
                               (vorschau.startMinuten - GRID_START_MINUTEN) *
                               PX_PRO_MINUTE,

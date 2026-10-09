@@ -109,3 +109,53 @@ describe("platziereZeitbloecke", () => {
     expect(platziert.find((b) => b.id === "d")!.lanesGesamt).toBe(2);
   });
 });
+
+import { abteilAusPosition, abteilSpur, findeKonflikte, pruefeTeilung, type BelegungsEintrag } from "./trainingsplan";
+
+describe("Abteile und Konflikte", () => {
+  const b = (id: string, mannschaftId: string, abteil: number | null, start: number, ende: number, tag = 0, halleId = "h1"): BelegungsEintrag => ({
+    id,
+    mannschaftId,
+    halleId,
+    wochentag: tag,
+    startMinuten: start,
+    endMinuten: ende,
+    abteilNummer: abteil,
+  });
+  const hallen = new Map([["h1", 2], ["h2", 0]]);
+
+  it("Abteil-Spur und Position", () => {
+    expect(abteilSpur(2, 2)).toEqual({ links: 0.5, breite: 0.5 });
+    expect(abteilSpur(4, 1)).toEqual({ links: 0, breite: 0.25 });
+    expect(abteilSpur(2, null)).toEqual({ links: 0, breite: 1 }); // ganze Halle
+    expect(abteilSpur(0, 3)).toEqual({ links: 0, breite: 1 });
+    expect(abteilAusPosition(2, 0.2)).toBe(1);
+    expect(abteilAusPosition(2, 0.9)).toBe(2);
+    expect(abteilAusPosition(4, 1)).toBe(4);
+    expect(abteilAusPosition(0, 0.5)).toBeNull();
+  });
+  it("gleiches Abteil zur gleichen Zeit ist ein Konflikt, verschiedene Abteile nicht", () => {
+    expect(findeKonflikte([b("a", "m1", 1, 1020, 1080), b("b", "m2", 1, 1050, 1110)], hallen)).toMatchObject([{ art: "abteil", von: 1050, bis: 1080, abteilNummer: 1 }]);
+    expect(findeKonflikte([b("a", "m1", 1, 1020, 1080), b("b", "m2", 2, 1020, 1080)], hallen)).toEqual([]);
+  });
+  it("direkt aneinander (Wechsel) ist kein Konflikt", () => {
+    expect(findeKonflikte([b("a", "m1", 1, 1020, 1050), b("b", "m1", 2, 1050, 1080)], hallen)).toEqual([]);
+  });
+  it("dieselbe Mannschaft zweimal gleichzeitig, auch in anderer Halle oder Abteil", () => {
+    expect(findeKonflikte([b("a", "m1", 1, 1020, 1080), b("b", "m1", 2, 1020, 1080)], hallen)[0].art).toBe("doppelt");
+    expect(findeKonflikte([b("a", "m1", null, 1020, 1080, 0, "h1"), b("b", "m1", null, 1040, 1100, 0, "h2")], hallen)[0].art).toBe("doppelt");
+  });
+  it("ohne Abteil in unterteilter Halle nur als Hinweis, in nicht unterteilter Halle gar nicht", () => {
+    expect(findeKonflikte([b("a", "m1", null, 1020, 1080), b("b", "m2", 2, 1020, 1080)], hallen)[0].art).toBe("ohne_abteil");
+    expect(findeKonflikte([b("a", "m1", null, 1020, 1080, 0, "h2"), b("b", "m2", null, 1020, 1080, 0, "h2")], hallen)).toEqual([]);
+  });
+  it("andere Wochentage kollidieren nicht", () => {
+    expect(findeKonflikte([b("a", "m1", 1, 1020, 1080, 0), b("b", "m2", 1, 1020, 1080, 1)], hallen)).toEqual([]);
+  });
+  it("Teilung nur auf dem Raster und innerhalb des Trainings", () => {
+    expect(pruefeTeilung(1020, 1080, 1050)).toBeNull();
+    expect(pruefeTeilung(1020, 1080, 1055)).not.toBeNull();
+    expect(pruefeTeilung(1020, 1080, 1020)).not.toBeNull();
+    expect(pruefeTeilung(1020, 1080, 1080)).not.toBeNull();
+  });
+});
