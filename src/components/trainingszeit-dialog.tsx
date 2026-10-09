@@ -55,7 +55,7 @@ function minutenZuZeitwert(minuten: number): string {
 // Dialog nach z.B. "Löschen" einfach offen stehenbleiben und dabei auf eine
 // inzwischen nicht mehr existierende Trainingszeit zeigen. Muss innerhalb
 // des <form> gerendert werden, useFormStatus liest sonst nichts.
-function SchliesseNachSpeichern({ onFertig }: { onFertig: () => void }) {
+export function SchliesseNachSpeichern({ onFertig }: { onFertig: () => void }) {
   const { pending } = useFormStatus();
   const warPending = useRef(false);
   useEffect(() => {
