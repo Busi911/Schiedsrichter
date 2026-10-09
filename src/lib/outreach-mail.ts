@@ -14,6 +14,7 @@ export function outreachInhalt(opt: {
   gueltigBis: Date;
   email: string;
   abmeldeUrl: string;
+  uebergabeUrl: string;
   istWiederholung?: boolean;
   hatteInstagramKontakt?: boolean;
 }): EmailInhalt {
@@ -43,11 +44,12 @@ export function outreachInhalt(opt: {
       `2. Für den Verein: Schiedsrichter, Zeitnehmer, Ordner und Kiosk bei Heimspielen einteilen. Der Spielplan kommt automatisch aus nuLiga, Verlegungen und Erinnerungen gehen per Mail raus, offene Dienste sehen Sie auf einen Blick.`,
       `Falls der ${opt.vereinsname} Spielgemeinschaften oder höherklassige Mannschaften hat, die unter einem anderen Verein bei nuLiga geführt werden — die lassen sich nach der Übernahme unter „Einstellungen → Zusatzquellen“ hinzufügen, sodass auch diese Spiele im Plan erscheinen.`,
       { text: `HandballerPate ist in der Beta-Phase und für Sie noch kostenlos (bis ca. ${BETA_ENDE}, danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto im Jahr). Die Vorschau gilt bis ${DATUM.format(opt.gueltigBis)}.`, neueGruppe: true },
-      `Zum Übernehmen brauche ich nur Namen und E-Mail-Adresse der Person, die den Verein verwalten soll; sie meldet sich mit einem Link an, den ich per E-Mail schicke. Wenn es nicht passt, genügt ein kurzes „Kein Interesse“.`,
+      `Wenn Sie den ${opt.vereinsname} übernehmen möchten: Klicken Sie unten auf „Verein übernehmen", geben Sie Namen und E-Mail-Adresse der Person an, die den Verein verwalten soll — Sie bekommt einen Login-Link per E-Mail. Wenn es nicht passt, genügt ein kurzes „Kein Interesse“.`,
       { text: `Viele Grüße`, neueGruppe: true },
       `Dennis · HandballerPate · ${appUrl()}`,
     ],
-    cta: { text: "Vorschau öffnen", url: opt.vorschauUrl },
+    cta: { text: "Verein übernehmen", url: opt.uebergabeUrl },
+    vorschauUrl: opt.vorschauUrl,
     kleingedrucktes: `Diese E-Mail wurde im berechtigten Interesse versendet (gemäß Art. 6 Abs. 1 lit. f DSGVO). Wenn Sie keine weiteren Mails erhalten möchten:`,
     abmelden: { url: opt.abmeldeUrl, text: "Keine weiteren Mails von HandballerPate:" },
   };

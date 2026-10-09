@@ -33,6 +33,8 @@ export type EmailInhalt = {
   ueberschrift: string;
   zeilen: EmailZeile[];
   cta?: { text: string; url: string };
+  // Sekundär-Link unter dem CTA (z.B. Vorschau-Link unter "Verein übernehmen").
+  vorschauUrl?: string;
   kleingedrucktes?: string;
   // Nur bei abbestellbaren Mails (siehe lib/abmelden.ts): sichtbarer Abmelde-Link im Mailfuß.
   abmelden?: { url: string; text: string };
@@ -48,6 +50,7 @@ export function emailAlsText(inhalt: EmailInhalt): string {
     ),
   ];
   if (inhalt.cta) teile.push(`\n${inhalt.cta.text}: ${inhalt.cta.url}`);
+  if (inhalt.vorschauUrl) teile.push(`\nVorschau ausprobieren: ${inhalt.vorschauUrl}`);
   if (inhalt.kleingedrucktes) teile.push(`\n${inhalt.kleingedrucktes}`);
   if (inhalt.abmelden) teile.push(`\n${inhalt.abmelden.text} ${inhalt.abmelden.url}`);
   return teile.join("\n");
@@ -101,6 +104,17 @@ export function emailAlsHtml(inhalt: EmailInhalt): string {
                 <a href="${inhalt.cta.url}" style="display:inline-block;background:#f97316;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 28px;border-radius:10px;">
                   ${escapeHtml(inhalt.cta.text)}
                 </a>
+              </td>
+            </tr>`
+                : ""
+            }
+            ${
+              inhalt.vorschauUrl
+                ? `
+            <tr>
+              <td style="padding:8px 32px 4px;text-align:center;">
+                <p style="margin:0;color:#71717a;font-size:13px;">Vorschau ausprobieren:</p>
+                <a href="${escapeHtml(inhalt.vorschauUrl)}" style="display:inline-block;color:#2563eb;text-decoration:underline;font-size:14px;margin-top:4px;">Vorschau öffnen</a>
               </td>
             </tr>`
                 : ""

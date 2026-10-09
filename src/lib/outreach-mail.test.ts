@@ -8,6 +8,7 @@ describe("outreachInhalt", () => {
     gueltigBis: new Date("2026-10-15T10:00:00Z"),
     email: "test@example.org",
     abmeldeUrl: "https://handballerpate.de/api/outreach/abmelden/token123",
+    uebergabeUrl: "https://handballerpate.de/outreach/uebergabe/token456",
   });
 
   it("enthält Vereinsname, Vorschau-Link und Absender", () => {
@@ -25,14 +26,18 @@ describe("outreachInhalt", () => {
     expect(text).toContain("kostenlos");
   });
 
-  it("hat einen CTA-Button mit der Vorschau-URL", () => {
-    expect(inhalt.cta?.url).toBe("https://handballerpate.de/verein/hsg-linden/vorschau/abc");
-    expect(inhalt.cta?.text).toBe("Vorschau öffnen");
+  it("hat einen CTA-Button mit der Übergabe-URL", () => {
+    expect(inhalt.cta?.url).toBe("https://handballerpate.de/outreach/uebergabe/token456");
+    expect(inhalt.cta?.text).toBe("Verein übernehmen");
+  });
+
+  it("hat einen Vorschau-Link als Sekundär-Link", () => {
+    expect(inhalt.vorschauUrl).toBe("https://handballerpate.de/verein/hsg-linden/vorschau/abc");
   });
 
   it("hat einen Abmelde-Hinweis", () => {
     expect(inhalt.abmelden?.url).toContain("/api/outreach/abmelden/");
-    expect(inhalt.kleingedrucktes).toContain("berechtigtes Interesse");
+    expect(inhalt.kleingedrucktes).toContain("berechtigten Interesse");
   });
 
   it("erwähnt Spielgemeinschaften und Zusatzquellen", () => {

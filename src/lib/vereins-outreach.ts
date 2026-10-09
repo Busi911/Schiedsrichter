@@ -13,6 +13,7 @@ import { sendMail } from "./mailer";
 import { emailAlsHtml, emailAlsText } from "./email-layout";
 import { outreachInhalt } from "./outreach-mail";
 import { outreachAbmeldeUrl } from "./outreach-abmelden";
+import { outreachUebergabeUrl } from "./outreach-uebergabe";
 import { extrahiereKontaktEmail } from "./nuliga/outreach-kontakt";
 import { scrapeImpressum } from "./impressum";
 import { appUrl } from "./app-url";
@@ -230,6 +231,7 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
       // 8. Ansprache-Mail generieren und senden.
       const vorschauUrl = `${appUrl()}/verein/${ligaV.slug}/vorschau/${link.token}`;
       const abmeldeUrl = outreachAbmeldeUrl(vereinId);
+      const uebergabeUrl = outreachUebergabeUrl(vereinId);
       const istWiederholung = !!bestehend;
       const inhalt = outreachInhalt({
         vereinsname: k.name,
@@ -237,6 +239,7 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
         gueltigBis: link.gueltigBis,
         email: kontaktEmail,
         abmeldeUrl,
+        uebergabeUrl,
         istWiederholung,
       });
 
@@ -348,7 +351,8 @@ export async function resetOutreachVerein(clubId: string): Promise<{ geloescht: 
 
   const vorschauUrl = `${appUrl()}/verein/${ligaV.slug}/vorschau/${link.token}`;
   const abmeldeUrl = outreachAbmeldeUrl(neu.id);
-  const inhalt = outreachInhalt({ vereinsname: eintrag.name, vorschauUrl, gueltigBis: link.gueltigBis, email: kontaktEmail, abmeldeUrl });
+  const uebergabeUrl = outreachUebergabeUrl(neu.id);
+  const inhalt = outreachInhalt({ vereinsname: eintrag.name, vorschauUrl, gueltigBis: link.gueltigBis, email: kontaktEmail, abmeldeUrl, uebergabeUrl });
   await sendMail(kontaktEmail, `HandballerPate — eine App für den ${eintrag.name}`, emailAlsText(inhalt), emailAlsHtml(inhalt), { abmeldeUrl });
 
   await adminDb
@@ -433,12 +437,14 @@ export async function fuehreInstagramNachfassAus(): Promise<OutreachErgebnis> {
 
       const vorschauUrl = `${appUrl()}/verein/${k.slug ?? k.id}/vorschau/${link.token}`;
       const abmeldeUrl = outreachAbmeldeUrl(k.id);
+      const uebergabeUrl = outreachUebergabeUrl(k.id);
       const inhalt = outreachInhalt({
         vereinsname: k.name,
         vorschauUrl,
         gueltigBis: link.gueltigBis,
         email: kontaktEmail,
         abmeldeUrl,
+        uebergabeUrl,
         hatteInstagramKontakt: true,
       });
 
@@ -539,12 +545,14 @@ export async function fuehreOutreachFollowupAus(): Promise<OutreachFollowupErgeb
 
         const vorschauUrl = `${appUrl()}/verein/${ligaV?.slug ?? "verein"}/vorschau/${neuerLink.token}`;
         const abmeldeUrl = outreachAbmeldeUrl(k.vereinId);
+        const uebergabeUrl = outreachUebergabeUrl(k.vereinId);
         const inhalt = outreachInhalt({
           vereinsname: v.name,
           vorschauUrl,
           gueltigBis: neuerLink.gueltigBis,
           email: k.email!,
           abmeldeUrl,
+          uebergabeUrl,
         });
         await sendMail(
           k.email!,
@@ -556,12 +564,14 @@ export async function fuehreOutreachFollowupAus(): Promise<OutreachFollowupErgeb
       } else {
         const vorschauUrl = `${appUrl()}/verein/${ligaV.slug}/vorschau/${link.token}`;
         const abmeldeUrl = outreachAbmeldeUrl(k.vereinId);
+        const uebergabeUrl = outreachUebergabeUrl(k.vereinId);
         const inhalt = outreachInhalt({
           vereinsname: v.name,
           vorschauUrl,
           gueltigBis: link.gueltigBis,
           email: k.email!,
           abmeldeUrl,
+          uebergabeUrl,
         });
         await sendMail(
           k.email!,
