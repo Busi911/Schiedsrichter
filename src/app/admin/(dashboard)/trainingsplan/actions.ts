@@ -5,7 +5,7 @@ import { and, eq, gt } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant, type db } from "@/db";
 import { hallen, trainingszeiten, vereine } from "@/db/schema";
-import { begrenze, rundeAufRaster } from "@/lib/trainingsplan";
+import { begrenze, pruefeTeilung, rundeAufRaster } from "@/lib/trainingsplan";
 
 function parseHalleId(formData: FormData): string {
   const halleId = formData.get("halleId");
@@ -212,13 +212,84 @@ export async function trainingszeitVerschieben(formData: FormData) {
     throw new Error("Trainingszeit fehlt.");
   }
   const { wochentag, startMinuten, endMinuten } = parseZeitfenster(formData);
+  // Nur wenn das Grid ein Abteil mitschickt (Ziehen in eine andere Abteil-Spur einer unterteilten Halle); sonst bleibt das Abteil unverändert.
+  const abteilMitgeschickt = formData.has("abteilNummer");
+  const abteilNummer = abteilMitgeschickt ? parseAbteilNummerRoh(formData) : null;
 
-  await withTenant(vereinId!, (tx) =>
-    tx
+  await withTenant(vereinId!, async (tx) => {
+    if (abteilMitgeschickt) {
+      const zeile = await tx.query.trainingszeiten.findFirst({
+        where: and(eq(trainingszeiten.id, id), eq(trainingszeiten.vereinId, vereinId!)),
+        columns: { halleId: true },
+      });
+      if (!zeile) throw new Error("Trainingszeit nicht gefunden.");
+      await pruefeAbteilNummer(tx, zeile.halleId, abteilNummer);
+    }
+    await tx
       .update(trainingszeiten)
-      .set({ wochentag, startMinuten, endMinuten })
-      .where(and(eq(trainingszeiten.id, id), eq(trainingszeiten.vereinId, vereinId!)))
-  );
+      .set({ wochentag, startMinuten, endMinuten, ...(abteilMitgeschickt ? { abteilNummer } : {}) })
+      .where(and(eq(trainingszeiten.id, id), eq(trainingszeiten.vereinId, vereinId!)));
+  });
+
+  revalidatePath("/admin/trainingsplan");
+}
+
+// Teilt eine Trainingszeit in zwei aufeinanderfolgende Abschnitte (Wechsel): der erste behält Abteil und Beginn und endet zum Wechselzeitpunkt,
+// der zweite beginnt dort, läuft bis zum alten Ende und kann ein anderes Abteil belegen (z.B. erste halbe Stunde Nord, zweite Süd). Beide gehören
+// derselben Mannschaft in derselben Halle am selben Tag, haben dieselbe Farbe und lassen sich danach einzeln ändern, tauschen oder löschen.
+export async function trainingszeitTeilen(formData: FormData) {
+  const { vereinId } = (await requireAdminSchreibzugriff()).user;
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) throw new Error("Trainingszeit fehlt.");
+  const teil = Number(formData.get("wechselMinuten"));
+  const zweitesAbteil = parseAbteilNummerRoh(formData);
+
+  await withTenant(vereinId!, async (tx) => {
+    const zeile = await tx.query.trainingszeiten.findFirst({
+      where: and(eq(trainingszeiten.id, id), eq(trainingszeiten.vereinId, vereinId!)),
+    });
+    if (!zeile) throw new Error("Trainingszeit nicht gefunden.");
+    const fehler = pruefeTeilung(zeile.startMinuten, zeile.endMinuten, teil);
+    if (fehler) throw new Error(fehler);
+    await pruefeAbteilNummer(tx, zeile.halleId, zweitesAbteil);
+
+    await tx.update(trainingszeiten).set({ endMinuten: teil }).where(eq(trainingszeiten.id, zeile.id));
+    await tx.insert(trainingszeiten).values({
+      vereinId: vereinId!,
+      mannschaftId: zeile.mannschaftId,
+      halleId: zeile.halleId,
+      wochentag: zeile.wochentag,
+      startMinuten: teil,
+      endMinuten: zeile.endMinuten,
+      farbe: zeile.farbe,
+      abteilNummer: zweitesAbteil ?? zeile.abteilNummer,
+    });
+  });
+
+  revalidatePath("/admin/trainingsplan");
+}
+
+// Tauscht die MANNSCHAFTEN zweier Trainingszeiten (Zeit, Halle und Abteil bleiben, jede Mannschaft übernimmt den Platz der anderen) — so tauschen
+// zwei Teams Hallenseite oder Viertel, oder ihre Abschnitte im Wechsel. Die Farbe wandert mit der Mannschaft.
+export async function trainingszeitenTauschen(formData: FormData) {
+  const { vereinId } = (await requireAdminSchreibzugriff()).user;
+
+  const idA = formData.get("idA");
+  const idB = formData.get("idB");
+  if (typeof idA !== "string" || !idA || typeof idB !== "string" || !idB || idA === idB) {
+    throw new Error("Bitte zwei verschiedene Trainingszeiten wählen.");
+  }
+
+  await withTenant(vereinId!, async (tx) => {
+    const [a, b] = await Promise.all([
+      tx.query.trainingszeiten.findFirst({ where: and(eq(trainingszeiten.id, idA), eq(trainingszeiten.vereinId, vereinId!)) }),
+      tx.query.trainingszeiten.findFirst({ where: and(eq(trainingszeiten.id, idB), eq(trainingszeiten.vereinId, vereinId!)) }),
+    ]);
+    if (!a || !b) throw new Error("Trainingszeit nicht gefunden.");
+    await tx.update(trainingszeiten).set({ mannschaftId: b.mannschaftId, farbe: b.farbe }).where(eq(trainingszeiten.id, a.id));
+    await tx.update(trainingszeiten).set({ mannschaftId: a.mannschaftId, farbe: a.farbe }).where(eq(trainingszeiten.id, b.id));
+  });
 
   revalidatePath("/admin/trainingsplan");
 }
