@@ -8,6 +8,7 @@ import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
 import { formatDatum } from "./format";
 import { appUrl } from "./app-url";
 import { LIZENZ_ROLLEN, type LizenzRolle } from "./lizenz-rollen";
+import { gruppiereLizenzRollen } from "./funktionstraeger-rollen";
 
 export { LIZENZ_ROLLEN };
 
@@ -107,6 +108,7 @@ export async function sendeLizenzAblaufErinnerungen() {
   const rollen = await adminDb
     .select({
       rolleId: funktionstraegerRollen.id,
+      userId: users.id,
       typ: funktionstraegerRollen.typ,
       gueltigBis: funktionstraegerRollen.lizenzGueltigBis,
       stufeBisher: funktionstraegerRollen.lizenzErinnerungStufe,
@@ -124,10 +126,13 @@ export async function sendeLizenzAblaufErinnerungen() {
       )
     );
 
+  // Zeitnehmer und Sekretär sind EINE Funktion mit gemeinsamer Lizenz: eine Erinnerung statt zwei (siehe gruppiereLizenzRollen).
+  const einheiten = gruppiereLizenzRollen(rollen, TYP_LABEL, STUFEN_RANG);
+
   let versendet = 0;
   const fehler: { rolleId: string; message: string }[] = [];
 
-  for (const r of rollen) {
+  for (const r of einheiten) {
     if (!r.gueltigBis || !r.vereinId) continue;
     const tageBisAblauf = Math.round(
       (r.gueltigBis.getTime() - heute.getTime()) / (24 * 60 * 60 * 1000)
@@ -140,7 +145,7 @@ export async function sendeLizenzAblaufErinnerungen() {
 
     try {
       const { name: vereinName, adminEmails } = await holeVereinInfo(r.vereinId);
-      const rolleLabel = TYP_LABEL[r.typ as LizenzRolle] ?? r.typ;
+      const rolleLabel = r.label;
 
       const personInhalt = lizenzAblaufPersonInhalt(vereinName, rolleLabel, stufe, r.gueltigBis);
       await sendMail(
@@ -170,7 +175,7 @@ export async function sendeLizenzAblaufErinnerungen() {
         tx
           .update(funktionstraegerRollen)
           .set({ lizenzErinnerungStufe: stufe })
-          .where(eq(funktionstraegerRollen.id, r.rolleId))
+          .where(inArray(funktionstraegerRollen.id, r.rolleIds))
       );
       versendet++;
     } catch (err) {

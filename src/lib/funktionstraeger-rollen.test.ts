@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   expandiereRollenTypen,
+  gruppiereLizenzRollen,
   fasseRollenZusammen,
   kombiniereRollenLabels,
   rollenZurAuswahl,
@@ -42,5 +43,27 @@ describe("Zeitnehmer/Sekretär als eine Funktion", () => {
   it("Auswahlliste hat Zeitnehmer/Sekretär einmal", () => {
     const liste = rollenZurAuswahl(LABEL);
     expect(liste.map(([v]) => v)).toEqual(["schiedsrichter", ZEITNEHMER_SEKRETAER_TYP, "trainer"]);
+  });
+});
+
+describe("Lizenz-Erinnerung: Zeitnehmer/Sekretär zusammen", () => {
+  const RANG = { "60_tage": 1, "30_tage": 2, "7_tage": 3, abgelaufen: 4 };
+  const d = new Date("2027-03-01T00:00:00Z");
+  const r = (rolleId: string, userId: string, typ: string, stufeBisher: string | null = null, gueltigBis: Date | null = d) => ({ rolleId, userId, typ, gueltigBis, stufeBisher });
+
+  it("beide Rollen mit gleichem Datum = eine Erinnerung, Stufe wird für beide gemerkt", () => {
+    const e = gruppiereLizenzRollen([r("a", "u1", "zeitnehmer"), r("b", "u1", "sekretaer"), r("c", "u1", "schiedsrichter")], LABEL, RANG);
+    expect(e.map((x) => x.label)).toEqual(["Zeitnehmer/Sekretär", "schiedsrichter"].map((l) => (l === "schiedsrichter" ? "Schiedsrichter" : l)));
+    expect(e[0].rolleIds).toEqual(["a", "b"]);
+  });
+  it("als bisherige Stufe zählt die niedrigere, andere Personen/Daten bleiben getrennt", () => {
+    const e = gruppiereLizenzRollen([r("a", "u1", "zeitnehmer", "30_tage"), r("b", "u1", "sekretaer", null)], LABEL, RANG);
+    expect(e[0].stufeBisher).toBeNull();
+    const getrennt = gruppiereLizenzRollen(
+      [r("a", "u1", "zeitnehmer"), r("b", "u2", "sekretaer"), r("c", "u1", "sekretaer", null, new Date("2028-01-01T00:00:00Z"))],
+      LABEL,
+      RANG
+    );
+    expect(getrennt).toHaveLength(3);
   });
 });

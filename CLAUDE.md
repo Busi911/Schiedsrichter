@@ -438,6 +438,15 @@ Termine, öffentliche Seite). Nur Kennzahlen/Zeitstempel (`lib/verein-gesundheit
 Aktivität schreibt `requireSession` über `markiereAktivitaet` (`lib/aktivitaet.ts`): eine bedingte Anweisung, höchstens alle 5 Minuten, nach der Antwort
 (`after`); Systemadmins im Treuhand-/Support-Kontext zählen nicht als Aktivität des Vereins. Migration 0078.
 
+## Zeitnehmer/Sekretär = EINE Funktion
+
+In der Oberfläche gibt es nur "Zeitnehmer/Sekretär" (Anlegen, Rolle hinzufügen, Filter, Excel-Import, Anzeige als eine Rolle, Deaktivieren/Aktivieren gemeinsam);
+in der DB bleiben es die zwei Rollen-Zeilen `zeitnehmer` + `sekretaer` (so laufen Zuordnung, Besetzung, Selbsteintragung unverändert). Die Umrechnung steht rein in
+`lib/funktionstraeger-rollen.ts` (`expandiereRollenTypen`: die Sammelrolle UND jede der beiden Einzelrollen ergibt beide; `fasseRollenZusammen` für die Anzeige).
+Neue Stellen, die Rollen anlegen, müssen `expandiereRollenTypen` nutzen. Das Lizenz-Datum wird beim Ergänzen der zweiten Rolle vom Partner übernommen.
+Migration 0093 hat den Bestand einmalig angeglichen (wer nur eine der beiden hatte, bekam die andere dazu; Rollen mit unterschiedlichem Aktiv-Status bleiben unberührt).
+Die öffentliche Eintragung (`/eintragen/[token]`) wählt die Aufgabe (Zeitnehmer ODER Sekretär) je Termin.
+
 ## Hilfe: wo Nutzer sie finden
 
 Zwei Hilfeseiten: `/hilfe` (eingeloggt: Erste Schritte, Rollen, Kalender, Bedarf, Zuordnung, Mails, Statistik, Support; mit Inhaltsverzeichnis und Anker je Abschnitt)

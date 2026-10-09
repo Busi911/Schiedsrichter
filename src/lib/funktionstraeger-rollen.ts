@@ -64,3 +64,33 @@ export function rollenZurAuswahl(typLabel: Record<string, string>): [string, str
   }
   return liste;
 }
+
+type LizenzRolleEingabe = { rolleId: string; userId: string; typ: string; gueltigBis: Date | null; stufeBisher: string | null };
+
+// Lizenz-Erinnerungen: Zeitnehmer + Sekretär derselben Person mit demselben Ablaufdatum sind EINE Erinnerung ("Zeitnehmer/Sekretär", rolleIds = beide,
+// damit die erreichte Stufe für beide gemerkt wird). Als bisherige Stufe zählt die NIEDRIGERE der beiden (fehlt eine, wird erinnert).
+export function gruppiereLizenzRollen<R extends LizenzRolleEingabe>(
+  rollen: R[],
+  typLabel: Record<string, string>,
+  stufenRang: Record<string, number>
+): (R & { rolleIds: string[]; label: string })[] {
+  type Einheit = R & { rolleIds: string[]; label: string };
+  const einheiten: Einheit[] = [];
+  const paare = new Map<string, Einheit>();
+  for (const r of rollen) {
+    const istPaar = r.typ === "zeitnehmer" || r.typ === "sekretaer";
+    const schluessel = istPaar && r.gueltigBis ? `${r.userId}|${r.gueltigBis.toISOString()}` : null;
+    const vorhanden = schluessel ? paare.get(schluessel) : undefined;
+    if (vorhanden) {
+      vorhanden.rolleIds.push(r.rolleId);
+      vorhanden.label = ZEITNEHMER_SEKRETAER_LABEL;
+      const rang = (st: string | null) => (st ? (stufenRang[st] ?? 0) : 0);
+      if (rang(r.stufeBisher) < rang(vorhanden.stufeBisher)) vorhanden.stufeBisher = r.stufeBisher;
+      continue;
+    }
+    const einheit: Einheit = { ...r, rolleIds: [r.rolleId], label: typLabel[r.typ] ?? r.typ };
+    einheiten.push(einheit);
+    if (schluessel) paare.set(schluessel, einheit);
+  }
+  return einheiten;
+}
