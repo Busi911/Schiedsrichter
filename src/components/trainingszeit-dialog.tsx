@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LabeledSelect } from "@/components/labeled-select";
+import { PersonSelect } from "@/components/person-select";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
@@ -157,7 +158,7 @@ export function TrainingszeitDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="tz-mannschaft">Mannschaft</Label>
-            <LabeledSelect
+            <PersonSelect
               id="tz-mannschaft"
               name="mannschaftId"
               required
@@ -346,7 +347,7 @@ function ZusatzAktionen({
             Diese Mannschaft übernimmt den Platz der gewählten (Zeit, Halle und Abteil bleiben), und umgekehrt — z.B. um Hallenseite oder Viertel zu
             tauschen.
           </p>
-          <LabeledSelect id="tz-tausch" name="idB" required placeholder={`Tauschen mit … (${WOCHENTAGE_LABEL_KURZ[eintrag.wochentag]})`} options={partner} />
+          <PersonSelect id="tz-tausch" name="idB" required placeholder={`Tauschen mit … (${WOCHENTAGE_LABEL_KURZ[eintrag.wochentag]})`} options={partner} />
           <SubmitButton variant="outline" pendingText="Wird getauscht…">
             Tauschen
           </SubmitButton>
