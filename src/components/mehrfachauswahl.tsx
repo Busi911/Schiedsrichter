@@ -130,11 +130,26 @@ export function TerminMehrfachAuswahl({
     setAuswahl((bisher) => new Map(bisher).set(terminId, rolle));
   }
 
+  // "2× Zeitnehmer, 1× Sekretär": macht die Aufgabe je Termin schon vor dem Absenden sichtbar (Zeitnehmer und Sekretär bleiben getrennte Aufgaben).
+  const aufgabenText = (wahl: Map<string, string>) => {
+    const zaehler = new Map<string, number>();
+    for (const rolle of wahl.values()) zaehler.set(rolle, (zaehler.get(rolle) ?? 0) + 1);
+    return [...zaehler].map(([rolle, n]) => `${n}× ${rollenLabel(rolle)}`).join(", ");
+  };
+  // Beim Absenden gemerkt, damit die Erfolgsmeldung nennt, als WAS man sich eingetragen hat (die Auswahl ist danach geleert).
+  const [zuletztEingetragen, setZuletztEingetragen] = useState("");
+
   // Was noch fehlt, bevor eingetragen werden kann (Hinweis in der Leiste statt eines toten Buttons).
   const fehlt = !gruppe ? "Bitte oben auswählen, wobei ihr helfen möchtet." : !eingeloggtAls && !name.trim() ? "Bitte oben euren Namen eintragen." : null;
 
   return (
-    <form action={submitActionState} className="flex flex-col gap-4">
+    <form
+      action={(formData) => {
+        setZuletztEingetragen(aufgabenText(auswahl));
+        return submitActionState(formData);
+      }}
+      className="flex flex-col gap-4"
+    >
       <input type="hidden" name="token" value={token} />
       {[...auswahl].map(([id, rolle]) => (
         <input key={id} type="hidden" name="auswahl" value={`${id}|${rolle}`} />
@@ -151,7 +166,7 @@ export function TerminMehrfachAuswahl({
                     ? "Erledigt: Der Termin ist eingetragen."
                     : `Erledigt: Alle ${status.gesamt} Termine sind eingetragen.`
                   : `${status.eingetragen} von ${status.gesamt} Terminen eingetragen.`}{" "}
-                Danke! Die Einträge stehen jetzt an den Terminen.
+                {zuletztEingetragen ? `Eingetragen als: ${zuletztEingetragen}. ` : ""}Danke! Die Einträge stehen jetzt an den Terminen.
               </p>
               {!eingeloggtAls && !email.trim() && (
                 <p className="mt-1 font-normal">
@@ -380,6 +395,9 @@ export function TerminMehrfachAuswahl({
           <div className="flex items-center gap-3">
             <span className="min-w-0 flex-1 text-base font-semibold">
               {auswahl.size} {auswahl.size === 1 ? "Termin" : "Termine"}
+              {gruppe && gruppe.rollen.length > 1 && (
+                <span className="block text-sm font-normal text-muted-foreground">{aufgabenText(auswahl)}</span>
+              )}
             </span>
             <Button type="button" variant="ghost" className="h-12 px-3 text-base" onClick={() => setAuswahl(new Map())}>
               Leeren
