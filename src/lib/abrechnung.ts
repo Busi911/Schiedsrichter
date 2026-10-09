@@ -29,6 +29,17 @@ export function startKonditionen(jetzt: Date): { tarif: Tarif; zahlungFaelligAm:
   return betaVorbei(jetzt) ? { tarif: "regulaer", zahlungFaelligAm: new Date(jetzt.getTime() + ZAHLUNGSFRIST_TAGE * TAG) } : { tarif: "beta", zahlungFaelligAm: null };
 }
 
+// Vorab-Ankündigung des Beta-Endes an Beta-Vereine: einmal, ab so vielen Tagen vor dem Beta-Ende (Marke am Verein, bis die erste Zahlungs-Mail sie ablöst).
+export const BETA_ANKUENDIGUNG_VORLAUF_TAGE = 30;
+export const BETA_ENDE_MARKE = "beta-ende:0";
+export function sollBetaEndeMailSenden(
+  v: { status: "vorbereitung" | "aktiv"; tarif: Tarif; sponsorUebernimmt: boolean; zahlungBis: Date | null; zahlungMailMarke: string | null },
+  jetzt: Date,
+): boolean {
+  if (v.status !== "aktiv" || v.tarif !== "beta" || v.sponsorUebernimmt || v.zahlungBis || v.zahlungMailMarke) return false;
+  return !betaVorbei(jetzt) && jetzt.getTime() >= BETA_ENDE_ZEITPUNKT.getTime() - BETA_ANKUENDIGUNG_VORLAUF_TAGE * TAG;
+}
+
 export type ZahlungsArt =
   | "vorbereitung" // noch kein Vereinsadmin, nichts zu zahlen
   | "befreit"

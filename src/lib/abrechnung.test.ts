@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  BETA_ENDE_MARKE,
+  sollBetaEndeMailSenden,
   BETA_ERSTE_FRIST,
   betragNetto,
   sollMailSenden,
@@ -79,5 +81,18 @@ describe("bezahlt bis (Vorschlag) und Mail-Stufen", () => {
     expect(zahlungsStand(v, tag("2026-12-05")).art).toBe("beta_kostenlos");
     expect(zahlungsStand(v, tag("2027-03-05")).art).toBe("bald_faellig");
     expect(zahlungsStand(v, tag("2027-04-05")).art).toBe("ueberfaellig");
+  });
+});
+
+describe("Ankündigung des Beta-Endes", () => {
+  const beta = { status: "aktiv" as const, tarif: "beta" as const, sponsorUebernimmt: false, zahlungBis: null, zahlungMailMarke: null };
+  it("erst ab 30 Tagen vor dem Beta-Ende, nur einmal und nur für zahlende Beta-Vereine", () => {
+    expect(sollBetaEndeMailSenden(beta, new Date("2026-10-09T08:00:00Z"))).toBe(false);
+    expect(sollBetaEndeMailSenden(beta, new Date("2026-11-05T08:00:00Z"))).toBe(true);
+    expect(sollBetaEndeMailSenden({ ...beta, zahlungMailMarke: BETA_ENDE_MARKE }, new Date("2026-11-05T08:00:00Z"))).toBe(false);
+    expect(sollBetaEndeMailSenden(beta, new Date("2026-12-02T08:00:00Z"))).toBe(false);
+    expect(sollBetaEndeMailSenden({ ...beta, sponsorUebernimmt: true }, new Date("2026-11-05T08:00:00Z"))).toBe(false);
+    expect(sollBetaEndeMailSenden({ ...beta, tarif: "befreit" }, new Date("2026-11-05T08:00:00Z"))).toBe(false);
+    expect(sollBetaEndeMailSenden({ ...beta, status: "vorbereitung" }, new Date("2026-11-05T08:00:00Z"))).toBe(false);
   });
 });
