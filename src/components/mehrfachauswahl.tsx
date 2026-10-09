@@ -60,7 +60,7 @@ export type MehrfachEintragErgebnis = {
 export function TerminMehrfachAuswahl({
   token,
   termine,
-  rollenGruppen,
+  rollenGruppen: alleGruppen,
   submitAction,
   eingeloggtAls,
   zeigeEmailFeld,
@@ -75,6 +75,10 @@ export function TerminMehrfachAuswahl({
   // (+ zunächst inaktive Rolle, bis ein Wart sie freischaltet) an. Nur relevant, wenn eingeloggtAls NICHT gesetzt ist.
   zeigeEmailFeld?: boolean;
 }) {
+  // Nur Gruppen anbieten, für die es überhaupt einen anstehenden Termin mit Bedarf gibt (z.B. kein "Ordner", wenn nirgends Ordner gebraucht
+  // werden). Gibt es gar keine, bleiben alle stehen — dann erklärt die Meldung unten, dass es keine Termine mit Bedarf gibt.
+  const mitBedarf = alleGruppen.filter((g) => termine.some((t) => t.rollenMitBedarf.some((r) => g.rollen.some((x) => x.value === r))));
+  const rollenGruppen = mitBedarf.length > 0 ? mitBedarf : alleGruppen;
   // terminId -> gewählte Rolle (Aufgabe)
   const [auswahl, setAuswahl] = useState<Map<string, string>>(new Map());
   const [name, setName] = useState("");
