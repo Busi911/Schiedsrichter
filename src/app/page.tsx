@@ -219,7 +219,7 @@ export default async function Home() {
             {vereineMitSeite.length === 0 ? (
               <p className="text-sm text-muted-foreground">Noch keine Vereine freigeschaltet.</p>
             ) : (
-              <Vereinsuche vereine={vereineMitSeite} />
+              <Vereinsuche vereine={vereineMitSeite} maxAnzeige={4} />
             )}
           </div>
         </section>

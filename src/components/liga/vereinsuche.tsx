@@ -3,15 +3,19 @@
 import Link from "next/link";
 import { useState } from "react";
 import { SearchIcon } from "lucide-react";
+import { sortiereVereine } from "@/lib/vereinsliste";
 import { Input } from "@/components/ui/input";
 import { FavoritStern } from "./favorit-stern";
 import { VereinsAvatar } from "./vereins-avatar";
 
 export type VereinEintrag = { id: string; name: string; slug: string; logoAktualisiertAm?: Date | null };
 
-export function Vereinsuche({ vereine }: { vereine: VereinEintrag[] }) {
+// maxAnzeige: Startseite zeigt nur die ersten N (alphabetisch); die Suche läuft trotzdem über ALLE Vereine.
+export function Vereinsuche({ vereine, maxAnzeige }: { vereine: VereinEintrag[]; maxAnzeige?: number }) {
   const [suche, setSuche] = useState("");
-  const treffer = vereine.filter((v) => v.name.toLowerCase().includes(suche.trim().toLowerCase()));
+  const alle = sortiereVereine(vereine).filter((v) => v.name.toLowerCase().includes(suche.trim().toLowerCase()));
+  const treffer = maxAnzeige ? alle.slice(0, maxAnzeige) : alle;
+  const mehr = alle.length - treffer.length;
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -28,7 +32,7 @@ export function Vereinsuche({ vereine }: { vereine: VereinEintrag[] }) {
       {treffer.length === 0 ? (
         <p className="text-sm text-muted-foreground">Kein Verein gefunden.</p>
       ) : (
-        <ul className="grid gap-2">
+        <ul className="grid grid-cols-1 gap-2">
           {treffer.map((v) => (
             <li
               key={v.id}
@@ -42,6 +46,15 @@ export function Vereinsuche({ vereine }: { vereine: VereinEintrag[] }) {
             </li>
           ))}
         </ul>
+      )}
+      {mehr > 0 && (
+        <p className="text-sm text-muted-foreground">
+          {suche.trim() ? `${mehr} weitere Treffer — Suche eingrenzen oder ` : `${mehr} weitere Vereine — oben suchen oder `}
+          <Link href="/verein" className="font-medium underline underline-offset-4">
+            alle Vereine ansehen
+          </Link>
+          .
+        </p>
       )}
     </div>
   );
