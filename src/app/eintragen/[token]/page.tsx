@@ -1,4 +1,5 @@
 import { eq, or } from "drizzle-orm";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
@@ -15,6 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ladeEintragungsTermine, rollenGruppenFuer } from "@/lib/eintragung-termine";
 import { eintragenMehrfach, loginLinkAnfordern } from "./actions";
+
+// Token-Seite: nie in Suchmaschinen/KI-Antworten (zusätzlich zu robots.txt).
+export const metadata: Metadata = { title: "Für Dienste eintragen", robots: { index: false, follow: false } };
 
 // EINE öffentliche Eintragungsseite für alle Dienste (Zeitnehmer/Sekretär, Ordner, Kioskdienst, Kassierer). Was angeboten wird, schalten die
 // Warte frei: Zeitnehmerwart bzw. Ordnerwart aktivieren je einen login-freien Link (Token am Verein). Kenntnis eines der Tokens ist die

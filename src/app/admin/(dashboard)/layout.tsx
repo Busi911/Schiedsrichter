@@ -196,6 +196,7 @@ export default async function AdminLayout({
           },
           { href: "/admin/mannschaften", label: "Mannschaften", icon: "mannschaften" },
           { href: "/admin/funktionstraeger", label: "Funktionsträger", icon: "funktionstraeger" },
+          { href: "/admin/statistik", label: "Statistik", icon: "statistik" },
           { href: "/admin/auswertung", label: "Auswertung & Export", icon: "auswertung" },
           { href: "/admin/einstellungen", label: "Einstellungen", icon: "einstellungen" },
           { href: "/profil", label: "Mein Profil", icon: "profil" },
