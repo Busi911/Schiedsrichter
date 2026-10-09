@@ -361,7 +361,7 @@ alles unter `/system/abgleich` (nur Systemadmin):
    vorhandenen Import auf (`importiereRundenspielEreignisse(..., { quelle: "liga" })`): dieselben
    Regeln wie beim Hallenplan-Import — bei einer Verlegung entfallen die Dienste außer
    Schiedsrichter, die betroffenen Personen werden benachrichtigt, der Vereinsadmin nach seinem
-   Opt-in. Bereits begonnene/vergangene Termine werden nicht mehr verlegt. Umgekehrt ändert der
+   Opt-in. Bereits begonnene/vergangene Termine werden nicht mehr verlegt. Zusätzlich (Entscheidung 09.10.2026) bekommen bei JEDER Sync-Verlegung künftiger Spiele (Hallenplan, liga, handball.net) die für den Termin eingetragenen Schiedsrichter mit Login und die aktiven Trainer der Mannschaft eine Info-Mail (`sendeVerlegungAnSchiedsrichterUndTrainerBenachrichtigungen`, nicht abbestellbar; wer schon "Zuordnung entfernt" bekam, nicht doppelt). Spieler haben kein Konto, werden nicht informiert. Keine Sammelmail an Admins bei geänderten manuellen Terminen, `/hilfe` bekommt keine Bottom-Navigation (beides entschieden). Umgekehrt ändert der
    (tägliche) Hallenplan-Import Zeit/Halle/Ergebnis eines verknüpften Termins eines Vereins mit
    eingeschalteter Übernahme NICHT mehr (sonst setzt er öffentlich schon gemeldete Verlegungen
    zurück, beide Wege überschrieben sich stündlich inkl. Mails).

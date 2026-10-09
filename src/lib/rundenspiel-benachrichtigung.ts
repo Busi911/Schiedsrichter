@@ -1,14 +1,14 @@
 import "server-only";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { termine, users } from "@/db/schema";
+import { funktionstraegerRollen, termine, terminZuordnungen, users } from "@/db/schema";
 import type { EntfernteZuordnungBeiVerlegung, RundenspielAenderung } from "./rundenspiel-sync";
 import { sendMail } from "./mailer";
 import { emailAlsHtml, emailAlsText, type EmailInhalt, type EmailZeile } from "./email-layout";
 import { formatDatumZeit } from "./format";
 import { formatErgebnis } from "./termin-label";
 import { appUrl } from "./app-url";
-import { zuordnungEntferntWegenVerlegungInhalt } from "./zuordnung";
+import { terminVerlegtInhalt, zuordnungEntferntWegenVerlegungInhalt } from "./zuordnung";
 
 // Pro Spiel ein kompakter Block statt eines langen Satzes: Spielname fett, darunter Klasse/Termin/Halle und WAS sich
 // geändert hat (alter → neuer Termin bei einer Verlegung, das eingetragene Ergebnis bei einem neuen Ergebnis, siehe
@@ -118,6 +118,76 @@ export async function sendeZuordnungEntferntWegenVerlegungBenachrichtigungen(
       versendet++;
     } catch (err) {
       console.error("Verlegungs-Entfernungs-Mail konnte nicht gesendet werden:", err);
+    }
+  }
+  return { versendet };
+}
+
+// Bei einer Verlegung eines Ligaspiels (Sync) bleiben Schiedsrichter eingetragen (der Verband setzt sie an) und Trainer sind nie
+// zugeordnet — beide erfahren sonst nichts. Deshalb eine Info-Mail (bewusst OHNE Opt-in und nicht abbestellbar, wie jede Verlegung):
+// an die für den Termin eingetragenen Schiedsrichter mit Login und an die aktiven Trainer der Mannschaft. Wer schon die Mail
+// "Zuordnung entfernt" bekommen hat (entfernte), bekommt diese nicht zusätzlich. Spieler haben kein Konto und sind nicht erreichbar.
+export async function sendeVerlegungAnSchiedsrichterUndTrainerBenachrichtigungen(
+  verein: { id: string; name: string },
+  aenderungen: RundenspielAenderung[],
+  entfernte: EntfernteZuordnungBeiVerlegung[] = []
+): Promise<{ versendet: number }> {
+  let versendet = 0;
+  for (const a of aenderungen) {
+    if (!a.verlegt || a.start.getTime() <= Date.now()) continue;
+    const termin = await adminDb.query.termine.findFirst({ where: and(eq(termine.id, a.terminId), eq(termine.vereinId, verein.id)) });
+    if (!termin) continue;
+
+    const bereitsInformiert = new Set(entfernte.filter((e) => e.terminId === a.terminId).map((e) => e.userId));
+    const schiris = await adminDb
+      .select({ userId: terminZuordnungen.userId })
+      .from(terminZuordnungen)
+      .where(
+        and(eq(terminZuordnungen.terminId, a.terminId), eq(terminZuordnungen.funktionstraegerTyp, "schiedsrichter"), isNotNull(terminZuordnungen.userId))
+      );
+    const trainer = termin.mannschaftId
+      ? await adminDb
+          .select({ userId: funktionstraegerRollen.userId })
+          .from(funktionstraegerRollen)
+          .where(
+            and(
+              eq(funktionstraegerRollen.vereinId, verein.id),
+              eq(funktionstraegerRollen.typ, "trainer"),
+              eq(funktionstraegerRollen.mannschaftId, termin.mannschaftId),
+              eq(funktionstraegerRollen.aktiv, true)
+            )
+          )
+      : [];
+
+    const alt = { start: a.startAlt, ort: a.ortAlt };
+    const neu = { start: a.start, ort: a.ort, beschreibung: null };
+    const spiel = `${a.heimMannschaft} – ${a.auswaertsMannschaft}`;
+    const empfaenger = new Map<string, EmailInhalt>();
+    for (const t of trainer) {
+      if (!t.userId || bereitsInformiert.has(t.userId)) continue;
+      const basis = terminVerlegtInhalt([], alt, neu);
+      empfaenger.set(t.userId, {
+        vereinName: verein.name,
+        ueberschrift: "Ein Spiel deiner Mannschaft wurde verlegt.",
+        zeilen: [{ text: spiel, stark: true }, ...basis.zeilen],
+      });
+    }
+    // Schiedsrichter zuletzt: ist jemand beides, gilt die Mail mit der Frage "kannst du zum neuen Termin?".
+    for (const sr of schiris) {
+      if (!sr.userId || bereitsInformiert.has(sr.userId)) continue;
+      const basis = terminVerlegtInhalt(["schiedsrichter"], alt, neu);
+      empfaenger.set(sr.userId, { vereinName: verein.name, ...basis, zeilen: [{ text: spiel, stark: true }, ...basis.zeilen] });
+    }
+
+    for (const [userId, inhalt] of empfaenger) {
+      const person = await adminDb.query.users.findFirst({ where: and(eq(users.id, userId), eq(users.vereinId, verein.id)) });
+      if (!person) continue;
+      try {
+        await sendMail(person.email, `Spiel verlegt: ${spiel}`, emailAlsText(inhalt), emailAlsHtml(inhalt));
+        versendet++;
+      } catch (err) {
+        console.error("Verlegungs-Info-Mail konnte nicht gesendet werden:", err);
+      }
     }
   }
   return { versendet };

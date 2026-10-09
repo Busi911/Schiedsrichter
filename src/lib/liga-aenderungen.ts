@@ -8,6 +8,7 @@ import { importiereRundenspielEreignisse } from "@/lib/rundenspiel-sync";
 import type { RundenspielEreignis } from "@/lib/rundenspiel-import";
 import {
   sendeRundenspielAenderungenBenachrichtigung,
+  sendeVerlegungAnSchiedsrichterUndTrainerBenachrichtigungen,
   sendeZuordnungEntferntWegenVerlegungBenachrichtigungen,
 } from "@/lib/rundenspiel-benachrichtigung";
 import { schreibeProtokoll } from "@/lib/treuhand";
@@ -110,6 +111,11 @@ export async function uebernehmeAenderungen(
     await sendeZuordnungEntferntWegenVerlegungBenachrichtigungen(verein, r.entfernteZuordnungen);
   } catch (err) {
     console.error("Verlegungs-Mail konnte nicht gesendet werden:", err);
+  }
+  try {
+    await sendeVerlegungAnSchiedsrichterUndTrainerBenachrichtigungen(verein, r.aenderungen, r.entfernteZuordnungen);
+  } catch (err) {
+    console.error("Verlegungs-Info-Mail (Schiedsrichter/Trainer) konnte nicht gesendet werden:", err);
   }
 
   await schreibeProtokoll(

@@ -17,6 +17,7 @@ import {
 import { holeHandballNetJson, type HandballNetDiagnose } from "./handball-net-scraper";
 import {
   sendeRundenspielAenderungenBenachrichtigung,
+  sendeVerlegungAnSchiedsrichterUndTrainerBenachrichtigungen,
   sendeZuordnungEntferntWegenVerlegungBenachrichtigungen,
 } from "./rundenspiel-benachrichtigung";
 import { sendeDuplikatBenachrichtigungen } from "./duplikat-benachrichtigung";
@@ -153,6 +154,11 @@ export async function synchronisiereAlleAktivenHandballNetMannschaften() {
           await sendeRundenspielAenderungenBenachrichtigung(verein, ergebnis.aenderungen);
           await sendeZuordnungEntferntWegenVerlegungBenachrichtigungen(
             verein,
+            ergebnis.entfernteZuordnungen
+          );
+          await sendeVerlegungAnSchiedsrichterUndTrainerBenachrichtigungen(
+            verein,
+            ergebnis.aenderungen,
             ergebnis.entfernteZuordnungen
           );
         }
