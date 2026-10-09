@@ -123,8 +123,8 @@ function faqEintraege(live: boolean) {
     {
       frage: "Was kostet HandballerPate?",
       antwort: live
-        ? `HandballerPate kostet ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Die Rechnung kommt per E-Mail, das Zahlungsziel beträgt 30 Tage.`
-        : `Die Beta-Phase läuft voraussichtlich bis ${BETA_ENDE} und ist kostenlos. Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Vor dem Ende der Beta kann jeder Verein ohne Kosten aussteigen, dann werden alle Daten gelöscht.`,
+        ? `HandballerPate kostet ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Die Rechnung kommt per E-Mail, das Zahlungsziel beträgt 30 Tage. Optional kann ein Sponsor die Kosten übernehmen („Präsentiert von …“ beim Öffnen der Vereinsseite).`
+        : `Die Beta-Phase läuft voraussichtlich bis ${BETA_ENDE} und ist kostenlos. Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Vor dem Ende der Beta kann jeder Verein ohne Kosten aussteigen, dann werden alle Daten gelöscht. ${SPONSOR_KURZ}`,
     },
     {
       frage: "Müssen sich Spieler und Eltern registrieren?",
@@ -139,7 +139,7 @@ function faqEintraege(live: boolean) {
     {
       frage: "Wie steht es um den Datenschutz?",
       antwort:
-        "Die Daten der Vereine sind strikt voneinander getrennt. Ein Auftragsverarbeitungsvertrag und die Datenschutzerklärung liegen von Anfang an bei. Von nuLiga und handball.net werden nur öffentliche Sport-Daten übernommen, keine Personendaten wie Schiedsrichter-Namen.",
+        "Die Daten der Vereine sind strikt voneinander getrennt. Ein Auftragsverarbeitungsvertrag und die Datenschutzerklärung liegen von Anfang an bei. Auf den öffentlichen Vereinsseiten erscheinen nur Sport-Daten (Spielpläne, Ergebnisse, Tabellen) aus nuLiga, handball.net und NDR, keine Personendaten wie Schiedsrichter-Namen. Ansetzungen landen nur in den privaten Terminen des Vereins.",
     },
   ];
 }
