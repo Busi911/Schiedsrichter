@@ -27,6 +27,15 @@ import { appUrl } from "./app-url";
 //    nuLiga-E-Mail als Website versuchen → deren Impressum (§ 5 TMG).
 //    Die Impressum-Adresse ist per TMG veröffentlicht und eher erreichbar
 //    als die nuLiga-Adresse (die ein generisches Postfach sein kann).
+// Bekannte Freemail-/Webmail-Provider — deren Domain als Website zu scrapen macht
+// keinen Sinn (es ist die Homepage des Providers, nicht die des Vereins).
+const FREEMAIL_DOMAINS = [
+  "web.de", "gmx.de", "gmx.net", "t-online.de", "gmail.com", "googlemail.com",
+  "yahoo.de", "yahoo.com", "hotmail.de", "hotmail.com", "outlook.de", "outlook.com",
+  "live.de", "live.com", "msn.com", "aol.de", "aol.com", "freenet.de", "1und1.de",
+  "mail.de", "posteo.de", "web.de", "arcor.de", "unity-mail.de",
+];
+
 async function extrahiereOutreachEmail(seiteHtml: string): Promise<string | null> {
   let kontaktEmail = extrahiereKontaktEmail(seiteHtml);
   const geparst = parseVereinsInfo(seiteHtml);
@@ -43,7 +52,7 @@ async function extrahiereOutreachEmail(seiteHtml: string): Promise<string | null
   // 3. Fallback: E-Mail-Domain als Website.
   if (kontaktEmail && !website) {
     const domain = kontaktEmail.split("@")[1];
-    if (domain && !domain.endsWith("liga.nu") && !domain.endsWith("handball.net")) {
+    if (domain && !domain.endsWith("liga.nu") && !domain.endsWith("handball.net") && !FREEMAIL_DOMAINS.includes(domain)) {
       try {
         const impressum = await scrapeImpressum(`https://${domain}`);
         if (impressum.email) {
