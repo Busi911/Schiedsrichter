@@ -31,7 +31,7 @@ export async function bootstrapVerein(formData: FormData) {
 
   const vereinId = crypto.randomUUID();
   await withTenant(vereinId, async (tx) => {
-    await tx.insert(vereine).values({ id: vereinId, name: vereinsname.trim() });
+    await tx.insert(vereine).values({ id: vereinId, name: vereinsname.trim(), status: "aktiv" });
     // "user" hat bewusst kein RLS (siehe Migration 0001) — Insert läuft hier
     // trotzdem innerhalb der withTenant-Transaktion, das ist unschädlich.
     await tx.insert(users).values({

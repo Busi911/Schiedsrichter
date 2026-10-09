@@ -157,9 +157,9 @@ export const vereine = pgTable("verein", {
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
   // "vorbereitung": vom Systemadmin als Treuhänder eingerichtet, noch ohne
   // Vereinsadmin — nicht öffentlich sichtbar, es gehen keine Mails raus (siehe
-  // lib/treuhand.ts). "aktiv": normaler Verein (Standard, auch für alle
-  // bestehenden).
-  status: text("status").$type<"vorbereitung" | "aktiv">().notNull().default("aktiv"),
+  // lib/treuhand.ts). "aktiv": normaler Verein (nach Übergabe). Default ist
+  // "vorbereitung", damit kein Verein versehentlich ohne Admin öffentlich wird.
+  status: text("status").$type<"vorbereitung" | "aktiv">().notNull().default("vorbereitung"),
   uebergebenAm: timestamp("uebergeben_am", { mode: "date" }),
   // Abrechnung (Live-Gang Ende 11.2026, Rechnung von Hand, siehe lib/abrechnung.ts): Tarif "befreit" (zahlt nichts), "beta" (Beta-Tester, 200 €
   // netto/Jahr) oder "regulaer" (300 €). Der Sponsor übernimmt auf Wunsch ALLES (Vereinspreis + Werbeplatz 200 €). "bezahlt bis" setzt der

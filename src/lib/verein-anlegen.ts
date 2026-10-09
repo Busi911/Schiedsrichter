@@ -35,6 +35,7 @@ export async function legeVereinMitAdminAn(
     await tx.insert(vereine).values({
       id: vereinId,
       name: vereinsname.trim(),
+      status: "aktiv", // Selbstregistrierung: direkt aktiv, Admin wird unten angelegt
       tarif: konditionen.tarif,
       zahlungFaelligAm: konditionen.zahlungFaelligAm,
       rechnungEmail: (rechnung?.email ?? adminEmail).trim().toLowerCase(),
