@@ -100,7 +100,7 @@ export type OutreachFollowupErgebnis = {
 // Hauptfunktion des Outreach-Crons: Findet neue Vereine aus dem nuLiga-Index,
 // die noch nicht in der App existieren, richtet sie ein, sucht die E-Mail aus
 // dem Impressum und sendet die Ansprache-Mail.
-export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
+export async function fuehreOutreachAus(verband?: string): Promise<OutreachErgebnis> {
   const ergebnis: OutreachErgebnis = {
     verarbeitet: 0,
     angeschrieben: 0,
@@ -124,7 +124,7 @@ export async function fuehreOutreachAus(): Promise<OutreachErgebnis> {
     })
     .from(nuligaVereinsindex)
     .where(
-      sql`(NOT EXISTS (SELECT 1 FROM ${ligaVereine} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband}) OR EXISTS (SELECT 1 FROM ${ligaVereine} JOIN ${vereine} ON ${vereine.id} = ${ligaVereine.vereinId} LEFT JOIN ${vereinKontakt} ON ${vereinKontakt.vereinId} = ${vereine.id} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband} AND ${vereine.status} = 'vorbereitung' AND ${vereinKontakt.angeschriebenAm} IS NULL))`
+      sql`(NOT EXISTS (SELECT 1 FROM ${ligaVereine} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband}) OR EXISTS (SELECT 1 FROM ${ligaVereine} JOIN ${vereine} ON ${vereine.id} = ${ligaVereine.vereinId} LEFT JOIN ${vereinKontakt} ON ${vereinKontakt.vereinId} = ${vereine.id} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband} AND ${vereine.status} = 'vorbereitung' AND ${vereinKontakt.angeschriebenAm} IS NULL))${verband ? sql` AND ${nuligaVereinsindex.verband} = ${verband}` : sql``}`
     )
     .limit(OUTREACH_KONSTANTEN.MAX_VERSUCH_PRO_LAUF);
 

@@ -19,6 +19,7 @@ export async function GET(request: Request) {
   const followup = params.get("followup") === "1";
   const instagram = params.get("instagram") === "1";
   const reset = params.get("reset");
+  const verband = params.get("verband") ?? undefined;
 
   if (reset) {
     const ergebnis = await resetOutreachVerein(reset);
@@ -35,6 +36,6 @@ export async function GET(request: Request) {
     return Response.json({ instagram: ergebnis });
   }
 
-  const ergebnis = await fuehreOutreachAus();
+  const ergebnis = await fuehreOutreachAus(verband);
   return Response.json({ outreach: ergebnis });
 }
