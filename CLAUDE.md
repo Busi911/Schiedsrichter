@@ -477,7 +477,7 @@ club-ID, Vereinsseite lesen (`parsers/vereinsinfo.ts`: Whitelist Name/Nummer/Gr�
 Anschrift, Ansprechpartner), Hallen als "Eure Spielhallen" vorschlagen, Mannschaften/Spiele laden, Termine anlegen; Ergebnis als Checkliste
 (`einrichtung-status.ts`: ✓ automatisch / ! prüfen / ✕ Fehler) und im Vereinsprotokoll. Das Logo kommt dabei gleich mit (siehe unten). Die Fixtures `vereinsuche-bezirk.html`/`vereinsinfo.html` sind nach Beschreibung NACHGEBAUT, nicht von der echten Seite:
 die Parser sind gegen die echte Struktur NICHT verifiziert (Warnungen statt Absturz) — sobald echtes HTML vorliegt, Fixture ersetzen.
-Unregistrierte Vereine haben keine öffentliche Seite/Favoriten (die liga_*-Tabellen hängen an einem registrierten Verein).
+Vom Betreiber bestätigt (09.10.2026): die nuLiga-Vereinssuche (Index, Automatisch einrichten) funktioniert. Unregistrierte Vereine haben keine öffentliche Seite/Favoriten (die liga_*-Tabellen hängen an einem registrierten Verein).
 
 **Vereinslogo aus nuLiga (`lib/nuliga/logo.ts`):** Der Bildpfad (`…/wr?wodata=…`) wird bei JEDEM Abruf frisch aus der Vereinsseite gelesen (`parsers/vereinsinfo.ts`
 `findeLogo`: Bild über die nuLiga-Bilderauslieferung, bevorzugt alt-Text = Vereinsname = `logoSicher`; ein einziger unklarer Kandidat wird nur als "bitte prüfen"
@@ -556,7 +556,7 @@ Ergebnis dahinter, Halbzeit "Halbzeit: d:d" oder "(d:d)"; ein einzelnes Paar hin
 Persistenz: `liga_gruppe.quelle = "ndr"`, `verband = "NDR"`, `nuliga_group_id = "<liga>:<saison>"`; Team ↔ Verein über `liga_externe_identitaet` (quelle "ndr", Migration 0088 mit Unique-Index, `verknuepfeExternesTeam`; nie ein automatisch neuer Verein; Vereinslogo hat Vorrang vor dem NDR-Logo, das nur in der Identität liegt).
 Status: Ergebnis vorhanden = finished (nur dann `ergebnisBestaetigt`), sonst scheduled bzw. unbekannt, wenn der Termin schon vorbei ist. Cron `/api/cron/ndr-sync?liga=hbl1|hbl2` (tagsüber alle 15 Min., nachts `&voll=1`), holt nur FÄLLIGE Spieltage (Fälligkeit siehe oben) und tut nichts ohne Team-Zuordnung.
 Systemseite `/system/ndr` (Reiter "Bundesliga"): Jetzt laden, Teams zuordnen/lösen, "Testimport (nur lesen)" je Liga/Spieltag (Spiele, Teams, Spieltage, aktueller Spieltag, Tabellenzeilen, Parsingfehler, Link-Formen, Bild-Hosts, maskierte HTML-Auszüge).
-**OFFEN:** Die Fixtures (`ndr/__fixtures__/`) sind der echten Spielzeilen-Struktur NACHGEBAUT (Tabellenzeile geraten, 2. HBL-Seite nicht im Original gesehen) — echte HTML-Auszüge würden sie ersetzen; bei Layoutänderung zeigt `/system/ndr` → Testimport, was der Parser sieht. Die Vereinsseite nennt NDR in der Quellenzeile (`StandHinweis`). Live, Spielort, Spielseiten, Tabellenverlauf, Caching-Feinschliff folgen später; die 2. HBL-Saisonseite hängt im Pfad an der Saison (`saisonLabel`).
+**OFFEN:** Die Fixtures (`ndr/__fixtures__/`) sind der echten Spielzeilen-Struktur NACHGEBAUT (Tabellenzeile geraten, 2. HBL-Seite nicht im Original gesehen) — echte HTML-Auszüge würden sie ersetzen; bei Layoutänderung zeigt `/system/ndr` → Testimport, was der Parser sieht. Die Vereinsseite nennt NDR in der Quellenzeile (`StandHinweis`). Live-Ticker: der NDR-Link `spielstatistik-NNNN` ist laut Betreiber ein Live-Ticker, `ndrQuelle.liveUrl` zeigt ihn deshalb im Live-Fenster (Karte: "Live-Ticker"), danach als "Spielbericht" (kein eigener Live-Stand, nur der Link). Spielort, Spielseiten, Tabellenverlauf, Caching-Feinschliff folgen später; die 2. HBL-Saisonseite hängt im Pfad an der Saison (`saisonLabel`).
 
 ## Beta-Konditionen (Stand 07.10.2026)
 
