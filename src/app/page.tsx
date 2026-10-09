@@ -21,9 +21,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { ProdukttourBild } from "@/components/produkttour-bild";
+import { Einblenden } from "@/components/einblenden";
 
-// Große, gut tippbare Buttons auf der Startseite (mobil zuerst): mindestens 48 px hoch.
-const GROSSER_BUTTON = "h-12 px-6 text-base";
+// Große, gut tippbare Buttons auf der Startseite (mobil zuerst): 56 px hoch, mit leichtem Druck-Effekt.
+const GROSSER_BUTTON = "h-14 px-8 text-lg transition-transform hover:-translate-y-0.5 active:scale-[0.97]";
 
 const FEATURES = [
   {
@@ -134,7 +135,7 @@ export default async function Home() {
           </div>
           <Button
             variant="outline"
-            className="h-10 px-4 text-sm"
+            className="h-12 px-6 text-base transition-transform active:scale-[0.97]"
             render={<Link href="/login" />}
             nativeButton={false}
           >
@@ -145,25 +146,26 @@ export default async function Home() {
 
       <main className="flex-1">
         <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-16 text-center">
-          <Badge variant="secondary">{live ? `${PREIS_REGULAER} € netto im Jahr` : "Beta · 100% kostenlos"}</Badge>
-          <h1 className="font-heading text-4xl font-semibold text-balance sm:text-5xl">
+          <Badge variant="secondary" className="hero-rein h-7 px-3 text-sm">{live ? `${PREIS_REGULAER} € netto im Jahr` : "Beta · 100% kostenlos"}</Badge>
+          <h1 style={{ ["--hero-verzoegerung" as string]: "100ms" }} className="hero-rein font-heading text-4xl font-semibold text-balance sm:text-5xl">
             Die Vereinsverwaltung für euren Handballspielbetrieb
           </h1>
-          <p className="max-w-xl text-lg text-muted-foreground text-balance">
+          <p style={{ ["--hero-verzoegerung" as string]: "220ms" }} className="hero-rein max-w-xl text-lg text-muted-foreground text-balance">
             Funktionsträger, Hallenspielplan und Einsatzplanung an einem Ort
             — automatisch synchron mit nuLiga bzw. handball.net, statt
             Excel-Listen und WhatsApp-Nachrichten hinterherzutelefonieren.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div style={{ ["--hero-verzoegerung" as string]: "340ms" }} className="hero-rein flex flex-wrap items-center justify-center gap-3">
             <Button className={GROSSER_BUTTON} render={<Link href="/registrieren" />} nativeButton={false}>
               {live ? "Jetzt registrieren" : "Jetzt kostenlos registrieren"}
             </Button>
           </div>
           <Link
             href="#vereine"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border px-5 text-base font-medium hover:bg-muted"
+            style={{ ["--hero-verzoegerung" as string]: "460ms" }}
+            className="hero-rein inline-flex min-h-14 items-center gap-2 rounded-full border px-7 text-lg font-medium transition hover:bg-muted active:scale-[0.97]"
           >
-            <SmartphoneIcon className="size-5 text-primary" />
+            <SmartphoneIcon className="size-6 text-primary" />
             Euren Verein als App finden
           </Link>
           {!live && (
@@ -202,14 +204,14 @@ export default async function Home() {
                   Handy installieren (im Browser „Teilen“ → „Zum Home-Bildschirm“).
                 </p>
               </div>
-              <div className="flex gap-3 text-sm">
-                <Link href="/verein" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
+              <div className="flex flex-wrap gap-3 text-base">
+                <Link href="/verein" className="inline-flex min-h-12 items-center rounded-full border bg-background px-5 font-medium transition hover:bg-muted active:scale-[0.97]">
                   Alle Vereine
                 </Link>
-                <Link href="/meine" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
+                <Link href="/meine" className="inline-flex min-h-12 items-center rounded-full border bg-background px-5 font-medium transition hover:bg-muted active:scale-[0.97]">
                   Meine Mannschaften
                 </Link>
-                <Link href="/app-hilfe" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
+                <Link href="/app-hilfe" className="inline-flex min-h-12 items-center rounded-full border bg-background px-5 font-medium transition hover:bg-muted active:scale-[0.97]">
                   Hilfe zur App
                 </Link>
               </div>
@@ -228,15 +230,14 @@ export default async function Home() {
               Was HandballerPate kann
             </h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map((f) => (
-                <div
-                  key={f.titel}
-                  className="flex flex-col gap-2 rounded-lg border bg-background p-4"
-                >
-                  <f.icon className="size-6 text-primary" />
-                  <p className="font-heading font-medium">{f.titel}</p>
-                  <p className="text-sm text-muted-foreground">{f.text}</p>
-                </div>
+              {FEATURES.map((f, i) => (
+                <Einblenden key={f.titel} verzoegerung={(i % 3) * 100} className="h-full">
+                  <div className="group flex h-full flex-col gap-2 rounded-lg border bg-background p-4 transition duration-200 hover:-translate-y-1 hover:shadow-md">
+                    <f.icon className="size-6 text-primary transition-transform duration-200 group-hover:scale-110" />
+                    <p className="font-heading font-medium">{f.titel}</p>
+                    <p className="text-sm text-muted-foreground">{f.text}</p>
+                  </div>
+                </Einblenden>
               ))}
             </div>
           </div>
@@ -255,7 +256,7 @@ export default async function Home() {
             </div>
             <div className="mt-10 flex flex-col gap-14">
               {PRODUKTTOUR.map((eintrag, i) => (
-                <div
+                <Einblenden
                   key={eintrag.bild}
                   className="grid items-center gap-6 md:grid-cols-2 md:gap-10"
                 >
@@ -285,7 +286,7 @@ export default async function Home() {
                       {eintrag.text}
                     </p>
                   </div>
-                </div>
+                </Einblenden>
               ))}
             </div>
           </div>

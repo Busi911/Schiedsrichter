@@ -15,14 +15,14 @@ export function Vereinsuche({ vereine }: { vereine: VereinEintrag[] }) {
   return (
     <div className="space-y-4">
       <div className="relative">
-        <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
           value={suche}
           onChange={(e) => setSuche(e.target.value)}
           placeholder="Verein suchen"
           aria-label="Verein suchen"
-          className="pl-9"
+          className="h-12 pl-10 text-base"
         />
       </div>
       {treffer.length === 0 ? (
@@ -34,7 +34,7 @@ export function Vereinsuche({ vereine }: { vereine: VereinEintrag[] }) {
               key={v.id}
               className="flex items-center justify-between gap-2 rounded-xl bg-background px-4 py-1 ring-1 ring-foreground/[0.06]"
             >
-              <Link href={`/verein/${v.slug}`} className="flex min-w-0 flex-1 items-center gap-3 py-2 font-medium hover:underline">
+              <Link href={`/verein/${v.slug}`} className="flex min-w-0 flex-1 items-center gap-3 py-3.5 text-base font-medium hover:underline">
                 <VereinsAvatar name={v.name} slug={v.slug} logoVersion={v.logoAktualisiertAm ? v.logoAktualisiertAm.getTime() : null} />
                 <span className="truncate">{v.name}</span>
               </Link>
