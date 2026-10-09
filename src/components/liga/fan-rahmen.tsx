@@ -63,6 +63,7 @@ export function FanKopf({
           <nav className="mb-1 flex items-center gap-5" aria-label="Hauptnavigation">
             {dezent("/verein", "Vereine")}
             {dezent("/meine", "Meine Mannschaften")}
+            {dezent("/app-hilfe", "Hilfe zur App")}
           </nav>
         ) : (
           <nav className="mb-4 flex items-center gap-2" aria-label="Hauptnavigation">

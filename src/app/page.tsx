@@ -277,25 +277,12 @@ export default async function Home() {
             und Mannschaften ohne Login — für Spieler, Eltern und Fans. */}
         <section id="vereine" className="scroll-mt-4 border-t bg-muted/30">
           <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10">
-            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-              <div>
-                <h2 className="font-heading text-2xl font-semibold">Spielpläne &amp; Ergebnisse</h2>
-                <p className="text-sm text-muted-foreground">
-                  Euren Verein finden: Mannschaften, nächste Spiele, Ergebnisse und Live-Ticker, ohne Login — und als App aufs
-                  Handy installieren (im Browser „Teilen“ → „Zum Home-Bildschirm“).
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3 text-base">
-                <Link href="/verein" className="inline-flex min-h-12 items-center rounded-full border bg-background px-5 font-medium transition hover:bg-muted active:scale-[0.97]">
-                  Alle Vereine
-                </Link>
-                <Link href="/meine" className="inline-flex min-h-12 items-center rounded-full border bg-background px-5 font-medium transition hover:bg-muted active:scale-[0.97]">
-                  Meine Mannschaften
-                </Link>
-                <Link href="/app-hilfe" className="inline-flex min-h-12 items-center rounded-full border bg-background px-5 font-medium transition hover:bg-muted active:scale-[0.97]">
-                  Hilfe zur App
-                </Link>
-              </div>
+            <div>
+              <h2 className="font-heading text-2xl font-semibold">Spielpläne &amp; Ergebnisse</h2>
+              <p className="text-sm text-muted-foreground">
+                Euren Verein finden: Mannschaften, nächste Spiele, Ergebnisse und Live-Ticker, ohne Login — und als App aufs
+                Handy installieren (im Browser „Teilen“ → „Zum Home-Bildschirm“).
+              </p>
             </div>
             {vereineMitSeite.length === 0 ? (
               <p className="text-sm text-muted-foreground">Noch keine Vereine freigeschaltet.</p>
