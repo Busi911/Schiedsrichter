@@ -359,9 +359,9 @@ function ZusatzAktionen({
           <SchliesseNachSpeichern onFertig={onFertig} />
           <input type="hidden" name="id" value={eintrag.id} />
           <input type="hidden" name="wechselMinuten" />
-          <Label htmlFor="tz-wechsel">In zwei Abschnitte teilen (Wechsel)</Label>
+          <Label htmlFor="tz-wechsel">Wechsel einfügen (Abschnitt teilen)</Label>
           <p className="text-xs text-muted-foreground">
-            Der zweite Abschnitt beginnt zur Wechselzeit und kann ein anderes Abteil belegen — z.B. erste halbe Stunde Nord, zweite Süd.
+            Der zweite Abschnitt beginnt zur Wechselzeit und kann ein anderes Abteil belegen — z.B. erste halbe Stunde Nord, zweite Süd. Für weitere Wechsel öffnest du danach den zweiten Abschnitt und teilst ihn erneut — so sind beliebig viele Wechsel möglich.
           </p>
           <div className="flex gap-2">
             <div className="flex flex-1 flex-col gap-1.5">
