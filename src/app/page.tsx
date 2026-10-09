@@ -39,7 +39,7 @@ const FEATURES = [
   {
     icon: RefreshCwIcon,
     titel: "Hallenspielplan automatisch synchron",
-    text: "Ab der 3. Liga automatisch über handball.net, verbandsunabhängig — inklusive Ergebnissen und Verlegungen. Der automatische nuLiga-Import darunter ist aktuell auf den HHV beschränkt, weitere Landesverbände sind manuell nutzbar.",
+    text: "Ab der 3. Liga automatisch über handball.net, verbandsunabhängig — inklusive Ergebnissen und Verlegungen. Der automatische nuLiga-Import darunter ist aktuell für Hessen und Berlin verfügbar, weitere Landesverbände folgen.",
   },
   {
     icon: ClipboardCheckIcon,

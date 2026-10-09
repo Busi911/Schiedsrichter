@@ -1,7 +1,7 @@
-// nuLiga-Instanzen je Landesverband. Aktuell nur der HHV (der bereits
-// getestete Anbieter, siehe src/lib/nuliga-scraper.ts) — weitere Verbände
-// brauchen nur einen zusätzlichen Eintrag (Domain + WebObjects-App-Pfad;
-// der Pfad "nuLigaHBDE" ist der Handball-Mandant aller *.liga.nu-Verbände).
+// nuLiga-Instanzen je Landesverband. Alle nutzen den gleichen App-Pfad
+// (nuLigaHBDE = Handball-Mandant), nur die Domain unterscheidet sich.
+// Subdomain-Muster: <schluessel>-handball.liga.nu
+// 10 von 18 DHB-Landesverbänden nutzen nuLiga (Stand 2026).
 export type Verband = {
   schluessel: string;
   domain: string;
@@ -12,6 +12,11 @@ export const VERBAENDE: Record<string, Verband> = {
   HHV: {
     schluessel: "HHV",
     domain: "hhv-handball.liga.nu",
+    appPfad: "/cgi-bin/WebObjects/nuLigaHBDE.woa/wa",
+  },
+  HVBerlin: {
+    schluessel: "HVBerlin",
+    domain: "hvberlin-handball.liga.nu",
     appPfad: "/cgi-bin/WebObjects/nuLigaHBDE.woa/wa",
   },
 };

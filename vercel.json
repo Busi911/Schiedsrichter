@@ -59,7 +59,7 @@
     },
     {
       "path": "/api/cron/vereins-outreach",
-      "schedule": "30 10 * * *"
+      "schedule": "30 10,16 * * *"
     },
     {
       "path": "/api/cron/vereins-outreach?followup=1",
