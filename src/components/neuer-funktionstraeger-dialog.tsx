@@ -14,19 +14,9 @@ import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/labeled-select";
 import { Switch } from "@/components/ui/switch";
 import { SubmitButton } from "@/components/submit-button";
+import { rollenZurAuswahl } from "@/lib/funktionstraeger-rollen";
+import { TYP_LABEL } from "@/lib/funktionstraeger-typ-label";
 
-const TYP_LABEL: Record<string, string> = {
-  schiedsrichter: "Schiedsrichter",
-  zeitnehmer: "Zeitnehmer",
-  sekretaer: "Sekretär",
-  trainer: "Trainer",
-  ordner: "Ordner",
-  kioskdienst: "Kioskdienst",
-  kassierer: "Kassierer",
-  schiedsrichterwart: "Schiedsrichterwart",
-  zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
-  ordnerwart: "Ordner-/Kioskdienst-/Kassiererwart",
-};
 
 // Vormals ein dauerhaft sichtbares Formular in einer eigenen Spalte neben
 // der Tabelle — nahm auch dann Platz weg, wenn gerade niemand angelegt
@@ -59,7 +49,7 @@ export function NeuerFunktionstraegerDialog({
           <div className="flex flex-col gap-2">
             <Label>Rollen (Mehrfachauswahl möglich)</Label>
             <div className="flex flex-col gap-1.5 rounded-lg border p-3">
-              {Object.entries(TYP_LABEL).map(([value, label]) => (
+              {rollenZurAuswahl(TYP_LABEL).map(([value, label]) => (
                 <label key={value} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"

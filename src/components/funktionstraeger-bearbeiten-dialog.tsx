@@ -12,6 +12,7 @@ import {
 } from "@/app/admin/(dashboard)/actions";
 import { LIZENZ_ROLLEN } from "@/lib/lizenz-rollen";
 import { TYP_LABEL } from "@/lib/funktionstraeger-typ-label";
+import { fasseRollenZusammen, rollenZurAuswahl, ZEITNEHMER_SEKRETAER_TYP } from "@/lib/funktionstraeger-rollen";
 import type { Person } from "@/components/funktionstraeger-tabelle";
 import { Button } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
@@ -159,25 +160,23 @@ export function FunktionstraegerBearbeitenDialog({
 
           <PanelAbschnitt titel="Rollen & Lizenz">
             <div className="flex flex-wrap gap-1.5">
-              {p.rollen
-                .filter((r) => r.aktiv)
-                .map((r) => (
-                  <span
-                    key={r.rolleId}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-0.5 text-xs"
-                  >
-                    <span className="font-medium">
-                      {TYP_LABEL[r.typ] ?? r.typ}
-                      {r.mannschaftName ? ` (${r.mannschaftName})` : ""}
-                    </span>
-                    <form action={funktionstraegerAktivToggeln}>
-                      <input type="hidden" name="rolleId" value={r.rolleId} />
-                      <SubmitButton variant="ghost" size="xs">
-                        Deaktivieren
-                      </SubmitButton>
-                    </form>
-                  </span>
-                ))}
+              {fasseRollenZusammen(p.rollen.filter((r) => r.aktiv), TYP_LABEL).map((e) => (
+                <span
+                  key={e.schluessel}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-0.5 text-xs"
+                >
+                  <span className="font-medium">{e.label}</span>
+                  <form action={funktionstraegerAktivToggeln}>
+                    {/* Zeitnehmer/Sekretär: beide Rollen-IDs, Deaktivieren wirkt auf beide (siehe funktionstraegerAktivToggeln) */}
+                    {e.rollen.map((r) => (
+                      <input key={r.rolleId} type="hidden" name="rolleId" value={r.rolleId} />
+                    ))}
+                    <SubmitButton variant="ghost" size="xs">
+                      Deaktivieren
+                    </SubmitButton>
+                  </form>
+                </span>
+              ))}
             </div>
             {(() => {
               // Zeitnehmer und Sekretär sind dieselbe Verbandslizenz (siehe
@@ -248,19 +247,19 @@ export function FunktionstraegerBearbeitenDialog({
                   action={funktionstraegerRollenAktivierenEinzeln}
                   className="flex flex-wrap items-center gap-2"
                 >
-                  {inaktiveRollen.map((r) => (
+                  {fasseRollenZusammen(inaktiveRollen, TYP_LABEL).map((e) => (
                     <label
-                      key={r.rolleId}
+                      key={e.schluessel}
                       className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 px-2.5 py-0.5 text-xs text-destructive"
                     >
+                      {/* Zeitnehmer/Sekretär: ein Kästchen für beide Rollen (IDs kommagetrennt, siehe funktionstraegerRollenAktivierenEinzeln) */}
                       <input
                         type="checkbox"
                         name="rolleId"
-                        value={r.rolleId}
+                        value={e.rollen.map((r) => r.rolleId).join(",")}
                         className="size-3.5 accent-primary"
                       />
-                      {TYP_LABEL[r.typ] ?? r.typ}
-                      {r.mannschaftName ? ` (${r.mannschaftName})` : ""} · inaktiv
+                      {e.label} · inaktiv
                     </label>
                   ))}
                   <SubmitButton variant="outline" size="xs">
@@ -271,8 +270,11 @@ export function FunktionstraegerBearbeitenDialog({
             })()}
             {(() => {
               const vorhandeneTypen = new Set(p.rollen.map((r) => r.typ));
-              const verfuegbareRollen = Object.entries(TYP_LABEL).filter(
-                ([typ]) => !vorhandeneTypen.has(typ)
+              // Zeitnehmer/Sekretär ist EINE Auswahl: nur sichtbar, solange eine der beiden Aufgaben noch fehlt (die fehlende wird ergänzt).
+              const verfuegbareRollen = rollenZurAuswahl(TYP_LABEL).filter(([typ]) =>
+                typ === ZEITNEHMER_SEKRETAER_TYP
+                  ? !(vorhandeneTypen.has("zeitnehmer") && vorhandeneTypen.has("sekretaer"))
+                  : !vorhandeneTypen.has(typ)
               );
               if (verfuegbareRollen.length === 0) return null;
               return (

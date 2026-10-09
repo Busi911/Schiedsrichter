@@ -15,7 +15,8 @@ import { AdminNav } from "@/components/admin-nav";
 import { BottomNav } from "@/components/bottom-nav";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { HilfeLink } from "@/components/hilfe-link";
-import { Logo } from "@/components/logo";
+import { KopfLogo } from "@/components/kopf-logo";
+import { holeVereinsLogoInfo } from "@/lib/vereins-logo";
 import { ZahlungsHinweis } from "@/components/zahlungs-hinweis";
 
 // Eigenes PWA-Icon/App-Name für den Admin-Bereich, damit "Zum Home-Bildschirm
@@ -36,9 +37,10 @@ export default async function AdminLayout({
 }) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
-  const verein = await withTenant(vereinId, (tx) =>
-    tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
-  );
+  const [verein, vereinsLogo] = await Promise.all([
+    withTenant(vereinId, (tx) => tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })),
+    holeVereinsLogoInfo(vereinId),
+  ]);
   // Auf jeder Admin-Seite sichtbar (nicht nur auf der Übersicht) — der Admin
   // soll die Besetzung nur noch überwachen, die eigentliche Zuordnung
   // übernehmen die jeweiligen Wart-Rollen (siehe /admin/dienste).
@@ -77,7 +79,7 @@ export default async function AdminLayout({
               hier bleibt dann nur der Vereinsname übrig. */}
           <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-start">
             <Link href="/profil" className="flex min-w-0 items-center gap-3" aria-label="Mein Profil">
-              <Logo className="size-8 shrink-0 text-primary" />
+              <KopfLogo logo={vereinsLogo} className="size-10" />
               <div>
                 <p className="font-heading text-lg font-semibold">
                   {verein?.name ?? "Verein"}

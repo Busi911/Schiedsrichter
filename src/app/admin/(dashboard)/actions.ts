@@ -23,6 +23,7 @@ import { appUrl } from "@/lib/app-url";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
 import { emailGeaendertInhalt, pruefeEmailVerfuegbar } from "@/lib/email-aendern";
 import { LIZENZ_ROLLEN } from "@/lib/lizenz-rollen";
+import { expandiereRollenTypen, kombiniereRollenLabels, ZEITNEHMER_SEKRETAER_TYP } from "@/lib/funktionstraeger-rollen";
 import { willkommensInhalt } from "@/lib/willkommens-mail";
 import { terminVerlegtInhalt } from "@/lib/zuordnung";
 import { parseBerlinDatumZeit } from "@/lib/format";
@@ -212,6 +213,10 @@ const FUNKTIONSTRAEGER_TYPEN = [
   "ordnerwart",
 ] as const;
 
+// Formularwerte: die echten Rollen plus die Sammelrolle "Zeitnehmer/Sekretär" (wird vor dem Speichern zu BEIDEN Rollen, siehe
+// lib/funktionstraeger-rollen.ts).
+const FUNKTIONSTRAEGER_EINGABETYPEN = [...FUNKTIONSTRAEGER_TYPEN, ZEITNEHMER_SEKRETAER_TYP] as const;
+
 // Für die Rollen-Info-Mail unten (rollenHinzugefuegtInhalt) — dieselben
 // Bezeichnungen wie TYP_LABEL in FunktionstraegerTabelle, hier separat
 // gepflegt, da diese Datei (Server Action) nicht aus der Client-Komponente
@@ -252,6 +257,21 @@ function rollenHinzugefuegtInhalt(
   };
 }
 
+// Legt eine Person zusätzlich die zweite Aufgabe (Zeitnehmer <-> Sekretär) an, gilt dieselbe Verbandslizenz: das Ablaufdatum der bereits
+// vorhandenen Rolle wird übernommen (siehe partnerLizenzTyp unten), sonst bliebe die neue Rolle ohne Datum.
+async function partnerLizenzGueltigBis(
+  tx: Parameters<Parameters<typeof withTenant>[1]>[0],
+  userId: string,
+  typ: string
+): Promise<Date | null> {
+  const partner = partnerLizenzTyp(typ);
+  if (!partner) return null;
+  const vorhanden = await tx.query.funktionstraegerRollen.findFirst({
+    where: and(eq(funktionstraegerRollen.userId, userId), eq(funktionstraegerRollen.typ, partner)),
+  });
+  return vorhanden?.lizenzGueltigBis ?? null;
+}
+
 export async function createFunktionstraeger(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
@@ -275,7 +295,7 @@ export async function createFunktionstraeger(formData: FormData) {
     !typen.every(
       (t): t is (typeof FUNKTIONSTRAEGER_TYPEN)[number] =>
         typeof t === "string" &&
-        (FUNKTIONSTRAEGER_TYPEN as readonly string[]).includes(t)
+        (FUNKTIONSTRAEGER_EINGABETYPEN as readonly string[]).includes(t)
     )
   ) {
     throw new Error("Ungültige Rolle ausgewählt.");
@@ -287,7 +307,7 @@ export async function createFunktionstraeger(formData: FormData) {
   if (typen.length === 0 && !alsAdmin && !alsAdminLesend) {
     throw new Error("Bitte mindestens eine Rolle auswählen (oder Admin).");
   }
-  const ausgewaehlteTypen = typen as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
+  const ausgewaehlteTypen = expandiereRollenTypen(typen as string[]) as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
   const normalizedEmail = email.trim().toLowerCase();
 
   const { vereinName, einmalPasswort } = await withTenant(vereinId, async (tx) => {
@@ -377,6 +397,7 @@ export async function createFunktionstraeger(formData: FormData) {
             ? mannschaftId
             : null,
         aktiv: sofortAktiv,
+        lizenzGueltigBis: await partnerLizenzGueltigBis(tx, user.id, typ),
       });
     }
 
@@ -429,7 +450,7 @@ export async function rolleHinzufuegen(formData: FormData) {
     !typen.every(
       (t): t is (typeof FUNKTIONSTRAEGER_TYPEN)[number] =>
         typeof t === "string" &&
-        (FUNKTIONSTRAEGER_TYPEN as readonly string[]).includes(t)
+        (FUNKTIONSTRAEGER_EINGABETYPEN as readonly string[]).includes(t)
     )
   ) {
     throw new Error("Ungültige Rolle ausgewählt.");
@@ -437,7 +458,7 @@ export async function rolleHinzufuegen(formData: FormData) {
   if (typen.length === 0) {
     throw new Error("Bitte mindestens eine Rolle auswählen.");
   }
-  const typedTypen = typen as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
+  const typedTypen = expandiereRollenTypen(typen as string[]) as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
 
   const { email, vereinName, neueRollenLabels } = await withTenant(vereinId, async (tx) => {
     const person = await tx.query.users.findFirst({
@@ -466,6 +487,7 @@ export async function rolleHinzufuegen(formData: FormData) {
         // um zusätzliche Rollen — kein separater Onboarding-Schritt wie bei
         // createFunktionstraeger nötig.
         aktiv: true,
+        lizenzGueltigBis: await partnerLizenzGueltigBis(tx, userId, typedTyp),
       });
       neueRollenLabels.push(FUNKTIONSTRAEGER_TYP_LABEL[typedTyp]);
     }
@@ -486,7 +508,7 @@ export async function rolleHinzufuegen(formData: FormData) {
   // es geht keine Mail raus.
   if (neueRollenLabels.length > 0) {
     try {
-      const inhalt = rollenHinzugefuegtInhalt(vereinName, neueRollenLabels);
+      const inhalt = rollenHinzugefuegtInhalt(vereinName, kombiniereRollenLabels(neueRollenLabels));
       await sendMail(
         email,
         "Neue Rolle für HandballerPate",
@@ -527,7 +549,7 @@ export async function rollenHinzufuegenMehrfach(formData: FormData) {
     !typen.every(
       (t): t is (typeof FUNKTIONSTRAEGER_TYPEN)[number] =>
         typeof t === "string" &&
-        (FUNKTIONSTRAEGER_TYPEN as readonly string[]).includes(t)
+        (FUNKTIONSTRAEGER_EINGABETYPEN as readonly string[]).includes(t)
     )
   ) {
     throw new Error("Ungültige Rolle ausgewählt.");
@@ -535,7 +557,7 @@ export async function rollenHinzufuegenMehrfach(formData: FormData) {
   if (typen.length === 0) {
     throw new Error("Bitte mindestens eine Rolle auswählen.");
   }
-  const typedTypen = typen as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
+  const typedTypen = expandiereRollenTypen(typen as string[]) as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
 
   const { benachrichtigungen, vereinName } = await withTenant(vereinId, async (tx) => {
     const benachrichtigungen: { email: string; neueRollenLabels: string[] }[] = [];
@@ -563,6 +585,7 @@ export async function rollenHinzufuegenMehrfach(formData: FormData) {
               ? mannschaftId
               : null,
           aktiv: true,
+          lizenzGueltigBis: await partnerLizenzGueltigBis(tx, userId, typedTyp),
         });
         neueRollenLabels.push(FUNKTIONSTRAEGER_TYP_LABEL[typedTyp]);
       }
@@ -579,7 +602,7 @@ export async function rollenHinzufuegenMehrfach(formData: FormData) {
 
   for (const { email, neueRollenLabels } of benachrichtigungen) {
     try {
-      const inhalt = rollenHinzugefuegtInhalt(vereinName, neueRollenLabels);
+      const inhalt = rollenHinzugefuegtInhalt(vereinName, kombiniereRollenLabels(neueRollenLabels));
       await sendMail(
         email,
         "Neue Rolle für HandballerPate",
@@ -605,6 +628,10 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
   if (typeof rolleId !== "string" || !rolleId) {
     throw new Error("Rolle fehlt.");
   }
+  const weitereRolleIds = formData
+    .getAll("rolleId")
+    .slice(1)
+    .filter((id): id is string => typeof id === "string" && !!id);
 
   const aktivierung = await withTenant(vereinId, async (tx) => {
     const rolle = await tx
@@ -628,6 +655,21 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
       .update(funktionstraegerRollen)
       .set({ aktiv: neuAktiv })
       .where(eq(funktionstraegerRollen.id, rolleId));
+
+    // Zusammengefasste Zeile "Zeitnehmer/Sekretär": das Formular schickt beide Rollen-IDs, beim Deaktivieren gehen beide aus.
+    if (!neuAktiv && weitereRolleIds.length > 0) {
+      const eigene = await tx
+        .select({ id: funktionstraegerRollen.id })
+        .from(funktionstraegerRollen)
+        .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+        .where(and(inArray(funktionstraegerRollen.id, weitereRolleIds), eq(users.vereinId, vereinId)));
+      if (eigene.length > 0) {
+        await tx
+          .update(funktionstraegerRollen)
+          .set({ aktiv: false })
+          .where(inArray(funktionstraegerRollen.id, eigene.map((e) => e.id)));
+      }
+    }
 
     if (!neuAktiv) return null;
 
@@ -752,9 +794,11 @@ export async function funktionstraegerRollenAktivierenEinzeln(formData: FormData
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
 
+  // Ein Kästchen kann mehrere Rollen tragen (Zeitnehmer/Sekretär: "id1,id2"), daher an Kommas aufteilen.
   const rolleIds = formData
     .getAll("rolleId")
-    .filter((id): id is string => typeof id === "string" && !!id);
+    .filter((id): id is string => typeof id === "string" && !!id)
+    .flatMap((id) => id.split(",").filter(Boolean));
   if (rolleIds.length === 0) {
     throw new Error("Keine Rolle ausgewählt.");
   }
@@ -1299,32 +1343,34 @@ export async function funktionstraegerImportieren(formData: FormData) {
         }
       }
 
-      const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
-        where: and(
-          eq(funktionstraegerRollen.userId, user.id),
-          eq(funktionstraegerRollen.typ, zeile.typ)
-        ),
-      });
-      if (vorhandeneRolle) {
+      // Zeitnehmer und Sekretär sind EINE Funktion: eine Zeile mit einer der beiden Rollen legt beide an (siehe lib/funktionstraeger-rollen.ts).
+      let neuAngelegt = false;
+      for (const typ of expandiereRollenTypen([zeile.typ]) as (typeof FUNKTIONSTRAEGER_TYPEN)[number][]) {
+        const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
+          where: and(eq(funktionstraegerRollen.userId, user.id), eq(funktionstraegerRollen.typ, typ)),
+        });
+        if (vorhandeneRolle) continue;
+
+        await tx.insert(funktionstraegerRollen).values({
+          userId: user.id,
+          typ,
+          mannschaftId,
+          aktiv: sofortAktiv,
+          // Nur bei den Rollen übernehmen, die fachlich ein Lizenz-
+          // Ablaufdatum kennen (siehe LIZENZ_ROLLEN) — bei anderen Rollen
+          // (z.B. trainer) würde eine versehentlich mitgelieferte Lizenz-
+          // Spalte sonst sinnlos in der DB landen, ohne dass die UI sie
+          // je zeigt.
+          ...((LIZENZ_ROLLEN as readonly string[]).includes(typ) && zeile.lizenzGueltigBis
+            ? { lizenzGueltigBis: zeile.lizenzGueltigBis }
+            : {}),
+        });
+        neuAngelegt = true;
+      }
+      if (!neuAngelegt) {
         uebersprungen++;
         continue;
       }
-
-      await tx.insert(funktionstraegerRollen).values({
-        userId: user.id,
-        typ: zeile.typ,
-        mannschaftId,
-        aktiv: sofortAktiv,
-        // Nur bei den Rollen übernehmen, die fachlich ein Lizenz-
-        // Ablaufdatum kennen (siehe LIZENZ_ROLLEN) — bei anderen Rollen
-        // (z.B. trainer) würde eine versehentlich mitgelieferte Lizenz-
-        // Spalte sonst sinnlos in der DB landen, ohne dass die UI sie
-        // je zeigt.
-        ...((LIZENZ_ROLLEN as readonly string[]).includes(zeile.typ) &&
-        zeile.lizenzGueltigBis
-          ? { lizenzGueltigBis: zeile.lizenzGueltigBis }
-          : {}),
-      });
       angelegt++;
     }
 

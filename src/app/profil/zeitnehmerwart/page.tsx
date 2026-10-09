@@ -302,7 +302,10 @@ export default async function ZeitnehmerwartPage({
           <CardDescription>
             Login-freier Link, über den sich Personen (z.B. Eltern eines
             Kaders) selbst als Zeitnehmer/Sekretär eintragen können —
-            gefiltert nach Mannschaft. Namen werden dabei automatisch mit
+            gefiltert nach Mannschaft. Es gibt nur EINE Eintragungsseite für
+            alle Dienste: Ihr schaltet hier den Zeitnehmer-/Sekretär-Teil
+            frei, der Ordnerwart den Ordner-/Kiosk-/Kassierer-Teil. Ältere
+            Links funktionieren weiter. Namen werden dabei automatisch mit
             bereits angelegten Funktionsträgern abgeglichen; bei Unsicherheit
             landet der Eintrag unten zur Bestätigung.
           </CardDescription>
@@ -310,8 +313,8 @@ export default async function ZeitnehmerwartPage({
         <CardContent className="flex flex-col gap-3">
           {verein?.zeitnehmerSelbstanmeldungToken ? (
             <SelbsteintragungLink
-              url={`${appUrl()}/zeitnehmer-eintragen/${verein.zeitnehmerSelbstanmeldungToken}`}
-              teilText="Trag dich hier als Zeitnehmer/Sekretär ein:"
+              url={`${appUrl()}/eintragen/${verein.zeitnehmerSelbstanmeldungToken}`}
+              teilText="Tragt euch hier für Dienste ein (Zeitnehmer/Sekretär):"
             />
           ) : (
             <p className="text-sm text-muted-foreground">

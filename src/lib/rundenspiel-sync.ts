@@ -1,4 +1,5 @@
 import "server-only";
+import { holeSyncBerechtigteVereinIds } from "@/lib/sync-berechtigung";
 import { and, asc, eq, gte, inArray, isNull, ne, notInArray } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
@@ -525,9 +526,13 @@ export async function synchronisiereNuligaHallen(
 
 // Für alle Vereine mit aktiviertem Auto-Import (siehe /api/cron/rundenspiel-sync).
 export async function synchronisiereAlleAktivenNuligaVereine() {
-  const kandidaten = await adminDb.query.vereine.findMany({
-    where: and(eq(vereine.nuligaAutoImportAktiviert, true), eq(vereine.hallenplanImportAus, false)),
-  });
+  // Nur Vereine, die jemand nutzt (aktiv oder gültiger Vorschau-Link), sonst kein Abruf (siehe lib/sync-berechtigung.ts).
+  const berechtigte = await holeSyncBerechtigteVereinIds();
+  const kandidaten = (
+    await adminDb.query.vereine.findMany({
+      where: and(eq(vereine.nuligaAutoImportAktiviert, true), eq(vereine.hallenplanImportAus, false)),
+    })
+  ).filter((v) => berechtigte.has(v.id));
 
   const ergebnisse = [];
   for (const verein of kandidaten) {

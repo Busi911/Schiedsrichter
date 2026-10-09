@@ -2,6 +2,7 @@ import { and, asc, eq, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaVereine } from "@/db/schema";
 import { pruefeCronSecret } from "@/lib/cron-auth";
+import { holeSyncBerechtigteVereinIds } from "@/lib/sync-berechtigung";
 import { holeNuligaBild, holeNuligaSeiteMitKontext } from "@/lib/nuliga/client";
 import { LOGO_REFRESH_TAGE, uebernehmeNuligaLogo } from "@/lib/nuliga/logo";
 import { parseVereinsInfo } from "@/lib/nuliga/parsers/vereinsinfo";
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
   const frist = Date.now() + 40_000;
   const grenze = new Date(Date.now() - LOGO_REFRESH_TAGE * 24 * 3600 * 1000);
   const vereine = await adminDb
-    .select({ id: ligaVereine.id, clubId: ligaVereine.nuligaClubId, verband: ligaVereine.verband })
+    .select({ id: ligaVereine.id, clubId: ligaVereine.nuligaClubId, verband: ligaVereine.verband, vereinId: ligaVereine.vereinId })
     .from(ligaVereine)
     .where(
       and(
@@ -30,9 +31,12 @@ export async function GET(request: Request) {
     )
     .orderBy(asc(ligaVereine.logoGeprueftAm));
 
+  // Nur Vereine, die jemand nutzt (aktiv oder gültiger Vorschau-Link), sonst kein Abruf (siehe lib/sync-berechtigung.ts).
+  const berechtigte = await holeSyncBerechtigteVereinIds();
+
   const ergebnis: Record<string, number> = {};
   let geprueft = 0;
-  for (const v of vereine) {
+  for (const v of vereine.filter((x) => berechtigte.has(x.vereinId))) {
     if (Date.now() > frist) break;
     try {
       const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl(v.verband, "clubInfoDisplay", { club: v.clubId! }));

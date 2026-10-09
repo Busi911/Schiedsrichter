@@ -1,4 +1,5 @@
 import "server-only";
+import { holeSyncBerechtigteVereinIds } from "@/lib/sync-berechtigung";
 import { eq, isNotNull } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { mannschaften, vereine } from "@/db/schema";
@@ -128,9 +129,11 @@ export async function synchronisiereAlleAktivenHandballNetMannschaften() {
   const abgeschaltet = new Set(
     (await adminDb.select({ id: vereine.id }).from(vereine).where(eq(vereine.hallenplanImportAus, true))).map((v) => v.id)
   );
+  // Nur Vereine, die jemand nutzt (aktiv oder gültiger Vorschau-Link), sonst kein Abruf (siehe lib/sync-berechtigung.ts).
+  const berechtigte = await holeSyncBerechtigteVereinIds();
   const nachVerein = new Map<string, { id: string; handballNetTeamId: string }[]>();
   for (const m of alle) {
-    if (!m.handballNetTeamId || abgeschaltet.has(m.vereinId)) continue;
+    if (!m.handballNetTeamId || abgeschaltet.has(m.vereinId) || !berechtigte.has(m.vereinId)) continue;
     const liste = nachVerein.get(m.vereinId) ?? [];
     liste.push({ id: m.id, handballNetTeamId: m.handballNetTeamId });
     nachVerein.set(m.vereinId, liste);

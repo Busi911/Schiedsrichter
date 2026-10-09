@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { formatDatumZeit } from "@/lib/format";
 import { TYP_LABEL } from "@/lib/funktionstraeger-typ-label";
+import { fasseRollenZusammen, rollenZurAuswahl, ZEITNEHMER_SEKRETAER_TYP } from "@/lib/funktionstraeger-rollen";
 
 const SELECT_KLASSE =
   "h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -88,7 +89,12 @@ export function FunktionstraegerTabelle({
       // — sonst würden sie durch die .some()-Prüfung unten unsichtbar.
       if (rolleFilter === "alle" && statusFilter === "alle") return true;
       return p.rollen.some((r) => {
-        if (rolleFilter !== "alle" && r.typ !== rolleFilter) return false;
+        if (
+          rolleFilter !== "alle" &&
+          r.typ !== rolleFilter &&
+          !(rolleFilter === ZEITNEHMER_SEKRETAER_TYP && (r.typ === "zeitnehmer" || r.typ === "sekretaer"))
+        )
+          return false;
         if (statusFilter === "aktiv" && !r.aktiv) return false;
         if (statusFilter === "inaktiv" && r.aktiv) return false;
         return true;
@@ -145,7 +151,7 @@ export function FunktionstraegerTabelle({
           className={SELECT_KLASSE}
         >
           <option value="alle">Alle Rollen</option>
-          {Object.entries(TYP_LABEL).map(([value, label]) => (
+          {rollenZurAuswahl(TYP_LABEL).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
@@ -200,7 +206,7 @@ export function FunktionstraegerTabelle({
                   <input key={id} type="hidden" name="userId" value={id} />
                 ))}
                 <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-                  {Object.entries(TYP_LABEL).map(([value, label]) => (
+                  {rollenZurAuswahl(TYP_LABEL).map(([value, label]) => (
                     <label key={value} className="flex items-center gap-1.5 text-xs">
                       <input
                         type="checkbox"
@@ -303,14 +309,10 @@ export function FunktionstraegerTabelle({
                     {p.istAdminLesend && (
                       <Badge variant="outline">Admin (nur lesend)</Badge>
                     )}
-                    {p.rollen.map((r) => (
-                      <Badge
-                        key={r.rolleId}
-                        variant={r.aktiv ? "secondary" : "outline"}
-                      >
-                        {TYP_LABEL[r.typ] ?? r.typ}
-                        {r.mannschaftName ? ` (${r.mannschaftName})` : ""}
-                        {!r.aktiv && " · inaktiv"}
+                    {fasseRollenZusammen(p.rollen, TYP_LABEL).map((e) => (
+                      <Badge key={e.schluessel} variant={e.aktiv ? "secondary" : "outline"}>
+                        {e.label}
+                        {!e.aktiv && " · inaktiv"}
                       </Badge>
                     ))}
                   </div>

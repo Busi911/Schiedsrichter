@@ -1,11 +1,12 @@
 import "server-only";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaGruppen, ligaSpiele, termine, vereine } from "@/db/schema";
 import { gruppiereSchiedsrichterUndZeitnehmer } from "@/lib/handball-net-scraper";
 import { holeAlleSeiten } from "@/lib/handball-net/sync";
 import type { HoleJson } from "@/lib/handball-net/client";
 import type { AnsetzungsLauf } from "@/lib/liga-ansetzung";
+import { holeSyncBerechtigteVereinIds } from "@/lib/sync-berechtigung";
 
 const norm = (t: string | null) => t?.toLowerCase().replace(/\s+/g, " ").trim() ?? null;
 const heuteBerlin = (jetzt: Date) =>
@@ -26,6 +27,9 @@ export async function uebernehmeHandballNetAnsetzungen(opt: {
   const jetzt = opt.jetzt ?? new Date();
   const heute = heuteBerlin(jetzt);
   const bis = heuteBerlin(new Date(jetzt.getTime() + 400 * TAG_MS));
+  // Nur Vereine, die jemand nutzt (aktiv oder gültiger Vorschau-Link), sonst kein Abruf (siehe lib/sync-berechtigung.ts).
+  const berechtigte = [...(await holeSyncBerechtigteVereinIds(jetzt))];
+  if (berechtigte.length === 0) return { gruppenGeprueft: 0, gruppenUebrig: 0, gruppenFehler: 0, aktualisiert: 0 };
   const phasen = await adminDb
     .selectDistinct({
       id: ligaGruppen.id,
@@ -36,7 +40,7 @@ export async function uebernehmeHandballNetAnsetzungen(opt: {
     .innerJoin(ligaSpiele, eq(ligaSpiele.gruppeId, ligaGruppen.id))
     .innerJoin(termine, eq(termine.ligaSpielId, ligaSpiele.id))
     .innerJoin(vereine, eq(vereine.id, termine.vereinId))
-    .where(and(eq(ligaGruppen.quelle, "handball_net"), eq(vereine.ligaUebernahmeAktiv, true), gte(ligaSpiele.datum, heute)))
+    .where(and(eq(ligaGruppen.quelle, "handball_net"), eq(vereine.ligaUebernahmeAktiv, true), inArray(vereine.id, berechtigte), gte(ligaSpiele.datum, heute)))
     .orderBy(sql`${ligaGruppen.ansetzungGeprueftAm} asc nulls first`);
 
   const lauf: AnsetzungsLauf = { gruppenGeprueft: 0, gruppenUebrig: 0, gruppenFehler: 0, aktualisiert: 0 };
@@ -72,7 +76,7 @@ export async function uebernehmeHandballNetAnsetzungen(opt: {
         .from(termine)
         .innerJoin(ligaSpiele, eq(ligaSpiele.id, termine.ligaSpielId))
         .innerJoin(vereine, eq(vereine.id, termine.vereinId))
-        .where(and(eq(ligaSpiele.gruppeId, g.id), eq(vereine.ligaUebernahmeAktiv, true), gte(ligaSpiele.datum, heute)));
+        .where(and(eq(ligaSpiele.gruppeId, g.id), eq(vereine.ligaUebernahmeAktiv, true), inArray(vereine.id, berechtigte), gte(ligaSpiele.datum, heute)));
       for (const t of betroffene) {
         const oeffentlich = t.code ? nachCode.get(t.code) : undefined;
         if (!oeffentlich) continue;

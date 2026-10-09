@@ -38,6 +38,8 @@ export default auth((req) => {
     // (siehe src/lib/abmelden.ts, Ein-Klick-Route nach RFC 8058 unter /api/abmelden/).
     pathname.startsWith("/abmelden/") ||
     pathname.startsWith("/api/abmelden/") ||
+    // Gemeinsame öffentliche Selbsteintragung (Zeitnehmer/Sekretär + Ordner/Kiosk/Kassierer), siehe src/app/eintragen/[token]/page.tsx.
+    pathname.startsWith("/eintragen/") ||
     pathname.startsWith("/zeitnehmer-eintragen/") ||
     // Öffentliche, login-freie Selbsteintragung für Ordner/Kioskdienst,
     // analog zu /zeitnehmer-eintragen/ — siehe

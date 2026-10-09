@@ -264,8 +264,8 @@ export default async function OrdnerwartPage({
         <CardContent className="flex flex-col gap-3">
           {verein?.ordnerSelbstanmeldungToken ? (
             <SelbsteintragungLink
-              url={`${appUrl()}/ordner-eintragen/${verein.ordnerSelbstanmeldungToken}`}
-              teilText="Trag dich hier als Ordner/Kioskdienst/Kassierer ein:"
+              url={`${appUrl()}/eintragen/${verein.ordnerSelbstanmeldungToken}`}
+              teilText="Tragt euch hier für Dienste ein (Ordner/Kioskdienst/Kassierer):"
             />
           ) : (
             <p className="text-sm text-muted-foreground">
