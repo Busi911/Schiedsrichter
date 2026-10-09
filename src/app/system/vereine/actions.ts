@@ -150,19 +150,20 @@ export async function vereinsindexAktualisieren() {
 export async function vereinAusNuligaEinrichten(formData: FormData) {
   const session = await requireSystemAdmin();
   const clubId = text(formData, "clubId");
+  const verband = text(formData, "verband") || "HHV";
   const [eintrag] = await adminDb
     .select()
     .from(nuligaVereinsindex)
-    .where(and(eq(nuligaVereinsindex.verband, "HHV"), eq(nuligaVereinsindex.clubId, clubId)));
+    .where(and(eq(nuligaVereinsindex.verband, verband), eq(nuligaVereinsindex.clubId, clubId)));
   if (!eintrag) throw new Error("Verein nicht im Index gefunden.");
   const schonDa = await adminDb.query.ligaVereine.findFirst({
-    where: and(eq(ligaVereine.verband, "HHV"), eq(ligaVereine.nuligaClubId, clubId)),
+    where: and(eq(ligaVereine.verband, verband), eq(ligaVereine.nuligaClubId, clubId)),
     columns: { id: true },
   });
   if (schonDa) throw new Error("Dieser Verein ist bereits eingerichtet.");
 
   const vereinId = await vereinVorbereitenLib(session.user.id, eintrag.name);
-  const schritte = await fuehreNuligaEinrichtungAus({ vereinId, clubId, indexName: eintrag.name });
+  const schritte = await fuehreNuligaEinrichtungAus({ vereinId, clubId, indexName: eintrag.name, verband });
   await schreibeProtokoll(
     vereinId,
     "einrichtung_automatisch",
@@ -229,15 +230,16 @@ export async function starthilfeImportieren(formData: FormData) {
   const [eintrag] = await adminDb
     .select()
     .from(nuligaVereinsindex)
-    .where(and(eq(nuligaVereinsindex.verband, "HHV"), eq(nuligaVereinsindex.clubId, clubId)));
+    .where(and(eq(nuligaVereinsindex.verband, text(formData, "verband") || "HHV"), eq(nuligaVereinsindex.clubId, clubId)));
   if (!eintrag) throw new Error("Verein nicht im nuLiga-Index gefunden.");
+  const verband = eintrag.verband;
   const belegt = await adminDb.query.ligaVereine.findFirst({
-    where: and(eq(ligaVereine.verband, "HHV"), eq(ligaVereine.nuligaClubId, clubId)),
+    where: and(eq(ligaVereine.verband, verband), eq(ligaVereine.nuligaClubId, clubId)),
     columns: { vereinId: true },
   });
   if (belegt && belegt.vereinId !== vereinId) throw new Error("Diese nuLiga-Vereins-ID gehört schon zu einem anderen Verein.");
 
-  const schritte = await fuehreNuligaEinrichtungAus({ vereinId, clubId, indexName: verein.name });
+  const schritte = await fuehreNuligaEinrichtungAus({ vereinId, clubId, indexName: verein.name, verband });
   await schreibeProtokoll(
     vereinId,
     "starthilfe_nuliga",

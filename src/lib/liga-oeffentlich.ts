@@ -201,7 +201,7 @@ export const holeMannschaften = cache(async (ligaVereinId: string): Promise<Mann
     const gruppenIds = [...new Set(auswahl.map((z) => z.g.id))];
     const tts = auswahl.map((z) => z.t.nuligaTeamtableId).filter((x): x is string => !!x);
 
-    const [tabelle, spiele] = await Promise.all([
+    const [tabelle, roheSpiele] = await Promise.all([
       adminDb.query.ligaTabellenzeilen.findMany({
         where: inArray(ligaTabellenzeilen.gruppeId, gruppenIds),
       }),
@@ -215,12 +215,15 @@ export const holeMannschaften = cache(async (ligaVereinId: string): Promise<Mann
           })
         : Promise.resolve([] as SpielAnsicht[]),
     ]);
+    // Verband je Gruppe (für Spielbericht-Links, siehe match-provider.ts).
+    const verbandJeGruppe = new Map(auswahl.map((z) => [z.g.id, z.g.verband] as const));
+    const spiele = roheSpiele.map((s) => ({ ...s, verband: verbandJeGruppe.get(s.gruppeId) }));
 
     // Freundschaftsspiele der Mannschaften: in den Spielzeilen steht bei der
     // eigenen Seite die Teamtable der regulären Teilnahme (siehe
     // nuliga/sync.ts, synchronisiereFreundschaftsspiele).
     const fsTeilnahmen = await adminDb
-      .select({ mannschaftId: ligaTeilnahmen.mannschaftId, gruppeId: ligaTeilnahmen.gruppeId })
+      .select({ mannschaftId: ligaTeilnahmen.mannschaftId, gruppeId: ligaTeilnahmen.gruppeId, verband: ligaGruppen.verband })
       .from(ligaTeilnahmen)
       .innerJoin(ligaGruppen, eq(ligaGruppen.id, ligaTeilnahmen.gruppeId))
       .where(
@@ -230,12 +233,15 @@ export const holeMannschaften = cache(async (ligaVereinId: string): Promise<Mann
           eq(ligaGruppen.istFreundschaft, true)
         )
       );
-    const fsGruppen = [...new Set(fsTeilnahmen.map((f) => f.gruppeId))];
-    const fsSpiele = fsGruppen.length
-      ? await adminDb.query.ligaSpiele.findMany({
+    const fsGruppenSet = new Set(fsTeilnahmen.map((f) => f.gruppeId));
+    const fsGruppen = [...fsGruppenSet];
+    // Verband für Freundschafts-Gruppen aus fsTeilnehmen ergänzen.
+    for (const f of fsTeilnahmen) verbandJeGruppe.set(f.gruppeId, f.verband);
+    const fsSpiele: SpielAnsicht[] = fsGruppen.length
+      ? (await adminDb.query.ligaSpiele.findMany({
           where: inArray(ligaSpiele.gruppeId, fsGruppen),
           orderBy: [asc(ligaSpiele.datum), asc(ligaSpiele.uhrzeit)],
-        })
+        })).map((s) => ({ ...s, verband: verbandJeGruppe.get(s.gruppeId) }))
       : [];
 
     const jetzt = new Date();

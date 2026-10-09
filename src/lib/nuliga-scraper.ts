@@ -12,8 +12,14 @@ import { berlinOffset } from "./format";
 // Handballverband") — andere Landesverbände nutzen andere nuLiga-Domains
 // und müssten hier als weitere Konstante ergänzt werden, sobald das
 // gebraucht wird.
-const NULIGA_DOMAIN = "hhv-handball.liga.nu";
-const NULIGA_FEDERATION = "HHV";
+const VERBAND_DOMAINS: Record<string, string> = {
+  HHV: "hhv-handball.liga.nu",
+  HVBerlin: "hvberlin-handball.liga.nu",
+};
+const VERBAND_FEDERATIONS: Record<string, string> = {
+  HHV: "HHV",
+  HVBerlin: "HVBerlin",
+};
 
 const MONAT_NAMEN = [
   "Januar",
@@ -51,8 +57,11 @@ export function baueMonatsUrls(
   hallenIds: string[],
   anzahlMonateVorwaerts = 10,
   jetzt = new Date(),
-  anzahlMonateRueckwaerts = 1
+  anzahlMonateRueckwaerts = 1,
+  verband = "HHV"
 ): MonatsUrl[] {
+  const domain = VERBAND_DOMAINS[verband] ?? VERBAND_DOMAINS.HHV;
+  const federation = VERBAND_FEDERATIONS[verband] ?? VERBAND_FEDERATIONS.HHV;
   const urls: MonatsUrl[] = [];
 
   for (const locationId of hallenIds) {
@@ -76,8 +85,8 @@ export function baueMonatsUrls(
         locationId,
         requestedMonth: `${jahr}-${String(monat).padStart(2, "0")}`,
         url:
-          `https://${NULIGA_DOMAIN}/cgi-bin/WebObjects/nuLigaHBDE.woa/wa/courtInfo` +
-          `?month=${monatParam}&federation=${NULIGA_FEDERATION}&location=${locationId}`,
+          `https://${domain}/cgi-bin/WebObjects/nuLigaHBDE.woa/wa/courtInfo` +
+          `?month=${monatParam}&federation=${federation}&location=${locationId}`,
       });
 
       monat++;
@@ -247,9 +256,10 @@ const BROWSER_HEADERS = {
 export async function holeNuligaJson(
   hallenIds: string[],
   anzahlMonateVorwaerts = 10,
-  jetzt = new Date()
+  jetzt = new Date(),
+  verband?: string
 ): Promise<{ json: string; fehler: NuligaHolFehler[]; diagnose: NuligaDiagnose[] }> {
-  const urls = baueMonatsUrls(hallenIds, anzahlMonateVorwaerts, jetzt);
+  const urls = baueMonatsUrls(hallenIds, anzahlMonateVorwaerts, jetzt, 1, verband);
   const fehler: NuligaHolFehler[] = [];
   const diagnose: NuligaDiagnose[] = [];
 

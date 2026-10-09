@@ -173,7 +173,11 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
     tx.select({ aus: vereine.hallenplanImportAus }).from(vereine).where(eq(vereine.id, vereinId))
   );
   if (nuligaAutoImportAktiviert && hallenIds.length > 0 && !importStatus?.aus) {
-    const ergebnis = await synchronisiereNuligaHallen(vereinId, hallenIds);
+    const [lv] = await adminDb
+      .select({ verband: ligaVereine.verband })
+      .from(ligaVereine)
+      .where(eq(ligaVereine.vereinId, vereinId));
+    const ergebnis = await synchronisiereNuligaHallen(vereinId, hallenIds, lv?.verband);
     params.set("nuligaNeu", String(ergebnis.neu));
     params.set("nuligaAktualisiert", String(ergebnis.aktualisiert));
     params.set("nuligaEntfernt", String(ergebnis.entfernt));

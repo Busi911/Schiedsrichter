@@ -24,16 +24,18 @@ export async function fuehreNuligaEinrichtungAus(opt: {
   vereinId: string;
   clubId: string;
   indexName: string;
+  verband?: string;
 }): Promise<EinrichtungsSchritt[]> {
   const { vereinId, clubId } = opt;
-  const ligaVerein = await legeLigaVereinAn(adminDb, { vereinId, nuligaClubId: clubId, name: opt.indexName });
+  const verband = opt.verband ?? "HHV";
+  const ligaVerein = await legeLigaVereinAn(adminDb, { vereinId, nuligaClubId: clubId, name: opt.indexName, verband });
 
   // Vereinsseite (Stammdaten, Hallen): Fehler hier verhindern die Einrichtung nie.
   let info: VereinsInfo | null = null;
   let infoFehler: string | null = null;
   let seitenKontext: SeitenKontext | undefined;
   try {
-    const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl("HHV", "clubInfoDisplay", { club: clubId }));
+    const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl(verband, "clubInfoDisplay", { club: clubId }));
     seitenKontext = seite.kontext;
     const geparst = parseVereinsInfo(seite.html);
     info = geparst.daten;

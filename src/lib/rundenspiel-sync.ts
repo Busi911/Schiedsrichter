@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, eq, gte, inArray, isNull, ne, notInArray } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { mannschaften, termine, terminZuordnungen, vereine } from "@/db/schema";
+import { mannschaften, termine, terminZuordnungen, vereine, ligaVereine } from "@/db/schema";
 import {
   findeMannschaft,
   parseRundenspielJson,
@@ -485,7 +485,8 @@ export type NuligaSyncErgebnis = {
 // den nächsten täglichen Cron-Lauf).
 export async function synchronisiereNuligaHallen(
   vereinId: string,
-  hallenIds: string[]
+  hallenIds: string[],
+  verband?: string
 ): Promise<NuligaSyncErgebnis> {
   if (hallenIds.length === 0) {
     return {
@@ -500,7 +501,7 @@ export async function synchronisiereNuligaHallen(
     };
   }
 
-  const { json, fehler: abrufFehler, diagnose } = await holeNuligaJson(hallenIds);
+  const { json, fehler: abrufFehler, diagnose } = await holeNuligaJson(hallenIds, 10, new Date(), verband);
   const { ereignisse, fehler: parseFehler } = parseRundenspielJson(json);
   const { neu, aktualisiert, aenderungen, entfernteZuordnungen } =
     await importiereRundenspielEreignisse(vereinId, ereignisse);
@@ -538,7 +539,12 @@ export async function synchronisiereAlleAktivenNuligaVereine() {
     if (hallenIds.length === 0) continue;
 
     try {
-      const ergebnis = await synchronisiereNuligaHallen(verein.id, hallenIds);
+      // Verband aus liga_verein holen (für die nuLiga-Domain des Hallenplans).
+      const [lv] = await adminDb
+        .select({ verband: ligaVereine.verband })
+        .from(ligaVereine)
+        .where(eq(ligaVereine.vereinId, verein.id));
+      const ergebnis = await synchronisiereNuligaHallen(verein.id, hallenIds, lv?.verband);
       ergebnisse.push({ vereinId: verein.id, status: "ok", ...ergebnis });
 
       // Best effort: ein Fehler beim Mailversand soll den bereits

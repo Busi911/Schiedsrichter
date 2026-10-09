@@ -20,7 +20,7 @@ export interface SpielQuelle {
 }
 
 export const nuLigaQuelle: SpielQuelle = {
-  berichtUrl: (s) => (s.quelle === "nuliga" ? baueBerichtUrl("HHV", s.berichtUrl) : null),
+  berichtUrl: (s) => (s.quelle === "nuliga" ? baueBerichtUrl(s.verband ?? "HHV", s.berichtUrl) : null),
   liveUrl: (s) =>
     s.quelle === "nuliga" ? baueLiveSpielUrl(gruppenIdAusBerichtUrl(s.berichtUrl), s.meetingId) : null,
   // getLiveState: absichtlich nicht implementiert (kein verifizierter Endpunkt).

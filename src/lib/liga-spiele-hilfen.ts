@@ -4,7 +4,12 @@ import { tagKey } from "@/lib/kalender";
 // Reine Hilfsfunktionen für Spiele der öffentlichen Seiten (ohne DB-Zugriff,
 // damit sie ohne Umgebung getestet werden können).
 
-export type SpielAnsicht = typeof ligaSpiele.$inferSelect;
+export type SpielAnsicht = typeof ligaSpiele.$inferSelect & {
+  // Verband der Gruppe (aus liga_gruppen.verband) — für den Spielbericht-Link
+  // (match-provider.ts: baueBerichtUrl braucht die Domain je Verband).
+  // Optional, da nicht alle Queries ihn befüllen (z.B. Admin-Dashboard).
+  verband?: string;
+};
 
 const ERGEBNIS_STATI = new Set(["gespielt", "nicht_angetreten"]);
 
