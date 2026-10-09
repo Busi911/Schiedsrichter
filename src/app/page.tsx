@@ -38,8 +38,8 @@ const FEATURES = [
   },
   {
     icon: RefreshCwIcon,
-    titel: "Hallenspielplan automatisch synchron",
-    text: "Ab der 3. Liga automatisch über handball.net, verbandsunabhängig — inklusive Ergebnissen und Verlegungen. Der automatische nuLiga-Import darunter ist aktuell für Hessen und Berlin verfügbar, weitere Landesverbände folgen.",
+    titel: "Spielplan und Ergebnisse automatisch",
+    text: "Hessen und Berlin über nuLiga (weitere Landesverbände auf Anfrage), ab der 3. Liga bundesweit über handball.net, 1. und 2. Bundesliga über den NDR — Spielplan, Ergebnisse und Tabellen ohne Handarbeit.",
   },
   {
     icon: ClipboardCheckIcon,
@@ -70,8 +70,7 @@ const FEATURES = [
 
 // Screenshots mit Beispieldaten (Demo-Verein, keine echten Nutzerdaten) aus
 // src/app/page.tsx-Produkttour — bei sichtbaren UI-Änderungen an den
-// gezeigten Seiten (Übersicht, Funktionsträger, Kalender, Trainingsplan,
-// Offene Dienste) neu erstellen, sonst veraltet die Tour optisch gegenüber
+// gezeigten Seiten (Übersicht, Kalender, Offene Dienste) neu erstellen, sonst veraltet die Tour optisch gegenüber
 // der echten App.
 const PRODUKTTOUR = [
   {
@@ -82,25 +81,11 @@ const PRODUKTTOUR = [
     text: "Die Admin-Übersicht zeigt sofort, welche Termine noch Schiedsrichter oder Zeitnehmer brauchen — und die letzten Ergebnisse aus dem Hallenspielplan.",
   },
   {
-    bild: "/produkttour/funktionstraeger.png",
-    breite: 1440,
-    hoehe: 830,
-    titel: "Funktionsträger zentral verwalten",
-    text: "Alle Schiedsrichter, Zeitnehmer, Sekretäre, Trainer, Ordner, Kioskdienste und Kassierer mit ihren Rollen an einem Ort — inklusive Excel-Import.",
-  },
-  {
     bild: "/produkttour/kalender.png",
     breite: 1440,
     hoehe: 600,
     titel: "Kalender mit Besetzungsstatus",
     text: "Auf den ersten Blick: welche Spiele vollständig besetzt sind und wo noch Personal fehlt — mit Farbe je Mannschaft und Tagesdetails neben dem Monatsgitter.",
-  },
-  {
-    bild: "/produkttour/trainingsplan.png",
-    breite: 1000,
-    hoehe: 830,
-    titel: "Trainingsplan je Halle",
-    text: "Wöchentliche Trainingszeiten für alle Mannschaften und Hallen per Drag & Drop planen — inklusive geteilter Hallen mit mehreren Abteilen.",
   },
   {
     bild: "/produkttour/dienste.png",
@@ -173,14 +158,6 @@ export default async function Home() {
             <Button className={GROSSER_BUTTON} render={<Link href="/registrieren" />} nativeButton={false}>
               {live ? "Jetzt registrieren" : "Jetzt kostenlos registrieren"}
             </Button>
-            <Button
-              variant="outline"
-              className={GROSSER_BUTTON}
-              render={<Link href="/login" />}
-              nativeButton={false}
-            >
-              Login
-            </Button>
           </div>
           <Link
             href="#vereine"
@@ -207,15 +184,45 @@ export default async function Home() {
                   <span className="font-medium text-foreground">Beta bis voraussichtlich {BETA_ENDE}.</span> Wer in der Beta-Phase dabei ist,
                   zahlt danach nur {PREIS_BETA} € statt {PREIS_REGULAER} € im Jahr.
                 </p>
-                <p>{KEIN_RISIKO}</p>
               </>
             )}
-            <p>{SPONSOR_KURZ}</p>
             <p className="text-xs">{NETTO}</p>
           </div>
         </section>
 
-        <section className="border-t bg-muted/30">
+        {/* Die öffentlichen Vereinsseiten (direkt unter dem Hero): Spielpläne, Ergebnisse
+            und Mannschaften ohne Login — für Spieler, Eltern und Fans. */}
+        <section id="vereine" className="scroll-mt-4 border-t bg-muted/30">
+          <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10">
+            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+              <div>
+                <h2 className="font-heading text-2xl font-semibold">Spielpläne &amp; Ergebnisse</h2>
+                <p className="text-sm text-muted-foreground">
+                  Euren Verein finden: Mannschaften, nächste Spiele, Ergebnisse und Live-Ticker, ohne Login — und als App aufs
+                  Handy installieren (im Browser „Teilen“ → „Zum Home-Bildschirm“).
+                </p>
+              </div>
+              <div className="flex gap-3 text-sm">
+                <Link href="/verein" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
+                  Alle Vereine
+                </Link>
+                <Link href="/meine" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
+                  Meine Mannschaften
+                </Link>
+                <Link href="/app-hilfe" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
+                  Hilfe zur App
+                </Link>
+              </div>
+            </div>
+            {vereineMitSeite.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Noch keine Vereine freigeschaltet.</p>
+            ) : (
+              <Vereinsuche vereine={vereineMitSeite} />
+            )}
+          </div>
+        </section>
+
+        <section className="border-t">
           <div className="mx-auto max-w-5xl px-6 py-16">
             <h2 className="text-center font-heading text-2xl font-semibold">
               Was HandballerPate kann
@@ -235,7 +242,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="border-t">
+        <section className="border-t bg-muted/30">
           <div className="mx-auto max-w-5xl px-6 py-16">
             <div className="mx-auto flex max-w-2xl flex-col items-center gap-2 text-center">
               <h2 className="font-heading text-2xl font-semibold">
@@ -243,7 +250,7 @@ export default async function Home() {
               </h2>
               <p className="text-sm text-muted-foreground">
                 Mit Beispieldaten eines fiktiven Vereins — kein Login nötig,
-                um dir ein Bild zu machen.
+                um euch ein Bild zu machen.
               </p>
             </div>
             <div className="mt-10 flex flex-col gap-14">
@@ -284,83 +291,6 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Die öffentlichen Vereinsseiten (vor dem Beta-Hinweis): Spielpläne, Ergebnisse
-            und Mannschaften ohne Login — für Spieler, Eltern und Fans. */}
-        <section id="vereine" className="scroll-mt-4 border-b bg-muted/30">
-          <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10">
-            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-              <div>
-                <h2 className="font-heading text-2xl font-semibold">Spielpläne &amp; Ergebnisse</h2>
-                <p className="text-sm text-muted-foreground">
-                  Euren Verein finden: Mannschaften, nächste Spiele, Ergebnisse und Live-Ticker, ohne Login — und als App aufs
-                  Handy installieren (im Browser „Teilen“ → „Zum Home-Bildschirm“).
-                </p>
-              </div>
-              <div className="flex gap-3 text-sm">
-                <Link href="/verein" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
-                  Alle Vereine
-                </Link>
-                <Link href="/meine" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
-                  Meine Mannschaften
-                </Link>
-                <Link href="/app-hilfe" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">
-                  Hilfe zur App
-                </Link>
-              </div>
-            </div>
-            {vereineMitSeite.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Noch keine Vereine freigeschaltet.</p>
-            ) : (
-              <Vereinsuche vereine={vereineMitSeite} />
-            )}
-          </div>
-        </section>
-
-        {/* Angebundene Datenquellen / Landesverbände */}
-        <section className="border-t bg-muted/30">
-          <div className="mx-auto max-w-3xl px-6 py-12">
-            <h2 className="font-heading text-2xl font-semibold">
-              Welche Verbände sind angebunden?
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              HandballerPate synchronisiert Spielpläne, Ergebnisse und Tabellen aus drei Quellen:
-            </p>
-            <div className="mt-6 flex flex-col gap-4">
-              <div className="rounded-lg border bg-background p-4">
-                <h3 className="font-heading font-medium">nuLiga — Landesverbände</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Den vollständigen Hallenspielplan (Mannschaften, Spiele, Tabellen, Hallen) gibt es
-                  automatisch für Vereine aus diesen Landesverbänden:
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge variant="secondary">Hessischer Handball-Verband (HHV)</Badge>
-                  <Badge variant="secondary">Handball-Verband Berlin (HVBerlin)</Badge>
-                </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Weitere nuLiga-Verbände (Bayern, Brandenburg, Niedersachsen-Bremen, Nordrhein,
-                  Sachsen, Sachsen-Anhalt, Thüringen, Mecklenburg-Vorpommern) können auf Anfrage
-                  freigeschaltet werden.
-                </p>
-              </div>
-              <div className="rounded-lg border bg-background p-4">
-                <h3 className="font-heading font-medium">handball.net — DHB-Wettbewerbe</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Ab der 3. Liga und in allen DHB-Wettbewerben (Jugendbundesliga u.a.) automatisch
-                  und verbandsunabhängig — inklusive Ergebnissen und Verlegungen. Die Vereins-ID
-                  wird beim Einrichten automatisch ermittelt.
-                </p>
-              </div>
-              <div className="rounded-lg border bg-background p-4">
-                <h3 className="font-heading font-medium">NDR — 1. &amp; 2. Handball-Bundesliga</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Live-Scores der 1. und 2. HBL während der Spieltage — Ergebnisse und Zwischenstände
-                  in Echtzeit, sobald der NDR sie liefert.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section className="border-t">
           <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-16">
             <h2 className="font-heading text-2xl font-semibold">
@@ -371,6 +301,12 @@ export default async function Home() {
                 <ShieldCheckIcon className="size-5 shrink-0 text-primary" />
                 {live ? `${PREIS_REGULAER} € netto im Jahr, keine versteckten Kosten.` : "Aktuell komplett kostenlos, keine versteckten Kosten."}
               </li>
+              {!live && (
+                <li className="flex gap-3">
+                  <ShieldCheckIcon className="size-5 shrink-0 text-primary" />
+                  {KEIN_RISIKO}
+                </li>
+              )}
               <li className="flex gap-3">
                 <UsersIcon className="size-5 shrink-0 text-primary" />
                 Auf {betaVereinLimit} Vereine begrenzt, damit wir eng am
@@ -383,6 +319,7 @@ export default async function Home() {
                 Header, sobald ihr eingeloggt seid.
               </li>
             </ul>
+            <p className="text-sm text-muted-foreground">{SPONSOR_KURZ}</p>
             <div>
               <Button className={GROSSER_BUTTON} render={<Link href="/registrieren" />} nativeButton={false}>
                 Verein registrieren
