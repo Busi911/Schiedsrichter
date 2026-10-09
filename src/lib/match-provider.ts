@@ -42,7 +42,9 @@ export const ndrQuelle: SpielQuelle = {
     if (!s.berichtUrl.startsWith("/sport/ergebnisse/spielstatistik-")) return null;
     return `https://www.ndr.de${s.berichtUrl}`;
   },
-  liveUrl: () => null,
+  // NDR verlinkt je Spiel EINEN Ticker/Bericht (spielstatistik-NNNN): während des Spiels ist es der Live-Ticker, danach der Spielbericht.
+  // Welcher Link wann gezeigt wird, entscheidet die Karte (liveTickerRelevant bzw. Ergebnis vorhanden).
+  liveUrl: (s) => ndrQuelle.berichtUrl(s),
 };
 
 export function quelleFuer(spiel: SpielAnsicht): SpielQuelle {
