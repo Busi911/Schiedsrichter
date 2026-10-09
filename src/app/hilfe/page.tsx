@@ -420,10 +420,13 @@ export default async function HilfePage() {
           <strong>2. Öffentliche Selbsteintragung:</strong> Zeitnehmerwart
           und Ordnerwart können auf ihrer jeweiligen Seite unter{" "}
           <strong>„Öffentliche Selbsteintragung“</strong> einen login-freien
-          Link aktivieren — für Zeitnehmer/Sekretär als{" "}
-          <code className="text-xs">/zeitnehmer-eintragen/…</code>, für
-          Ordner/Kioskdienst/Kassierer als{" "}
-          <code className="text-xs">/ordner-eintragen/…</code>. Diesen Link
+          Link aktivieren. Beide führen auf dieselbe Seite{" "}
+          <code className="text-xs">/eintragen/…</code> — angeboten werden
+          genau die Dienste, die die Warte freigeschaltet haben (Zeitnehmer/
+          Sekretär, Ordner, Kioskdienst, Kassierer); die älteren Adressen{" "}
+          <code className="text-xs">/zeitnehmer-eintragen/…</code> und{" "}
+          <code className="text-xs">/ordner-eintragen/…</code> leiten dorthin
+          weiter. Diesen Link
           teilt ihr z.B. mit den Eltern eines Kaders; dort wählt jede Person
           selbst aus den Terminen ihrer Mannschaft und trägt sich (nur mit
           Namen, ganz ohne HandballerPate-Login) direkt ein. Der Name wird
