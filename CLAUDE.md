@@ -225,7 +225,8 @@ wrapped bereits jede Tabelle in `overflow-x-auto`.
   direkten Vergleich).
   Kollidiert der Mannschaftsschlüssel mit einer aktiven nuLiga-Teilnahme
   derselben Saison, wird die DHB-Mannschaft getrennt geführt ("… (DHB)") und
-  gemeldet. Noch offen: Dedupe über Quellen hinweg, Konfliktliste, Umbenennung
+  gemeldet. Die Konfliktliste steht seit 10.10.2026 unter `/system/abgleich` ("Quellen-Konflikte", nur lesend, `lib/quellen-konflikte.ts` + reine Rechnung `quellen-konflikte-rechnung.ts`:
+  gleiche Art/Saison, einmal nuLiga und einmal handball.net, aber zwei Mannschaften). Noch offen: automatisches Zusammenführen (erst nach Sichtung echter Fälle), Umbenennung
   der nuliga_*-Spalten.
 - **Zusatzquellen (Spielgemeinschaften unter einem Partnerverein):**
   Läuft eine Mannschaft in nuLiga unter einem anderen Verein (z.B. eine

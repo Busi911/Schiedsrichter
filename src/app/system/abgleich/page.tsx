@@ -4,6 +4,7 @@ import { formatDatumZeit } from "@/lib/format";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Badge } from "@/components/ui/badge";
 import { handlungsbedarf } from "@/lib/abgleich-handlungen";
+import { holeQuellenKonflikte } from "@/lib/quellen-konflikte";
 import { hallenplanImportSchalten, ortBestaetigen, ortUebernehmen, ansetzungVergleichen, hallenplanVerknuepfen, ligaUebernahmeSchalten } from "./actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -24,7 +25,7 @@ export default async function AbgleichPage({
 }) {
   await requireSystemAdmin();
   const ergebnisInfo = await searchParams;
-  const vereine = await berechneHallenplanAbgleich();
+  const [vereine, quellenKonflikte] = await Promise.all([berechneHallenplanAbgleich(), holeQuellenKonflikte()]);
   const mitTerminen = vereine.filter((v) => v.termineGesamt > 0 || v.hatLigaVerein);
   const neue = mitTerminen.filter((v) => v.hatLigaVerein && v.termineGesamt === 0);
   const pruefbar = mitTerminen.filter((v) => v.hatLigaVerein && v.termineGesamt > 0);
@@ -258,6 +259,38 @@ export default async function AbgleichPage({
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Quellen-Konflikte (nuLiga und handball.net)</CardTitle>
+          <CardDescription>
+            Nur lesend. Mannschaften eines Vereins, die in derselben Saison über nuLiga UND handball.net laufen, aber als zwei verschiedene
+            Mannschaften geführt werden — mögliche Dubletten auf der öffentlichen Seite. „Vom Sync getrennt“ heißt: der handball.net-Sync hat die
+            Kollision erkannt und die DHB-Mannschaft bewusst getrennt geführt („… (DHB)“); „Mögliche Dublette“ wurde nicht erkannt und sollte geprüft werden.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          {quellenKonflikte.length === 0 ? (
+            <p className="text-muted-foreground">Keine Konflikte gefunden.</p>
+          ) : (
+            quellenKonflikte.map((k, i) => (
+              <div key={i} className="rounded-lg border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{k.vereinName}</span>
+                  <Badge variant="outline">{k.saison}</Badge>
+                  <Badge variant={k.vomSyncGetrennt ? "secondary" : "warning"}>{k.vomSyncGetrennt ? "Vom Sync getrennt" : "Mögliche Dublette"}</Badge>
+                </div>
+                <p className="mt-1 text-muted-foreground">
+                  nuLiga: {k.nuliga.mannschaftName} ({k.nuliga.ligaName})
+                </p>
+                <p className="text-muted-foreground">
+                  handball.net: {k.handballNet.mannschaftName} ({k.handballNet.ligaName})
+                </p>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
