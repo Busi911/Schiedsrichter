@@ -151,7 +151,6 @@ export async function sendeVerlegungAnSchiedsrichterUndTrainerBenachrichtigungen
           .from(funktionstraegerRollen)
           .where(
             and(
-              eq(funktionstraegerRollen.vereinId, verein.id),
               eq(funktionstraegerRollen.typ, "trainer"),
               eq(funktionstraegerRollen.mannschaftId, termin.mannschaftId),
               eq(funktionstraegerRollen.aktiv, true)
