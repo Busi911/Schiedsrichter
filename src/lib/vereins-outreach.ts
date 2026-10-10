@@ -318,7 +318,7 @@ export async function fuehreOutreachAus(verband?: string): Promise<OutreachErgeb
 // samt allen Daten (Kaskade) und führt den Outreach für diesen einen Club
 // neu aus — mit dem korrigierten E-Mail-Decoder. Nur für den manuellen
 // Testlauf gedacht (temporärer ?reset=clubId Parameter).
-export async function resetOutreachVerein(clubId: string): Promise<{ geloescht: boolean; neu: boolean; email: string | null; fehler: string | null; debug?: string }> {
+export async function resetOutreachVerein(clubId: string): Promise<{ geloescht: boolean; neu: boolean; email: string | null; fehler: string | null }> {
   // 1. Bestehenden Verein mit dieser nuligaClubId finden und löschen.
   const [bestehend] = await adminDb
     .select({ vereinId: ligaVereine.vereinId, id: ligaVereine.id, verband: ligaVereine.verband })
@@ -339,11 +339,9 @@ export async function resetOutreachVerein(clubId: string): Promise<{ geloescht: 
 
   const verband = eintrag.verband ?? bestehend?.verband ?? "HHV";
   const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl(verband, "clubInfoDisplay", { club: clubId }));
-  const geparst = parseVereinsInfo(seite.html);
-  const websiteDomain = geparst.daten?.website?.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]?.toLowerCase() ?? undefined;
   const kontaktEmail = await extrahiereOutreachEmail(seite.html);
 
-  if (!kontaktEmail) return { geloescht: !!bestehend, neu: false, email: null, fehler: "Keine E-Mail nach Reset gefunden", debug: `website=${geparst.daten?.website ?? "null"} domainHint=${websiteDomain ?? "none"}` };
+  if (!kontaktEmail) return { geloescht: !!bestehend, neu: false, email: null, fehler: "Keine E-Mail nach Reset gefunden" };
 
   // 3. Verein neu anlegen und Outreach durchführen.
   const [neu] = await adminDb.insert(vereine).values({ name: eintrag.name, status: "vorbereitung" }).returning({ id: vereine.id });
@@ -386,7 +384,7 @@ export async function resetOutreachVerein(clubId: string): Promise<{ geloescht: 
     });
 
   await schreibeProtokoll(neu.id, "outreach_angeschrieben", "Outreach-Reset", `${eintrag.name} · E-Mail: ${kontaktEmail}`);
-  return { geloescht: !!bestehend, neu: true, email: kontaktEmail, fehler: null, debug: `website=${geparst.daten?.website ?? "null"} domainHint=${websiteDomain ?? "none"}` };
+  return { geloescht: !!bestehend, neu: true, email: kontaktEmail, fehler: null };
 }
 
 // Instagram-Nachfass: Vereine, die per Instagram angeschrieben wurden (angeschrieben_am
