@@ -10,7 +10,7 @@ import {
   vereine,
 } from "@/db/schema";
 import { berechneBesetzung, istBesetzungVollstaendig } from "@/lib/besetzung";
-import { bedarfFuer } from "@/lib/dienste";
+import { bedarfFuer, bedarfOverrideFuer } from "@/lib/dienste";
 import { formatMannschaft } from "@/lib/dashboard";
 import { standardFarbeFuerMannschaft } from "@/lib/trainingsplan";
 import { tagKey } from "@/lib/kalender";
@@ -92,6 +92,9 @@ export async function holeEigeneKalenderEintraege(
           mannschaftAltersklasse: mannschaften.altersklasse,
           kategorie: termine.kategorie,
           zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+          ordnerBedarfOverride: termine.ordnerBedarfOverride,
+          kioskdienstBedarfOverride: termine.kioskdienstBedarfOverride,
+          kassiererBedarfOverride: termine.kassiererBedarfOverride,
           mannschaftZeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
         })
         .from(termine)
@@ -146,7 +149,7 @@ export async function holeEigeneKalenderEintraege(
                 "zeitnehmer",
                 t.pflichtspiel,
                 t.freundschaftsTyp,
-                t.zeitnehmerBedarfOverride,
+                bedarfOverrideFuer(t, "zeitnehmer"),
                 t.mannschaftZeitnehmerBedarfDeaktiviert
               )
             ),

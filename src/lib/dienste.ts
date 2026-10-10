@@ -1,5 +1,5 @@
 import "server-only";
-import type { mannschaften, vereine } from "@/db/schema";
+import type { mannschaften, termine, vereine } from "@/db/schema";
 
 type VereinBedarf = Pick<
   typeof vereine.$inferSelect,
@@ -41,22 +41,22 @@ export function bedarfFuer(
   rolle: Rolle,
   pflichtspiel?: boolean | null,
   freundschaftsTyp?: "freundschaftsspiel" | "turnier" | null,
-  // Vom Zeitnehmerwart pro Einzeltermin gesetzter Override (siehe
-  // termine.zeitnehmerBedarfOverride in db/schema.ts) — nur für rolle
-  // "zeitnehmer" relevant, geht bei gesetztem Wert (auch 0) allen anderen
+  // Vom jeweiligen Wart pro Einzeltermin gesetzter Override (siehe
+  // termine.zeitnehmerBedarfOverride bzw. ordner-/kioskdienst-/kassiererBedarfOverride in db/schema.ts; den zur Rolle passenden Wert
+  // liefert bedarfOverrideFuer) — geht bei gesetztem Wert (auch 0) allen anderen
   // Regeln unten vor, inklusive dem spiel_ics-Standardwert.
-  zeitnehmerBedarfOverride?: number | null,
+  bedarfOverride?: number | null,
   // Vom jeweiligen Wart pro Mannschaft gesetzt (siehe
   // mannschaften.ordnerBedarfDeaktiviert/kioskdienstBedarfDeaktiviert/
   // zeitnehmerBedarfDeaktiviert in db/schema.ts) — true bedeutet, dass diese
   // Mannschaft für die übergebene Rolle grundsätzlich keinen Bedarf hat.
   // Geht dem globalen Bedarf vor, aber NICHT dem expliziten
-  // zeitnehmerBedarfOverride oben: ein bewusst für genau diesen Termin
+  // bedarfOverride oben: ein bewusst für genau diesen Termin
   // gesetzter Override ist die spezifischere Entscheidung.
   mannschaftBedarfDeaktiviert?: boolean | null
 ): number {
-  if (rolle === "zeitnehmer" && zeitnehmerBedarfOverride != null) {
-    return zeitnehmerBedarfOverride;
+  if (bedarfOverride != null) {
+    return bedarfOverride;
   }
   if (mannschaftBedarfDeaktiviert) {
     return 0;
@@ -115,4 +115,21 @@ export function mannschaftBedarfDeaktiviertFuer(
   if (rolle === "kioskdienst") return mannschaft.kioskdienstBedarfDeaktiviert;
   if (rolle === "kassierer") return mannschaft.kassiererBedarfDeaktiviert;
   return mannschaft.zeitnehmerBedarfDeaktiviert;
+}
+
+// Die Felder sind hier (anders als in der DB-Zeile) auch als "fehlt" (undefined) erlaubt, weil abgeleitete Typen wie AnstehenderTermin
+// (lib/dashboard.ts) sie optional führen. Mindestens ein Override-Feld muss aber im Objekt vorkommen (Weak-Type-Prüfung von TypeScript),
+// so fällt ein Aufrufer mit einer ganz anderen Auswahl beim Kompilieren auf.
+type TerminBedarfOverride = {
+  [K in "zeitnehmerBedarfOverride" | "ordnerBedarfOverride" | "kioskdienstBedarfOverride" | "kassiererBedarfOverride"]?: (typeof termine.$inferSelect)[K] | undefined;
+};
+
+// Wählt aus den vier Termin-Overrides den zur Rolle passenden aus — für den bedarfOverride-Parameter von bedarfFuer oben.
+// Zeitnehmer und Sekretär teilen sich EINEN Override (zeitnehmerBedarfOverride). termin = null/undefined: kein Override.
+export function bedarfOverrideFuer(termin: TerminBedarfOverride | null | undefined, rolle: Rolle): number | null {
+  if (!termin) return null;
+  if (rolle === "ordner") return termin.ordnerBedarfOverride ?? null;
+  if (rolle === "kioskdienst") return termin.kioskdienstBedarfOverride ?? null;
+  if (rolle === "kassierer") return termin.kassiererBedarfOverride ?? null;
+  return termin.zeitnehmerBedarfOverride ?? null;
 }

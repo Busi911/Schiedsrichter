@@ -12,7 +12,7 @@ import {
 } from "@/lib/zeitnehmerwart";
 import { holeTermineMitZuordnungen } from "@/lib/zuordnung";
 import { berechneBesetzung } from "@/lib/besetzung";
-import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "@/lib/dienste";
 import { angesetzteNamenPassenZu } from "@/lib/rundenspiel-import";
 import { findeNamensVorschlag } from "@/lib/namens-abgleich";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
@@ -182,7 +182,7 @@ export default async function ZeitnehmerwartPage({
             "zeitnehmer",
             termin.pflichtspiel,
             termin.freundschaftsTyp,
-            termin.zeitnehmerBedarfOverride,
+            bedarfOverrideFuer(termin, "zeitnehmer"),
             mannschaftBedarfDeaktiviertFuer(
               termin.mannschaftId ? mannschaftenNachId.get(termin.mannschaftId) : null,
               "zeitnehmer"

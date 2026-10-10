@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "./dienste";
+import { bedarfFuer, bedarfOverrideFuer, mannschaftBedarfDeaktiviertFuer } from "./dienste";
 
 const verein = {
   testspielOrdnerBedarf: 2,
@@ -98,8 +98,10 @@ describe("bedarfFuer", () => {
     expect(bedarfFuer(verein, "spiel_ics", "zeitnehmer", null, null, 2)).toBe(2);
   });
 
-  it("Zeitnehmer-Override gilt nicht für Ordner/Kioskdienst", () => {
-    expect(bedarfFuer(verein, "testspiel", "ordner", null, null, 0)).toBe(2);
+  it("Zeitnehmer-Override gilt nicht für Ordner/Kioskdienst (bedarfOverrideFuer wählt den Wert der jeweiligen Rolle)", () => {
+    const termin = { zeitnehmerBedarfOverride: 0 };
+    expect(bedarfFuer(verein, "testspiel", "ordner", null, null, bedarfOverrideFuer(termin, "ordner"))).toBe(2);
+    expect(bedarfFuer(verein, "testspiel", "zeitnehmer", null, null, bedarfOverrideFuer(termin, "zeitnehmer"))).toBe(0);
   });
 
   it("ohne gesetzten Override (null/undefined) gilt weiterhin der globale Bedarf", () => {
@@ -141,5 +143,29 @@ describe("mannschaftBedarfDeaktiviertFuer", () => {
   it("liefert false ohne Mannschaftsbezug", () => {
     expect(mannschaftBedarfDeaktiviertFuer(null, "ordner")).toBe(false);
     expect(mannschaftBedarfDeaktiviertFuer(undefined, "ordner")).toBe(false);
+  });
+});
+
+describe("bedarfOverrideFuer + bedarfFuer (Override je Rolle pro Termin)", () => {
+  const termin = { zeitnehmerBedarfOverride: 3, ordnerBedarfOverride: 2, kioskdienstBedarfOverride: 0, kassiererBedarfOverride: null };
+
+  it("wählt den Override der passenden Rolle (Zeitnehmer und Sekretär teilen sich einen)", () => {
+    expect(bedarfOverrideFuer(termin, "ordner")).toBe(2);
+    expect(bedarfOverrideFuer(termin, "kioskdienst")).toBe(0);
+    expect(bedarfOverrideFuer(termin, "kassierer")).toBeNull();
+    expect(bedarfOverrideFuer(termin, "zeitnehmer")).toBe(3);
+    expect(bedarfOverrideFuer(termin, "sekretaer")).toBe(3);
+    expect(bedarfOverrideFuer(null, "ordner")).toBeNull();
+    expect(bedarfOverrideFuer({ ordnerBedarfOverride: undefined }, "ordner")).toBeNull();
+  });
+
+  it("ein gesetzter Ordner-Override (auch 0) geht dem Vereins-Standard und der Mannschafts-Abschaltung vor", () => {
+    expect(bedarfFuer(verein, "testspiel", "ordner", null, null, 2, false)).toBe(2);
+    expect(bedarfFuer(verein, "testspiel", "kioskdienst", null, null, 0, false)).toBe(0);
+    expect(bedarfFuer(verein, "testspiel", "ordner", null, null, 4, true)).toBe(4);
+  });
+
+  it("ohne Override gilt der Standard wie bisher", () => {
+    expect(bedarfFuer(verein, "testspiel", "kassierer", null, null, bedarfOverrideFuer(termin, "kassierer"), false)).toBe(10);
   });
 });

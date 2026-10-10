@@ -8,7 +8,7 @@ import {
   terminZuordnungen,
   vereine,
 } from "@/db/schema";
-import { bedarfFuer } from "./dienste";
+import { bedarfFuer, bedarfOverrideFuer } from "./dienste";
 import { ORDNER_ROLLEN } from "./ordnerwart";
 import {
   berechneBesetzung,
@@ -114,6 +114,9 @@ type AnstehenderTermin = {
   // verknüpft ist (mannschaftName leer).
   heimMannschaftName?: string | null;
   zeitnehmerBedarfOverride?: number | null;
+  ordnerBedarfOverride?: number | null;
+  kioskdienstBedarfOverride?: number | null;
+  kassiererBedarfOverride?: number | null;
   mannschaftOrdnerBedarfDeaktiviert?: boolean | null;
   mannschaftKioskdienstBedarfDeaktiviert?: boolean | null;
   mannschaftKassiererBedarfDeaktiviert?: boolean | null;
@@ -230,7 +233,7 @@ export function berechneUnbesetzteTermine(
         "zeitnehmer",
         termin.pflichtspiel,
         termin.freundschaftsTyp,
-        termin.zeitnehmerBedarfOverride,
+        bedarfOverrideFuer(termin, "zeitnehmer"),
         termin.mannschaftZeitnehmerBedarfDeaktiviert
       ),
       externeSchiriAnzahl,
@@ -245,7 +248,7 @@ export function berechneUnbesetzteTermine(
         rolle,
         termin.pflichtspiel,
         termin.freundschaftsTyp,
-        undefined,
+        bedarfOverrideFuer(termin, rolle),
         mannschaftDeaktiviertFuerOrdnerRolle(termin, rolle)
       );
       return (
@@ -316,6 +319,9 @@ export async function holeUnbesetzteTermine(
         kategorie: termine.kategorie,
         heimMannschaftName: termine.heimMannschaftName,
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+        ordnerBedarfOverride: termine.ordnerBedarfOverride,
+        kioskdienstBedarfOverride: termine.kioskdienstBedarfOverride,
+        kassiererBedarfOverride: termine.kassiererBedarfOverride,
         mannschaftOrdnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
         mannschaftKioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
         mannschaftKassiererBedarfDeaktiviert: mannschaften.kassiererBedarfDeaktiviert,
@@ -376,7 +382,7 @@ export function berechneOffenePosten(
         rolle,
         termin.pflichtspiel,
         termin.freundschaftsTyp,
-        undefined,
+        bedarfOverrideFuer(termin, rolle),
         mannschaftDeaktiviertFuerOrdnerRolle(termin, rolle)
       );
       if (bedarf <= 0) continue;
@@ -393,7 +399,7 @@ export function berechneOffenePosten(
         "zeitnehmer",
         termin.pflichtspiel,
         termin.freundschaftsTyp,
-        termin.zeitnehmerBedarfOverride,
+        bedarfOverrideFuer(termin, "zeitnehmer"),
         termin.mannschaftZeitnehmerBedarfDeaktiviert
       );
       const vorhanden = zuordnungen.filter(
@@ -443,6 +449,9 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
         kategorie: termine.kategorie,
         heimMannschaftName: termine.heimMannschaftName,
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+        ordnerBedarfOverride: termine.ordnerBedarfOverride,
+        kioskdienstBedarfOverride: termine.kioskdienstBedarfOverride,
+        kassiererBedarfOverride: termine.kassiererBedarfOverride,
         mannschaftOrdnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
         mannschaftKioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
         mannschaftKassiererBedarfDeaktiviert: mannschaften.kassiererBedarfDeaktiviert,
@@ -686,7 +695,7 @@ export function berechneOffeneZeitnehmerTermine(
       "zeitnehmer",
       termin.pflichtspiel,
       termin.freundschaftsTyp,
-      termin.zeitnehmerBedarfOverride,
+      bedarfOverrideFuer(termin, "zeitnehmer"),
       termin.mannschaftZeitnehmerBedarfDeaktiviert
     );
     if (bedarf <= 0) continue;
@@ -739,6 +748,9 @@ export async function holeOffeneZeitnehmerTermine(
         mannschaftAltersklasse: mannschaften.altersklasse,
         kategorie: termine.kategorie,
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+        ordnerBedarfOverride: termine.ordnerBedarfOverride,
+        kioskdienstBedarfOverride: termine.kioskdienstBedarfOverride,
+        kassiererBedarfOverride: termine.kassiererBedarfOverride,
         mannschaftZeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
         heimMannschaftName: termine.heimMannschaftName,
         handballNetZeitnehmer: termine.handballNetZeitnehmer,

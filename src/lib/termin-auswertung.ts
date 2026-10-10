@@ -3,7 +3,7 @@ import { and, asc, eq, gte, inArray, lte, ne, type SQL } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { tagKey } from "./kalender";
-import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "./dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "./dienste";
 
 export type AuswertungFilter = {
   von?: string;
@@ -283,6 +283,9 @@ export async function holeTermineFuerAuswertung(
         kategorie: termine.kategorie,
         mannschaftId: termine.mannschaftId,
         zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+        ordnerBedarfOverride: termine.ordnerBedarfOverride,
+        kioskdienstBedarfOverride: termine.kioskdienstBedarfOverride,
+        kassiererBedarfOverride: termine.kassiererBedarfOverride,
         ordnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
         kioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
         kassiererBedarfDeaktiviert: mannschaften.kassiererBedarfDeaktiviert,
@@ -387,7 +390,7 @@ export async function holeTermineFuerAuswertung(
           "zeitnehmer",
           t.pflichtspiel,
           t.freundschaftsTyp,
-          t.zeitnehmerBedarfOverride,
+          bedarfOverrideFuer(t, "zeitnehmer"),
           mannschaftBedarfDeaktiviertFuer(mannschaft, "zeitnehmer")
         );
         bedarfProTermin.set(t.id, {
@@ -398,7 +401,7 @@ export async function holeTermineFuerAuswertung(
               "ordner",
               t.pflichtspiel,
               t.freundschaftsTyp,
-              undefined,
+              bedarfOverrideFuer(t, "ordner"),
               mannschaftBedarfDeaktiviertFuer(mannschaft, "ordner")
             ) > 0,
           kioskdienst:
@@ -408,7 +411,7 @@ export async function holeTermineFuerAuswertung(
               "kioskdienst",
               t.pflichtspiel,
               t.freundschaftsTyp,
-              undefined,
+              bedarfOverrideFuer(t, "kioskdienst"),
               mannschaftBedarfDeaktiviertFuer(mannschaft, "kioskdienst")
             ) > 0,
           kassierer:
@@ -418,7 +421,7 @@ export async function holeTermineFuerAuswertung(
               "kassierer",
               t.pflichtspiel,
               t.freundschaftsTyp,
-              undefined,
+              bedarfOverrideFuer(t, "kassierer"),
               mannschaftBedarfDeaktiviertFuer(mannschaft, "kassierer")
             ) > 0,
           zeitnehmer: zeitnehmerBedarf > 0,
