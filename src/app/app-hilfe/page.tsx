@@ -46,7 +46,7 @@ export default function AppHilfePage() {
           Auf der <Link href="/#vereine" className="underline">Startseite</Link> oder unter{" "}
           <Link href="/verein" className="underline">Alle Vereine</Link> euren Verein suchen und antippen. Dort seht ihr die
           letzten Ergebnisse, die nächsten Spiele und alle Mannschaften mit Tabelle und Spielplan. Unten gibt es eine Leiste zum
-          Wechseln zwischen <strong>Ergebnisse</strong>, <strong>Spiele</strong> und <strong>Teams</strong>.
+          Wechseln zwischen <strong>Ergebnisse</strong>, <strong>Spiele</strong>, <strong>Teams</strong> und <strong>Statistik</strong>.
         </p>
       </section>
 
@@ -98,8 +98,9 @@ export default function AppHilfePage() {
         <h2 className="font-heading text-lg font-medium">Live, Ergebnis folgt, vorläufig</h2>
         <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm text-muted-foreground">
           <li>
-            <strong>Live-Ticker:</strong> rund um ein Spiel gibt es einen Link zum Live-Ticker bei nuLiga mit dem aktuellen Stand.
-            Er erscheint, sobald der Verband den Spielbericht angelegt hat.
+            <strong>Live-Ticker:</strong> rund um ein Spiel gibt es einen Link zum Live-Ticker mit dem aktuellen Stand, bei nuLiga-Spielen
+            bei nuLiga (er erscheint, sobald der Verband den Spielbericht angelegt hat), bei den Spielen der 1. und 2. Handball-Bundesliga
+            beim NDR. Für Spiele über handball.net gibt es keinen Link.
           </li>
           <li>
             <strong>Live / Läuft gerade:</strong> Das Spiel läuft vermutlich. Wir zeigen bewusst keine Zwischenstände als
@@ -113,7 +114,8 @@ export default function AppHilfePage() {
             ändern.
           </li>
           <li>
-            <strong>Spielbericht:</strong> Der Link zum offiziellen Spielbericht erscheint, sobald das Ergebnis feststeht.
+            <strong>Spielbericht:</strong> Der Link zum Spielbericht erscheint, sobald das Ergebnis feststeht (bei der 1. und 2. Bundesliga
+            ist es dieselbe Seite beim NDR wie der Live-Ticker).
           </li>
           <li>
             <strong>Verlegt / Abgesagt:</strong> Solche Spiele sind mit einem Hinweis gekennzeichnet.
@@ -124,8 +126,8 @@ export default function AppHilfePage() {
       <section id="daten" className="flex flex-col gap-2 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">Woher kommen die Daten?</h2>
         <p className="text-sm text-muted-foreground">
-          Spielplan, Tabellen und Ergebnisse kommen aus den öffentlichen Daten von nuLiga (Landesverband) und handball.net (DHB,
-          z.B. 3. Liga und Jugendbundesliga). Wir übernehmen nur öffentliche Sportdaten, keine Personen. Die Daten werden tagsüber
+          Spielplan, Tabellen und Ergebnisse kommen aus den öffentlichen Daten von nuLiga (Landesverband), handball.net (DHB,
+          z.B. 3. Liga und Jugendbundesliga) und, für die 1. und 2. Handball-Bundesliga, vom NDR. Wir übernehmen nur öffentliche Sportdaten, keine Personen. Die Daten werden tagsüber
           etwa stündlich aktualisiert, am Spieltag kann es deshalb etwas dauern, bis ein Ergebnis erscheint. Unten auf jeder Seite
           stellt ihr Hell, Dunkel oder automatisch ein.
         </p>
@@ -144,7 +146,7 @@ export default function AppHilfePage() {
             sie kommt dann automatisch bei uns an.
           </li>
           <li>
-            <strong>Euer Verein hat noch keine Seite:</strong> Der Verein kann sich kostenlos auf der{" "}
+            <strong>Euer Verein hat noch keine Seite:</strong> Der Verein kann sich auf der{" "}
             <Link href="/registrieren" className="underline">Startseite registrieren</Link>.
           </li>
         </ul>
