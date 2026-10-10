@@ -63,6 +63,7 @@ export function emailAlsHtml(inhalt: EmailInhalt): string {
   const linksbuendig = !!inhalt.vereinName;
   return `<!DOCTYPE html>
 <html lang="de">
+  <head><meta charset="utf-8"></head>
   <body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
       <tr>
