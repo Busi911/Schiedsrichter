@@ -147,9 +147,8 @@ export default async function HilfePage() {
           Jeder Verein bekommt eine öffentliche Seite ohne Login:{" "}
           <strong>letzte Ergebnisse</strong>, <strong>nächste Spiele</strong>{" "}
           und alle <strong>Mannschaften</strong> mit Tabellenplatz, Spielplan und
-          Tabelle. Spieler, Eltern und Fans finden sie in der Vereinssuche auf
-          der Startseite, können Mannschaften auf ihrem Handy merken und die
-          Seite als App installieren. Es werden nur öffentliche Sportdaten
+          Tabelle. Dazu gibt es einen Reiter <strong>Statistik</strong> mit Kennzahlen je Mannschaft. Spieler, Eltern und Fans finden die Seite in der
+          Vereinssuche auf der Startseite, können Mannschaften auf ihrem Handy merken und die Seite als App installieren. Es werden nur öffentliche Sportdaten
           übernommen, keine Personen.
         </p>
 
@@ -158,7 +157,8 @@ export default async function HilfePage() {
           Unter <strong>Einstellungen → Öffentliche Vereinsseite</strong> tragt
           ihr die Vereins-ID eurer Quelle ein und klickt auf{" "}
           <strong>Speichern &amp; Seite erstellen</strong>. Beide Quellen lassen
-          sich kombinieren, dann stehen alle Mannschaften zusammen auf einer Seite:
+          sich kombinieren, dann stehen alle Mannschaften zusammen auf einer Seite. Die Männer-Mannschaften der 1. und 2. Handball-Bundesliga
+          kommen vom NDR; sie ordnet der Betreiber zu, meldet euch dafür über den Feedback-Button:
         </p>
         <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
           <li>
@@ -212,7 +212,8 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Auf den Spielkarten gibt es bei nuLiga-Spielen einen Link zum <strong>Live-Ticker</strong> (rund um das Spiel) und
           zum <strong>Spielbericht</strong> (sobald ein Ergebnis angezeigt wird). Beides erscheint erst, wenn nuLiga den
-          Spielbericht angelegt hat. Während ein Spiel läuft, zeigt die Karte „Live“ und „Läuft gerade“ statt einer Zahl,
+          Spielbericht angelegt hat. Bei der 1. und 2. Handball-Bundesliga führt ein Link zur Spielseite des NDR (während des Spiels als
+          Live-Ticker, danach als Spielbericht), bei handball.net-Spielen gibt es keinen Link. Während ein Spiel läuft, zeigt die Karte „Live“ und „Läuft gerade“ statt einer Zahl,
           danach „Ergebnis folgt“: Zwischenstände zeigen wir bewusst nicht als Ergebnis. Das Endergebnis erscheint, sobald
           nuLiga den Spielbericht genehmigt hat (bis dahin mit „vorläufig“). Die Daten werden stündlich aktualisiert, den
           aktuellen Spielstand liefert der Live-Ticker.
@@ -383,10 +384,10 @@ export default async function HilfePage() {
           <strong>Ordnerwart</strong>, Abschnitt „Bedarf pro Mannschaft“)
           komplett abschalten — das wirkt auf alle Termine dieser
           Mannschaft, auch bereits bestehende offene. Für einzelne Termine
-          lässt sich der Zeitnehmer/Sekretär-Bedarf zusätzlich individuell
-          überschreiben, z.B. wenn bei einem persönlichen
-          Schiedsrichter-Einsatz (ICS-Feed, siehe oben) ausnahmsweise doch
-          ein Zeitnehmer mitfahren soll.
+          lässt sich der Bedarf zusätzlich individuell überschreiben: der Zeitnehmerwart für Zeitnehmer/Sekretär, der Ordnerwart über
+          <strong>„Bedarf anpassen“</strong> je Termin für Ordner, Kioskdienst und Kassierer (auch auf 0, z.B. „bei diesem Spiel kein
+          Kiosk“, oder auf mehr als sonst). Ein leeres Feld bedeutet wieder den Standard. Bei einem persönlichen
+          Schiedsrichter-Einsatz (ICS-Feed, siehe oben) lässt sich so ausnahmsweise doch ein Zeitnehmer anfordern.
         </p>
         <p className="text-sm text-muted-foreground">
           Der Schiedsrichter ist ein Sonderfall ohne eigenen Bedarfswert:
@@ -423,7 +424,7 @@ export default async function HilfePage() {
           Link aktivieren. Beide führen auf dieselbe Seite{" "}
           <code className="text-xs">/eintragen/…</code> — angeboten werden
           genau die Dienste, die die Warte freigeschaltet haben (Zeitnehmer/
-          Sekretär, Ordner, Kioskdienst, Kassierer); die älteren Adressen{" "}
+          Sekretär, Ordner, Kioskdienst, Kassierer) und für die es überhaupt einen anstehenden Termin mit Bedarf gibt; die älteren Adressen{" "}
           <code className="text-xs">/zeitnehmer-eintragen/…</code> und{" "}
           <code className="text-xs">/ordner-eintragen/…</code> leiten dorthin
           weiter. Diesen Link
@@ -447,7 +448,7 @@ export default async function HilfePage() {
         <h2 className="font-heading text-lg font-medium">E-Mails &amp; Erinnerungen</h2>
         <p className="text-sm text-muted-foreground">
           HandballerPate schickt Erinnerungen vor unbesetzten Diensten, auslaufenden Lizenzen und anstehenden Terminen sowie eine
-          Wochenübersicht, und informiert bei Verlegungen. Jede Person stellt im Profil-Menü unter <strong>Benachrichtigungen</strong> ein,
+          Wochenübersicht, und informiert bei Verlegungen: Wird ein Ligaspiel verlegt, bekommen die dafür eingetragenen Schiedsrichter und die Trainer der Mannschaft eine Info-Mail, Zeitnehmer, Ordner und andere Dienste werden ausgetragen und benachrichtigt. Jede Person stellt im Profil-Menü unter <strong>Benachrichtigungen</strong> ein,
           welche optionalen Mails sie bekommt. Jede dieser Mails hat unten einen <strong>Abbestellen-Link</strong> (auch Gmail und
           Outlook zeigen „Abbestellen“). Der Admin legt in den Einstellungen fest, welche Mail-Arten der Verein überhaupt
           verschickt. Login-Links, Verlegungen und Systemmails sind nicht abbestellbar.
