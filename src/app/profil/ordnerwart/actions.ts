@@ -26,6 +26,8 @@ import {
   pruefeOrdnerBesetzungsgrenze,
 } from "@/lib/ordnerwart";
 import { sendMail } from "@/lib/mailer";
+import { vergebeEinmalPasswortFallsNoetig } from "@/lib/passwort";
+import { willkommensInhalt } from "@/lib/willkommens-mail";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
 import { generiereOeffentlichenToken } from "@/lib/token";
 
@@ -763,4 +765,106 @@ export async function ordnerBedarfUeberschreiben(formData: FormData) {
   revalidatePath("/admin/kalender");
   revalidatePath("/admin/dienste");
   revalidatePath("/profil");
+}
+
+// Für Selbsteintragungen, zu denen KEINE aktive Person passte, aber laut Namensabgleich eine bereits angelegte, nur DEAKTIVIERTE
+// Ordner-/Kioskdienst-/Kassierer-Rolle (holeInaktiveOrdnerKandidaten) — aktiviert diese Rolle und bestätigt die Zuordnung in einem
+// Schritt, statt den Umweg über /admin/funktionstraeger zu erzwingen. Pendant zu zeitnehmerInaktiveRolleAktivierenUndZuordnen
+// (profil/zeitnehmerwart/actions.ts): bewusst auf ORDNER_ROLLEN begrenzt, andere Rollentypen aktiviert weiterhin nur der Admin.
+export async function ordnerInaktiveRolleAktivierenUndZuordnen(formData: FormData) {
+  const { vereinId } = await requireOrdnerwartZugriff();
+
+  const zuordnungId = formData.get("zuordnungId");
+  const rolleId = formData.get("rolleId");
+  if (typeof zuordnungId !== "string" || !zuordnungId) throw new Error("Zuordnung fehlt.");
+  if (typeof rolleId !== "string" || !rolleId) throw new Error("Rolle fehlt.");
+
+  const ergebnis = await withTenant(vereinId, async (tx) => {
+    const zuordnung = await tx.query.terminZuordnungen.findFirst({ where: eq(terminZuordnungen.id, zuordnungId) });
+    if (
+      !zuordnung ||
+      !(ORDNER_ROLLEN as readonly string[]).includes(zuordnung.funktionstraegerTyp) ||
+      zuordnung.userId
+    ) {
+      throw new Error("Zuordnung nicht gefunden, keine Ordner-/Kioskdienst-/Kassierer-Rolle, oder bereits bestätigt.");
+    }
+
+    const rolle = await tx
+      .select({
+        typ: funktionstraegerRollen.typ,
+        aktiv: funktionstraegerRollen.aktiv,
+        userId: funktionstraegerRollen.userId,
+        email: users.email,
+        passwordHash: users.passwordHash,
+      })
+      .from(funktionstraegerRollen)
+      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+      .where(and(eq(funktionstraegerRollen.id, rolleId), eq(users.vereinId, vereinId)))
+      .then((r) => r[0]);
+    if (!rolle || !(ORDNER_ROLLEN as readonly string[]).includes(rolle.typ) || rolle.typ !== zuordnung.funktionstraegerTyp) {
+      throw new Error("Rolle nicht gefunden oder passt nicht zur Zuordnung.");
+    }
+
+    const warInaktiv = !rolle.aktiv;
+    if (warInaktiv) {
+      await tx.update(funktionstraegerRollen).set({ aktiv: true }).where(eq(funktionstraegerRollen.id, rolleId));
+    }
+    const einmalPasswort = warInaktiv ? await vergebeEinmalPasswortFallsNoetig(tx, rolle.userId, rolle.passwordHash) : null;
+
+    // Wie in ordnerVorschlagBestaetigen: ist die Person für diese Rolle an diesem Termin schon (anderweitig) zugeordnet, wird die
+    // selbst eingetragene Dublette entfernt statt einen zweiten Eintrag zu behalten.
+    const vorhanden = await tx.query.terminZuordnungen.findFirst({
+      where: and(
+        eq(terminZuordnungen.terminId, zuordnung.terminId),
+        eq(terminZuordnungen.userId, rolle.userId),
+        eq(terminZuordnungen.funktionstraegerTyp, zuordnung.funktionstraegerTyp)
+      ),
+    });
+
+    let zuordnungsMail: { termin: typeof termine.$inferSelect; rolle: OrdnerRolle } | null = null;
+    if (vorhanden) {
+      await tx.delete(terminZuordnungen).where(eq(terminZuordnungen.id, zuordnungId));
+    } else {
+      await tx
+        .update(terminZuordnungen)
+        .set({ userId: rolle.userId, externerName: null, matchVorschlagUserId: null })
+        .where(eq(terminZuordnungen.id, zuordnungId));
+      const termin = await tx.query.termine.findFirst({ where: eq(termine.id, zuordnung.terminId) });
+      if (termin) zuordnungsMail = { termin, rolle: zuordnung.funktionstraegerTyp as OrdnerRolle };
+    }
+
+    const verein = await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) });
+    return {
+      email: rolle.email,
+      vereinName: verein?.name ?? "HandballerPate",
+      aktiviert: warInaktiv,
+      einmalPasswort,
+      zuordnungsMail,
+    };
+  });
+
+  if (ergebnis.aktiviert) {
+    try {
+      const inhalt = willkommensInhalt(ergebnis.vereinName, ergebnis.email, ergebnis.einmalPasswort);
+      await sendMail(ergebnis.email, "Zugang für HandballerPate", emailAlsText(inhalt), emailAlsHtml(inhalt));
+    } catch (err) {
+      console.error("Willkommens-Mail konnte nicht gesendet werden:", err);
+    }
+  }
+  if (ergebnis.zuordnungsMail) {
+    const mailParams = {
+      vereinName: ergebnis.vereinName,
+      ...zuordnungsMailInhalt(ergebnis.zuordnungsMail.rolle, ergebnis.zuordnungsMail.termin),
+    };
+    try {
+      await sendMail(ergebnis.email, "Neue Termin-Zuordnung", terminMailText(mailParams), terminMailHtml(mailParams));
+    } catch (err) {
+      console.error("Zuordnungs-Mail konnte nicht gesendet werden:", err);
+    }
+  }
+
+  revalidatePath("/profil/ordnerwart");
+  revalidatePath("/admin/kalender");
+  revalidatePath("/admin/funktionstraeger");
+  revalidatePath("/admin");
 }

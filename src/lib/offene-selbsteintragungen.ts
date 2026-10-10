@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  holeInaktiveOrdnerKandidaten,
   holeOrdnerEinsatzZahlen,
   holeOrdnerRelevanteTermine,
   ORDNER_ROLLE_LABEL,
@@ -29,9 +30,8 @@ export type OffeneSelbsteintragung = {
   matchVorschlagUserId: string | null;
   termin: { start: Date; beschreibung: string | null };
   kandidaten: { value: string; label: string }[];
-  // Nur im Zeitnehmer-/Sekretär-Bereich: kein aktiver Namens-Treffer
-  // (matchVorschlagUserId), aber ein ähnlicher Name unter den DEAKTIVIERTEN
-  // Rollen gefunden — siehe gleiche Logik in profil/zeitnehmerwart/page.tsx.
+  // Kein aktiver Namens-Treffer (matchVorschlagUserId), aber ein ähnlicher Name unter den DEAKTIVIERTEN
+  // Rollen gefunden — siehe gleiche Logik in profil/zeitnehmerwart/page.tsx und profil/ordnerwart/page.tsx.
   inaktivVorschlag: { rolleId: string; name: string | null; email: string } | null;
 };
 
@@ -51,12 +51,14 @@ export async function holeOffeneSelbsteintragungen(
     zeitnehmerTermine,
     zeitnehmerPersonen,
     inaktiveZeitnehmerKandidaten,
+    inaktiveOrdnerKandidaten,
   ] = await Promise.all([
     holeOrdnerRelevanteTermine(vereinId),
     holeOrdnerEinsatzZahlen(vereinId),
     holeTermineMitZuordnungen(vereinId),
     holeZeitnehmerEinsatzZahlen(vereinId),
     holeInaktiveZeitnehmerKandidaten(vereinId),
+    holeInaktiveOrdnerKandidaten(vereinId),
   ]);
 
   const ordnerOffene: OffeneSelbsteintragung[] = ordnerTermine.flatMap((t) =>
@@ -69,6 +71,15 @@ export async function holeOffeneSelbsteintragungen(
       )
       .map((z) => {
         const rolle = z.funktionstraegerTyp as (typeof ORDNER_ROLLEN)[number];
+        const inaktivVorschlag = z.matchVorschlagUserId
+          ? null
+          : (() => {
+              const { exakt, vorschlag } = findeNamensVorschlag(
+                z.externerName ?? "",
+                inaktiveOrdnerKandidaten.filter((k) => k.typ === rolle)
+              );
+              return exakt ?? vorschlag;
+            })();
         return {
           id: z.id,
           bereich: "ordner" as const,
@@ -79,7 +90,9 @@ export async function holeOffeneSelbsteintragungen(
           kandidaten: ordnerPersonen
             .filter((p) => p.rollen.includes(rolle))
             .map((p) => ({ value: p.userId, label: p.name ?? p.email })),
-          inaktivVorschlag: null,
+          inaktivVorschlag: inaktivVorschlag
+            ? { rolleId: inaktivVorschlag.rolleId, name: inaktivVorschlag.name, email: inaktivVorschlag.email }
+            : null,
         };
       })
   );
