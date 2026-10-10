@@ -8,7 +8,7 @@ import {
   terminZuordnungen,
   vereine,
 } from "@/db/schema";
-import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "@/lib/dienste";
 import { berechneBesetzung } from "@/lib/besetzung";
 import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
 
@@ -176,7 +176,7 @@ export async function holeEigeneOffenenDienste(
             typ,
             termin.pflichtspiel,
             termin.freundschaftsTyp,
-            termin.zeitnehmerBedarfOverride,
+            bedarfOverrideFuer(termin, typ),
             mannschaftBedarfDeaktiviertFuer(mannschaft, typ)
           );
           if (bedarf <= 0) continue;

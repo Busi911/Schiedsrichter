@@ -18,7 +18,7 @@ import {
   externeAnsetzungsAnzahlen,
   istBesetzungVollstaendig,
 } from "@/lib/besetzung";
-import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "@/lib/dienste";
 import { standardFarbeFuerMannschaft } from "@/lib/trainingsplan";
 import { holeOrdnerEinsatzZahlen, ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
@@ -93,6 +93,9 @@ export async function holeAdminKalenderDaten(
           kategorie: termine.kategorie,
           turnierVerantwortlicherId: termine.turnierVerantwortlicherId,
           zeitnehmerBedarfOverride: termine.zeitnehmerBedarfOverride,
+          ordnerBedarfOverride: termine.ordnerBedarfOverride,
+          kioskdienstBedarfOverride: termine.kioskdienstBedarfOverride,
+          kassiererBedarfOverride: termine.kassiererBedarfOverride,
         })
         .from(termine)
         .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
@@ -248,7 +251,7 @@ export async function holeAdminKalenderDaten(
           "zeitnehmer",
           t.pflichtspiel,
           t.freundschaftsTyp,
-          t.zeitnehmerBedarfOverride,
+          bedarfOverrideFuer(t, "zeitnehmer"),
           mannschaftBedarfDeaktiviertFuer(mannschaft, "zeitnehmer")
         )
       : 0;
@@ -418,7 +421,7 @@ export async function holeAdminKalenderDaten(
           rolle,
           t.pflichtspiel,
           t.freundschaftsTyp,
-          undefined,
+          bedarfOverrideFuer(t, rolle),
           mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
         );
         // Wie bei schiriVoll/zeitnehmerVoll/sekretaerVoll oben: dieselbe

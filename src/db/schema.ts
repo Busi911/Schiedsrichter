@@ -782,6 +782,11 @@ export const termine = pgTable("termin", {
   // bestimmtes Spiel ausnahmsweise doch kein Zeitnehmer/Sekretär gebraucht
   // wird (oder mehr als sonst).
   zeitnehmerBedarfOverride: integer("zeitnehmer_bedarf_override"),
+  // Wie zeitnehmerBedarfOverride, aber vom Ordnerwart für Ordner/Kioskdienst/Kassierer gesetzt (je Rolle ein eigener Wert, null = Standard,
+  // auch 0 übersteuert; siehe bedarfOverrideFuer in lib/dienste.ts).
+  ordnerBedarfOverride: integer("ordner_bedarf_override"),
+  kioskdienstBedarfOverride: integer("kioskdienst_bedarf_override"),
+  kassiererBedarfOverride: integer("kassierer_bedarf_override"),
   // Zeitpunkt, zu dem der Ersteller (erstelltVon) zuletzt per Mail über ein
   // mögliches Duplikat dieses Termins informiert wurde (siehe
   // duplikat-benachrichtigung.ts) — null = noch nie gemeldet. Verhindert,

@@ -11,11 +11,12 @@ import {
   ORDNER_ROLLEN,
   ORDNER_ROLLE_LABEL,
 } from "@/lib/ordnerwart";
-import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "@/lib/dienste";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import {
   abmeldungAblehnen,
   abmeldungGenehmigen,
+  ordnerBedarfUeberschreiben,
   ordnerMannschaftBedarfUmschalten,
   ordnerNeuAnlegenUndBestaetigen,
   ordnerSelbstanmeldungDeaktivieren,
@@ -127,6 +128,22 @@ export default async function OrdnerwartPage({
       const mannschaft = termin.mannschaftId
         ? mannschaftenNachId.get(termin.mannschaftId)
         : null;
+      // Alle drei Rollen (auch mit Bedarf 0), damit ein auf 0 gesetzter Override wieder zurückgesetzt werden kann.
+      const bedarfProRolle = ORDNER_ROLLEN.map((rolle) => ({
+        rolle,
+        bedarf: verein
+          ? bedarfFuer(
+              verein,
+              termin.typ,
+              rolle,
+              termin.pflichtspiel,
+              termin.freundschaftsTyp,
+              bedarfOverrideFuer(termin, rolle),
+              mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
+            )
+          : 0,
+        override: bedarfOverrideFuer(termin, rolle),
+      }));
       const luecken = ORDNER_ROLLEN
         .map((rolle) => {
           const bedarf = verein
@@ -136,7 +153,7 @@ export default async function OrdnerwartPage({
                 rolle,
                 termin.pflichtspiel,
                 termin.freundschaftsTyp,
-                undefined,
+                bedarfOverrideFuer(termin, rolle),
                 mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
               )
             : 0;
@@ -157,11 +174,13 @@ export default async function OrdnerwartPage({
       return {
         ...termin,
         luecken,
+        bedarfProRolle,
         vollstaendig: luecken.every((l) => l.vorhanden >= l.bedarf),
         freiePersonen,
       };
     })
-    .filter((t) => t.luecken.length > 0)
+    // Ein Termin, dessen Bedarf nur per Override auf 0 steht, bleibt sichtbar (sonst ließe sich der Override nicht mehr zurücksetzen).
+    .filter((t) => t.luecken.length > 0 || t.bedarfProRolle.some((b) => b.override != null))
     .sort((a, b) => Number(a.vollstaendig) - Number(b.vollstaendig));
   // Nur Mannschaften als Filter anbieten, die auch mindestens einen
   // relevanten Termin haben — sonst führte ein Klick nur zu "Keine
@@ -742,6 +761,51 @@ export default async function OrdnerwartPage({
                       </form>
                     </details>
                   )}
+                  {/* Bedarf für genau diesen Termin anpassen — Pendant zum Zeitnehmerwart ("Bedarf für diesen Termin"). */}
+                  <details className="group mt-2">
+                    <DisclosureSummary className="h-11 px-4 text-sm">
+                      <span className="group-open:hidden">
+                        Bedarf anpassen
+                        {t.bedarfProRolle.some((b) => b.override != null) && " (angepasst)"}
+                      </span>
+                      <span className="hidden group-open:inline">Schließen</span>
+                    </DisclosureSummary>
+                    <div className="mt-2 flex flex-col gap-2">
+                      {t.bedarfProRolle.map((b) => (
+                        <div key={b.rolle} className="flex flex-wrap items-center gap-2">
+                          <form action={ordnerBedarfUeberschreiben} className="flex items-center gap-2">
+                            <input type="hidden" name="terminId" value={t.id} />
+                            <input type="hidden" name="rolle" value={b.rolle} />
+                            <label htmlFor={`bedarf-${t.id}-${b.rolle}`} className="w-24 text-sm text-muted-foreground">
+                              {ROLLE_LABEL[b.rolle]}
+                            </label>
+                            <Input
+                              id={`bedarf-${t.id}-${b.rolle}`}
+                              name="bedarf"
+                              type="number"
+                              min={0}
+                              max={50}
+                              defaultValue={b.override ?? ""}
+                              placeholder={`Standard (${b.bedarf})`}
+                              className="h-11 w-32 px-3 text-base"
+                            />
+                            <SubmitButton className="h-11 px-4 text-sm" variant="outline">
+                              Speichern
+                            </SubmitButton>
+                          </form>
+                          {b.override != null && (
+                            <form action={ordnerBedarfUeberschreiben}>
+                              <input type="hidden" name="terminId" value={t.id} />
+                              <input type="hidden" name="rolle" value={b.rolle} />
+                              <SubmitButton className="h-11 px-4 text-sm" variant="ghost">
+                                Zurücksetzen
+                              </SubmitButton>
+                            </form>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                   {/* Ohne Login immer anbieten (Fallback, z.B. Elternteil) — Pendant zum Zeitnehmerwart. */}
                   <details className="group mt-2">
                     <DisclosureSummary className="h-11 px-4 text-sm">

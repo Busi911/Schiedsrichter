@@ -594,9 +594,7 @@ Aus der Durchsicht auf Bedienbarkeit/Komplexität. **Umgesetzt:** Einstellungen 
 Einstellungen", Hallenplan-Bereich nur bei aktivem Import), Mail-Schalter im Profil (ein gemeinsamer "Hinweise zu offenen Diensten"),
 Ordnerwart: Person ohne Login zuordnen. **Offen (in dieser Reihenfolge):**
 
-- **Ordnerwart: Bedarf pro Termin überschreiben** (wie `zeitnehmerBedarfUeberschreiben`). Braucht eine Migration (Override je Rolle
-  Ordner/Kioskdienst/Kassierer; heute gibt es nur `termin.zeitnehmer_bedarf_override`) und eine Änderung in `bedarfFuer`
-  (`lib/dienste.ts`) sowie die Besetzungsprüfung in `lib/ordnerwart.ts`.
+- ~~Ordnerwart: Bedarf pro Termin überschreiben~~ — umgesetzt (10.10.2026, Migration 0094, `ordnerBedarfUeberschreiben`).
 - **Ordnerwart: inaktive Rolle beim Bestätigen aktivieren** (wie `zeitnehmerInaktiveRolleAktivierenUndZuordnen`). Aktiviert eine
   Rolle, vergibt bei Bedarf ein Einmal-Passwort und verschickt Willkommens- und Zuordnungsmail — deshalb als eigener, besonders
   sorgfältig geprüfter PR; dazu `holeInaktiveOrdnerKandidaten` und die Vorschlagslogik in `profil/ordnerwart/page.tsx`.

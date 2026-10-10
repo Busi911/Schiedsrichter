@@ -14,7 +14,7 @@ import {
   vereine,
 } from "@/db/schema";
 import { syncSchiedsrichterIcsFeed } from "@/lib/ics-sync";
-import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "@/lib/dienste";
 import { SELBST_ANMELDBARE_TYPEN } from "@/lib/eigene-offene-dienste";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
 import { pruefeEmailVerfuegbar } from "@/lib/email-aendern";
@@ -355,7 +355,7 @@ export async function selbstAnmelden(formData: FormData) {
         rolle,
         termin.pflichtspiel,
         termin.freundschaftsTyp,
-        termin.zeitnehmerBedarfOverride,
+        bedarfOverrideFuer(termin, rolle),
         mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
       );
       if (bedarf <= 0) {
@@ -368,7 +368,7 @@ export async function selbstAnmelden(formData: FormData) {
         rolle,
         termin.pflichtspiel,
         termin.freundschaftsTyp,
-        undefined,
+        bedarfOverrideFuer(termin, rolle),
         mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
       );
       const bestehende = await tx.query.terminZuordnungen.findMany({

@@ -2,7 +2,7 @@ import "server-only";
 import { and, count, eq, gte, inArray, lt } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
-import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { bedarfFuer, bedarfOverrideFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
 import { mergeRollenZaehlungen } from "./einsatz-zahlen";
 
 export const ORDNER_ROLLEN = ["ordner", "kioskdienst", "kassierer"] as const;
@@ -29,6 +29,11 @@ export async function pruefeOrdnerBesetzungsgrenze(
     pflichtspiel: boolean | null;
     freundschaftsTyp: "freundschaftsspiel" | "turnier" | null;
     mannschaftId: string | null;
+    // Pflicht (nicht optional), damit kein Aufrufer den Override des Ordnerwarts vergisst und der Bedarf zu hoch geprüft wird.
+    zeitnehmerBedarfOverride: number | null;
+    ordnerBedarfOverride: number | null;
+    kioskdienstBedarfOverride: number | null;
+    kassiererBedarfOverride: number | null;
   },
   rolle: (typeof ORDNER_ROLLEN)[number]
 ) {
@@ -44,7 +49,7 @@ export async function pruefeOrdnerBesetzungsgrenze(
     rolle,
     termin.pflichtspiel,
     termin.freundschaftsTyp,
-    undefined,
+    bedarfOverrideFuer(termin, rolle),
     mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
   );
   const bestehende = await tx.query.terminZuordnungen.findMany({

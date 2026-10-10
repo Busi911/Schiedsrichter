@@ -413,6 +413,9 @@ Ein Termin gilt im Admin-Kalender (Badge "Vollständig"/"Offen") und in "Unbeset
 Schiedsrichter (falls vom Verein zu stellen), Zeitnehmer/Sekretär UND alle vom Verein definierten Helferdienste (Ordner,
 Kioskdienst, Kassierer: Bedarf > 0 laut `bedarfFuer`, nicht für die Mannschaft abgeschaltet) ihren Bedarf erreichen.
 Dasselbe Maß wie die Liste "Offene Dienste" (`berechneOffenePosten`).
+Bedarf je Termin überschreiben: Zeitnehmerwart (`zeitnehmer_bedarf_override`, gilt für Zeitnehmer UND Sekretär) und Ordnerwart (`ordner_/kioskdienst_/kassierer_bedarf_override`, Migration 0094, `ordnerBedarfUeberschreiben`)
+setzen pro Termin einen Wert (auch 0), null = Standard. `bedarfFuer(…, bedarfOverride, …)` bekommt den Override der jeweiligen Rolle über `bedarfOverrideFuer(termin, rolle)` — jeder Aufruf muss das tun, und jede
+Abfrage, die Termine für `bedarfFuer` lädt, muss alle vier Override-Spalten mitselektieren (sonst gilt still der Standard).
 
 ## Dark Mode (Hell/Dunkel/Automatisch)
 

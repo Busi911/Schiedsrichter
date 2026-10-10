@@ -4,7 +4,7 @@ import { withTenant } from "@/db";
 import type { RollenGruppe } from "@/components/mehrfachauswahl";
 import { mannschaften, termine, terminZuordnungen, users, type vereine } from "@/db/schema";
 import { berechneBesetzung } from "@/lib/besetzung";
-import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "@/lib/dienste";
 import { formatDatumZeit, formatWochentagDatum } from "@/lib/format";
 import { tagKey } from "@/lib/kalender";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
@@ -104,7 +104,7 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: { zeitnehmer
           "zeitnehmer",
           t.pflichtspiel,
           t.freundschaftsTyp,
-          t.zeitnehmerBedarfOverride,
+          bedarfOverrideFuer(t, "zeitnehmer"),
           mannschaftBedarfDeaktiviertFuer(mannschaft, "zeitnehmer")
         );
         if (bedarf > 0) {
@@ -122,7 +122,7 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: { zeitnehmer
 
       if (aktiv.ordner && ORDNER_TYPEN.includes(t.typ)) {
         for (const rolle of ORDNER_ROLLEN) {
-          const bedarf = bedarfFuer(verein, t.typ, rolle, t.pflichtspiel, t.freundschaftsTyp, undefined, mannschaftBedarfDeaktiviertFuer(mannschaft, rolle));
+          const bedarf = bedarfFuer(verein, t.typ, rolle, t.pflichtspiel, t.freundschaftsTyp, bedarfOverrideFuer(t, rolle), mannschaftBedarfDeaktiviertFuer(mannschaft, rolle));
           if (bedarf <= 0) continue;
           rollenMitBedarf.push(rolle);
           const vorhanden = eigene.filter((z) => z.funktionstraegerTyp === rolle).length;

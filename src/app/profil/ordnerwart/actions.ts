@@ -17,7 +17,7 @@ import {
   zuordnungEntferntInhalt,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
-import { bedarfFuer, mannschaftBedarfDeaktiviertFuer } from "@/lib/dienste";
+import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "@/lib/dienste";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import {
   istOrdnerwart,
@@ -197,7 +197,7 @@ export async function ordnerZuordnen(formData: FormData) {
       rolle,
       termin.pflichtspiel,
       termin.freundschaftsTyp,
-      undefined,
+      bedarfOverrideFuer(termin, rolle),
       mannschaftBedarfDeaktiviertFuer(mannschaft, rolle)
     );
     const bestehende = await tx.query.terminZuordnungen.findMany({
@@ -723,4 +723,44 @@ export async function ordnerNeuAnlegenUndBestaetigen(formData: FormData) {
   revalidatePath("/profil/ordnerwart");
   revalidatePath("/admin/kalender");
   revalidatePath("/admin/funktionstraeger");
+}
+
+// Überschreibt den (aus den Vereinseinstellungen abgeleiteten) Bedarf EINER Rolle (Ordner/Kioskdienst/Kassierer) für GENAU diesen
+// Termin — Pendant zu zeitnehmerBedarfUeberschreiben (profil/zeitnehmerwart/actions.ts), z.B. "bei diesem Spiel 2 Ordner" oder "kein
+// Kioskdienst". Leeres Feld setzt den Override zurück auf "Standard" (null), siehe ordnerBedarfOverride in db/schema.ts.
+export async function ordnerBedarfUeberschreiben(formData: FormData) {
+  const { vereinId } = await requireOrdnerwartZugriff();
+
+  const terminId = formData.get("terminId");
+  if (typeof terminId !== "string" || !terminId) throw new Error("Termin fehlt.");
+  const rolleRoh = formData.get("rolle");
+  if (typeof rolleRoh !== "string" || !(ORDNER_ROLLEN as readonly string[]).includes(rolleRoh)) {
+    throw new Error("Rolle fehlt.");
+  }
+  const rolle = rolleRoh as OrdnerRolle;
+
+  const bedarfRoh = formData.get("bedarf");
+  let bedarf: number | null = null;
+  if (typeof bedarfRoh === "string" && bedarfRoh.trim()) {
+    bedarf = Number.parseInt(bedarfRoh, 10);
+    if (!Number.isFinite(bedarf) || bedarf < 0 || bedarf > 50) {
+      throw new Error("Bedarf muss eine Zahl zwischen 0 und 50 sein.");
+    }
+  }
+
+  const feld =
+    rolle === "ordner"
+      ? { ordnerBedarfOverride: bedarf }
+      : rolle === "kioskdienst"
+        ? { kioskdienstBedarfOverride: bedarf }
+        : { kassiererBedarfOverride: bedarf };
+
+  await withTenant(vereinId, (tx) =>
+    tx.update(termine).set(feld).where(and(eq(termine.id, terminId), eq(termine.vereinId, vereinId)))
+  );
+
+  revalidatePath("/profil/ordnerwart");
+  revalidatePath("/admin/kalender");
+  revalidatePath("/admin/dienste");
+  revalidatePath("/profil");
 }
