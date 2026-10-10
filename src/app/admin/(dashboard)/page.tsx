@@ -19,6 +19,7 @@ import {
 import {
   abmeldungAblehnen as ordnerAbmeldungAblehnen,
   abmeldungGenehmigen as ordnerAbmeldungGenehmigen,
+  ordnerInaktiveRolleAktivierenUndZuordnen,
   ordnerNeuAnlegenUndBestaetigen,
   ordnerVorschlagBestaetigen,
 } from "@/app/profil/ordnerwart/actions";
@@ -252,7 +253,7 @@ export default async function AdminDashboardPage() {
                 )}
                 {session.user.istAdmin && z.inaktivVorschlag && (
                   <form
-                    action={zeitnehmerInaktiveRolleAktivierenUndZuordnen}
+                    action={z.bereich === "ordner" ? ordnerInaktiveRolleAktivierenUndZuordnen : zeitnehmerInaktiveRolleAktivierenUndZuordnen}
                     className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-dashed p-2"
                   >
                     <input type="hidden" name="zuordnungId" value={z.id} />

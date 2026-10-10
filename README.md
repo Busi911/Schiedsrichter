@@ -595,9 +595,7 @@ Einstellungen", Hallenplan-Bereich nur bei aktivem Import), Mail-Schalter im Pro
 Ordnerwart: Person ohne Login zuordnen. **Offen (in dieser Reihenfolge):**
 
 - ~~Ordnerwart: Bedarf pro Termin überschreiben~~ — umgesetzt (10.10.2026, Migration 0094, `ordnerBedarfUeberschreiben`).
-- **Ordnerwart: inaktive Rolle beim Bestätigen aktivieren** (wie `zeitnehmerInaktiveRolleAktivierenUndZuordnen`). Aktiviert eine
-  Rolle, vergibt bei Bedarf ein Einmal-Passwort und verschickt Willkommens- und Zuordnungsmail — deshalb als eigener, besonders
-  sorgfältig geprüfter PR; dazu `holeInaktiveOrdnerKandidaten` und die Vorschlagslogik in `profil/ordnerwart/page.tsx`.
+- ~~Ordnerwart: inaktive Rolle beim Bestätigen aktivieren~~ — umgesetzt (10.10.2026, `ordnerInaktiveRolleAktivierenUndZuordnen`, auch in der Admin-Übersicht).
 - **Wart-Seiten/Eintragen-Aktionen zusammenlegen** (Zeitnehmer · Ordner · Schiedsrichter; öffentliche Eintragen-Aktionen je ~500 Zeilen).
   Sie sind KEINE reinen Kopien (Ordner: Warnung statt Sperre bei Doppelrolle, eigene Besetzungs-/Rollenprüfung; Zeitnehmer: harte
   Sperre Zeitnehmer/Sekretär). Zuerst Tests für die Eintragen-Aktionen schreiben (Zusage ohne Doppelbelegung, falsche Rolle, ungültiger

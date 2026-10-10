@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mannschaften, vereine } from "@/db/schema";
 import {
+  holeInaktiveOrdnerKandidaten,
   holeOrdnerEinsatzZahlen,
   holeOrdnerRelevanteTermine,
   istOrdnerwart,
@@ -17,6 +18,7 @@ import {
   abmeldungAblehnen,
   abmeldungGenehmigen,
   ordnerBedarfUeberschreiben,
+  ordnerInaktiveRolleAktivierenUndZuordnen,
   ordnerMannschaftBedarfUmschalten,
   ordnerNeuAnlegenUndBestaetigen,
   ordnerSelbstanmeldungDeaktivieren,
@@ -27,6 +29,7 @@ import {
   ordnerZuordnungEntfernen,
 } from "./actions";
 import { appUrl } from "@/lib/app-url";
+import { findeNamensVorschlag } from "@/lib/namens-abgleich";
 import {
   Card,
   CardContent,
@@ -91,7 +94,7 @@ export default async function OrdnerwartPage({
   const { filter, mannschaft: mannschaftFilter } = await searchParams;
   const nurOffene = filter === "offen";
 
-  const [personenListe, termineRoh, verein, alleMannschaften] = await Promise.all([
+  const [personenListe, termineRoh, verein, alleMannschaften, inaktiveKandidaten] = await Promise.all([
     holeOrdnerEinsatzZahlen(vereinId),
     holeOrdnerRelevanteTermine(vereinId),
     withTenant(vereinId, (tx) =>
@@ -100,6 +103,7 @@ export default async function OrdnerwartPage({
     withTenant(vereinId, (tx) =>
       tx.query.mannschaften.findMany({ where: eq(mannschaften.vereinId, vereinId) })
     ),
+    holeInaktiveOrdnerKandidaten(vereinId),
   ]);
   const mannschaftenSortiert = sortiereMannschaften(alleMannschaften);
   const mannschaftenNachId = new Map(alleMannschaften.map((m) => [m.id, m]));
@@ -394,6 +398,18 @@ export default async function OrdnerwartPage({
                   )
                 )
                 .map((s) => ({ value: s.userId, label: s.name ?? s.email }));
+              // Kein aktiver automatischer Vorschlag gefunden — häufig, weil die Person zwar schon einmal angelegt, inzwischen aber
+              // deaktiviert wurde (z.B. Saisonwechsel): dann gegen deaktivierte Rollen derselben Art abgleichen und "Aktivieren &
+              // zuordnen" anbieten (Pendant zu profil/zeitnehmerwart/page.tsx).
+              const inaktivVorschlag = z.matchVorschlagUserId
+                ? null
+                : (() => {
+                    const { exakt, vorschlag } = findeNamensVorschlag(
+                      z.externerName ?? "",
+                      inaktiveKandidaten.filter((k) => k.typ === z.funktionstraegerTyp)
+                    );
+                    return exakt ?? vorschlag;
+                  })();
               return (
                 <div key={z.id} className="rounded-lg border p-3 text-sm">
                   <p>
@@ -460,6 +476,27 @@ export default async function OrdnerwartPage({
                       </SubmitButton>
                     </form>
                   </details>
+                  {inaktivVorschlag && (
+                    <form
+                      action={ordnerInaktiveRolleAktivierenUndZuordnen}
+                      className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-dashed p-2"
+                    >
+                      <input type="hidden" name="zuordnungId" value={z.id} />
+                      <input type="hidden" name="rolleId" value={inaktivVorschlag.rolleId} />
+                      <p className="text-sm text-muted-foreground">
+                        Ähnlich:{" "}
+                        <span className="font-medium text-foreground">{inaktivVorschlag.name ?? inaktivVorschlag.email}</span> — als{" "}
+                        {ROLLE_LABEL[inaktivVorschlag.typ] ?? inaktivVorschlag.typ} aktuell inaktiv.
+                      </p>
+                      <ConfirmSubmitButton
+                        className="h-11 px-4 text-sm"
+                        confirmText={`${inaktivVorschlag.name ?? inaktivVorschlag.email} aktivieren und dieser Zuordnung zuordnen?`}
+                        variant="outline"
+                      >
+                        Aktivieren &amp; zuordnen
+                      </ConfirmSubmitButton>
+                    </form>
+                  )}
                 </div>
               );
             })}

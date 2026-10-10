@@ -251,3 +251,39 @@ export async function holeOrdnerEinsatzZahlen(
     return mergeRollenZaehlungen(rollenZeilenGetypt, zuordnungZaehlung);
   });
 }
+
+export type InaktiverOrdnerKandidat = {
+  rolleId: string;
+  userId: string;
+  name: string | null;
+  email: string;
+  typ: (typeof ORDNER_ROLLEN)[number];
+};
+
+// Deaktivierte Ordner-/Kioskdienst-/Kassierer-Rollen (eine Zeile pro Rolle, nicht pro Person — rolleId wird zum gezielten
+// Wieder-Aktivieren dieser einen Rolle gebraucht, siehe ordnerInaktiveRolleAktivierenUndZuordnen in profil/ordnerwart/actions.ts).
+// Pendant zu holeInaktiveZeitnehmerKandidaten: Grundlage des Namensabgleichs bei Selbsteintragungen, die keiner aktiven Person
+// zugeordnet werden konnten, weil die Person inzwischen deaktiviert wurde (z.B. Saisonwechsel).
+export async function holeInaktiveOrdnerKandidaten(vereinId: string): Promise<InaktiverOrdnerKandidat[]> {
+  return withTenant(vereinId, async (tx) => {
+    const zeilen = await tx
+      .select({
+        rolleId: funktionstraegerRollen.id,
+        userId: users.id,
+        name: users.name,
+        email: users.email,
+        typ: funktionstraegerRollen.typ,
+      })
+      .from(funktionstraegerRollen)
+      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+      .where(
+        and(
+          eq(users.vereinId, vereinId),
+          inArray(funktionstraegerRollen.typ, ORDNER_ROLLEN),
+          eq(funktionstraegerRollen.aktiv, false)
+        )
+      )
+      .orderBy(users.name);
+    return zeilen.map((z) => ({ ...z, typ: z.typ as (typeof ORDNER_ROLLEN)[number] }));
+  });
+}
