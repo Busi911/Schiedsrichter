@@ -36,7 +36,7 @@ const FREEMAIL_DOMAINS = [
   "mail.de", "posteo.de", "web.de", "arcor.de", "unity-mail.de",
 ];
 
-async function extrahiereOutreachEmail(seiteHtml: string): Promise<string | null> {
+async function extrahiereOutreachEmail(seiteHtml: string): Promise<{ email: string | null; warnung: string | null }> {
   const geparst = parseVereinsInfo(seiteHtml);
   const website = geparst.daten?.website;
   // Website-Domain als Hint: wenn mehrere Kontakt-Adressen auf der nuLiga-Seite
@@ -65,7 +65,31 @@ async function extrahiereOutreachEmail(seiteHtml: string): Promise<string | null
     }
   }
 
-  return kontaktEmail;
+  // 4. Validierung: wenn eine Website-Domain bekannt ist und die extrahierte
+  //    E-Mail-Domain nicht dazu passt (weder identisch noch eine Subdomain
+  //    noch eine nah verwandte Domain), warnen — die Mail könnte an den
+  //    falschen Verein gehen (siehe TSV Jahn Gensungen / Eintracht Felsberg).
+  let warnung: string | null = null;
+  if (kontaktEmail && websiteDomain) {
+    const emailDomain = kontaktEmail.split("@")[1]?.toLowerCase();
+    if (emailDomain && !domainVerwandt(emailDomain, websiteDomain)) {
+      warnung = `E-Mail-Domain "${emailDomain}" passt nicht zur Website "${websiteDomain}" — möglicherweise falscher Verein`;
+    }
+  }
+
+  return { email: kontaktEmail, warnung };
+}
+
+// Prüft, ob zwei Domains verwandt sind: identisch, eine ist Subdomain der
+// anderen, oder beide haben den gleichen Haupt-Teil (zwei Level ab rechts,
+// z.B. "esg-gensungen-felsberg.de" und "www.esg-gensungen-felsberg.de").
+function domainVerwandt(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (a.endsWith(`.${b}`) || b.endsWith(`.${a}`)) return true;
+  // Haupt-Teil (letzten zwei Level) vergleichen
+  const hauptA = a.split(".").slice(-2).join(".");
+  const hauptB = b.split(".").slice(-2).join(".");
+  return hauptA === hauptB;
 }
 
 const OUTREACH_KONSTANTEN = {
@@ -147,7 +171,7 @@ export async function fuehreOutreachAus(verband?: string): Promise<OutreachErgeb
 
       // 3. E-Mail extrahieren: nuLiga-Kontakt → Impressum der Website →
       //    Impressum der E-Mail-Domain (siehe extrahiereOutreachEmail).
-      let kontaktEmail = await extrahiereOutreachEmail(seite.html);
+      const { email: kontaktEmail, warnung: emailWarnung } = await extrahiereOutreachEmail(seite.html);
       let impressumFehler: string | null = null;
 
       if (!kontaktEmail) {
@@ -159,6 +183,20 @@ export async function fuehreOutreachAus(verband?: string): Promise<OutreachErgeb
           fehler: !website
             ? "Keine Website und keine Kontakt-E-Mail im nuLiga-Eintrag"
             : impressumFehler ?? "Keine E-Mail in nuLiga-Kontakt oder Impressum gefunden",
+        });
+        continue;
+      }
+
+      // 3a. Validierungs-Warnung: Domain-Mismatch zwischen E-Mail und Website.
+      //     Die Mail wird nicht gesendet — der Verein bleibt im Index und wird
+      //     beim nächsten Lauf erneut versucht (manuelle Korrektur möglich).
+      if (emailWarnung) {
+        ergebnis.fehler++;
+        ergebnis.details.push({
+          name: k.name,
+          clubId: k.clubId,
+          status: "fehler",
+          fehler: emailWarnung,
         });
         continue;
       }
@@ -339,9 +377,10 @@ export async function resetOutreachVerein(clubId: string): Promise<{ geloescht: 
 
   const verband = eintrag.verband ?? bestehend?.verband ?? "HHV";
   const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl(verband, "clubInfoDisplay", { club: clubId }));
-  const kontaktEmail = await extrahiereOutreachEmail(seite.html);
+  const { email: kontaktEmail, warnung } = await extrahiereOutreachEmail(seite.html);
 
   if (!kontaktEmail) return { geloescht: !!bestehend, neu: false, email: null, fehler: "Keine E-Mail nach Reset gefunden" };
+  if (warnung) return { geloescht: !!bestehend, neu: false, email: null, fehler: warnung };
 
   // 3. Verein neu anlegen und Outreach durchführen.
   const [neu] = await adminDb.insert(vereine).values({ name: eintrag.name, status: "vorbereitung" }).returning({ id: vereine.id });
@@ -438,11 +477,16 @@ export async function fuehreInstagramNachfassAus(): Promise<OutreachErgebnis> {
       const seite = await holeNuligaSeiteMitKontext(
         baueNuligaUrl(k.verband ?? "HHV", "clubInfoDisplay", { club: k.clubId })
       );
-      let kontaktEmail = await extrahiereOutreachEmail(seite.html);
+      const { email: kontaktEmail, warnung: emailWarnung } = await extrahiereOutreachEmail(seite.html);
 
       if (!kontaktEmail) {
         ergebnis.keineEmail++;
         ergebnis.details.push({ name: k.name, clubId: k.clubId, status: "keine_email", fehler: "Keine E-Mail in nuLiga oder Impressum" });
+        continue;
+      }
+      if (emailWarnung) {
+        ergebnis.fehler++;
+        ergebnis.details.push({ name: k.name, clubId: k.clubId, status: "fehler", fehler: emailWarnung });
         continue;
       }
 
