@@ -16,12 +16,32 @@ const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
 const ENCODE_EMAIL_RE = /encodeEmail\(\s*['"]([a-zA-Z]{2,})['"]\s*,\s*['"]([a-zA-Z0-9._%+-]+)['"]\s*,\s*['"]([a-zA-Z0-9.-]+)['"]\s*(?:,\s*['"]?([^'"]*)['"]?)?\s*\)/gi;
 const BLACKLIST_DOMAINS = ["beispiel.invalid", "example.com", "example.org", "example.net", "w3.org", "liga.nu"];
 
-export function extrahiereKontaktEmail(html: string): string | null {
+export function extrahiereKontaktEmail(html: string, websiteDomain?: string): string | null {
+  const domainHint = websiteDomain?.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]?.toLowerCase();
+
   // 1. mailto:-Links (höchste Qualität — bewusst verlinkt).
   const mailtoMatches = [...html.matchAll(/mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi)];
+  const mailtoAddr: string[] = [];
   for (const m of mailtoMatches) {
     const addr = m[1].toLowerCase().trim();
-    if (istGueltig(addr)) return addr;
+    if (istGueltig(addr)) mailtoAddr.push(addr);
+  }
+  // Wenn mehrere mailto-Adressen gefunden: bevorzuge die, deren Domain zum
+  // Website-Domain-Hint passt. nuLiga listet manchmal mehrere Vereins-Adressen
+  // (z.B. TSV Jahn Gensungen: vorsitzender@eintracht-felsberg.de UND
+  // vorsitzender@esg-gensungen-felsberg.de) — die erste kann ein anderer Verein
+  // sein. Mit dem Domain-Hint wählen wir die richtige.
+  if (mailtoAddr.length > 0) {
+    if (domainHint) {
+      const match = mailtoAddr.find((a) => a.endsWith(`@${domainHint}`) || a.endsWith(`.${domainHint}`));
+      if (match) return match;
+    }
+    // Fallback: bevorzuge Vereins-Adressen, sonst die erste
+    const verein = mailtoAddr.find((a) => {
+      const local = a.split("@")[0];
+      return ["info", "mail", "vorstand", "geschaeftsstelle", "kontakt", "office", "admin"].includes(local);
+    });
+    return verein ?? mailtoAddr[0];
   }
 
   // 2. encodeEmail-Aufrufe (nuLiga-Spam-Schutz): encodeEmail('de', 'local', 'domain', 'nachname')
@@ -54,6 +74,10 @@ export function extrahiereKontaktEmail(html: string): string | null {
   }
   // Bevorzuge Vereins-Adressen, sonst die erste gefundene.
   if (decoded.length > 0) {
+    if (domainHint) {
+      const match = decoded.find((d) => d.addr.endsWith(`@${domainHint}`) || d.addr.endsWith(`.${domainHint}`));
+      if (match) return match.addr;
+    }
     const verein = decoded.find((d) => d.isVerein);
     return (verein ?? decoded[0]).addr;
   }

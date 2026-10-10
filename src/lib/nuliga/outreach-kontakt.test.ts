@@ -72,4 +72,18 @@ describe("extrahiereKontaktEmail", () => {
     const html = `<html><body><h2>Kontaktadresse</h2><p>encodeEmail('de', 'Matthias', 'tus-kriftel', 'Brand') encodeEmail('de', 'mail', 'hsg-schwarzbach', '')</p></body></html>`;
     expect(extrahiereKontaktEmail(html)).toBe("mail@hsg-schwarzbach.de");
   });
+
+  it("bevorzugt mailto-Adresse deren Domain zur Website passt (TSV Jahn Gensungen)", () => {
+    // nuLiga listet zwei mailto-Links: eintracht-felsberg.de (falscher Verein)
+    // und esg-gensungen-felsberg.de (richtig). Mit Domain-Hint wählen wir die richtige.
+    const html = `<html><body><h2>Kontaktadresse</h2><p><a href="mailto:vorsitzender@eintracht-felsberg.de">vorsitzender@eintracht-felsberg.de</a><br/><a href="mailto:vorsitzender@esg-gensungen-felsberg.de">vorsitzender@esg-gensungen-felsberg.de</a><br/><a href="http://esg-gensungen-felsberg.de/">esg-gensungen-felsberg.de</a></p></body></html>`;
+    expect(extrahiereKontaktEmail(html, "esg-gensungen-felsberg.de")).toBe("vorsitzender@esg-gensungen-felsberg.de");
+  });
+
+  it("ohne Domain-Hint: erste mailto-Adresse (Fallback)", () => {
+    // Gleicher HTML wie oben, aber ohne Website-Hint → erste gültige Adresse.
+    const html = `<html><body><h2>Kontaktadresse</h2><p><a href="mailto:vorsitzender@eintracht-felsberg.de">vorsitzender@eintracht-felsberg.de</a><br/><a href="mailto:vorsitzender@esg-gensungen-felsberg.de">vorsitzender@esg-gensungen-felsberg.de</a></p></body></html>`;
+    // Beide sind Vereins-Adressen (vorsitzender) → ohne Hint fällt es auf die erste.
+    expect(extrahiereKontaktEmail(html)).toBe("vorsitzender@eintracht-felsberg.de");
+  });
 });

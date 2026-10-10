@@ -37,9 +37,12 @@ const FREEMAIL_DOMAINS = [
 ];
 
 async function extrahiereOutreachEmail(seiteHtml: string): Promise<string | null> {
-  let kontaktEmail = extrahiereKontaktEmail(seiteHtml);
   const geparst = parseVereinsInfo(seiteHtml);
   const website = geparst.daten?.website;
+  // Website-Domain als Hint: wenn mehrere Kontakt-Adressen auf der nuLiga-Seite
+  // stehen, bevorzugen wir die, deren Domain zur Vereins-Website passt.
+  const websiteDomain = website?.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]?.toLowerCase() ?? undefined;
+  let kontaktEmail = extrahiereKontaktEmail(seiteHtml, websiteDomain);
 
   // 2. Fallback: Impressum der Vereinswebsite.
   if (!kontaktEmail && website) {
