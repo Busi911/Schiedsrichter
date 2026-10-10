@@ -26,9 +26,15 @@ describe("outreachInhalt", () => {
     expect(text).toContain("kostenlos");
   });
 
+  it("betont unverbindlich und Risiko-frei", () => {
+    const text = JSON.stringify(inhalt.zeilen);
+    expect(text).toContain("unverbindlich");
+    expect(text).toContain("Zahlungen");
+  });
+
   it("hat einen CTA-Button mit der Übergabe-URL", () => {
     expect(inhalt.cta?.url).toBe("https://handballerpate.de/outreach/uebergabe/token456");
-    expect(inhalt.cta?.text).toBe("Verein übernehmen");
+    expect(inhalt.cta?.text).toBe("Kostenlos testen");
   });
 
   it("hat einen Vorschau-Link als Sekundär-Link", () => {
