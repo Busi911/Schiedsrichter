@@ -71,3 +71,20 @@ export async function benachrichtigeSystemAdminsUeberSupportFreigabe(
     cta: { text: "Zu den Vereinen", url: `${appUrl()}/system/vereine` },
   });
 }
+
+// Ein Verein möchte gesperrte Stammdaten ändern (Vereins-/Hallen-ID bei vorhandenen Funktionsträgern): Prüfung unter
+// /system/aenderungen.
+export async function benachrichtigeSystemAdminsUeberStammdatenAntrag(
+  vereinName: string,
+  feldLabel: string,
+  bisher: string,
+  neu: string,
+  grund: string,
+  akteur: string
+) {
+  await mailAnSystemAdmins(`Änderungsantrag: ${vereinName}`, {
+    ueberschrift: `${vereinName} möchte „${feldLabel}“ ändern.`,
+    zeilen: [`Bisher: ${bisher || "—"}`, `Neu: ${neu || "—"}`, `Grund: ${grund}`, `Beantragt von: ${akteur}`],
+    cta: { text: "Antrag prüfen", url: `${appUrl()}/system/aenderungen` },
+  });
+}

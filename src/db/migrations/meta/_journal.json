@@ -673,6 +673,13 @@
       "when": 1791702614309,
       "tag": "0095_verein_ist_demo",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1791743906275,
+      "tag": "0096_stammdaten_aenderung",
+      "breakpoints": true
     }
   ]
 }
