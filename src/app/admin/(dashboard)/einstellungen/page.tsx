@@ -92,6 +92,9 @@ export default async function EinstellungenPage({
   });
   // Systemadmin im Treuhand-/Support-Kontext darf auch bei vorhandenen Funktionsträgern ändern.
   const gesperrt = !session.user.treuhand && !session.user.istSystemAdmin && (await istStammdatenGesperrt(vereinId));
+  // Im Demo-Verein sind Abrufe bei nuLiga/handball.net gesperrt (verbieteImDemo): Felder und Buttons gar nicht erst anbieten.
+  const demo = verein?.istDemo ?? false;
+  const schreibgeschuetzt = gesperrt || demo;
   const antraege = gesperrt
     ? await adminDb
         .select({
@@ -270,6 +273,11 @@ export default async function EinstellungenPage({
             </details>
           )}
           <Unterbereich titel="Quellen und Vereins-IDs" kurz="Vereins-IDs und Spielhallen — hier einrichten und aktualisieren" offen>
+          {demo && (
+            <p className="mb-3 rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+              Im Demo-Verein ist das Eintragen von Vereins-IDs gesperrt (es würde bei nuLiga/handball.net abgerufen). Im eigenen Verein funktioniert es.
+            </p>
+          )}
           <form action={oeffentlicheSeiteSpeichern} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="nuligaClubId">nuLiga-Vereins-ID</Label>
@@ -280,8 +288,8 @@ export default async function EinstellungenPage({
                 placeholder="z.B. 69723"
                 defaultValue={ligaVerein?.nuligaClubId ?? ""}
                 disabled={!session.user.istAdmin}
-                readOnly={gesperrt}
-                className={gesperrt ? "bg-muted/50" : undefined}
+                readOnly={schreibgeschuetzt}
+                className={schreibgeschuetzt ? "bg-muted/50" : undefined}
               />
               <p className="text-xs text-muted-foreground">
                 Die Zahl hinter <code>club=</code> in der Adresse eurer Vereinsseite auf nuLiga
@@ -296,8 +304,8 @@ export default async function EinstellungenPage({
                 placeholder="z.B. 0b8y490"
                 defaultValue={ligaVerein?.handballNetClubId ?? ""}
                 disabled={!session.user.istAdmin}
-                readOnly={gesperrt}
-                className={gesperrt ? "bg-muted/50" : undefined}
+                readOnly={schreibgeschuetzt}
+                className={schreibgeschuetzt ? "bg-muted/50" : undefined}
               />
               <p className="text-xs text-muted-foreground">
                 Der Teil hinter <code>/club/</code> in der Adresse eures Vereins auf handball.net
@@ -313,8 +321,8 @@ export default async function EinstellungenPage({
                 placeholder="z.B. 69770, 69771"
                 defaultValue={ligaVerein?.handballNetTeamIds ?? ""}
                 disabled={!session.user.istAdmin}
-                readOnly={gesperrt}
-                className={gesperrt ? "bg-muted/50" : undefined}
+                readOnly={schreibgeschuetzt}
+                className={schreibgeschuetzt ? "bg-muted/50" : undefined}
               />
               <p className="text-xs text-muted-foreground">
                 Nur nötig, falls die Mannschaften nicht automatisch gefunden werden — oder für eine
@@ -324,7 +332,7 @@ export default async function EinstellungenPage({
                 sie zu einem anderen Verein gehören.
               </p>
             </div>
-            {session.user.istAdmin && (
+            {session.user.istAdmin && !demo && (
               <SubmitButton size="sm" className="self-start" pendingText="Lädt von nuLiga/handball.net… (bis ca. 1 Minute)">
                 {ligaVerein ? "Jetzt aktualisieren" : "Speichern & Seite erstellen"}
               </SubmitButton>
@@ -418,7 +426,7 @@ export default async function EinstellungenPage({
                   Gesperrt, weil bereits Funktionsträger eingetragen sind. Änderungen bitte oben unter „Quellen und Vereins-IDs“ beantragen.
                 </p>
               )}
-              {session.user.istAdmin && !gesperrt && (
+              {session.user.istAdmin && !gesperrt && !demo && (
                 <form action={zusatzquelleHinzufuegen} className="flex flex-col gap-3">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
@@ -1071,7 +1079,7 @@ export default async function EinstellungenPage({
               className="flex flex-col gap-4"
             >
             <fieldset
-              disabled={!session.user.istAdmin}
+              disabled={!session.user.istAdmin || demo}
               className="contents"
             >
               <div className="flex flex-col gap-2">
@@ -1082,8 +1090,8 @@ export default async function EinstellungenPage({
                   inputMode="numeric"
                   placeholder="z.B. 30402"
                   defaultValue={verein?.nuligaHalle1Id ?? ""}
-                  readOnly={gesperrt}
-                  className={gesperrt ? "bg-muted/50" : undefined}
+                  readOnly={schreibgeschuetzt}
+                  className={schreibgeschuetzt ? "bg-muted/50" : undefined}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -1094,8 +1102,8 @@ export default async function EinstellungenPage({
                   inputMode="numeric"
                   placeholder="optional"
                   defaultValue={verein?.nuligaHalle2Id ?? ""}
-                  readOnly={gesperrt}
-                  className={gesperrt ? "bg-muted/50" : undefined}
+                  readOnly={schreibgeschuetzt}
+                  className={schreibgeschuetzt ? "bg-muted/50" : undefined}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -1106,8 +1114,8 @@ export default async function EinstellungenPage({
                   inputMode="numeric"
                   placeholder="optional"
                   defaultValue={verein?.nuligaHalle3Id ?? ""}
-                  readOnly={gesperrt}
-                  className={gesperrt ? "bg-muted/50" : undefined}
+                  readOnly={schreibgeschuetzt}
+                  className={schreibgeschuetzt ? "bg-muted/50" : undefined}
                 />
               </div>
               <div className="flex items-center justify-between gap-3">
@@ -1122,7 +1130,7 @@ export default async function EinstellungenPage({
                 />
               </div>
             </fieldset>
-              {session.user.istAdmin && (
+              {session.user.istAdmin && !demo && (
                 <SubmitButton
                   className="w-full"
                   pendingText="Synchronisiert…"
