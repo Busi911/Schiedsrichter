@@ -72,7 +72,10 @@ async function extrahiereOutreachEmail(seiteHtml: string): Promise<{ email: stri
   let warnung: string | null = null;
   if (kontaktEmail && websiteDomain) {
     const emailDomain = kontaktEmail.split("@")[1]?.toLowerCase();
-    if (emailDomain && !domainVerwandt(emailDomain, websiteDomain)) {
+    // Freemail-/Webmail-Provider sind legitime private Vereins-Adressen —
+    // viele kleine Vereine nutzen web.de/gmail statt einer eigenen Domain.
+    // Domain-Mismatch nur bei nicht-Freemail-Domain melden.
+    if (emailDomain && !domainVerwandt(emailDomain, websiteDomain) && !FREEMAIL_DOMAINS.includes(emailDomain)) {
       warnung = `E-Mail-Domain "${emailDomain}" passt nicht zur Website "${websiteDomain}" — möglicherweise falscher Verein`;
     }
   }
