@@ -8,14 +8,14 @@ type Antrag = { id: string; feld: string; neuerWert: string | null; status: stri
 
 const STATUS_TEXT: Record<string, string> = { offen: "wird geprüft", genehmigt: "übernommen", abgelehnt: "abgelehnt" };
 
-// Erscheint statt der Eingabe, sobald Funktionsträger eingetragen sind: Vereins-/Hallen-IDs lassen sich dann nicht
+// Erscheint statt der Eingabe, sobald für einen Termin ein Dienst eingetragen ist (zugeordnet oder selbst eingetragen): Vereins-/Hallen-IDs lassen sich dann nicht
 // mehr direkt ändern (Termine und Dienste hängen daran), eine Änderung geht mit Grund an den Systemadmin.
 export function StammdatenAntrag({ antraege, antragOk }: { antraege: Antrag[]; antragOk: boolean }) {
   return (
     <div className="mt-4 flex flex-col gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
       <p className="text-sm font-medium">Vereins-IDs und Hallen sind gesperrt</p>
       <p className="text-xs text-muted-foreground">
-        Weil bereits Funktionsträger eingetragen sind, lassen sich diese Angaben nicht mehr direkt ändern — sonst könnten eingeteilte Dienste verloren gehen.
+        Weil für Termine bereits Dienste eingetragen sind, lassen sich diese Angaben nicht mehr direkt ändern — sonst könnten eingeteilte Dienste verloren gehen.
         Wenn sich wirklich etwas ändern muss (z.B. falsche ID), beantragt es hier mit kurzer Begründung; wir prüfen es und setzen es um.
       </p>
       {antragOk && <p className="rounded-md border bg-muted p-2 text-sm">Antrag gesendet. Ihr bekommt eine Mail, sobald er geprüft ist.</p>}

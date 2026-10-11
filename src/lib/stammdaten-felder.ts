@@ -1,4 +1,4 @@
-// Stammdaten, die nach dem Einrichten gesperrt werden, sobald Funktionsträger eingetragen sind (rein, ohne DB).
+// Stammdaten, die nach dem Einrichten gesperrt werden, sobald für Termine Dienste eingetragen sind (rein, ohne DB).
 // Ändert sich so ein Wert, könnten Termine, Ansetzungen und eingetragene Dienste verloren gehen — deshalb geht
 // eine Änderung dann nur als Antrag mit Grund an den Systemadmin (Tabelle stammdaten_aenderung).
 export const STAMMDATEN_FELDER = {

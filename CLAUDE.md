@@ -601,7 +601,7 @@ Die Seiten liegen unverändert unter `/system/…`. Neue Systemseite: in `SYSTEM
 
 ## Gesperrte Stammdaten (Änderungsantrag)
 
-Sobald ein Verein mindestens einen Funktionsträger (`funktionstraeger_rolle`) hat (`istStammdatenGesperrt`, `lib/stammdaten-sperre.ts`), lassen sich nuLiga-/handball.net-Vereins-ID,
+Sobald für irgendeinen Termin des Vereins ein Dienst eingetragen ist (`termin_zuordnung`: vom Admin zugeordnet oder selbst eingetragen, angemeldet oder öffentlich; NICHT die automatische Übernahme `handball_net_uebernommen`; Funktionsträger ohne Einsatz sperren nichts) (`istStammdatenGesperrt`, `lib/stammdaten-sperre.ts`), lassen sich nuLiga-/handball.net-Vereins-ID,
 Team-IDs, Hallen-IDs 1–3, die Spielhallen-Namen, Zusatzquellen und „Seite entfernen“ nicht mehr selbst ändern (Termine/Dienste hängen daran). Gesperrt ist nur das ÄNDERN oder Leeren eines
 gesetzten Werts (`geaenderteStammdaten`, `lib/stammdaten-felder.ts`); ein leeres Feld zu füllen oder unverändert zu speichern („Jetzt aktualisieren“) geht immer. Die Server Actions in
 `admin/(dashboard)/einstellungen/actions.ts` prüfen das über `verbieteGesperrteAenderung` (Systemadmin im Treuhand-/Support-Kontext ist ausgenommen); die Felder sind im UI `readOnly`.

@@ -72,7 +72,7 @@ export async function benachrichtigeSystemAdminsUeberSupportFreigabe(
   });
 }
 
-// Ein Verein möchte gesperrte Stammdaten ändern (Vereins-/Hallen-ID bei vorhandenen Funktionsträgern): Prüfung unter
+// Ein Verein möchte gesperrte Stammdaten ändern (Vereins-/Hallen-ID bei eingetragenen Diensten): Prüfung unter
 // /system/aenderungen.
 export async function benachrichtigeSystemAdminsUeberStammdatenAntrag(
   vereinName: string,

@@ -90,7 +90,7 @@ export default async function EinstellungenPage({
   const ligaVerein = await adminDb.query.ligaVereine.findFirst({
     where: eq(ligaVereine.vereinId, vereinId),
   });
-  // Systemadmin im Treuhand-/Support-Kontext darf auch bei vorhandenen Funktionsträgern ändern.
+  // Systemadmin im Treuhand-/Support-Kontext darf auch bei eingetragenen Diensten ändern.
   const gesperrt = !session.user.treuhand && !session.user.istSystemAdmin && (await istStammdatenGesperrt(vereinId));
   // Im Demo-Verein sind Abrufe bei nuLiga/handball.net gesperrt (verbieteImDemo): Felder und Buttons gar nicht erst anbieten.
   const demo = verein?.istDemo ?? false;
@@ -423,7 +423,7 @@ export default async function EinstellungenPage({
               )}
               {gesperrt && (
                 <p className="rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
-                  Gesperrt, weil bereits Funktionsträger eingetragen sind. Änderungen bitte oben unter „Quellen und Vereins-IDs“ beantragen.
+                  Gesperrt, weil für Termine bereits Dienste eingetragen sind. Änderungen bitte oben unter „Quellen und Vereins-IDs“ beantragen.
                 </p>
               )}
               {session.user.istAdmin && !gesperrt && !demo && (

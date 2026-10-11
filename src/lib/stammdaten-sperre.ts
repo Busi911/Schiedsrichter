@@ -1,17 +1,19 @@
 import "server-only";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { funktionstraegerRollen, users } from "@/db/schema";
+import { termine, terminZuordnungen } from "@/db/schema";
 import { STAMMDATEN_FELDER, type StammdatenFeld } from "./stammdaten-felder";
 
-// Gesperrt, sobald der Verein mindestens einen Funktionsträger (Rolle) hat: ab dann hängen Dienste an den Terminen,
-// die eine geänderte Vereins-/Hallen-ID verwaisen lassen könnte. Ohne Funktionsträger darf der Verein frei ändern.
+// Gesperrt, sobald für irgendeinen Termin des Vereins ein Dienst vergeben ist: vom Admin zugeordnet oder selbst eingetragen
+// (angemeldet oder über den öffentlichen Link). Eine geänderte Vereins-/Hallen-ID könnte diese Termine verwaisen lassen.
+// Nur automatisch aus handball.net übernommene Besetzungen zählen nicht (die schreibt der Sync selbst). Funktionsträger
+// allein (Personen mit Rolle, aber ohne Einsatz) sperren nichts: ohne Dienste kann nichts verloren gehen.
 export async function istStammdatenGesperrt(vereinId: string): Promise<boolean> {
   const [z] = await adminDb
     .select({ n: sql<number>`count(*)::int` })
-    .from(funktionstraegerRollen)
-    .innerJoin(users, eq(users.id, funktionstraegerRollen.userId))
-    .where(eq(users.vereinId, vereinId));
+    .from(terminZuordnungen)
+    .innerJoin(termine, eq(termine.id, terminZuordnungen.terminId))
+    .where(and(eq(termine.vereinId, vereinId), ne(terminZuordnungen.quelle, "handball_net_uebernommen")));
   return (z?.n ?? 0) > 0;
 }
 
@@ -28,7 +30,7 @@ export async function verbieteGesperrteAenderung(
   if (!(await istStammdatenGesperrt(vereinId))) return;
   const namen = geaenderteFelder.map((f) => STAMMDATEN_FELDER[f]).join(", ");
   throw new Error(
-    `Gesperrt: ${namen} lässt sich nicht mehr direkt ändern, weil bereits Funktionsträger eingetragen sind (sonst könnten Termine und Dienste verloren gehen). ` +
+    `Gesperrt: ${namen} lässt sich nicht mehr direkt ändern, weil für Termine bereits Dienste eingetragen sind (sonst könnten sie verloren gehen). ` +
       `Bitte unter Einstellungen → Öffentliche Vereinsseite → „Änderung beantragen“ mit Grund melden.`
   );
 }
