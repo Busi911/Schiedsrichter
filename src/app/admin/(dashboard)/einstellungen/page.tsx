@@ -35,7 +35,7 @@ import { VereinLoeschenDialog } from "@/components/verein-loeschen-dialog";
 import { LigaAutoWeiter } from "@/components/liga-auto-weiter";
 import { farbtonZuHex } from "@/lib/liga-farbe";
 import { vereinsFarbton } from "@/lib/liga-pwa";
-import { PREIS_SPONSOR, KONTAKT_EMAIL } from "@/lib/beta-konditionen";
+import { ABLAUF_NACH_BETA, PREIS_SPONSOR, KONTAKT_EMAIL } from "@/lib/beta-konditionen";
 
 // Der erste Sync der öffentlichen Vereinsseite fragt nuLiga bewusst langsam
 // ab (siehe lib/nuliga/client.ts) und braucht dafür mehr als das Standard-
@@ -826,6 +826,14 @@ export default async function EinstellungenPage({
 
       <EinstellungsBereich titel="Vereinsdaten und Rechnung" kurz="Rechnungsadresse und E-Mail des Verantwortlichen" beschreibung={<>Adresse und E-Mail des Verantwortlichen bekommt die Rechnung
             (per E-Mail). Nirgends in der App öffentlich sichtbar.</>}>
+          <div className="mb-4 rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+            <p className="mb-1 font-medium text-foreground">Ablauf nach dem Ende der Beta</p>
+            <ul className="list-disc space-y-1 pl-5">
+              {ABLAUF_NACH_BETA.map((punkt) => (
+                <li key={punkt}>{punkt}</li>
+              ))}
+            </ul>
+          </div>
           <form action={vereinsdatenSpeichern} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="strasse">Straße und Hausnummer</Label>
