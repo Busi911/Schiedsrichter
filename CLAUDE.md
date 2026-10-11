@@ -450,6 +450,7 @@ in der DB bleiben es die zwei Rollen-Zeilen `zeitnehmer` + `sekretaer` (so laufe
 Neue Stellen, die Rollen anlegen, müssen `expandiereRollenTypen` nutzen. Das Lizenz-Datum wird beim Ergänzen der zweiten Rolle vom Partner übernommen.
 Migration 0093 hat den Bestand einmalig angeglichen (wer nur eine der beiden hatte, bekam die andere dazu; Rollen mit unterschiedlichem Aktiv-Status bleiben unberührt).
 Die öffentliche Eintragung (`/eintragen/[token]`) wählt die Aufgabe (Zeitnehmer ODER Sekretär) je Termin.
+Die Logik der öffentlichen Selbsteintragung (Zeitnehmer/Sekretär UND Ordner/Kioskdienst/Kassierer) steckt EINMAL in `lib/selbsteintragung.ts` (`selbstEintragenMehrfachOeffentlich`/`…Eingeloggt`, getestet in `selbsteintragung.test.ts`); `zeitnehmer-eintragen|ordner-eintragen/[token]/actions.ts` sind dünne Hüllen, die nur Rollen, Token-Spalte und die Besetzungs-/Doppelrollen-Prüfung (Zeitnehmer: harte Sperre, Ordner: Warnung) mitgeben. Änderungen an der Eintragung gehören in die Lib, nicht in die Hüllen.
 
 ## Hilfe: wo Nutzer sie finden
 
