@@ -195,14 +195,15 @@ export default async function AdminLayout({
             label: "Offene Dienste",
             icon: "dienste",
             badge: offeneDiensteAnzahl,
+            gruppe: "Planung",
           },
-          { href: "/admin/mannschaften", label: "Mannschaften", icon: "mannschaften" },
-          { href: "/admin/funktionstraeger", label: "Funktionsträger", icon: "funktionstraeger" },
-          { href: "/admin/statistik", label: "Statistik", icon: "statistik" },
-          { href: "/admin/auswertung", label: "Auswertung & Export", icon: "auswertung" },
-          { href: "/admin/einstellungen", label: "Einstellungen", icon: "einstellungen" },
-          { href: "/profil", label: "Mein Profil", icon: "profil" },
-          { href: "/hilfe", label: "Hilfe", icon: "hilfe" },
+          { href: "/admin/mannschaften", label: "Mannschaften", icon: "mannschaften", gruppe: "Planung" },
+          { href: "/admin/funktionstraeger", label: "Funktionsträger", icon: "funktionstraeger", gruppe: "Planung" },
+          { href: "/admin/statistik", label: "Statistik", icon: "statistik", gruppe: "Auswertung" },
+          { href: "/admin/auswertung", label: "Auswertung & Export", icon: "auswertung", gruppe: "Auswertung" },
+          { href: "/admin/einstellungen", label: "Einstellungen", icon: "einstellungen", gruppe: "Verein & Konto" },
+          { href: "/profil", label: "Mein Profil", icon: "profil", gruppe: "Verein & Konto" },
+          { href: "/hilfe", label: "Hilfe", icon: "hilfe", gruppe: "Verein & Konto" },
         ]}
         logoutAction={async () => {
           "use server";

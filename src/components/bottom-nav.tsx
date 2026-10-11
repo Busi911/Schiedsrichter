@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -76,18 +76,35 @@ export type BottomNavItem = {
   // Zähler als Badge (z.B. offene Dienste) — bei Einträgen im Sheet wirkt er
   // zusätzlich auf den Mehr-Tab.
   badge?: number;
+  // Überschrift im Mehr-Sheet: wechselt sie von einem Eintrag zum nächsten, steht davor eine Zwischenüberschrift.
+  gruppe?: string;
 };
 
 const MAX_TABS = 4;
 
-function Icon({ name, className }: { name: BottomNavIcon; className?: string }) {
+function Icon({
+  name,
+  className,
+}: {
+  name: BottomNavIcon;
+  className?: string;
+}) {
   const Komponente = ICONS[name];
   return <Komponente className={className} />;
 }
 
-function istAktiv(pathname: string | null, href: string, exact?: boolean, pfade?: string[]) {
-  const trifft = (h: string) => (exact ? pathname === h : pathname === h || !!pathname?.startsWith(h + "/"));
-  return trifft(href) || !!pfade?.some((p) => pathname === p || !!pathname?.startsWith(p + "/"));
+function istAktiv(
+  pathname: string | null,
+  href: string,
+  exact?: boolean,
+  pfade?: string[],
+) {
+  const trifft = (h: string) =>
+    exact ? pathname === h : pathname === h || !!pathname?.startsWith(h + "/");
+  return (
+    trifft(href) ||
+    !!pfade?.some((p) => pathname === p || !!pathname?.startsWith(p + "/"))
+  );
 }
 
 export function BottomNav({
@@ -105,7 +122,9 @@ export function BottomNav({
   const direkt = tabs.slice(0, MAX_TABS);
   const sheetItems = [...tabs.slice(MAX_TABS), ...mehrItems];
   const mehrBadge = sheetItems.reduce((summe, i) => summe + (i.badge ?? 0), 0);
-  const mehrAktiv = sheetItems.some((i) => istAktiv(pathname, i.href, i.exact, i.pfade));
+  const mehrAktiv = sheetItems.some((i) =>
+    istAktiv(pathname, i.href, i.exact, i.pfade),
+  );
 
   useEffect(() => {
     if (!offen) return;
@@ -129,24 +148,40 @@ export function BottomNav({
           aria-label="Weitere Bereiche"
           className="fixed inset-x-0 bottom-20 z-50 mx-3 flex max-h-[calc(100dvh-7rem)] flex-col gap-1 overflow-y-auto rounded-xl border bg-background p-2 shadow-xl"
         >
-          {sheetItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOffen(false)}
-              className={cn(
-                "flex min-h-12 items-center gap-3 rounded-lg px-3 text-base",
-                istAktiv(pathname, item.href, item.exact, item.pfade) ? "bg-secondary font-medium" : "hover:bg-muted"
+          {sheetItems.map((item, index) => (
+            <Fragment key={item.href}>
+              {item.gruppe && item.gruppe !== sheetItems[index - 1]?.gruppe && (
+                <p
+                  className={cn(
+                    "px-3 pb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase",
+                    index > 0 && "mt-2 border-t pt-3",
+                  )}
+                >
+                  {item.gruppe}
+                </p>
               )}
-            >
-              <LinkSymbol className="size-5 text-muted-foreground">
-                <Icon name={item.icon} className="size-5 text-muted-foreground" />
-              </LinkSymbol>
-              <span className="flex-1">{item.label}</span>
-              {!!item.badge && <Badge variant="warning">{item.badge}</Badge>}
-            </Link>
+              <Link
+                href={item.href}
+                onClick={() => setOffen(false)}
+                className={cn(
+                  "flex min-h-12 items-center gap-3 rounded-lg px-3 text-base",
+                  istAktiv(pathname, item.href, item.exact, item.pfade)
+                    ? "bg-secondary font-medium"
+                    : "hover:bg-muted",
+                )}
+              >
+                <LinkSymbol className="size-5 text-muted-foreground">
+                  <Icon
+                    name={item.icon}
+                    className="size-5 text-muted-foreground"
+                  />
+                </LinkSymbol>
+                <span className="flex-1">{item.label}</span>
+                {!!item.badge && <Badge variant="warning">{item.badge}</Badge>}
+              </Link>
+            </Fragment>
           ))}
-          <form action={logoutAction}>
+          <form action={logoutAction} className="mt-2 border-t pt-2">
             <SubmitButton
               variant="ghost"
               className="h-12 w-full justify-start gap-3 px-3 text-base font-normal"
@@ -174,7 +209,9 @@ export function BottomNav({
                   aria-current={aktiv ? "page" : undefined}
                   className={cn(
                     "flex h-full flex-col items-center justify-center gap-0.5 text-xs",
-                    aktiv ? "font-medium text-primary" : "text-muted-foreground"
+                    aktiv
+                      ? "font-medium text-primary"
+                      : "text-muted-foreground",
                   )}
                 >
                   <LinkSymbol className="size-5">
@@ -192,7 +229,9 @@ export function BottomNav({
               aria-expanded={offen}
               className={cn(
                 "relative flex h-full w-full flex-col items-center justify-center gap-0.5 text-xs",
-                offen || mehrAktiv ? "font-medium text-primary" : "text-muted-foreground"
+                offen || mehrAktiv
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground",
               )}
             >
               <span className="relative">
