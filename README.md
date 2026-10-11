@@ -596,10 +596,7 @@ Ordnerwart: Person ohne Login zuordnen. **Offen (in dieser Reihenfolge):**
 
 - ~~Ordnerwart: Bedarf pro Termin überschreiben~~ — umgesetzt (10.10.2026, Migration 0094, `ordnerBedarfUeberschreiben`).
 - ~~Ordnerwart: inaktive Rolle beim Bestätigen aktivieren~~ — umgesetzt (10.10.2026, `ordnerInaktiveRolleAktivierenUndZuordnen`, auch in der Admin-Übersicht).
-- **Wart-Seiten/Eintragen-Aktionen zusammenlegen** (Zeitnehmer · Ordner · Schiedsrichter; öffentliche Eintragen-Aktionen je ~500 Zeilen).
-  Sie sind KEINE reinen Kopien (Ordner: Warnung statt Sperre bei Doppelrolle, eigene Besetzungs-/Rollenprüfung; Zeitnehmer: harte
-  Sperre Zeitnehmer/Sekretär). Zuerst Tests für die Eintragen-Aktionen schreiben (Zusage ohne Doppelbelegung, falsche Rolle, ungültiger
-  Token), erst dann schrittweise zusammenlegen — die Aktionen sind öffentlich und schreiben per Token in den Verein.
+- ~~Wart-Seiten/Eintragen-Aktionen zusammenlegen~~ — vom Betreiber als erledigt eingestuft (11.10.2026): die öffentliche Eintragungsseite ist eine Seite für alle Dienste (`/eintragen/[token]`). Die zugrunde liegenden Aktionen (Zeitnehmer/Ordner) sind weiterhin zwei getrennte Dateien; ein Zusammenlegen wäre nur Aufräumen und braucht vorher Tests.
 - **Hallenplan-/Hallen-ID-Weg abschalten** (~4.000 Zeilen: `rundenspiel-sync`, `rundenspiel-import`, `ics-sync`, `hallenplan-*`): erst,
   wenn Freundschaftsspiele und Turniere anders gepflegt werden. Bis dahin ist der Bereich für Vereine mit abgeschaltetem Import
   ausgeblendet und bleibt als Systemadmin-Werkzeug (`/system/abgleich`).
