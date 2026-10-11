@@ -65,34 +65,10 @@ async function extrahiereOutreachEmail(seiteHtml: string): Promise<{ email: stri
     }
   }
 
-  // 4. Validierung: wenn eine Website-Domain bekannt ist und die extrahierte
-  //    E-Mail-Domain nicht dazu passt (weder identisch noch eine Subdomain
-  //    noch eine nah verwandte Domain), warnen — die Mail könnte an den
-  //    falschen Verein gehen (siehe TSV Jahn Gensungen / Eintracht Felsberg).
-  let warnung: string | null = null;
-  if (kontaktEmail && websiteDomain) {
-    const emailDomain = kontaktEmail.split("@")[1]?.toLowerCase();
-    // Freemail-/Webmail-Provider sind legitime private Vereins-Adressen —
-    // viele kleine Vereine nutzen web.de/gmail statt einer eigenen Domain.
-    // Domain-Mismatch nur bei nicht-Freemail-Domain melden.
-    if (emailDomain && !domainVerwandt(emailDomain, websiteDomain) && !FREEMAIL_DOMAINS.includes(emailDomain)) {
-      warnung = `E-Mail-Domain "${emailDomain}" passt nicht zur Website "${websiteDomain}" — möglicherweise falscher Verein`;
-    }
-  }
-
-  return { email: kontaktEmail, warnung };
-}
-
-// Prüft, ob zwei Domains verwandt sind: identisch, eine ist Subdomain der
-// anderen, oder beide haben den gleichen Haupt-Teil (zwei Level ab rechts,
-// z.B. "esg-gensungen-felsberg.de" und "www.esg-gensungen-felsberg.de").
-function domainVerwandt(a: string, b: string): boolean {
-  if (a === b) return true;
-  if (a.endsWith(`.${b}`) || b.endsWith(`.${a}`)) return true;
-  // Haupt-Teil (letzten zwei Level) vergleichen
-  const hauptA = a.split(".").slice(-2).join(".");
-  const hauptB = b.split(".").slice(-2).join(".");
-  return hauptA === hauptB;
+  // Die E-Mail kann von der Vereins-Website oder vom übergeordneten
+  // Verband/Bezirk stammen (z.B. TV Weilburg mit E-Mail @giessen-handball.de).
+  // Verbands-Adressen sind gültig — keine Domain-Validierung, die sie blockiert.
+  return { email: kontaktEmail, warnung: null };
 }
 
 const OUTREACH_KONSTANTEN = {
