@@ -3,6 +3,7 @@ import { CalendarCheckIcon, ClipboardListIcon, HeartHandshakeIcon, UsersIcon } f
 import { Logo } from "@/components/logo";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ABLAUF_NACH_BETA, NETTO } from "@/lib/beta-konditionen";
 import { DEMO_TOKEN_ORDNER } from "@/lib/demo-konstanten";
 import { demoStarten } from "./actions";
 
@@ -87,6 +88,16 @@ export default function DemoPage() {
             — wer sich dort einträgt, erscheint in der Demo beim Wart zur Bestätigung.
           </p>
         </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="font-heading text-lg font-medium">Beta und Kosten</h2>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+          {ABLAUF_NACH_BETA.map((punkt) => (
+            <li key={punkt}>{punkt}</li>
+          ))}
+        </ul>
+        <p className="text-xs text-muted-foreground">{NETTO}</p>
       </section>
 
       <p className="text-sm text-muted-foreground">

@@ -31,7 +31,7 @@ export async function GET() {
 - Übernommen werden nur öffentliche Sport-Daten, keine Personendaten wie Schiedsrichter-Namen.
 
 ## Kosten
-- Beta-Phase voraussichtlich bis ${BETA_ENDE}, kostenlos. Beta-Vereine zahlen danach ${PREIS_BETA} € netto pro Jahr, andere Vereine ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.).
+- Beta-Phase bis ${BETA_ENDE}, kostenlos. Beta-Vereine zahlen danach ${PREIS_BETA} € netto pro Jahr, andere Vereine ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.).
 
 ## Öffentliche Seiten
 - [Startseite mit Funktionen und häufigen Fragen](${basis}/)

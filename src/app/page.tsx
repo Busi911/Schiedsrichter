@@ -124,7 +124,7 @@ function faqEintraege(live: boolean) {
       frage: "Was kostet HandballerPate?",
       antwort: live
         ? `HandballerPate kostet ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Die Rechnung kommt per E-Mail, das Zahlungsziel beträgt 30 Tage. Optional kann ein Sponsor die Kosten übernehmen („Präsentiert von …“ beim Öffnen der Vereinsseite).`
-        : `Die Beta-Phase läuft voraussichtlich bis ${BETA_ENDE} und ist kostenlos. Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Vor dem Ende der Beta kann jeder Verein ohne Kosten aussteigen, dann werden alle Daten gelöscht. ${SPONSOR_KURZ}`,
+        : `Die Beta-Phase läuft bis ${BETA_ENDE} und ist kostenlos. Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Vor dem Ende der Beta kann jeder Verein ohne Kosten aussteigen, dann werden alle Daten gelöscht. ${SPONSOR_KURZ}`,
     },
     {
       frage: "Müssen sich Spieler und Eltern registrieren?",
@@ -264,7 +264,7 @@ export default async function Home() {
             ) : (
               <>
                 <p>
-                  <span className="font-medium text-foreground">Beta bis voraussichtlich {BETA_ENDE}.</span> Wer in der Beta-Phase dabei ist,
+                  <span className="font-medium text-foreground">Beta bis {BETA_ENDE}.</span> Wer in der Beta-Phase dabei ist,
                   zahlt danach nur {PREIS_BETA} € statt {PREIS_REGULAER} € im Jahr.
                 </p>
               </>
