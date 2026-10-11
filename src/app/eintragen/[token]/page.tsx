@@ -145,7 +145,7 @@ export default async function EintragenPage({
           rollenGruppen={rollenGruppen}
           submitAction={eintragenMehrfach}
           eingeloggtAls={eingeloggtePerson?.name}
-          zeigeEmailFeld={!eingeloggtePerson}
+          zeigeEmailFeld={!eingeloggtePerson && !verein.istDemo}
         />
       )}
 

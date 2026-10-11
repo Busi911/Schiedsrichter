@@ -666,6 +666,13 @@
       "when": 1791630433594,
       "tag": "0094_ordner_bedarf_override",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1791702614309,
+      "tag": "0095_verein_ist_demo",
+      "breakpoints": true
     }
   ]
 }

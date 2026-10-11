@@ -46,7 +46,9 @@ export async function holeVereinsGesundheit(jetzt = new Date()): Promise<{
         erstelltAm: vereine.erstelltAm,
         avvAkzeptiertAm: vereine.avvAkzeptiertAm,
       })
-      .from(vereine),
+      .from(vereine)
+      // Der öffentliche Demo-Verein (lib/demo-verein.ts) ist kein echter Kunde und wird jede Nacht neu angelegt.
+      .where(eq(vereine.istDemo, false)),
     adminDb
       .select({
         id: users.id,

@@ -18,6 +18,7 @@ import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
 import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { signOut } from "@/auth";
+import { verbieteImDemo } from "@/lib/demo-verein";
 
 function parseAnzahl(formData: FormData, feld: string, min = 0): number {
   const roh = formData.get(feld);
@@ -145,6 +146,7 @@ function parseHalleId(formData: FormData, feld: string): string | null {
 // funktioniert.
 export async function nuligaEinstellungenSpeichern(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
+  await verbieteImDemo(session.user.vereinId);
   const vereinId = session.user.vereinId!;
 
   const nuligaHalle1Id = parseHalleId(formData, "nuligaHalle1Id");
@@ -249,6 +251,7 @@ export async function eigeneHallenNamenSpeichern(formData: FormData) {
 // Ausmaß an Datenverlust nicht.
 export async function vereinLoeschen(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
+  await verbieteImDemo(session.user.vereinId);
   const vereinId = session.user.vereinId!;
 
   const bestaetigterName = formData.get("bestaetigterVereinsname");
@@ -299,6 +302,7 @@ async function uebernahmeNachEinrichtung(vereinId: string, bis?: number): Promis
 export async function oeffentlicheSeiteSpeichern(formData: FormData) {
   const startZeit = Date.now();
   const session = await requireAdminSchreibzugriff();
+  await verbieteImDemo(session.user.vereinId);
   const vereinId = session.user.vereinId!;
 
   const feld = (n: string) => {
@@ -395,6 +399,7 @@ async function syncNachZusatzquelle(ligaVereinId: string): Promise<never> {
 // anbinden — übernommen werden NUR Mannschaften, die zum Filter passen.
 export async function zusatzquelleHinzufuegen(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
+  await verbieteImDemo(session.user.vereinId);
   const ligaVerein = await adminDb.query.ligaVereine.findFirst({
     where: eq(ligaVereine.vereinId, session.user.vereinId!),
   });

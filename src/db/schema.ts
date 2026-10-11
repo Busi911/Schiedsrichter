@@ -165,6 +165,9 @@ export const vereine = pgTable("verein", {
   // netto/Jahr) oder "regulaer" (300 €). Der Sponsor übernimmt auf Wunsch ALLES (Vereinspreis + Werbeplatz 200 €). "bezahlt bis" setzt der
   // Systemadmin nach Zahlungseingang; "fällig am" ist die erste Zahlungsfrist, solange noch nichts bezahlt ist. Sperre erst nach Karenz, aussetzbar.
   tarif: text("tarif").$type<"befreit" | "beta" | "regulaer">().notNull().default("beta"),
+  // Der öffentliche Demo-Verein (lib/demo-verein.ts): Testdaten zum Ausprobieren ohne Anmeldung (/demo), jede Nacht zurückgesetzt. Bleibt dauerhaft im
+  // Status "vorbereitung" (unsichtbar, keine Mails) und wird bei Beta-Limit, Abrechnung und Sperre nie mitgezählt.
+  istDemo: boolean("ist_demo").notNull().default(false),
   sponsorUebernimmt: boolean("sponsor_uebernimmt").notNull().default(false),
   rechnungEmail: text("rechnung_email"),
   rechnungAnsprechpartner: text("rechnung_ansprechpartner"),

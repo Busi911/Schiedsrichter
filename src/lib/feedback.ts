@@ -3,6 +3,7 @@
 import { withTenant } from "@/db";
 import { produktFeedback } from "@/db/schema";
 import { requireSession } from "@/lib/session";
+import { verbieteImDemo } from "@/lib/demo-verein";
 
 // Niedrigschwelliger Feedback-Kanal direkt aus dem Header (siehe
 // FeedbackDialog) — Vereine testen die App gerade aktiv, ein Klick soll
@@ -10,6 +11,7 @@ import { requireSession } from "@/lib/session";
 // produkt_feedback, einsehbar vereinsübergreifend unter /system/feedback.
 export async function feedbackSenden(formData: FormData) {
   const session = await requireSession();
+  await verbieteImDemo(session.user.vereinId);
   const vereinId = session.user.vereinId!;
   const userId = session.user.id;
 

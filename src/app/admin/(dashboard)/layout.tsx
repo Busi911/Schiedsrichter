@@ -18,6 +18,7 @@ import { HilfeLink } from "@/components/hilfe-link";
 import { KopfLogo } from "@/components/kopf-logo";
 import { holeVereinsLogoInfo } from "@/lib/vereins-logo";
 import { ZahlungsHinweis } from "@/components/zahlungs-hinweis";
+import { DemoBanner } from "@/components/demo-banner";
 
 // Eigenes PWA-Icon/App-Name für den Admin-Bereich, damit "Zum Home-Bildschirm
 // hinzufügen" hier eine eigene Identität liefert statt der generischen
@@ -51,6 +52,7 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen">
+      <DemoBanner verein={verein} />
       {!session.user.treuhand && session.user.istAdmin && verein && <ZahlungsHinweis verein={verein} />}
       {session.user.treuhand && (
         <div className="border-b bg-amber-100 px-6 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">

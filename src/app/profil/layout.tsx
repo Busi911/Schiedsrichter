@@ -4,6 +4,9 @@ import { BottomNav, type BottomNavItem } from "@/components/bottom-nav";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
 import { istOrdnerwart } from "@/lib/ordnerwart";
+import { DemoBanner } from "@/components/demo-banner";
+import { DEMO_VEREIN_ID } from "@/lib/demo-konstanten";
+import { holeDemoVerein } from "@/lib/demo-verein";
 
 // /profil ist die gemeinsame Seite für ALLE Funktionsträger-Rollen (Person
 // kann gleichzeitig mehrere Rollen haben, siehe Kommentar bei
@@ -94,8 +97,11 @@ export default async function ProfilLayout({
   const nurProfil = tabs.length === 1;
   if (nurProfil) tabs.push({ href: "/hilfe", label: "Hilfe", icon: "hilfe" });
 
+  const demoVerein = vereinId === DEMO_VEREIN_ID ? await holeDemoVerein() : null;
+
   return (
     <>
+      <DemoBanner verein={demoVerein} />
       {children}
       <BottomNav
         tabs={tabs}

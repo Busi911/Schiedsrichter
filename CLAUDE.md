@@ -581,6 +581,18 @@ Systemseite `/system/abrechnung` (Reiter "Abrechnung"): je Verein Status, Betrag
 Vorab-Ankündigung: Beta-Vereine (aktiv, `tarif = beta`, kein Sponsor, noch nichts bezahlt) bekommen ab 30 Tagen vor dem Beta-Ende EINE Mail (`betaEndeInhalt`, `sollBetaEndeMailSenden`, Marke `beta-ende:0` in `zahlung_mail_marke`, im selben Cron): Beta endet, ab 1.12. kostenpflichtig (200 € netto), Zugang wird ohne Zahlung deaktiviert (Daten bleiben), Ausstieg über Einstellungen → Gefahrenzone → „Verein löschen“ oder per Mail. Bei geänderten Konditionen den Text anpassen.
 Noch NICHT automatisiert: Rechnungsstellung/-nummer, Sponsor-Rechnungsanschrift (Sponsor wird bei `/system/sponsor` gepflegt, hier nur das Kennzeichen), Zahlungseingang. Das Beta-Vereinslimit (`betaVereinLimit`, Warteliste) gilt weiterhin, solange es nicht erhöht wird.
 
+## Öffentlicher Demo-Verein (`/demo`)
+
+Interessierte Vereine probieren die Verwaltung (vor allem die Einteilung der Ehrenamtlichen) mit Testdaten aus, ohne Konto: Link `/demo` → "Demo öffnen" meldet OHNE Passwort als
+Demo-Admin an (Credentials-Provider `demo` in `auth.ts`, liefert ausschließlich den einen Admin des einen Mandanten, feste IDs in `lib/demo-konstanten.ts`). Es ist ein echter Mandant (RLS, alle
+Seiten wie sonst): `vereine.ist_demo = true` (Migration 0095), `status` bleibt dauerhaft `vorbereitung` (unsichtbar, `sendMail` unterdrückt Mails an alle Demo-Personen, kein Beta-Limit, nie gesperrt, `tarif = befreit`);
+in Systemlisten wie der Gesundheit wird er ausgeblendet. Testdaten beschreibt `lib/demo-daten.ts` (rein, getestet: Spiele in allen Besetzungsständen, Turnier, Selbsteintragungen, Abmeldeanfrage, deaktivierte Person,
+beide öffentlichen Eintragungs-Links aktiv), geschrieben von `setzeDemoVereinZurueck` (`lib/demo-verein.ts`): löscht den Demo-Verein samt Kaskade und legt ihn in EINER Transaktion neu an, Termine relativ zu "jetzt"
+(deutsche Zeit). Zurückgesetzt wird jede Nacht (Cron `/api/cron/demo-reset`, 1:30 UTC) und per "Jetzt zurücksetzen" im Demo-Banner (`components/demo-banner.tsx`, Mindestabstand 10 Minuten).
+Aktionen, die nach außen wirken, sind im Demo gesperrt (`verbieteImDemo`): Verein löschen, Verbandsseiten/Hallen-IDs/Zusatzquellen, E-Mail-Adresse ändern, ICS-Feed, Feedback. In der öffentlichen Eintragung
+wird eine E-Mail im Demo ignoriert (sonst legte jeder Besucher Konten mit fremden Adressen an und erführe, welche Adressen registriert sind). Neue Funktionen, die Mails an frei eingebbare Adressen schicken oder
+externe Dienste abrufen, müssen `verbieteImDemo` aufrufen. Die Demo-Seite ist nicht indexiert (`robots`, `noindex`).
+
 ## Systemadmin-Portal: Navigation
 
 `lib/system-navigation.ts` (`SYSTEM_BEREICHE`) ist die EINE Quelle für die Navigation: fünf Bereiche — Übersicht, Vereine (Vereine · Warteliste · Gesundheit), Abrechnung (Abrechnung · Sponsor), Spieldaten (Liga-Sync · Bundesliga · Abgleich · nuLiga-Diagnose),

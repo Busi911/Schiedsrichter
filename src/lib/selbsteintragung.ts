@@ -64,11 +64,14 @@ export async function selbstEintragenMehrfachOeffentlich(
   }
   const rolle = rolleRoh;
   const eingegebenerName = name.trim();
-  const eingegebeneEmail = typeof emailRoh === "string" ? emailRoh.trim().toLowerCase() : "";
+  let eingegebeneEmail = typeof emailRoh === "string" ? emailRoh.trim().toLowerCase() : "";
 
   // Bewusst adminDb nur für den Token-Lookup (keine Session/vereinId vorhanden), danach ausschließlich withTenant.
   const verein = await adminDb.query.vereine.findFirst({ where: eq(b.tokenSpalte, token) });
   if (!verein) return ergebnisFehler(terminIds.length, "Ungültiger oder nicht mehr aktiver Link.");
+  // Der Link des öffentlichen Demo-Vereins ist öffentlich: eine E-Mail würde hier sonst Konten mit fremden Adressen anlegen und über die Meldung "bereits
+  // einem anderen Verein zugeordnet" verraten, welche Adressen bei uns registriert sind. In der Demo zählt deshalb nur der Name.
+  if (verein.istDemo) eingegebeneEmail = "";
 
   let identitaet: SelbstEintragenIdentitaet;
   let warNeuRegistriert = false;
