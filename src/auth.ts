@@ -3,13 +3,14 @@ import type { Adapter } from "next-auth/adapters";
 import Credentials from "next-auth/providers/credentials";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
 import { mitColdStartRetry } from "@/db/retry";
 import { pruefePasswort } from "@/lib/passwort";
 import { sendMail } from "@/lib/mailer";
 import { loginMailHtml, loginMailText } from "@/lib/login-mail";
+import { DEMO_ADMIN_ID, DEMO_VEREIN_ID } from "@/lib/demo-konstanten";
 
 // Login und jede Session-Prüfung gehen bei jedem Request direkt über diesen
 // Adapter zur DB (Verifikations-Token für Magic-Link, User/Account-Lookup)
@@ -73,6 +74,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!stimmt) return null;
 
         return nutzer;
+      },
+    }),
+    // Anmeldung OHNE Passwort für den öffentlichen Demo-Verein (/demo, lib/demo-verein.ts): liefert AUSSCHLIESSLICH den einen Demo-Admin dieses einen
+    // Mandanten (feste IDs), nie eine andere Person — wer diesen Provider aufruft, landet in der Testumgebung, die jede Nacht zurückgesetzt wird.
+    Credentials({
+      id: "demo",
+      name: "Demo",
+      credentials: {},
+      async authorize() {
+        const nutzer = await mitColdStartRetry(() =>
+          db.query.users.findFirst({ where: and(eq(users.id, DEMO_ADMIN_ID), eq(users.vereinId, DEMO_VEREIN_ID)) })
+        );
+        return nutzer ?? null;
       },
     }),
     Nodemailer({

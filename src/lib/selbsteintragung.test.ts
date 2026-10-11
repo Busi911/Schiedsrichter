@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const inserts: Record<string, unknown>[] = [];
 const rollenInserts: Record<string, unknown>[] = [];
 let vorhandeneRolle: { id: string; aktiv: boolean } | null = null;
-let vereinZuToken: { id: string; name: string } | null = { id: "v1", name: "TSF" };
+let vereinZuToken: { id: string; name: string; istDemo?: boolean } | null = { id: "v1", name: "TSF" };
 let terminListe: Record<string, { id: string; vereinId: string; start: Date; ort: string | null; beschreibung: string | null }> = {};
 const mailSpy = vi.fn();
 const alleSpy = vi.fn();
@@ -37,9 +37,10 @@ vi.mock("@/db", () => ({
 vi.mock("@/db/admin", () => ({ adminDb: { query: { vereine: { findFirst: async () => vereinZuToken } } } }));
 vi.mock("@/lib/mailer", () => ({ sendMail: (...a: unknown[]) => mailSpy(...a) }));
 vi.mock("@/lib/session", () => ({ requireSession: async () => ({ user: { id: "u1", vereinId: sessionVereinId } }) }));
+const loeseSpy = vi.fn();
 vi.mock("@/lib/zuordnung", async () => {
   const echt = await vi.importActual<typeof import("@/lib/zuordnung")>("@/lib/zuordnung");
-  return { ...echt, sendeMailAnAlle: (...a: unknown[]) => alleSpy(...a), loeseIdentitaetPerEmailAuf: vi.fn() };
+  return { ...echt, sendeMailAnAlle: (...a: unknown[]) => alleSpy(...a), loeseIdentitaetPerEmailAuf: (...a: unknown[]) => loeseSpy(...a) };
 });
 
 let currentTerminIndex = 0;
@@ -82,6 +83,7 @@ beforeEach(() => {
   sessionVereinId = "v1";
   mailSpy.mockReset();
   alleSpy.mockReset();
+  loeseSpy.mockReset();
 });
 
 describe("selbstEintragenMehrfachOeffentlich", () => {
@@ -105,6 +107,19 @@ describe("selbstEintragenMehrfachOeffentlich", () => {
     expect((await selbstEintragenMehrfachOeffentlich(bereich(), formular({ token: "tok", name: "A", rolle: "zeitnehmer" }))).fehler).toBe(
       "Bitte mindestens einen Termin auswählen."
     );
+  });
+
+  it("im Demo-Verein wird eine E-Mail ignoriert (keine fremden Konten, keine Auskunft über registrierte Adressen)", async () => {
+    vereinZuToken = { id: "v1", name: "Demo", istDemo: true };
+    const r = await selbstEintragenMehrfachOeffentlich(bereich(), formular({ ...basis, email: "irgendwer@example.test" }));
+    expect(loeseSpy).not.toHaveBeenCalled();
+    expect(r.eingetragen).toBe(1);
+  });
+
+  it("außerhalb der Demo wird die E-Mail zur Identitätsauflösung verwendet", async () => {
+    loeseSpy.mockResolvedValue({ identitaet: { art: "userId", userId: "u-neu", email: "neu@example.test" }, warNeuRegistriert: false });
+    await selbstEintragenMehrfachOeffentlich(bereich(), formular({ ...basis, email: "Neu@Example.test" }));
+    expect(loeseSpy).toHaveBeenCalledWith("v1", "neu@example.test", "Anna Beispiel", "zeitnehmer");
   });
 
   it("ordnet bei exaktem Namenstreffer der Person zu und informiert sie in EINER Mail", async () => {

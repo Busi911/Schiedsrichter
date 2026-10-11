@@ -11,6 +11,7 @@ const publicRoutes = [
   "/verein",
   "/meine",
   "/app-hilfe",
+  "/demo",
   "/sitemap.xml",
   "/robots.txt",
   "/llms.txt",

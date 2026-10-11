@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ADD COLUMN "ist_demo" boolean DEFAULT false NOT NULL;

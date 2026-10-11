@@ -1,0 +1,59 @@
+import { describe, expect, it } from "vitest";
+import { baueDemoDaten, demoEmail, DEMO_EMAIL_DOMAIN } from "./demo-daten";
+
+describe("baueDemoDaten", () => {
+  const d = baueDemoDaten();
+
+  it("hat eindeutige Schlüssel für Personen und Termine", () => {
+    expect(new Set(d.personen.map((p) => p.key)).size).toBe(d.personen.length);
+    expect(new Set(d.termine.map((t) => t.key)).size).toBe(d.termine.length);
+    expect(new Set(d.personen.map((p) => demoEmail(p.key))).size).toBe(d.personen.length);
+  });
+
+  it("alle Zuordnungen verweisen auf vorhandene Termine, Personen und Vorschläge", () => {
+    const termine = new Set(d.termine.map((t) => t.key));
+    const personen = new Set(d.personen.map((p) => p.key));
+    for (const z of d.zuordnungen) {
+      expect(termine.has(z.termin), `Termin ${z.termin}`).toBe(true);
+      if (z.person) expect(personen.has(z.person), `Person ${z.person}`).toBe(true);
+      if (z.vorschlag) expect(personen.has(z.vorschlag), `Vorschlag ${z.vorschlag}`).toBe(true);
+      // Entweder eine Person (zugeordnet) ODER ein Name zur Bestätigung (Selbsteintragung)
+      expect(Boolean(z.person) !== Boolean(z.externerName)).toBe(true);
+    }
+  });
+
+  it("Mannschaften in Terminen, Trainer-Rollen und Trainingsplan existieren", () => {
+    const namen = new Set(d.mannschaften.map((m) => m.name));
+    for (const t of d.termine) expect(namen.has(t.mannschaft), t.mannschaft).toBe(true);
+    for (const p of d.personen) for (const r of p.rollen) if (r.mannschaft) expect(namen.has(r.mannschaft), r.mannschaft).toBe(true);
+    for (const e of d.trainingsplan) expect(namen.has(e.mannschaft), e.mannschaft).toBe(true);
+  });
+
+  it("zeigt künftige Spiele in allen Besetzungsständen und genau ein vergangenes mit Ergebnis", () => {
+    expect(d.termine.filter((t) => t.tage < 0)).toHaveLength(1);
+    expect(d.termine.find((t) => t.tage < 0)?.ergebnis).toBeDefined();
+    const zuordnungenJeTermin = (key: string) => d.zuordnungen.filter((z) => z.termin === key && z.person).length;
+    const künftig = d.termine.filter((t) => t.tage > 0);
+    expect(künftig.some((t) => zuordnungenJeTermin(t.key) >= 6)).toBe(true); // (fast) vollständig
+    expect(künftig.some((t) => zuordnungenJeTermin(t.key) > 0 && zuordnungenJeTermin(t.key) < 5)).toBe(true); // teilweise
+    expect(künftig.some((t) => zuordnungenJeTermin(t.key) === 0)).toBe(true); // leer
+  });
+
+  it("enthält die Fälle, die die Demo zeigen soll: Selbsteintragungen, Abmeldeanfrage, deaktivierte Person, Turnier", () => {
+    expect(d.zuordnungen.filter((z) => z.quelle === "selbst_eingetragen_oeffentlich" && z.externerName).length).toBeGreaterThanOrEqual(3);
+    expect(d.zuordnungen.some((z) => z.abmeldung)).toBe(true);
+    expect(d.personen.some((p) => p.rollen.some((r) => r.aktiv === false))).toBe(true);
+    expect(d.termine.some((t) => t.typ === "turnier")).toBe(true);
+  });
+
+  it("alle Demo-Adressen liegen unter der Demo-Domain", () => {
+    for (const p of d.personen) expect(demoEmail(p.key).endsWith(`@${DEMO_EMAIL_DOMAIN}`)).toBe(true);
+  });
+
+  it("Zeitnehmer/Sekretär-Personen haben immer beide Rollen (eine Funktion)", () => {
+    for (const p of d.personen) {
+      const typen = p.rollen.map((r) => r.typ);
+      expect(typen.includes("zeitnehmer")).toBe(typen.includes("sekretaer"));
+    }
+  });
+});

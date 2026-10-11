@@ -28,6 +28,7 @@ import {
   pruefeBesetzungsgrenze,
   pruefeKeineDoppelrolle,
 } from "@/lib/zuordnung";
+import { verbieteImDemo } from "@/lib/demo-verein";
 
 // Selbstverwaltung der eigenen Stammdaten (Name, Telefonnummer) — die
 // E-Mail-Adresse (login-kritisch) läuft bewusst über einen eigenen Flow mit
@@ -84,6 +85,7 @@ function emailAenderungBestaetigenInhalt(
 // Verantwortung für die Richtigkeit).
 export async function emailAendernAnfordern(formData: FormData) {
   const session = await requireSession();
+  await verbieteImDemo(session.user.vereinId);
   const vereinId = session.user.vereinId!;
   const userId = session.user.id;
 
@@ -259,6 +261,7 @@ export async function updateBenachrichtigungen(formData: FormData) {
 
 export async function updateIcsFeedUrl(formData: FormData) {
   const session = await requireSession();
+  await verbieteImDemo(session.user.vereinId);
   const vereinId = session.user.vereinId!;
   const userId = session.user.id;
 
@@ -481,6 +484,7 @@ export async function selbstAbmelden(formData: FormData) {
 
 export async function syncJetzt() {
   const session = await requireSession();
+  await verbieteImDemo(session.user.vereinId);
   try {
     await syncSchiedsrichterIcsFeed(session.user.vereinId!, session.user.id);
   } catch {
