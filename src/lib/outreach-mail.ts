@@ -5,7 +5,7 @@ import { BETA_ENDE, KEIN_RISIKO, PREIS_BETA, PREIS_REGULAER, PREIS_SPONSOR } fro
 
 // Outreach-Mail an einen Verein, der über den nuLiga-Index gefunden und
 // automatisch eingerichtet wurde. Enthält einen Vorschau-Link (7 Tage gültig),
-// damit der Verein die App direkt ausprobieren kann. Die E-Mail-Adresse stammt
+// damit der Verein die App direkt ausprobieren kann, und den Link zur Demo der Verwaltung (/demo, lib/demo-verein.ts). Die E-Mail-Adresse stammt
 // aus dem nuLiga-Kontaktbereich oder dem Impressum der Vereinswebsite — der
 // DSGVO-Hinweis ist deshalb bewusst generisch (Art. 6 Abs. 1 lit. f DSGVO).
 export function outreachInhalt(opt: {
@@ -42,6 +42,8 @@ export function outreachInhalt(opt: {
       ...(retryHinweis ? [retryHinweis] : []),
       { text: opt.vorschauUrl, stark: true, neueGruppe: true },
       `2. Für den Verein: Schiedsrichter, Zeitnehmer, Ordner und Kiosk bei Heimspielen einteilen. Der Spielplan kommt automatisch aus nuLiga, Verlegungen und Erinnerungen gehen per Mail raus, offene Dienste sehen Sie auf einen Blick.`,
+      `Auch diesen Teil können Sie sofort ansehen: als Demo mit Testdaten, ohne Anmeldung. Alles darf ausprobiert werden (Personen zuteilen, Bedarf anpassen), nachts wird die Demo zurückgesetzt, es werden keine E-Mails verschickt:`,
+      { text: `${appUrl()}/demo`, stark: true, neueGruppe: true },
       `Falls der ${opt.vereinsname} Spielgemeinschaften oder höherklassige Mannschaften hat, die unter einem anderen Verein bei nuLiga geführt werden — die lassen sich nach der Übernahme unter „Einstellungen → Zusatzquellen“ hinzufügen, sodass auch diese Spiele im Plan erscheinen.`,
       { text: `Das alles ist in der Beta-Phase für Sie kostenlos — Sie können alles in Ruhe ausprobieren, völlig unverbindlich. ${KEIN_RISIKO} Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto im Jahr. Die Beta läuft voraussichtlich bis ${BETA_ENDE}, die Vorschau ist bis ${DATUM.format(opt.gueltigBis)} gültig.`, neueGruppe: true },
       `Optional: Ein Sponsor kann die Kosten übernehmen — dafür erscheint beim Öffnen der Vereinsseite kurz sein Bild. Der Sponsor zahlt ${PREIS_SPONSOR} € im Jahr für den Platz und zusätzlich den Jahrespreis des Vereins (${PREIS_BETA} €). Falls das interessant ist, einfach bei der Übernahme Bescheid geben.`,

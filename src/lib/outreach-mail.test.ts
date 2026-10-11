@@ -41,6 +41,15 @@ describe("outreachInhalt", () => {
     expect(inhalt.vorschauUrl).toBe("https://handballerpate.de/verein/hsg-linden/vorschau/abc");
   });
 
+  it("verlinkt die Demo der Verwaltung zusätzlich zur Vorschau und zum Test-Button", () => {
+    const text = JSON.stringify(inhalt.zeilen);
+    expect(text).toContain("/demo");
+    expect(text).toContain("Demo mit Testdaten");
+    // Vorschau-Link und CTA bleiben unverändert erhalten
+    expect(inhalt.vorschauUrl).toBe("https://handballerpate.de/verein/hsg-linden/vorschau/abc");
+    expect(inhalt.cta?.text).toBe("Kostenlos testen");
+  });
+
   it("hat einen Abmelde-Hinweis", () => {
     expect(inhalt.abmelden?.url).toContain("/api/outreach/abmelden/");
     expect(inhalt.kleingedrucktes).toContain("berechtigten Interesse");
