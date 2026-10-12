@@ -19,16 +19,6 @@ export async function GET(request: Request) {
   const unauthorized = pruefeCronSecret(request);
   if (unauthorized) return unauthorized;
 
-  // DEBUG: Test if module-level imports work
-  try {
-    void adminDb;
-    void holeHandballNetApi;
-    void holeNuligaHtml;
-    void synchronisiereFaellige;
-  } catch (importErr) {
-    return Response.json({ fehler: "Import-Fehler", details: importErr instanceof Error ? importErr.message : String(importErr) });
-  }
-
   // Letzter bekannter Schritt mit Uhrzeit: zeigt im Log, WO ein Lauf hängt (nuLiga, handball.net, DB).
   const start = Date.now();
   let schritt = "Start";

@@ -111,7 +111,7 @@ export async function synchronisiereFaellige(
           and(
             inArray(vereinVorschauLinks.vereinId, [...vorbereitungVereinIds]),
             sql`${vereinVorschauLinks.widerrufenAm} IS NULL`,
-            sql`${vereinVorschauLinks.gueltigBis} > ${jetzts}`
+            sql`${vereinVorschauLinks.gueltigBis} > ${new Date(jetzts)}`
           )
         );
       const mitGueltigemLink = new Set(gueltigeLinks.map((l) => l.vereinId));
