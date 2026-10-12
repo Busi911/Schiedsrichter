@@ -475,8 +475,8 @@ der EIGENEN Mannschaften (nuLiga: Team-Portrait, handball.net: Abfrage mit team_
 `nuliga_vereinsindex` (Migration 0079, nur `adminDb`, `app_user` ohne Zugriff) enthält ALLE Vereine des Verbands aus der nuLiga-Vereinssuche
 (`clubSearch?federation=HHV`, Startseite → je Bezirk eine Seite; `parsers/vereinsuche.ts`, bewusst über Links statt Tabellenpositionen:
 Anker mit `club=` = Verein, Anker mit `regionName=` = Bezirk). WICHTIG: die sichtbare Vereinsnummer (z.B. 14194) ist NIE die interne
-club-ID (z.B. 76446) — nur die ID aus dem Link zählt, `nummer` wird getrennt geführt. Befüllt vom Cron `/api/cron/nuliga-vereinsindex` (täglich
-3:20 UTC, Frist 45 s, `lib/nuliga/vereinsindex.ts`; ein Teillauf löscht nie, nur ein vollständiger Lauf entfernt Veraltetes) oder per Button.
+club-ID (z.B. 76446) — nur die ID aus dem Link zählt, `nummer` wird getrennt geführt. Befüllt vom Cron `/api/cron/nuliga-vereinsindex` (wöchentlich
+sonntags 3:20 UTC, Frist 45 s, `lib/nuliga/vereinsindex.ts`; ein Teillauf löscht nie, nur ein vollständiger Lauf entfernt Veraltetes) oder per Button.
 `/system/vereine`: Suche im Index → "Automatisch einrichten" (`vereinAusNuligaEinrichten`): Verein in Vorbereitung anlegen, `liga_verein` mit
 club-ID, Vereinsseite lesen (`parsers/vereinsinfo.ts`: Whitelist Name/Nummer/Gründung/Website/Stammvereine/Hallen — nie Telefon, E-Mail,
 Anschrift, Ansprechpartner), Hallen als "Eure Spielhallen" vorschlagen, Mannschaften/Spiele laden, Termine anlegen; Ergebnis als Checkliste
@@ -492,7 +492,7 @@ Content-Type nur als Hinweis (nuLiga darf `application/octet-stream` liefern), e
 nur geprüft: `pruefeOriginalLogo`) in `liga_verein_logo` (Postgres bytea, KEIN Blob-Dienst; Spalte `mime`, Migration 0082; Uploads bleiben normalisierte PNGs), ausgeliefert über `/verein/[slug]/logo` mit gespeichertem MIME-Typ (nie Hotlink), Anzeige überall `object-contain`. Migration 0080: `liga_verein_logo.quelle` ("upload" | "nuliga"), `quell_pfad`, `quell_hash` (SHA-256 der Originaldatei),
 `abgerufen_am`; `liga_verein.logo_geprueft_am`, `logo_auto_aus`. Regeln: ein hochgeladenes Logo (`quelle = upload`) wird nie überschrieben; entfernt der Verein sein Logo, wird `logo_auto_aus`
 gesetzt (nicht neu holen; ein Upload hebt es auf); gleicher Hash = kein Neuverarbeiten und kein neuer Cache-Buster (`aktualisiert_am` bleibt); jede Prüfung setzt `logo_geprueft_am`.
-Cron `/api/cron/nuliga-logos` (täglich 3:50 UTC, je Verein höchstens alle 7 Tage, Frist 40 s). Ohne Logo: Avatar mit Initialen (`components/liga/vereins-avatar.tsx`,
+Cron `/api/cron/nuliga-logos` (wöchentlich sonntags 3:50 UTC, je Verein höchstens alle 7 Tage, Frist 40 s). Ohne Logo: Avatar mit Initialen (`components/liga/vereins-avatar.tsx`,
 `vereinsInitialen`), nie ein kaputtes Bild; in der Vereinssuche (`/verein`, Startseite) angezeigt. Die Fixtures sind nachgebaut (siehe oben), die Bild-Erkennung gegen die echte Seite UNGEPRÜFT.
 
 **Hallen auf der nuLiga-Vereinsseite:** kein Tabellenfeld, sondern ein Abschnitt "Hallen" mit Links (`findeHallen` in `parsers/vereinsinfo.ts`): ein Element, dessen ganzer Text "Hallen" ist, danach die Links bis zur
