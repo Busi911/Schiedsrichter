@@ -14,6 +14,8 @@ Legende: **Aufwand** S ≤ 1 Tag · M 2–4 Tage · L ≥ 1 Woche.
 
 ---
 
+> **Umsetzungsstand 12.10.2026:** Phase 1 und große Teile von Phase 2 sind in PR #373 umgesetzt (Branch `feature/mobile-spielstatus-navigation`). Statt eines erweiterten `spielPhase`-Enums gibt es `ergebnisHinweis` (1.2). Offen: 0.1/0.2 (Seed + Playwright-Smoke), 1.2 (Enum), 2.9 (Sponsor-Dialog), Phase 3 ff. (außer 3.7 Karten-Link zur Halle).
+
 ## Phase 0 – Absicherung (Voraussetzung, S–M)
 
 - [ ] **0.1 Seed für die Fan-App:** ein Skript, das einen öffentlichen Verein mit Mannschaften, Tabellen und Spielen in allen Phasen anlegt: vergangen bestätigt, vorläufig, gestern ohne Ergebnis, läuft gerade, heute später, verlegt, abgesagt, kommend.
@@ -26,7 +28,7 @@ Legende: **Aufwand** S ≤ 1 Tag · M 2–4 Tage · L ≥ 1 Woche.
   - eine `h1`
 
   Abnahme: läuft lokal und in CI (eigener Workflow, nicht im normalen `npm test`).
-- [ ] **0.3 Regressionstests für die bekannten Statusfehler** in `liga-spiele-hilfen.test.ts` / `liga-spiel-status.test.ts`. Zuerst **rot** schreiben (dokumentiert den Fehler):
+- [x] **0.3 Regressionstests für die bekannten Statusfehler** in `liga-spiele-hilfen.test.ts` / `liga-spiel-status.test.ts`. Zuerst **rot** schreiben (dokumentiert den Fehler):
   - laufendes Spiel ist nicht „vergangen“
   - gestern ohne Ergebnis wird angezeigt
   - abgesagtes vergangenes Spiel wird angezeigt
@@ -35,34 +37,34 @@ Legende: **Aufwand** S ≤ 1 Tag · M 2–4 Tage · L ≥ 1 Woche.
 
 ## Phase 1 – Korrektheit am Spieltag (P0, ~2 Tage)
 
-- [ ] **1.1 Entscheidung Zwischenstand** (Betreiber): Variante A (empfohlen) zeigt keine Zahl während des Spiels, sondern „Läuft gerade“ und danach „Ergebnis folgt“. Variante B zeigt die Zahl mit „Stand HH:MM“.
+- [x] **1.1 Entscheidung Zwischenstand** (Betreiber): Variante A (empfohlen) zeigt keine Zahl während des Spiels, sondern „Läuft gerade“ und danach „Ergebnis folgt“. Variante B zeigt die Zahl mit „Stand HH:MM“.
   - Ergebnis in `CLAUDE.md` (Abschnitt Spielbericht-Link/Live-Ticker) festhalten.
 - [ ] **1.2 `spielPhase` erweitern** (`lib/liga-spiel-status.ts`): `geplant · laeuft · ergebnis_folgt · ausstehend · beendet · vorlaeufig · verlegt · abgesagt · nicht_angetreten`. Tests für alle Grenzen (90 min, 3 h, Tageswechsel in deutscher Zeit).
-- [ ] **1.3 Listenlogik auf `spielPhase`** (`lib/liga-spiele-hilfen.ts`):
+- [x] **1.3 Listenlogik auf `spielPhase`** (`lib/liga-spiele-hilfen.ts`):
   - `sammleVereinsSpiele` liefert zusätzlich `heute` (laufend, ergebnis_folgt, heute geplant).
   - „ausstehend“ erscheint unter Ergebnisse mit Hinweis „Ergebnis ausstehend“.
   - Abgesagte Spiele bleiben mit Status sichtbar.
   - Abnahme: Tests aus 0.3 grün.
-- [ ] **1.4 `SpielKarte` nach Entscheidung 1.1** (`components/liga/liga-ui.tsx`) und `/meine` (`meine-mannschaften.tsx`) angleichen: dieselbe Phase, dieselben Texte.
+- [x] **1.4 `SpielKarte` nach Entscheidung 1.1** (`components/liga/liga-ui.tsx`) und `/meine` (`meine-mannschaften.tsx`) angleichen: dieselbe Phase, dieselben Texte.
   - „vorläufig“ ausschreiben statt „*“.
   - Status-Badge „Verlegt“/„Abgesagt“ auf `/meine` (`status` liefert die API schon).
-- [ ] **1.5 Mannschafts-Übersicht** (`app/verein/[slug]/[team]/page.tsx`): „Letztes Ergebnis“ nimmt nur beendete Spiele. Ein laufendes Spiel erscheint als eigener Block „Läuft gerade“ über „Nächstes Spiel“.
-- [ ] **1.6 Bereich „Heute“** oben auf `/verein/<slug>` und `/spiele`, nur wenn es heute Spiele gibt.
-- [ ] **1.7 Hilfetexte prüfen:** `/app-hilfe` (Abschnitt `spiele`) und `/hilfe` müssen der Umsetzung entsprechen.
-- [ ] **1.8 Startseite:** `hyphens-auto` an der Hero-H1 (`app/page.tsx`). Abnahme: kein Überlauf bei 360 px (Smoke 0.2).
+- [x] **1.5 Mannschafts-Übersicht** (`app/verein/[slug]/[team]/page.tsx`): „Letztes Ergebnis“ nimmt nur beendete Spiele. Ein laufendes Spiel erscheint als eigener Block „Läuft gerade“ über „Nächstes Spiel“.
+- [x] **1.6 Bereich „Heute“** oben auf `/verein/<slug>` und `/spiele`, nur wenn es heute Spiele gibt.
+- [x] **1.7 Hilfetexte prüfen:** `/app-hilfe` (Abschnitt `spiele`) und `/hilfe` müssen der Umsetzung entsprechen.
+- [x] **1.8 Startseite:** `hyphens-auto` an der Hero-H1 (`app/page.tsx`). Abnahme: kein Überlauf bei 360 px (Smoke 0.2).
 
 ---
 
 ## Phase 2 – Navigation ohne Sackgassen + Bedienbarkeit (P1, ~2–3 Tage)
 
-- [ ] **2.1 Bottom-Bar auf Mannschaftsseiten:** `components/liga/vereins-nav.tsx` markiert unter `/<team>` „Teams“ als aktiv statt `null` zu liefern. `pb-28 md:pb-0` im `[team]/layout.tsx`.
-- [ ] **2.2 Teamkopf kompakt** (`[team]/layout.tsx`):
+- [x] **2.1 Bottom-Bar auf Mannschaftsseiten:** `components/liga/vereins-nav.tsx` markiert unter `/<team>` „Teams“ als aktiv statt `null` zu liefern. `pb-28 md:pb-0` im `[team]/layout.tsx`.
+- [x] **2.2 Teamkopf kompakt** (`[team]/layout.tsx`):
   - Vereinsname nur einmal.
   - Zurück über `components/zurueck-button.tsx` (Historie), Fallback `/verein/<slug>/mannschaften`.
   - Liga und Platz in einer Zeile.
-- [ ] **2.3 Team-Wechsler:** neues Client-Sheet `components/liga/team-wechsler.tsx`. Tippen auf den Mannschaftsnamen zeigt alle Mannschaften, Favoriten oben. Daten aus dem schon geladenen `holeMannschaften`, kein neuer Request.
+- [x] **2.3 Team-Wechsler:** neues Client-Sheet `components/liga/team-wechsler.tsx`. Tippen auf den Mannschaftsnamen zeigt alle Mannschaften, Favoriten oben. Daten aus dem schon geladenen `holeMannschaften`, kein neuer Request.
   - Abnahme: Wechsel in 2 Taps, Fokusführung, Esc schließt.
-- [ ] **2.4 Tippflächen ≥ 44 px:**
+- [x] **2.4 Tippflächen ≥ 44 px:**
   - `favorit-stern.tsx` (`size-11`)
   - `installieren.tsx` (Schließen)
   - Links „Spielbericht“/„Live-Ticker“ in `liga-ui.tsx` (`min-h-11 inline-flex items-center`)
@@ -72,14 +74,14 @@ Legende: **Aufwand** S ≤ 1 Tag · M 2–4 Tage · L ≥ 1 Woche.
   - `app/app-hilfe/page.tsx`
 
   Abnahme: Smoke 0.2 ohne Allowlist-Einträge für diese Elemente.
-- [ ] **2.5 Lesbarkeit und Bewegung:**
+- [x] **2.5 Lesbarkeit und Bewegung:**
   - `text-[10px]`/`text-[11px]` in `liga-ui.tsx` und `statistik-karte.tsx` → mindestens `text-xs`.
   - `motion-safe:animate-pulse` am Live-Punkt.
   - Sieg/Unentschieden/Niederlage zusätzlich als Buchstabe.
   - `FormChips` mit `role="img"`.
-- [ ] **2.6 Konsistenz:** `mitAusgang` auch in `[team]/ergebnisse/page.tsx`. Datumsformat einheitlich (`formatSpieltag` mit „Uhr“).
-- [ ] **2.7 Filter-Chips:** `flex-auto` entfernen (keine einsame volle Zeile). Bei mehr als 4 Chips horizontal scrollbar mit `snap-x`.
-- [ ] **2.8 Zustände:**
+- [x] **2.6 Konsistenz:** `mitAusgang` auch in `[team]/ergebnisse/page.tsx`. Datumsformat einheitlich (`formatSpieltag` mit „Uhr“).
+- [x] **2.7 Filter-Chips:** `flex-auto` entfernen (keine einsame volle Zeile). Bei mehr als 4 Chips horizontal scrollbar mit `snap-x`.
+- [x] **2.8 Zustände:**
   - `loading.tsx` (Skeleton) für `verein/[slug]`, `verein/[slug]/[team]` und `meine`.
   - `not-found.tsx` (deutsch, mit Vereinssuche) global und unter `verein/[slug]`.
   - Skeleton statt „Lädt…“ auf `/meine`.
@@ -109,7 +111,7 @@ Legende: **Aufwand** S ≤ 1 Tag · M 2–4 Tage · L ≥ 1 Woche.
   - Tests: Format und Escaping.
   - Datenschutzseite um einen Satz ergänzen (keine Personendaten).
 - [ ] **3.6 Teilen:** `components/liga/teilen-button.tsx` (`navigator.share`, Fallback Zwischenablage mit `aria-live`-Hinweis) auf Spielzeile, Mannschaftskopf und Vereinskopf. Text ohne Tracking-Parameter.
-- [ ] **3.7 Karten-Link zur Halle:** `halle_name` als Link (Kartensuche per Name, keine Speicherung). Bei Heimspielen in eigener Halle Hinweis „Heimspiel“.
+- [x] **3.7 Karten-Link zur Halle:** `halle_name` als Link (Kartensuche per Name, keine Speicherung). Bei Heimspielen in eigener Halle Hinweis „Heimspiel“.
 - [ ] **3.8 Folgen statt Stern:**
   - `favorit-stern.tsx`-Variante mit Text („Folgen“ / „Folge ich“) im Team- und Vereinskopf.
   - Nach dem ersten Folgen ein Toast mit Link zu „Meine“.
