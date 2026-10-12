@@ -98,7 +98,7 @@ export function GefilterteListe({ eintraege, leerText }: { eintraege: ListenEint
         tage.map((t) => (
           <section key={t.tag} className="space-y-2">
             <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">{t.tag}</h2>
-            <div className="grid gap-2.5">
+            <div className="grid grid-cols-1 gap-2.5">
               {t.eintraege.map((e) => (
                 <div key={e.id}>{e.knoten}</div>
               ))}
