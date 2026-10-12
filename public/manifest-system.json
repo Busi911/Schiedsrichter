@@ -2,6 +2,7 @@
   "name": "HandballerPate Systemadmin",
   "short_name": "HP System",
   "description": "Vereinsübergreifende Systemverwaltung im HandballerPate",
+  "id": "/system",
   "start_url": "/system",
   "scope": "/",
   "display": "standalone",
@@ -26,6 +27,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/system-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

@@ -2,6 +2,7 @@
   "name": "HandballerPate Schiedsrichterwart",
   "short_name": "SR-Wart",
   "description": "Schiedsrichter-Ressourcenplanung im HandballerPate",
+  "id": "/profil/schiedsrichterwart",
   "start_url": "/profil/schiedsrichterwart",
   "scope": "/",
   "display": "standalone",
@@ -26,6 +27,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/schiedsrichterwart-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

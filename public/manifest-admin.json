@@ -2,6 +2,7 @@
   "name": "HandballerPate Admin",
   "short_name": "HP Admin",
   "description": "Vereinsverwaltung im HandballerPate",
+  "id": "/admin",
   "start_url": "/admin",
   "scope": "/",
   "display": "standalone",
@@ -26,6 +27,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/admin-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

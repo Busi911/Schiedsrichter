@@ -2,6 +2,7 @@
   "name": "HandballerPate Ordnerwart",
   "short_name": "Ordnerwart",
   "description": "Ordner-/Kioskdienst-Ressourcenplanung im HandballerPate",
+  "id": "/profil/ordnerwart",
   "start_url": "/profil/ordnerwart",
   "scope": "/",
   "display": "standalone",
@@ -26,6 +27,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/ordnerwart-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
