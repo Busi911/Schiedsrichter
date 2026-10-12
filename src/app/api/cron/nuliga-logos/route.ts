@@ -11,8 +11,8 @@ import { baueNuligaUrl } from "@/lib/nuliga/verbaende";
 
 export const maxDuration = 60;
 
-// Täglich: Vereinslogos aus nuLiga prüfen. Je Verein höchstens alle 7 Tage (logo_geprueft_am); die am längsten
-// ungeprüften zuerst, Frist 40 s, der Rest folgt am nächsten Tag. Vereinslogo-Pfad (wodata) wird dafür jedes
+// Wöchentlich (sonntags): Vereinslogos aus nuLiga prüfen. Je Verein höchstens alle 7 Tage (logo_geprueft_am); die am längsten
+// ungeprüften zuerst, Frist 40 s, der Rest folgt im nächsten Lauf. Vereinslogo-Pfad (wodata) wird dafür jedes
 // Mal frisch aus der Vereinsseite gelesen. Eigene/entfernte Logos werden nie angefasst (siehe lib/nuliga/logo.ts).
 export async function GET(request: Request) {
   const unauthorized = pruefeCronSecret(request);
