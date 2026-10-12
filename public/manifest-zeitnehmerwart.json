@@ -2,6 +2,7 @@
   "name": "HandballerPate Zeitnehmerwart",
   "short_name": "ZN-Wart",
   "description": "Zeitnehmer-/Sekretär-Ressourcenplanung im HandballerPate",
+  "id": "/profil/zeitnehmerwart",
   "start_url": "/profil/zeitnehmerwart",
   "scope": "/",
   "display": "standalone",
@@ -26,6 +27,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/zeitnehmerwart-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
