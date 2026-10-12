@@ -15,6 +15,7 @@ export const SYSTEM_BEREICHE: SystemBereich[] = [
       { href: "/system/vereine", label: "Vereine" },
       { href: "/system/warteliste", label: "Warteliste" },
       { href: "/system/gesundheit", label: "Gesundheit" },
+      { href: "/system/ansprache", label: "Ansprache" },
       { href: "/system/aenderungen", label: "Änderungen" },
     ],
   },
