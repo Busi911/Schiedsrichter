@@ -62,6 +62,9 @@ export async function GET(request: Request) {
       return Response.json({ abgebrochen: true, letzterSchritt: schritt });
     }
     return Response.json({ synchronisiert: ergebnisse.length, ergebnisse });
+  } catch (err) {
+    console.error(`[liga-sync] Fehler (Schritt: ${schritt}):`, err);
+    return Response.json({ fehler: err instanceof Error ? err.message : String(err), letzterSchritt: schritt });
   } finally {
     clearTimeout(timer);
   }
