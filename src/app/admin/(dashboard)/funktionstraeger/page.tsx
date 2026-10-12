@@ -7,7 +7,12 @@ import { findeFunktionstraegerDuplikate } from "@/lib/funktionstraeger-duplikate
 import {
   funktionstraegerImportieren,
   funktionstraegerZusammenfuehren,
+  trainerLinkDeaktivieren,
+  trainerLinkErneuern,
 } from "../actions";
+import { SelbsteintragungLink } from "@/components/selbsteintragung-link";
+import { WeitereOptionen } from "@/components/weitere-optionen";
+import { appUrl } from "@/lib/app-url";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -277,6 +282,57 @@ export default async function FunktionstraegerPage({
                     Verknüpfen
                   </ConfirmSubmitButton>
                 </form>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {session.user.istAdmin && mannschaftsListe.length > 0 && (
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <CardTitle>Trainer-Links pro Mannschaft</CardTitle>
+            <CardDescription>
+              Mit dem Link einer Mannschaft tragen sich ihre Trainer selbst ein (Name und E-Mail, kein Login nötig). Die Eintragung bleibt inaktiv, bis
+              du sie hier in der Liste freischaltest — du bekommst dazu eine Mail.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {mannschaftsListe.map((m) => (
+              <div key={m.id} className="flex flex-col gap-2 border-b pb-4 last:border-b-0 last:pb-0">
+                <p className="text-sm font-medium">{m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name}</p>
+                {m.trainerEinladungToken ? (
+                  <SelbsteintragungLink
+                    url={`${appUrl()}/trainer-eintragen/${m.trainerEinladungToken}`}
+                    teilText={`Trag dich hier als Trainer von ${m.name} ein:`}
+                  />
+                ) : null}
+                <WeitereOptionen eingeklappt={!!m.trainerEinladungToken}>
+                  <form action={trainerLinkErneuern}>
+                    <input type="hidden" name="mannschaftId" value={m.id} />
+                    {m.trainerEinladungToken ? (
+                      <ConfirmSubmitButton
+                        variant="outline"
+                        size="sm"
+                        confirmText="Link neu generieren? Der alte Link wird ungültig."
+                      >
+                        Link neu generieren
+                      </ConfirmSubmitButton>
+                    ) : (
+                      <SubmitButton variant="outline" size="sm">
+                        Link aktivieren
+                      </SubmitButton>
+                    )}
+                  </form>
+                  {m.trainerEinladungToken && (
+                    <form action={trainerLinkDeaktivieren}>
+                      <input type="hidden" name="mannschaftId" value={m.id} />
+                      <ConfirmSubmitButton variant="outline" size="sm" confirmText="Link deaktivieren? Er funktioniert dann nicht mehr.">
+                        Deaktivieren
+                      </ConfirmSubmitButton>
+                    </form>
+                  )}
+                </WeitereOptionen>
               </div>
             ))}
           </CardContent>

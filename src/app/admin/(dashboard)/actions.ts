@@ -13,6 +13,7 @@ import {
   termine,
   terminZuordnungen,
   users,
+  vereine,
 } from "@/db/schema";
 import { parseFunktionstraegerExcel } from "@/lib/funktionstraeger-import";
 import { normalisiereMannschaftsname } from "@/lib/rundenspiel-import";
@@ -2210,4 +2211,40 @@ export async function mannschaftBedarfRolleUmschalten(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/profil/ordnerwart");
   revalidatePath("/profil/zeitnehmerwart");
+}
+
+// Trainer-Link pro Mannschaft (siehe /trainer-eintragen/[token]): aktivieren bzw. erneuern (der alte Link wird ungültig) und deaktivieren.
+export async function trainerLinkErneuern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+  const mannschaftId = formData.get("mannschaftId");
+  if (typeof mannschaftId !== "string" || !mannschaftId) throw new Error("Mannschaft fehlt.");
+
+  await withTenant(vereinId, async (tx) => {
+    const verein = await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) });
+    const geaendert = await tx
+      .update(mannschaften)
+      .set({ trainerEinladungToken: generiereOeffentlichenToken(verein?.name ?? "") })
+      .where(and(eq(mannschaften.id, mannschaftId), eq(mannschaften.vereinId, vereinId)))
+      .returning({ id: mannschaften.id });
+    if (geaendert.length === 0) throw new Error("Mannschaft nicht gefunden.");
+  });
+
+  revalidatePath("/admin/funktionstraeger");
+}
+
+export async function trainerLinkDeaktivieren(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+  const mannschaftId = formData.get("mannschaftId");
+  if (typeof mannschaftId !== "string" || !mannschaftId) throw new Error("Mannschaft fehlt.");
+
+  await withTenant(vereinId, (tx) =>
+    tx
+      .update(mannschaften)
+      .set({ trainerEinladungToken: null })
+      .where(and(eq(mannschaften.id, mannschaftId), eq(mannschaften.vereinId, vereinId)))
+  );
+
+  revalidatePath("/admin/funktionstraeger");
 }

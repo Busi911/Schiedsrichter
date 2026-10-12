@@ -680,6 +680,13 @@
       "when": 1791743906275,
       "tag": "0096_stammdaten_aenderung",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1791835094465,
+      "tag": "0097_trainer_einladung_token",
+      "breakpoints": true
     }
   ]
 }

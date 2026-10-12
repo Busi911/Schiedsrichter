@@ -47,6 +47,9 @@ export default auth((req) => {
     // analog zu /zeitnehmer-eintragen/ — siehe
     // src/app/ordner-eintragen/[token]/page.tsx.
     pathname.startsWith("/ordner-eintragen/") ||
+    // Öffentliche, login-freie Trainer-Eintragung pro Mannschaft (Kenntnis des Tokens ist die Berechtigung),
+    // siehe src/app/trainer-eintragen/[token]/page.tsx.
+    pathname.startsWith("/trainer-eintragen/") ||
     // Öffentlicher ICS-Kalender-Feed (Kenntnis des Tokens ist die
     // Berechtigung) — Kalender-Apps rufen das anonym ab, ohne Login-Session,
     // siehe src/app/kalender/[token]/route.ts.

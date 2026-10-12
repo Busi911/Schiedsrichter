@@ -353,6 +353,10 @@ export const mannschaften = pgTable("mannschaft", {
   kassiererBedarfDeaktiviert: boolean("kassierer_bedarf_deaktiviert")
     .notNull()
     .default(false),
+  // Öffentlicher, login-freier Link, über den sich die Trainer DIESER Mannschaft selbst eintragen
+  // (siehe /trainer-eintragen/[token]) — vom Admin pro Mannschaft aktivierbar, null = nicht aktiv.
+  // Kenntnis des Links ist die Berechtigung; die Eintragung bleibt bis zur Freischaltung inaktiv.
+  trainerEinladungToken: text("trainer_einladung_token").unique(),
 });
 
 // Trainingshallen des Vereins (Stammdaten, siehe /admin/trainingsplan) — eine

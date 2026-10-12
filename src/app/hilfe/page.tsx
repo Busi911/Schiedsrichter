@@ -132,6 +132,10 @@ export default async function HilfePage() {
             <strong>Alle anderen Funktionsträger</strong> (Schiedsrichter, Zeitnehmer, Sekretär, Ordner, Kioskdienst, Kassierer,
             Trainer): sehen im Profil ihre eigenen Einsätze, offene Dienste und ihren persönlichen Kalender.
           </li>
+          <li>
+            <strong>Trainer eintragen:</strong> Unter Funktionsträger → „Trainer-Links pro Mannschaft“ aktivierst du für jede Mannschaft einen Link.
+            Die Trainer tragen sich darüber mit Name und E-Mail selbst ein (kein Login nötig) und werden von dir freigeschaltet.
+          </li>
         </ul>
         <p className="text-sm text-muted-foreground">
           Eine Person kann mehrere Rollen haben. Wer den Verein verlässt, wird deaktiviert, seine bisherigen Einsätze bleiben in der
