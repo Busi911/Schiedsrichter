@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Ergebnisse({ params }: Props) {
   const { slug, team } = await params;
   const { verein, m } = await ladeTeam(slug, team);
-  const spiele = m.spiele.filter(istVergangen).reverse();
+  const spiele = m.spiele.filter((s) => istVergangen(s, new Date())).reverse();
 
   return (
     <div className="space-y-3">

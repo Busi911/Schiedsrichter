@@ -56,7 +56,7 @@ export function GefilterteListe({ eintraege, leerText }: { eintraege: ListenEint
 
   const chip = (aktiv: boolean) =>
     cn(
-      "inline-flex min-h-10 flex-auto items-center justify-center rounded-full border-2 px-3 text-sm font-semibold whitespace-nowrap shadow-sm transition active:scale-95",
+      "inline-flex min-h-11 items-center justify-center rounded-full border-2 px-3 text-sm font-semibold whitespace-nowrap shadow-sm transition active:scale-95",
       aktiv
         ? "border-primary bg-primary text-primary-foreground shadow-md"
         : "border-border bg-card text-foreground hover:bg-muted"

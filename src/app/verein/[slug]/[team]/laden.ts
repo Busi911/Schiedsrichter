@@ -10,5 +10,5 @@ export const ladeTeam = cache(async (slug: string, teamSlug: string) => {
   const mannschaften = await holeMannschaften(verein.id);
   const m = mannschaften.find((x) => x.slug === teamSlug);
   if (!m) notFound();
-  return { verein, m };
+  return { verein, m, mannschaften };
 });

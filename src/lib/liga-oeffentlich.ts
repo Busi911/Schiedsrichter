@@ -25,6 +25,8 @@ export {
   hatErgebnis,
   istAnstehend,
   istVergangen,
+  letztesErgebnis,
+  ergebnisHinweis,
   sortiereChronologisch,
   type SpielAnsicht,
 } from "./liga-spiele-hilfen";

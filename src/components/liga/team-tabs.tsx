@@ -23,9 +23,10 @@ export function TeamTabs({ basis }: { basis: string }) {
             <li key={t.pfad}>
               <Link
                 href={href}
+                replace
                 aria-current={aktiv ? "page" : undefined}
                 className={cn(
-                  "inline-block border-b-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition",
+                  "inline-flex min-h-11 items-center border-b-2 px-3 text-sm font-medium whitespace-nowrap transition",
                   aktiv
                     ? "border-primary text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground"

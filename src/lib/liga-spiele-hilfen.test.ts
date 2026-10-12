@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { sammleVereinsSpiele, spielGruppe, type SpielAnsicht } from "./liga-spiele-hilfen";
+import {
+  ergebnisHinweis,
+  istAnstehend,
+  istVergangen,
+  letztesErgebnis,
+  sammleVereinsSpiele,
+  spielGruppe,
+  type SpielAnsicht,
+} from "./liga-spiele-hilfen";
 
 const spiel = (id: string, datum: string, extra: Partial<SpielAnsicht> = {}): SpielAnsicht =>
   ({
@@ -78,5 +86,76 @@ describe("sammleVereinsSpiele", () => {
     expect(spielGruppe("herren")).toBe("herren");
     expect(spielGruppe("jugend_weiblich")).toBe("jugend");
     expect(spielGruppe("sonstige")).toBe("kinder");
+  });
+});
+
+describe("laufende Spiele und fehlende Ergebnisse", () => {
+  const jetzt = new Date("2026-10-04T16:00:00Z"); // So 18:00 deutsche Zeit
+  const anwurf = new Date("2026-10-04T15:00:00Z");
+  const laufend = spiel("l", "2026-10-04", {
+    meetingId: "5",
+    beginn: anwurf,
+    toreHeim: 14,
+    toreGast: 12,
+  });
+  const gestern = spiel("g", "2026-10-03");
+  const wochenAlt = spiel("w", "2026-09-27");
+  const abgesagtGestern = spiel("a", "2026-10-03", { status: "abgesagt" });
+  const mannschaft = (spiele: SpielAnsicht[]) => [
+    { id: "m1", name: "Männer", kategorie: "herren" as const, teamtableId: "t1", spiele },
+  ];
+
+  it("ein Zwischenstand ist kein Ergebnis, sondern ein laufendes/anstehendes Spiel", () => {
+    expect(istVergangen(laufend, jetzt)).toBe(false);
+    expect(istAnstehend(laufend, jetzt)).toBe(true);
+    const r = sammleVereinsSpiele(mannschaft([laufend]), jetzt);
+    expect(r.ergebnisse).toHaveLength(0);
+    expect(r.heute.map((e) => e.spiel.id)).toEqual(["l"]);
+  });
+
+  it("ein Spiel, das nach Mitternacht noch läuft, bleibt unter 'Heute'", () => {
+    const nachMitternacht = new Date("2026-10-04T22:30:00Z"); // 00:30 am Folgetag
+    const spaet = spiel("s", "2026-10-04", { meetingId: "5", beginn: new Date("2026-10-04T21:00:00Z"), toreHeim: 20, toreGast: 19 });
+    expect(istAnstehend(spaet, nachMitternacht)).toBe(true);
+  });
+
+  it("ein genehmigtes Ergebnis zählt als Ergebnis, nicht als laufend", () => {
+    const fertig = { ...laufend, ergebnisBestaetigt: true, status: "gespielt" } as SpielAnsicht;
+    expect(istVergangen(fertig, jetzt)).toBe(true);
+    expect(istAnstehend(fertig, jetzt)).toBe(false);
+  });
+
+  it("ein Spiel von gestern ohne Ergebnis verschwindet nicht, sondern steht als 'Ergebnis ausstehend' bei den Ergebnissen", () => {
+    expect(istVergangen(gestern, jetzt)).toBe(true);
+    expect(ergebnisHinweis(gestern, jetzt)).toBe("ausstehend");
+    expect(sammleVereinsSpiele(mannschaft([gestern]), jetzt).ergebnisse.map((e) => e.spiel.id)).toEqual(["g"]);
+  });
+
+  it("ein abgesagtes vergangenes Spiel bleibt sichtbar (mit Status), ohne 'Ergebnis ausstehend'", () => {
+    expect(sammleVereinsSpiele(mannschaft([abgesagtGestern]), jetzt).ergebnisse).toHaveLength(1);
+    expect(ergebnisHinweis(abgesagtGestern, jetzt)).toBeNull();
+  });
+
+  it("nach 14 Tagen ohne Ergebnis fällt ein Spiel aus den Listen", () => {
+    expect(istVergangen(wochenAlt, jetzt)).toBe(true);
+    expect(istVergangen(spiel("x", "2026-09-10"), jetzt)).toBe(false);
+  });
+
+  it("ein heutiges Spiel ohne Ergebnis ist anstehend, nie 'ausstehend'", () => {
+    const heute = spiel("h", "2026-10-04", { uhrzeit: "19:00" });
+    expect(istAnstehend(heute, jetzt)).toBe(true);
+    expect(ergebnisHinweis(heute, jetzt)).toBeNull();
+  });
+
+  it("Hinweis statt Zahl: läuft gerade bzw. Ergebnis folgt", () => {
+    expect(ergebnisHinweis(laufend, jetzt)).toBe("laeuft");
+    expect(ergebnisHinweis(laufend, new Date("2026-10-04T17:30:00Z"))).toBe("ergebnis_folgt"); // 150 Min nach Anwurf
+    expect(ergebnisHinweis(laufend, new Date("2026-10-04T19:00:00Z"))).toBeNull(); // 4 h: gilt wieder als vorläufiges Ergebnis
+  });
+
+  it("letztesErgebnis überspringt den Zwischenstand", () => {
+    const vorher = spiel("v", "2026-09-27", { toreHeim: 30, toreGast: 25, status: "gespielt", ergebnisBestaetigt: true });
+    expect(letztesErgebnis([vorher, laufend], jetzt)?.id).toBe("v");
+    expect(letztesErgebnis([laufend], jetzt)).toBeNull();
   });
 });

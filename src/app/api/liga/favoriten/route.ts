@@ -5,8 +5,10 @@ import { adminDb } from "@/db/admin";
 import { mitColdStartRetry } from "@/db/retry";
 import { ligaMannschaften, ligaVereine, vereine as vereineTabelle } from "@/db/schema";
 import {
+  ergebnisHinweis,
   hatErgebnis,
   holeMannschaften,
+  letztesErgebnis,
   istAnstehend,
   sortiereChronologisch,
   type SpielAnsicht,
@@ -29,6 +31,8 @@ const spielKurz = (s: SpielAnsicht, eigenTeamtable: string | null) => ({
   tore: hatErgebnis(s) && !istZwischenstand(s, new Date()) ? { heim: s.toreHeim, gast: s.toreGast } : null,
   vorlaeufig: hatErgebnis(s) && !s.ergebnisBestaetigt,
   status: s.status,
+  // "laeuft" | "ergebnis_folgt" | "ausstehend" | null — statt einer Zahl
+  hinweis: ergebnisHinweis(s, new Date()),
 });
 
 export async function GET(request: Request) {
@@ -85,7 +89,7 @@ export async function GET(request: Request) {
 
     for (const m of liste) {
       if (!mannschaftIds.includes(m.id)) continue;
-      const letztes = [...m.spiele].reverse().find(hatErgebnis) ?? null;
+      const letztes = letztesErgebnis(m.spiele, jetzt);
       mannschaften.push({
         id: m.id,
         name: m.name,

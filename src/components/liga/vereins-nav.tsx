@@ -15,10 +15,12 @@ const BEREICHE = [
 
 // Die vier Bereiche der Vereinsseite: auf dem Handy als feste Bottom-Bar,
 // ab md als Tabs unter dem Kopf. Nur auf den vier Bereichsseiten sichtbar —
-// auf Mannschaftsseiten gelten deren eigene Tabs (Übersicht, Spielplan, …).
+// auf Mannschaftsseiten bleibt die Leiste mit "Teams" aktiv (neben den eigenen Tabs Übersicht, Spielplan, …), damit
+// man auch dort (und in der installierten App ohne Browser-Zurück) mit einem Tipp in jeden Bereich kommt.
 export function VereinsNav({ basis }: { basis: string }) {
   const pfad = usePathname();
-  const aktuell = BEREICHE.find((b) => pfad === `${basis}${b.pfad}`);
+  const aktuell =
+    BEREICHE.find((b) => pfad === `${basis}${b.pfad}`) ?? (pfad.startsWith(`${basis}/`) ? BEREICHE[2] : undefined);
   if (!aktuell) return null;
 
   return (

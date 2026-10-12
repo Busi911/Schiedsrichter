@@ -19,6 +19,7 @@ type Spiel = {
   tore: { heim: number | null; gast: number | null } | null;
   vorlaeufig: boolean;
   status: string;
+  hinweis: "laeuft" | "ergebnis_folgt" | "ausstehend" | null;
 };
 type MannschaftDaten = {
   id: string;
@@ -47,6 +48,17 @@ const datumKurz = (datum: string) =>
     timeZone: "Europe/Berlin",
   }).format(new Date(`${datum}T12:00:00Z`));
 
+const STATUS_TEXT: Record<string, string> = {
+  verlegt: "Verlegt",
+  abgesagt: "Abgesagt",
+  nicht_angetreten: "Nicht angetreten",
+};
+const HINWEIS_TEXT = {
+  laeuft: "Läuft gerade",
+  ergebnis_folgt: "Ergebnis folgt",
+  ausstehend: "Ergebnis ausstehend",
+} as const;
+
 function SpielZeile({ titel, s }: { titel: string; s: Spiel }) {
   return (
     <div className="space-y-0.5 text-xs">
@@ -54,6 +66,7 @@ function SpielZeile({ titel, s }: { titel: string; s: Spiel }) {
         <CalendarIcon className="size-3.5" />
         {titel}: {datumKurz(s.datum)}
         {s.uhrzeit ? ` · ${s.uhrzeit}` : ""}
+        {STATUS_TEXT[s.status] && <Badge variant="outline">{STATUS_TEXT[s.status]}</Badge>}
       </p>
       <p className="flex items-center justify-between gap-2 text-sm">
         <span className="min-w-0 truncate">
@@ -62,9 +75,19 @@ function SpielZeile({ titel, s }: { titel: string; s: Spiel }) {
           <span className={cn(!s.eigenHeim && "font-semibold")}>{s.gast}</span>
         </span>
         {s.tore && (
-          <span className="shrink-0 font-bold tabular-nums">
+          <span className="shrink-0 text-right font-bold tabular-nums">
             {s.tore.heim}:{s.tore.gast}
-            {s.vorlaeufig ? "*" : ""}
+            {s.vorlaeufig && <span className="block text-xs font-normal text-muted-foreground">vorläufig</span>}
+          </span>
+        )}
+        {s.hinweis && (
+          <span
+            className={cn(
+              "shrink-0 text-sm font-medium",
+              s.hinweis === "laeuft" ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground"
+            )}
+          >
+            {HINWEIS_TEXT[s.hinweis]}
           </span>
         )}
       </p>
@@ -113,7 +136,7 @@ export function MeineMannschaften() {
           Tippe bei einem Verein oder einer Mannschaft auf den Stern – die Favoriten werden nur auf diesem Gerät
           gespeichert.
         </p>
-        <Link href="/verein" className="mt-4 inline-block text-sm font-medium text-primary underline-offset-4 hover:underline">
+        <Link href="/verein" className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">
           Vereine ansehen
         </Link>
       </div>
@@ -181,7 +204,18 @@ export function MeineMannschaften() {
         </section>
       )}
 
-      {!daten && !fehler && <p className="text-sm text-muted-foreground">Lädt…</p>}
+      {!daten && !fehler && (
+        <div className="space-y-3" role="status" aria-label="Lädt…">
+          {[0, 1].map((i) => (
+            <div key={i} className="h-32 rounded-xl bg-muted motion-safe:animate-pulse" />
+          ))}
+        </div>
+      )}
+      {daten && daten.mannschaften.length === 0 && daten.vereine.length === 0 && (
+        <p className="rounded-xl bg-background p-6 text-center text-sm text-muted-foreground ring-1 ring-foreground/[0.06]">
+          Zu deinen Favoriten gibt es aktuell keine Daten – der Verein ist eventuell nicht mehr online.
+        </p>
+      )}
     </div>
   );
 }
