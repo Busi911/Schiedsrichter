@@ -64,7 +64,11 @@ export async function GET(request: Request) {
     return Response.json({ synchronisiert: ergebnisse.length, ergebnisse });
   } catch (err) {
     console.error(`[liga-sync] Fehler (Schritt: ${schritt}):`, err);
-    return Response.json({ fehler: err instanceof Error ? err.message : String(err), letzterSchritt: schritt });
+    // 500 statt 200: Vercel (und jede Überwachung) soll einen fehlgeschlagenen Lauf als solchen sehen.
+    return Response.json(
+      { fehler: err instanceof Error ? err.message : String(err), letzterSchritt: schritt },
+      { status: 500 }
+    );
   } finally {
     clearTimeout(timer);
   }
