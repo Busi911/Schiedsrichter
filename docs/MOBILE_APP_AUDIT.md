@@ -221,6 +221,7 @@ Richtwert sind 44 px (Apple HIG) bzw. 48 dp (Material).
 - **[Annahme]** Auf Mittelklasse-Android dominiert die Hydration (510 kB JS) die Interaktivität stärker als das HTML.
 
 ### 3.4 Service Worker und PWA
+- **[Korrektur 12.10.2026, nach dem Audit gefunden]** `/sw.js` war für anonyme Besucher nicht erreichbar: die Middleware (`proxy.ts`) leitete den Abruf auf `/login` um, der Browser verweigerte die Registrierung. Der Service Worker (und damit Offline-Cache und Installation) lief für Fans nie, nur für eingeloggte Nutzer. Behoben in #374. Die folgenden Aussagen beschreiben das *vorgesehene* Verhalten.
 - **[Fakt]** `public/sw.js` arbeitet **network-first** ohne Timeout und cacht nur HTML-Navigationen und `/api/liga/*`.
   - RSC-Requests werden nicht gecacht, statische Chunks und Fonts nicht vorgeladen.
   - Der Cache ist FIFO mit 60 Einträgen, die Version ist eine manuelle Konstante.

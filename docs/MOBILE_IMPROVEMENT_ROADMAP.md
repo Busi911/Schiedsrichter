@@ -14,7 +14,16 @@ Legende: **Aufwand** S ≤ 1 Tag · M 2–4 Tage · L ≥ 1 Woche.
 
 ---
 
-> **Umsetzungsstand 12.10.2026:** Phase 1 und große Teile von Phase 2 sind in PR #373 umgesetzt (Branch `feature/mobile-spielstatus-navigation`). Statt eines erweiterten `spielPhase`-Enums gibt es `ergebnisHinweis` (1.2). Offen: 0.1/0.2 (Seed + Playwright-Smoke), 1.2 (Enum), 2.9 (Sponsor-Dialog), Phase 3 ff. (außer 3.7 Karten-Link zur Halle).
+> **Umsetzungsstand 12.10.2026 (gemergt: #373, #374):** Phase 1 und große Teile von Phase 2 sowie das Kernstück von Phase 3 (Dashboard `/meine`, Favoriten-API ohne N+1, adaptive Vereinsstartseite) sind umgesetzt.
+> Statt eines erweiterten `spielPhase`-Enums gibt es `ergebnisHinweis` (1.2). Zusätzlich behoben: `/sw.js` war für anonyme Besucher nicht erreichbar (Middleware-Umleitung auf `/login`), der Service Worker lief für Fans bisher nie (siehe Phase 4.6).
+>
+> **Noch offen (Reihenfolge nach Empfehlung):**
+> 1. Phase 3: 3.5 Kalender-Abo (ICS) je Mannschaft, 3.6 Teilen-Button, 3.3 Wiederkehrer-Einstieg auf der Startseite, 3.4 Profil-Link, 3.8 „Folgen“-Button.
+> 2. Phase 4: Caching der öffentlichen Daten (4.1/4.2, größter Hebel, auch größtes Risiko), 4.6 Service Worker (Timeout, Offline-Seite, Versionierung).
+> 3. Phase 0: Seed + Playwright-Smoke-Tests (0.1/0.2), 2.9 Sponsor-Dialog (a11y).
+> 4. Phase 5 ff. (Design „Anzeigetafel“, Detailseite, Suche, PWA-Scope).
+>
+> **Offene Entscheidungen:** Startseite Fan-first (3.3), Navigationsvariante (5.8), Push nur nach ICS (7.1). Die Zwischenstand-Entscheidung (Zahl ausblenden) ist getroffen und in `CLAUDE.md` festgehalten.
 
 ## Phase 0 – Absicherung (Voraussetzung, S–M)
 
@@ -92,11 +101,11 @@ Legende: **Aufwand** S ≤ 1 Tag · M 2–4 Tage · L ≥ 1 Woche.
 
 ## Phase 3 – „Meine“ als Zuhause, Kalender, Teilen (P1, ~1 Woche)
 
-- [ ] **3.1 Favoriten-API ohne N+1** (`app/api/liga/favoriten/route.ts`): Mannschaften → Teilnahmen → Gruppen → Tabellenzeilen und Spiele mit je **einer** `inArray`-Abfrage. Vereinsfavoriten analog.
+- [x] **3.1 Favoriten-API ohne N+1** (`app/api/liga/favoriten/route.ts`): Mannschaften → Teilnahmen → Gruppen → Tabellenzeilen und Spiele mit je **einer** `inArray`-Abfrage. Vereinsfavoriten analog.
   - Ausgabe zusätzlich mit `phase` (aus 1.2).
   - Test für die Route (Mock `@/db/admin`).
   - Abnahme: Anzahl Abfragen unabhängig von der Zahl der Vereine (≤ 6).
-- [ ] **3.2 Dashboard `/meine`** (`components/liga/meine-mannschaften.tsx`), Abschnitte:
+- [x] **3.2 Dashboard `/meine`** (`components/liga/meine-mannschaften.tsx`), Abschnitte:
   1. **Jetzt** (laufend, ergebnis_folgt)
   2. **Als Nächstes** (chronologisch über alle Favoriten, relative Zeit „in 3 Tagen“)
   3. **Neu seit deinem letzten Besuch** (Zeitstempel nur in localStorage)
