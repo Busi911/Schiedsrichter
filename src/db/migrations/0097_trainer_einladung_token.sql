@@ -1,0 +1,2 @@
+ALTER TABLE "mannschaft" ADD COLUMN "trainer_einladung_token" text;--> statement-breakpoint
+ALTER TABLE "mannschaft" ADD CONSTRAINT "mannschaft_trainer_einladung_token_unique" UNIQUE("trainer_einladung_token");
