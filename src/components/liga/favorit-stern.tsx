@@ -22,7 +22,7 @@ export function FavoritStern({
     <button
       type="button"
       className={cn(
-        "inline-flex size-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground",
+        "inline-flex size-11 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground",
         aktiv && "text-amber-500 hover:text-amber-500",
         className
       )}

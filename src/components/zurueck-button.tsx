@@ -10,8 +10,12 @@ import { useRouter } from "next/navigation";
 // eigene Vorgeschichte) gar keine vorherige Seite in der Historie gibt.
 export function ZurueckButton({
   fallbackHref = "/",
+  className = "text-sm text-muted-foreground underline",
+  children = "← Zurück",
 }: {
   fallbackHref?: string;
+  className?: string;
+  children?: React.ReactNode;
 }) {
   const router = useRouter();
   return (
@@ -24,9 +28,9 @@ export function ZurueckButton({
           router.push(fallbackHref);
         }
       }}
-      className="text-sm text-muted-foreground underline"
+      className={className}
     >
-      ← Zurück
+      {children}
     </button>
   );
 }

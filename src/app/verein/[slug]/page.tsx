@@ -30,7 +30,7 @@ export default async function ErgebnisseSeite({ params }: Props) {
   const { slug } = await params;
   const { verein, mannschaften, basis } = await ladeVereinsDaten(slug);
   const jetzt = new Date();
-  const { ergebnisse } = sammleVereinsSpiele(mannschaften, jetzt);
+  const { ergebnisse, heute } = sammleVereinsSpiele(mannschaften, jetzt);
   const woche = berechneWoche(mannschaften, jetzt, tagKey(jetzt));
 
   const design = await holeVereinsDesign(verein.id);
@@ -57,9 +57,13 @@ export default async function ErgebnisseSeite({ params }: Props) {
       ) : (
         <GefilterteListe
           leerText="Noch keine Ergebnisse in dieser Saison."
-          eintraege={ergebnisse.map((e) => ({
+          eintraege={[
+            // "Heute" zuerst: laufende und noch offene Spiele des Tages (nie als Ergebnis), danach die Ergebnisse.
+            ...heute.map((e) => ({ e, tag: "Heute" })),
+            ...ergebnisse.map((e) => ({ e, tag: formatTagKopf(e.spiel.datum) })),
+          ].map(({ e, tag }) => ({
             id: e.spiel.id,
-            tag: formatTagKopf(e.spiel.datum),
+            tag,
             gruppe: e.gruppe,
             mannschaftIds: e.mannschaftIds,
             knoten: (

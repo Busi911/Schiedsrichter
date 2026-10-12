@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { appUrl } from "@/lib/app-url";
 import {
   formKurve,
-  hatErgebnis,
+  letztesErgebnis,
   holeTabelle,
   istAnstehend,
 } from "@/lib/liga-oeffentlich";
+import { istZwischenstand, laeuftVermutlich } from "@/lib/liga-spiel-status";
 import { jsonLdText, mannschaftJsonLd } from "@/lib/liga-seo";
 import { FormChips, SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
 import { ladeTeam } from "./laden";
@@ -27,7 +28,9 @@ export default async function Uebersicht({ params }: Props) {
   const { verein, m } = await ladeTeam(slug, team);
   const tabelle = m.istMeldeliste ? [] : await holeTabelle(m.gruppeId);
   const zeile = tabelle.find((z) => z.nuligaTeamtableId === m.teamtableId);
-  const letztes = [...m.spiele].reverse().find(hatErgebnis);
+  const jetzt = new Date();
+  const letztes = letztesErgebnis(m.spiele, jetzt);
+  const laeuftGerade = m.naechstesSpiel ? laeuftVermutlich(m.naechstesSpiel, jetzt) || istZwischenstand(m.naechstesSpiel, jetzt) : false;
   const form = formKurve(m);
   const teamUrl = `${appUrl()}/verein/${verein.slug}/${m.slug}`;
   const jsonLd = mannschaftJsonLd({
@@ -36,14 +39,14 @@ export default async function Uebersicht({ params }: Props) {
     name: m.name,
     liga: m.ligaName || null,
     url: teamUrl,
-    anstehend: m.spiele.filter((s) => istAnstehend(s, new Date())).map((s) => ({ ...s, url: `${teamUrl}/spielplan` })),
+    anstehend: m.spiele.filter((s) => istAnstehend(s, jetzt)).map((s) => ({ ...s, url: `${teamUrl}/spielplan` })),
   });
 
   return (
     <div className="space-y-6">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdText(jsonLd) }} />
       <section className="space-y-2">
-        <h2 className="font-heading text-lg font-semibold">Nächstes Spiel</h2>
+        <h2 className="font-heading text-lg font-semibold">{laeuftGerade ? "Läuft gerade" : "Nächstes Spiel"}</h2>
         {m.naechstesSpiel ? (
           <SpielKarte spiel={m.naechstesSpiel} eigenTeamtable={m.teamtableId} />
         ) : (

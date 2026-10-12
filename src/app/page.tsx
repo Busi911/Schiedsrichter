@@ -228,7 +228,7 @@ export default async function Home() {
       <main className="flex-1">
         <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-16 text-center">
           <Badge variant="secondary" className="hero-rein h-7 px-3 text-sm">{live ? `${PREIS_REGULAER} € netto im Jahr` : "Beta · 100% kostenlos"}</Badge>
-          <h1 style={{ ["--hero-verzoegerung" as string]: "100ms" }} className="hero-rein font-heading text-4xl font-semibold text-balance sm:text-5xl">
+          <h1 style={{ ["--hero-verzoegerung" as string]: "100ms" }} className="hero-rein font-heading text-4xl font-semibold text-balance hyphens-auto [overflow-wrap:anywhere] sm:text-5xl">
             Die Vereinsverwaltung für euren Handballspielbetrieb
           </h1>
           <p style={{ ["--hero-verzoegerung" as string]: "220ms" }} className="hero-rein max-w-xl text-lg text-muted-foreground text-balance">

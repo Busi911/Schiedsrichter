@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { ZEITZONE } from "@/lib/format";
 import { istZwischenstand, laeuftVermutlich, liveTickerRelevant } from "@/lib/liga-spiel-status";
 import { quelleFuer } from "@/lib/match-provider";
-import { hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
+import { ergebnisHinweis, hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "./favorit-stern";
 
 export function formatSpieltag(datum: string, uhrzeit: string | null): string {
@@ -40,6 +40,8 @@ export function formatTagKopf(datum: string): string {
   }).format(new Date(`${datum}T12:00:00Z`));
 }
 
+const AUSGANG_TEXT = { S: "Sieg", U: "Remis", N: "Niederlage" } as const;
+
 const STATUS_LABEL: Record<string, string> = {
   verlegt: "Verlegt",
   abgesagt: "Abgesagt",
@@ -67,6 +69,8 @@ export function SpielKarte({
 
   const laeuft = laeuftVermutlich(spiel, jetztSpiel);
   const zwischenstand = istZwischenstand(spiel, jetztSpiel);
+  // Statt einer Zahl: "Läuft gerade" / "Ergebnis folgt" / "Ergebnis ausstehend" (nie ein Zwischenstand als Ergebnis).
+  const hinweis = ergebnisHinweis(spiel, jetztSpiel);
   let ausgang: "S" | "U" | "N" | null = null;
   if (!zwischenstand && mitAusgang && eigenTeamtable && hatErgebnis(spiel)) {
     const heim = spiel.heimTeamtableId === eigenTeamtable;
@@ -105,7 +109,7 @@ export function SpielKarte({
           {teamLabel && <Badge variant="secondary">{teamLabel}</Badge>}
           {laeuft && (
             <Badge className="gap-1.5 bg-rose-600 text-white">
-              <span className="size-1.5 animate-pulse rounded-full bg-white" />
+              <span className="size-1.5 rounded-full bg-white motion-safe:animate-pulse" />
               Live
             </Badge>
           )}
@@ -118,23 +122,25 @@ export function SpielKarte({
           <p className={cn("truncate", fett(spiel.heimTeamtableId))}>{spiel.heimName}</p>
           <p className={cn("truncate", fett(spiel.gastTeamtableId))}>{spiel.gastName}</p>
         </div>
-        {zwischenstand && (
-          <div className="text-right">
-            <p className="font-heading text-xl leading-tight font-bold tabular-nums text-muted-foreground">
-              {spiel.toreHeim}:{spiel.toreGast}
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              {laeuft ? "Live" : "vorläufig"}
-            </p>
-          </div>
+        {hinweis && (
+          <p
+            className={cn(
+              "shrink-0 text-right text-sm font-medium",
+              hinweis === "laeuft" ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground"
+            )}
+          >
+            {hinweis === "laeuft" ? "Läuft gerade" : hinweis === "ergebnis_folgt" ? "Ergebnis folgt" : "Ergebnis ausstehend"}
+          </p>
         )}
         {hatErgebnis(spiel) && !zwischenstand && (
           <div className="text-right">
             <p className="font-heading text-xl leading-tight font-bold tabular-nums">
               {spiel.toreHeim}:{spiel.toreGast}
             </p>
-            {!spiel.ergebnisBestaetigt && (
-              <p className="text-[10px] text-muted-foreground">vorläufig</p>
+            {(ausgang || !spiel.ergebnisBestaetigt) && (
+              <p className="text-xs text-muted-foreground">
+                {[ausgang && AUSGANG_TEXT[ausgang], !spiel.ergebnisBestaetigt && "vorläufig"].filter(Boolean).join(" · ")}
+              </p>
             )}
           </div>
         )}
@@ -142,10 +148,16 @@ export function SpielKarte({
       {(spiel.halleName || berichtUrl || liveUrl) && (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
           {spiel.halleName ? (
-            <p className="inline-flex items-center gap-1.5">
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spiel.halleName)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="-my-3 inline-flex min-h-11 items-center gap-1.5 hover:underline"
+              aria-label={`${spiel.halleName} auf der Karte öffnen`}
+            >
               <MapPinIcon className="size-3.5" />
               {spiel.halleName}
-            </p>
+            </a>
           ) : (
             <span />
           )}
@@ -156,7 +168,7 @@ export function SpielKarte({
                   href={liveUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                  className="-my-3 inline-flex min-h-11 items-center gap-1 font-medium text-primary hover:underline"
                 >
                   Live-Ticker
                   <ExternalLinkIcon className="size-3" />
@@ -167,7 +179,7 @@ export function SpielKarte({
                   href={berichtUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                  className="-my-3 inline-flex min-h-11 items-center gap-1 font-medium text-primary hover:underline"
                 >
                   Spielbericht
                   <ExternalLinkIcon className="size-3" />

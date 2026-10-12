@@ -90,7 +90,7 @@ export function InstallHinweis({ appName, appId }: { appName: string; appId: str
         type="button"
         onClick={schliessen}
         aria-label="Hinweis schließen"
-        className="text-muted-foreground hover:text-foreground"
+        className="-m-3 inline-flex size-11 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
       >
         <XIcon className="size-4" />
       </button>

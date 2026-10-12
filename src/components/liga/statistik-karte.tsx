@@ -47,7 +47,7 @@ function Duelle({ duelle }: { duelle: Duell[] }) {
   if (mehrere.length === 0) return null;
   return (
     <details className="group border-t pt-2">
-      <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between text-sm font-medium [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-medium [&::-webkit-details-marker]:hidden">
         Duelle ({mehrere.length} Gegner)
         <span className="text-xs text-muted-foreground group-open:hidden">anzeigen</span>
         <span className="hidden text-xs text-muted-foreground group-open:inline">ausblenden</span>
@@ -60,7 +60,7 @@ function Duelle({ duelle }: { duelle: Duell[] }) {
               {d.spiele.map((s, i) => {
                 const c = ergebnisChip(s);
                 return (
-                  <span key={i} className={`whitespace-nowrap rounded px-1 py-0.5 text-[11px] font-semibold tabular-nums ${c.klasse}`} title={s.heim ? "Heimspiel" : "Auswärtsspiel"}>
+                  <span key={i} className={`whitespace-nowrap rounded px-1 py-0.5 text-xs font-semibold tabular-nums ${c.klasse}`} title={s.heim ? "Heimspiel" : "Auswärtsspiel"}>
                     {s.heim ? "H " : "A "}
                     {c.text}
                   </span>
@@ -70,7 +70,7 @@ function Duelle({ duelle }: { duelle: Duell[] }) {
           </li>
         ))}
       </ul>
-      <p className="mt-1 text-[11px] text-muted-foreground">H = Heimspiel, A = Auswärtsspiel. Ohne Ergebnis steht das Datum des Spiels.</p>
+      <p className="mt-1 text-xs text-muted-foreground">H = Heimspiel, A = Auswärtsspiel. Ohne Ergebnis steht das Datum des Spiels.</p>
     </details>
   );
 }
@@ -114,7 +114,7 @@ export function StatistikKarte({ name, liga, href, k }: { name: string; liga?: s
     <Card size="sm" className="gap-3 px-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <Link href={href} className="font-heading text-base leading-snug font-semibold [overflow-wrap:anywhere] hover:underline">
+          <Link href={href} className="font-heading -my-2 inline-flex min-h-11 items-center text-base leading-snug font-semibold [overflow-wrap:anywhere] hover:underline">
             {name}
           </Link>
           {liga && <p className="truncate text-xs text-muted-foreground">{liga}</p>}
@@ -125,17 +125,17 @@ export function StatistikKarte({ name, liga, href, k }: { name: string; liga?: s
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="rounded-lg bg-muted/60 p-2">
           <p className="font-heading text-xl font-bold tabular-nums">{k.spiele}</p>
-          <p className="text-[11px] text-muted-foreground">Spiele</p>
+          <p className="text-xs text-muted-foreground">Spiele</p>
         </div>
         <div className="rounded-lg bg-muted/60 p-2">
           <p className="font-heading text-xl font-bold tabular-nums">{k.siegquote}%</p>
-          <p className="text-[11px] text-muted-foreground">Siegquote</p>
+          <p className="text-xs text-muted-foreground">Siegquote</p>
         </div>
         <div className="rounded-lg bg-muted/60 p-2">
           <p className="font-heading text-xl font-bold tabular-nums">
             {k.torePlus}:{k.toreMinus}
           </p>
-          <p className="text-[11px] text-muted-foreground">Tore</p>
+          <p className="text-xs text-muted-foreground">Tore</p>
         </div>
       </div>
 
