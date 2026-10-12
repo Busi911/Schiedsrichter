@@ -12,6 +12,9 @@ import { tagKey } from "@/lib/kalender";
 import { formatTagKopf, SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
 import { ladeVereinsDaten } from "./laden";
 
+// So viele kommende Spiele stehen an Tagen ohne Spiel oben auf der Startseite des Vereins.
+const NAECHSTE_ANZAHL = 5;
+
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -30,7 +33,7 @@ export default async function ErgebnisseSeite({ params }: Props) {
   const { slug } = await params;
   const { verein, mannschaften, basis } = await ladeVereinsDaten(slug);
   const jetzt = new Date();
-  const { ergebnisse, heute } = sammleVereinsSpiele(mannschaften, jetzt);
+  const { ergebnisse, heute, anstehend } = sammleVereinsSpiele(mannschaften, jetzt);
   const woche = berechneWoche(mannschaften, jetzt, tagKey(jetzt));
 
   const design = await holeVereinsDesign(verein.id);
@@ -58,10 +61,14 @@ export default async function ErgebnisseSeite({ params }: Props) {
         <GefilterteListe
           leerText="Noch keine Ergebnisse in dieser Saison."
           eintraege={[
-            // "Heute" zuerst: laufende und noch offene Spiele des Tages (nie als Ergebnis), danach die Ergebnisse.
-            ...heute.map((e) => ({ e, tag: "Heute" })),
-            ...ergebnisse.map((e) => ({ e, tag: formatTagKopf(e.spiel.datum) })),
-          ].map(({ e, tag }) => ({
+            // Oben das, was gerade wichtig ist: am Spieltag "Heute" (laufende und noch offene Spiele, nie als Ergebnis),
+            // sonst die nächsten Spiele (die meisten Vereine spielen nur an ein bis zwei Tagen pro Woche, ein leeres
+            // "Heute" wäre sonst die Regel). Danach die Ergebnisse.
+            ...(heute.length > 0
+              ? heute.map((e) => ({ e, tag: "Heute", mitDatum: false }))
+              : anstehend.slice(0, NAECHSTE_ANZAHL).map((e) => ({ e, tag: "Nächste Spiele", mitDatum: true }))),
+            ...ergebnisse.map((e) => ({ e, tag: formatTagKopf(e.spiel.datum), mitDatum: false })),
+          ].map(({ e, tag, mitDatum }) => ({
             id: e.spiel.id,
             tag,
             gruppe: e.gruppe,
@@ -71,7 +78,7 @@ export default async function ErgebnisseSeite({ params }: Props) {
                 spiel={e.spiel}
                 eigenTeamtable={e.eigenTeamtable}
                 teamLabel={e.teams.join(" · ")}
-                nurUhrzeit
+                nurUhrzeit={!mitDatum}
                 mitAusgang
               />
             ),
