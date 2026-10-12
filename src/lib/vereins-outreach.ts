@@ -53,13 +53,21 @@ async function extrahiereOutreachEmail(seiteHtml: string): Promise<{ email: stri
   }
 
   // 3. Fallback: E-Mail-Domain als Website.
+  //    Nur überschreiben, wenn die Impressum-Adresse auf einer ANDEREN Domain
+  //    liegt als die nuLiga-E-Mail — gleiche Domain heißt, die nuLiga-Adresse
+  //    ist bereits die Vereins-Adresse (z.B. tarik.boehninger@tuskk.de), und das
+  //    Impressum könnte eine falsche Adresse aus dem Navigationsmenü finden
+  //    (Joomla-Cloaking macht die echte Adresse im Raw-HTML unsichtbar).
   if (kontaktEmail && !website) {
     const domain = kontaktEmail.split("@")[1];
     if (domain && !domain.endsWith("liga.nu") && !domain.endsWith("handball.net") && !FREEMAIL_DOMAINS.includes(domain)) {
       try {
         const impressum = await scrapeImpressum(`https://${domain}`);
         if (impressum.email) {
-          kontaktEmail = impressum.email;
+          const impressumDomain = impressum.email.split("@")[1]?.toLowerCase();
+          if (impressumDomain && impressumDomain !== domain.toLowerCase()) {
+            kontaktEmail = impressum.email;
+          }
         }
       } catch {}
     }
