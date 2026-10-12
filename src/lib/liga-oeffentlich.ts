@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { and, asc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, eq, inArray, or, type SQL } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { mitColdStartRetry } from "@/db/retry";
 import {
@@ -35,6 +35,7 @@ import { istZwischenstand } from "./liga-spiel-status";
 
 export type MannschaftAnsicht = {
   id: string;
+  ligaVereinId: string;
   slug: string;
   name: string;
   kategorie: (typeof ligaMannschaften.$inferSelect)["kategorie"];
@@ -173,7 +174,22 @@ export const holeAlleVereineFuerSitemap = async () =>
 
 // Aktive Mannschaften des Vereins (aktuelle Saison) samt Tabellenstand und
 // Spielen — ein Aufruf für alle Seiten, per cache() je Request geteilt.
-export const holeMannschaften = cache(async (ligaVereinId: string): Promise<MannschaftAnsicht[]> => {
+export const holeMannschaften = cache(async (ligaVereinId: string): Promise<MannschaftAnsicht[]> =>
+  ladeMannschaften(eq(ligaMannschaften.ligaVereinId, ligaVereinId))
+);
+
+// Dieselben Daten für mehrere Vereine/Mannschaften auf einmal (Favoriten über Vereine hinweg): EINE Abfragefolge statt
+// einer je Verein. `vereinIds`: alle Mannschaften dieser Vereine; `mannschaftIds`: zusätzlich genau diese Mannschaften.
+export async function holeMannschaftenGesammelt(vereinIds: string[], mannschaftIds: string[]): Promise<MannschaftAnsicht[]> {
+  const bedingungen = [
+    vereinIds.length ? inArray(ligaMannschaften.ligaVereinId, vereinIds) : undefined,
+    mannschaftIds.length ? inArray(ligaMannschaften.id, mannschaftIds) : undefined,
+  ].filter((b): b is SQL => !!b);
+  if (bedingungen.length === 0) return [];
+  return ladeMannschaften(or(...bedingungen)!);
+}
+
+async function ladeMannschaften(auswahlBedingung: SQL): Promise<MannschaftAnsicht[]> {
   return mitColdStartRetry(async () => {
     const zeilen = await adminDb
       .select({ m: ligaMannschaften, t: ligaTeilnahmen, g: ligaGruppen })
@@ -182,7 +198,7 @@ export const holeMannschaften = cache(async (ligaVereinId: string): Promise<Mann
       .innerJoin(ligaGruppen, eq(ligaGruppen.id, ligaTeilnahmen.gruppeId))
       .where(
         and(
-          eq(ligaMannschaften.ligaVereinId, ligaVereinId),
+          auswahlBedingung,
           eq(ligaMannschaften.aktiv, true),
           eq(ligaTeilnahmen.aktiv, true),
           // Freundschaftsspiele (eigene Mini-Gruppen) haben weder Tabelle noch
@@ -261,6 +277,7 @@ export const holeMannschaften = cache(async (ligaVereinId: string): Promise<Mann
       const zeile = tt ? tabelle.find((x) => x.gruppeId === g.id && x.nuligaTeamtableId === tt) : null;
       return {
         id: m.id,
+        ligaVereinId: m.ligaVereinId,
         slug: m.slug,
         name: m.anzeigenameEigen ?? m.name,
         kategorie: m.kategorie,
@@ -282,7 +299,7 @@ export const holeMannschaften = cache(async (ligaVereinId: string): Promise<Mann
       };
     });
   });
-});
+}
 
 // Zurückgezogene Mannschaften (nuLiga: "zurückgezogen am …" statt Statistik,
 // siehe ligaTabellenzeilen.zurueckgezogen) bleiben in der DB, damit der Sync

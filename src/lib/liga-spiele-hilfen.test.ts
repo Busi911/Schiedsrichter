@@ -147,6 +147,13 @@ describe("laufende Spiele und fehlende Ergebnisse", () => {
     expect(ergebnisHinweis(heute, jetzt)).toBeNull();
   });
 
+  it("an einem Tag ohne Spiel ist 'heute' leer (die Startseite zeigt dann die nächsten Spiele)", () => {
+    const morgen = spiel("m", "2026-10-05");
+    const r = sammleVereinsSpiele(mannschaft([morgen]), jetzt);
+    expect(r.heute).toHaveLength(0);
+    expect(r.anstehend.map((e) => e.spiel.id)).toEqual(["m"]);
+  });
+
   it("Hinweis statt Zahl: läuft gerade bzw. Ergebnis folgt", () => {
     expect(ergebnisHinweis(laufend, jetzt)).toBe("laeuft");
     expect(ergebnisHinweis(laufend, new Date("2026-10-04T17:30:00Z"))).toBe("ergebnis_folgt"); // 150 Min nach Anwurf

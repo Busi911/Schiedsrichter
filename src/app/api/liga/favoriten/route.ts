@@ -7,7 +7,7 @@ import { ligaMannschaften, ligaVereine, vereine as vereineTabelle } from "@/db/s
 import {
   ergebnisHinweis,
   hatErgebnis,
-  holeMannschaften,
+  holeMannschaftenGesammelt,
   letztesErgebnis,
   istAnstehend,
   sortiereChronologisch,
@@ -84,42 +84,54 @@ export async function GET(request: Request) {
   const mannschaften = [];
   const vereineAntwort = [];
 
+  // EINE Abfragefolge für alle Favoriten (statt je Verein eine komplette Saison nacheinander zu laden).
+  const erlaubt = new Set(vereine.map((v) => v.id));
+  const vereinsFavoriten = vereinIds.filter((id) => erlaubt.has(id));
+  const teamFavoriten = zeilen.filter((z) => erlaubt.has(z.ligaVereinId)).map((z) => z.id);
+  const alle = await holeMannschaftenGesammelt(vereinsFavoriten, teamFavoriten);
+  const vereinNach = new Map(vereine.map((v) => [v.id, v] as const));
+
+  for (const m of alle) {
+    if (!mannschaftIds.includes(m.id)) continue;
+    const verein = vereinNach.get(m.ligaVereinId);
+    if (!verein) continue;
+    const letztes = letztesErgebnis(m.spiele, jetzt);
+    mannschaften.push({
+      id: m.id,
+      name: m.name,
+      verein: { name: verein.name, slug: verein.slug },
+      slug: m.slug,
+      ligaName: m.ligaName,
+      rang: m.istMeldeliste ? null : m.rang,
+      punkte: m.istMeldeliste ? null : m.punkte,
+      naechstes: m.naechstesSpiel ? spielKurz(m.naechstesSpiel, m.teamtableId) : null,
+      // Die nächsten Spiele (für "Als Nächstes" auf /meine, über alle Favoriten hinweg sortiert).
+      naechste: m.spiele
+        .filter((s) => istAnstehend(s, jetzt))
+        .slice(0, 3)
+        .map((s) => spielKurz(s, m.teamtableId)),
+      letztes: letztes ? spielKurz(letztes, m.teamtableId) : null,
+    });
+  }
+
   for (const verein of vereine) {
-    const liste = await holeMannschaften(verein.id);
-
-    for (const m of liste) {
-      if (!mannschaftIds.includes(m.id)) continue;
-      const letztes = letztesErgebnis(m.spiele, jetzt);
-      mannschaften.push({
-        id: m.id,
-        name: m.name,
-        verein: { name: verein.name, slug: verein.slug },
-        slug: m.slug,
-        ligaName: m.ligaName,
-        rang: m.istMeldeliste ? null : m.rang,
-        punkte: m.istMeldeliste ? null : m.punkte,
-        naechstes: m.naechstesSpiel ? spielKurz(m.naechstesSpiel, m.teamtableId) : null,
-        letztes: letztes ? spielKurz(letztes, m.teamtableId) : null,
-      });
-    }
-
-    if (vereinIds.includes(verein.id)) {
-      const spiele = new Map<string, { spiel: SpielAnsicht; team: string; tt: string | null }>();
-      for (const m of liste) {
-        for (const s of m.spiele) {
-          if (istAnstehend(s, jetzt) && !spiele.has(s.id)) {
-            spiele.set(s.id, { spiel: s, team: m.name, tt: m.teamtableId });
-          }
+    if (!vereinIds.includes(verein.id)) continue;
+    const spiele = new Map<string, { spiel: SpielAnsicht; team: string; tt: string | null }>();
+    for (const m of alle) {
+      if (m.ligaVereinId !== verein.id) continue;
+      for (const s of m.spiele) {
+        if (istAnstehend(s, jetzt) && !spiele.has(s.id)) {
+          spiele.set(s.id, { spiel: s, team: m.name, tt: m.teamtableId });
         }
       }
-      const naechste = sortiereChronologisch([...spiele.values()].map((e) => e.spiel))
-        .slice(0, 3)
-        .map((s) => {
-          const e = spiele.get(s.id)!;
-          return { team: e.team, ...spielKurz(s, e.tt) };
-        });
-      vereineAntwort.push({ id: verein.id, name: verein.name, slug: verein.slug, naechste });
     }
+    const naechste = sortiereChronologisch([...spiele.values()].map((e) => e.spiel))
+      .slice(0, 3)
+      .map((s) => {
+        const e = spiele.get(s.id)!;
+        return { team: e.team, ...spielKurz(s, e.tt) };
+      });
+    vereineAntwort.push({ id: verein.id, name: verein.name, slug: verein.slug, naechste });
   }
 
   // Enthält die Antwort einen Vorschau-Verein, darf sie nicht im gemeinsamen

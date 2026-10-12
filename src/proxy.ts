@@ -15,6 +15,9 @@ const publicRoutes = [
   "/sitemap.xml",
   "/robots.txt",
   "/llms.txt",
+  // Service Worker der Fan-App (public/sw.js): ohne diese Ausnahme leitet die Middleware den Abruf anonymer
+  // Besucher auf /login um, und der Browser verweigert die Registrierung ("script resource is behind a redirect").
+  "/sw.js",
 ];
 
 export default auth((req) => {
