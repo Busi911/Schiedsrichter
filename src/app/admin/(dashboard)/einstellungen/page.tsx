@@ -4,7 +4,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaVereine, ligaSyncLaeufe, ligaVereinLogos, ligaVereinZusatzquellen, vereine } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, ligaSyncLaeufe, ligaVereinLogos, ligaVereinZusatzquellen, stammdatenAenderungen, vereine } from "@/db/schema";
 import {
   dienstBedarfSpeichern,
   logoEntfernen,
@@ -23,6 +23,8 @@ import {
   vereinsdatenSpeichern,
 } from "./actions";
 import { ChevronDown } from "lucide-react";
+import { StammdatenAntrag } from "@/components/stammdaten-antrag";
+import { istStammdatenGesperrt } from "@/lib/stammdaten-sperre";
 import { parseHallenNamen } from "@/lib/hallenplan-abgleich";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -74,6 +76,7 @@ export default async function EinstellungenPage({
     ligaMeldungen?: string;
     ligaWeiter?: string;
     ligaRunde?: string;
+    antrag?: string;
   }>;
 }) {
   const session = await requireAdmin();
@@ -87,6 +90,25 @@ export default async function EinstellungenPage({
   const ligaVerein = await adminDb.query.ligaVereine.findFirst({
     where: eq(ligaVereine.vereinId, vereinId),
   });
+  // Systemadmin im Treuhand-/Support-Kontext darf auch bei eingetragenen Diensten ändern.
+  const gesperrt = !session.user.treuhand && !session.user.istSystemAdmin && (await istStammdatenGesperrt(vereinId));
+  // Im Demo-Verein sind Abrufe bei nuLiga/handball.net gesperrt (verbieteImDemo): Felder und Buttons gar nicht erst anbieten.
+  const demo = verein?.istDemo ?? false;
+  const schreibgeschuetzt = gesperrt || demo;
+  const antraege = gesperrt
+    ? await adminDb
+        .select({
+          id: stammdatenAenderungen.id,
+          feld: stammdatenAenderungen.feld,
+          neuerWert: stammdatenAenderungen.neuerWert,
+          status: stammdatenAenderungen.status,
+          entscheidungNotiz: stammdatenAenderungen.entscheidungNotiz,
+        })
+        .from(stammdatenAenderungen)
+        .where(eq(stammdatenAenderungen.vereinId, vereinId))
+        .orderBy(desc(stammdatenAenderungen.erstelltAm))
+        .limit(5)
+    : [];
 
   const logo = ligaVerein
     ? await adminDb.query.ligaVereinLogos.findFirst({
@@ -251,6 +273,11 @@ export default async function EinstellungenPage({
             </details>
           )}
           <Unterbereich titel="Quellen und Vereins-IDs" kurz="Vereins-IDs und Spielhallen — hier einrichten und aktualisieren" offen>
+          {demo && (
+            <p className="mb-3 rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+              Im Demo-Verein ist das Eintragen von Vereins-IDs gesperrt (es würde bei nuLiga/handball.net abgerufen). Im eigenen Verein funktioniert es.
+            </p>
+          )}
           <form action={oeffentlicheSeiteSpeichern} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="nuligaClubId">nuLiga-Vereins-ID</Label>
@@ -261,6 +288,8 @@ export default async function EinstellungenPage({
                 placeholder="z.B. 69723"
                 defaultValue={ligaVerein?.nuligaClubId ?? ""}
                 disabled={!session.user.istAdmin}
+                readOnly={schreibgeschuetzt}
+                className={schreibgeschuetzt ? "bg-muted/50" : undefined}
               />
               <p className="text-xs text-muted-foreground">
                 Die Zahl hinter <code>club=</code> in der Adresse eurer Vereinsseite auf nuLiga
@@ -275,6 +304,8 @@ export default async function EinstellungenPage({
                 placeholder="z.B. 0b8y490"
                 defaultValue={ligaVerein?.handballNetClubId ?? ""}
                 disabled={!session.user.istAdmin}
+                readOnly={schreibgeschuetzt}
+                className={schreibgeschuetzt ? "bg-muted/50" : undefined}
               />
               <p className="text-xs text-muted-foreground">
                 Der Teil hinter <code>/club/</code> in der Adresse eures Vereins auf handball.net
@@ -290,6 +321,8 @@ export default async function EinstellungenPage({
                 placeholder="z.B. 69770, 69771"
                 defaultValue={ligaVerein?.handballNetTeamIds ?? ""}
                 disabled={!session.user.istAdmin}
+                readOnly={schreibgeschuetzt}
+                className={schreibgeschuetzt ? "bg-muted/50" : undefined}
               />
               <p className="text-xs text-muted-foreground">
                 Nur nötig, falls die Mannschaften nicht automatisch gefunden werden — oder für eine
@@ -299,7 +332,7 @@ export default async function EinstellungenPage({
                 sie zu einem anderen Verein gehören.
               </p>
             </div>
-            {session.user.istAdmin && (
+            {session.user.istAdmin && !demo && (
               <SubmitButton size="sm" className="self-start" pendingText="Lädt von nuLiga/handball.net… (bis ca. 1 Minute)">
                 {ligaVerein ? "Jetzt aktualisieren" : "Speichern & Seite erstellen"}
               </SubmitButton>
@@ -329,6 +362,7 @@ export default async function EinstellungenPage({
                 aria-label="Namen eurer Spielhallen"
                 placeholder={"z.B. Sporthalle Heuchelheim\nHalle am Seebach"}
                 defaultValue={parseHallenNamen(verein?.eigeneHallenNamen).join("\n")}
+                readOnly={gesperrt}
                 className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
               <p className="text-xs text-muted-foreground">
@@ -340,6 +374,7 @@ export default async function EinstellungenPage({
             </form>
             </div>
           )}
+          {gesperrt && session.user.istAdmin && <StammdatenAntrag antraege={antraege} antragOk={nuligaErgebnis.antrag === "ok"} />}
           </Unterbereich>
           {ligaVerein && (
             <Unterbereich
@@ -370,7 +405,7 @@ export default async function EinstellungenPage({
                             .join(", ")}
                         </span>
                       </span>
-                      {session.user.istAdmin && (
+                      {session.user.istAdmin && !gesperrt && (
                         <form action={zusatzquelleEntfernen}>
                           <input type="hidden" name="id" value={z.id} />
                           <ConfirmSubmitButton
@@ -386,7 +421,12 @@ export default async function EinstellungenPage({
                   ))}
                 </ul>
               )}
-              {session.user.istAdmin && (
+              {gesperrt && (
+                <p className="rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+                  Gesperrt, weil für Termine bereits Dienste eingetragen sind. Änderungen bitte oben unter „Quellen und Vereins-IDs“ beantragen.
+                </p>
+              )}
+              {session.user.istAdmin && !gesperrt && !demo && (
                 <form action={zusatzquelleHinzufuegen} className="flex flex-col gap-3">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
@@ -559,7 +599,7 @@ export default async function EinstellungenPage({
               </form>
             </details>
           )}
-          {ligaVerein && session.user.istAdmin && (
+          {ligaVerein && session.user.istAdmin && !gesperrt && (
             <form action={oeffentlicheSeiteEntfernen}>
               <ConfirmSubmitButton
                 variant="outline"
@@ -1039,7 +1079,7 @@ export default async function EinstellungenPage({
               className="flex flex-col gap-4"
             >
             <fieldset
-              disabled={!session.user.istAdmin}
+              disabled={!session.user.istAdmin || demo}
               className="contents"
             >
               <div className="flex flex-col gap-2">
@@ -1050,6 +1090,8 @@ export default async function EinstellungenPage({
                   inputMode="numeric"
                   placeholder="z.B. 30402"
                   defaultValue={verein?.nuligaHalle1Id ?? ""}
+                  readOnly={schreibgeschuetzt}
+                  className={schreibgeschuetzt ? "bg-muted/50" : undefined}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -1060,6 +1102,8 @@ export default async function EinstellungenPage({
                   inputMode="numeric"
                   placeholder="optional"
                   defaultValue={verein?.nuligaHalle2Id ?? ""}
+                  readOnly={schreibgeschuetzt}
+                  className={schreibgeschuetzt ? "bg-muted/50" : undefined}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -1070,6 +1114,8 @@ export default async function EinstellungenPage({
                   inputMode="numeric"
                   placeholder="optional"
                   defaultValue={verein?.nuligaHalle3Id ?? ""}
+                  readOnly={schreibgeschuetzt}
+                  className={schreibgeschuetzt ? "bg-muted/50" : undefined}
                 />
               </div>
               <div className="flex items-center justify-between gap-3">
@@ -1084,7 +1130,7 @@ export default async function EinstellungenPage({
                 />
               </div>
             </fieldset>
-              {session.user.istAdmin && (
+              {session.user.istAdmin && !demo && (
                 <SubmitButton
                   className="w-full"
                   pendingText="Synchronisiert…"

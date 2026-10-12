@@ -598,3 +598,13 @@ externe Dienste abrufen, müssen `verbieteImDemo` aufrufen. Die Demo-Seite ist n
 `lib/system-navigation.ts` (`SYSTEM_BEREICHE`) ist die EINE Quelle für die Navigation: fünf Bereiche — Übersicht, Vereine (Vereine · Warteliste · Gesundheit), Abrechnung (Abrechnung · Sponsor), Spieldaten (Liga-Sync · Bundesliga · Abgleich · nuLiga-Diagnose),
 Betrieb (Feedback · Mail-Test). `components/system-nav.tsx` zeigt oben die Bereiche und darunter die Unterseiten des aktuellen Bereichs; `system/layout.tsx` leitet daraus auch die Bottom-Bar auf dem Handy ab (die ersten vier Bereiche, der Rest unter "Mehr").
 Die Seiten liegen unverändert unter `/system/…`. Neue Systemseite: in `SYSTEM_BEREICHE` unter dem passenden Bereich eintragen (Test `system-navigation.test.ts` prüft, dass jede Seite genau einmal vorkommt).
+
+## Gesperrte Stammdaten (Änderungsantrag)
+
+Sobald für irgendeinen Termin des Vereins ein Dienst eingetragen ist (`termin_zuordnung`: vom Admin zugeordnet oder selbst eingetragen, angemeldet oder öffentlich; NICHT die automatische Übernahme `handball_net_uebernommen`; Funktionsträger ohne Einsatz sperren nichts) (`istStammdatenGesperrt`, `lib/stammdaten-sperre.ts`), lassen sich nuLiga-/handball.net-Vereins-ID,
+Team-IDs, Hallen-IDs 1–3, die Spielhallen-Namen, Zusatzquellen und „Seite entfernen“ nicht mehr selbst ändern (Termine/Dienste hängen daran). Gesperrt ist nur das ÄNDERN oder Leeren eines
+gesetzten Werts (`geaenderteStammdaten`, `lib/stammdaten-felder.ts`); ein leeres Feld zu füllen oder unverändert zu speichern („Jetzt aktualisieren“) geht immer. Die Server Actions in
+`admin/(dashboard)/einstellungen/actions.ts` prüfen das über `verbieteGesperrteAenderung` (Systemadmin im Treuhand-/Support-Kontext ist ausgenommen); die Felder sind im UI `readOnly`.
+Der Verein beantragt stattdessen mit Grund (`stammdatenAenderungBeantragen`, Tabelle `stammdaten_aenderung`, nur adminDb, Mail an alle Systemadmins, Vereinsprotokoll). Der Systemadmin prüft unter
+`/system/aenderungen` (Vereine → Änderungen): „Genehmigen“ setzt die ID-/Hallenfelder sofort (`AUTOMATISCH_ANWENDBAR`; Spiele lädt danach der Cron neu), Zusatzquellen/Sonstiges werden von Hand
+umgesetzt; der Verein bekommt eine Antwortmail. Neue Stammdaten-Felder, an denen Dienste hängen: in `STAMMDATEN_FELDER` aufnehmen und die zugehörige Action absichern.

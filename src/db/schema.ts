@@ -1319,3 +1319,22 @@ export const vereinKontakt = pgTable("verein_kontakt", {
   // Vom Empfänger ausgelöste Abmeldung (Klick auf den Abmelde-Link in der Mail).
   outreachAbgemeldetAm: timestamp("outreach_abgemeldet_am", { mode: "date" }),
 });
+
+// Änderungsanträge für gesperrte Stammdaten (Vereins-IDs, Hallen): sobald Funktionsträger eingetragen sind, kann der
+// Verein diese Werte nicht mehr selbst ändern (sonst gehen Termine/Dienste verloren), sondern beantragt die Änderung
+// mit Grund beim Systemadmin. Nur adminDb, `app_user` hat keinen Zugriff.
+export const stammdatenAenderungen = pgTable("stammdaten_aenderung", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  feld: text("feld").notNull(),
+  bisherigerWert: text("bisheriger_wert"),
+  neuerWert: text("neuer_wert"),
+  grund: text("grund").notNull(),
+  angefragtVon: text("angefragt_von"),
+  status: text("status").$type<"offen" | "genehmigt" | "abgelehnt">().notNull().default("offen"),
+  erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+  entschiedenAm: timestamp("entschieden_am", { mode: "date" }),
+  entscheidungNotiz: text("entscheidung_notiz"),
+});

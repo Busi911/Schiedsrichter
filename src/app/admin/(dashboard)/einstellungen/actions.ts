@@ -6,19 +6,22 @@ import { and, eq } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaVereine, ligaVereinLogos, ligaVereinZusatzquellen, vereine } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, ligaVereinLogos, ligaVereinZusatzquellen, stammdatenAenderungen, vereine } from "@/db/schema";
 import { hexZuFarbton } from "@/lib/liga-farbe";
 import { ermittleFarbton, LogoFehler, verarbeiteLogo } from "@/lib/liga-logo";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { legeLigaVereinAn } from "@/lib/nuliga/sync";
 import { synchronisiereAlleQuellen } from "@/lib/liga-sync-quellen";
-import { setzeSupportFreigabe } from "@/lib/treuhand";
+import { schreibeProtokoll, setzeSupportFreigabe } from "@/lib/treuhand";
 import { benachrichtigeSystemAdminsUeberSupportFreigabe } from "@/lib/system-admin-benachrichtigung";
 import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
 import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { signOut } from "@/auth";
 import { verbieteImDemo } from "@/lib/demo-verein";
+import { geaenderteStammdaten, istStammdatenFeld, pruefeStammdatenWert, STAMMDATEN_FELDER } from "@/lib/stammdaten-felder";
+import { verbieteGesperrteAenderung } from "@/lib/stammdaten-sperre";
+import { benachrichtigeSystemAdminsUeberStammdatenAntrag } from "@/lib/system-admin-benachrichtigung";
 
 function parseAnzahl(formData: FormData, feld: string, min = 0): number {
   const roh = formData.get(feld);
@@ -154,6 +157,21 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
   const nuligaHalle3Id = parseHalleId(formData, "nuligaHalle3Id");
   const nuligaAutoImportAktiviert = formData.get("nuligaAutoImportAktiviert") === "on";
 
+  const aktuell = await withTenant(vereinId, (tx) =>
+    tx.query.vereine.findFirst({
+      where: eq(vereine.id, vereinId),
+      columns: { nuligaHalle1Id: true, nuligaHalle2Id: true, nuligaHalle3Id: true },
+    })
+  );
+  await verbieteGesperrteAenderung(
+    session,
+    vereinId,
+    geaenderteStammdaten(
+      { nuligaHalle1Id: aktuell?.nuligaHalle1Id, nuligaHalle2Id: aktuell?.nuligaHalle2Id, nuligaHalle3Id: aktuell?.nuligaHalle3Id },
+      { nuligaHalle1Id, nuligaHalle2Id, nuligaHalle3Id }
+    )
+  );
+
   await withTenant(vereinId, (tx) =>
     tx
       .update(vereine)
@@ -230,6 +248,14 @@ export async function eigeneHallenNamenSpeichern(formData: FormData) {
   const vereinId = session.user.vereinId!;
   const roh = formData.get("eigeneHallenNamen");
   const eigeneHallenNamen = typeof roh === "string" && roh.trim() ? roh.trim().slice(0, 500) : null;
+  const aktuell = await withTenant(vereinId, (tx) =>
+    tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { eigeneHallenNamen: true } })
+  );
+  await verbieteGesperrteAenderung(
+    session,
+    vereinId,
+    geaenderteStammdaten({ eigeneHallenNamen: aktuell?.eigeneHallenNamen }, { eigeneHallenNamen })
+  );
   await withTenant(vereinId, (tx) =>
     tx.update(vereine).set({ eigeneHallenNamen }).where(eq(vereine.id, vereinId))
   );
@@ -330,6 +356,20 @@ export async function oeffentlicheSeiteSpeichern(formData: FormData) {
   );
   if (!verein) throw new Error("Verein nicht gefunden.");
 
+  const bestehend = await adminDb.query.ligaVereine.findFirst({ where: eq(ligaVereine.vereinId, vereinId) });
+  await verbieteGesperrteAenderung(
+    session,
+    vereinId,
+    geaenderteStammdaten(
+      {
+        nuligaClubId: bestehend?.nuligaClubId,
+        handballNetClubId: bestehend?.handballNetClubId,
+        handballNetTeamIds: bestehend?.handballNetTeamIds,
+      },
+      { nuligaClubId: clubId, handballNetClubId, handballNetTeamIds }
+    )
+  );
+
   const { id } = await legeLigaVereinAn(adminDb, {
     vereinId,
     nuligaClubId: clubId || null,
@@ -400,6 +440,7 @@ async function syncNachZusatzquelle(ligaVereinId: string): Promise<never> {
 export async function zusatzquelleHinzufuegen(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   await verbieteImDemo(session.user.vereinId);
+  await verbieteGesperrteAenderung(session, session.user.vereinId!, ["zusatzquellen"]);
   const ligaVerein = await adminDb.query.ligaVereine.findFirst({
     where: eq(ligaVereine.vereinId, session.user.vereinId!),
   });
@@ -462,6 +503,7 @@ export async function zusatzquelleHinzufuegen(formData: FormData) {
 
 export async function zusatzquelleEntfernen(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
+  await verbieteGesperrteAenderung(session, session.user.vereinId!, ["zusatzquellen"]);
   const id = formData.get("id");
   if (typeof id !== "string") throw new Error("Ungültige Anfrage.");
   const ligaVerein = await adminDb.query.ligaVereine.findFirst({
@@ -476,6 +518,7 @@ export async function zusatzquelleEntfernen(formData: FormData) {
 
 export async function oeffentlicheSeiteEntfernen() {
   const session = await requireAdminSchreibzugriff();
+  await verbieteGesperrteAenderung(session, session.user.vereinId!, ["sonstiges"]);
   // Löscht die gesamte öffentliche Seite (Mannschaften, Teilnahmen,
   // Favoriten per Cascade); Gruppen/Spiele bleiben als öffentliche
   // Sportdaten bestehen, solange andere Vereine sie nutzen.
@@ -609,4 +652,64 @@ export async function supportZugriffSetzen(formData: FormData) {
   }
   revalidatePath("/admin/einstellungen");
   redirect("/admin/einstellungen");
+}
+
+// Gesperrte Stammdaten ändern: der Verein beantragt es mit Grund, der Systemadmin prüft (/system/aenderungen) und
+// setzt den Wert bei Genehmigung selbst. Pro Feld höchstens ein offener Antrag.
+export async function stammdatenAenderungBeantragen(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  await verbieteImDemo(session.user.vereinId);
+  const vereinId = session.user.vereinId!;
+
+  const text = (n: string) => {
+    const roh = formData.get(n);
+    return typeof roh === "string" ? roh.trim() : "";
+  };
+  const feld = text("feld");
+  if (!istStammdatenFeld(feld)) throw new Error("Bitte ein Feld auswählen.");
+  const neuerWert = text("neuerWert");
+  const grund = text("grund");
+  if (grund.length < 10) throw new Error("Bitte den Grund kurz beschreiben (mindestens 10 Zeichen).");
+  if (grund.length > 1000) throw new Error("Der Grund ist zu lang (höchstens 1000 Zeichen).");
+  const formatFehler = pruefeStammdatenWert(feld, neuerWert);
+  if (formatFehler) throw new Error(formatFehler);
+
+  const [verein, ligaVerein] = await Promise.all([
+    withTenant(vereinId, (tx) => tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })),
+    adminDb.query.ligaVereine.findFirst({ where: eq(ligaVereine.vereinId, vereinId) }),
+  ]);
+  if (!verein) throw new Error("Verein nicht gefunden.");
+  const bisher: Record<string, string | null | undefined> = {
+    nuligaClubId: ligaVerein?.nuligaClubId,
+    handballNetClubId: ligaVerein?.handballNetClubId,
+    handballNetTeamIds: ligaVerein?.handballNetTeamIds,
+    nuligaHalle1Id: verein.nuligaHalle1Id,
+    nuligaHalle2Id: verein.nuligaHalle2Id,
+    nuligaHalle3Id: verein.nuligaHalle3Id,
+    eigeneHallenNamen: verein.eigeneHallenNamen,
+  };
+
+  const offen = await adminDb.query.stammdatenAenderungen.findFirst({
+    where: and(
+      eq(stammdatenAenderungen.vereinId, vereinId),
+      eq(stammdatenAenderungen.feld, feld),
+      eq(stammdatenAenderungen.status, "offen")
+    ),
+  });
+  if (offen) throw new Error("Für dieses Feld liegt bereits ein offener Antrag vor — er wird geprüft.");
+
+  const akteur = session.user.email ?? session.user.name ?? "Vereinsadmin";
+  await adminDb.insert(stammdatenAenderungen).values({
+    vereinId,
+    feld,
+    bisherigerWert: bisher[feld] ?? null,
+    neuerWert: neuerWert || null,
+    grund,
+    angefragtVon: akteur,
+  });
+  await schreibeProtokoll(vereinId, "stammdaten_aenderung_beantragt", akteur, `${STAMMDATEN_FELDER[feld]}: „${bisher[feld] ?? ""}“ → „${neuerWert}“. Grund: ${grund}`);
+  await benachrichtigeSystemAdminsUeberStammdatenAntrag(verein.name, STAMMDATEN_FELDER[feld], bisher[feld] ?? "", neuerWert, grund, akteur);
+
+  revalidatePath("/admin/einstellungen");
+  redirect("/admin/einstellungen?antrag=ok");
 }
