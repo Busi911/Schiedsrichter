@@ -15,7 +15,6 @@ import { synchronisiereAlleQuellen } from "@/lib/liga-sync-quellen";
 import { schreibeProtokoll, setzeSupportFreigabe } from "@/lib/treuhand";
 import { benachrichtigeSystemAdminsUeberSupportFreigabe } from "@/lib/system-admin-benachrichtigung";
 import { holeHandballNetApi } from "@/lib/handball-net/client";
-import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
 import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { signOut } from "@/auth";
 import { verbieteImDemo } from "@/lib/demo-verein";
@@ -134,84 +133,8 @@ export async function dienstBedarfSpeichern(formData: FormData) {
   revalidatePath("/admin/einstellungen");
 }
 
-function parseHalleId(formData: FormData, feld: string): string | null {
-  const roh = formData.get(feld);
-  if (typeof roh !== "string" || !roh.trim()) return null;
-  if (!/^\d+$/.test(roh.trim())) {
-    throw new Error(`${feld}: bitte nur Zahlen eingeben.`);
-  }
-  return roh.trim();
-}
-
-// Speichert die Hallen-IDs + Aktivierung und stößt sofort einen ersten
-// Sync an (statt erst auf den nächsten täglichen Cron zu warten) — direkt
-// nach dem Eintragen der IDs will man i.d.R. sofort sehen, dass es
-// funktioniert.
-export async function nuligaEinstellungenSpeichern(formData: FormData) {
-  const session = await requireAdminSchreibzugriff();
-  await verbieteImDemo(session.user.vereinId);
-  const vereinId = session.user.vereinId!;
-
-  const nuligaHalle1Id = parseHalleId(formData, "nuligaHalle1Id");
-  const nuligaHalle2Id = parseHalleId(formData, "nuligaHalle2Id");
-  const nuligaHalle3Id = parseHalleId(formData, "nuligaHalle3Id");
-  const nuligaAutoImportAktiviert = formData.get("nuligaAutoImportAktiviert") === "on";
-
-  await withTenant(vereinId, (tx) =>
-    tx
-      .update(vereine)
-      .set({
-        nuligaHalle1Id,
-        nuligaHalle2Id,
-        nuligaHalle3Id,
-        nuligaAutoImportAktiviert,
-      })
-      .where(eq(vereine.id, vereinId))
-  );
-
-  const hallenIds = [nuligaHalle1Id, nuligaHalle2Id, nuligaHalle3Id].filter(
-    (id): id is string => id !== null
-  );
-
-  const params = new URLSearchParams();
-  const [importStatus] = await withTenant(vereinId, (tx) =>
-    tx.select({ aus: vereine.hallenplanImportAus }).from(vereine).where(eq(vereine.id, vereinId))
-  );
-  if (nuligaAutoImportAktiviert && hallenIds.length > 0 && !importStatus?.aus) {
-    const [lv] = await adminDb
-      .select({ verband: ligaVereine.verband })
-      .from(ligaVereine)
-      .where(eq(ligaVereine.vereinId, vereinId));
-    const ergebnis = await synchronisiereNuligaHallen(vereinId, hallenIds, lv?.verband);
-    params.set("nuligaNeu", String(ergebnis.neu));
-    params.set("nuligaAktualisiert", String(ergebnis.aktualisiert));
-    params.set("nuligaEntfernt", String(ergebnis.entfernt));
-    const fehlerListe = [
-      ...ergebnis.abrufFehler.map(
-        (f) => `Halle ${f.locationId} (${f.requestedMonth}): ${f.grund}`
-      ),
-      ...ergebnis.parseFehler.map((f) => `Eintrag ${f.index}: ${f.grund}`),
-    ];
-    if (fehlerListe.length) params.set("nuligaFehler", fehlerListe.join(" | "));
-
-    // Diagnose IMMER anzeigen (auch ohne Fehler) — sonst ist "0 Spiele
-    // gefunden" von "Seite falsch geparst" nicht zu unterscheiden.
-    const statusCodes = [...new Set(ergebnis.diagnose.map((d) => d.httpStatus))];
-    const zeilenGesamt = ergebnis.diagnose.reduce((s, d) => s + d.zeilenGefunden, 0);
-    const htmlLaengeGesamt = ergebnis.diagnose.reduce((s, d) => s + d.htmlLaenge, 0);
-    params.set(
-      "nuligaDiagnose",
-      `${ergebnis.diagnose.length} Anfragen, HTTP ${statusCodes.join("/") || "—"}, ` +
-        `${zeilenGesamt} Tabellenzeilen, ${htmlLaengeGesamt} Zeichen HTML insgesamt`
-    );
-  }
-
-  revalidatePath("/admin/einstellungen");
-  redirect(`/admin/einstellungen?${params.toString()}`);
-}
-
 // Mail an den Vereinsadmin bei verlegten Spielen/neuen Ergebnissen (egal ob aus dem Hallenplan-Import oder
-// den öffentlichen Liga-Daten) — eigenes Formular, unabhängig von Hallen-IDs.
+// den öffentlichen Liga-Daten).
 export async function spielplanBenachrichtigungSpeichern(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;

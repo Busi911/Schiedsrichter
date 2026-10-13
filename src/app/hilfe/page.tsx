@@ -265,10 +265,10 @@ export default async function HilfePage() {
 
       <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">
-          Brauche ich noch eine Hallen-ID?
+          Brauche ich eine Hallen-ID?
         </h2>
         <p className="text-sm text-muted-foreground">
-          In der Regel <strong>nein</strong>. Spielplan, Verlegungen,
+          <strong>Nein.</strong> Spielplan, Verlegungen,
           Ergebnisse und die Ansetzung der Schiedsrichter kommen tagsüber stündlich
           aus den öffentlichen Liga-Daten, und dafür genügt die
           nuLiga- bzw. handball.net-Vereins-ID unter{" "}
@@ -278,11 +278,8 @@ export default async function HilfePage() {
         <p className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-400">
           Ausnahme: <strong>Freundschaftsspiele und Turniere</strong> stehen
           nicht in den öffentlichen Liga-Daten. Bis wir sie ebenfalls
-          automatisch pflegen (in Entwicklung), müssen sie von Hand als
-          Termin angelegt werden. Solange euer Verein noch den
-          Hallenplan-Import nutzt (<strong>Einstellungen →
-          Hallenplan-Import</strong>), kommen sie weiter über die Hallen-ID;
-          die Umstellung nehmen wir je Verein vor.
+          automatisch pflegen (in Entwicklung), legt ihr sie bitte von Hand
+          als Termin im Kalender an.
         </p>
       </section>
 
@@ -302,8 +299,7 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Da handball.net pro Mannschaft abgefragt wird,{" "}
           <strong>deckt dieser Import ALLE Spiele der Mannschaft ab</strong>{" "}
-          — Heim- und Auswärtsspiele gleichermaßen, anders als bei der
-          Hallen-ID oben.
+          — Heim- und Auswärtsspiele gleichermaßen.
         </p>
       </section>
 
