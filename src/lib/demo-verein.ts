@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { funktionstraegerRollen, hallen, mannschaften, termine, terminZuordnungen, trainingszeiten, users, vereine } from "@/db/schema";
 import { AVV_VERSION } from "@/lib/avv";
-import { baueDemoDaten, DEMO_ADMIN, demoEmail } from "@/lib/demo-daten";
+import { baueDemoDaten, DEMO_ADMIN, demoEmail, demoErsatzAdresse } from "@/lib/demo-daten";
 import { DEMO_ADMIN_ID, DEMO_RESET_PAUSE_MS, DEMO_TOKEN_ORDNER, DEMO_TOKEN_ZEITNEHMER, DEMO_VEREIN_ID } from "@/lib/demo-konstanten";
 
 // Öffentlicher Demo-Verein: Interessierte (z.B. ein Verein, dem wir die App zeigen) probieren die Einteilung der Ehrenamtlichen mit Testdaten aus, OHNE
@@ -12,7 +12,8 @@ import { DEMO_ADMIN_ID, DEMO_RESET_PAUSE_MS, DEMO_TOKEN_ORDNER, DEMO_TOKEN_ZEITN
 //    zählt nicht ins Beta-Limit und wird nie wegen Zahlung gesperrt;
 //  - Login ohne Passwort NUR als dieser eine Demo-Admin (Provider "demo" in auth.ts);
 //  - jede Nacht (Cron /api/cron/demo-reset) und auf Knopfdruck (mit Pause) wird ALLES gelöscht und neu angelegt (setzeDemoVereinZurueck);
-//  - Aktionen, die nach außen wirken (Verbandsseiten abrufen, E-Mail-Adresse ändern, Feedback, Verein löschen ...), sind gesperrt (verbieteImDemo).
+//  - Aktionen, die nach außen wirken (Verbandsseiten abrufen, E-Mail-Adresse ändern, Feedback, Verein löschen ...), sind gesperrt (verbieteImDemo);
+//  - eingegebene E-Mail-Adressen von Personen werden durch erfundene unter der Demo-Domain ersetzt (demoSichereEmail).
 
 export { DEMO_ADMIN_ID, DEMO_RESET_PAUSE_MS, DEMO_TOKEN_ORDNER, DEMO_TOKEN_ZEITNEHMER, DEMO_VEREIN_ID };
 
@@ -44,6 +45,11 @@ export async function verbieteImDemo(vereinId: string | null | undefined): Promi
   if (vereinId && (await istDemoVerein(vereinId))) {
     throw new Error("Das ist in der Demo nicht verfügbar.");
   }
+}
+
+// Eingegebene E-Mail-Adresse einer Person: im Demo-Verein durch eine erfundene Adresse ersetzt (siehe demoErsatzAdresse), sonst nur normalisiert.
+export async function demoSichereEmail(vereinId: string, email: string): Promise<string> {
+  return (await istDemoVerein(vereinId)) ? demoErsatzAdresse(email) : email.trim().toLowerCase();
 }
 
 export async function holeDemoVerein() {

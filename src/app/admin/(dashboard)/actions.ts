@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { demoSichereEmail, istDemoVerein } from "@/lib/demo-verein";
+import { demoErsatzAdresse } from "@/lib/demo-daten";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { requireAdminSchreibzugriff, requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
@@ -309,7 +311,7 @@ export async function createFunktionstraeger(formData: FormData) {
     throw new Error("Bitte mindestens eine Rolle auswählen (oder Admin).");
   }
   const ausgewaehlteTypen = expandiereRollenTypen(typen as string[]) as (typeof FUNKTIONSTRAEGER_TYPEN)[number][];
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = await demoSichereEmail(vereinId, email);
 
   const { vereinName, einmalPasswort } = await withTenant(vereinId, async (tx) => {
     let user = await tx.query.users.findFirst({
@@ -957,7 +959,7 @@ export async function updateFunktionstraeger(formData: FormData) {
   if (typeof email !== "string" || !email.trim()) {
     throw new Error("E-Mail ist erforderlich.");
   }
-  const neueEmail = email.trim().toLowerCase();
+  const neueEmail = await demoSichereEmail(vereinId, email);
 
   const ergebnis = await withTenant(vereinId, async (tx) => {
     const bestehend = await tx.query.users.findFirst({
@@ -1281,7 +1283,11 @@ export async function funktionstraegerImportieren(formData: FormData) {
   const sofortAktiv = formData.get("sofortAktiv") === "on";
 
   const buffer = Buffer.from(await datei.arrayBuffer());
-  const { zeilen, fehler } = await parseFunktionstraegerExcel(buffer);
+  const gelesen = await parseFunktionstraegerExcel(buffer);
+  const { fehler } = gelesen;
+  // Im Demo-Verein nie echte Adressen übernehmen (siehe demoSichereEmail).
+  const demo = await istDemoVerein(vereinId);
+  const zeilen = demo ? gelesen.zeilen.map((z) => ({ ...z, email: demoErsatzAdresse(z.email) })) : gelesen.zeilen;
   const fehlerListe = fehler.map((f) => `Zeile ${f.zeilenNr}: ${f.grund}`);
 
   let angelegt = 0;

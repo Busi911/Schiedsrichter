@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { baueDemoDaten, demoEmail, DEMO_EMAIL_DOMAIN } from "./demo-daten";
+import { baueDemoDaten, demoEmail, demoErsatzAdresse, DEMO_EMAIL_DOMAIN, istDemoAdresse } from "./demo-daten";
 
 describe("baueDemoDaten", () => {
   const d = baueDemoDaten();
@@ -55,5 +55,26 @@ describe("baueDemoDaten", () => {
       const typen = p.rollen.map((r) => r.typ);
       expect(typen.includes("zeitnehmer")).toBe(typen.includes("sekretaer"));
     }
+  });
+});
+
+describe("demoErsatzAdresse", () => {
+  it("ersetzt echte Adressen durch eine erfundene unter der Demo-Domain, stabil und unterscheidbar", () => {
+    const a = demoErsatzAdresse("  Max.Muster@Example.com ");
+    expect(a.endsWith(`@${DEMO_EMAIL_DOMAIN}`)).toBe(true);
+    expect(a).not.toContain("example.com");
+    expect(demoErsatzAdresse("max.muster@example.com")).toBe(a);
+    expect(demoErsatzAdresse("max.muster@example.org")).not.toBe(a);
+    expect(istDemoAdresse(a)).toBe(true);
+    expect(istDemoAdresse("max@example.com")).toBe(false);
+  });
+
+  it("lässt Adressen der Demo-Domain unverändert (Testpersonen bleiben dieselben)", () => {
+    expect(demoErsatzAdresse(demoEmail("anna"))).toBe(demoEmail("anna"));
+  });
+
+  it("entfernt Sonderzeichen aus dem lokalen Teil", () => {
+    expect(demoErsatzAdresse("<script>@x.de")).toMatch(/^script-[0-9a-f]{8}@/);
+    expect(demoErsatzAdresse("@x.de")).toMatch(/^person-[0-9a-f]{8}@/);
   });
 });
