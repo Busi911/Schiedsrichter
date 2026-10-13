@@ -12,6 +12,7 @@ import { speichereStammdaten } from "./nuliga/stammdaten";
 import { sendMail } from "./mailer";
 import { emailAlsHtml, emailAlsText } from "./email-layout";
 import { outreachInhalt } from "./outreach-mail";
+import { holeBetaStand } from "./system-einstellungen";
 import { outreachAbmeldeUrl } from "./outreach-abmelden";
 import { outreachUebergabeUrl } from "./outreach-uebergabe";
 import { extrahiereKontaktEmail } from "./nuliga/outreach-kontakt";
@@ -310,7 +311,7 @@ export async function fuehreOutreachAus(verband?: string): Promise<OutreachErgeb
       const abmeldeUrl = outreachAbmeldeUrl(vereinId);
       const uebergabeUrl = outreachUebergabeUrl(vereinId);
       const istWiederholung = !!bestehend;
-      const inhalt = outreachInhalt({
+      const inhalt = outreachInhalt({ betaPlaetzeFrei: (await holeBetaStand()).frei, 
         vereinsname: k.name,
         vorschauUrl,
         gueltigBis: link.gueltigBis,
@@ -431,7 +432,7 @@ export async function resetOutreachVerein(clubId: string): Promise<{ geloescht: 
   const vorschauUrl = `${appUrl()}/verein/${ligaV.slug}/vorschau/${link.token}`;
   const abmeldeUrl = outreachAbmeldeUrl(neu.id);
   const uebergabeUrl = outreachUebergabeUrl(neu.id);
-  const inhalt = outreachInhalt({ vereinsname: eintrag.name, vorschauUrl, gueltigBis: link.gueltigBis, email: kontaktEmail, abmeldeUrl, uebergabeUrl });
+  const inhalt = outreachInhalt({ betaPlaetzeFrei: (await holeBetaStand()).frei,  vereinsname: eintrag.name, vorschauUrl, gueltigBis: link.gueltigBis, email: kontaktEmail, abmeldeUrl, uebergabeUrl });
   await sendMail(kontaktEmail, `HandballerPate — eine App für den ${eintrag.name}`, emailAlsText(inhalt), emailAlsHtml(inhalt), { abmeldeUrl });
 
   await adminDb
@@ -522,7 +523,7 @@ export async function fuehreInstagramNachfassAus(): Promise<OutreachErgebnis> {
       const vorschauUrl = `${appUrl()}/verein/${k.slug ?? k.id}/vorschau/${link.token}`;
       const abmeldeUrl = outreachAbmeldeUrl(k.id);
       const uebergabeUrl = outreachUebergabeUrl(k.id);
-      const inhalt = outreachInhalt({
+      const inhalt = outreachInhalt({ betaPlaetzeFrei: (await holeBetaStand()).frei, 
         vereinsname: k.name,
         vorschauUrl,
         gueltigBis: link.gueltigBis,
@@ -630,7 +631,7 @@ export async function fuehreOutreachFollowupAus(): Promise<OutreachFollowupErgeb
         const vorschauUrl = `${appUrl()}/verein/${ligaV?.slug ?? "verein"}/vorschau/${neuerLink.token}`;
         const abmeldeUrl = outreachAbmeldeUrl(k.vereinId);
         const uebergabeUrl = outreachUebergabeUrl(k.vereinId);
-        const inhalt = outreachInhalt({
+        const inhalt = outreachInhalt({ betaPlaetzeFrei: (await holeBetaStand()).frei, 
           vereinsname: v.name,
           vorschauUrl,
           gueltigBis: neuerLink.gueltigBis,
@@ -649,7 +650,7 @@ export async function fuehreOutreachFollowupAus(): Promise<OutreachFollowupErgeb
         const vorschauUrl = `${appUrl()}/verein/${ligaV.slug}/vorschau/${link.token}`;
         const abmeldeUrl = outreachAbmeldeUrl(k.vereinId);
         const uebergabeUrl = outreachUebergabeUrl(k.vereinId);
-        const inhalt = outreachInhalt({
+        const inhalt = outreachInhalt({ betaPlaetzeFrei: (await holeBetaStand()).frei, 
           vereinsname: v.name,
           vorschauUrl,
           gueltigBis: link.gueltigBis,

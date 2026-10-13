@@ -33,6 +33,12 @@ describe("Startkonditionen neuer Vereine", () => {
     expect(k.tarif).toBe("regulaer");
     expect(k.zahlungFaelligAm!.toISOString().slice(0, 10)).toBe("2027-01-04");
   });
+
+  it("schon in der Beta regulär mit 30 Tagen, wenn alle Beta-Plätze vergeben sind", () => {
+    const k = startKonditionen(tag("2026-10-20"), true);
+    expect(k.tarif).toBe("regulaer");
+    expect(k.zahlungFaelligAm!.toISOString().slice(0, 10)).toBe("2026-11-19");
+  });
 });
 
 describe("Zahlungsstand", () => {

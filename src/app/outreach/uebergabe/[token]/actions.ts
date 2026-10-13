@@ -9,6 +9,8 @@ import { pruefeOutreachUebergabeToken } from "@/lib/outreach-uebergabe";
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
 import { appUrl } from "@/lib/app-url";
+import { startKonditionen } from "@/lib/abrechnung";
+import { holeBetaStand } from "@/lib/system-einstellungen";
 import { signIn } from "@/auth";
 
 // Selbstbedienungs-Übergabe: Der Outreach-Empfänger übernimmt den Verein
@@ -56,6 +58,11 @@ export async function uebergebeVereinSelbstbedienung(formData: FormData) {
     );
   }
 
+  // Sind alle Beta-Plätze vergeben (lib/beta-plaetze.ts), übernimmt der Verein direkt kostenpflichtig (regulär, 30 Tage Zahlungsfrist);
+  // sonst bleibt er Beta-Tester wie bei der Anlage.
+  const konditionen = startKonditionen(new Date(), (await holeBetaStand()).voll);
+  const kostenpflichtig = konditionen.tarif === "regulaer";
+
   // Übergabe in einer Transaktion: User anlegen, Verein aktiv schalten,
   // Treuhand-Zugriffe löschen, Protokoll.
   await adminDb.transaction(async (tx) => {
@@ -67,7 +74,11 @@ export async function uebergebeVereinSelbstbedienung(formData: FormData) {
     });
     await tx
       .update(vereine)
-      .set({ status: "aktiv", uebergebenAm: new Date() })
+      .set({
+        status: "aktiv",
+        uebergebenAm: new Date(),
+        ...(kostenpflichtig ? { tarif: konditionen.tarif, zahlungFaelligAm: konditionen.zahlungFaelligAm } : {}),
+      })
       .where(eq(vereine.id, vereinId));
     await tx.delete(treuhandZugriffe).where(
       eq(treuhandZugriffe.vereinId, vereinId)
@@ -76,7 +87,7 @@ export async function uebergebeVereinSelbstbedienung(formData: FormData) {
       vereinId,
       aktion: "uebergeben",
       akteur: "Outreach-Selbstbedienung",
-      details: `${name} <${email}>`,
+      details: `${name} <${email}>${kostenpflichtig ? " · kostenpflichtig (Beta-Plätze vergeben)" : ""}`,
     });
   });
 
@@ -101,6 +112,7 @@ export async function uebergebeVereinSelbstbedienung(formData: FormData) {
       `${name} hat den Verein ${verein.name} über die Outreach-Selbstbedienung übernommen.`,
       `E-Mail-Adresse: ${email}`,
       `Login-Link wurde versendet. Der Verein ist jetzt aktiv.`,
+      kostenpflichtig ? `Tarif: regulär (Beta-Plätze vergeben) — bitte Rechnung stellen.` : `Tarif: Beta-Tester.`,
     ],
     cta: { text: "Verein im Systemadmin", url: `${appUrl()}/system/vereine` },
   };

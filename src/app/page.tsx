@@ -17,7 +17,8 @@ import { holeAlleVereine } from "@/lib/liga-oeffentlich";
 import { appUrl } from "@/lib/app-url";
 import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER, KEIN_RISIKO, NETTO, SPONSOR_KURZ } from "@/lib/beta-konditionen";
 import { betaVorbei } from "@/lib/abrechnung";
-import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
+import { holeBetaStand } from "@/lib/system-einstellungen";
+import { betaPlaetzeSatz } from "@/lib/beta-plaetze";
 import { Vereinsuche } from "@/components/liga/vereinsuche";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -188,10 +189,9 @@ export default async function Home() {
     );
   }
 
-  const { betaVereinLimit } = await holeSystemEinstellungen();
-  const vereineCount = await zaehleVereineFuerBetaLimit();
-  const live = betaVorbei(new Date()); // nach dem Beta-Ende ist die Registrierung kostenpflichtig
-  const freiePlaetze = Math.max(betaVereinLimit - vereineCount, 0);
+  const beta = await holeBetaStand();
+  // Neue Vereine zahlen nach dem Beta-Ende oder wenn alle Beta-Plätze vergeben sind (lib/beta-plaetze.ts): dann zeigt die Startseite den regulären Preis.
+  const live = betaVorbei(new Date()) || beta.voll;
   // Vereine mit öffentlicher Seite (Spielpläne/Ergebnisse) — stehen vor dem Beta-Hinweis.
   const vereineMitSeite = await holeAlleVereine();
 
@@ -249,13 +249,7 @@ export default async function Home() {
             <SmartphoneIcon className="size-6 text-primary" />
             Euren Verein als App finden
           </Link>
-          {!live && (
-            <p className="text-sm text-muted-foreground">
-              {freiePlaetze > 0
-                ? `Noch ${freiePlaetze} von ${betaVereinLimit} Beta-Plätzen frei — danach Warteliste.`
-                : "Die Beta-Plätze sind gerade ausgeschöpft — Registrierung landet auf der Warteliste."}
-            </p>
-          )}
+          {!live && <p className="text-sm text-muted-foreground">{betaPlaetzeSatz(beta.frei)}</p>}
           <div className="max-w-xl space-y-1 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
             {live ? (
               <p>
@@ -378,9 +372,8 @@ export default async function Home() {
               )}
               <li className="flex gap-3">
                 <UsersIcon className="size-5 shrink-0 text-primary" />
-                Auf {betaVereinLimit} Vereine begrenzt, damit wir eng am
-                Feedback bleiben können — danach geht es auf die Warteliste,
-                bis ein Platz frei wird.
+                Die Beta-Plätze sind begrenzt, damit wir eng am Feedback
+                bleiben können — danach ist die Registrierung kostenpflichtig.
               </li>
               <li className="flex gap-3">
                 <MessageCircleIcon className="size-5 shrink-0 text-primary" />

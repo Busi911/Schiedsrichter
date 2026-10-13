@@ -1,23 +1,22 @@
 "use server";
 
-import { adminDb } from "@/db/admin";
-import { warteliste as wartelisteTabelle } from "@/db/schema";
 import { betaVorbei } from "@/lib/abrechnung";
-import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
+import { holeBetaStand } from "@/lib/system-einstellungen";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { willkommensInhalt } from "@/lib/willkommens-mail";
 import { benachrichtigeSystemAdminsUeberRegistrierung } from "@/lib/system-admin-benachrichtigung";
 
-// Öffentlich, login-frei erreichbar (siehe page.tsx) — daher der Zähler-
-// Vergleich ERST HIER, direkt vor dem Insert, statt nur auf einem beim
-// Seitenaufruf vorberechneten Wert zu vertrauen: zwei nahezu gleichzeitige
-// Registrierungen dürfen das Beta-Limit nicht gemeinsam überschreiten,
-// nur weil beide beim Rendern noch einen freien Platz sahen.
+// Öffentlich, login-frei erreichbar (siehe page.tsx) — daher der Beta-Stand
+// ERST HIER, direkt vor dem Insert, statt nur auf einem beim Seitenaufruf
+// vorberechneten Wert zu vertrauen. Ist ein Beta-Platz frei, wird der Verein
+// Beta-Tester; sind alle Plätze vergeben (auch nach der automatischen
+// Erhöhung bis BETA_PLAETZE_MAX, lib/beta-plaetze.ts), registriert er sich
+// direkt kostenpflichtig (keine Warteliste mehr).
 export async function vereinRegistrieren(
   formData: FormData
-): Promise<{ ergebnis: "registriert" | "warteliste" } | { fehler: string }> {
+): Promise<{ ergebnis: "registriert"; kostenpflichtig: boolean } | { fehler: string }> {
   const vereinsname = formData.get("vereinsname");
   const adminName = formData.get("adminName");
   const adminEmail = formData.get("adminEmail");
@@ -25,8 +24,9 @@ export async function vereinRegistrieren(
   const plz = formData.get("plz");
   const ort = formData.get("ort");
   const rechnungEmailRoh = formData.get("rechnungEmail");
-  // Nach dem Beta-Ende ist die Registrierung kostenpflichtig: dann ist die Rechnungs-E-Mail des Verantwortlichen Pflicht.
-  const kostenpflichtig = betaVorbei(new Date());
+  // Nach dem Beta-Ende oder wenn alle Beta-Plätze vergeben sind, ist die Registrierung kostenpflichtig: dann ist die Rechnungs-E-Mail des Verantwortlichen Pflicht.
+  const beta = await holeBetaStand();
+  const kostenpflichtig = betaVorbei(new Date()) || beta.voll;
   const rechnungEmail = typeof rechnungEmailRoh === "string" ? rechnungEmailRoh.trim().toLowerCase() : "";
   if (kostenpflichtig && !rechnungEmail) return { fehler: "Bitte die E-Mail-Adresse des Verantwortlichen für die Rechnung angeben." };
   if (rechnungEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rechnungEmail)) return { fehler: "Die Rechnungs-E-Mail-Adresse ist ungültig." };
@@ -48,24 +48,12 @@ export async function vereinRegistrieren(
     return { fehler: "Bitte alle Felder ausfüllen." };
   }
 
-  const { betaVereinLimit } = await holeSystemEinstellungen();
-  const vereineCount = await zaehleVereineFuerBetaLimit();
-
-  if (vereineCount >= betaVereinLimit) {
-    await adminDb.insert(wartelisteTabelle).values({
-      vereinsname: vereinsname.trim(),
-      adminName: adminName.trim(),
-      adminEmail: adminEmail.trim().toLowerCase(),
-    });
-    return { ergebnis: "warteliste" };
-  }
-
   try {
     await legeVereinMitAdminAn(vereinsname, adminName, adminEmail, {
       strasse,
       plz,
       ort,
-    }, rechnungEmail ? { email: rechnungEmail, ansprechpartner: adminName } : undefined);
+    }, rechnungEmail ? { email: rechnungEmail, ansprechpartner: adminName } : undefined, { betaVoll: beta.voll });
   } catch (err) {
     return {
       fehler:
@@ -92,5 +80,5 @@ export async function vereinRegistrieren(
     email
   );
 
-  return { ergebnis: "registriert" };
+  return { ergebnis: "registriert", kostenpflichtig };
 }
