@@ -23,12 +23,14 @@ export async function legeVereinMitAdminAn(
   // nachträglich unter /admin/einstellungen pflegbar, falls hier leer.
   adresse?: { strasse: string; plz: string; ort: string },
   // E-Mail des Verantwortlichen für die Rechnung (nach dem Beta-Ende Pflicht bei der Selbstregistrierung); ohne Angabe wird die Admin-E-Mail genutzt.
-  rechnung?: { email: string; ansprechpartner?: string }
+  rechnung?: { email: string; ansprechpartner?: string },
+  // Alle Beta-Plätze vergeben (Selbstregistrierung, lib/beta-plaetze.ts): dann direkt regulär mit Zahlungsfrist.
+  opt: { betaVoll?: boolean } = {}
 ): Promise<string> {
   const neueEmail = adminEmail.trim().toLowerCase();
   const vereinId = crypto.randomUUID();
   // Tarif und erste Zahlungsfrist nach dem Zeitpunkt der Anlage: vor dem Beta-Ende Beta-Tester, danach regulär mit Zahlungsfrist (lib/abrechnung.ts).
-  const konditionen = startKonditionen(new Date());
+  const konditionen = startKonditionen(new Date(), opt.betaVoll);
 
   await withTenant(vereinId, async (tx) => {
     await pruefeEmailVerfuegbar(tx, neueEmail, "__neu__");

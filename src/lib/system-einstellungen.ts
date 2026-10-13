@@ -1,8 +1,9 @@
 import "server-only";
 import { adminDb } from "@/db/admin";
 import { mitColdStartRetry } from "@/db/retry";
-import { count, eq } from "drizzle-orm";
-import { vereine } from "@/db/schema";
+import { and, count, eq } from "drizzle-orm";
+import { systemEinstellungen, vereine } from "@/db/schema";
+import { betaStand, naechstesBetaLimit, type BetaStand } from "./beta-plaetze";
 
 // system_einstellungen ist als Singleton angelegt (siehe Migration
 // 0045: genau eine Zeile per INSERT DEFAULT VALUES). Fallback-Objekt nur
@@ -30,4 +31,20 @@ export async function zaehleVereineFuerBetaLimit(): Promise<number> {
     adminDb.select({ value: count() }).from(vereine).where(eq(vereine.status, "aktiv"))
   );
   return value;
+}
+
+// Aktueller Stand der Beta-Plätze. Ist das Kontingent voll, wird das Limit hier automatisch um einen Platz erhöht (bis BETA_PLAETZE_MAX,
+// lib/beta-plaetze.ts) — bedingt auf den gelesenen Wert, damit zwei gleichzeitige Aufrufe nicht doppelt erhöhen. Ist auch das Maximum
+// belegt, ist `voll` true: neue Vereine registrieren sich dann direkt kostenpflichtig.
+export async function holeBetaStand(): Promise<BetaStand> {
+  const einstellungen = await holeSystemEinstellungen();
+  const belegt = await zaehleVereineFuerBetaLimit();
+  const limit = naechstesBetaLimit(einstellungen.betaVereinLimit, belegt);
+  if (limit !== einstellungen.betaVereinLimit && einstellungen.id) {
+    await adminDb
+      .update(systemEinstellungen)
+      .set({ betaVereinLimit: limit })
+      .where(and(eq(systemEinstellungen.id, einstellungen.id), eq(systemEinstellungen.betaVereinLimit, einstellungen.betaVereinLimit)));
+  }
+  return betaStand(limit, belegt);
 }

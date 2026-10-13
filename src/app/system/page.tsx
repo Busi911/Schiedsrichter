@@ -6,6 +6,7 @@ import { zahlungsStand } from "@/lib/abrechnung";
 import { requireSystemAdmin } from "@/lib/session";
 import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
 import { betaVereinLimitSpeichern } from "./actions";
+import { BETA_PLAETZE_MAX } from "@/lib/beta-plaetze";
 import {
   Card,
   CardContent,
@@ -133,9 +134,10 @@ export default async function SystemDashboardPage() {
         <CardHeader>
           <CardTitle className="text-base">Registrierung: Vereinslimit</CardTitle>
           <CardDescription>
-            Vereine können sich unter /registrieren selbst anlegen, bis
-            diese Grenze erreicht ist — danach landen weitere Anfragen auf
-            der{" "}
+            Beta-Plätze für die Selbstregistrierung. Ist das Kontingent voll,
+            erhöht die App das Limit automatisch um einen Platz, bis höchstens{" "}
+            {BETA_PLAETZE_MAX}. Danach registrieren sich Vereine direkt
+            kostenpflichtig (Tarif regulär). Alte Anfragen:{" "}
             <Link href="/system/warteliste" className="underline">
               Warteliste ({wartelisteCount})
             </Link>

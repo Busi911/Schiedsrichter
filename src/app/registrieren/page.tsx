@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { BETA_KURZ, KEIN_RISIKO, NETTO, PREIS_REGULAER, SPONSOR_KURZ } from "@/lib/beta-konditionen";
 import { betaVorbei } from "@/lib/abrechnung";
-import { holeSystemEinstellungen, zaehleVereineFuerBetaLimit } from "@/lib/system-einstellungen";
+import { betaPlaetzeSatz } from "@/lib/beta-plaetze";
+import { holeBetaStand } from "@/lib/system-einstellungen";
 import {
   Card,
   CardContent,
@@ -20,16 +21,14 @@ export const metadata = { title: "Verein registrieren – HandballerPate" };
 // Deploy-Lebensdauer eingefroren statt bei jedem Aufruf aktuell.
 export const dynamic = "force-dynamic";
 
-// Rein informativ ("noch X Plätze frei") — der tatsächliche
-// Limit-Vergleich, der über Registrierung vs. Warteliste entscheidet,
-// läuft nochmal serverseitig in der Action selbst (siehe Kommentar dort),
-// nicht auf Basis dieser beim Rendern berechneten Zahl.
+// Rein informativ ("noch X Plätze frei") — ob Beta oder kostenpflichtig,
+// entscheidet die Action nochmal selbst (siehe Kommentar dort), nicht diese
+// beim Rendern berechnete Zahl.
 export default async function RegistrierenPage() {
-  const { betaVereinLimit } = await holeSystemEinstellungen();
-  const vereineCount = await zaehleVereineFuerBetaLimit();
-  const freiePlaetze = Math.max(betaVereinLimit - vereineCount, 0);
-  // Nach dem Beta-Ende ist die Registrierung kostenpflichtig (Preis, Rechnung, Rechnungs-E-Mail Pflicht).
-  const kostenpflichtig = betaVorbei(new Date());
+  const beta = await holeBetaStand();
+  // Nach dem Beta-Ende oder wenn alle Beta-Plätze vergeben sind, ist die Registrierung kostenpflichtig (Preis, Rechnung, Rechnungs-E-Mail Pflicht).
+  const betaEnde = betaVorbei(new Date());
+  const kostenpflichtig = betaEnde || beta.voll;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
@@ -41,9 +40,7 @@ export default async function RegistrierenPage() {
             {kostenpflichtig
               ? `${PREIS_REGULAER} € im Jahr, Rechnung per E-Mail, Zahlungsziel 30 Tage. ${NETTO} ${SPONSOR_KURZ}`
               : `HandballerPate befindet sich in der Beta und ist aktuell komplett kostenlos. ${BETA_KURZ} ${KEIN_RISIKO}`}{" "}
-            {freiePlaetze > 0
-              ? `Noch ${freiePlaetze} von ${betaVereinLimit} Plätzen frei.`
-              : "Die Beta-Plätze sind aktuell ausgeschöpft — ihr landet auf der Warteliste und werdet benachrichtigt, sobald ein Platz frei wird."}
+            {kostenpflichtig ? (betaEnde ? "" : "Alle Beta-Plätze sind vergeben.") : betaPlaetzeSatz(beta.frei)}
           </CardDescription>
         </CardHeader>
         <CardContent>

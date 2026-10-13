@@ -25,8 +25,9 @@ export function betragNetto(tarif: Tarif, sponsor: boolean): number {
 }
 
 // Tarif und erste Frist für einen NEUEN Verein: vor dem Beta-Ende Beta-Tester (erste Rechnung ab 1.12.), danach regulär mit 30 Tagen Frist.
-export function startKonditionen(jetzt: Date): { tarif: Tarif; zahlungFaelligAm: Date | null } {
-  return betaVorbei(jetzt) ? { tarif: "regulaer", zahlungFaelligAm: new Date(jetzt.getTime() + ZAHLUNGSFRIST_TAGE * TAG) } : { tarif: "beta", zahlungFaelligAm: null };
+// Regulär auch, wenn alle Beta-Plätze vergeben sind (betaVoll, lib/beta-plaetze.ts).
+export function startKonditionen(jetzt: Date, betaVoll = false): { tarif: Tarif; zahlungFaelligAm: Date | null } {
+  return betaVorbei(jetzt) || betaVoll ? { tarif: "regulaer", zahlungFaelligAm: new Date(jetzt.getTime() + ZAHLUNGSFRIST_TAGE * TAG) } : { tarif: "beta", zahlungFaelligAm: null };
 }
 
 // Vorab-Ankündigung des Beta-Endes an Beta-Vereine: einmal, ab so vielen Tagen vor dem Beta-Ende (Marke am Verein, bis die erste Zahlungs-Mail sie ablöst).

@@ -10,9 +10,9 @@ import { vereinRegistrieren } from "./actions";
 
 // useActionState statt einer einfachen <form action={...}> (wie sonst in
 // der App üblich, siehe CLAUDE.md), weil das Ergebnis hier zwei
-// unterschiedliche Ausgänge hat (sofort registriert vs. Warteliste), die
-// beide auf DERSELBEN Seite angezeigt werden müssen, statt nur bei einem
-// Fehler in ein generisches Error-Overlay zu laufen.
+// Ausgänge hat (registriert, Fehler), die auf DERSELBEN Seite angezeigt
+// werden müssen, statt nur bei einem Fehler in ein generisches
+// Error-Overlay zu laufen.
 export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflichtig?: boolean }) {
   const [ergebnis, formAction] = useActionState(
     async (_zustand: unknown, formData: FormData) => vereinRegistrieren(formData),
@@ -25,20 +25,12 @@ export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflich
         <p className="text-sm">
           Geschafft — euer Verein ist angelegt. Ihr bekommt gleich eine Mail
           mit dem Login-Link.
+          {ergebnis.kostenpflichtig && " Die Rechnung kommt per E-Mail an die angegebene Rechnungsadresse."}
         </p>
         <Button render={<Link href="/login" />} nativeButton={false}>
           Zum Login
         </Button>
       </div>
-    );
-  }
-
-  if (ergebnis && "ergebnis" in ergebnis && ergebnis.ergebnis === "warteliste") {
-    return (
-      <p className="text-sm">
-        Die Beta ist gerade voll — ihr steht jetzt auf der Warteliste und
-        werdet benachrichtigt, sobald ein Platz frei wird.
-      </p>
     );
   }
 

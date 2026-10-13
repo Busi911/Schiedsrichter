@@ -67,4 +67,23 @@ describe("outreachInhalt", () => {
     expect(text).toContain("Spielplan");
     expect(text).toContain("nuLiga");
   });
+
+  it("nennt die freien Beta-Plätze und wechselt bei vollem Kontingent auf den regulären Preis", () => {
+    const basis = {
+      vereinsname: "HSG Linden",
+      vorschauUrl: "https://handballerpate.de/verein/hsg-linden/vorschau/abc",
+      gueltigBis: new Date("2026-10-15T10:00:00Z"),
+      email: "test@example.org",
+      abmeldeUrl: "https://handballerpate.de/api/outreach/abmelden/token123",
+      uebergabeUrl: "https://handballerpate.de/outreach/uebergabe/token456",
+    };
+    expect(JSON.stringify(inhalt.zeilen)).not.toContain("Beta-Platz");
+    expect(JSON.stringify(outreachInhalt({ ...basis, betaPlaetzeFrei: 1 }).zeilen)).toContain("Es ist nur noch ein Beta-Platz frei.");
+    const voll = outreachInhalt({ ...basis, betaPlaetzeFrei: 0 });
+    const text = JSON.stringify(voll.zeilen);
+    expect(text).toContain("Beta-Plätze sind inzwischen vergeben");
+    expect(text).toContain("300 €");
+    expect(text).not.toContain("kostenlos");
+    expect(voll.cta?.text).toBe("Verein übernehmen");
+  });
 });

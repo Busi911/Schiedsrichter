@@ -1,5 +1,8 @@
 import { pruefeOutreachUebergabeToken } from "@/lib/outreach-uebergabe";
 import { uebergebeVereinSelbstbedienung } from "./actions";
+import { betaVorbei } from "@/lib/abrechnung";
+import { NETTO, PREIS_REGULAER } from "@/lib/beta-konditionen";
+import { holeBetaStand } from "@/lib/system-einstellungen";
 
 // Öffentliche Landing-Page für die Outreach-Übergabe: Der Empfänger der
 // Outreach-Mail klickt auf "Verein übernehmen", landet hier, gibt Name +
@@ -24,10 +27,18 @@ export default async function OutreachUebergabePage({
     );
   }
 
+  // Alle Beta-Plätze vergeben (lib/beta-plaetze.ts): die Übernahme ist dann direkt kostenpflichtig (siehe actions.ts).
+  const kostenpflichtig = betaVorbei(new Date()) || (await holeBetaStand()).voll;
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <h1 className="text-2xl font-bold text-center mb-2">Verein übernehmen</h1>
+        {kostenpflichtig && (
+          <p className="mb-4 rounded-lg border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
+            Die Beta-Plätze sind vergeben: HandballerPate kostet {PREIS_REGULAER} € im Jahr, die Rechnung kommt per E-Mail, Zahlungsziel 30 Tage. {NETTO}
+          </p>
+        )}
         <p className="text-muted-foreground text-center mb-8 text-sm">
           Du wurdest eingeladen, die Verwaltung deines Vereins bei HandballerPate
           zu übernehmen. Gib deinen Namen und deine E-Mail-Adresse ein — du
