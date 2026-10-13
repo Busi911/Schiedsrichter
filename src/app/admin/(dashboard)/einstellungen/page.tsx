@@ -362,7 +362,6 @@ export default async function EinstellungenPage({
                 aria-label="Namen eurer Spielhallen"
                 placeholder={"z.B. Sporthalle Heuchelheim\nHalle am Seebach"}
                 defaultValue={parseHallenNamen(verein?.eigeneHallenNamen).join("\n")}
-                readOnly={gesperrt}
                 className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
               <p className="text-xs text-muted-foreground">
@@ -1090,8 +1089,8 @@ export default async function EinstellungenPage({
                   inputMode="numeric"
                   placeholder="z.B. 30402"
                   defaultValue={verein?.nuligaHalle1Id ?? ""}
-                  readOnly={schreibgeschuetzt}
-                  className={schreibgeschuetzt ? "bg-muted/50" : undefined}
+                  readOnly={demo}
+                  className={demo ? "bg-muted/50" : undefined}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -1102,8 +1101,8 @@ export default async function EinstellungenPage({
                   inputMode="numeric"
                   placeholder="optional"
                   defaultValue={verein?.nuligaHalle2Id ?? ""}
-                  readOnly={schreibgeschuetzt}
-                  className={schreibgeschuetzt ? "bg-muted/50" : undefined}
+                  readOnly={demo}
+                  className={demo ? "bg-muted/50" : undefined}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -1114,8 +1113,8 @@ export default async function EinstellungenPage({
                   inputMode="numeric"
                   placeholder="optional"
                   defaultValue={verein?.nuligaHalle3Id ?? ""}
-                  readOnly={schreibgeschuetzt}
-                  className={schreibgeschuetzt ? "bg-muted/50" : undefined}
+                  readOnly={demo}
+                  className={demo ? "bg-muted/50" : undefined}
                 />
               </div>
               <div className="flex items-center justify-between gap-3">
