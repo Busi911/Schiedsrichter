@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { geaenderteStammdaten, pruefeStammdatenWert } from "./stammdaten-felder";
+import { geaenderteStammdaten, GESPERRTE_FELDER, pruefeStammdatenWert } from "./stammdaten-felder";
 
 describe("geaenderteStammdaten", () => {
   it("erlaubt das Füllen eines leeren Felds", () => {
@@ -23,5 +23,12 @@ describe("geaenderteStammdaten", () => {
     expect(pruefeStammdatenWert("handballNetClubId", "0b8y490")).toBeNull();
     expect(pruefeStammdatenWert("nuligaHalle1Id", "x")).not.toBeNull();
     expect(pruefeStammdatenWert("handballNetTeamIds", "")).toBeNull();
+  });
+});
+
+describe("GESPERRTE_FELDER", () => {
+  it("sperrt Vereins-/Team-IDs und Zusatzquellen, aber nicht Hallen-IDs und Hallennamen", () => {
+    expect(GESPERRTE_FELDER).toEqual(expect.arrayContaining(["nuligaClubId", "handballNetClubId", "handballNetTeamIds", "zusatzquellen", "sonstiges"]));
+    for (const f of ["nuligaHalle1Id", "nuligaHalle2Id", "nuligaHalle3Id", "eigeneHallenNamen"] as const) expect(GESPERRTE_FELDER).not.toContain(f);
   });
 });

@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 const datum = (d: Date) => d.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin" });
 
-// Anträge der Vereine auf Änderung gesperrter Stammdaten (Vereins-/Hallen-IDs bei eingetragenen Diensten).
+// Anträge der Vereine auf Änderung gesperrter Stammdaten (Vereins-/Team-IDs, Zusatzquellen bei eingetragenen Diensten).
 export default async function AenderungenSeite({ searchParams }: { searchParams: Promise<{ ok?: string; fehler?: string }> }) {
   await requireSystemAdmin();
   const { ok, fehler } = await searchParams;
@@ -32,7 +32,7 @@ export default async function AenderungenSeite({ searchParams }: { searchParams:
       <div>
         <h1 className="font-heading text-2xl font-semibold">Änderungsanträge</h1>
         <p className="text-sm text-muted-foreground">
-          Sobald für Termine Dienste eingetragen sind (zugeordnet oder selbst eingetragen), sind Vereins-IDs, Hallen-IDs und Hallennamen gesperrt. Änderungen kommen hier mit Grund an.
+          Sobald für Termine Dienste eingetragen sind (zugeordnet oder selbst eingetragen), sind Vereins-/Team-IDs, weitere Vereine (Spielgemeinschaft) und das Entfernen der Seite gesperrt (Hallen-IDs und Hallennamen nicht mehr, sie löschen nie Termine). Änderungen kommen hier mit Grund an.
           Bei „Genehmigen“ wird der Wert sofort gesetzt (Spiele werden danach vom Cron neu geladen); Felder ohne Automatik musst du von Hand ändern.
         </p>
       </div>

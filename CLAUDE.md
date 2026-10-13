@@ -603,12 +603,12 @@ Die Seiten liegen unverändert unter `/system/…`. Neue Systemseite: in `SYSTEM
 ## Gesperrte Stammdaten (Änderungsantrag)
 
 Sobald für irgendeinen Termin des Vereins ein Dienst eingetragen ist (`termin_zuordnung`: vom Admin zugeordnet oder selbst eingetragen, angemeldet oder öffentlich; NICHT die automatische Übernahme `handball_net_uebernommen`; Funktionsträger ohne Einsatz sperren nichts) (`istStammdatenGesperrt`, `lib/stammdaten-sperre.ts`), lassen sich nuLiga-/handball.net-Vereins-ID,
-Team-IDs, Hallen-IDs 1–3, die Spielhallen-Namen, Zusatzquellen und „Seite entfernen“ nicht mehr selbst ändern (Termine/Dienste hängen daran). Gesperrt ist nur das ÄNDERN oder Leeren eines
+Team-IDs, Zusatzquellen und „Seite entfernen“ nicht mehr selbst ändern (`GESPERRTE_FELDER`; Termine/Dienste hängen daran: mit anderer ID laufen die alten Mannschaften aus und die Spiele kommen als zweite Termine). Hallen-IDs 1–3 und die Spielhallen-Namen sind seit 13.10.2026 NICHT mehr gesperrt: sie legen nur fest, welche Heimspiele neu angelegt werden, und löschen nie Termine/Dienste (Antragsformular bietet sie nicht mehr an, alte Anträge bleiben genehmigbar). Gesperrt ist nur das ÄNDERN oder Leeren eines
 gesetzten Werts (`geaenderteStammdaten`, `lib/stammdaten-felder.ts`); ein leeres Feld zu füllen oder unverändert zu speichern („Jetzt aktualisieren“) geht immer. Die Server Actions in
 `admin/(dashboard)/einstellungen/actions.ts` prüfen das über `verbieteGesperrteAenderung` (Systemadmin im Treuhand-/Support-Kontext ist ausgenommen); die Felder sind im UI `readOnly`.
 Der Verein beantragt stattdessen mit Grund (`stammdatenAenderungBeantragen`, Tabelle `stammdaten_aenderung`, nur adminDb, Mail an alle Systemadmins, Vereinsprotokoll). Der Systemadmin prüft unter
 `/system/aenderungen` (Vereine → Änderungen): „Genehmigen“ setzt die ID-/Hallenfelder sofort (`AUTOMATISCH_ANWENDBAR`; Spiele lädt danach der Cron neu), Zusatzquellen/Sonstiges werden von Hand
-umgesetzt; der Verein bekommt eine Antwortmail. Neue Stammdaten-Felder, an denen Dienste hängen: in `STAMMDATEN_FELDER` aufnehmen und die zugehörige Action absichern.
+umgesetzt; der Verein bekommt eine Antwortmail. Neue Stammdaten-Felder, an denen Dienste hängen: in `STAMMDATEN_FELDER` und `GESPERRTE_FELDER` aufnehmen und die zugehörige Action absichern.
 
 ## Startseite des Vereins und "Meine" (öffentliche Fan-App, Stand 12.10.2026)
 

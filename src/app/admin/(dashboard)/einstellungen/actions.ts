@@ -19,7 +19,7 @@ import { synchronisiereNuligaHallen } from "@/lib/rundenspiel-sync";
 import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { signOut } from "@/auth";
 import { verbieteImDemo } from "@/lib/demo-verein";
-import { geaenderteStammdaten, istStammdatenFeld, pruefeStammdatenWert, STAMMDATEN_FELDER } from "@/lib/stammdaten-felder";
+import { geaenderteStammdaten, GESPERRTE_FELDER, istStammdatenFeld, pruefeStammdatenWert, STAMMDATEN_FELDER } from "@/lib/stammdaten-felder";
 import { verbieteGesperrteAenderung } from "@/lib/stammdaten-sperre";
 import { benachrichtigeSystemAdminsUeberStammdatenAntrag } from "@/lib/system-admin-benachrichtigung";
 
@@ -157,21 +157,6 @@ export async function nuligaEinstellungenSpeichern(formData: FormData) {
   const nuligaHalle3Id = parseHalleId(formData, "nuligaHalle3Id");
   const nuligaAutoImportAktiviert = formData.get("nuligaAutoImportAktiviert") === "on";
 
-  const aktuell = await withTenant(vereinId, (tx) =>
-    tx.query.vereine.findFirst({
-      where: eq(vereine.id, vereinId),
-      columns: { nuligaHalle1Id: true, nuligaHalle2Id: true, nuligaHalle3Id: true },
-    })
-  );
-  await verbieteGesperrteAenderung(
-    session,
-    vereinId,
-    geaenderteStammdaten(
-      { nuligaHalle1Id: aktuell?.nuligaHalle1Id, nuligaHalle2Id: aktuell?.nuligaHalle2Id, nuligaHalle3Id: aktuell?.nuligaHalle3Id },
-      { nuligaHalle1Id, nuligaHalle2Id, nuligaHalle3Id }
-    )
-  );
-
   await withTenant(vereinId, (tx) =>
     tx
       .update(vereine)
@@ -248,14 +233,7 @@ export async function eigeneHallenNamenSpeichern(formData: FormData) {
   const vereinId = session.user.vereinId!;
   const roh = formData.get("eigeneHallenNamen");
   const eigeneHallenNamen = typeof roh === "string" && roh.trim() ? roh.trim().slice(0, 500) : null;
-  const aktuell = await withTenant(vereinId, (tx) =>
-    tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { eigeneHallenNamen: true } })
-  );
-  await verbieteGesperrteAenderung(
-    session,
-    vereinId,
-    geaenderteStammdaten({ eigeneHallenNamen: aktuell?.eigeneHallenNamen }, { eigeneHallenNamen })
-  );
+  // Bewusst NICHT gesperrt (lib/stammdaten-felder.ts GESPERRTE_FELDER): die Hallennamen legen nur fest, welche Heimspiele NEU angelegt werden.
   await withTenant(vereinId, (tx) =>
     tx.update(vereine).set({ eigeneHallenNamen }).where(eq(vereine.id, vereinId))
   );
@@ -666,7 +644,7 @@ export async function stammdatenAenderungBeantragen(formData: FormData) {
     return typeof roh === "string" ? roh.trim() : "";
   };
   const feld = text("feld");
-  if (!istStammdatenFeld(feld)) throw new Error("Bitte ein Feld auswählen.");
+  if (!istStammdatenFeld(feld) || !GESPERRTE_FELDER.includes(feld)) throw new Error("Bitte ein Feld auswählen.");
   const neuerWert = text("neuerWert");
   const grund = text("grund");
   if (grund.length < 10) throw new Error("Bitte den Grund kurz beschreiben (mindestens 10 Zeichen).");

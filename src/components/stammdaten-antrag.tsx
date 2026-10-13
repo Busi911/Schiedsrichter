@@ -1,21 +1,21 @@
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { STAMMDATEN_FELDER } from "@/lib/stammdaten-felder";
+import { GESPERRTE_FELDER, STAMMDATEN_FELDER } from "@/lib/stammdaten-felder";
 import { stammdatenAenderungBeantragen } from "@/app/admin/(dashboard)/einstellungen/actions";
 
 type Antrag = { id: string; feld: string; neuerWert: string | null; status: string; entscheidungNotiz: string | null };
 
 const STATUS_TEXT: Record<string, string> = { offen: "wird geprüft", genehmigt: "übernommen", abgelehnt: "abgelehnt" };
 
-// Erscheint statt der Eingabe, sobald für einen Termin ein Dienst eingetragen ist (zugeordnet oder selbst eingetragen): Vereins-/Hallen-IDs lassen sich dann nicht
+// Erscheint statt der Eingabe, sobald für einen Termin ein Dienst eingetragen ist (zugeordnet oder selbst eingetragen): Vereins-/Team-IDs und Zusatzquellen lassen sich dann nicht
 // mehr direkt ändern (Termine und Dienste hängen daran), eine Änderung geht mit Grund an den Systemadmin.
 export function StammdatenAntrag({ antraege, antragOk }: { antraege: Antrag[]; antragOk: boolean }) {
   return (
     <div className="mt-4 flex flex-col gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
-      <p className="text-sm font-medium">Vereins-IDs und Hallen sind gesperrt</p>
+      <p className="text-sm font-medium">Vereins-IDs sind gesperrt</p>
       <p className="text-xs text-muted-foreground">
-        Weil für Termine bereits Dienste eingetragen sind, lassen sich diese Angaben nicht mehr direkt ändern — sonst könnten eingeteilte Dienste verloren gehen.
+        Weil für Termine bereits Dienste eingetragen sind, lassen sich die Vereins- und Team-IDs und die weiteren Vereine (Spielgemeinschaft) nicht mehr direkt ändern — sonst könnten eingeteilte Dienste verloren gehen. Hallen-IDs und eure Spielhallen könnt ihr weiterhin selbst ändern.
         Wenn sich wirklich etwas ändern muss (z.B. falsche ID), beantragt es hier mit kurzer Begründung; wir prüfen es und setzen es um.
       </p>
       {antragOk && <p className="rounded-md border bg-muted p-2 text-sm">Antrag gesendet. Ihr bekommt eine Mail, sobald er geprüft ist.</p>}
@@ -32,9 +32,9 @@ export function StammdatenAntrag({ antraege, antragOk }: { antraege: Antrag[]; a
             <option value="" disabled>
               Bitte wählen …
             </option>
-            {Object.entries(STAMMDATEN_FELDER).map(([wert, label]) => (
+            {GESPERRTE_FELDER.map((wert) => (
               <option key={wert} value={wert}>
-                {label}
+                {STAMMDATEN_FELDER[wert]}
               </option>
             ))}
           </select>

@@ -1,4 +1,4 @@
-// Stammdaten, die nach dem Einrichten gesperrt werden, sobald für Termine Dienste eingetragen sind (rein, ohne DB).
+// Stammdaten, die nach dem Einrichten gesperrt werden, sobald für Termine Dienste eingetragen sind (rein, ohne DB; welche genau: GESPERRTE_FELDER).
 // Ändert sich so ein Wert, könnten Termine, Ansetzungen und eingetragene Dienste verloren gehen — deshalb geht
 // eine Änderung dann nur als Antrag mit Grund an den Systemadmin (Tabelle stammdaten_aenderung).
 export const STAMMDATEN_FELDER = {
@@ -14,6 +14,15 @@ export const STAMMDATEN_FELDER = {
 } as const;
 
 export type StammdatenFeld = keyof typeof STAMMDATEN_FELDER;
+
+// Tatsächlich gesperrt sind nur Angaben, deren Änderung eingetragene Dienste gefährdet: Mit einer anderen Vereins-/Team-ID
+// oder ohne Zusatzquelle laufen die bisherigen Mannschaften aus (verknüpfte Termine bekommen keine Verlegungen/Ansetzungen
+// mehr) und die neuen Spiele kommen als ZWEITE Termine dazu — die Dienste hängen dann am alten. NICHT gesperrt sind die
+// Hallen-IDs und die Namen der Spielhallen: sie legen nur fest, welche Heimspiele NEU angelegt werden, bestehende Termine
+// samt Diensten werden dadurch nie geändert oder gelöscht (der Hallenplan-Import räumt nur in den gerade importierten Hallen
+// auf, die Liga-Übernahme löscht nur leere Doppelgänger). Die Hallen-Einträge bleiben in STAMMDATEN_FELDER, damit ältere
+// Anträge weiter angezeigt und genehmigt werden können.
+export const GESPERRTE_FELDER: StammdatenFeld[] = ["nuligaClubId", "handballNetClubId", "handballNetTeamIds", "zusatzquellen", "sonstiges"];
 
 // Felder, die der Systemadmin beim Genehmigen automatisch setzen lassen kann; der Rest wird von Hand erledigt.
 export const AUTOMATISCH_ANWENDBAR: StammdatenFeld[] = [
