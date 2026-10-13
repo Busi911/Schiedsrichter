@@ -19,6 +19,11 @@ export const VERBAENDE: Record<string, Verband> = {
     domain: "hvberlin-handball.liga.nu",
     appPfad: "/cgi-bin/WebObjects/nuLigaHBDE.woa/wa",
   },
+  THV: {
+    schluessel: "THV",
+    domain: "thv-handball.liga.nu",
+    appPfad: "/cgi-bin/WebObjects/nuLigaHBDE.woa/wa",
+  },
 };
 
 export function holeVerband(schluessel: string): Verband {
