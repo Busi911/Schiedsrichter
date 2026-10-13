@@ -88,6 +88,11 @@ const OUTREACH_KONSTANTEN = {
   MAX_VERSUCH_PRO_LAUF: 25,
   VORSCHAU_TAGE: 7,
   FOLLOWUP_TAGE: 7,
+  // Maximale Outreach-Versuche, bevor ein Verein als "nicht einrichtbar"
+  // markiert und aus der Kandidaten-Query ausgeschlossen wird. Verhindert,
+  // dass nur-Freundschaftsspiel-Vereine (0 reguläre Mannschaften) den Pool
+  // blockieren und jeden Lauf 24 von 25 Slots verbrauchen.
+  MAX_OUTREACH_VERSUCHE: 3,
 };
 
 export type OutreachErgebnis = {
@@ -110,6 +115,32 @@ export type OutreachFollowupErgebnis = {
   fehler: number;
   details: { name: string; email: string; status: "gesendet" | "fehler" }[];
 };
+
+// Inkrementiert den Outreach-Versuchszähler für einen Verein (anhand
+// nuligaClubId + verband). Nach MAX_OUTREACH_VERSUCHE (3) Versuchen wird
+// der Verein aus der Kandidaten-Query ausgeschlossen — verhindert, dass
+// nur-Freundschaftsspiel-Vereine den Pool blockieren.
+async function inkrementiereOutreachVersuch(clubId: string, verband: string): Promise<void> {
+  const [lv] = await adminDb
+    .select({ vereinId: ligaVereine.vereinId })
+    .from(ligaVereine)
+    .where(and(eq(ligaVereine.nuligaClubId, clubId), eq(ligaVereine.verband, verband)));
+  if (!lv) return; // Verein noch nicht angelegt (keine E-Mail gefunden vor Einrichtung)
+  await adminDb
+    .insert(vereinKontakt)
+    .values({
+      vereinId: lv.vereinId,
+      outreachVersuche: 1,
+      outreachLetzterVersuch: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: vereinKontakt.vereinId,
+      set: {
+        outreachVersuche: sql`${vereinKontakt.outreachVersuche} + 1`,
+        outreachLetzterVersuch: new Date(),
+      },
+    });
+}
 
 // Hauptfunktion des Outreach-Crons: Findet neue Vereine aus dem nuLiga-Index,
 // die noch nicht in der App existieren, richtet sie ein, sucht die E-Mail aus
@@ -138,7 +169,7 @@ export async function fuehreOutreachAus(verband?: string): Promise<OutreachErgeb
     })
     .from(nuligaVereinsindex)
     .where(
-      sql`(NOT EXISTS (SELECT 1 FROM ${ligaVereine} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband}) OR EXISTS (SELECT 1 FROM ${ligaVereine} JOIN ${vereine} ON ${vereine.id} = ${ligaVereine.vereinId} LEFT JOIN ${vereinKontakt} ON ${vereinKontakt.vereinId} = ${vereine.id} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband} AND ${vereine.status} = 'vorbereitung' AND ${vereinKontakt.angeschriebenAm} IS NULL))${verband ? sql` AND ${nuligaVereinsindex.verband} = ${verband}` : sql``}`
+      sql`(NOT EXISTS (SELECT 1 FROM ${ligaVereine} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband}) OR EXISTS (SELECT 1 FROM ${ligaVereine} JOIN ${vereine} ON ${vereine.id} = ${ligaVereine.vereinId} LEFT JOIN ${vereinKontakt} ON ${vereinKontakt.vereinId} = ${vereine.id} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband} AND ${vereine.status} = 'vorbereitung' AND ${vereinKontakt.angeschriebenAm} IS NULL AND COALESCE(${vereinKontakt.outreachVersuche}, 0) < ${OUTREACH_KONSTANTEN.MAX_OUTREACH_VERSUCHE}))${verband ? sql` AND ${nuligaVereinsindex.verband} = ${verband}` : sql``}`
     )
     .limit(OUTREACH_KONSTANTEN.MAX_VERSUCH_PRO_LAUF);
 
@@ -162,6 +193,7 @@ export async function fuehreOutreachAus(verband?: string): Promise<OutreachErgeb
       let impressumFehler: string | null = null;
 
       if (!kontaktEmail) {
+        await inkrementiereOutreachVersuch(k.clubId, k.verband);
         ergebnis.keineEmail++;
         ergebnis.details.push({
           name: k.name,
@@ -244,6 +276,7 @@ export async function fuehreOutreachAus(verband?: string): Promise<OutreachErgeb
         .where(eq(ligaMannschaften.ligaVereinId, ligaV.id));
 
       if (Number(anzahlMannschaften) === 0) {
+        await inkrementiereOutreachVersuch(k.clubId, k.verband);
         await schreibeProtokoll(vereinId, "outreach_einrichtung_unvollstaendig", "Outreach-Cron", `${k.name} · 0 Mannschaften nach Einrichtung — E-Mail nicht gesendet, nächster Lauf versucht es erneut`);
         ergebnis.keineEmail++;
         ergebnis.details.push({

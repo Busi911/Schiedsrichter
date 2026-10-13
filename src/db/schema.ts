@@ -1322,6 +1322,12 @@ export const vereinKontakt = pgTable("verein_kontakt", {
   followupGesendetAm: timestamp("followup_gesendet_am", { mode: "date" }),
   // Vom Empfänger ausgelöste Abmeldung (Klick auf den Abmelde-Link in der Mail).
   outreachAbgemeldetAm: timestamp("outreach_abgemeldet_am", { mode: "date" }),
+  // Anzahl fehlgeschlagener Outreach-Versuche (0 Mannschaften oder keine E-Mail).
+  // Nach MAX_OUTREACH_VERSUCHEN (3) wird der Verein aus der Kandidaten-Query
+  // ausgeschlossen — verhindert, dass nur-Freundschaftsspiel-Vereine den Pool blockieren.
+  outreachVersuche: integer("outreach_versuche").notNull().default(0),
+  // Zeitpunkt des letzten Outreach-Versuchs (für Debugging/Protokoll).
+  outreachLetzterVersuch: timestamp("outreach_letzter_versuch", { mode: "date" }),
 });
 
 // Änderungsanträge für gesperrte Stammdaten (Vereins-IDs, Hallen): sobald Funktionsträger eingetragen sind, kann der

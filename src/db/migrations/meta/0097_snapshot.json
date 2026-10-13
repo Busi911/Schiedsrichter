@@ -1,5 +1,5 @@
 {
-  "id": "5fc0f401-7850-4e71-be7d-ec27dda4c17f",
+  "id": "b5ed5629-96ed-49b7-a8ab-bb0a2e11c47d",
   "prevId": "0b8b3ae0-6cc7-4f80-bcb7-c27a7f907c27",
   "version": "7",
   "dialect": "postgresql",
@@ -2108,12 +2108,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "trainer_einladung_token": {
-          "name": "trainer_einladung_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -2146,15 +2140,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "mannschaft_trainer_einladung_token_unique": {
-          "name": "mannschaft_trainer_einladung_token_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "trainer_einladung_token"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -3410,6 +3396,19 @@
         },
         "outreach_abgemeldet_am": {
           "name": "outreach_abgemeldet_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "outreach_versuche": {
+          "name": "outreach_versuche",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "outreach_letzter_versuch": {
+          "name": "outreach_letzter_versuch",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
