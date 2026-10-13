@@ -129,12 +129,10 @@ export default async function MannschaftenPage({
           <strong>Kommt euer Verein aus Hessen und spielt über den HHV?</strong>{" "}
           Dann lohnt es sich, zuerst unter{" "}
           <Link href="/admin/einstellungen" className="underline">
-            Einstellungen → nuLiga Automatischer Import
+            Einstellungen → Öffentliche Vereinsseite
           </Link>{" "}
-          die Hallen-ID(s) einzutragen, statt Mannschaften hier von Hand
-          anzulegen — der Hallenspielplan zieht dann automatisch, und die
-          eigenen Mannschaften tauchen anschließend hier zum Anlegen per
-          Klick auf, statt sie von Hand eintippen zu müssen. Für andere
+          die nuLiga-Vereins-ID einzutragen, statt Mannschaften hier von Hand
+          anzulegen — Mannschaften und Spielplan kommen dann automatisch. Für andere
           Landesverbände (noch kein nuLiga-Import) bzw. ab der 3. Liga
           (handball.net) bitte direkt unten manuell anlegen.
         </div>
@@ -349,9 +347,7 @@ export default async function MannschaftenPage({
             <p className="text-sm text-muted-foreground">
               Ab der 3. Liga läuft der Spielbetrieb zentral über
               handball.net statt über den Landesverband — solche
-              Mannschaften brauchen oben ihre handball.net-Team-ID statt
-              (bzw. zusätzlich zu) der nuLiga-Hallen-IDs unter
-              Einstellungen. Die ID steht in der Adresszeile der
+              Mannschaften brauchen oben ihre handball.net-Team-ID. Die ID steht in der Adresszeile der
               Team-Seite, z.B. bei <code>handball.net/team/69770</code> ist
               sie <code>69770</code>. Läuft täglich automatisch per Cron;
               nach dem Eintragen einer neuen ID hier sofort synchronisieren.

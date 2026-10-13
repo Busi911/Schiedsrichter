@@ -378,7 +378,9 @@ alles unter `/system/abgleich` (nur Systemadmin):
    `termin.liga_ort_bestaetigt`); Import-Termine sind im Kalender nicht bearbeit-/löschbar.
    Standard von `liga_uebernahme_aktiv` ist jetzt an und `hallenplan_import_aus` ebenfalls an (= Import aus) für NEUE Vereine (Migrationen 0072/0073; neue Vereine brauchen nur die Vereins-ID plus "Eure Spielhallen", keine Hallen-ID); bestehende Vereine schaltet der
    Systemadmin einzeln ein. Einstellungen/Hilfe sind an die Zusammenführung angepasst: die Vereins-ID
-   genügt, die Hallen-ID nur noch für Freundschaftsspiele/Turniere solange der Import an ist.
+   genügt. Seit 13.10.2026 hat kein Verein mehr den Hallenplan-Import an (Betreiber): der Bereich "Hallenplan-Import (Hallen-ID)"
+   in den Einstellungen und `nuligaEinstellungenSpeichern` sind entfernt, Vereine tragen keine Hallen-ID mehr ein. Gespeicherte
+   Werte, Spalten, Crons und der Schalter in `/system/abgleich` bleiben (der Import überspringt Vereine mit `hallenplan_import_aus`).
 
 ## Spielbericht-Link / Live-Ticker (Stand 04.10.2026, Analyse ohne Zugriff auf nuLiga)
 
