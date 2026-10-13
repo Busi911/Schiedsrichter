@@ -21,3 +21,13 @@ describe("sendMail: List-Unsubscribe", () => {
     expect(ohne.headers).toBeUndefined();
   });
 });
+
+describe("sendMail: Demo-Adressen", () => {
+  beforeEach(() => sendMailMock.mockClear());
+
+  it("schickt nie an erfundene Adressen des Demo-Vereins", async () => {
+    const { sendMail } = await import("./mailer");
+    await sendMail("irgendwer-1234abcd@demo.handballerpate.de", "x", "text");
+    expect(sendMailMock).not.toHaveBeenCalled();
+  });
+});

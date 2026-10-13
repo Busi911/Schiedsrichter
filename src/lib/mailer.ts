@@ -1,5 +1,6 @@
 import "server-only";
 import nodemailer from "nodemailer";
+import { istDemoAdresse } from "./demo-daten";
 import { istEmpfaengerGesperrt } from "./treuhand";
 
 let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
@@ -27,6 +28,11 @@ export async function sendMail(
 ) {
   // Vereine im Vorbereitungs-Modus (Systemadmin richtet im Hintergrund ein,
   // siehe lib/treuhand.ts) verschicken noch keine Mails.
+  // Erfundene Adressen des Demo-Vereins bekommen nie Mails, auch wenn die Person schon gelöscht/umbenannt ist (siehe demoErsatzAdresse).
+  if (istDemoAdresse(to)) {
+    console.info("Mail unterdrückt (Demo-Adresse):", subject);
+    return;
+  }
   if (await istEmpfaengerGesperrt(to)) {
     console.info("Mail unterdrückt (Verein im Vorbereitungs-Modus):", subject);
     return;

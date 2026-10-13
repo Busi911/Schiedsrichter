@@ -590,8 +590,9 @@ in Systemlisten wie der Gesundheit wird er ausgeblendet. Testdaten beschreibt `l
 beide öffentlichen Eintragungs-Links aktiv), geschrieben von `setzeDemoVereinZurueck` (`lib/demo-verein.ts`): löscht den Demo-Verein samt Kaskade und legt ihn in EINER Transaktion neu an, Termine relativ zu "jetzt"
 (deutsche Zeit). Zurückgesetzt wird jede Nacht (Cron `/api/cron/demo-reset`, 1:30 UTC) und per "Jetzt zurücksetzen" im Demo-Banner (`components/demo-banner.tsx`, Mindestabstand 10 Minuten).
 Aktionen, die nach außen wirken, sind im Demo gesperrt (`verbieteImDemo`): Verein löschen, Verbandsseiten/Hallen-IDs/Zusatzquellen, E-Mail-Adresse ändern, ICS-Feed, Feedback. In der öffentlichen Eintragung
-wird eine E-Mail im Demo ignoriert (sonst legte jeder Besucher Konten mit fremden Adressen an und erführe, welche Adressen registriert sind). Neue Funktionen, die Mails an frei eingebbare Adressen schicken oder
-externe Dienste abrufen, müssen `verbieteImDemo` aufrufen. Die Demo-Seite ist nicht indexiert (`robots`, `noindex`).
+wird eine E-Mail im Demo ignoriert (sonst legte jeder Besucher Konten mit fremden Adressen an und erführe, welche Adressen registriert sind). Beim Anlegen/Ändern von Personen (Funktionsträger, Excel-Import, Zeitnehmer-/Ordnerwart "neu anlegen") wird die eingegebene Adresse im Demo durch eine erfundene unter `DEMO_EMAIL_DOMAIN` ersetzt
+(`demoSichereEmail`/`demoErsatzAdresse`, deterministisch), und `sendMail` schickt nie an diese Domain. Neue Funktionen, die Mails an frei eingebbare Adressen schicken oder
+externe Dienste abrufen, müssen `verbieteImDemo` aufrufen; neue Stellen, die eine eingegebene Adresse als Person speichern, `demoSichereEmail`. Die Demo-Seite ist nicht indexiert (`robots`, `noindex`).
 
 ## Systemadmin-Portal: Navigation
 

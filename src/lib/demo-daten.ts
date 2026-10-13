@@ -9,6 +9,27 @@
 
 export const DEMO_EMAIL_DOMAIN = "demo.handballerpate.de";
 
+// Im Demo-Verein eingegebene E-Mail-Adressen (Funktionsträger anlegen/ändern, Excel-Import, Zeitnehmer-/Ordnerwart) werden NIE gespeichert, sondern
+// auf eine erfundene Adresse unter DEMO_EMAIL_DOMAIN abgebildet: sonst könnte jeder Besucher über die Demo prüfen, welche Adressen registriert sind
+// ("bereits einem anderen Verein zugeordnet"), echte Adressen bis zum Zurücksetzen blockieren (user.email ist systemweit eindeutig) oder über
+// "E-Mail-Adresse geändert" Mails an fremde Adressen auslösen. Deterministisch (gleiche Eingabe = gleiche Person), Adressen der Demo-Domain bleiben.
+export function demoErsatzAdresse(email: string): string {
+  const e = email.trim().toLowerCase();
+  if (istDemoAdresse(e)) return e;
+  // FNV-1a (32 Bit): kein Schutzzweck, nur damit verschiedene Eingaben verschiedene Personen bleiben.
+  let h = 0x811c9dc5;
+  for (let i = 0; i < e.length; i++) {
+    h ^= e.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  const lokal = (e.split("@")[0] ?? "").replace(/[^a-z0-9._-]/g, "").slice(0, 30) || "person";
+  return `${lokal}-${h.toString(16).padStart(8, "0")}@${DEMO_EMAIL_DOMAIN}`;
+}
+
+export function istDemoAdresse(email: string): boolean {
+  return email.trim().toLowerCase().endsWith(`@${DEMO_EMAIL_DOMAIN}`);
+}
+
 export type DemoRolleTyp =
   | "schiedsrichter"
   | "zeitnehmer"

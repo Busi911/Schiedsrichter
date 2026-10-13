@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { demoSichereEmail } from "@/lib/demo-verein";
 import { and, eq } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
@@ -641,7 +642,7 @@ export async function ordnerNeuAnlegenUndBestaetigen(formData: FormData) {
   if (typeof email !== "string" || !email.trim()) {
     throw new Error("E-Mail ist erforderlich.");
   }
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = await demoSichereEmail(vereinId, email);
 
   await withTenant(vereinId, async (tx) => {
     const zuordnung = await tx.query.terminZuordnungen.findFirst({
