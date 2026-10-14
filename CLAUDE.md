@@ -701,9 +701,10 @@ Abmeldung: Profil-Karte „Meine Helferdienste“ (`selbstAbmelden`), Mail an Di
 Entscheidung auf `/profil/dienstwart` („Abmeldeanfragen“, `dienstAbmeldungGenehmigen`/`…Ablehnen`). Export: Rolle `eigeneDienste` in `AUSWERTUNG_ROLLEN`,
 eine Zelle je Termin (`eigeneDiensteZellenText`), ohne Auswahl nur, wenn ein Termin eigene Dienste hat (`standardRollen`). Statistik: `eigener_dienst` zählt
 in `DIENST_RELEVANTE_ROLLEN`. Demo: Kuchen + Fahrer (nur mA/wC) mit Einteilungen und Abmeldeanfrage, Token `DEMO_TOKEN_DIENSTE`, Anna ist Dienstwartin.
-**Stufe 3 (Auswärtsspiele):** Termintyp `auswaertsspiel` (Migration 0101) NUR für eigene Dienste: `lib/auswaerts-termine.ts` `pflegeAuswaertsTermine`
+**Stufe 3 (Auswärtsspiele):** Termintyp `auswaertsspiel` (Migration 0101) für eigene Dienste und Trainer: `lib/auswaerts-termine.ts` `pflegeAuswaertsTermine`
 (im Übernahme-Cron nach `uebernehmeAenderungen` und nach jeder Änderung eines Dienstes per `after`, nur bei `liga_uebernahme_aktiv`) legt künftige Spiele mit
 eigenem Team als Gast (Gegner nicht der eigene Verein, kein Freundschaftsspiel) an, wenn ein aktiver Dienst mit `bedarf_auswaerts > 0` für die Mannschaft gilt
+ODER die Mannschaft einen aktiven Trainer hat (`funktionstraeger_rolle` typ trainer; Trainer sehen so auch Auswärtsspiele im Profil; sie bekommen bei Verlegung/Absage eine Info-Mail, ohne Einteilungen; ohne beides gar nichts geladen, leere Termine ohne Dienst/Trainer werden entfernt)
 (`icsUid` `liga:<spielId>`, `liga_spiel_id`, Mannschaft über `baueMannschaftsAufloeser`). Regeln rein in `auswaerts-regeln.ts` (`entscheideAuswaerts`): Verlegung =
 neue Zeit/Halle, Einteilungen ENTFALLEN, Betroffene mit Login bekommen eine Mail (Betreiber: Fahrer bleiben NICHT eingetragen); abgesagt/verschwunden = Termin
 gelöscht mit Mail; nur andere Halle = still angepasst, Einteilungen bleiben; bestätigtes Ergebnis still; Vergangenes nie verlegt/gelöscht; gilt kein Dienst mehr,

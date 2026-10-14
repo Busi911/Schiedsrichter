@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { and, eq, sql } from "drizzle-orm";
 import { Pool } from "pg";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@/db/schema";
 
 const ADMIN_URL = process.env.TEST_DATABASE_ADMIN_URL;
@@ -121,6 +121,58 @@ describe.skipIf(!ADMIN_URL)("Auswärtsspiele als Termine (Postgres)", () => {
     await testDb.update(schema.dienstArten).set({ aktiv: false }).where(eq(schema.dienstArten.id, dienstId));
     expect((await pflege()).entfernt).toBe(1);
     expect(await auswaertsTermine()).toHaveLength(0);
+  });
+
+  describe("Trainer der Mannschaft", () => {
+    let trainerId: string;
+    let rolleId: string;
+    beforeAll(async () => {
+      const [u] = await testDb
+        .insert(schema.users)
+        .values({ email: `trainer-${randomUUID()}@example.test`, name: "Trainer Eins", vereinId })
+        .returning({ id: schema.users.id });
+      trainerId = u.id;
+    });
+    beforeEach(async () => {
+      await testDb.delete(schema.funktionstraegerRollen).where(eq(schema.funktionstraegerRollen.userId, trainerId));
+      const [r] = await testDb
+        .insert(schema.funktionstraegerRollen)
+        .values({ userId: trainerId, typ: "trainer", mannschaftId })
+        .returning({ id: schema.funktionstraegerRollen.id });
+      rolleId = r.id;
+    });
+    afterEach(async () => {
+      // Die Rolle darf die übrigen Tests (ohne Trainer) nicht beeinflussen.
+      await testDb.delete(schema.funktionstraegerRollen).where(eq(schema.funktionstraegerRollen.userId, trainerId));
+    });
+
+    it("legt das Auswärtsspiel auch ohne Dienst an, wenn die Mannschaft einen Trainer hat", async () => {
+      await testDb.update(schema.dienstArten).set({ bedarfAuswaerts: 0, bedarfHeim: 2 }).where(eq(schema.dienstArten.id, dienstId));
+      expect((await pflege()).angelegt).toBe(1);
+      expect(await auswaertsTermine()).toHaveLength(1);
+    });
+
+    it("ohne Dienst und ohne aktiven Trainer wird nichts angelegt; ein leerer Termin verschwindet", async () => {
+      await testDb.update(schema.dienstArten).set({ bedarfAuswaerts: 0, bedarfHeim: 2 }).where(eq(schema.dienstArten.id, dienstId));
+      await pflege();
+      expect(await auswaertsTermine()).toHaveLength(1);
+      await testDb.update(schema.funktionstraegerRollen).set({ aktiv: false }).where(eq(schema.funktionstraegerRollen.id, rolleId));
+      expect((await pflege()).entfernt).toBe(1);
+      expect(await auswaertsTermine()).toHaveLength(0);
+      expect((await pflege()).angelegt).toBe(0);
+    });
+
+    it("Verlegung: der Trainer bekommt eine Info-Mail", async () => {
+      await testDb.update(schema.dienstArten).set({ bedarfAuswaerts: 0, bedarfHeim: 2 }).where(eq(schema.dienstArten.id, dienstId));
+      await pflege();
+      await testDb
+        .update(schema.ligaSpiele)
+        .set({ beginn: new Date("2026-10-25T10:00:00Z"), uhrzeit: "11:00" })
+        .where(eq(schema.ligaSpiele.id, auswaertsSpielId));
+      expect((await pflege()).verlegt).toBe(1);
+      expect(mailSpy).toHaveBeenCalledTimes(1);
+      expect(String(mailSpy.mock.calls[0][0])).toMatch(/^trainer-/);
+    });
   });
 
   it("mit Einteilung bleibt der Termin, auch wenn der Dienst wegfällt", async () => {

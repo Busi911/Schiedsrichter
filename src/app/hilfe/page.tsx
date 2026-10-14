@@ -543,12 +543,16 @@ export default async function HilfePage() {
         </p>
         <h3 className="text-sm font-medium">Auswärtsspiele (z.B. Fahrer)</h3>
         <p className="text-sm text-muted-foreground">
-          Hat ein eigener Dienst Bedarf bei <strong>Auswärtsspielen</strong>, legt HandballerPate die Auswärtsspiele der passenden
-          Mannschaften automatisch aus dem Spielplan als Termine an (nur dafür, feste Dienste wie Ordner gibt es dort nicht). Im
+          Hat ein eigener Dienst Bedarf bei <strong>Auswärtsspielen</strong> <em>oder</em> ist für die Mannschaft ein{" "}
+          <strong>Trainer</strong> hinterlegt (Funktionsträger mit Rolle Trainer), legt HandballerPate die Auswärtsspiele dieser
+          Mannschaften automatisch aus dem Spielplan als Termine an. So sehen Trainer auch die Auswärtsspiele ihrer Mannschaft im
+          Profil und im persönlichen Kalender; ohne Dienst und ohne Trainer werden keine Auswärtsspiele geladen (feste Dienste wie
+          Ordner gibt es dort nicht). Im
           Kalender stehen sie mit <strong>Auto-Symbol</strong> und gestricheltem Rahmen, damit man sie von den Heimspielen
           unterscheidet, und wie die anderen mit „Vollständig“/„Offen“ für die eigenen Dienste. Wird ein Auswärtsspiel{" "}
           <strong>verlegt</strong>, werden die Einteilungen aufgehoben und die Eingeteilten bekommen eine Mail (sie tragen sich zum
-          neuen Termin neu ein); wird es <strong>abgesagt</strong>, entfällt der Termin, ebenfalls mit Mail. Ändert sich nur die Halle,
+          neuen Termin neu ein); wird es <strong>abgesagt</strong>, entfällt der Termin, ebenfalls mit Mail. Auch die Trainer der
+          Mannschaft bekommen bei Verlegung oder Absage eine Info-Mail. Ändert sich nur die Halle,
           wird sie still angepasst und die Einteilungen bleiben. Voraussetzung ist die angebundene Vereins-ID (Spielplan).
         </p>
         <h3 className="text-sm font-medium">Einteilen: der Dienstwart</h3>

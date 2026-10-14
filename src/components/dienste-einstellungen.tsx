@@ -247,7 +247,7 @@ function EigenerDienstFormular({
         </label>
         <p className="text-xs text-muted-foreground">
           Auswärtsspiele (z.B. für Fahrer) erscheinen automatisch aus dem Spielplan im Kalender (mit Auto-Symbol) und auf der
-          Dienstwart-Seite, sobald ein Dienst dort Bedarf hat. Wird ein Auswärtsspiel verlegt oder abgesagt, entfallen die Einteilungen
+          Dienstwart-Seite, sobald ein Dienst dort Bedarf hat (oder ein Trainer der Mannschaft hinterlegt ist). Wird ein Auswärtsspiel verlegt oder abgesagt, entfallen die Einteilungen
           und die Eingeteilten bekommen eine Mail.
         </p>
         <MannschaftsAuswahl

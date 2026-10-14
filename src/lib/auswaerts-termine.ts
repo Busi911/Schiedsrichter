@@ -2,13 +2,13 @@ import "server-only";
 import { and, eq, gte, inArray, like } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine, termine, terminZuordnungen, users, vereine } from "@/db/schema";
+import { funktionstraegerRollen, ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine, termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { dienstGiltFuerTermin } from "./eigene-dienste";
 import { ladeDienstArten } from "./eigene-dienste-daten";
 import { entscheideAuswaerts, type AuswaertsSpiel } from "./auswaerts-regeln";
 import { kategorieText } from "./hallenplan-abgleich";
 import { baueMannschaftsAufloeser } from "./nuliga/mannschaften-anlegen";
-import { parseBerlinDatumZeit } from "./format";
+import { formatDatumZeit, parseBerlinDatumZeit } from "./format";
 import { zuordnungEntferntInhalt, zuordnungEntferntWegenVerlegungInhalt } from "./zuordnung";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
 import { sendMail } from "./mailer";
@@ -47,6 +47,17 @@ export async function pflegeAuswaertsTermine(vereinId: string, jetzt = new Date(
   const arten = (await withTenant(vereinId, (tx) => ladeDienstArten(tx, vereinId, true))).filter((a) => a.bedarfAuswaerts > 0);
   const giltEinDienst = (mannschaftId: string | null) =>
     arten.some((a) => dienstGiltFuerTermin(a, { id: "", typ: "auswaertsspiel", mannschaftId }));
+  // Trainer je Mannschaft (aktive Rolle): auch ohne Dienst sollen sie die Auswärtsspiele ihrer Mannschaft im Profil sehen.
+  const trainerJe = new Map<string, string[]>();
+  for (const r of await adminDb
+    .select({ userId: funktionstraegerRollen.userId, mannschaftId: funktionstraegerRollen.mannschaftId })
+    .from(funktionstraegerRollen)
+    .innerJoin(users, eq(users.id, funktionstraegerRollen.userId))
+    .where(and(eq(users.vereinId, vereinId), eq(funktionstraegerRollen.typ, "trainer"), eq(funktionstraegerRollen.aktiv, true)))) {
+    if (r.mannschaftId) trainerJe.set(r.mannschaftId, [...(trainerJe.get(r.mannschaftId) ?? []), r.userId]);
+  }
+  const hatTrainer = (mannschaftId: string | null) => !!mannschaftId && trainerJe.has(mannschaftId);
+  const wirdGebraucht = (mannschaftId: string | null) => giltEinDienst(mannschaftId) || hatTrainer(mannschaftId);
 
   // Eigene Teams (Teamtable-ID je Gruppe) aus den aktiven Teilnahmen der Liga-Mannschaften des Vereins.
   const lv = await adminDb.query.ligaVereine.findFirst({ where: eq(ligaVereine.vereinId, vereinId), columns: { id: true } });
@@ -112,7 +123,7 @@ export async function pflegeAuswaertsTermine(vereinId: string, jetzt = new Date(
   const zuordnungenJe = new Map<string, typeof zuordnungen>();
   for (const z of zuordnungen) zuordnungenJe.set(z.terminId, [...(zuordnungenJe.get(z.terminId) ?? []), z]);
 
-  const mails: { betroffen: Betroffen[]; art: "verlegt" | "abgesagt"; termin: { start: Date; ort: string | null; beschreibung: string | null } }[] = [];
+  const mails: { betroffen: Betroffen[]; art: "verlegt" | "abgesagt"; mannschaftId: string | null; alt?: Date; termin: { start: Date; ort: string | null; beschreibung: string | null } }[] = [];
   for (const t of vorhandene) {
     const s = t.ligaSpielId ? spielNachId.get(t.ligaSpielId) : undefined;
     // Ein nicht genehmigtes Ergebnis ist evtl. nur ein Zwischenstand (siehe istZwischenstand): nur bestätigte Ergebnisse übernehmen.
@@ -131,7 +142,7 @@ export async function pflegeAuswaertsTermine(vereinId: string, jetzt = new Date(
 
     if (e.aktion === "absagen") {
       await withTenant(vereinId, (tx) => tx.delete(termine).where(and(eq(termine.id, t.id), eq(termine.vereinId, vereinId))));
-      if (mitLogin.length) mails.push({ betroffen: mitLogin, art: "abgesagt", termin: t });
+      if (mitLogin.length || hatTrainer(t.mannschaftId)) mails.push({ betroffen: mitLogin, art: "abgesagt", mannschaftId: t.mannschaftId, termin: t });
       ergebnis.abgesagt++;
       continue;
     }
@@ -141,7 +152,7 @@ export async function pflegeAuswaertsTermine(vereinId: string, jetzt = new Date(
         await tx.update(termine).set({ start: neu.start, ort: neu.ort }).where(and(eq(termine.id, t.id), eq(termine.vereinId, vereinId)));
         await tx.delete(terminZuordnungen).where(eq(terminZuordnungen.terminId, t.id));
       });
-      if (mitLogin.length) mails.push({ betroffen: mitLogin, art: "verlegt", termin: neu });
+      if (mitLogin.length || hatTrainer(t.mannschaftId)) mails.push({ betroffen: mitLogin, art: "verlegt", mannschaftId: t.mannschaftId, alt: t.start, termin: neu });
       ergebnis.verlegt++;
     } else if (e.aktion === "ort") {
       await withTenant(vereinId, (tx) =>
@@ -161,14 +172,14 @@ export async function pflegeAuswaertsTermine(vereinId: string, jetzt = new Date(
     // Kein Dienst gilt mehr: künftige, leere Termine entfernen (verlegte haben jetzt ebenfalls keine Einteilung mehr).
     const leer = e.aktion === "verlegen" || eingeteilt.length === 0;
     const start = e.aktion === "verlegen" && e.start ? e.start : t.start;
-    if (leer && start.getTime() > jetzt.getTime() && !giltEinDienst(t.mannschaftId)) {
+    if (leer && start.getTime() > jetzt.getTime() && !wirdGebraucht(t.mannschaftId)) {
       await withTenant(vereinId, (tx) => tx.delete(termine).where(and(eq(termine.id, t.id), eq(termine.vereinId, vereinId))));
       ergebnis.entfernt++;
     }
   }
 
-  // 2) Fehlende künftige Auswärtsspiele anlegen (nur wenn überhaupt ein Dienst für Auswärtsspiele aktiv ist).
-  if (arten.length > 0 && eigeneTeams.size > 0) {
+  // 2) Fehlende künftige Auswärtsspiele anlegen (wenn ein Dienst mit Auswärts-Bedarf oder ein Trainer der Mannschaft sie braucht).
+  if ((arten.length > 0 || trainerJe.size > 0) && eigeneTeams.size > 0) {
     const vorhandeneUids = new Set(
       (
         await adminDb
@@ -192,7 +203,7 @@ export async function pflegeAuswaertsTermine(vereinId: string, jetzt = new Date(
       const start = spielStart(s);
       if (!start || start.getTime() <= jetzt.getTime()) continue;
       const mannschaftId = aufloeser(s);
-      if (!giltEinDienst(mannschaftId)) continue;
+      if (!wirdGebraucht(mannschaftId)) continue;
       await withTenant(vereinId, (tx) =>
         tx.insert(termine).values({
           vereinId,
@@ -237,6 +248,28 @@ export async function pflegeAuswaertsTermine(vereinId: string, jetzt = new Date(
           await sendMail(person.email, betreff, emailAlsText(inhalt), emailAlsHtml(inhalt));
         } catch (err) {
           console.error("Mail zum Auswärtsspiel konnte nicht gesendet werden:", err);
+        }
+      }
+      // Trainer der Mannschaft: reine Info (Einteilungen betrifft sie nicht), nicht doppelt für schon Informierte.
+      const schonInformiert = new Set(m.betroffen.map((b) => b.userId));
+      for (const userId of new Set(m.mannschaftId ? (trainerJe.get(m.mannschaftId) ?? []) : [])) {
+        if (schonInformiert.has(userId)) continue;
+        const trainer = await adminDb.query.users.findFirst({ where: and(eq(users.id, userId), eq(users.vereinId, vereinId)) });
+        if (!trainer) continue;
+        const inhalt: EmailInhalt = {
+          vereinName: verein.name,
+          ueberschrift: m.art === "verlegt" ? "Ein Auswärtsspiel deiner Mannschaft wurde verlegt." : "Ein Auswärtsspiel deiner Mannschaft wurde abgesagt.",
+          zeilen: [
+            ...(m.alt && m.art === "verlegt" ? [`Bisher: ${formatDatumZeit(m.alt)}`] : []),
+            `${m.art === "verlegt" ? "Neu" : "Termin"}: ${formatDatumZeit(m.termin.start)}`,
+            ...(m.termin.ort ? [`Ort: ${m.termin.ort}`] : []),
+            ...(m.termin.beschreibung ? [m.termin.beschreibung] : []),
+          ],
+        };
+        try {
+          await sendMail(trainer.email, m.art === "verlegt" ? "Auswärtsspiel verlegt" : "Auswärtsspiel abgesagt", emailAlsText(inhalt), emailAlsHtml(inhalt));
+        } catch (err) {
+          console.error("Mail an den Trainer konnte nicht gesendet werden:", err);
         }
       }
     }
