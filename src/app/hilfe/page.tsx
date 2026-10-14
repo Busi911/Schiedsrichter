@@ -207,7 +207,10 @@ export default async function HilfePage() {
           </Link>{" "}
           legt ihr Personen mit Name, E-Mail-Adresse und einer oder mehreren Rollen an. Wer eine E-Mail-Adresse hat, bekommt
           eine Willkommensmail und kann sich selbst einloggen. Personen ohne E-Mail lassen sich trotzdem einteilen (z.B.
-          „Ohne Login zuordnen“ auf den Wart-Seiten).
+          „Ohne Login zuordnen“ auf den Wart-Seiten). Bekommt jemand eine <strong>Wart-Rolle</strong> oder die Rolle{" "}
+          <strong>Trainer</strong> (neu angelegt, aktiviert oder später ergänzt), steht in der Mail gleich eine kurze Starthilfe: bei
+          Warten der Link zur eigenen Seite (der Button führt nach dem Login direkt dorthin, dort wartet die Karte „So legst du los“), bei
+          Trainern, was sie im Profil sehen und dass sie bei Verlegungen eine Info-Mail bekommen.
         </p>
         <p className="text-sm text-muted-foreground">
           <strong>Viele Personen auf einmal:</strong> „Aus Excel importieren“ mit einer Kopfzeile mit den Spalten{" "}
