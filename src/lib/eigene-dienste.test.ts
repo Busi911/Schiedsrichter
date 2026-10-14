@@ -190,14 +190,28 @@ describe("eigeneDiensteZellenText", () => {
   it("fasst alle Dienste eines Termins in einer Zelle zusammen", () => {
     expect(
       eigeneDiensteZellenText([
-        { dienstArtId: "d1", name: "Fahrer", bedarf: 3, override: null, eingeteilt: [p("Eva"), p("Opa Heinz")] },
-        { dienstArtId: "d2", name: "Kuchen", bedarf: 2, override: null, eingeteilt: [] },
-        { dienstArtId: "d3", name: "Aufbau", bedarf: 1, override: null, eingeteilt: [p("Tom")] },
+        { dienstArtId: "d1", name: "Fahrer", bedarf: 3, override: null, fahrgemeinschaft: false, eingeteilt: [p("Eva"), p("Opa Heinz")] },
+        { dienstArtId: "d2", name: "Kuchen", bedarf: 2, override: null, fahrgemeinschaft: false, eingeteilt: [] },
+        { dienstArtId: "d3", name: "Aufbau", bedarf: 1, override: null, fahrgemeinschaft: false, eingeteilt: [p("Tom")] },
       ])
     ).toBe("Fahrer: Eva, Opa Heinz (2/3); Kuchen: offen; Aufbau: Tom");
   });
+  it("Fahrgemeinschaft: Zahl der Mitfahrer je Fahrer", () => {
+    expect(
+      eigeneDiensteZellenText([
+        {
+          dienstArtId: "d1",
+          name: "Fahrer",
+          bedarf: 2,
+          override: null,
+          fahrgemeinschaft: true,
+          eingeteilt: [{ ...p("Eva"), plaetze: 3, mitfahrer: [{ id: "m1", name: "Lena" }, { id: "m2", name: "Tim" }] }, p("Tom")],
+        },
+      ])
+    ).toBe("Fahrer: Eva (+2 Mitfahrer), Tom");
+  });
   it("ohne Bedarf und ohne Einteilung: nichts", () => {
-    expect(eigeneDiensteZellenText([{ dienstArtId: "d", name: "Kuchen", bedarf: 0, override: 0, eingeteilt: [] }])).toBeNull();
+    expect(eigeneDiensteZellenText([{ dienstArtId: "d", name: "Kuchen", bedarf: 0, override: 0, fahrgemeinschaft: false, eingeteilt: [] }])).toBeNull();
     expect(eigeneDiensteZellenText([])).toBeNull();
   });
 });

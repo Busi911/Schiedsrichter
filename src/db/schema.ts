@@ -860,6 +860,24 @@ export const terminZuordnungen = pgTable("termin_zuordnung", {
   abmeldungAngefragtAm: timestamp("abmeldung_angefragt_am", { mode: "date" }),
   // Nur bei funktionstraegerTyp = 'eigener_dienst': welcher vom Verein definierte Dienst (Löschen des Dienstes entfernt die Einteilungen).
   dienstArtId: uuid("dienst_art_id").references((): AnyPgColumn => dienstArten.id, { onDelete: "cascade" }),
+  // Fahrgemeinschaft (nur bei eigenen Diensten mit dienst_art.fahrgemeinschaft, z.B. Fahrer): freie Mitfahrplätze im Auto
+  // (ohne Fahrer, null = noch nicht angegeben) und ein Hinweis wie Treffpunkt/Abfahrtszeit. Mitfahrer in fahrt_mitfahrer.
+  plaetze: integer("plaetze"),
+  fahrtHinweis: text("fahrt_hinweis"),
+});
+
+// Wer bei welchem Fahrer mitfährt (lib/fahrgemeinschaft.ts). Nur Namen (meist Kinder/Spieler ohne Konto), eingetragen vom
+// Dienstwart, Admin oder dem Fahrer selbst; öffentlich werden NIE Namen gezeigt, nur freie Plätze. Mit RLS über verein_id.
+export const fahrtMitfahrer = pgTable("fahrt_mitfahrer", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  zuordnungId: uuid("zuordnung_id")
+    .notNull()
+    .references(() => terminZuordnungen.id, { onDelete: "cascade" }),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
 });
 
 // Vom Verein selbst definierte Dienste (Fahrer, Kuchen, Aufbau, ...), zusätzlich zu den festen Diensten (Ordner, Kioskdienst,
@@ -870,6 +888,8 @@ export const dienstArten = pgTable("dienst_art", {
     .notNull()
     .references(() => vereine.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  // Fahrgemeinschaft: Eingeteilte geben freie Plätze und Treffpunkt an, Mitfahrer werden ihnen zugeteilt (z.B. Fahrer).
+  fahrgemeinschaft: boolean("fahrgemeinschaft").notNull().default(false),
   // Kurzer Hinweis für die Helfer (z.B. "Treffpunkt 30 Min. vor Abfahrt an der Halle"), erscheint bei der Eintragung.
   beschreibung: text("beschreibung"),
   // Deaktiviert = taucht nirgends mehr als Bedarf auf, bestehende Einteilungen bleiben sichtbar.

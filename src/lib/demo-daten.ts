@@ -193,8 +193,19 @@ export type DemoEigenerDienst = {
   // Bedarf je Veranstaltung (0 = gilt dort nicht), wie in Einstellungen → Dienste
   bedarf: { heim: number; auswaerts: number; freundschaft: number; turnier: number };
   mannschaften?: string[]; // nur diese (sonst alle)
+  fahrgemeinschaft?: boolean; // Plätze je Auto + Mitfahrer (lib/fahrgemeinschaft.ts)
 };
-export type DemoEigeneEinteilung = { termin: string; dienst: string; person?: string; externerName?: string; abmeldung?: boolean };
+export type DemoEigeneEinteilung = {
+  termin: string;
+  dienst: string;
+  person?: string;
+  externerName?: string;
+  abmeldung?: boolean;
+  // Fahrgemeinschaft: freie Plätze, Treffpunkt und Mitfahrer (nur Namen)
+  plaetze?: number;
+  fahrtHinweis?: string;
+  mitfahrer?: string[];
+};
 
 const EIGENE_DIENSTE: DemoEigenerDienst[] = [
   { key: "kuchen", name: "Kuchen", beschreibung: "Bitte bis 30 Minuten vor Anwurf am Kiosk abgeben.", bedarf: { heim: 2, auswaerts: 0, freundschaft: 0, turnier: 2 } },
@@ -203,6 +214,7 @@ const EIGENE_DIENSTE: DemoEigenerDienst[] = [
     name: "Fahrer",
     beschreibung: "Treffpunkt 45 Minuten vor Anwurf an der Halle.",
     bedarf: { heim: 0, auswaerts: 2, freundschaft: 2, turnier: 3 },
+    fahrgemeinschaft: true,
     mannschaften: ["männliche A-Jugend", "weibliche C-Jugend"],
   },
 ];
@@ -216,8 +228,9 @@ const EIGENE_EINTEILUNGEN: DemoEigeneEinteilung[] = [
   { termin: "t4", dienst: "fahrer", externerName: "Opa Heinz" },
   { termin: "t7", dienst: "fahrer", externerName: "Familie Yilmaz" },
   // Auswärtsspiele: t14 vollständig, t15 noch ein Fahrer offen
-  { termin: "t14", dienst: "fahrer", person: "jan" },
-  { termin: "t14", dienst: "fahrer", externerName: "Familie Roth" },
+  // Fahrgemeinschaft: t14 Jan mit 3 Plätzen (2 belegt), Familie Roth mit 2 Plätzen (voll); t15 Marie hat noch keine Plätze angegeben
+  { termin: "t14", dienst: "fahrer", person: "jan", plaetze: 3, fahrtHinweis: "Treffpunkt Halle 12:45", mitfahrer: ["Lena", "Paul"] },
+  { termin: "t14", dienst: "fahrer", externerName: "Familie Roth", plaetze: 2, mitfahrer: ["Mia", "Noah"] },
   { termin: "t15", dienst: "fahrer", person: "marie" },
 ];
 

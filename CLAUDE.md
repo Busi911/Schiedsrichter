@@ -687,4 +687,11 @@ werden künftige LEERE Auswärts-Termine entfernt. Feste Dienste, Schiri-/Zeitne
 (`liga-ansetzung*.ts`, jetzt auf `typ = rundenspiel` beschränkt) fassen sie nie an (`bedarfFuer` liefert für den Typ 0). Kalender: `KalenderEintrag.auswaerts` →
 Auto-Symbol + gestrichelter Rahmen, Badge Vollständig/Offen nur aus den eigenen Diensten. Demo: Fahrer mit Auswärts-Bedarf, zwei Auswärtsspiele (t14 voll, t15 offen).
 Tests: `auswaerts-regeln.test.ts`, `auswaerts-termine.test.ts` (Postgres).
-Noch offen: Fahrgemeinschaft (Plätze je Auto, wer fährt wen).
+**Stufe 4 (Fahrgemeinschaft, Migration 0104):** `dienst_art.fahrgemeinschaft` (Häkchen am eigenen Dienst), je Einteilung
+`termin_zuordnung.plaetze` (freie Mitfahrplätze ohne Fahrer, 0–8, null = keine Angabe) + `fahrt_hinweis` (Treffpunkt), Tabelle `fahrt_mitfahrer`
+(nur Namen, `verein_id` + RLS, im Mandantentrennungs-Test, Cascade mit der Einteilung). Regeln rein in `lib/fahrgemeinschaft.ts` (Mitfahrer nur bis zu
+den angegebenen Plätzen, ohne Angabe gar nicht). Actions `app/profil/fahrgemeinschaft-actions.ts` (`fahrtSpeichern`, `mitfahrerHinzufuegen`,
+`mitfahrerEntfernen`): Admin, Dienstwart ODER die eingeteilte Person selbst; Plätze nie unter die Zahl der Mitfahrer. UI `components/fahrt-bearbeiten.tsx`
+auf `/profil/dienstwart` und im Profil („Meine Helferdienste“); Kalender-Detail zeigt Plätze/Treffpunkt/Mitfahrer, Export „(+n Mitfahrer)“. Öffentliche
+Eintragung zeigt NUR „Mitfahrplätze frei: n“ je Fahrer, nie Namen. Keine eigenen Mails. Demo: Fahrer mit Fahrgemeinschaft (t14 Plätze + Mitfahrer, t15
+ohne Angabe). Hilfe `#fahrgemeinschaft`.

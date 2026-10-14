@@ -234,6 +234,16 @@ function EigenerDienstFormular({
             turnier: dienst?.bedarfTurnier ?? 0,
           }}
         />
+        <label className="flex min-h-11 items-start gap-2 text-sm">
+          <input type="checkbox" name="fahrgemeinschaft" defaultChecked={dienst?.fahrgemeinschaft ?? false} className="mt-1" />
+          <span>
+            Fahrgemeinschaft (z.B. Fahrer)
+            <span className="block text-xs text-muted-foreground">
+              Eingeteilte geben freie Plätze und Treffpunkt an, der Dienstwart (oder der Fahrer selbst) trägt die Mitfahrer ein. Auf der
+              öffentlichen Eintragungsseite stehen nur die freien Plätze, nie Namen.
+            </span>
+          </span>
+        </label>
         <p className="text-xs text-muted-foreground">
           Auswärtsspiele (z.B. für Fahrer) erscheinen automatisch aus dem Spielplan im Kalender (mit Auto-Symbol) und auf der
           Dienstwart-Seite, sobald ein Dienst dort Bedarf hat. Wird ein Auswärtsspiel verlegt oder abgesagt, entfallen die Einteilungen

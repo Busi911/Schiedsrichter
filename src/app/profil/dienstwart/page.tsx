@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/submit-button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { DisclosureSummary } from "@/components/disclosure-summary";
+import { FahrtBearbeiten } from "@/components/fahrt-bearbeiten";
+import { oeffentlicherFahrtText } from "@/lib/fahrgemeinschaft";
 import { PersonSelect } from "@/components/person-select";
 import { MannschaftFilterLeiste } from "@/components/mannschaft-filter-leiste";
 import { MonatsgruppenListe } from "@/components/monatsgruppen-liste";
@@ -257,26 +259,42 @@ function TerminKarte({
                   {s.name}: {s.eingeteilt.length}/{s.bedarf}
                 </Badge>
                 {s.override != null && <span className="text-xs text-muted-foreground">Bedarf für diesen Termin angepasst</span>}
+                {s.fahrgemeinschaft && (
+                  <span className="text-xs text-muted-foreground">
+                    {oeffentlicherFahrtText(s.eingeteilt.map((e) => ({ plaetze: e.plaetze ?? null, mitfahrer: (e.mitfahrer ?? []).map((m) => m.name) }))) ??
+                      "Mitfahrplätze noch nicht angegeben"}
+                  </span>
+                )}
               </div>
               {s.eingeteilt.length > 0 && (
                 <ul className="flex flex-col gap-1">
                   {s.eingeteilt.map((e) => (
-                    <li key={e.zuordnungId} className="flex items-center justify-between gap-2">
-                      <span>
-                        {e.anzeigeName}
-                        {e.ohneLogin ? " (ohne Login)" : ""}
-                        {e.abmeldungAngefragt && <Badge variant="warning" className="ml-2">möchte sich abmelden</Badge>}
-                      </span>
-                      <form action={dienstZuordnungEntfernen}>
-                        <input type="hidden" name="zuordnungId" value={e.zuordnungId} />
-                        <ConfirmSubmitButton
-                          className="h-11 px-4 text-sm"
-                          variant="destructive"
-                          confirmText={`${e.anzeigeName} als ${s.name} entfernen?`}
-                        >
-                          Entfernen
-                        </ConfirmSubmitButton>
-                      </form>
+                    <li key={e.zuordnungId} className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span>
+                          {e.anzeigeName}
+                          {e.ohneLogin ? " (ohne Login)" : ""}
+                          {e.abmeldungAngefragt && <Badge variant="warning" className="ml-2">möchte sich abmelden</Badge>}
+                        </span>
+                        <form action={dienstZuordnungEntfernen}>
+                          <input type="hidden" name="zuordnungId" value={e.zuordnungId} />
+                          <ConfirmSubmitButton
+                            className="h-11 px-4 text-sm"
+                            variant="destructive"
+                            confirmText={`${e.anzeigeName} als ${s.name} entfernen?${e.mitfahrer?.length ? " Die eingetragenen Mitfahrer werden dabei ebenfalls entfernt." : ""}`}
+                          >
+                            Entfernen
+                          </ConfirmSubmitButton>
+                        </form>
+                      </div>
+                      {s.fahrgemeinschaft && (
+                        <FahrtBearbeiten
+                          zuordnungId={e.zuordnungId}
+                          plaetze={e.plaetze ?? null}
+                          fahrtHinweis={e.fahrtHinweis ?? null}
+                          mitfahrer={e.mitfahrer ?? []}
+                        />
+                      )}
                     </li>
                   ))}
                 </ul>

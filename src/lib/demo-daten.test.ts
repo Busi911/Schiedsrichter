@@ -94,4 +94,13 @@ describe("Demo: eigene Dienste", () => {
     }
     for (const x of d.eigeneDienste) for (const m of x.mannschaften ?? []) expect(mannschaften.has(m), m).toBe(true);
   });
+  it("Fahrgemeinschaft: Mitfahrer nur bei Diensten mit Fahrgemeinschaft und nie mehr als Plätze", () => {
+    const mitFahrt = new Set(d.eigeneDienste.filter((x) => x.fahrgemeinschaft).map((x) => x.key));
+    const mitMitfahrern = d.eigeneEinteilungen.filter((e) => e.mitfahrer?.length);
+    expect(mitMitfahrern.length).toBeGreaterThan(0);
+    for (const e of mitMitfahrern) {
+      expect(mitFahrt.has(e.dienst)).toBe(true);
+      expect(e.mitfahrer!.length).toBeLessThanOrEqual(e.plaetze ?? 0);
+    }
+  });
 });

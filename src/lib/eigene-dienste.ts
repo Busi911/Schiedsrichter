@@ -164,6 +164,10 @@ export type EingeteiltePerson = {
   ohneLogin: boolean;
   // Die Person möchte sich abmelden (Profil), der Dienstwart entscheidet.
   abmeldungAngefragt?: boolean;
+  // Fahrgemeinschaft (nur bei Diensten mit fahrgemeinschaft, lib/fahrgemeinschaft.ts): freie Plätze, Hinweis, Mitfahrer.
+  plaetze?: number | null;
+  fahrtHinweis?: string | null;
+  mitfahrer?: { id: string; name: string }[];
 };
 
 export type DienstwartStelle = {
@@ -172,6 +176,8 @@ export type DienstwartStelle = {
   bedarf: number;
   // Für genau diesen Termin gesetzter Bedarf (null = Standard des Dienstes).
   override: number | null;
+  // Dienst mit Fahrgemeinschaft (Plätze je Auto, Mitfahrer), siehe lib/fahrgemeinschaft.ts.
+  fahrgemeinschaft: boolean;
   eingeteilt: EingeteiltePerson[];
 };
 
@@ -180,7 +186,7 @@ export type DienstwartStelle = {
 export function dienstwartStellen(
   kontext: EigeneDiensteKontext,
   // Alle Dienste des Vereins (auch deaktivierte), für die Namen bestehender Einteilungen.
-  alleArten: { id: string; name: string; aktiv: boolean }[],
+  alleArten: { id: string; name: string; aktiv: boolean; fahrgemeinschaft?: boolean }[],
   t: TerminFuerDienste,
   eingeteilt: EingeteiltePerson[]
 ): DienstwartStelle[] {
@@ -192,7 +198,7 @@ export function dienstwartStellen(
     const personen = eingeteilt.filter((e) => e.terminId === t.id && e.dienstArtId === art.id);
     // Ein auf 0 gesetzter Bedarf eines aktiven Dienstes bleibt sichtbar, damit er sich wieder ändern lässt.
     if (bedarf <= 0 && personen.length === 0 && !(regel && override != null)) continue;
-    stellen.push({ dienstArtId: art.id, name: art.name, bedarf, override, eingeteilt: personen });
+    stellen.push({ dienstArtId: art.id, name: art.name, bedarf, override, fahrgemeinschaft: !!art.fahrgemeinschaft, eingeteilt: personen });
   }
   return stellen;
 }
@@ -212,7 +218,9 @@ export function eigeneDiensteZellenText(stellen: DienstwartStelle[]): string | n
   const teile = stellen
     .filter((s) => s.bedarf > 0 || s.eingeteilt.length > 0)
     .map((s) => {
-      const namen = s.eingeteilt.map((e) => e.anzeigeName).join(", ");
+      const namen = s.eingeteilt
+        .map((e) => (e.mitfahrer?.length ? `${e.anzeigeName} (+${e.mitfahrer.length} Mitfahrer)` : e.anzeigeName))
+        .join(", ");
       if (!namen) return `${s.name}: offen`;
       return s.eingeteilt.length < s.bedarf ? `${s.name}: ${namen} (${s.eingeteilt.length}/${s.bedarf})` : `${s.name}: ${namen}`;
     });

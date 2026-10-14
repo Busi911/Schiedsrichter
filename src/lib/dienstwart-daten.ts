@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, eq, gte, inArray } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
+import { fahrtMitfahrer, mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { dienstwartStellen, type DienstwartStelle, type EingeteiltePerson } from "./eigene-dienste";
 import { ladeDienstArten, ladeEigeneDiensteKontext } from "./eigene-dienste-daten";
 import { formatMannschaft } from "./mannschaft-label";
@@ -70,6 +70,8 @@ export async function holeDienstwartDaten(vereinId: string) {
               userId: terminZuordnungen.userId,
               externerName: terminZuordnungen.externerName,
               abmeldungAngefragtAm: terminZuordnungen.abmeldungAngefragtAm,
+              plaetze: terminZuordnungen.plaetze,
+              fahrtHinweis: terminZuordnungen.fahrtHinweis,
               name: users.name,
               email: users.email,
             })
@@ -83,6 +85,14 @@ export async function holeDienstwartDaten(vereinId: string) {
         .where(eq(mannschaften.vereinId, vereinId)),
     ]);
 
+    // Mitfahrer der Fahrgemeinschaft (lib/fahrgemeinschaft.ts), RLS + ausdrücklicher Vereinsfilter.
+    const mitfahrerZeilen = zuordnungen.length
+      ? await tx
+          .select({ id: fahrtMitfahrer.id, zuordnungId: fahrtMitfahrer.zuordnungId, name: fahrtMitfahrer.name })
+          .from(fahrtMitfahrer)
+          .where(and(eq(fahrtMitfahrer.vereinId, vereinId), inArray(fahrtMitfahrer.zuordnungId, zuordnungen.map((z) => z.zuordnungId))))
+          .orderBy(asc(fahrtMitfahrer.erstelltAm))
+      : [];
     const eingeteilt: EingeteiltePerson[] = zuordnungen.map((z) => ({
       zuordnungId: z.zuordnungId,
       terminId: z.terminId,
@@ -91,6 +101,9 @@ export async function holeDienstwartDaten(vereinId: string) {
       anzeigeName: z.name ?? z.externerName ?? z.email ?? "Unbekannt",
       ohneLogin: !z.userId,
       abmeldungAngefragt: !!z.abmeldungAngefragtAm,
+      plaetze: z.plaetze,
+      fahrtHinweis: z.fahrtHinweis,
+      mitfahrer: mitfahrerZeilen.filter((m) => m.zuordnungId === z.zuordnungId).map((m) => ({ id: m.id, name: m.name })),
     }));
 
     const liste: DienstwartTermin[] = [];

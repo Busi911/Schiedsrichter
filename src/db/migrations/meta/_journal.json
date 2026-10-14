@@ -729,6 +729,13 @@
       "when": 1791974035576,
       "tag": "0103_dienst_art_alte_geltung_entfernen",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1791975158014,
+      "tag": "0104_fahrgemeinschaft",
+      "breakpoints": true
     }
   ]
 }

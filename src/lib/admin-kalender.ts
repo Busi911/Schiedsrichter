@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, eq, gte, inArray, isNotNull, lte, ne, or } from "drizzle-orm";
 import { withTenant } from "@/db";
 import {
+  fahrtMitfahrer,
   funktionstraegerRollen,
   mannschaften,
   termine,
@@ -22,6 +23,7 @@ import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from 
 import { standardFarbeFuerMannschaft } from "@/lib/trainingsplan";
 import { holeOrdnerEinsatzZahlen, ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { eigeneDiensteFuerTermin } from "@/lib/eigene-dienste";
+import { fahrtText } from "@/lib/fahrgemeinschaft";
 import { ladeEigeneDiensteKontext } from "@/lib/eigene-dienste-daten";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
@@ -72,7 +74,7 @@ export async function holeAdminKalenderDaten(
 ) {
   const { von, bis } = monatsBereich(jahr, monatNull);
 
-  const [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe, verein, eigeneDienste] =
+  const [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe, verein, eigeneDienste, mitfahrer] =
     await withTenant(vereinId, async (tx) => {
       const termineDesMonats = await tx
         .select({
@@ -140,10 +142,21 @@ export async function holeAdminKalenderDaten(
               email: users.email,
               externerName: terminZuordnungen.externerName,
               dienstArtId: terminZuordnungen.dienstArtId,
+              plaetze: terminZuordnungen.plaetze,
+              fahrtHinweis: terminZuordnungen.fahrtHinweis,
             })
             .from(terminZuordnungen)
             .leftJoin(users, eq(terminZuordnungen.userId, users.id))
             .where(inArray(terminZuordnungen.terminId, terminIds))
+        : [];
+      // Fahrgemeinschaft (lib/fahrgemeinschaft.ts): Mitfahrer je Fahrer für die Detailzeile im Kalender.
+      const fahrtIds = zuordnungen.filter((z) => z.funktionstraegerTyp === "eigener_dienst").map((z) => z.id);
+      const mitfahrer = fahrtIds.length
+        ? await tx
+            .select({ zuordnungId: fahrtMitfahrer.zuordnungId, name: fahrtMitfahrer.name })
+            .from(fahrtMitfahrer)
+            .where(and(eq(fahrtMitfahrer.vereinId, vereinId), inArray(fahrtMitfahrer.zuordnungId, fahrtIds)))
+            .orderBy(asc(fahrtMitfahrer.erstelltAm))
         : [];
 
       const mannschaftsListe = sortiereMannschaften(
@@ -174,7 +187,7 @@ export async function holeAdminKalenderDaten(
       // Vom Verein definierte eigene Dienste (Fahrer, Kuchen, ...): Bedarf je Termin und Namen für die Anzeige.
       const eigeneDienste = await ladeEigeneDiensteKontext(tx, vereinId, terminIds);
 
-      return [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe, verein, eigeneDienste] as const;
+      return [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe, verein, eigeneDienste, mitfahrer] as const;
     });
 
   // Ordner/Kioskdienst/Kassierer waren im Zuordnen-Modal bisher gar nicht
@@ -349,6 +362,14 @@ export async function holeAdminKalenderDaten(
               andereRollen.map((a) => ROLLE_LABEL[a.funktionstraegerTyp] ?? a.funktionstraegerTyp)
             ),
           ].join(", ")} eingetragen`;
+        }
+      }
+      if (z.funktionstraegerTyp === "eigener_dienst") {
+        const namen = mitfahrer.filter((m) => m.zuordnungId === z.id).map((m) => m.name);
+        if (z.plaetze !== null || namen.length > 0) {
+          hinweis = [fahrtText({ plaetze: z.plaetze, mitfahrer: namen, hinweis: z.fahrtHinweis }), namen.length ? `Mitfahrer: ${namen.join(", ")}` : null]
+            .filter(Boolean)
+            .join(" · ");
         }
       }
       besetzungsDetails.push({ id: z.id, label, hinweis });
