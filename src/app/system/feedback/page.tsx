@@ -11,6 +11,23 @@ import {
 } from "@/components/ui/card";
 import { formatDatumZeit } from "@/lib/format";
 
+// "Antworten" öffnet das eigene Mailprogramm mit Empfänger, Betreff und der zitierten Rückmeldung (mailto, kein Versand über
+// die App). Zitat gekürzt, damit der Link nicht zu lang wird (manche Mailprogramme schneiden lange mailto-Links ab).
+function antwortLink(e: { personEmail: string; personName: string | null; nachricht: string }): string {
+  const zitat = e.nachricht.length > 600 ? `${e.nachricht.slice(0, 600)} …` : e.nachricht;
+  const body = [
+    `Hallo${e.personName ? ` ${e.personName}` : ""},`,
+    "",
+    "",
+    "",
+    "Ihre Nachricht:",
+    ...zitat.split("\n").map((z) => `> ${z}`),
+  ].join("\n");
+  const params = new URLSearchParams({ subject: "Ihr Feedback zu HandballerPate", body });
+  // URLSearchParams kodiert Leerzeichen als "+", Mailprogramme erwarten %20.
+  return `mailto:${e.personEmail}?${params.toString().replace(/\+/g, "%20")}`;
+}
+
 export default async function SystemFeedbackPage() {
   await requireSystemAdmin();
 
@@ -58,6 +75,12 @@ export default async function SystemFeedbackPage() {
                   {formatDatumZeit(e.erstelltAm)} · {e.vereinName} ·{" "}
                   {e.personName ?? e.personEmail} · Seite: {e.seite}
                 </p>
+                <a
+                  href={antwortLink(e)}
+                  className="mt-1 inline-flex min-h-11 items-center text-sm font-medium underline"
+                >
+                  Antworten
+                </a>
               </div>
             ))
           )}

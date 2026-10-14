@@ -22,14 +22,14 @@ function vereinRegistriertInhalt(
 
 // Best effort an ALLE Systemadmins: ein Mail-Fehler darf die auslösende
 // Aktion nie verhindern.
-async function mailAnSystemAdmins(betreff: string, inhalt: EmailInhalt) {
+async function mailAnSystemAdmins(betreff: string, inhalt: EmailInhalt, replyTo?: string) {
   const systemAdmins = await adminDb
     .select({ email: users.email })
     .from(users)
     .where(eq(users.istSystemAdmin, true));
   for (const admin of systemAdmins) {
     try {
-      await sendMail(admin.email, betreff, emailAlsText(inhalt), emailAlsHtml(inhalt));
+      await sendMail(admin.email, betreff, emailAlsText(inhalt), emailAlsHtml(inhalt), { replyTo });
     } catch (err) {
       console.error("Systemadmin-Benachrichtigung fehlgeschlagen:", err);
     }
@@ -87,4 +87,27 @@ export async function benachrichtigeSystemAdminsUeberStammdatenAntrag(
     zeilen: [`Bisher: ${bisher || "—"}`, `Neu: ${neu || "—"}`, `Grund: ${grund}`, `Beantragt von: ${akteur}`],
     cta: { text: "Antrag prüfen", url: `${appUrl()}/system/aenderungen` },
   });
+}
+
+// Feedback über den Button im Header (lib/feedback.ts): Text, Absender und Seite direkt in der Mail, damit der Systemadmin
+// ohne Umweg über /system/feedback antworten kann: Reply-To ist die Adresse der Person, "Antworten" im Mailprogramm genügt.
+export async function benachrichtigeSystemAdminsUeberFeedback(
+  vereinId: string,
+  absender: { name: string | null; email: string | null },
+  seite: string,
+  nachricht: string
+) {
+  const [v] = await adminDb.select({ name: vereine.name }).from(vereine).where(eq(vereine.id, vereinId));
+  const vereinName = v?.name ?? "Ein Verein";
+  const wer = [absender.name, absender.email ? `<${absender.email}>` : null].filter(Boolean).join(" ") || "unbekannt";
+  await mailAnSystemAdmins(`Feedback: ${vereinName}`, {
+    ueberschrift: `Neues Feedback von ${vereinName}`,
+    zeilen: [
+      { text: nachricht, stark: true },
+      { text: `Von: ${wer}`, neueGruppe: true },
+      `Seite: ${seite}`,
+    ],
+    cta: { text: "Alle Rückmeldungen", url: `${appUrl()}/system/feedback` },
+    kleingedrucktes: absender.email ? "„Antworten“ in deinem Mailprogramm schreibt direkt an die Person." : undefined,
+  }, absender.email ?? undefined);
 }
