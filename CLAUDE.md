@@ -656,7 +656,9 @@ einmal über den Protokolleintrag `erste_schritte_mail`, nur aktive Vereine, all
 Vereine legen zusätzlich zu den festen Diensten eigene an. **Ein System für alle Dienste (Entscheidung Betreiber 14.10.2026):** Einstellungen → „Dienste“
 (`#dienste-bedarf`, Anker `#eigene-dienste` liegt darin; `components/dienste-einstellungen.tsx`, Actions `einstellungen/eigene-dienste-actions.ts`) zeigt feste
 (Ordner, Kioskdienst, Kassierer, Zeitnehmer/Sekretär) und eigene Dienste in EINER Liste mit derselben Bearbeitung: Personen je Termin für Heimspiel/Auswärts/
-Freundschaft/Turnier (0 = dort nicht; feste Dienste ohne Auswärts) + Mannschaften (alle / nur diese, Anzeige mit Altersklasse). Feste Dienste speichern wie bisher in
+Freundschaft/Turnier (0 = dort nicht; feste Dienste ohne Auswärts) + Mannschaften (alle / nur diese, Anzeige mit Altersklasse, gleich lautende
+mit Staffel dahinter; Reihenfolge über `sortiereMannschaften`, das Name UND `altersklasse` auswertet — automatisch angelegte Mannschaften heißen oft
+alle gleich, z.B. "HSG …", die Klasse steht dann nur in `altersklasse`: Männer, Frauen, Jugend A–E je männlich vor weiblich, Mini/Maxi). Feste Dienste speichern wie bisher in
 `vereine.<rundenspiel|testspiel|turnier><Rolle>Bedarf` und `mannschaft.<rolle>BedarfDeaktiviert` (`festenDienstSpeichern`; „nur diese“ schaltet alle anderen ab,
 dieselben Schalter wie „Bedarf pro Mannschaft“ auf den Wart-Seiten); die frühere Tabelle „Bedarf pro Mannschaft“ auf `/admin/mannschaften` und das
 12-Felder-Formular sind entfernt (dort nur noch ein Verweis), `diensteBroadcastSpeichern` speichert nur noch den Rundmail-Schalter.

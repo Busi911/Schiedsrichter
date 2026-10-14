@@ -64,4 +64,40 @@ describe("sortiereMannschaften", () => {
       "Zeta-Team",
     ]);
   });
+
+  it("nutzt die Altersklasse, wenn alle Mannschaften gleich heißen (nuLiga-Kürzel)", () => {
+    const n = "HSG Dutenh./Münchholzh.";
+    const liste = [
+      { name: n, altersklasse: "WJD" },
+      { name: n, altersklasse: "WJC" },
+      { name: n, altersklasse: "MJC" },
+      { name: n, altersklasse: "WJE" },
+      { name: n, altersklasse: "WJA" },
+      { name: n, altersklasse: "MJA" },
+      { name: n, altersklasse: "F" },
+      { name: `${n} II`, altersklasse: "F" },
+      { name: n, altersklasse: "M" },
+    ];
+    expect(sortiereMannschaften(liste).map((m) => `${m.name === n ? "" : "II "}${m.altersklasse}`)).toEqual([
+      "M",
+      "F",
+      "II F",
+      "MJA",
+      "WJA",
+      "MJC",
+      "WJC",
+      "WJD",
+      "WJE",
+    ]);
+  });
+
+  it("versteht auch das Hallenplan- und Demo-Format der Altersklasse", () => {
+    const liste = [
+      { name: "x", altersklasse: "wC" },
+      { name: "x", altersklasse: "Fr/weibl." },
+      { name: "x", altersklasse: "mJB" },
+      { name: "x", altersklasse: "Mä/männl." },
+    ];
+    expect(sortiereMannschaften(liste).map((m) => m.altersklasse)).toEqual(["Mä/männl.", "Fr/weibl.", "mJB", "wC"]);
+  });
 });
