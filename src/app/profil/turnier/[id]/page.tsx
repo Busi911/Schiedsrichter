@@ -51,7 +51,7 @@ export default async function MeinTurnierPage({
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
       <div>
         <Link
           href="/profil"

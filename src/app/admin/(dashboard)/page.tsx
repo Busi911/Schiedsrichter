@@ -297,8 +297,7 @@ export default async function AdminDashboardPage() {
                           className="h-8 min-w-56 flex-1"
                         />
                         <SubmitButton size="xs" variant="outline">
-                          {z.externerName} anlegen &amp; als {z.rolleLabel}{" "}
-                          bestätigen
+                          Anlegen &amp; bestätigen
                         </SubmitButton>
                       </form>
                     </details>

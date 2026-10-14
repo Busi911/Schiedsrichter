@@ -281,7 +281,7 @@ export default async function ZeitnehmerwartPage({
   );
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
       <div>
         <Link href="/profil" className="text-sm text-muted-foreground underline">
           ← Zurück zu meinem Profil
@@ -449,7 +449,7 @@ export default async function ZeitnehmerwartPage({
                       className="mt-2 flex flex-wrap items-center gap-2"
                     >
                       <input type="hidden" name="zuordnungId" value={z.id} />
-                      <div className="min-w-56">
+                      <div className="w-full sm:w-auto sm:min-w-56">
                         <PersonSelect
                           name="userId"
                           placeholder="Person wählen…"
@@ -489,11 +489,7 @@ export default async function ZeitnehmerwartPage({
                         className="h-11 min-w-56 flex-1 px-3 text-base"
                       />
                       <SubmitButton className="h-11 px-4 text-sm" variant="outline">
-                        {z.externerName} anlegen &amp; als{" "}
-                        {z.funktionstraegerTyp === "zeitnehmer"
-                          ? "Zeitnehmer"
-                          : "Sekretär"}{" "}
-                        bestätigen
+                        Anlegen &amp; bestätigen
                       </SubmitButton>
                     </form>
                   </details>
@@ -748,7 +744,7 @@ export default async function ZeitnehmerwartPage({
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <form
                         action={zeitnehmerBedarfUeberschreiben}
-                        className="flex items-center gap-2"
+                        className="flex flex-wrap items-center gap-2"
                       >
                         <input type="hidden" name="terminId" value={t.id} />
                         <Label
@@ -804,7 +800,7 @@ export default async function ZeitnehmerwartPage({
                         ).length;
                         return (
                         <li key={z.id}>
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
                             <span>
                               {z.funktionstraegerTyp === "zeitnehmer"
                                 ? "Zeitnehmer"
@@ -824,7 +820,7 @@ export default async function ZeitnehmerwartPage({
                                 </Badge>
                               )}
                             </span>
-                            <div className="flex items-center gap-3">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
                               {auswaehlbareErsatzOptionen > 0 && (
                                 <details className="group">
                                   <DisclosureSummary className="h-11 px-4 text-sm">
@@ -849,7 +845,7 @@ export default async function ZeitnehmerwartPage({
                                       name="ersetzeZuordnungId"
                                       value={z.id}
                                     />
-                                    <div className="min-w-56">
+                                    <div className="w-full sm:w-auto sm:min-w-56">
                                       <PersonSelect
                                         name="personRolle"
                                         placeholder="Ersatz wählen…"
@@ -897,7 +893,7 @@ export default async function ZeitnehmerwartPage({
                             className="flex flex-wrap items-center gap-2"
                           >
                             <input type="hidden" name="terminId" value={t.id} />
-                            <div className="min-w-56">
+                            <div className="w-full sm:w-auto sm:min-w-56">
                               <PersonSelect
                                 name="personRolle"
                                 placeholder="Person wählen…"
@@ -926,7 +922,7 @@ export default async function ZeitnehmerwartPage({
                                 name="terminId"
                                 value={t.id}
                               />
-                              <div className="min-w-56">
+                              <div className="w-full sm:w-auto sm:min-w-56">
                                 <PersonSelect
                                   name="personRolle"
                                   placeholder="Person wählen…"

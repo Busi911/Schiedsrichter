@@ -184,7 +184,7 @@ export default async function SchiedsrichterwartPage({
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
       <div>
         <Link href="/profil" className="text-sm text-muted-foreground underline">
           ← Zurück zu meinem Profil
@@ -357,7 +357,7 @@ export default async function SchiedsrichterwartPage({
                         const wert = namen ?? kuerzel;
                         return (
                         <li key={z.id}>
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
                             <span>
                               Schiedsrichter:{" "}
                               {z.name ?? z.externerName ?? z.email}
@@ -375,7 +375,7 @@ export default async function SchiedsrichterwartPage({
                                 </Badge>
                               )}
                             </span>
-                            <div className="flex items-center gap-3">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
                               {auswaehlbareOptionen > 0 && (
                                 <details className="group">
                                   <DisclosureSummary>
@@ -520,7 +520,7 @@ export default async function SchiedsrichterwartPage({
                             name="name"
                             placeholder="Name ohne Login (z.B. Gast-Schiri)"
                             required
-                            className="h-8 min-w-64 flex-1"
+                            className="h-8 w-full sm:w-auto sm:min-w-64 sm:flex-1"
                           />
                           <SubmitButton size="xs" variant="ghost">
                             Zuordnen

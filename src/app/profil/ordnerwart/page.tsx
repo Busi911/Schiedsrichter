@@ -256,7 +256,7 @@ export default async function OrdnerwartPage({
   );
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
       <div>
         <Link href="/profil" className="text-sm text-muted-foreground underline">
           ← Zurück zu meinem Profil
@@ -430,7 +430,7 @@ export default async function OrdnerwartPage({
                       className="mt-2 flex flex-wrap items-center gap-2"
                     >
                       <input type="hidden" name="zuordnungId" value={z.id} />
-                      <div className="min-w-56">
+                      <div className="w-full sm:w-auto sm:min-w-56">
                         <LabeledSelect triggerClassName="h-11 text-base"
                           name="userId"
                           placeholder="Person wählen…"
@@ -472,9 +472,7 @@ export default async function OrdnerwartPage({
                         className="h-11 min-w-56 flex-1 px-3 text-base"
                       />
                       <SubmitButton className="h-11 px-4 text-sm" variant="outline">
-                        {z.externerName} anlegen &amp; als{" "}
-                        {ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}{" "}
-                        bestätigen
+                        Anlegen &amp; bestätigen
                       </SubmitButton>
                     </form>
                   </details>
@@ -682,7 +680,7 @@ export default async function OrdnerwartPage({
                     <ul className="mt-2 flex flex-col gap-1">
                       {bestehende.map((z) => (
                         <li key={z.id}>
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
                             <span>
                               {ROLLE_LABEL[z.funktionstraegerTyp] ??
                                 z.funktionstraegerTyp}
@@ -691,7 +689,7 @@ export default async function OrdnerwartPage({
                                 ? " (ohne Login)"
                                 : ""}
                             </span>
-                            <div className="flex items-center gap-3">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
                               {auswaehlbareOptionen > 0 && (
                                 <details className="group">
                                   <DisclosureSummary className="h-11 px-4 text-sm">
@@ -716,7 +714,7 @@ export default async function OrdnerwartPage({
                                       name="ersetzeZuordnungId"
                                       value={z.id}
                                     />
-                                    <div className="min-w-56">
+                                    <div className="w-full sm:w-auto sm:min-w-56">
                                       <LabeledSelect triggerClassName="h-11 text-base"
                                         name="personRolle"
                                         placeholder="Ersatz wählen…"
@@ -761,7 +759,7 @@ export default async function OrdnerwartPage({
                       className="mt-2 flex flex-wrap items-center gap-2"
                     >
                       <input type="hidden" name="terminId" value={t.id} />
-                      <div className="min-w-56">
+                      <div className="w-full sm:w-auto sm:min-w-56">
                         <LabeledSelect triggerClassName="h-11 text-base"
                           name="personRolle"
                           placeholder="Person wählen…"
@@ -786,7 +784,7 @@ export default async function OrdnerwartPage({
                         className="mt-2 flex flex-wrap items-center gap-2"
                       >
                         <input type="hidden" name="terminId" value={t.id} />
-                        <div className="min-w-56">
+                        <div className="w-full sm:w-auto sm:min-w-56">
                           <LabeledSelect triggerClassName="h-11 text-base"
                             name="personRolle"
                             placeholder="Person wählen…"
@@ -812,10 +810,10 @@ export default async function OrdnerwartPage({
                     <div className="mt-2 flex flex-col gap-2">
                       {t.bedarfProRolle.map((b) => (
                         <div key={b.rolle} className="flex flex-wrap items-center gap-2">
-                          <form action={ordnerBedarfUeberschreiben} className="flex items-center gap-2">
+                          <form action={ordnerBedarfUeberschreiben} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                             <input type="hidden" name="terminId" value={t.id} />
                             <input type="hidden" name="rolle" value={b.rolle} />
-                            <label htmlFor={`bedarf-${t.id}-${b.rolle}`} className="w-24 text-sm text-muted-foreground">
+                            <label htmlFor={`bedarf-${t.id}-${b.rolle}`} className="w-full text-sm text-muted-foreground sm:w-24">
                               {ROLLE_LABEL[b.rolle]}
                             </label>
                             <Input
@@ -826,7 +824,7 @@ export default async function OrdnerwartPage({
                               max={50}
                               defaultValue={b.override ?? ""}
                               placeholder={`Standard (${b.bedarf})`}
-                              className="h-11 w-32 px-3 text-base"
+                              className="h-11 min-w-0 flex-1 px-3 text-base sm:w-32 sm:flex-none"
                             />
                             <SubmitButton className="h-11 px-4 text-sm" variant="outline">
                               Speichern
@@ -853,7 +851,7 @@ export default async function OrdnerwartPage({
                     </DisclosureSummary>
                     <form action={ordnerOhneLoginZuordnen} className="mt-2 flex flex-wrap items-center gap-2">
                       <input type="hidden" name="terminId" value={t.id} />
-                      <Input name="name" placeholder="Name ohne Login (z.B. Elternteil)" required className="h-11 min-w-56 flex-1 px-3 text-base" />
+                      <Input name="name" placeholder="Name ohne Login (z.B. Elternteil)" required className="h-11 min-w-0 basis-full px-3 text-base sm:min-w-56 sm:basis-0 sm:flex-1" />
                       <div className="w-40">
                         <LabeledSelect triggerClassName="h-11 text-base" name="rolle" placeholder="Rolle…" options={ORDNER_ROLLE_OPTIONEN} required />
                       </div>

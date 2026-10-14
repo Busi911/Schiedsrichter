@@ -75,7 +75,7 @@ export default async function DienstwartPage({
   };
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
       <div>
         <Link href="/profil" className="text-sm text-muted-foreground underline">
           ← Zurück zu meinem Profil
@@ -270,8 +270,8 @@ function TerminKarte({
                 <ul className="flex flex-col gap-1">
                   {s.eingeteilt.map((e) => (
                     <li key={e.zuordnungId} className="flex flex-col gap-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="min-w-0">
                           {e.anzeigeName}
                           {e.ohneLogin ? " (ohne Login)" : ""}
                           {e.abmeldungAngefragt && <Badge variant="warning" className="ml-2">möchte sich abmelden</Badge>}
