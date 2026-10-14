@@ -35,7 +35,7 @@ describe.skipIf(!ADMIN_URL)("Hallenplan verknüpfen (Postgres)", () => {
   beforeAll(async () => {
     await testDb.delete(schema.ligaVereine);
     await testDb.delete(schema.ligaGruppen);
-    await testDb.insert(schema.vereine).values({ id: vereinId, name: "TSF Verknüpfung" });
+    await testDb.insert(schema.vereine).values({ id: vereinId, name: "TSF Verknüpfung", status: "aktiv" });
     const { id } = await legeLigaVereinAn(testDb, { vereinId, nuligaClubId: "69723", name: "TSF Verknüpfung" });
     const jetzt = new Date("2026-10-01T10:00:00Z");
     await synchronisiereStruktur(id, { db: testDb, holeHtml, jetzt });

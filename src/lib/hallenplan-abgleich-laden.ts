@@ -148,7 +148,9 @@ type VereinsZeile = {
   hallenplanAus: boolean;
 };
 
-const alleVereinsZeilen = (): Promise<VereinsZeile[]> =>
+// nurAktive: der Bericht (Seite /system/abgleich) rechnet je Verein mehrere Abfragen nacheinander. Automatisch angelegte Vereine in Vorbereitung
+// (Outreach, hunderte) gehören nicht dazu — sonst läuft die Seite ins Zeitlimit. Einzelne Aktionen suchen ihren Verein über die ID.
+const vereinsZeilen = (opt: { nurAktive?: boolean; id?: string } = {}): Promise<VereinsZeile[]> =>
   adminDb
     .select({
       id: vereine.id,
@@ -160,7 +162,8 @@ const alleVereinsZeilen = (): Promise<VereinsZeile[]> =>
       uebernahmeAktiv: vereine.ligaUebernahmeAktiv,
       hallenplanAus: vereine.hallenplanImportAus,
     })
-    .from(vereine);
+    .from(vereine)
+    .where(and(opt.nurAktive ? eq(vereine.status, "aktiv") : undefined, opt.id ? eq(vereine.id, opt.id) : undefined));
 
 // Rechnet den Abgleich für EINEN Verein (nur lesend). `sichere` sind die
 // sicher zugeordneten Paare Termin -> öffentliches Spiel (Basis der Verknüpfung).
@@ -461,16 +464,22 @@ async function berechneFuerVerein(
 // Nur lesend (adminDb, vereinsübergreifend für den Systemadmin): verändert
 // weder Termine noch Zuordnungen. Zeigt, wie viele Hallenplan-Termine sich
 // sicher einem Spiel der öffentlichen Liga-Daten zuordnen lassen.
+// Abgleich für EINEN Verein (statt den ganzen Bericht zu rechnen, nur um einen Eintrag herauszusuchen).
+export async function berechneAbgleichFuerVerein(vereinId: string): Promise<VereinsAbgleich | null> {
+  const [v] = await vereinsZeilen({ id: vereinId });
+  return v ? (await berechneFuerVerein(v)).bericht : null;
+}
+
 export async function berechneHallenplanAbgleich(): Promise<VereinsAbgleich[]> {
   const ergebnis: VereinsAbgleich[] = [];
-  for (const v of await alleVereinsZeilen()) ergebnis.push((await berechneFuerVerein(v)).bericht);
+  for (const v of await vereinsZeilen({ nurAktive: true })) ergebnis.push((await berechneFuerVerein(v)).bericht);
   return ergebnis;
 }
 
 // Sicher zugeordnete Paare eines Vereins (für die Verknüpfung, siehe
 // lib/hallenplan-verknuepfung.ts).
 export async function ermittleSichereVerknuepfungen(vereinId: string) {
-  const v = (await alleVereinsZeilen()).find((z) => z.id === vereinId);
+  const [v] = await vereinsZeilen({ id: vereinId });
   if (!v) throw new Error("Verein nicht gefunden.");
   return (await berechneFuerVerein(v)).sichere;
 }
@@ -478,7 +487,7 @@ export async function ermittleSichereVerknuepfungen(vereinId: string) {
 // Für die Übernahme (lib/liga-uebernahme.ts): Heimspiele in eigener Halle ohne
 // Termin samt Kategorie, dazu die sicher zugeordneten Paare.
 export async function ermittleUebernahmeBasis(vereinId: string) {
-  const v = (await alleVereinsZeilen()).find((z) => z.id === vereinId);
+  const [v] = await vereinsZeilen({ id: vereinId });
   if (!v) throw new Error("Verein nicht gefunden.");
   const { sichere, neuSpiele } = await berechneFuerVerein(v);
   return { sichere, neuSpiele };

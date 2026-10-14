@@ -13,7 +13,7 @@ vi.mock("server-only", () => ({}));
 describe.skipIf(!ADMIN_URL)("Hallenplan-Abgleich laden (Postgres)", () => {
   it("läuft inkl. Trockenlauf ohne SQL-Fehler", async () => {
     const { berechneHallenplanAbgleich } = await import("./hallenplan-abgleich-laden");
-    const [v] = await testDb.insert(schema.vereine).values({ name: "Smoke Verein" }).returning({ id: schema.vereine.id });
+    const [v] = await testDb.insert(schema.vereine).values({ name: "Smoke Verein", status: "aktiv" }).returning({ id: schema.vereine.id });
     const [t] = await testDb
       .insert(schema.termine)
       .values({ vereinId: v.id, typ: "rundenspiel", quelle: "rundenspiel_import", start: new Date(), heimMannschaftName: "A", auswaertsMannschaftName: "B" })
