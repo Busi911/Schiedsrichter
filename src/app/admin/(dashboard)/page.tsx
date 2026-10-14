@@ -68,6 +68,7 @@ const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
+  auswaertsspiel: "Auswärtsspiel",
   rundenspiel: "Rundenspiel",
 };
 

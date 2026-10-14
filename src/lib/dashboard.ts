@@ -32,6 +32,7 @@ const OFFENE_POSTEN_TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
+  auswaertsspiel: "Auswärtsspiel",
 };
 
 // Termine-Spalten + Mannschaftsname/-altersklasse (Jugend/Männer/Frauen) in
@@ -493,6 +494,8 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
             "turnier",
             "turnier_spiel",
             "rundenspiel",
+            // nur eigene Dienste (Fahrer ...), siehe lib/auswaerts-termine.ts
+            "auswaertsspiel",
           ])
         )
       )

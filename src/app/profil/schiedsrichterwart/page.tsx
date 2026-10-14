@@ -50,6 +50,7 @@ import { rundenspielTypLabel } from "@/lib/termin-label";
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
   turnier_spiel: "Turnierspiel",
+  auswaertsspiel: "Auswärtsspiel",
   rundenspiel: "Rundenspiel",
 };
 

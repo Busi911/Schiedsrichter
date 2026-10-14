@@ -10,7 +10,6 @@ import {
   handballNetSynchronisieren,
   ignorierteMannschaftReaktivieren,
   mannschaftAusRundenspielAnlegen,
-  mannschaftBedarfRolleUmschalten,
   unbekannteMannschaftAblehnen,
 } from "../actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,42 +21,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { MannschaftenTabelle } from "@/components/mannschaften-tabelle";
 import { NeueMannschaftDialog } from "@/components/neue-mannschaft-dialog";
 import { SubmitButton } from "@/components/submit-button";
 import { formatDatum } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
-
-const BEDARF_ROLLEN = [
-  { wert: "ordner", label: "Ordner" },
-  { wert: "kioskdienst", label: "Kioskdienst" },
-  { wert: "kassierer", label: "Kassierer" },
-  { wert: "zeitnehmer", label: "Zeitnehmer/Sekretär" },
-] as const;
-
-function istRolleDeaktiviert(
-  m: {
-    ordnerBedarfDeaktiviert: boolean;
-    kioskdienstBedarfDeaktiviert: boolean;
-    kassiererBedarfDeaktiviert: boolean;
-    zeitnehmerBedarfDeaktiviert: boolean;
-  },
-  rolle: (typeof BEDARF_ROLLEN)[number]["wert"]
-): boolean {
-  if (rolle === "ordner") return m.ordnerBedarfDeaktiviert;
-  if (rolle === "kioskdienst") return m.kioskdienstBedarfDeaktiviert;
-  if (rolle === "kassierer") return m.kassiererBedarfDeaktiviert;
-  return m.zeitnehmerBedarfDeaktiviert;
-}
 
 export default async function MannschaftenPage({
   searchParams,
@@ -293,56 +262,14 @@ export default async function MannschaftenPage({
       )}
 
       {session.user.istAdmin && liste.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Bedarf pro Mannschaft</CardTitle>
-            <CardDescription>
-              Zentrale Übersicht über die sonst auf den jeweiligen
-              Wart-Seiten verteilten Bedarf-Abschaltungen (z.B. für
-              Jugend-Mannschaften ohne eigene Heimspiele mit Publikum) —
-              wirkt live auf alle Termine dieser Mannschaft, auch bereits
-              bestehende offene.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mannschaft</TableHead>
-                  {BEDARF_ROLLEN.map((r) => (
-                    <TableHead key={r.wert}>{r.label}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {liste.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-medium">
-                      {m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name}
-                    </TableCell>
-                    {BEDARF_ROLLEN.map((r) => {
-                      const deaktiviert = istRolleDeaktiviert(m, r.wert);
-                      return (
-                        <TableCell key={r.wert}>
-                          <form action={mannschaftBedarfRolleUmschalten}>
-                            <input type="hidden" name="mannschaftId" value={m.id} />
-                            <input type="hidden" name="rolle" value={r.wert} />
-                            <SubmitButton
-                              size="xs"
-                              variant={deaktiviert ? "outline" : "secondary"}
-                            >
-                              {deaktiviert ? "deaktiviert" : "aktiv"}
-                            </SubmitButton>
-                          </form>
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <p className="text-sm text-muted-foreground">
+          Welche Dienste (Ordner, Kioskdienst, Kassierer, Zeitnehmer/Sekretär, eigene wie Fahrer) für welche Mannschaft gebraucht
+          werden, stellt ihr an einer Stelle ein:{" "}
+          <Link href="/admin/einstellungen#dienste-bedarf" className="font-medium underline">
+            Einstellungen → Dienste
+          </Link>
+          .
+        </p>
       )}
 
       {session.user.istAdmin && zeigeTeamId && (

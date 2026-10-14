@@ -33,6 +33,7 @@ import {
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
+  auswaertsspiel: "Auswärtsspiel",
 };
 
 function istOffen(t: DienstwartTermin) {

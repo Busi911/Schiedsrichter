@@ -20,6 +20,7 @@ const FENSTER_TAGE = 3;
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
   turnier_spiel: "Turnierspiel",
+  auswaertsspiel: "Auswärtsspiel",
   rundenspiel: "Rundenspiel",
 };
 

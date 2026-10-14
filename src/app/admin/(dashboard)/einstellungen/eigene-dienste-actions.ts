@@ -1,17 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { and, count, eq, inArray, ne } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
-import { dienstArten, dienstArtMannschaften, mannschaften, terminZuordnungen } from "@/db/schema";
+import { adminDb } from "@/db/admin";
+import { dienstArten, dienstArtMannschaften, mannschaften, terminZuordnungen, vereine } from "@/db/schema";
 import { pruefeBedarf, pruefeDienstName } from "@/lib/eigene-dienste";
+import { pflegeAuswaertsTermine } from "@/lib/auswaerts-termine";
 
 // Einstellungen → "Eigene Dienste" (Fahrer, Kuchen, ...). Regeln in lib/eigene-dienste.ts.
-
-function haken(formData: FormData, feld: string): boolean {
-  return formData.get(feld) === "on";
-}
 
 function text(formData: FormData, feld: string): string {
   const wert = formData.get(feld);
@@ -26,6 +25,75 @@ function aktualisiereSeiten() {
   revalidatePath("/profil/dienstwart");
 }
 
+// Auswärtsspiele hängen an den Diensten (lib/auswaerts-termine.ts): nach jeder Änderung gleich anlegen bzw. aufräumen, statt bis zum
+// nächsten stündlichen Übernahme-Cron zu warten. Wie der Cron nur bei eingeschalteter Liga-Übernahme; nach der Antwort, Fehler still.
+function pflegeAuswaertsNachAenderung(vereinId: string) {
+  after(async () => {
+    try {
+      const v = await adminDb.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { ligaUebernahmeAktiv: true } });
+      if (v?.ligaUebernahmeAktiv) await pflegeAuswaertsTermine(vereinId);
+    } catch (err) {
+      console.error("Auswärtsspiele konnten nicht aktualisiert werden:", err);
+    }
+  });
+}
+
+// Bedarf je Veranstaltung aus dem gemeinsamen Formular (components/dienste-einstellungen.tsx). Feste Dienste haben kein Auswärts-Feld.
+function leseBedarf(formData: FormData, mitAuswaerts: boolean) {
+  return {
+    bedarfHeim: pruefeBedarf(text(formData, "bedarfHeim")),
+    bedarfAuswaerts: mitAuswaerts ? pruefeBedarf(text(formData, "bedarfAuswaerts")) : 0,
+    bedarfFreundschaft: pruefeBedarf(text(formData, "bedarfFreundschaft")),
+    bedarfTurnier: pruefeBedarf(text(formData, "bedarfTurnier")),
+  };
+}
+
+// Feste Dienste (Ordner, Kioskdienst, Kassierer, Zeitnehmer/Sekretär) im selben Formular wie die eigenen: Bedarf je Veranstaltung
+// (vereine.<veranstaltung><Rolle>Bedarf) und Mannschaften (mannschaft.<rolle>BedarfDeaktiviert, dieselben Schalter wie auf den
+// Wart-Seiten; "nur diese" schaltet alle anderen Mannschaften ab).
+const FESTE_ROLLEN = {
+  ordner: { feld: "Ordner", deaktiviert: "ordnerBedarfDeaktiviert" },
+  kioskdienst: { feld: "Kioskdienst", deaktiviert: "kioskdienstBedarfDeaktiviert" },
+  kassierer: { feld: "Kassierer", deaktiviert: "kassiererBedarfDeaktiviert" },
+  zeitnehmer: { feld: "Zeitnehmer", deaktiviert: "zeitnehmerBedarfDeaktiviert" },
+} as const;
+
+export async function festenDienstSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+  const rolle = text(formData, "rolle");
+  if (!(rolle in FESTE_ROLLEN)) throw new Error("Unbekannter Dienst.");
+  const { feld, deaktiviert } = FESTE_ROLLEN[rolle as keyof typeof FESTE_ROLLEN];
+  const bedarf = leseBedarf(formData, false);
+  const nurAuswahl = formData.get("mannschaftsModus") === "auswahl";
+  const gewaehlt = new Set(formData.getAll("mannschaftIds").filter((m): m is string => typeof m === "string" && !!m));
+
+  await withTenant(vereinId, async (tx) => {
+    await tx
+      .update(vereine)
+      .set({
+        [`rundenspiel${feld}Bedarf`]: bedarf.bedarfHeim,
+        [`testspiel${feld}Bedarf`]: bedarf.bedarfFreundschaft,
+        [`turnier${feld}Bedarf`]: bedarf.bedarfTurnier,
+      })
+      .where(eq(vereine.id, vereinId));
+    const liste = await tx.select({ id: mannschaften.id }).from(mannschaften).where(eq(mannschaften.vereinId, vereinId));
+    if (nurAuswahl && !liste.some((m) => gewaehlt.has(m.id))) {
+      throw new Error("Bitte mindestens eine Mannschaft auswählen oder „alle Mannschaften“ wählen.");
+    }
+    for (const m of liste) {
+      await tx
+        .update(mannschaften)
+        .set({ [deaktiviert]: nurAuswahl && !gewaehlt.has(m.id) })
+        .where(and(eq(mannschaften.id, m.id), eq(mannschaften.vereinId, vereinId)));
+    }
+  });
+  aktualisiereSeiten();
+  revalidatePath("/admin/mannschaften");
+  revalidatePath("/profil/ordnerwart");
+  revalidatePath("/profil/zeitnehmerwart");
+}
+
 // Neu anlegen (ohne id) oder ändern (mit id).
 export async function dienstArtSpeichern(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
@@ -33,16 +101,11 @@ export async function dienstArtSpeichern(formData: FormData) {
   const id = text(formData, "id") || null;
 
   const beschreibung = text(formData, "beschreibung").slice(0, 300) || null;
-  const standardBedarf = pruefeBedarf(text(formData, "standardBedarf"));
+  const bedarf = leseBedarf(formData, true);
   const nurAusgewaehlteMannschaften = formData.get("mannschaftsModus") === "auswahl";
   const gewaehlteMannschaften = formData.getAll("mannschaftIds").filter((m): m is string => typeof m === "string" && !!m);
-  const geltung = {
-    fuerHeimspiele: haken(formData, "fuerHeimspiele"),
-    fuerFreundschaftsspiele: haken(formData, "fuerFreundschaftsspiele"),
-    fuerTurniere: haken(formData, "fuerTurniere"),
-  };
-  if (!geltung.fuerHeimspiele && !geltung.fuerFreundschaftsspiele && !geltung.fuerTurniere && !haken(formData, "fuerAuswaertsspiele")) {
-    throw new Error("Bitte mindestens eine Veranstaltung wählen, für die der Dienst gilt.");
+  if (bedarf.bedarfHeim + bedarf.bedarfAuswaerts + bedarf.bedarfFreundschaft + bedarf.bedarfTurnier === 0) {
+    throw new Error("Bitte bei mindestens einer Veranstaltung einen Bedarf eintragen.");
   }
 
   await withTenant(vereinId, async (tx) => {
@@ -65,14 +128,7 @@ export async function dienstArtSpeichern(formData: FormData) {
       throw new Error("Bitte mindestens eine Mannschaft auswählen oder „alle Mannschaften“ wählen.");
     }
 
-    const werte = {
-      name,
-      beschreibung,
-      standardBedarf,
-      nurAusgewaehlteMannschaften,
-      ...geltung,
-      fuerAuswaertsspiele: haken(formData, "fuerAuswaertsspiele"),
-    };
+    const werte = { name, beschreibung, nurAusgewaehlteMannschaften, ...bedarf };
     let dienstArtId = id;
     if (id) {
       const [geaendert] = await tx
@@ -102,6 +158,7 @@ export async function dienstArtSpeichern(formData: FormData) {
   });
 
   aktualisiereSeiten();
+  pflegeAuswaertsNachAenderung(vereinId);
 }
 
 // Deaktivieren statt löschen, sobald ein Dienst schon eingeteilt wurde: die Einteilungen bleiben sichtbar, es entsteht kein neuer Bedarf.
@@ -114,6 +171,7 @@ export async function dienstArtAktivSetzen(formData: FormData) {
     tx.update(dienstArten).set({ aktiv }).where(and(eq(dienstArten.id, id), eq(dienstArten.vereinId, vereinId)))
   );
   aktualisiereSeiten();
+  pflegeAuswaertsNachAenderung(vereinId);
 }
 
 // Löschen nur, solange niemand für den Dienst eingeteilt ist (sonst gingen die Einteilungen mit verloren).
@@ -132,4 +190,5 @@ export async function dienstArtLoeschen(formData: FormData) {
     await tx.delete(dienstArten).where(and(eq(dienstArten.id, id), eq(dienstArten.vereinId, vereinId)));
   });
   aktualisiereSeiten();
+  pflegeAuswaertsNachAenderung(vereinId);
 }

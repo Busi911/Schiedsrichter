@@ -51,7 +51,7 @@ export type DemoPerson = {
 
 export type DemoTermin = {
   key: string;
-  typ: "rundenspiel" | "testspiel" | "turnier";
+  typ: "rundenspiel" | "testspiel" | "turnier" | "auswaertsspiel";
   tage: number; // Tage ab heute (negativ = vergangen)
   stunde: number;
   minute?: number;
@@ -62,6 +62,7 @@ export type DemoTermin = {
   heim?: string;
   gast?: string;
   ergebnis?: [number, number];
+  ort?: string; // Standard: eigene Halle; Auswärtsspiele in der Halle des Gegners
 };
 
 export type DemoZuordnung = {
@@ -131,6 +132,9 @@ const TERMINE: DemoTermin[] = [
   { key: "t10", typ: "rundenspiel", tage: 17, stunde: 15, minute: 30, dauerMinuten: 75, mannschaft: "männliche D-Jugend", beschreibung: "HSG Musterstadt - TSV Ostheim", pflichtspiel: true, heim: "HSG Musterstadt", gast: "TSV Ostheim" },
   { key: "t11", typ: "testspiel", tage: 20, stunde: 18, dauerMinuten: 90, mannschaft: "1. Damen", beschreibung: "Testspiel gegen HC Rheintal" },
   { key: "t12", typ: "rundenspiel", tage: 23, stunde: 15, dauerMinuten: 90, mannschaft: "1. Herren", beschreibung: "HSG Musterstadt - SV Grünau", pflichtspiel: true, heim: "HSG Musterstadt", gast: "SV Grünau" },
+  // Auswärtsspiele: im echten Betrieb automatisch aus dem Spielplan, sobald ein Dienst mit Auswärts-Bedarf gilt (hier: Fahrer).
+  { key: "t14", typ: "auswaertsspiel", tage: 6, stunde: 14, dauerMinuten: 90, mannschaft: "männliche A-Jugend", beschreibung: "SG Talblick - HSG Musterstadt", pflichtspiel: true, heim: "SG Talblick", gast: "HSG Musterstadt", ort: "Sporthalle Talblick" },
+  { key: "t15", typ: "auswaertsspiel", tage: 13, stunde: 11, dauerMinuten: 75, mannschaft: "weibliche C-Jugend", beschreibung: "TV Bergheim - HSG Musterstadt", pflichtspiel: true, heim: "TV Bergheim", gast: "HSG Musterstadt", ort: "Bergheimhalle" },
   { key: "t13", typ: "rundenspiel", tage: 24, stunde: 17, dauerMinuten: 90, mannschaft: "2. Herren", beschreibung: "HSG Musterstadt II - SC Hochfeld", pflichtspiel: true, heim: "HSG Musterstadt II", gast: "SC Hochfeld" },
 ];
 
@@ -186,24 +190,19 @@ export type DemoEigenerDienst = {
   key: string;
   name: string;
   beschreibung?: string;
-  standardBedarf: number;
-  fuerHeimspiele: boolean;
-  fuerFreundschaftsspiele: boolean;
-  fuerTurniere: boolean;
+  // Bedarf je Veranstaltung (0 = gilt dort nicht), wie in Einstellungen → Dienste
+  bedarf: { heim: number; auswaerts: number; freundschaft: number; turnier: number };
   mannschaften?: string[]; // nur diese (sonst alle)
 };
 export type DemoEigeneEinteilung = { termin: string; dienst: string; person?: string; externerName?: string; abmeldung?: boolean };
 
 const EIGENE_DIENSTE: DemoEigenerDienst[] = [
-  { key: "kuchen", name: "Kuchen", beschreibung: "Bitte bis 30 Minuten vor Anwurf am Kiosk abgeben.", standardBedarf: 2, fuerHeimspiele: true, fuerFreundschaftsspiele: false, fuerTurniere: true },
+  { key: "kuchen", name: "Kuchen", beschreibung: "Bitte bis 30 Minuten vor Anwurf am Kiosk abgeben.", bedarf: { heim: 2, auswaerts: 0, freundschaft: 0, turnier: 2 } },
   {
     key: "fahrer",
     name: "Fahrer",
     beschreibung: "Treffpunkt 45 Minuten vor Anwurf an der Halle.",
-    standardBedarf: 3,
-    fuerHeimspiele: false,
-    fuerFreundschaftsspiele: true,
-    fuerTurniere: true,
+    bedarf: { heim: 0, auswaerts: 2, freundschaft: 2, turnier: 3 },
     mannschaften: ["männliche A-Jugend", "weibliche C-Jugend"],
   },
 ];
@@ -216,6 +215,10 @@ const EIGENE_EINTEILUNGEN: DemoEigeneEinteilung[] = [
   { termin: "t4", dienst: "fahrer", person: "jan" },
   { termin: "t4", dienst: "fahrer", externerName: "Opa Heinz" },
   { termin: "t7", dienst: "fahrer", externerName: "Familie Yilmaz" },
+  // Auswärtsspiele: t14 vollständig, t15 noch ein Fahrer offen
+  { termin: "t14", dienst: "fahrer", person: "jan" },
+  { termin: "t14", dienst: "fahrer", externerName: "Familie Roth" },
+  { termin: "t15", dienst: "fahrer", person: "marie" },
 ];
 
 export type DemoDaten = {

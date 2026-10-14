@@ -6,7 +6,7 @@ import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
 import { ligaMannschaften, ligaVereine, ligaSyncLaeufe, ligaVereinLogos, ligaVereinZusatzquellen, mannschaften, stammdatenAenderungen, terminZuordnungen, vereine } from "@/db/schema";
 import {
-  dienstBedarfSpeichern,
+  diensteBroadcastSpeichern,
   logoEntfernen,
   mannschaftsnamenSpeichern,
   supportZugriffSetzen,
@@ -22,7 +22,7 @@ import {
   vereinsdatenSpeichern,
 } from "./actions";
 import { ChevronDown } from "lucide-react";
-import { EigeneDiensteEinstellungen } from "@/components/eigene-dienste-einstellungen";
+import { DiensteEinstellungen, type FesterDienst } from "@/components/dienste-einstellungen";
 import { ladeDienstArten } from "@/lib/eigene-dienste-daten";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { StammdatenAntrag } from "@/components/stammdaten-antrag";
@@ -145,7 +145,15 @@ export default async function EinstellungenPage({
   const [eigeneDienste, mannschaftsAuswahl, eigeneDiensteEingeteilt] = await withTenant(vereinId, async (tx) => {
     const arten = await ladeDienstArten(tx, vereinId, false);
     const liste = await tx
-      .select({ id: mannschaften.id, name: mannschaften.name })
+      .select({
+        id: mannschaften.id,
+        name: mannschaften.name,
+        altersklasse: mannschaften.altersklasse,
+        ordnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
+        kioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
+        kassiererBedarfDeaktiviert: mannschaften.kassiererBedarfDeaktiviert,
+        zeitnehmerBedarfDeaktiviert: mannschaften.zeitnehmerBedarfDeaktiviert,
+      })
       .from(mannschaften)
       .where(eq(mannschaften.vereinId, vereinId));
     const zaehlung = arten.length
@@ -161,6 +169,19 @@ export default async function EinstellungenPage({
       new Map(zaehlung.map((z) => [z.dienstArtId as string, Number(z.anzahl)])),
     ] as const;
   });
+  // Mannschaften mit Altersklasse, sonst sind z.B. mehrere "1. Mannschaft" nicht unterscheidbar.
+  const mannschaftsOptionen = mannschaftsAuswahl.map((m) => ({
+    id: m.id,
+    label: m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name,
+  }));
+  const nurAktive = (feld: "ordnerBedarfDeaktiviert" | "kioskdienstBedarfDeaktiviert" | "kassiererBedarfDeaktiviert" | "zeitnehmerBedarfDeaktiviert") =>
+    mannschaftsAuswahl.some((m) => m[feld]) ? mannschaftsAuswahl.filter((m) => !m[feld]).map((m) => m.id) : null;
+  const festeDienste: FesterDienst[] = [
+    { rolle: "ordner", name: "Ordner", bedarf: { heim: verein?.rundenspielOrdnerBedarf ?? 0, freundschaft: verein?.testspielOrdnerBedarf ?? 0, turnier: verein?.turnierOrdnerBedarf ?? 0 }, nurMannschaften: nurAktive("ordnerBedarfDeaktiviert") },
+    { rolle: "kioskdienst", name: "Kioskdienst", bedarf: { heim: verein?.rundenspielKioskdienstBedarf ?? 0, freundschaft: verein?.testspielKioskdienstBedarf ?? 0, turnier: verein?.turnierKioskdienstBedarf ?? 0 }, nurMannschaften: nurAktive("kioskdienstBedarfDeaktiviert") },
+    { rolle: "kassierer", name: "Kassierer", bedarf: { heim: verein?.rundenspielKassiererBedarf ?? 0, freundschaft: verein?.testspielKassiererBedarf ?? 0, turnier: verein?.turnierKassiererBedarf ?? 0 }, nurMannschaften: nurAktive("kassiererBedarfDeaktiviert") },
+    { rolle: "zeitnehmer", name: "Zeitnehmer/Sekretär", bedarf: { heim: verein?.rundenspielZeitnehmerBedarf ?? 1, freundschaft: verein?.testspielZeitnehmerBedarf ?? 1, turnier: verein?.turnierZeitnehmerBedarf ?? 1 }, nurMannschaften: nurAktive("zeitnehmerBedarfDeaktiviert") },
+  ];
   const supportAktiv = supportFreigabeAktiv(verein?.supportZugriffBis ?? null);
 
   const ligaMannschaftsListe = ligaVerein
@@ -633,223 +654,31 @@ export default async function EinstellungenPage({
           )}
         </EinstellungsBereich>
 
-        <EinstellungsBereich id="dienste-bedarf" titel="Dienste-Bedarf pro Termin" kurz="Wie viele Helfer pro Termin gebraucht werden" beschreibung={<>Wie viele Ordner-, Kioskdienst-, Kassierer- und Zeitnehmer/
-              Sekretär-Kräfte pro Freundschaftsspiel, Turnier bzw. Rundenspiel
-              benötigt werden.
-              Sobald diese Anzahl erreicht ist, können sich weitere
-              Interessenten nicht mehr anmelden. Gilt nicht für Termine aus dem
-              ICS-Feed (das sind die persönlichen Einsätze der Schiedsrichter).
-              Zeitnehmer und Sekretär sind dabei jeweils eigene Rollen mit
-              fest max. einer Person — der hier eingetragene Bedarf zählt
-              beide zusammen (z.B. 2 = ein Zeitnehmer UND ein Sekretär).</>}>
-            <form action={dienstBedarfSpeichern} className="flex flex-col gap-5">
-              <fieldset
-                disabled={!session.user.istAdmin}
-                className="flex flex-col gap-2"
-              >
-                <legend className="mb-1 text-sm font-medium">Freundschaftsspiele</legend>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="testspielOrdnerBedarf" className="font-normal">
-                    Ordner
-                  </Label>
-                  <Input
-                    id="testspielOrdnerBedarf"
-                    type="number"
-                    name="testspielOrdnerBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.testspielOrdnerBedarf ?? 0}
-                    className="w-20"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label
-                    htmlFor="testspielKioskdienstBedarf"
-                    className="font-normal"
-                  >
-                    Kioskdienst
-                  </Label>
-                  <Input
-                    id="testspielKioskdienstBedarf"
-                    type="number"
-                    name="testspielKioskdienstBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.testspielKioskdienstBedarf ?? 0}
-                    className="w-20"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="testspielKassiererBedarf" className="font-normal">
-                    Kassierer
-                  </Label>
-                  <Input
-                    id="testspielKassiererBedarf"
-                    type="number"
-                    name="testspielKassiererBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.testspielKassiererBedarf ?? 0}
-                    className="w-20"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label
-                    htmlFor="testspielZeitnehmerBedarf"
-                    className="font-normal"
-                  >
-                    Zeitnehmer/Sekretär
-                  </Label>
-                  <Input
-                    id="testspielZeitnehmerBedarf"
-                    type="number"
-                    name="testspielZeitnehmerBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.testspielZeitnehmerBedarf ?? 1}
-                    className="w-20"
-                  />
-                </div>
-              </fieldset>
-
-              <fieldset
-                disabled={!session.user.istAdmin}
-                className="flex flex-col gap-2"
-              >
-                <legend className="mb-1 text-sm font-medium">Turniere</legend>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="turnierOrdnerBedarf" className="font-normal">
-                    Ordner
-                  </Label>
-                  <Input
-                    id="turnierOrdnerBedarf"
-                    type="number"
-                    name="turnierOrdnerBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.turnierOrdnerBedarf ?? 0}
-                    className="w-20"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label
-                    htmlFor="turnierKioskdienstBedarf"
-                    className="font-normal"
-                  >
-                    Kioskdienst
-                  </Label>
-                  <Input
-                    id="turnierKioskdienstBedarf"
-                    type="number"
-                    name="turnierKioskdienstBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.turnierKioskdienstBedarf ?? 0}
-                    className="w-20"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="turnierKassiererBedarf" className="font-normal">
-                    Kassierer
-                  </Label>
-                  <Input
-                    id="turnierKassiererBedarf"
-                    type="number"
-                    name="turnierKassiererBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.turnierKassiererBedarf ?? 0}
-                    className="w-20"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label
-                    htmlFor="turnierZeitnehmerBedarf"
-                    className="font-normal"
-                  >
-                    Zeitnehmer/Sekretär
-                  </Label>
-                  <Input
-                    id="turnierZeitnehmerBedarf"
-                    type="number"
-                    name="turnierZeitnehmerBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.turnierZeitnehmerBedarf ?? 1}
-                    className="w-20"
-                  />
-                </div>
-              </fieldset>
-
-              <fieldset
-                disabled={!session.user.istAdmin}
-                className="flex flex-col gap-2"
-              >
-                <legend className="mb-1 text-sm font-medium">Hallenspielplan</legend>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="rundenspielOrdnerBedarf" className="font-normal">
-                    Ordner
-                  </Label>
-                  <Input
-                    id="rundenspielOrdnerBedarf"
-                    type="number"
-                    name="rundenspielOrdnerBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.rundenspielOrdnerBedarf ?? 0}
-                    className="w-20"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label
-                    htmlFor="rundenspielKioskdienstBedarf"
-                    className="font-normal"
-                  >
-                    Kioskdienst
-                  </Label>
-                  <Input
-                    id="rundenspielKioskdienstBedarf"
-                    type="number"
-                    name="rundenspielKioskdienstBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.rundenspielKioskdienstBedarf ?? 0}
-                    className="w-20"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="rundenspielKassiererBedarf" className="font-normal">
-                    Kassierer
-                  </Label>
-                  <Input
-                    id="rundenspielKassiererBedarf"
-                    type="number"
-                    name="rundenspielKassiererBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.rundenspielKassiererBedarf ?? 0}
-                    className="w-20"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label
-                    htmlFor="rundenspielZeitnehmerBedarf"
-                    className="font-normal"
-                  >
-                    Zeitnehmer/Sekretär
-                  </Label>
-                  <Input
-                    id="rundenspielZeitnehmerBedarf"
-                    type="number"
-                    name="rundenspielZeitnehmerBedarf"
-                    min="0"
-                    step="1"
-                    defaultValue={verein?.rundenspielZeitnehmerBedarf ?? 1}
-                    className="w-20"
-                  />
-                </div>
-              </fieldset>
-
+        <EinstellungsBereich
+          id="dienste-bedarf"
+          titel="Dienste"
+          kurz={["Ordner", "Kioskdienst", "Kassierer", "Zeitnehmer/Sekretär", ...eigeneDienste.map((d) => d.name)].join(", ")}
+          beschreibung={
+            <>
+              Alle Dienste an einer Stelle, jeder gleich eingestellt: wie viele Personen je Heimspiel, Auswärtsspiel, Freundschaftsspiel
+              und Turnier gebraucht werden (0 = dort nicht) und für welche Mannschaften. Ist die Zahl erreicht, kann sich niemand mehr
+              eintragen; je Termin passt der zuständige Wart sie bei Bedarf an. Ordner, Kioskdienst, Kassierer und Zeitnehmer/Sekretär
+              sind fest eingebaut (mit Rolle und Wart-Seite); eigene Dienste wie Fahrer oder Kuchen legt ihr unten an, eingeteilt werden
+              sie auf der Seite des Dienstwarts.{" "}
+              <Link href="/hilfe#dienste-bedarf" className="font-medium underline">
+                Hilfe dazu
+              </Link>
+            </>
+          }
+        >
+          <DiensteEinstellungen
+            feste={festeDienste}
+            arten={eigeneDienste}
+            mannschaften={mannschaftsOptionen}
+            eingeteilt={eigeneDiensteEingeteilt}
+            schreibzugriff={session.user.istAdmin}
+          />
+          <form action={diensteBroadcastSpeichern} className="mt-4 flex flex-col gap-3">
               <fieldset disabled={!session.user.istAdmin} className="contents">
                 <div className="flex items-center justify-between gap-3 border-t pt-4">
                   <div>
@@ -878,34 +707,12 @@ export default async function EinstellungenPage({
                   />
                 </div>
               </fieldset>
-
-              {session.user.istAdmin && (
-                <SubmitButton className="w-full">Speichern</SubmitButton>
-              )}
-            </form>
-          </EinstellungsBereich>
-
-        <EinstellungsBereich
-          id="eigene-dienste"
-          titel="Eigene Dienste"
-          kurz={eigeneDienste.length ? eigeneDienste.map((d) => d.name).join(", ") : "z.B. Fahrer, Kuchen, Aufbau"}
-          beschreibung={
-            <>
-              Dienste, die es nur bei euch gibt, zusätzlich zu Ordner, Kioskdienst, Kassierer und Zeitnehmer/Sekretär. Je Dienst legt
-              ihr fest, für welche Veranstaltungen und Mannschaften er gilt und wie viele Personen je Termin gebraucht werden. Eingeteilt
-              wird auf der Seite des Dienstwarts (Admins und Personen mit der Rolle „Dienstwart“).{" "}
-              <Link href="/hilfe#eigene-dienste" className="font-medium underline">
-                Hilfe dazu
-              </Link>
-            </>
-          }
-        >
-          <EigeneDiensteEinstellungen
-            arten={eigeneDienste}
-            mannschaften={mannschaftsAuswahl}
-            eingeteilt={eigeneDiensteEingeteilt}
-            schreibzugriff={session.user.istAdmin}
-          />
+            {session.user.istAdmin && (
+              <SubmitButton variant="outline" size="sm" className="self-start">
+                Speichern
+              </SubmitButton>
+            )}
+          </form>
         </EinstellungsBereich>
 
       <EinstellungsBereich id="vereinsdaten" titel="Vereinsdaten und Rechnung" kurz="Rechnungsadresse und E-Mail des Verantwortlichen" beschreibung={<>Adresse und E-Mail des Verantwortlichen bekommt die Rechnung
