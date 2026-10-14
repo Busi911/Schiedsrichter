@@ -627,6 +627,9 @@ sobald alles erledigt ist. Einstellungsbereiche haben Anker (`EinstellungsBereic
 Die Mannschaften-Seite blendet die alte handball.net-Team-ID je Mannschaft und die Karte „handball.net-Sync“ aus, wenn `hallenplan_import_aus` gesetzt ist (der
 Teamimport überspringt solche Vereine, DHB-Spiele kommen über die Vereins-ID); der Wert wird beim Speichern als verstecktes Feld mitgeschickt (sonst geleert).
 `/hilfe` hat seit 14.10.2026 zusätzlich: mannschaften, funktionstraeger (Excel-Import), spielhallen, spielgemeinschaft, gesperrte-ids, eigene-termine, abmeldungen,
-trainingsplan, auswertung, kosten; die alten Abschnitte Hallen-ID/Team-ID je Mannschaft sind entfernt.
+trainingsplan, auswertung, kosten, warte (wer sieht die Wart-Seiten, wie kommt man hin, was steht darauf) und zuordnung mit Unteranker
+`#selbsteintragung` (eine Seite `/eintragen/…` für beide Links, Teilen, E-Mail optional, Bestätigen, Link neu/deaktivieren); die alten Abschnitte
+Hallen-ID/Team-ID je Mannschaft sind entfernt. Die Wart-Seiten (`/profil/…wart`) stehen für volle Admins auch im Admin-Menü („Dienste einteilen“:
+Desktop-Dropdown in `admin-nav.tsx`, „Mehr“ auf dem Handy; Liste `lib/wart-navigation.ts`, nicht aus der "use client"-Datei importieren).
 Einmalige Rundmail an bestehende Vereine: `/system/mail` → „Rundmail Erste Schritte“ (`lib/erste-schritte-rundmail.ts`, Vorschau an sich selbst; je Verein nur
 einmal über den Protokolleintrag `erste_schritte_mail`, nur aktive Vereine, alle Admins).
