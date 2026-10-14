@@ -490,3 +490,62 @@ describe("istMannschaftIgnoriert", () => {
     ).toBe(false);
   });
 });
+
+describe("eigene Dienste in Offene Dienste / Unbesetzte Termine", () => {
+  const ohneFesteDienste = Object.fromEntries(Object.keys(verein).map((k) => [k, 0])) as typeof verein;
+  const kuchen = {
+    id: "d-kuchen",
+    name: "Kuchen",
+    aktiv: true,
+    fuerHeimspiele: true,
+    fuerAuswaertsspiele: false,
+    fuerFreundschaftsspiele: false,
+    fuerTurniere: false,
+    standardBedarf: 2,
+    nurAusgewaehlteMannschaften: false,
+    mannschaftIds: [],
+  };
+  const kontext = { arten: [kuchen], overrides: new Map<string, number>() };
+  // Ligaheimspiel: Schiedsrichter stellt der Verband; Zeitnehmer extern angesetzt, damit nur der eigene Dienst zählt.
+  const heim = {
+    id: "t9",
+    start: new Date("2026-11-01T15:00:00Z"),
+    typ: "rundenspiel",
+    ort: "Halle",
+    pflichtspiel: true,
+    handballNetZeitnehmer: "A. Extern, B. Extern",
+  };
+
+  it("offener eigener Dienst erscheint mit seinem Namen", () => {
+    const posten = berechneOffenePosten(
+      ohneFesteDienste,
+      [heim],
+      [{ terminId: "t9", funktionstraegerTyp: "eigener_dienst", dienstArtId: "d-kuchen" }],
+      [],
+      kontext
+    );
+    expect(posten).toHaveLength(1);
+    expect(posten[0].luecken).toEqual([
+      { rolle: "eigener_dienst", vorhanden: 1, bedarf: 2, label: "Kuchen", dienstArtId: "d-kuchen" },
+    ]);
+  });
+
+  it("voll besetzter eigener Dienst: kein offener Posten", () => {
+    const zwei = [
+      { terminId: "t9", funktionstraegerTyp: "eigener_dienst", dienstArtId: "d-kuchen" },
+      { terminId: "t9", funktionstraegerTyp: "eigener_dienst", dienstArtId: "d-kuchen" },
+    ];
+    expect(berechneOffenePosten(ohneFesteDienste, [heim], zwei, [], kontext)).toEqual([]);
+  });
+
+  it("ohne Kontext (Standard) ändert sich nichts", () => {
+    expect(berechneOffenePosten(ohneFesteDienste, [heim], [])).toEqual([]);
+  });
+
+  it("macht einen sonst vollständigen Termin in 'Unbesetzte Termine' offen", () => {
+    expect(berechneUnbesetzteTermine(ohneFesteDienste, [heim], [])).toEqual([]);
+    const offen = berechneUnbesetzteTermine(ohneFesteDienste, [heim], [], [], kontext);
+    expect(offen).toHaveLength(1);
+    expect(offen[0]).toMatchObject({ terminId: "t9", helferdienstOffen: true, zeitnehmerOffen: false });
+  });
+});

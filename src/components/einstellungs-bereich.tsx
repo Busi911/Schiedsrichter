@@ -23,16 +23,15 @@ export function EinstellungsBereich({
   offen?: boolean;
   gefahr?: boolean;
   className?: string;
-  // Anker für Links wie /admin/einstellungen#oeffentliche-seite (Browser klappen <details> beim Sprung auf).
+  // Anker für Links wie /admin/einstellungen#oeffentliche-seite (der Bereich klappt beim Sprung auf, siehe unten).
   id?: string;
   children: ReactNode;
 }) {
   return (
     <details
-      id={id}
       open={offen}
       className={cn(
-        "group max-w-2xl scroll-mt-6 rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10",
+        "group max-w-2xl rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10",
         gefahr && "ring-destructive/40",
         className
       )}
@@ -45,6 +44,9 @@ export function EinstellungsBereich({
         <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
       <div className="flex flex-col gap-4 border-t px-4 py-4">
+        {/* Anker IM Inhalt statt am <details>: Browser klappen beim Sprung auf einen Anker nur die umgebenden <details> auf,
+            nicht das Ziel selbst. scroll-mt lässt den Titel des Bereichs über dem Anker sichtbar. */}
+        {id && <span id={id} aria-hidden className="block scroll-mt-24" />}
         {beschreibung && <div className="text-sm text-muted-foreground">{beschreibung}</div>}
         {children}
       </div>

@@ -1,4 +1,6 @@
 import "server-only";
+import { rolleFuerAnzeige } from "./eigene-dienste";
+import { ladeDienstNamen } from "./eigene-dienste-daten";
 import { and, asc, eq, gte, inArray, lte, or } from "drizzle-orm";
 import { withTenant } from "@/db";
 import {
@@ -52,7 +54,7 @@ export async function holeEigeneKalenderEintraege(
   von: Date,
   bis: Date
 ): Promise<Map<string, KalenderEintrag[]>> {
-  const [termineDesMonats, alleZuordnungen, verein] = await withTenant(
+  const [termineDesMonats, alleZuordnungen, verein, dienstNamen] = await withTenant(
     vereinId,
     async (tx) => {
       const eigeneRollen = await tx.query.funktionstraegerRollen.findMany({
@@ -118,6 +120,7 @@ export async function holeEigeneKalenderEintraege(
               name: users.name,
               email: users.email,
               externerName: terminZuordnungen.externerName,
+              dienstArtId: terminZuordnungen.dienstArtId,
             })
             .from(terminZuordnungen)
             .leftJoin(users, eq(terminZuordnungen.userId, users.id))
@@ -127,8 +130,10 @@ export async function holeEigeneKalenderEintraege(
       const verein = await tx.query.vereine.findFirst({
         where: eq(vereine.id, vereinId),
       });
+      // Eigene Dienste (Fahrer, Kuchen, ...) mit ihrem Namen beschriften.
+      const dienstNamen = await ladeDienstNamen(tx, vereinId);
 
-      return [termineDesMonats, alleZuordnungen, verein] as const;
+      return [termineDesMonats, alleZuordnungen, verein, dienstNamen] as const;
     }
   );
 
@@ -164,7 +169,7 @@ export async function holeEigeneKalenderEintraege(
     // ohnehin nur bei zuordenbar=true anzeigt.
     const besetzungsDetails = eigeneZuordnungen.map((z, i) => ({
       id: `${t.id}-${i}`,
-      label: `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
+      label: `${ROLLE_LABEL[rolleFuerAnzeige(z, dienstNamen)] ?? rolleFuerAnzeige(z, dienstNamen)}: ${
         z.name ?? z.externerName ?? z.email
       }${z.externerName && !z.email ? " (ohne Login)" : ""}`,
     }));

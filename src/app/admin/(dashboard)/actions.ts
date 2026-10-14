@@ -214,6 +214,7 @@ const FUNKTIONSTRAEGER_TYPEN = [
   "schiedsrichterwart",
   "zeitnehmerwart",
   "ordnerwart",
+  "dienstwart",
 ] as const;
 
 // Formularwerte: die echten Rollen plus die Sammelrolle "Zeitnehmer/Sekretär" (wird vor dem Speichern zu BEIDEN Rollen, siehe
@@ -238,6 +239,7 @@ const FUNKTIONSTRAEGER_TYP_LABEL: Record<
   schiedsrichterwart: "Schiedsrichterwart",
   zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
   ordnerwart: "Ordner-/Kioskdienst-/Kassiererwart",
+  dienstwart: "Dienstwart (eigene Dienste)",
 };
 
 // Für rolleHinzufuegen unten — die Person hat schon einen Zugang (sonst

@@ -1,10 +1,10 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { holeProtokoll, istDauerhaft, supportFreigabeAktiv } from "@/lib/treuhand";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaVereine, ligaSyncLaeufe, ligaVereinLogos, ligaVereinZusatzquellen, stammdatenAenderungen, vereine } from "@/db/schema";
+import { ligaMannschaften, ligaVereine, ligaSyncLaeufe, ligaVereinLogos, ligaVereinZusatzquellen, mannschaften, stammdatenAenderungen, terminZuordnungen, vereine } from "@/db/schema";
 import {
   dienstBedarfSpeichern,
   logoEntfernen,
@@ -22,6 +22,9 @@ import {
   vereinsdatenSpeichern,
 } from "./actions";
 import { ChevronDown } from "lucide-react";
+import { EigeneDiensteEinstellungen } from "@/components/eigene-dienste-einstellungen";
+import { ladeDienstArten } from "@/lib/eigene-dienste-daten";
+import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { StammdatenAntrag } from "@/components/stammdaten-antrag";
 import { istStammdatenGesperrt } from "@/lib/stammdaten-sperre";
 import { parseHallenNamen } from "@/lib/hallenplan-abgleich";
@@ -138,6 +141,26 @@ export default async function EinstellungenPage({
     : [];
 
   const protokoll = await holeProtokoll(vereinId, 8);
+
+  const [eigeneDienste, mannschaftsAuswahl, eigeneDiensteEingeteilt] = await withTenant(vereinId, async (tx) => {
+    const arten = await ladeDienstArten(tx, vereinId, false);
+    const liste = await tx
+      .select({ id: mannschaften.id, name: mannschaften.name })
+      .from(mannschaften)
+      .where(eq(mannschaften.vereinId, vereinId));
+    const zaehlung = arten.length
+      ? await tx
+          .select({ dienstArtId: terminZuordnungen.dienstArtId, anzahl: count() })
+          .from(terminZuordnungen)
+          .where(inArray(terminZuordnungen.dienstArtId, arten.map((a) => a.id)))
+          .groupBy(terminZuordnungen.dienstArtId)
+      : [];
+    return [
+      arten,
+      sortiereMannschaften(liste),
+      new Map(zaehlung.map((z) => [z.dienstArtId as string, Number(z.anzahl)])),
+    ] as const;
+  });
   const supportAktiv = supportFreigabeAktiv(verein?.supportZugriffBis ?? null);
 
   const ligaMannschaftsListe = ligaVerein
@@ -861,6 +884,29 @@ export default async function EinstellungenPage({
               )}
             </form>
           </EinstellungsBereich>
+
+        <EinstellungsBereich
+          id="eigene-dienste"
+          titel="Eigene Dienste"
+          kurz={eigeneDienste.length ? eigeneDienste.map((d) => d.name).join(", ") : "z.B. Fahrer, Kuchen, Aufbau"}
+          beschreibung={
+            <>
+              Dienste, die es nur bei euch gibt, zusätzlich zu Ordner, Kioskdienst, Kassierer und Zeitnehmer/Sekretär. Je Dienst legt
+              ihr fest, für welche Veranstaltungen und Mannschaften er gilt und wie viele Personen je Termin gebraucht werden. Eingeteilt
+              wird auf der Seite des Dienstwarts (Admins und Personen mit der Rolle „Dienstwart“).{" "}
+              <Link href="/hilfe#eigene-dienste" className="font-medium underline">
+                Hilfe dazu
+              </Link>
+            </>
+          }
+        >
+          <EigeneDiensteEinstellungen
+            arten={eigeneDienste}
+            mannschaften={mannschaftsAuswahl}
+            eingeteilt={eigeneDiensteEingeteilt}
+            schreibzugriff={session.user.istAdmin}
+          />
+        </EinstellungsBereich>
 
       <EinstellungsBereich id="vereinsdaten" titel="Vereinsdaten und Rechnung" kurz="Rechnungsadresse und E-Mail des Verantwortlichen" beschreibung={<>Adresse und E-Mail des Verantwortlichen bekommt die Rechnung
             (per E-Mail). Nirgends in der App öffentlich sichtbar.</>}>

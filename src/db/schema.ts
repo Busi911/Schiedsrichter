@@ -50,6 +50,12 @@ export const funktionstraegerTypEnum = pgEnum("funktionstraeger_typ", [
   // SELBST_ANMELDBARE_TYPEN in profil/actions.ts); der Ordnerwart kann
   // zusätzlich manuell zuordnen — siehe /profil/ordnerwart.
   "ordnerwart",
+  // Vom Verein selbst definierte Dienste (z.B. Fahrer, Kuchen, Aufbau), siehe dienst_art und lib/eigene-dienste.ts. Nur als
+  // funktionstraeger_typ einer termin_zuordnung (zusammen mit dienst_art_id), nie als Rolle einer Person: eingeteilt werden kann
+  // jede Person des Vereins oder ein freier Name.
+  "eigener_dienst",
+  // Wart für alle eigenen Dienste (Seite /profil/dienstwart), analog zu ordnerwart.
+  "dienstwart",
 ]);
 
 export const terminTypEnum = pgEnum("termin_typ", [
@@ -846,7 +852,68 @@ export const terminZuordnungen = pgTable("termin_zuordnung", {
   // damit ein Abmelden nicht stillschweigend passiert, ohne dass der Wart
   // die Lücke bemerkt.
   abmeldungAngefragtAm: timestamp("abmeldung_angefragt_am", { mode: "date" }),
+  // Nur bei funktionstraegerTyp = 'eigener_dienst': welcher vom Verein definierte Dienst (Löschen des Dienstes entfernt die Einteilungen).
+  dienstArtId: uuid("dienst_art_id").references((): AnyPgColumn => dienstArten.id, { onDelete: "cascade" }),
 });
+
+// Vom Verein selbst definierte Dienste (Fahrer, Kuchen, Aufbau, ...), zusätzlich zu den festen Diensten (Ordner, Kioskdienst,
+// Kassierer, Zeitnehmer/Sekretär). Logik rein in lib/eigene-dienste.ts. Mit RLS wie mannschaft (verein_id direkt).
+export const dienstArten = pgTable("dienst_art", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  // Kurzer Hinweis für die Helfer (z.B. "Treffpunkt 30 Min. vor Abfahrt an der Halle"), erscheint bei der Eintragung.
+  beschreibung: text("beschreibung"),
+  // Deaktiviert = taucht nirgends mehr als Bedarf auf, bestehende Einteilungen bleiben sichtbar.
+  aktiv: boolean("aktiv").notNull().default(true),
+  // Für welche Veranstaltungen der Dienst gilt (siehe veranstaltungsArt in lib/eigene-dienste.ts).
+  fuerHeimspiele: boolean("fuer_heimspiele").notNull().default(true),
+  fuerAuswaertsspiele: boolean("fuer_auswaertsspiele").notNull().default(false),
+  fuerFreundschaftsspiele: boolean("fuer_freundschaftsspiele").notNull().default(false),
+  fuerTurniere: boolean("fuer_turniere").notNull().default(false),
+  // Wie viele Personen je Termin gebraucht werden; je Termin überschreibbar (termin_dienst_bedarf).
+  standardBedarf: integer("standard_bedarf").notNull().default(1),
+  // true = gilt nur für die Mannschaften in dienst_art_mannschaft (z.B. Fahrer nur für die Jugend).
+  nurAusgewaehlteMannschaften: boolean("nur_ausgewaehlte_mannschaften").notNull().default(false),
+  reihenfolge: integer("reihenfolge").notNull().default(0),
+  erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+});
+
+export const dienstArtMannschaften = pgTable(
+  "dienst_art_mannschaft",
+  {
+    dienstArtId: uuid("dienst_art_id")
+      .notNull()
+      .references(() => dienstArten.id, { onDelete: "cascade" }),
+    mannschaftId: uuid("mannschaft_id")
+      .notNull()
+      .references(() => mannschaften.id, { onDelete: "cascade" }),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references(() => vereine.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.dienstArtId, t.mannschaftId] })]
+);
+
+// Bedarf eines eigenen Dienstes für einen einzelnen Termin (auch 0), geht dem Standard vor.
+export const terminDienstBedarf = pgTable(
+  "termin_dienst_bedarf",
+  {
+    terminId: uuid("termin_id")
+      .notNull()
+      .references(() => termine.id, { onDelete: "cascade" }),
+    dienstArtId: uuid("dienst_art_id")
+      .notNull()
+      .references(() => dienstArten.id, { onDelete: "cascade" }),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references(() => vereine.id, { onDelete: "cascade" }),
+    bedarf: integer("bedarf").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.terminId, t.dienstArtId] })]
+);
 
 export const icsSyncLog = pgTable("ics_sync_log", {
   id: uuid("id").primaryKey().defaultRandom(),

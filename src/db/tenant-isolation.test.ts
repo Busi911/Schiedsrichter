@@ -211,4 +211,45 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Mandantentrennung (RLS)", () => {
     });
     expect(mitFilter.map((r) => r.id)).toEqual([userA]);
   });
+
+  it("eigene Dienste (dienst_art, dienst_art_mannschaft, termin_dienst_bedarf) sind je Verein getrennt", async () => {
+    const { rows } = await adminPool.query(
+      `insert into dienst_art (verein_id, name) values ($1, 'Fahrer B') returning id`,
+      [vereinB]
+    );
+    const dienstB = rows[0].id;
+    await adminPool.query(`insert into termin_dienst_bedarf (termin_id, dienst_art_id, verein_id, bedarf) values ($1, $2, $3, 2)`, [
+      terminB,
+      dienstB,
+      vereinB,
+    ]);
+
+    const ausSichtA = await withTenant(vereinA, async (client) => {
+      const arten = await client.query("select id from dienst_art where id = $1", [dienstB]);
+      const bedarf = await client.query("select bedarf from termin_dienst_bedarf where dienst_art_id = $1", [dienstB]);
+      return { arten: arten.rows, bedarf: bedarf.rows };
+    });
+    expect(ausSichtA.arten).toHaveLength(0);
+    expect(ausSichtA.bedarf).toHaveLength(0);
+
+    const ausSichtB = await withTenant(vereinB, async (client) => {
+      const { rows: r } = await client.query("select id from dienst_art where id = $1", [dienstB]);
+      return r;
+    });
+    expect(ausSichtB).toHaveLength(1);
+
+    // Verein A kann weder einen Dienst für B anlegen noch seine Mannschaft in B's Dienst einschleusen.
+    await expect(
+      withTenant(vereinA, (client) => client.query("insert into dienst_art (verein_id, name) values ($1, 'Fremd')", [vereinB]))
+    ).rejects.toThrow(/row-level security/i);
+    await expect(
+      withTenant(vereinA, (client) =>
+        client.query("insert into dienst_art_mannschaft (dienst_art_id, mannschaft_id, verein_id) values ($1, $2, $3)", [
+          dienstB,
+          mannschaftA,
+          vereinB,
+        ])
+      )
+    ).rejects.toThrow(/row-level security/i);
+  });
 });

@@ -1,4 +1,6 @@
 import { and, eq, inArray, or } from "drizzle-orm";
+import { rolleFuerAnzeige } from "@/lib/eigene-dienste";
+import { hatAktiveEigeneDienste, ladeDienstNamen } from "@/lib/eigene-dienste-daten";
 import Link from "next/link";
 import { CalendarIcon, LogOutIcon } from "lucide-react";
 import { requireSession } from "@/lib/session";
@@ -62,6 +64,7 @@ const TYP_LABEL: Record<string, string> = {
   schiedsrichterwart: "Schiedsrichterwart",
   zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
   ordnerwart: "Ordner-/Kioskdienst-/Kassiererwart",
+  dienstwart: "Dienstwart (eigene Dienste)",
 };
 
 export default async function ProfilPage({
@@ -77,7 +80,7 @@ export default async function ProfilPage({
   const { von, bis } = monatsBereich(jahr, monatNull);
 
   const [
-    { eigeneStammdaten, rollen, profil, eigeneTermine, verein, meineTurniere },
+    { eigeneStammdaten, rollen, profil, eigeneTermine, verein, meineTurniere, hatEigeneDienste },
     eintraegeProTag,
     vereinsLogo,
   ] = await Promise.all([
@@ -118,6 +121,8 @@ export default async function ProfilPage({
       const eigeneZuordnungen = await tx.query.terminZuordnungen.findMany({
         where: eq(terminZuordnungen.userId, userId),
       });
+      // Eigene Dienste (Fahrer, Kuchen, ...) mit ihrem Namen statt des Typs anzeigen.
+      const dienstNamen = await ladeDienstNamen(tx, vereinId);
       const zugeordneteTerminIds = eigeneZuordnungen.map((z) => z.terminId);
 
       const terminBedingungen = [eq(termine.icsSchiedsrichterId, userId)];
@@ -136,7 +141,7 @@ export default async function ProfilPage({
         const meineRollen = new Set<string>();
         if (t.icsSchiedsrichterId === userId) meineRollen.add("schiedsrichter");
         for (const z of eigeneZuordnungen) {
-          if (z.terminId === t.id) meineRollen.add(z.funktionstraegerTyp);
+          if (z.terminId === t.id) meineRollen.add(rolleFuerAnzeige(z, dienstNamen));
         }
         if (t.mannschaftId && mannschaftIds.includes(t.mannschaftId)) {
           meineRollen.add("trainer");
@@ -165,6 +170,7 @@ export default async function ProfilPage({
         eigeneTermine,
         verein,
         meineTurniere,
+        hatEigeneDienste: await hatAktiveEigeneDienste(tx, vereinId),
       };
     }),
     holeEigeneKalenderEintraege(vereinId, userId, von, bis),
@@ -185,6 +191,9 @@ export default async function ProfilPage({
   );
   const istOrdnerwart = rollen.some(
     (r) => r.typ === "ordnerwart" && r.aktiv
+  );
+  const istDienstwart = rollen.some(
+    (r) => r.typ === "dienstwart" && r.aktiv
   );
   const istDienstRolleninhaber = rollen.some(
     (r) =>
@@ -319,6 +328,16 @@ export default async function ProfilPage({
                 nativeButton={false}
               >
                 {TYP_LABEL.ordnerwart}
+              </Button>
+            )}
+            {(istDienstwart || (session.user.istAdmin && hatEigeneDienste)) && (
+              <Button
+                variant="outline"
+                size="sm"
+                render={<Link href="/profil/dienstwart" />}
+                nativeButton={false}
+              >
+                Dienstwart
               </Button>
             )}
             <div className="hidden md:block">

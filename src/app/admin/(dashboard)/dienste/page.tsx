@@ -35,7 +35,8 @@ export default async function DienstePage() {
     typLabel: p.typLabel,
     mannschaft: p.mannschaftLabel,
     luecken: p.luecken.map((l) => ({
-      rolle: ROLLE_LABEL[l.rolle],
+      // Eigene Dienste tragen ihren Namen selbst (z.B. "Fahrer").
+      rolle: l.label ?? ROLLE_LABEL[l.rolle],
       vorhanden: l.vorhanden,
       bedarf: l.bedarf,
     })),
@@ -51,9 +52,9 @@ export default async function DienstePage() {
           <HilfeHinweis anker="bedarf" />
         </div>
         <p className="text-sm text-muted-foreground">
-          Offener Ordner-/Kioskdienst-/Kassierer-Bedarf sowie fehlende
-          Zeitnehmer/Sekretär — ein Termin mit mehreren offenen Rollen zählt
-          hier nur einmal.
+          Offener Ordner-/Kioskdienst-/Kassierer-Bedarf, fehlende
+          Zeitnehmer/Sekretär und offene eigene Dienste (z.B. Fahrer) — ein
+          Termin mit mehreren offenen Rollen zählt hier nur einmal.
         </p>
       </div>
 

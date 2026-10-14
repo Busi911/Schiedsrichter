@@ -32,6 +32,8 @@ const ROLLE_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
   zeitnehmer: "Zeitnehmer",
   sekretaer: "Sekretär",
+  // Vom Verein definierter Dienst (Name steht in dienst_art, hier nur der allgemeine Rückfall).
+  eigener_dienst: "Helfer (eigener Dienst)",
 };
 
 // Öffentliche, login-freie Lese-Ansicht — Kenntnis des Tokens ist die

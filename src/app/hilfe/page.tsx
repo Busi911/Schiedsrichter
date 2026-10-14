@@ -43,6 +43,7 @@ export default async function HilfePage() {
             ["kalender", "Kalender & Besetzung"],
             ["eigene-termine", "Freundschaftsspiele & Turniere"],
             ["bedarf", "Dienste-Bedarf festlegen"],
+            ["eigene-dienste", "Eigene Dienste (z.B. Fahrer, Kuchen)"],
             ["warte", "Die Wart-Seiten: wo, was, wer"],
             ["zuordnung", "Dienste verteilen & Selbsteintragung"],
             ["abmeldungen", "Wenn jemand doch nicht kann"],
@@ -110,7 +111,8 @@ export default async function HilfePage() {
             </Link>
             , wie viele Ordner, Kioskdienste, Kassierer und Zeitnehmer/Sekretär je Veranstaltung gebraucht werden (
             <a href="#bedarf" className="font-medium underline">mehr dazu</a>). Ein Spiel gilt nur als <strong>vollständig besetzt</strong>, wenn auch
-            diese Dienste ihren Bedarf erreichen.
+            diese Dienste ihren Bedarf erreichen. Braucht ihr noch etwas anderes, z.B. Fahrer oder Kuchen, legt es als{" "}
+            <a href="#eigene-dienste" className="font-medium underline">eigenen Dienst</a> an.
           </li>
           <li>
             <strong>Aufgaben verteilen:</strong> die Warte (Schiedsrichter-, Zeitnehmer-, Ordnerwart) teilen auf ihren{" "}
@@ -159,7 +161,7 @@ export default async function HilfePage() {
             zweiten Vorstand.
           </li>
           <li>
-            <strong>Warte (Schiedsrichter-, Zeitnehmer-, Ordnerwart):</strong> ordnen auf ihrer Profil-Seite Personen zu den
+            <strong>Warte (Schiedsrichter-, Zeitnehmer-, Ordner- und Dienstwart):</strong> ordnen auf ihrer Profil-Seite Personen zu den
             Terminen zu und verwalten ihre Selbsteintragungs-Links (<a href="#warte" className="font-medium underline">Wart-Seiten</a>).
           </li>
           <li>
@@ -498,10 +500,71 @@ export default async function HilfePage() {
         </p>
       </section>
 
+      <section id="eigene-dienste" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Eigene Dienste (z.B. Fahrer, Kuchen, Aufbau)</h2>
+        <p className="text-sm text-muted-foreground">
+          Zusätzlich zu Ordner, Kioskdienst, Kassierer und Zeitnehmer/Sekretär könnt ihr eigene Dienste anlegen, die es nur bei
+          euch gibt. Sie werden genauso besetzt wie die anderen: Ein Spiel gilt erst als vollständig, wenn auch die eigenen
+          Dienste ihren Bedarf erreichen, und offene Plätze stehen unter „Offene Dienste“ und im Kalender.
+        </p>
+        <h3 className="text-sm font-medium">Anlegen</h3>
+        <p className="text-sm text-muted-foreground">
+          Unter{" "}
+          <Link href="/admin/einstellungen#eigene-dienste" className="font-medium underline">
+            Einstellungen → Eigene Dienste
+          </Link>{" "}
+          legt der Vereinsadmin je Dienst fest:
+        </p>
+        <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
+          <li>
+            <strong>Name</strong> und optional einen <strong>Hinweis für die Helfer</strong> (steht in der Mail, z.B. „Treffpunkt 30
+            Minuten vor Abfahrt an der Halle“).
+          </li>
+          <li>
+            <strong>Je Termin:</strong> wie viele Personen gebraucht werden.
+          </li>
+          <li>
+            <strong>Gilt für:</strong> Heimspiele, Freundschaftsspiele und/oder Turniere.
+          </li>
+          <li>
+            <strong>Mannschaften:</strong> alle oder nur ausgewählte, z.B. Fahrer nur für die Jugend.
+          </li>
+        </ul>
+        <p className="text-sm text-muted-foreground">
+          Ein Dienst, für den schon jemand eingeteilt wurde, lässt sich nur noch <strong>deaktivieren</strong>, nicht löschen: Die
+          Einteilungen bleiben sichtbar, es entsteht aber kein neuer Bedarf mehr.
+        </p>
+        <h3 className="text-sm font-medium">Einteilen: der Dienstwart</h3>
+        <p className="text-sm text-muted-foreground">
+          Eingeteilt wird auf der Seite <strong>Dienstwart</strong> (im Admin-Bereich unter „Dienste einteilen“, im Profil über die
+          Schaltfläche „Dienstwart“ bzw. unten „Dienste“). Dort arbeiten alle Vereinsadmins und Personen mit der Rolle{" "}
+          <strong>„Dienstwart (eigene Dienste)“</strong>, die ihr unter Funktionsträger vergebt. Je Termin seht ihr alle geltenden
+          eigenen Dienste mit „eingeteilt / gebraucht“ und könnt
+        </p>
+        <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
+          <li>
+            eine <strong>Person des Vereins</strong> auswählen (sie bekommt eine Mail) oder einen <strong>Namen ohne Login</strong>{" "}
+            eintragen, z.B. für ein Elternteil ohne Konto,
+          </li>
+          <li>Einteilungen wieder entfernen,</li>
+          <li>
+            mit <strong>„Bedarf anpassen“</strong> für genau diesen Termin mehr oder weniger Personen anfordern (0 = hier nicht
+            gebraucht, leer = wieder der Standard).
+          </li>
+        </ul>
+        <p className="text-sm text-muted-foreground">
+          Anders als bei den festen Diensten braucht für eigene Dienste niemand eine eigene Rolle: Einteilen lässt sich jede Person
+          des Vereins. Wird ein Spiel verlegt, werden die Einteilungen wie bei den anderen Helferdiensten aufgehoben und die
+          Betroffenen informiert.
+        </p>
+      </section>
+
       <section id="warte" className="flex flex-col gap-2 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">Die Wart-Seiten: wo, was, wer</h2>
         <p className="text-sm text-muted-foreground">
-          Eingeteilt wird auf drei Wart-Seiten, je eine für Schiedsrichter, Zeitnehmer/Sekretär und Ordner/Kioskdienst/Kassierer.
+          Eingeteilt wird auf den Wart-Seiten, je eine für Schiedsrichter, Zeitnehmer/Sekretär und Ordner/Kioskdienst/Kassierer,
+          dazu eine für die <a href="#eigene-dienste" className="font-medium underline">eigenen Dienste</a> (Dienstwart), sobald
+          euer Verein welche angelegt hat.
         </p>
         <h3 className="text-sm font-medium">Wer sieht sie?</h3>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
@@ -513,7 +576,7 @@ export default async function HilfePage() {
             <Link href="/admin/funktionstraeger" className="font-medium underline">
               Funktionsträger
             </Link>{" "}
-            die Rolle Schiedsrichterwart, Zeitnehmerwart oder Ordnerwart. Die Person sieht dann nur „ihre“ Wart-Seite und
+            die Rolle Schiedsrichterwart, Zeitnehmerwart, Ordnerwart oder Dienstwart. Die Person sieht dann nur „ihre“ Wart-Seite und
             braucht keine Admin-Rechte.
           </li>
           <li>Admins „nur lesend“ und alle anderen Funktionsträger sehen die Wart-Seiten nicht.</li>
@@ -525,8 +588,9 @@ export default async function HilfePage() {
             unter <strong>„Mehr“ → Dienste einteilen</strong>.
           </li>
           <li>
-            <strong>Im Profil:</strong> oben die Schaltflächen „Schiedsrichterwart“, „Zeitnehmerwart“, „Ordnerwart“, am Handy
-            zusätzlich unten in der Leiste („Schiris“, „Zeitnehmer“, „Ordner“). So kommen auch Warte ohne Admin-Rechte hin.
+            <strong>Im Profil:</strong> oben die Schaltflächen „Schiedsrichterwart“, „Zeitnehmerwart“, „Ordnerwart“ und ggf.
+            „Dienstwart“, am Handy zusätzlich unten in der Leiste („Schiris“, „Zeitnehmer“, „Ordner“, „Dienste“). So kommen auch
+            Warte ohne Admin-Rechte hin.
           </li>
         </ul>
         <h3 className="text-sm font-medium">Was steht darauf?</h3>
