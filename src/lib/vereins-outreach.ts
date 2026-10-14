@@ -604,68 +604,28 @@ export async function fuehreOutreachFollowupAus(): Promise<OutreachFollowupErgeb
         continue;
       }
 
-      // Vorschau-Link holen (sollte noch gültig sein oder einen neuen erzeugen).
-      const [link] = await adminDb
-        .select()
-        .from(vereinVorschauLinks)
-        .where(eq(vereinVorschauLinks.vereinId, k.vereinId))
-        .orderBy(vereinVorschauLinks.gueltigBis)
-        .limit(1);
-
       const [ligaV] = await adminDb
         .select({ slug: ligaVereine.slug })
         .from(ligaVereine)
         .where(eq(ligaVereine.vereinId, k.vereinId));
 
-      if (!link || !ligaV) {
-        // Vorschau-Link abgelaufen oder Liga-Verein fehlt — neuen Link erzeugen.
-        await erzeugeVorschauLink(k.vereinId, OUTREACH_KONSTANTEN.VORSCHAU_TAGE, "Outreach-Followup");
-        const [neuerLink] = await adminDb
-          .select()
-          .from(vereinVorschauLinks)
-          .where(eq(vereinVorschauLinks.vereinId, k.vereinId))
-          .orderBy(vereinVorschauLinks.gueltigBis)
-          .limit(1);
-        if (!neuerLink) continue;
-
-        const vorschauUrl = `${appUrl()}/verein/${ligaV?.slug ?? "verein"}/vorschau/${neuerLink.token}`;
-        const abmeldeUrl = outreachAbmeldeUrl(k.vereinId);
-        const uebergabeUrl = outreachUebergabeUrl(k.vereinId);
-        const inhalt = outreachInhalt({ betaPlaetzeFrei: (await holeBetaStand()).frei, 
-          vereinsname: v.name,
-          vorschauUrl,
-          gueltigBis: neuerLink.gueltigBis,
-          email: k.email!,
-          abmeldeUrl,
-          uebergabeUrl,
-        });
-        await sendMail(
-          k.email!,
-          `Erinnerung: HandballerPate für den ${v.name}`,
-          emailAlsText(inhalt),
-          emailAlsHtml(inhalt),
-          { abmeldeUrl }
-        );
-      } else {
-        const vorschauUrl = `${appUrl()}/verein/${ligaV.slug}/vorschau/${link.token}`;
-        const abmeldeUrl = outreachAbmeldeUrl(k.vereinId);
-        const uebergabeUrl = outreachUebergabeUrl(k.vereinId);
-        const inhalt = outreachInhalt({ betaPlaetzeFrei: (await holeBetaStand()).frei, 
-          vereinsname: v.name,
-          vorschauUrl,
-          gueltigBis: link.gueltigBis,
-          email: k.email!,
-          abmeldeUrl,
-          uebergabeUrl,
-        });
-        await sendMail(
-          k.email!,
-          `Erinnerung: HandballerPate für den ${v.name}`,
-          emailAlsText(inhalt),
-          emailAlsHtml(inhalt),
-          { abmeldeUrl }
-        );
-      }
+      // Der erste Link ist nach 7 Tagen genau jetzt abgelaufen: die Erinnerung bekommt IMMER einen frischen Link (und nennt ihn).
+      const token = await erzeugeVorschauLink(k.vereinId, OUTREACH_KONSTANTEN.VORSCHAU_TAGE, "Outreach-Followup");
+      const [neuerLink] = await adminDb.select().from(vereinVorschauLinks).where(eq(vereinVorschauLinks.token, token));
+      if (!neuerLink) continue;
+      const vorschauUrl = `${appUrl()}/verein/${ligaV?.slug ?? "verein"}/vorschau/${neuerLink.token}`;
+      const abmeldeUrl = outreachAbmeldeUrl(k.vereinId);
+      const uebergabeUrl = outreachUebergabeUrl(k.vereinId);
+      const inhalt = outreachInhalt({
+        betaPlaetzeFrei: (await holeBetaStand()).frei,
+        vereinsname: v.name,
+        vorschauUrl,
+        gueltigBis: neuerLink.gueltigBis,
+        email: k.email!,
+        abmeldeUrl,
+        uebergabeUrl,
+      });
+      await sendMail(k.email!, `Erinnerung: HandballerPate für den ${v.name}`, emailAlsText(inhalt), emailAlsHtml(inhalt), { abmeldeUrl });
 
       await adminDb
         .update(vereinKontakt)

@@ -328,6 +328,9 @@ abhängen (Favoriten-API mit Vorschau-Verein), dürfen nie im gemeinsamen Cache
 landen (`private, no-store`). Der Verein bleibt ohne Link 404 und taucht nicht
 in Suche/Sitemap auf. Der einrichtende Systemadmin im Treuhand-Kontext sieht
 die Seite ebenfalls.
+**Nachfassen und Aktualität (14.10.2026):** Der erste Link gilt 7 Tage; die Erinnerungsmail nach 7 Tagen (`fuehreOutreachFollowupAus`) erzeugt IMMER einen neuen 7-Tage-Link und nennt ihn
+(vorher wurde der abgelaufene alte Link wiederverwendet). Vereine in Vorbereitung werden nur synchronisiert, solange ein gültiger Link besteht (`sync-cron.ts`): wer sich nicht meldet, wird
+nach Ablauf des zweiten Links nicht mehr aktualisiert (kein Dauer-Abruf bei nuLiga); die Daten bleiben stehen, und ein neuer Link (Systemadmin, `/system/vereine`) holt sie beim nächsten Lauf nach.
 
 ## Hallenplan + öffentliche Liga-Daten zusammenführen (in Arbeit)
 
