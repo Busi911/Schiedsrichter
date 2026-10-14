@@ -599,17 +599,23 @@ export default async function HilfePage() {
           <Link href="/admin/einstellungen#eigene-dienste" className="font-medium underline">
             Einstellungen → Dienste
           </Link>{" "}
-          das Häkchen <strong>„Fahrgemeinschaft“</strong>. Dann gilt für jede eingeteilte Person:
+          das Häkchen <strong>„Fahrgemeinschaft“</strong>. Dann läuft es fast von allein über den Eintragungslink (Dienstwart-Seite →
+          „Öffentliche Selbsteintragung“, z.B. in die Elterngruppe teilen):
         </p>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
           <li>
-            <strong>Freie Plätze und Treffpunkt:</strong> wie viele Kinder/Spieler mitfahren können (ohne den Fahrer, 0 bis 8) und
-            optional ein Hinweis wie „Treffpunkt Halle 12:45“. Eintragen kann das der Fahrer selbst im Profil unter „Meine
-            Helferdienste“ oder der Dienstwart bzw. Admin auf der Dienstwart-Seite (z.B. für Fahrer ohne Login).
+            <strong>Fahrer</strong> wählen „Fahrer“, tippen die Spiele an und geben dabei gleich ihre <strong>freien Plätze</strong>{" "}
+            (ohne sich selbst, 0 bis 8) und optional einen <strong>Treffpunkt</strong> an.
           </li>
           <li>
-            <strong>Mitfahrer:</strong> per Name dem Fahrer zuteilen, höchstens so viele wie Plätze angegeben sind; ohne Angabe der
-            Plätze geht es noch nicht. Mitfahrer brauchen kein Konto. Entfernen jederzeit, ebenso vom Fahrer selbst.
+            <strong>Mitfahrer</strong> (bzw. die Eltern für ihr Kind) tragen sich auf derselben Seite unten unter{" "}
+            <strong>„Mitfahren“</strong> selbst ein: beim gewünschten Fahrer den Namen eingeben, „Mitfahren“ tippen. Kein Konto nötig.
+            Es geht nur, solange Plätze frei sind; der Fahrer bekommt eine kurze Mail (wenn er ein Konto hat).
+          </li>
+          <li>
+            <strong>Ändern:</strong> Der Fahrer sieht seine Mitfahrer im Profil unter „Meine Helferdienste“ und kann dort Plätze,
+            Treffpunkt und Mitfahrer ändern; der Dienstwart bzw. Admin ebenso auf der Dienstwart-Seite (z.B. für Fahrer ohne Login oder
+            wenn jemand absagt).
           </li>
           <li>
             <strong>Übersicht:</strong> Die Dienstwart-Seite zeigt je Termin „Mitfahrplätze frei: n“, der Kalender beim Fahrer

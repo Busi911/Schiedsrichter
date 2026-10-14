@@ -5,6 +5,7 @@ import { dienstArten, termine, terminZuordnungen, users, vereine } from "@/db/sc
 import { bedarfEigenerDienst, bedarfSchluessel } from "./eigene-dienste";
 import { ladeEigeneDiensteKontext } from "./eigene-dienste-daten";
 import { mehrfachZuordnungsMailInhalt } from "./zuordnung";
+import { pruefeFahrtHinweis, pruefePlaetze } from "./fahrgemeinschaft";
 import { sendMail } from "./mailer";
 import { terminMailHtml, terminMailText } from "./termin-mail";
 import type { MehrfachEintragErgebnis } from "@/components/mehrfachauswahl";
@@ -33,11 +34,21 @@ export async function eigeneDiensteSelbstEintragen(eingabe: {
   email: string;
   // Gesetzt, wenn die Seite eine Session dieses Vereins erkannt hat (dann zählt die Person aus der Session, nicht das Formular).
   eingeloggtUserId: string | null;
+  // Fahrgemeinschaft (nur bei Diensten mit fahrgemeinschaft): freie Plätze und Treffpunkt, gelten für alle gewählten Termine.
+  plaetze?: string;
+  fahrtHinweis?: string;
 }): Promise<MehrfachEintragErgebnis> {
   const { vereinId, dienstArtId, terminIds } = eingabe;
   const gesamt = terminIds.length;
   const name = eingabe.name.trim().slice(0, 80);
   if (!eingabe.eingeloggtUserId && !name) return { eingetragen: 0, gesamt, fehler: "Name ist erforderlich." };
+  let plaetze: number | null;
+  try {
+    plaetze = pruefePlaetze(eingabe.plaetze ?? "");
+  } catch (err) {
+    return { eingetragen: 0, gesamt, fehler: err instanceof Error ? err.message : String(err) };
+  }
+  const fahrtHinweis = pruefeFahrtHinweis(eingabe.fahrtHinweis ?? "");
 
   const vorbereitung = await withTenant(vereinId, async (tx) => {
     const art = await tx.query.dienstArten.findFirst({ where: and(eq(dienstArten.id, dienstArtId), eq(dienstArten.vereinId, vereinId)) });
@@ -91,6 +102,7 @@ export async function eigeneDiensteSelbstEintragen(eingabe: {
           funktionstraegerTyp: "eigener_dienst",
           dienstArtId,
           quelle: eingabe.eingeloggtUserId ? "selbst_angemeldet" : "selbst_eingetragen_oeffentlich",
+          ...(art.fahrgemeinschaft ? { plaetze, fahrtHinweis } : {}),
         });
         return t;
       });

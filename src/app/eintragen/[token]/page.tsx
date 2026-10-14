@@ -15,7 +15,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ladeEintragungsTermine, rollenGruppenFuer } from "@/lib/eintragung-termine";
-import { eintragenMehrfach, loginLinkAnfordern } from "./actions";
+import { eintragenMehrfach, loginLinkAnfordern, mitfahren } from "./actions";
+import { ladeMitfahrAngebote } from "@/lib/mitfahren";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Token-Seite: nie in Suchmaschinen/KI-Antworten (zusätzlich zu robots.txt).
 export const metadata: Metadata = { title: "Für Dienste eintragen", robots: { index: false, follow: false } };
@@ -31,10 +33,10 @@ export default async function EintragenPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ mannschaft?: string }>;
+  searchParams: Promise<{ mannschaft?: string; mitgefahren?: string; mitfahrfehler?: string }>;
 }) {
   const { token } = await params;
-  const { mannschaft: mannschaftFilter } = await searchParams;
+  const { mannschaft: mannschaftFilter, mitgefahren, mitfahrfehler } = await searchParams;
 
   const verein = await adminDb.query.vereine.findFirst({
     where: or(
@@ -58,6 +60,10 @@ export default async function EintragenPage({
   const { alleMannschaften, termine, eigeneGruppen } = await ladeEintragungsTermine(verein, aktiv);
   const rollenGruppen = rollenGruppenFuer(aktiv, eigeneGruppen);
   const vereinsLogo = await holeVereinsLogoInfo(verein.id);
+  // Fahrgemeinschaft: freie Mitfahrplätze (nur mit dem Link für eigene Dienste), siehe lib/mitfahren.ts.
+  const mitfahrAngebote = aktiv.eigene
+    ? (await ladeMitfahrAngebote(verein.id)).filter((a) => !mannschaftFilter || a.mannschaftId === mannschaftFilter)
+    : [];
 
   // Nur Mannschaften als Filter anbieten, die auch mindestens einen eintragbaren Termin haben.
   const mannschaftenMitTerminen = new Set(termine.map((t) => t.mannschaftId).filter((id): id is string => !!id));
@@ -155,6 +161,58 @@ export default async function EintragenPage({
           eingeloggtAls={eingeloggtePerson?.name}
           zeigeEmailFeld={!eingeloggtePerson && !verein.istDemo}
         />
+      )}
+
+      {(mitfahrAngebote.length > 0 || mitgefahren || mitfahrfehler) && (
+        <section id="mitfahren" className="flex scroll-mt-6 flex-col gap-3">
+          <p className="text-base font-semibold">Mitfahren</p>
+          <p className="-mt-2 text-base text-muted-foreground">
+            Ein Kind (oder dich selbst) bei einem Fahrer mit freiem Platz eintragen: Namen eingeben, „Mitfahren“ tippen. Der Fahrer sieht,
+            wer mitfährt. Ändern oder absagen über den Fahrer oder den Dienstwart.
+          </p>
+          {mitgefahren && (
+            <Alert>
+              <AlertDescription>{mitgefahren} ist eingetragen. Gute Fahrt!</AlertDescription>
+            </Alert>
+          )}
+          {mitfahrfehler && (
+            <Alert variant="destructive">
+              <AlertDescription>{mitfahrfehler}</AlertDescription>
+            </Alert>
+          )}
+          {mitfahrAngebote.length === 0 ? (
+            <p className="text-base text-muted-foreground">Zurzeit sind keine Mitfahrplätze frei.</p>
+          ) : (
+            mitfahrAngebote.map((a) => (
+              <Card key={a.terminId}>
+                <CardContent className="flex flex-col gap-3">
+                  <div>
+                    <p className="text-base font-medium">{a.zeit}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {[a.beschreibung, a.mannschaftLabel, a.ort].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                  {a.fahrten.map((f) => (
+                    <form key={f.zuordnungId} action={mitfahren} className="flex flex-col gap-2 border-t pt-3">
+                      <input type="hidden" name="token" value={token} />
+                      <input type="hidden" name="zuordnungId" value={f.zuordnungId} />
+                      <p className="text-sm">
+                        <span className="font-medium">{f.fahrer}</span> · {f.frei} {f.frei === 1 ? "Platz" : "Plätze"} frei
+                        {f.hinweis ? ` · ${f.hinweis}` : ""}
+                      </p>
+                      <div className="flex gap-2">
+                        <Input name="name" required maxLength={60} placeholder="Name des Mitfahrers" aria-label={`Mitfahren bei ${f.fahrer}: Name`} className="h-12 min-w-0 flex-1 px-3" />
+                        <SubmitButton className="h-12 px-4 text-base" pendingText="…">
+                          Mitfahren
+                        </SubmitButton>
+                      </div>
+                    </form>
+                  ))}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </section>
       )}
 
       <p className="text-center text-xs text-muted-foreground">Selbsteintragung — HandballerPate</p>

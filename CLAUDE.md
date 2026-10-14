@@ -703,5 +703,10 @@ Tests: `auswaerts-regeln.test.ts`, `auswaerts-termine.test.ts` (Postgres).
 den angegebenen Plätzen, ohne Angabe gar nicht). Actions `app/profil/fahrgemeinschaft-actions.ts` (`fahrtSpeichern`, `mitfahrerHinzufuegen`,
 `mitfahrerEntfernen`): Admin, Dienstwart ODER die eingeteilte Person selbst; Plätze nie unter die Zahl der Mitfahrer. UI `components/fahrt-bearbeiten.tsx`
 auf `/profil/dienstwart` und im Profil („Meine Helferdienste“); Kalender-Detail zeigt Plätze/Treffpunkt/Mitfahrer, Export „(+n Mitfahrer)“. Öffentliche
-Eintragung zeigt NUR „Mitfahrplätze frei: n“ je Fahrer, nie Namen. Keine eigenen Mails. Demo: Fahrer mit Fahrgemeinschaft (t14 Plätze + Mitfahrer, t15
+Eintragung zeigt NUR „Mitfahrplätze frei: n“ je Fahrer, nie Namen der Mitfahrer. **Selbst statt Wart (Betreiber 14.10.2026: „soll eine Hilfe sein,
+nicht kompliziert“):** Fahrer geben beim öffentlichen Eintragen gleich freie Plätze + Treffpunkt an (`RollenGruppe.plaetzeAbfragen`, Felder `plaetze`/
+`fahrtHinweis` an `eigeneDiensteSelbstEintragen`); Mitfahrer tragen sich auf `/eintragen/[token]` im Abschnitt „Mitfahren“ (`#mitfahren`, nur mit dem
+Link der eigenen Dienste) selbst ein (`lib/mitfahren.ts` `ladeMitfahrAngebote`/`mitfahrenEintragen`, Action `mitfahren`, ohne Client-JS, Ergebnis über
+`?mitgefahren=`/`?mitfahrfehler=`; getestet in `mitfahren.test.ts`): nur künftige Termine, nur aktive Dienste mit Fahrgemeinschaft, nie über die Plätze,
+kein Doppelname; der Fahrer mit Konto bekommt eine kurze Mail. Wart/Admin/Fahrer korrigieren nur noch. Demo: Fahrer mit Fahrgemeinschaft (t14 Plätze + Mitfahrer, t15
 ohne Angabe). Hilfe `#fahrgemeinschaft`.

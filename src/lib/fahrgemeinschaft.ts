@@ -1,7 +1,7 @@
-// Fahrgemeinschaft für eigene Dienste mit dienst_art.fahrgemeinschaft (z.B. Fahrer): jede eingeteilte Person gibt ihre freien
-// Mitfahrplätze (ohne sich selbst) und optional einen Hinweis (Treffpunkt, Abfahrt) an; Dienstwart, Admin oder der Fahrer selbst
-// teilen Mitfahrer (nur Namen) zu. Öffentlich (Eintragungsseite) werden nur freie Plätze gezeigt, nie Namen.
-// Rein (ohne DB), getestet in fahrgemeinschaft.test.ts; Daten/Actions auf der Dienstwart-Seite und im Profil.
+// Fahrgemeinschaft für eigene Dienste mit dienst_art.fahrgemeinschaft (z.B. Fahrer): Fahrer geben ihre freien Mitfahrplätze (ohne sich
+// selbst) und optional einen Treffpunkt an, meist gleich beim Eintragen; Mitfahrer tragen sich über den Eintragungslink selbst ein
+// (lib/mitfahren.ts). Dienstwart, Admin und der Fahrer selbst können korrigieren. Öffentlich werden nur freie Plätze gezeigt, nie Namen.
+// Rein (ohne DB), getestet in fahrgemeinschaft.test.ts.
 
 export const MAX_PLAETZE = 8;
 
