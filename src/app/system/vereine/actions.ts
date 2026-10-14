@@ -9,6 +9,7 @@ import { requireSystemAdmin } from "@/lib/session";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import {
   beendeTreuhand,
+  loescheVereinOhnePersonen,
   loescheVorbereitungsVerein,
   starteTreuhand,
   uebergebeVerein,
@@ -123,6 +124,24 @@ export async function vorschauLinkErzeugen(formData: FormData) {
 export async function vorschauLinkWiderrufen(formData: FormData) {
   const session = await requireSystemAdmin();
   await widerrufeVorschauLink(text(formData, "linkId"), session.user.email ?? session.user.id);
+  revalidatePath("/system/vereine");
+}
+
+// Aktiver Verein ohne jede Person (Überbleibsel eines Fehlers) endgültig löschen.
+export async function vereinOhnePersonenLoeschen(formData: FormData) {
+  const session = await requireSystemAdmin();
+  await loescheVereinOhnePersonen(session.user.id, text(formData, "vereinId"));
+  revalidatePath("/system/vereine");
+}
+
+// Alle aktiven Vereine ohne jede Person auf einmal löschen.
+export async function leereVereineLoeschen() {
+  const session = await requireSystemAdmin();
+  const leer = await adminDb
+    .select({ id: vereine.id })
+    .from(vereine)
+    .where(and(eq(vereine.status, "aktiv"), eq(vereine.istDemo, false), sql`not exists (select 1 from "user" u where u.verein_id = ${vereine.id})`));
+  for (const v of leer) await loescheVereinOhnePersonen(session.user.id, v.id);
   revalidatePath("/system/vereine");
 }
 

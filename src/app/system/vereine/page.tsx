@@ -23,7 +23,9 @@ import {
   treuhandStarten,
   vereinAdminFestlegen,
   vereinAusNuligaEinrichten,
+  leereVereineLoeschen,
   vereinInaktivSetzen,
+  vereinOhnePersonenLoeschen,
   vereinReaktivieren,
   vereinsindexAktualisieren,
   vorbereitungsVereinLoeschen,
@@ -206,9 +208,24 @@ export default async function SystemVereinePage({
             oder der Verein ist ein Altbestand. Unten in der Karte kannst du eine Person als Admin festlegen:{" "}
             {ohneAdmin.map((v) => v.name).join(", ")}.
           </p>
-          <Link href="/system/vereine?status=ohne-admin" className="underline">
-            Nur diese anzeigen
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/system/vereine?status=ohne-admin" className="underline">
+              Nur diese anzeigen
+            </Link>
+            {ohneAdmin.some((v) => (personenJe.get(v.id) ?? 0) === 0) && (
+              <form action={leereVereineLoeschen}>
+                <ConfirmSubmitButton
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive"
+                  pendingText="Löscht…"
+                  confirmText={`Alle aktiven Vereine ohne jede Person (${ohneAdmin.filter((v) => (personenJe.get(v.id) ?? 0) === 0).length}) endgültig löschen? Das kann nicht rückgängig gemacht werden.`}
+                >
+                  Leere Vereine löschen
+                </ConfirmSubmitButton>
+              </form>
+            )}
+          </div>
         </section>
       )}
 
@@ -312,6 +329,20 @@ export default async function SystemVereinePage({
                       <SubmitButton size="sm" variant="outline" className="self-start" pendingText="Speichert…">
                         Als Admin festlegen
                       </SubmitButton>
+                    </form>
+                  )}
+                  {!vorbereitung && !v.istDemo && (personenJe.get(v.id) ?? 0) === 0 && (
+                    <form action={vereinOhnePersonenLoeschen}>
+                      <input type="hidden" name="vereinId" value={v.id} />
+                      <ConfirmSubmitButton
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive"
+                        pendingText="Löscht…"
+                        confirmText={`Verein „${v.name}“ endgültig löschen? Er hat keine einzige Person. Das kann nicht rückgängig gemacht werden.`}
+                      >
+                        Löschen (keine Personen)
+                      </ConfirmSubmitButton>
                     </form>
                   )}
                   {inaktiv && (
