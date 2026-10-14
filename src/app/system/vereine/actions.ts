@@ -2,9 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { ligaVereine, nuligaVereinsindex, vereine, vereinKontakt } from "@/db/schema";
+import { ligaVereine, nuligaVereinsindex, users, vereine, vereinKontakt } from "@/db/schema";
 import { requireSystemAdmin } from "@/lib/session";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import {
@@ -14,6 +14,7 @@ import {
   uebergebeVerein,
   vereinVorbereiten as vereinVorbereitenLib,
 } from "@/lib/treuhand";
+import { reaktiviereVerein, setzeVereinInaktiv } from "@/lib/verein-inaktiv";
 import { erzeugeVorschauLink, widerrufeVorschauLink } from "@/lib/verein-vorschau";
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
@@ -249,4 +250,40 @@ export async function starthilfeImportieren(formData: FormData) {
   revalidatePath("/system/gesundheit");
   const params = new URLSearchParams({ starthilfe: JSON.stringify({ verein: verein.name, vereinId, schritte }) });
   redirect(`/system/gesundheit?${params.toString()}`);
+}
+
+// Verein in Vorbereitung "inaktiv" setzen (keine Rückmeldung): nichts wird gelöscht, keine Vorschau/Abrufe/Ansprache mehr, jederzeit reaktivierbar.
+export async function vereinInaktivSetzen(formData: FormData) {
+  const session = await requireSystemAdmin();
+  await setzeVereinInaktiv(text(formData, "vereinId"), session.user.email ?? session.user.id);
+  revalidatePath("/system/vereine");
+}
+
+// Reaktivieren: neuer 7-Tage-Vorschau-Link, der nächste Sync-Lauf lädt die Daten nach.
+export async function vereinReaktivieren(formData: FormData) {
+  const session = await requireSystemAdmin();
+  await reaktiviereVerein(text(formData, "vereinId"), session.user.email ?? session.user.id);
+  revalidatePath("/system/vereine");
+}
+
+// Reparatur für einen AKTIVEN Verein ohne Admin (sollte nie vorkommen): eine vorhandene Person des Vereins (per E-Mail) zum Admin machen
+// oder eine neue Person als Admin anlegen. Eine E-Mail eines anderen Vereins wird nie angefasst ("user" hat kein RLS: Verein immer prüfen).
+export async function vereinAdminFestlegen(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const vereinId = text(formData, "vereinId");
+  const email = text(formData, "email").toLowerCase();
+  const name = text(formData, "name");
+  if (!email) throw new Error("Bitte die E-Mail-Adresse angeben.");
+  const [v] = await adminDb.select({ id: vereine.id }).from(vereine).where(eq(vereine.id, vereinId));
+  if (!v) throw new Error("Verein nicht gefunden.");
+  const [vorhanden] = await adminDb.select({ id: users.id, vereinId: users.vereinId }).from(users).where(sql`lower(${users.email}) = ${email}`).limit(1);
+  if (vorhanden) {
+    if (vorhanden.vereinId !== vereinId) throw new Error("Diese E-Mail-Adresse gehört zu einem anderen Verein oder Zugang.");
+    await adminDb.update(users).set({ istAdmin: true }).where(and(eq(users.id, vorhanden.id), eq(users.vereinId, vereinId)));
+  } else {
+    if (!name) throw new Error("Für eine neue Person bitte auch den Namen angeben.");
+    await adminDb.insert(users).values({ email, name, vereinId, istAdmin: true });
+  }
+  await schreibeProtokoll(vereinId, "admin_festgelegt", session.user.email ?? session.user.id, email);
+  revalidatePath("/system/vereine");
 }

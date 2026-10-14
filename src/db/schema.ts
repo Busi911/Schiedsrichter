@@ -1412,6 +1412,9 @@ export const vereinKontakt = pgTable("verein_kontakt", {
   anspracheGesendetAm: timestamp("ansprache_gesendet_am", { mode: "date" }),
   // Follow-up-Mail nach 7 Tagen ohne Reaktion (nur eine, dann Schluss).
   followupGesendetAm: timestamp("followup_gesendet_am", { mode: "date" }),
+  // Verein in Vorbereitung, der sich nicht gemeldet hat, ist "inaktiv" gesetzt (automatisch nach Ablauf der Vorschau-Links oder von Hand):
+  // keine Vorschau, kein Abruf, keine weitere Ansprache. Reaktivieren (neuer Link) leert den Wert.
+  inaktivSeit: timestamp("inaktiv_seit", { mode: "date" }),
   // Vom Empfänger ausgelöste Abmeldung (Klick auf den Abmelde-Link in der Mail).
   outreachAbgemeldetAm: timestamp("outreach_abgemeldet_am", { mode: "date" }),
   // Anzahl fehlgeschlagener Outreach-Versuche (0 Mannschaften oder keine E-Mail).

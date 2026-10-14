@@ -1,4 +1,5 @@
 import { pruefeCronSecret } from "@/lib/cron-auth";
+import { markiereInaktiveVereine } from "@/lib/verein-inaktiv";
 import { fuehreOutreachAus, fuehreOutreachFollowupAus, fuehreInstagramNachfassAus, resetOutreachVerein } from "@/lib/vereins-outreach";
 
 export const maxDuration = 300;
@@ -28,7 +29,9 @@ export async function GET(request: Request) {
 
   if (followup) {
     const ergebnis = await fuehreOutreachFollowupAus();
-    return Response.json({ followup: ergebnis });
+    // Danach: Vereine ohne Rückmeldung und ohne gültigen Link inaktiv setzen (nie löschen, jederzeit reaktivierbar).
+    const inaktiv = await markiereInaktiveVereine();
+    return Response.json({ followup: ergebnis, inaktiv });
   }
 
   if (instagram) {

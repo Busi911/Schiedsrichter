@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { demoSichereEmail, istDemoVerein } from "@/lib/demo-verein";
 import { demoErsatzAdresse } from "@/lib/demo-daten";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, notInArray } from "drizzle-orm";
 import { requireAdminSchreibzugriff, requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
@@ -1052,6 +1052,11 @@ export async function adminRechteToggeln(formData: FormData) {
       where: and(eq(users.id, userId), eq(users.vereinId, vereinId)),
     });
     if (!person) throw new Error("Person nicht gefunden.");
+    // Nie den letzten Admin des Vereins entfernen (sonst bliebe der Verein ohne Verwaltung).
+    if (person.istAdmin) {
+      const andere = await tx.select({ id: users.id }).from(users).where(and(eq(users.vereinId, vereinId), eq(users.istAdmin, true), ne(users.id, userId))).limit(1);
+      if (andere.length === 0) throw new Error("Das ist der letzte Admin des Vereins — zuerst eine andere Person zum Admin machen.");
+    }
 
     await tx
       .update(users)
@@ -1119,11 +1124,16 @@ export async function deleteFunktionstraeger(formData: FormData) {
     throw new Error("Keine Person ausgewählt.");
   }
 
-  await withTenant(vereinId, (tx) =>
-    tx
-      .delete(users)
-      .where(and(inArray(users.id, userIds), eq(users.vereinId, vereinId)))
-  );
+  await withTenant(vereinId, async (tx) => {
+    // Nie alle Admins des Vereins löschen: es muss mindestens einer übrig bleiben.
+    const uebrig = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.vereinId, vereinId), eq(users.istAdmin, true), notInArray(users.id, userIds)))
+      .limit(1);
+    if (uebrig.length === 0) throw new Error("Damit bliebe der Verein ohne Admin — mindestens ein Admin muss bleiben.");
+    await tx.delete(users).where(and(inArray(users.id, userIds), eq(users.vereinId, vereinId)));
+  });
 
   revalidatePath("/admin/funktionstraeger");
 }
