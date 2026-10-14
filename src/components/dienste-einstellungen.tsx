@@ -144,7 +144,8 @@ function BedarfFelder({
   return (
     <fieldset className="flex flex-col gap-1.5">
       <legend className="mb-1 text-sm font-medium">Personen je Termin</legend>
-      <div className="grid grid-cols-4 gap-2">
+      {/* items-end: zweizeilige Beschriftungen (z.B. „Freund-schaft“) verschieben die Eingabefelder nicht. */}
+      <div className="grid grid-cols-4 items-end gap-2">
         {spalten.map(([schluessel, name, titel]) => {
           const wert = werte[schluessel];
           const id = `${name}-${praefix}`;
@@ -239,8 +240,8 @@ function EigenerDienstFormular({
           <span>
             Fahrgemeinschaft (z.B. Fahrer)
             <span className="block text-xs text-muted-foreground">
-              Eingeteilte geben freie Plätze und Treffpunkt an, der Dienstwart (oder der Fahrer selbst) trägt die Mitfahrer ein. Auf der
-              öffentlichen Eintragungsseite stehen nur die freien Plätze, nie Namen.
+              Fahrer geben beim Eintragen ihre freien Plätze an. Mitfahrer (z.B. Kinder) tragen sich über den Eintragungslink selbst ein, der
+              Fahrer bekommt eine Mail. Namen der Mitfahrer sind nie öffentlich.
             </span>
           </span>
         </label>

@@ -50,7 +50,8 @@ export async function ladeDienstArten(tx: Tx, vereinId: string, nurAktive = true
   }));
 }
 
-export type EigeneDiensteKontextMitNamen = EigeneDiensteKontext & {
+export type EigeneDiensteKontextMitNamen = Omit<EigeneDiensteKontext, "arten"> & {
+  arten: DienstArtMitDetails[];
   // Namen ALLER Dienste des Vereins (auch deaktivierter), um bestehende Einteilungen zu beschriften.
   namen: Map<string, string>;
 };

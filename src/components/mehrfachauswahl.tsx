@@ -36,7 +36,13 @@ export type EintragbarerTermin = {
 
 // Auswahl-Gruppe der Rollen ("Zeitnehmer / Sekretär", "Ordner", ...): die Person wählt oben die Gruppe, bei mehreren Rollen darin (Zeitnehmer
 // und Sekretär sind im Kern dasselbe, nur eine andere Aufgabe) die konkrete Aufgabe je Termin.
-export type RollenGruppe = { id: string; label: string; rollen: { value: string; label: string }[] };
+export type RollenGruppe = {
+  id: string;
+  label: string;
+  rollen: { value: string; label: string }[];
+  // Fahrgemeinschaft (lib/fahrgemeinschaft.ts): beim Eintragen als Fahrer gleich freie Plätze und Treffpunkt abfragen.
+  plaetzeAbfragen?: boolean;
+};
 
 export type MehrfachEintragErgebnis = {
   eingetragen: number;
@@ -246,6 +252,23 @@ export function TerminMehrfachAuswahl({
                   <p className="text-sm text-muted-foreground">Damit bekommt ihr einen eigenen Zugang: Einsätze im Kalender, Erinnerungen, nächstes Mal ohne Tippen.</p>
                 </div>
               )}
+            </div>
+          )}
+          {gruppe?.plaetzeAbfragen && (
+            <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="eintragen-plaetze" className="text-base">
+                  Freie Plätze im Auto
+                </Label>
+                <Input id="eintragen-plaetze" name="plaetze" type="number" min="0" max="8" step="1" placeholder="z.B. 3" className="h-12 px-3" />
+                <p className="text-sm text-muted-foreground">Ohne dich. Mitfahrer tragen sich dann selbst ein.</p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="eintragen-fahrthinweis" className="text-base">
+                  Treffpunkt (optional)
+                </Label>
+                <Input id="eintragen-fahrthinweis" name="fahrtHinweis" maxLength={200} placeholder="z.B. Halle, 12:45 Uhr" className="h-12 px-3" />
+              </div>
             </div>
           )}
           {rollenGruppen.length > 1 && (

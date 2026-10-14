@@ -95,6 +95,7 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: EintragungAk
       id: eigeneRolle(a.id),
       label: a.name,
       rollen: [{ value: eigeneRolle(a.id), label: a.name }],
+      plaetzeAbfragen: a.fahrgemeinschaft,
     }));
     const zuordnungen =
       terminIds.length && rollenFilter.length

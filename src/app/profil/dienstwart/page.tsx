@@ -122,7 +122,9 @@ export default async function DienstwartPage({
             {selbstanmeldungToken ? (
               <SelbsteintragungLink
                 url={`${appUrl()}/eintragen/${selbstanmeldungToken}`}
-                teilText={`Tragt euch hier für Dienste ein (${alleArten.filter((a) => a.aktiv).map((a) => a.name).join(", ")}):`}
+                teilText={`Tragt euch hier für Dienste ein (${alleArten.filter((a) => a.aktiv).map((a) => a.name).join(", ")})${
+                  alleArten.some((a) => a.aktiv && a.fahrgemeinschaft) ? " oder fahrt bei einem Fahrer mit" : ""
+                }:`}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Noch nicht aktiviert.</p>

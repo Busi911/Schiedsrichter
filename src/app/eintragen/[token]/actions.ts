@@ -11,6 +11,7 @@ import type { MehrfachEintragErgebnis } from "@/components/mehrfachauswahl";
 import { ZEITNEHMER_ROLLEN } from "@/lib/eintragung-termine";
 import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { dienstArtIdAusRolle, eigeneDiensteSelbstEintragen } from "@/lib/eigene-dienste-eintragung";
+import { mitfahrenEintragen } from "@/lib/mitfahren";
 import {
   zeitnehmerSelbstEintragenMehrfachEingeloggt,
   zeitnehmerSelbstEintragenMehrfachOeffentlich,
@@ -72,6 +73,8 @@ export async function eintragenMehrfach(formData: FormData): Promise<MehrfachEin
         name: typeof name === "string" ? name : "",
         email: typeof email === "string" ? email : "",
         eingeloggtUserId: eingeloggt ? session!.user.id : null,
+        plaetze: typeof formData.get("plaetze") === "string" ? (formData.get("plaetze") as string) : "",
+        fahrtHinweis: typeof formData.get("fahrtHinweis") === "string" ? (formData.get("fahrtHinweis") as string) : "",
       });
       eingetragen += ergebnis.eingetragen;
       if (ergebnis.fehler) fehler.push(ergebnis.fehler);
@@ -126,4 +129,18 @@ export async function loginLinkAnfordern(formData: FormData) {
     if (err instanceof AuthError) redirect(`/login?error=${err.type}`);
     throw err;
   }
+}
+
+// Mitfahren (Fahrgemeinschaft): nur mit dem Freischalt-Link der eigenen Dienste. Ohne Client-JS, Ergebnis als Hinweis über die Adresse.
+export async function mitfahren(formData: FormData) {
+  const token = formData.get("token");
+  const zuordnungId = formData.get("zuordnungId");
+  const name = formData.get("name");
+  if (typeof token !== "string" || !TOKEN_FORMAT.test(token) || typeof zuordnungId !== "string") redirect("/");
+  const verein = await adminDb.query.vereine.findFirst({ where: eq(vereine.diensteSelbstanmeldungToken, token), columns: { id: true } });
+  if (!verein) redirect(`/eintragen/${token}`);
+  const fehler = await mitfahrenEintragen(verein.id, zuordnungId, typeof name === "string" ? name : "");
+  revalidatePath(`/eintragen/${token}`);
+  const param = fehler ? `mitfahrfehler=${encodeURIComponent(fehler)}` : `mitgefahren=${encodeURIComponent(typeof name === "string" ? name.trim() : "")}`;
+  redirect(`/eintragen/${token}?${param}#mitfahren`);
 }
