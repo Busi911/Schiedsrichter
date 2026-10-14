@@ -24,7 +24,9 @@ export async function sendMail(
   subject: string,
   text: string,
   html?: string,
-  opt: { abmeldeUrl?: string } = {}
+  // replyTo: "Antworten" im Mailprogramm geht an diese Adresse statt an den Absender der App (z.B. Feedback-Mail an
+  // Systemadmins → Antwort direkt an die Person, die das Feedback geschrieben hat).
+  opt: { abmeldeUrl?: string; replyTo?: string } = {}
 ) {
   // Vereine im Vorbereitungs-Modus (Systemadmin richtet im Hintergrund ein,
   // siehe lib/treuhand.ts) verschicken noch keine Mails.
@@ -43,6 +45,7 @@ export async function sendMail(
     subject,
     text,
     html,
+    ...(opt.replyTo && { replyTo: opt.replyTo }),
     // Ein-Klick-Abmeldung (RFC 8058) für abbestellbare Mails: Gmail/Outlook zeigen einen "Abbestellen"-Knopf.
     ...(opt.abmeldeUrl && {
       headers: {
