@@ -207,7 +207,10 @@ export default async function HilfePage() {
           </Link>{" "}
           legt ihr Personen mit Name, E-Mail-Adresse und einer oder mehreren Rollen an. Wer eine E-Mail-Adresse hat, bekommt
           eine Willkommensmail und kann sich selbst einloggen. Personen ohne E-Mail lassen sich trotzdem einteilen (z.B.
-          „Ohne Login zuordnen“ auf den Wart-Seiten).
+          „Ohne Login zuordnen“ auf den Wart-Seiten). Bekommt jemand eine <strong>Wart-Rolle</strong> oder die Rolle{" "}
+          <strong>Trainer</strong> (neu angelegt, aktiviert oder später ergänzt), steht in der Mail gleich eine kurze Starthilfe: bei
+          Warten der Link zur eigenen Seite (der Button führt nach dem Login direkt dorthin, dort wartet die Karte „So legst du los“), bei
+          Trainern, was sie im Profil sehen und dass sie bei Verlegungen eine Info-Mail bekommen.
         </p>
         <p className="text-sm text-muted-foreground">
           <strong>Viele Personen auf einmal:</strong> „Aus Excel importieren“ mit einer Kopfzeile mit den Spalten{" "}
@@ -540,12 +543,16 @@ export default async function HilfePage() {
         </p>
         <h3 className="text-sm font-medium">Auswärtsspiele (z.B. Fahrer)</h3>
         <p className="text-sm text-muted-foreground">
-          Hat ein eigener Dienst Bedarf bei <strong>Auswärtsspielen</strong>, legt HandballerPate die Auswärtsspiele der passenden
-          Mannschaften automatisch aus dem Spielplan als Termine an (nur dafür, feste Dienste wie Ordner gibt es dort nicht). Im
+          Hat ein eigener Dienst Bedarf bei <strong>Auswärtsspielen</strong> <em>oder</em> ist für die Mannschaft ein{" "}
+          <strong>Trainer</strong> hinterlegt (Funktionsträger mit Rolle Trainer), legt HandballerPate die Auswärtsspiele dieser
+          Mannschaften automatisch aus dem Spielplan als Termine an. So sehen Trainer auch die Auswärtsspiele ihrer Mannschaft im
+          Profil und im persönlichen Kalender; ohne Dienst und ohne Trainer werden keine Auswärtsspiele geladen (feste Dienste wie
+          Ordner gibt es dort nicht). Im
           Kalender stehen sie mit <strong>Auto-Symbol</strong> und gestricheltem Rahmen, damit man sie von den Heimspielen
           unterscheidet, und wie die anderen mit „Vollständig“/„Offen“ für die eigenen Dienste. Wird ein Auswärtsspiel{" "}
           <strong>verlegt</strong>, werden die Einteilungen aufgehoben und die Eingeteilten bekommen eine Mail (sie tragen sich zum
-          neuen Termin neu ein); wird es <strong>abgesagt</strong>, entfällt der Termin, ebenfalls mit Mail. Ändert sich nur die Halle,
+          neuen Termin neu ein); wird es <strong>abgesagt</strong>, entfällt der Termin, ebenfalls mit Mail. Auch die Trainer der
+          Mannschaft bekommen bei Verlegung oder Absage eine Info-Mail. Ändert sich nur die Halle,
           wird sie still angepasst und die Einteilungen bleiben. Voraussetzung ist die angebundene Vereins-ID (Spielplan).
         </p>
         <h3 className="text-sm font-medium">Einteilen: der Dienstwart</h3>
@@ -639,6 +646,13 @@ export default async function HilfePage() {
           Eingeteilt wird auf den Wart-Seiten, je eine für Schiedsrichter, Zeitnehmer/Sekretär und Ordner/Kioskdienst/Kassierer,
           dazu eine für die <a href="#eigene-dienste" className="font-medium underline">eigenen Dienste</a> (Dienstwart, z.B.
           Fahrer oder Kuchen). Hat euer Verein noch keine eigenen Dienste, verweist die Dienstwart-Seite auf Einstellungen → Dienste.
+        </p>
+        <h3 className="text-sm font-medium">„So legst du los“: die Starthilfe oben</h3>
+        <p className="text-sm text-muted-foreground">
+          Auf jeder Wart-Seite steht ganz oben eine kurze Karte mit den Schritten, mit denen es losgeht (z.B. Personen anlegen, Eintragungslink
+          teilen, ersten Termin besetzen) und einem Tipp. Die Haken setzen sich von selbst, sobald etwas erledigt ist; die Karte verschwindet,
+          wenn alles geschafft ist. Mit „Ausblenden“ bleibt sie auf diesem Gerät weg. Wer nicht Admin ist, sieht nur Schritte, die er selbst
+          erledigen kann; das Anlegen von Personen oder Diensten macht der Vereinsadmin.
         </p>
         <h3 className="text-sm font-medium">Wer sieht sie?</h3>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">

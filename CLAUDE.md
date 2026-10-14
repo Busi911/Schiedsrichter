@@ -333,6 +333,9 @@ Regel rein in `verein-inaktiv-regel.ts`: Verein in Vorbereitung, kein Demo, Erst
 (`/system/vereine` → „Inaktiv setzen“). Wirkung: Vorschau-Links widerrufen, kein Abruf (kein gültiger Link, `sync-berechtigung.ts`/`sync-cron.ts`), Erinnerung/Instagram-Nachfass/Outreach-Auswahl überspringen ihn;
 es wird NICHTS gelöscht. Reaktivieren (Button oder jeder neue Vorschau-Link, `erzeugeVorschauLink` leert den Wert) jederzeit. `/system/vereine` hat Suche/Filter (Name, Admin, Status
 Aktiv/Vorbereitung/Inaktiv/Ohne Admin) und warnt bei aktiven Vereinen ohne Admin (`vereinAdminFestlegen` repariert; `adminRechteToggeln`/`deleteFunktionstraeger` lassen nie den letzten Admin entfernen).
+**Nachfassen und Aktualität (14.10.2026):** Der erste Link gilt 7 Tage; die Erinnerungsmail nach 7 Tagen (`fuehreOutreachFollowupAus`) erzeugt IMMER einen neuen 7-Tage-Link und nennt ihn
+(vorher wurde der abgelaufene alte Link wiederverwendet). Vereine in Vorbereitung werden nur synchronisiert, solange ein gültiger Link besteht (`sync-cron.ts`): wer sich nicht meldet, wird
+nach Ablauf des zweiten Links nicht mehr aktualisiert (kein Dauer-Abruf bei nuLiga); die Daten bleiben stehen, und ein neuer Link (Systemadmin, `/system/vereine`) holt sie beim nächsten Lauf nach.
 
 ## Hallenplan + öffentliche Liga-Daten zusammenführen (in Arbeit)
 
@@ -475,6 +478,18 @@ Neue Stellen, die Rollen anlegen, müssen `expandiereRollenTypen` nutzen. Das Li
 Migration 0093 hat den Bestand einmalig angeglichen (wer nur eine der beiden hatte, bekam die andere dazu; Rollen mit unterschiedlichem Aktiv-Status bleiben unberührt).
 Die öffentliche Eintragung (`/eintragen/[token]`) wählt die Aufgabe (Zeitnehmer ODER Sekretär) je Termin.
 Die Logik der öffentlichen Selbsteintragung (Zeitnehmer/Sekretär UND Ordner/Kioskdienst/Kassierer) steckt EINMAL in `lib/selbsteintragung.ts` (`selbstEintragenMehrfachOeffentlich`/`…Eingeloggt`, getestet in `selbsteintragung.test.ts`); `zeitnehmer-eintragen|ordner-eintragen/[token]/actions.ts` sind dünne Hüllen, die nur Rollen, Token-Spalte und die Besetzungs-/Doppelrollen-Prüfung (Zeitnehmer: harte Sperre, Ordner: Warnung) mitgeben. Änderungen an der Eintragung gehören in die Lib, nicht in die Hüllen.
+
+## Wart-Onboarding („So legst du los“)
+
+Jede Wart-Seite (`/profil/schiedsrichterwart|zeitnehmerwart|ordnerwart|dienstwart`) zeigt oben die Karte `components/wart-onboarding.tsx` mit 2–3 Schritten
+und einem Tipp je Rolle (`lib/wart-onboarding.ts` rein/getestet: Personen vorhanden, Eintragungslink aktiv, erster Termin besetzt — alles aus Daten, die die Seite
+ohnehin lädt, keine Extra-Abfrage; Wart ohne Admin-Rechte bekommen nur Ziele auf derselben Seite, keine Admin-Links). Sie verschwindet, wenn alle prüfbaren Schritte
+erledigt sind, oder per „Ausblenden“ (`wartOnboardingAusblenden`, Cookie `hp_wart_onboarding`, Pfad `/profil`, nur dieses Gerät, keine DB). Neue Wart-Funktion mit
+eigenem Einstieg: Schritt in `wartSchritte` ergänzen, Anker (`#selbsteintragung`, `#termine`) und Hilfe-Abschnitt nicht vergessen. Hilfe: `/hilfe#warte`.
+**Starthilfe in den Mails:** `lib/rollen-hinweise.ts` (rein/getestet) liefert für Wart-Rollen (Link zur eigenen Seite + Hinweis auf „So legst du los“, Button führt per
+`/login?redirect=…` nach dem Login dorthin) und Trainer (was sie im Profil sehen, Info-Mail bei Verlegungen) zusätzliche Zeilen. Eingebunden in `willkommensInhalt(…, rollenTypen)`
+(neuer Zugang: `createFunktionstraeger`, Aktivieren einzeln/Bulk, Excel-Import, Mannschaft mit Trainer) und `rollenHinzugefuegtInhalt` (zusätzliche Rolle einer bestehenden Person,
+admin/actions.ts, Typen über `typenAusLabels`). Neue Rolle mit eigener Seite: Eintrag in `WART_SEITEN`.
 
 ## Hilfe: wo Nutzer sie finden
 
@@ -694,9 +709,10 @@ Abmeldung: Profil-Karte „Meine Helferdienste“ (`selbstAbmelden`), Mail an Di
 Entscheidung auf `/profil/dienstwart` („Abmeldeanfragen“, `dienstAbmeldungGenehmigen`/`…Ablehnen`). Export: Rolle `eigeneDienste` in `AUSWERTUNG_ROLLEN`,
 eine Zelle je Termin (`eigeneDiensteZellenText`), ohne Auswahl nur, wenn ein Termin eigene Dienste hat (`standardRollen`). Statistik: `eigener_dienst` zählt
 in `DIENST_RELEVANTE_ROLLEN`. Demo: Kuchen + Fahrer (nur mA/wC) mit Einteilungen und Abmeldeanfrage, Token `DEMO_TOKEN_DIENSTE`, Anna ist Dienstwartin.
-**Stufe 3 (Auswärtsspiele):** Termintyp `auswaertsspiel` (Migration 0101) NUR für eigene Dienste: `lib/auswaerts-termine.ts` `pflegeAuswaertsTermine`
+**Stufe 3 (Auswärtsspiele):** Termintyp `auswaertsspiel` (Migration 0101) für eigene Dienste und Trainer: `lib/auswaerts-termine.ts` `pflegeAuswaertsTermine`
 (im Übernahme-Cron nach `uebernehmeAenderungen` und nach jeder Änderung eines Dienstes per `after`, nur bei `liga_uebernahme_aktiv`) legt künftige Spiele mit
 eigenem Team als Gast (Gegner nicht der eigene Verein, kein Freundschaftsspiel) an, wenn ein aktiver Dienst mit `bedarf_auswaerts > 0` für die Mannschaft gilt
+ODER die Mannschaft einen aktiven Trainer hat (`funktionstraeger_rolle` typ trainer; Trainer sehen so auch Auswärtsspiele im Profil; sie bekommen bei Verlegung/Absage eine Info-Mail, ohne Einteilungen; ohne beides gar nichts geladen, leere Termine ohne Dienst/Trainer werden entfernt)
 (`icsUid` `liga:<spielId>`, `liga_spiel_id`, Mannschaft über `baueMannschaftsAufloeser`). Regeln rein in `auswaerts-regeln.ts` (`entscheideAuswaerts`): Verlegung =
 neue Zeit/Halle, Einteilungen ENTFALLEN, Betroffene mit Login bekommen eine Mail (Betreiber: Fahrer bleiben NICHT eingetragen); abgesagt/verschwunden = Termin
 gelöscht mit Mail; nur andere Halle = still angepasst, Einteilungen bleiben; bestätigtes Ergebnis still; Vergangenes nie verlegt/gelöscht; gilt kein Dienst mehr,

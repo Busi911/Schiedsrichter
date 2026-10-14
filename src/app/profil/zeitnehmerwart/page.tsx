@@ -57,6 +57,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { WartOnboarding } from "@/components/wart-onboarding";
 import { LabeledSelect } from "@/components/labeled-select";
 import { PersonSelect } from "@/components/person-select";
 import { ZeitnehmerEinsaetzeDialog } from "@/components/zeitnehmer-einsaetze-dialog";
@@ -297,7 +298,17 @@ export default async function ZeitnehmerwartPage({
         </p>
       </div>
 
-      <Card className="border-primary/40 bg-primary/5">
+      <WartOnboarding
+        rolle="zeitnehmer"
+        stand={{
+          personen: zeitnehmerListe.length,
+          linkAktiv: !!verein?.zeitnehmerSelbstanmeldungToken,
+          einteilungen: termineMitZuordnungen.reduce((n, t) => n + t.zuordnungen.filter((z) => (ZEITNEHMER_ROLLEN as readonly string[]).includes(z.funktionstraegerTyp)).length, 0),
+          istAdmin: session.user.istAdmin,
+        }}
+      />
+
+      <Card id="selbsteintragung" className="scroll-mt-6 border-primary/40 bg-primary/5">
         <CardHeader>
           <CardTitle className="text-base">Öffentliche Selbsteintragung</CardTitle>
           <CardDescription>
@@ -619,7 +630,7 @@ export default async function ZeitnehmerwartPage({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="termine" className="scroll-mt-6">
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base">

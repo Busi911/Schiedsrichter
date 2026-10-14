@@ -14,6 +14,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { DisclosureSummary } from "@/components/disclosure-summary";
 import { FahrtBearbeiten } from "@/components/fahrt-bearbeiten";
+import { WartOnboarding } from "@/components/wart-onboarding";
 import { oeffentlicherFahrtText } from "@/lib/fahrgemeinschaft";
 import { PersonSelect } from "@/components/person-select";
 import { MannschaftFilterLeiste } from "@/components/mannschaft-filter-leiste";
@@ -91,6 +92,16 @@ export default async function DienstwartPage({
         </p>
       </div>
 
+      <WartOnboarding
+        rolle="dienst"
+        stand={{
+          personen: alleArten.filter((a) => a.aktiv).length,
+          linkAktiv: !!selbstanmeldungToken,
+          einteilungen: termine.reduce((n, t) => n + t.stellen.reduce((m, st) => m + st.eingeteilt.length, 0), 0),
+          istAdmin: session.user.istAdmin,
+        }}
+      />
+
       {alleArten.length === 0 ? (
         <Card>
           <CardHeader>
@@ -109,7 +120,7 @@ export default async function DienstwartPage({
         </Card>
       ) : (
         <>
-        <Card className="border-primary/40 bg-primary/5">
+        <Card id="selbsteintragung" className="scroll-mt-6 border-primary/40 bg-primary/5">
           <CardHeader>
             <CardTitle className="text-base">Öffentliche Selbsteintragung</CardTitle>
             <CardDescription>
@@ -195,7 +206,7 @@ export default async function DienstwartPage({
           </Card>
         )}
 
-        <Card>
+        <Card id="termine" className="scroll-mt-6">
           <CardHeader>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <CardTitle className="text-base">

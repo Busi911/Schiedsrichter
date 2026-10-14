@@ -28,6 +28,7 @@ import { emailGeaendertInhalt, pruefeEmailVerfuegbar } from "@/lib/email-aendern
 import { LIZENZ_ROLLEN } from "@/lib/lizenz-rollen";
 import { expandiereRollenTypen, kombiniereRollenLabels, ZEITNEHMER_SEKRETAER_TYP } from "@/lib/funktionstraeger-rollen";
 import { willkommensInhalt } from "@/lib/willkommens-mail";
+import { rollenHinweise } from "@/lib/rollen-hinweise";
 import { terminVerlegtInhalt } from "@/lib/zuordnung";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { istTurnierBerechtigt } from "@/lib/turnier-zugriff";
@@ -249,18 +250,25 @@ const FUNKTIONSTRAEGER_TYP_LABEL: Record<
 // wurden.
 function rollenHinzugefuegtInhalt(
   vereinName: string,
-  rollenLabels: string[]
+  rollenLabels: string[],
+  // Die Typen der NEUEN Rollen (nicht kombiniert), für die Starthilfe bei Wart-Rollen/Trainer (lib/rollen-hinweise.ts).
+  rollenTypen: string[] = []
 ): EmailInhalt {
+  const hinweise = rollenHinweise(rollenTypen, appUrl());
   return {
     vereinName,
     ueberschrift:
       rollenLabels.length === 1
         ? `Du wurdest als ${rollenLabels[0]} eingetragen.`
         : `Du wurdest eingetragen als: ${rollenLabels.join(", ")}.`,
-    zeilen: [],
-    cta: { text: "Zum Login", url: `${appUrl()}/login` },
+    zeilen: hinweise.zeilen,
+    cta: hinweise.cta ?? { text: "Zum Login", url: `${appUrl()}/login` },
   };
 }
+
+// Label -> Typ (FUNKTIONSTRAEGER_TYP_LABEL umgekehrt), damit die Rollen-Info-Mail aus den gesammelten Labels die Typen findet.
+const TYP_NACH_LABEL = new Map(Object.entries(FUNKTIONSTRAEGER_TYP_LABEL).map(([typ, label]) => [label, typ]));
+const typenAusLabels = (labels: string[]) => labels.flatMap((l) => TYP_NACH_LABEL.get(l) ?? []);
 
 // Legt eine Person zusätzlich die zweite Aufgabe (Zeitnehmer <-> Sekretär) an, gilt dieselbe Verbandslizenz: das Ablaufdatum der bereits
 // vorhandenen Rolle wird übernommen (siehe partnerLizenzTyp unten), sonst bliebe die neue Rolle ohne Datum.
@@ -418,7 +426,7 @@ export async function createFunktionstraeger(formData: FormData) {
   // Aktivieren (siehe funktionstraegerAktivToggeln).
   if (sofortAktiv) {
     try {
-      const inhalt = willkommensInhalt(vereinName, normalizedEmail, einmalPasswort);
+      const inhalt = willkommensInhalt(vereinName, normalizedEmail, einmalPasswort, ausgewaehlteTypen);
       await sendMail(
         normalizedEmail,
         "Zugang für HandballerPate",
@@ -513,7 +521,7 @@ export async function rolleHinzufuegen(formData: FormData) {
   // es geht keine Mail raus.
   if (neueRollenLabels.length > 0) {
     try {
-      const inhalt = rollenHinzugefuegtInhalt(vereinName, kombiniereRollenLabels(neueRollenLabels));
+      const inhalt = rollenHinzugefuegtInhalt(vereinName, kombiniereRollenLabels(neueRollenLabels), typenAusLabels(neueRollenLabels));
       await sendMail(
         email,
         "Neue Rolle für HandballerPate",
@@ -607,7 +615,7 @@ export async function rollenHinzufuegenMehrfach(formData: FormData) {
 
   for (const { email, neueRollenLabels } of benachrichtigungen) {
     try {
-      const inhalt = rollenHinzugefuegtInhalt(vereinName, kombiniereRollenLabels(neueRollenLabels));
+      const inhalt = rollenHinzugefuegtInhalt(vereinName, kombiniereRollenLabels(neueRollenLabels), typenAusLabels(neueRollenLabels));
       await sendMail(
         email,
         "Neue Rolle für HandballerPate",
@@ -702,7 +710,8 @@ export async function funktionstraegerAktivToggeln(formData: FormData) {
       const inhalt = willkommensInhalt(
         aktivierung.vereinName,
         aktivierung.email,
-        aktivierung.einmalPasswort
+        aktivierung.einmalPasswort,
+        ["trainer"]
       );
       await sendMail(
         aktivierung.email,
@@ -813,6 +822,7 @@ export async function funktionstraegerRollenAktivierenEinzeln(formData: FormData
       .select({
         id: funktionstraegerRollen.id,
         userId: funktionstraegerRollen.userId,
+        typ: funktionstraegerRollen.typ,
         email: users.email,
         passwordHash: users.passwordHash,
       })
@@ -839,14 +849,14 @@ export async function funktionstraegerRollenAktivierenEinzeln(formData: FormData
       rollen.map((r) => [r.userId, { email: r.email, passwordHash: r.passwordHash }])
     );
 
-    const aktivierte: { email: string; einmalPasswort: string | null }[] = [];
+    const aktivierte: { email: string; einmalPasswort: string | null; typen: string[] }[] = [];
     for (const [userId, person] of proPerson) {
       const einmalPasswort = await vergebeEinmalPasswortFallsNoetig(
         tx,
         userId,
         person.passwordHash
       );
-      aktivierte.push({ email: person.email, einmalPasswort });
+      aktivierte.push({ email: person.email, einmalPasswort, typen: rollen.filter((x) => x.userId === userId).map((x) => x.typ) });
     }
 
     const vereinRow = await tx.query.vereine.findFirst({
@@ -857,7 +867,7 @@ export async function funktionstraegerRollenAktivierenEinzeln(formData: FormData
 
   for (const person of aktivierte) {
     try {
-      const inhalt = willkommensInhalt(vereinName, person.email, person.einmalPasswort);
+      const inhalt = willkommensInhalt(vereinName, person.email, person.einmalPasswort, person.typen);
       await sendMail(
         person.email,
         "Zugang für HandballerPate",
@@ -896,7 +906,7 @@ export async function funktionstraegerRollenAktivieren(formData: FormData) {
       .from(users)
       .where(and(inArray(users.id, userIds), eq(users.vereinId, vereinId)));
 
-    const aktivierte: { email: string; einmalPasswort: string | null }[] = [];
+    const aktivierte: { email: string; einmalPasswort: string | null; typen: string[] }[] = [];
     for (const person of personen) {
       const zuvorInaktiv = await tx
         .update(funktionstraegerRollen)
@@ -907,7 +917,7 @@ export async function funktionstraegerRollenAktivieren(formData: FormData) {
             eq(funktionstraegerRollen.aktiv, false)
           )
         )
-        .returning({ id: funktionstraegerRollen.id });
+        .returning({ id: funktionstraegerRollen.id, typ: funktionstraegerRollen.typ });
       if (zuvorInaktiv.length === 0) continue;
 
       const einmalPasswort = await vergebeEinmalPasswortFallsNoetig(
@@ -915,7 +925,7 @@ export async function funktionstraegerRollenAktivieren(formData: FormData) {
         person.userId,
         person.passwordHash
       );
-      aktivierte.push({ email: person.email, einmalPasswort });
+      aktivierte.push({ email: person.email, einmalPasswort, typen: zuvorInaktiv.map((x) => x.typ) });
     }
 
     const vereinRow = await tx.query.vereine.findFirst({
@@ -926,7 +936,7 @@ export async function funktionstraegerRollenAktivieren(formData: FormData) {
 
   for (const person of aktivierte) {
     try {
-      const inhalt = willkommensInhalt(vereinName, person.email, person.einmalPasswort);
+      const inhalt = willkommensInhalt(vereinName, person.email, person.einmalPasswort, person.typen);
       await sendMail(
         person.email,
         "Zugang für HandballerPate",
@@ -1305,6 +1315,8 @@ export async function funktionstraegerImportieren(formData: FormData) {
   let angelegt = 0;
   let uebersprungen = 0;
   const neueNutzer: { email: string; einmalPasswort: string | null }[] = [];
+  // Rollen je Person aus allen Zeilen, für die Starthilfe in der Willkommens-Mail (lib/rollen-hinweise.ts)
+  const typenJeEmail = new Map<string, string[]>();
 
   const vereinName = await withTenant(vereinId, async (tx) => {
     const mannschaftsListe = await tx.query.mannschaften.findMany({
@@ -1385,6 +1397,7 @@ export async function funktionstraegerImportieren(formData: FormData) {
             : {}),
         });
         neuAngelegt = true;
+        typenJeEmail.set(user.email, [...(typenJeEmail.get(user.email) ?? []), typ]);
       }
       if (!neuAngelegt) {
         uebersprungen++;
@@ -1401,7 +1414,7 @@ export async function funktionstraegerImportieren(formData: FormData) {
 
   for (const nutzer of neueNutzer) {
     try {
-      const inhalt = willkommensInhalt(vereinName, nutzer.email, nutzer.einmalPasswort);
+      const inhalt = willkommensInhalt(vereinName, nutzer.email, nutzer.einmalPasswort, typenJeEmail.get(nutzer.email) ?? []);
       await sendMail(
         nutzer.email,
         "Zugang für HandballerPate",

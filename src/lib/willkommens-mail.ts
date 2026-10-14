@@ -1,6 +1,7 @@
 import "server-only";
 import { appUrl } from "./app-url";
 import type { EmailInhalt } from "./email-layout";
+import { rollenHinweise } from "./rollen-hinweise";
 
 // Für jede Person, für die neu ein Zugang angelegt wird (Admin legt einen
 // Funktionsträger/eine Mannschaft mit Trainer an, Wart bestätigt eine
@@ -11,12 +12,16 @@ import type { EmailInhalt } from "./email-layout";
 export function willkommensInhalt(
   vereinName: string,
   email: string,
-  einmalPasswort: string | null
+  einmalPasswort: string | null,
+  // Rollen der Person (Typen aus funktionstraeger_rolle): bei Wart-Rollen/Trainer kommt eine kurze Starthilfe dazu (lib/rollen-hinweise.ts).
+  rollenTypen: string[] = []
 ): EmailInhalt {
+  const hinweise = rollenHinweise(rollenTypen, appUrl());
   return {
     vereinName,
     ueberschrift: "Für dich wurde ein Zugang angelegt.",
-    zeilen: einmalPasswort
+    zeilen: [
+      ...(einmalPasswort
       ? [
           `Melde dich mit deiner E-Mail-Adresse (${email}) und dem folgenden Einmal-Passwort an.`,
           `Einmal-Passwort: ${einmalPasswort}`,
@@ -24,8 +29,10 @@ export function willkommensInhalt(
         ]
       : [
           `Melde dich mit deiner E-Mail-Adresse (${email}) an — du bekommst dort einen Login-Link per E-Mail zugeschickt.`,
-        ],
-    cta: { text: "Jetzt einloggen", url: `${appUrl()}/login` },
+        ]),
+      ...hinweise.zeilen,
+    ],
+    cta: hinweise.cta ?? { text: "Jetzt einloggen", url: `${appUrl()}/login` },
     kleingedrucktes: `Infos zur Datenverarbeitung: ${appUrl()}/datenschutz`,
   };
 }
