@@ -47,7 +47,7 @@ describe.skipIf(!ADMIN_URL)("Liga-Übernahme (Postgres)", () => {
   beforeAll(async () => {
     await testDb.delete(schema.ligaVereine);
     await testDb.delete(schema.ligaGruppen);
-    await testDb.insert(schema.vereine).values({ id: vereinId, name: "TSF Übernahme" });
+    await testDb.insert(schema.vereine).values({ id: vereinId, name: "TSF Übernahme", status: "aktiv" });
     const { id } = await legeLigaVereinAn(testDb, { vereinId, nuligaClubId: "69723", name: "TSF Übernahme" });
     ligaVereinId = id;
     const jetzt = new Date("2026-10-01T10:00:00Z");

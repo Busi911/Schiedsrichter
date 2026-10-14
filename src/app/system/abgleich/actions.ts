@@ -19,7 +19,7 @@ import { terminVerlegtInhalt } from "@/lib/zuordnung";
 import { schreibeProtokoll } from "@/lib/treuhand";
 import { vergleicheAnsetzung } from "@/lib/ansetzung-vergleich";
 import { vergleicheAnsetzungHandballNet } from "@/lib/ansetzung-vergleich-hnet";
-import { berechneHallenplanAbgleich } from "@/lib/hallenplan-abgleich-laden";
+import { berechneAbgleichFuerVerein } from "@/lib/hallenplan-abgleich-laden";
 import { handlungsbedarf } from "@/lib/abgleich-handlungen";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { holeHandballNetApi } from "@/lib/handball-net/client";
@@ -178,7 +178,7 @@ export async function hallenplanImportSchalten(formData: FormData) {
   if (typeof vereinId !== "string" || !vereinId) throw new Error("Verein fehlt.");
   const aus = formData.get("aus") === "1";
   if (aus) {
-    const bericht = (await berechneHallenplanAbgleich()).find((v) => v.vereinId === vereinId);
+    const bericht = await berechneAbgleichFuerVerein(vereinId);
     if (!bericht || !bericht.uebernahmeAktiv) throw new Error("Zuerst die automatische Übernahme einschalten.");
     if (handlungsbedarf(bericht).length > 0) throw new Error("Der Abgleich hat für diesen Verein noch offene Punkte — erst erledigen.");
   }
