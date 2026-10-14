@@ -3,6 +3,7 @@
 
 export type ErsteSchritteStand = {
   spielplanAngebunden: boolean; // nuLiga- oder handball.net-Vereins-ID hinterlegt (liga_verein)
+  spielhallen: boolean; // "Eure Spielhallen" (oder eine alte Hallen-ID) gesetzt — ohne sie wird kein Heimspiel angelegt
   mannschaften: number;
   funktionstraegerMitRolle: number; // Personen mit mindestens einer aktiven Funktionsträger-Rolle
   einteilungen: number; // eingetragene Dienste (termin_zuordnung), egal ob zugeordnet oder selbst eingetragen
@@ -28,12 +29,20 @@ export function ersteSchritte(s: ErsteSchritteStand): ErsterSchritt[] {
       hilfeAnker: "oeffentliche-seite",
     },
     {
+      schluessel: "spielhallen",
+      titel: "Eure Spielhallen eintragen",
+      text: "Nur Spiele in diesen Hallen werden als Heimspiel mit Diensten angelegt. Ohne Eintrag gibt es nichts einzuteilen.",
+      erledigt: s.spielhallen,
+      href: "/admin/einstellungen#spielhallen",
+      hilfeAnker: "spielhallen",
+    },
+    {
       schluessel: "mannschaften",
       titel: "Mannschaften prüfen",
       text: "Mit angebundenem Spielplan werden sie meist automatisch angelegt, sonst hier anlegen.",
       erledigt: s.mannschaften > 0,
       href: "/admin/mannschaften",
-      hilfeAnker: "erste-schritte",
+      hilfeAnker: "mannschaften",
     },
     {
       schluessel: "funktionstraeger",

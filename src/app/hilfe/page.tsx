@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { ZurueckButton } from "@/components/zurueck-button";
@@ -33,13 +34,23 @@ export default async function HilfePage() {
             ["erste-schritte", "Erste Schritte: App einrichten"],
             ["anmelden", "Anmelden, Passwort, E-Mail ändern"],
             ["rollen", "Wer darf was? Rollen"],
+            ["mannschaften", "Mannschaften"],
+            ["funktionstraeger", "Funktionsträger anlegen & Excel-Import"],
             ["oeffentliche-seite", "Öffentliche Vereinsseite & App"],
+            ["spielhallen", "Eure Spielhallen (Heimspiele)"],
+            ["spielgemeinschaft", "Spielgemeinschaften & Partnervereine"],
+            ["gesperrte-ids", "Vereins-ID gesperrt? Änderung beantragen"],
             ["kalender", "Kalender & Besetzung"],
+            ["eigene-termine", "Freundschaftsspiele & Turniere"],
             ["bedarf", "Dienste-Bedarf festlegen"],
             ["zuordnung", "Funktionsträger zuordnen"],
+            ["abmeldungen", "Wenn jemand doch nicht kann"],
+            ["trainingsplan", "Trainingsplan"],
             ["ics-feed", "Persönlicher Kalender (ICS-Feed)"],
             ["mails", "E-Mails & Erinnerungen"],
             ["statistik", "Statistik & offene Dienste"],
+            ["auswertung", "Auswertung & Export"],
+            ["kosten", "Beta, Kosten & Verein löschen"],
             ["support", "Support, Feedback, Datenschutz"],
           ].map(([id, label]) => (
             <li key={id}>
@@ -61,32 +72,52 @@ export default async function HilfePage() {
         <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-muted-foreground">
           <li>
             <strong>Anmelden und AVV bestätigen:</strong> Der Vereinsadmin meldet sich per E-Mail-Link oder Passwort an und
-            bestätigt beim ersten Login den Auftragsverarbeitungsvertrag (<strong>/admin/avv</strong>).
+            bestätigt beim ersten Login den Auftragsverarbeitungsvertrag.
           </li>
           <li>
-            <strong>Mannschaften anlegen:</strong> unter <strong>Verwaltung → Mannschaften</strong> (bei Anbindung der
-            Liga-Daten, siehe Schritt 5, erkennt HandballerPate die Mannschaften größtenteils selbst).
+            <strong>Spielplan anbinden:</strong> unter 
+            <Link href="/admin/einstellungen#oeffentliche-seite" className="font-medium underline">
+              Einstellungen → Öffentliche Vereinsseite
+            </Link> 
+            die nuLiga- und/oder handball.net-Vereins-ID eintragen (<a href="#oeffentliche-seite" className="font-medium underline">so findet ihr sie</a>).
+            Danach kommen Spiele, Verlegungen, Ergebnisse und die Schiedsrichter-Ansetzung automatisch, tagsüber stündlich.
           </li>
           <li>
-            <strong>Funktionsträger anlegen:</strong> unter <strong>Verwaltung → Funktionsträger</strong> einzeln oder per
-            Excel-Import: Schiedsrichter, Zeitnehmer, Sekretär, Ordner, Kioskdienst, Kassierer, Trainer. Wer sich selbst
-            einloggen soll, braucht eine E-Mail-Adresse. Wer mehrere Aufgaben hat, bekommt mehrere Rollen.
+            <strong>Eure Spielhallen eintragen:</strong> direkt darunter unter 
+            <Link href="/admin/einstellungen#spielhallen" className="font-medium underline">
+              Eure Spielhallen
+            </Link>
+            . <strong>Wichtig:</strong> Nur Spiele in diesen Hallen werden als Heimspiel angelegt, für das ihr Dienste
+            einteilen könnt (<a href="#spielhallen" className="font-medium underline">mehr dazu</a>).
           </li>
           <li>
-            <strong>Dienste-Bedarf festlegen:</strong> unter <strong>Einstellungen → Dienste-Bedarf pro Termin</strong>, wie
-            viele Ordner, Kioskdienste, Kassierer und Zeitnehmer/Sekretär je Veranstaltung gebraucht werden (siehe unten). Ein
-            Spiel gilt nur als <strong>vollständig besetzt</strong>, wenn auch diese Dienste ihren Bedarf erreichen.
+            <strong>Mannschaften prüfen:</strong> Mit angebundenem Spielplan legt HandballerPate eure Mannschaften selbst an.
+            Unter <Link href="/admin/mannschaften" className="font-medium underline">Mannschaften</Link> könnt ihr sie prüfen oder von Hand ergänzen.
           </li>
           <li>
-            <strong>Spielplan anbinden:</strong> unter <strong>Einstellungen → Öffentliche Vereinsseite</strong> die
-            nuLiga- und/oder handball.net-Vereins-ID eintragen (siehe unten). Danach kommen Termine, Verlegungen, Ergebnisse
-            und Ansetzungen automatisch, tagsüber stündlich.
+            <strong>Funktionsträger anlegen:</strong> unter 
+            <Link href="/admin/funktionstraeger" className="font-medium underline">
+              Funktionsträger
+            </Link> 
+            einzeln oder per <a href="#funktionstraeger" className="font-medium underline">Excel-Import</a>: Schiedsrichter, Zeitnehmer/Sekretär, Ordner,
+            Kioskdienst, Kassierer, Trainer und die Warte. Wer sich selbst einloggen soll, braucht eine E-Mail-Adresse.
+          </li>
+          <li>
+            <strong>Dienste-Bedarf festlegen:</strong> unter 
+            <Link href="/admin/einstellungen#dienste-bedarf" className="font-medium underline">
+              Einstellungen → Dienste-Bedarf pro Termin
+            </Link>
+            , wie viele Ordner, Kioskdienste, Kassierer und Zeitnehmer/Sekretär je Veranstaltung gebraucht werden (
+            <a href="#bedarf" className="font-medium underline">mehr dazu</a>). Ein Spiel gilt nur als <strong>vollständig besetzt</strong>, wenn auch
+            diese Dienste ihren Bedarf erreichen.
           </li>
           <li>
             <strong>Aufgaben verteilen:</strong> die Warte (Schiedsrichter-, Zeitnehmer-, Ordnerwart) ordnen auf ihrer
-            Profil-Seite zu, oder ihr aktiviert die login-freie Selbsteintragung (siehe unten). Im <strong>Kalender</strong>{" "}
-            seht ihr, welche Spiele vollständig besetzt sind. Tage mit offener Besetzung sind am Handy mit einem
-            Warnsymbol markiert.
+            Profil-Seite zu, oder ihr schaltet die login-freie <a href="#zuordnung" className="font-medium underline">Selbsteintragung</a> frei. Im 
+            <Link href="/admin/kalender" className="font-medium underline">
+              Kalender
+            </Link> 
+            seht ihr, welche Spiele vollständig besetzt sind; am Handy markiert ein Warnsymbol Tage mit offener Besetzung.
           </li>
           <li>
             <strong>Vereinsseite und App teilen:</strong> Logo und Farbe festlegen, dann den Link zu eurer Seite an Spieler,
@@ -94,9 +125,8 @@ export default async function HilfePage() {
           </li>
         </ol>
         <p className="text-sm text-muted-foreground">
-          <strong>Darstellung:</strong> Unten auf jeder Seite stellt ihr „Automatisch“ (folgt dem Handy), „Hell“ oder „Dunkel“
-          ein. Die Statistik (Bilanz aller Spiele, Top-Dienstleistende) findet ihr unter{" "}
-          <strong>Verwaltung → Statistik</strong>, offene Aufgaben unter <strong>Offene Dienste</strong>.
+          <strong>Freundschaftsspiele und Turniere</strong> stehen nicht in den Liga-Daten: die legt ihr selbst an (
+          <a href="#eigene-termine" className="font-medium underline">so geht&apos;s</a>).
         </p>
       </section>
 
@@ -130,7 +160,7 @@ export default async function HilfePage() {
             Terminen zu und verwalten ihre Selbsteintragungs-Links.
           </li>
           <li>
-            <strong>Alle anderen Funktionsträger</strong> (Schiedsrichter, Zeitnehmer, Sekretär, Ordner, Kioskdienst, Kassierer,
+            <strong>Alle anderen Funktionsträger</strong> (Schiedsrichter, Zeitnehmer/Sekretär, Ordner, Kioskdienst, Kassierer,
             Trainer): sehen im Profil ihre eigenen Einsätze, offene Dienste und ihren persönlichen Kalender.
           </li>
           <li>
@@ -141,6 +171,50 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Eine Person kann mehrere Rollen haben. Wer den Verein verlässt, wird deaktiviert, seine bisherigen Einsätze bleiben in der
           Historie.
+        </p>
+      </section>
+
+      <section id="mannschaften" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Mannschaften</h2>
+        <p className="text-sm text-muted-foreground">
+          Ist der Spielplan angebunden, legt HandballerPate eure Mannschaften aus den Liga-Daten selbst an und ordnet neue
+          Spiele automatisch der richtigen Mannschaft zu. Habt ihr schon eigene Mannschaften angelegt, legt es keine
+          zusätzlichen an (keine Doppelten), sondern ordnet Spiele über den Namen zu. Unter 
+          <Link href="/admin/mannschaften" className="font-medium underline">
+            Mannschaften
+          </Link> 
+          könnt ihr Mannschaften umbenennen, ergänzen oder löschen. Gebraucht werden sie für die Zuordnung der Spiele, die
+          Trainer und den Dienste-Bedarf je Mannschaft.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Der Name auf der <strong>öffentlichen Vereinsseite</strong> ist davon getrennt und wird unter Einstellungen →
+          Öffentliche Vereinsseite → „Namen der Mannschaften“ geändert (siehe unten).
+        </p>
+      </section>
+
+      <section id="funktionstraeger" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Funktionsträger anlegen &amp; Excel-Import</h2>
+        <p className="text-sm text-muted-foreground">
+          Unter 
+          <Link href="/admin/funktionstraeger" className="font-medium underline">
+            Funktionsträger
+          </Link> 
+          legt ihr Personen mit Name, E-Mail-Adresse und einer oder mehreren Rollen an. Wer eine E-Mail-Adresse hat, bekommt
+          eine Willkommensmail und kann sich selbst einloggen. Personen ohne E-Mail lassen sich trotzdem einteilen (z.B.
+          „Ohne Login zuordnen“ auf den Wart-Seiten).
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Viele Personen auf einmal:</strong> „Aus Excel importieren“ mit einer Kopfzeile mit den Spalten 
+          <strong>Name</strong>, <strong>E-Mail</strong>, <strong>Rolle</strong> (Schiedsrichter, Zeitnehmer/Sekretär,
+          Trainer, Ordner, Kioskdienst oder Kassierer), optional <strong>Mannschaft</strong> (nur bei Trainern, muss es als
+          Mannschaft geben) und optional <strong>Lizenz gültig bis</strong> (TT.MM.JJJJ). Mehrere Rollen pro Person: mehrere
+          Zeilen mit derselben E-Mail-Adresse. Bereits vorhandene Personen und Rollen werden übersprungen, nicht doppelt
+          angelegt.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Zeitnehmer und Sekretär</strong> sind in HandballerPate eine Funktion: wer eine davon hat, kann beide
+          Aufgaben übernehmen. <strong>Trainer</strong> können sich auch selbst eintragen: unter Funktionsträger →
+          „Trainer-Links pro Mannschaft“ einen Link je Mannschaft freischalten und an den Trainer schicken.
         </p>
       </section>
 
@@ -260,62 +334,64 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Mit <strong>Seite entfernen</strong> verschwindet die öffentliche Seite
           eures Vereins samt eigenen Namen und Logo. Eure Vereinsdaten in
-          HandballerPate bleiben davon unberührt.
+          HandballerPate bleiben davon unberührt. Sind schon Dienste eingetragen, geht das nur noch per{" "}
+          <a href="#gesperrte-ids" className="font-medium underline">Änderungsantrag</a>.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Ausblick Handball360:</strong> Der DHB stellt den Spielbetrieb schrittweise auf das neue System
+          Handball360 um, das nuLiga ablösen soll. Ändert sich dadurch die Datenquelle, passen wir den Abruf an; ihr müsst
+          dafür nichts tun.
         </p>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-heading text-lg font-medium">
-          Brauche ich eine Hallen-ID?
-        </h2>
+      <section id="spielhallen" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Eure Spielhallen: welche Spiele werden Heimspiele?</h2>
         <p className="text-sm text-muted-foreground">
-          <strong>Nein.</strong> Spielplan, Verlegungen,
-          Ergebnisse und die Ansetzung der Schiedsrichter kommen tagsüber stündlich
-          aus den öffentlichen Liga-Daten, und dafür genügt die
-          nuLiga- bzw. handball.net-Vereins-ID unter{" "}
-          <strong>Einstellungen → Öffentliche Vereinsseite</strong> — Heim-
-          und Auswärtsspiele gleichermaßen.
-        </p>
-        <p className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-400">
-          Ausnahme: <strong>Freundschaftsspiele und Turniere</strong> stehen
-          nicht in den öffentlichen Liga-Daten. Bis wir sie ebenfalls
-          automatisch pflegen (in Entwicklung), legt ihr sie bitte von Hand
-          als Termin im Kalender an.
-        </p>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="font-heading text-lg font-medium">
-          Wann brauche ich eine handball.net-Team-ID?
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Ab der 3. Liga (und z.B. Jugend-Bundesliga) läuft der
-          Spielbetrieb zentral über handball.net statt über die
-          Landesverbands-nuLiga — dort gibt es keine Hallen-, sondern nur
-          eine Mannschafts-Abfrage. Deshalb tragt ihr bei den betroffenen
-          Mannschaften (<strong>Mannschaften → Mannschaft bearbeiten</strong>)
-          stattdessen die handball.net-Team-ID ein (aus der URL der
-          Team-Seite, z.B. bei handball.net/team/69770 die 69770).
+          Die Liga-Daten enthalten alle Spiele eurer Mannschaften, auch auswärts und auch Heimspiele, die z.B. in einer
+          fremden Halle stattfinden. Für die Einteilung von Diensten zählen nur Spiele <strong>in euren Hallen</strong>.
+          Deshalb tragt ihr unter 
+          <Link href="/admin/einstellungen#spielhallen" className="font-medium underline">
+            Einstellungen → Öffentliche Vereinsseite → Eure Spielhallen
+          </Link> 
+          eure Hallen ein: eine pro Zeile, ein eindeutiger Teil des Namens reicht (z.B. „Sporthalle Heuchelheim“),
+          Groß-/Kleinschreibung ist egal.
         </p>
         <p className="text-sm text-muted-foreground">
-          Da handball.net pro Mannschaft abgefragt wird,{" "}
-          <strong>deckt dieser Import ALLE Spiele der Mannschaft ab</strong>{" "}
-          — Heim- und Auswärtsspiele gleichermaßen.
+          <strong>Ohne Eintrag wird kein Heimspiel angelegt</strong>, der Kalender bleibt leer. Nach dem Speichern werden
+          passende künftige Heimspiele beim nächsten Abgleich (tagsüber stündlich) angelegt. Eine Hallen-ID braucht ihr
+          dafür nicht mehr, die Vereins-ID genügt. Den Hallennamen eines Spiels seht ihr auf eurer öffentlichen Vereinsseite
+          oder bei nuLiga.
         </p>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-heading text-lg font-medium">
-          Ändert sich das mit Handball360?
-        </h2>
+      <section id="spielgemeinschaft" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Spielgemeinschaften &amp; Partnervereine</h2>
         <p className="text-sm text-muted-foreground">
-          Der DHB stellt den Spielbetrieb schrittweise auf ein neues,
-          bundesweit einheitliches Verbandsmanagementsystem namens{" "}
-          <strong>Handball360</strong> um, das nuLiga und Handball4all
-          ablöst. Auch der HHV plant den Umstieg. Sobald das feststeht und
-          sich die Datenquelle ändert, passen wir den automatischen Import
-          entsprechend an — die Unterscheidung Vereins-ID/Team-ID oben gilt
-          also nur, solange nuLiga bzw. handball.net im Einsatz sind.
+          Läuft eine Mannschaft unter einem anderen Verein, z.B. eine Jugendspielgemeinschaft, die bei nuLiga beim
+          Partnerverein gemeldet ist, fehlt sie zunächst. Unter Einstellungen → Öffentliche Vereinsseite → 
+          <strong>„Weitere nuLiga-Vereine (z.B. Spielgemeinschaft)“</strong> tragt ihr die Vereins-ID des Partnervereins ein
+          (nuLiga oder handball.net) und wählt, welche Mannschaften übernommen werden: nach Bereich (Männer, Frauen,
+          weibliche/männliche Jugend, Kinder) und optional einem Namensteil, z.B. „Heuchelheim“ für die „wJSG
+          Bieber/Heuchelheim“. Übernommen werden nur die passenden Mannschaften, nie der ganze Partnerverein.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Einzelne DHB-Mannschaften (handball.net), die nicht automatisch gefunden werden, tragt ihr dort als 
+          <strong>handball.net-Team-IDs</strong> ein (siehe oben).
+        </p>
+      </section>
+
+      <section id="gesperrte-ids" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Vereins-ID gesperrt? Änderung beantragen</h2>
+        <p className="text-sm text-muted-foreground">
+          Sobald für einen Termin ein Dienst eingetragen ist, lassen sich die Vereins-IDs, Team-IDs und Partnervereine nicht
+          mehr selbst ändern oder entfernen. Grund: Termine und eingetragene Dienste hängen daran. Mit einer anderen ID würden
+          die Spiele als zweite Termine neu angelegt und die Einteilungen gingen am alten Termin verloren. Ein leeres Feld zu
+          füllen und „Jetzt aktualisieren“ gehen weiterhin, ebenso die Spielhallen.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Muss doch etwas geändert werden, nutzt ihr unter Einstellungen → Öffentliche Vereinsseite → 
+          <strong>„Änderung beantragen“</strong> mit einem kurzen Grund. Wir prüfen den Antrag, setzen die Änderung so um,
+          dass nichts verloren geht, und ihr bekommt eine Mail.
         </p>
       </section>
 
@@ -332,6 +408,23 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           <strong>Ein Spiel fehlt oder ist falsch?</strong> Die Liga-Daten werden tagsüber stündlich geholt. Prüft im Zweifel die
           Vereins-ID unter Einstellungen → Öffentliche Vereinsseite oder meldet es über den Feedback-Button.
+        </p>
+      </section>
+
+      <section id="eigene-termine" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Freundschaftsspiele &amp; Turniere</h2>
+        <p className="text-sm text-muted-foreground">
+          Freundschaftsspiele und Turniere stehen nicht in den Liga-Daten, ihr legt sie selbst an: unter 
+          <Link href="/admin/termine?tab=testspiele" className="font-medium underline">
+            Termine → Freundschaftsspiele &amp; Turniere
+          </Link> 
+          über <strong>„Neuer Termin“</strong> mit Typ, Start, Ort, Gegner und optional der Mannschaft. Danach werden sie wie
+          Ligaspiele besetzt; der Bedarf richtet sich nach der Veranstaltungsart (<a href="#bedarf" className="font-medium underline">Dienste-Bedarf</a>),
+          einen Schiedsrichter stellt ihr hier selbst.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Bei einem <strong>Turnier</strong> könnt ihr in der Termin-Ansicht die einzelnen Spiele als Spielplan anlegen und
+          einen <strong>öffentlichen Link</strong> teilen, über den andere Vereine und Eltern den Spielplan ohne Login sehen.
         </p>
       </section>
 
@@ -445,6 +538,17 @@ export default async function HilfePage() {
           kurzfristig ausfällt.
         </p>
       </section>
+
+      <section id="abmeldungen" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Wenn jemand doch nicht kann</h2>
+        <p className="text-sm text-muted-foreground">
+          Wer eingetragen ist, kann sich in seinem Profil bei dem Termin <strong>abmelden</strong>. Das ist eine Anfrage, keine
+          sofortige Austragung: der zuständige Wart bekommt eine Mail, und die Anfrage steht auf seiner Wart-Seite und auf der
+          Übersicht im Admin-Bereich. Dort wird sie <strong>genehmigt</strong> (der Platz wird wieder frei und taucht in den
+          offenen Diensten auf) oder <strong>abgelehnt</strong>. Bis dahin bleibt die Person eingetragen und kann die Anfrage
+          selbst zurückziehen.
+        </p>
+      </section>
       <section id="mails" className="flex flex-col gap-2 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">E-Mails &amp; Erinnerungen</h2>
         <p className="text-sm text-muted-foreground">
@@ -464,6 +568,51 @@ export default async function HilfePage() {
           und Auswärts; laufende Spiele zählen erst mit dem endgültigen Ergebnis), darunter je Mannschaft eine Karte mit Form, Tore pro Spiel, Heim/Auswärts,
           höchstem Sieg und Halbzeit-Auswertung, und die Top-Dienstleistenden. Dieselbe Mannschaftsstatistik sehen Spieler und Eltern
           in der öffentlichen App im Reiter „Statistik“.
+        </p>
+      </section>
+
+      <section id="auswertung" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Auswertung &amp; Export</h2>
+        <p className="text-sm text-muted-foreground">
+          Unter 
+          <Link href="/admin/auswertung" className="font-medium underline">
+            Auswertung &amp; Export
+          </Link> 
+          steht der gesamte Dienstplan mit allen besetzten Rollen, filterbar nach Zeitraum. Einzelne Termine und Rollen lassen
+          sich auswählen und als <strong>Excel</strong> oder <strong>PDF</strong> herunterladen, z.B. zum Aushang in der Halle.
+        </p>
+      </section>
+
+      <section id="trainingsplan" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Trainingsplan</h2>
+        <p className="text-sm text-muted-foreground">
+          Unter 
+          <Link href="/admin/trainingsplan" className="font-medium underline">
+            Training
+          </Link> 
+          plant ihr die wöchentlich wiederkehrenden Trainingszeiten je Halle: am Computer per Ziehen (Mannschaft auf einen
+          Wochentag ziehen, Dauer an der unteren Kante anpassen), am Handy über „Bearbeiten“. Unterteilte Hallen haben eine
+          Spalte je Abteil; Überschneidungen werden rot markiert. Der Plan gilt für jede Woche gleich und hat keinen Einfluss
+          auf Spiele und Dienste.
+        </p>
+      </section>
+
+      <section id="kosten" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Beta, Kosten &amp; Verein löschen</h2>
+        <p className="text-sm text-muted-foreground">
+          Während der Beta-Phase (bis 30.11.2026) ist HandballerPate kostenlos. Was danach gilt (Preis, Rechnung, Fristen),
+          steht unter 
+          <Link href="/admin/einstellungen#vereinsdaten" className="font-medium underline">
+            Einstellungen → Vereinsdaten und Rechnung
+          </Link>
+          ; dort pflegt ihr auch Rechnungsadresse und Rechnungs-E-Mail. Vor dem Ende der Beta bekommt der Vereinsadmin eine
+          Mail mit den Konditionen. Optional kann ein <strong>Sponsor</strong> die Kosten übernehmen (Einstellungen →
+          Sponsor).
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Aussteigen:</strong> Unter Einstellungen → Gefahrenzone → „Verein löschen“ wird der Verein mit allen
+          Personen, Mannschaften, Terminen und der Historie endgültig gelöscht. Vor dem Ende der Beta fallen dann keine
+          Kosten an.
         </p>
       </section>
 

@@ -345,7 +345,7 @@ export default async function EinstellungenPage({
             </p>
           </form>
           {session.user.istAdmin && (
-            <div className="mt-4 flex flex-col gap-2 border-t pt-4">
+            <div id="spielhallen" className="mt-4 flex scroll-mt-6 flex-col gap-2 border-t pt-4">
               <p className="text-sm font-medium">Eure Spielhallen</p>
             <form action={eigeneHallenNamenSpeichern} className="flex flex-col gap-3">
               <p className="text-xs text-muted-foreground">
@@ -911,7 +911,7 @@ export default async function EinstellungenPage({
         </EinstellungsBereich>
 
       <EinstellungsBereich titel="Sponsor" kurz="Kosten von einem Sponsor übernehmen lassen" beschreibung={<>Ein Sponsor kann die technischen Kosten übernehmen — dafür erscheint beim Öffnen eurer
-            Vereinsseite kurz sein Bild („Präsentiert von …"). Der Sponsor zahlt {PREIS_SPONSOR} € im Jahr für den
+            Vereinsseite kurz sein Bild („Präsentiert von …“). Der Sponsor zahlt {PREIS_SPONSOR} € im Jahr für den
             Platz und zusätzlich den Jahrespreis des Vereins — ihr zahlt dann nichts. Der Sponsor wird
             vom HandballerPate-Team eingerichtet; sagt Bescheid, wenn ihr einen Sponsor habt.</>}>
         <p className="text-sm">

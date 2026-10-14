@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronRightIcon } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
-import { mannschaften } from "@/db/schema";
+import { mannschaften, vereine } from "@/db/schema";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { holeUnbekannteMannschaften } from "@/lib/unbekannte-mannschaften";
 import {
@@ -74,12 +74,15 @@ export default async function MannschaftenPage({
   const vereinId = session.user.vereinId!;
   const hnErgebnis = await searchParams;
 
-  const [rohListe, { unbekannteMannschaften, ignoriert }] = await Promise.all([
+  const [rohListe, verein, { unbekannteMannschaften, ignoriert }] = await Promise.all([
     withTenant(vereinId, (tx) =>
       tx.query.mannschaften.findMany({
         where: eq(mannschaften.vereinId, vereinId),
         orderBy: (m, { asc }) => [asc(m.name)],
       })
+    ),
+    withTenant(vereinId, (tx) =>
+      tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { hallenplanImportAus: true } })
     ),
     holeUnbekannteMannschaften(vereinId),
   ]);
@@ -88,13 +91,16 @@ export default async function MannschaftenPage({
   // A-E, Mini/Maxi) kommt aus dem Namen selbst, siehe mannschaft-sortierung.ts.
   const liste = sortiereMannschaften(rohListe);
   const anzahlMitTeamId = liste.filter((m) => m.handballNetTeamId).length;
+  // Der Teamimport je Mannschaft läuft nur, solange der Hallenplan-/Teamimport des Vereins an ist (lib/handball-net-sync.ts);
+  // sonst kommen die DHB-Spiele über die handball.net-Vereins-ID der öffentlichen Seite und die Team-ID hier wäre irreführend.
+  const zeigeTeamId = !verein?.hallenplanImportAus;
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
         <h1 className="font-heading text-2xl font-semibold">Mannschaften</h1>
-          <HilfeHinweis anker="erste-schritte" />
+          <HilfeHinweis anker="mannschaften" />
         </div>
         <p className="text-sm text-muted-foreground">
           Mannschaften des Vereins verwalten.
@@ -151,6 +157,7 @@ export default async function MannschaftenPage({
           <MannschaftenTabelle
             liste={liste}
             schreibzugriff={session.user.istAdmin}
+            zeigeTeamId={zeigeTeamId}
           />
         </CardContent>
       </Card>
@@ -338,7 +345,7 @@ export default async function MannschaftenPage({
         </Card>
       )}
 
-      {session.user.istAdmin && (
+      {session.user.istAdmin && zeigeTeamId && (
         <Card className="max-w-2xl">
           <CardHeader>
             <CardTitle>handball.net-Sync</CardTitle>

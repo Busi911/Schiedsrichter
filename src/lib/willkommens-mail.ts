@@ -58,7 +58,7 @@ export function ersteSchritteInhalt(vereinName: string): EmailInhalt {
     vereinName,
     ueberschrift: "Neu: Anleitung „Erste Schritte“ für euren Verein",
     zeilen: [
-      "Damit ihr HandballerPate schnell vollständig nutzen könnt, gibt es jetzt eine kurze Anleitung „Erste Schritte“: Spielplan anbinden, Mannschaften und Funktionsträger anlegen, Dienste-Bedarf festlegen und Aufgaben verteilen.",
+      "Damit ihr HandballerPate schnell vollständig nutzen könnt, gibt es jetzt eine kurze Anleitung „Erste Schritte“: Spielplan anbinden, eure Spielhallen eintragen, Mannschaften und Funktionsträger anlegen, Dienste-Bedarf festlegen und Aufgaben verteilen.",
       `Anleitung (nach dem Login): ${ersteSchritteUrl()}`,
       "Auf der Übersicht im Admin-Bereich zeigt euch eine Checkliste, welche Schritte bei euch noch offen sind. Sie verschwindet, sobald alles eingerichtet ist.",
       "Fragen oder Wünsche? Schreibt uns einfach über den Feedback-Button oben in der App.",
