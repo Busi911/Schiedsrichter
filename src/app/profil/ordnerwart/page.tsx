@@ -55,6 +55,7 @@ import { SelbsteintragungLink } from "@/components/selbsteintragung-link";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
+import { WartOnboarding } from "@/components/wart-onboarding";
 import { LabeledSelect } from "@/components/labeled-select";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
@@ -261,8 +262,9 @@ export default async function OrdnerwartPage({
         <Link href="/profil" className="text-sm text-muted-foreground underline">
           ← Zurück zu meinem Profil
         </Link>
+        {/* Zero-width-Space nach den Schrägstrichen: das lange Wort darf auf dem Handy umbrechen (sonst wird die Seite breiter als der Bildschirm). */}
         <h1 className="font-heading text-2xl font-semibold">
-          Ordner-/Kioskdienst-/Kassiererwart
+          Ordner-/&#8203;Kioskdienst-/&#8203;Kassiererwart
         </h1>
         <p className="text-sm text-muted-foreground">
           Übersicht über alle Ordner-/Kioskdienst-/Kassierer-Helfer im
@@ -273,7 +275,17 @@ export default async function OrdnerwartPage({
         </p>
       </div>
 
-      <Card className="border-primary/40 bg-primary/5">
+      <WartOnboarding
+        rolle="ordner"
+        stand={{
+          personen: personenListe.length,
+          linkAktiv: !!verein?.ordnerSelbstanmeldungToken,
+          einteilungen: termineRoh.reduce((n, t) => n + t.zuordnungen.filter((z) => (ORDNER_ROLLEN as readonly string[]).includes(z.funktionstraegerTyp)).length, 0),
+          istAdmin: session.user.istAdmin,
+        }}
+      />
+
+      <Card id="selbsteintragung" className="scroll-mt-6 border-primary/40 bg-primary/5">
         <CardHeader>
           <CardTitle className="text-base">Öffentliche Selbsteintragung</CardTitle>
           <CardDescription>
@@ -593,7 +605,7 @@ export default async function OrdnerwartPage({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="termine" className="scroll-mt-6">
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base">
