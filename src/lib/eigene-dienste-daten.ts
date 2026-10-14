@@ -79,15 +79,6 @@ export async function zuordnungsBezeichnung(
   return art?.name ?? zuordnung.funktionstraegerTyp;
 }
 
-export async function hatAktiveEigeneDienste(tx: Tx, vereinId: string): Promise<boolean> {
-  const [zeile] = await tx
-    .select({ id: dienstArten.id })
-    .from(dienstArten)
-    .where(and(eq(dienstArten.vereinId, vereinId), eq(dienstArten.aktiv, true)))
-    .limit(1);
-  return !!zeile;
-}
-
 // Namen aller eigenen Dienste des Vereins (auch deaktivierter), für die Beschriftung von Einteilungen.
 export async function ladeDienstNamen(tx: Tx, vereinId: string): Promise<Map<string, string>> {
   const zeilen = await tx.select({ id: dienstArten.id, name: dienstArten.name }).from(dienstArten).where(eq(dienstArten.vereinId, vereinId));

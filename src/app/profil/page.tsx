@@ -1,7 +1,7 @@
 import { and, eq, inArray, or } from "drizzle-orm";
 import { FahrtBearbeiten } from "@/components/fahrt-bearbeiten";
 import { rolleFuerAnzeige } from "@/lib/eigene-dienste";
-import { hatAktiveEigeneDienste, ladeDienstNamen } from "@/lib/eigene-dienste-daten";
+import { ladeDienstNamen } from "@/lib/eigene-dienste-daten";
 import Link from "next/link";
 import { CalendarIcon, LogOutIcon } from "lucide-react";
 import { requireSession } from "@/lib/session";
@@ -83,7 +83,7 @@ export default async function ProfilPage({
   const { von, bis } = monatsBereich(jahr, monatNull);
 
   const [
-    { eigeneStammdaten, rollen, profil, eigeneTermine, verein, meineTurniere, hatEigeneDienste, meineHelferdienste },
+    { eigeneStammdaten, rollen, profil, eigeneTermine, verein, meineTurniere, meineHelferdienste },
     eintraegeProTag,
     vereinsLogo,
   ] = await Promise.all([
@@ -190,7 +190,6 @@ export default async function ProfilPage({
         eigeneTermine,
         verein,
         meineTurniere,
-        hatEigeneDienste: await hatAktiveEigeneDienste(tx, vereinId),
         // Eigene Dienste (Fahrer, Kuchen, ...), für die diese Person eingeteilt ist — künftige, mit Abmelde-Möglichkeit.
         meineHelferdienste: eigeneZuordnungen
           .filter((z) => z.funktionstraegerTyp === "eigener_dienst")
@@ -375,7 +374,7 @@ export default async function ProfilPage({
                 {TYP_LABEL.ordnerwart}
               </Button>
             )}
-            {(istDienstwart || (session.user.istAdmin && hatEigeneDienste)) && (
+            {(istDienstwart || session.user.istAdmin) && (
               <Button
                 variant="outline"
                 size="sm"

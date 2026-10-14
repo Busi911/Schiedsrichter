@@ -630,13 +630,13 @@ export default async function HilfePage() {
         <h2 className="font-heading text-lg font-medium">Die Wart-Seiten: wo, was, wer</h2>
         <p className="text-sm text-muted-foreground">
           Eingeteilt wird auf den Wart-Seiten, je eine für Schiedsrichter, Zeitnehmer/Sekretär und Ordner/Kioskdienst/Kassierer,
-          dazu eine für die <a href="#eigene-dienste" className="font-medium underline">eigenen Dienste</a> (Dienstwart), sobald
-          euer Verein welche angelegt hat.
+          dazu eine für die <a href="#eigene-dienste" className="font-medium underline">eigenen Dienste</a> (Dienstwart, z.B.
+          Fahrer oder Kuchen). Hat euer Verein noch keine eigenen Dienste, verweist die Dienstwart-Seite auf Einstellungen → Dienste.
         </p>
         <h3 className="text-sm font-medium">Wer sieht sie?</h3>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
           <li>
-            <strong>Vereinsadmins</strong> sehen alle drei, auch ohne eigene Wart-Rolle.
+            <strong>Vereinsadmins</strong> sehen alle vier, auch ohne eigene Wart-Rolle.
           </li>
           <li>
             <strong>Warte:</strong> Der Admin gibt einer Person unter{" "}
@@ -655,7 +655,7 @@ export default async function HilfePage() {
             unter <strong>„Mehr“ → Dienste einteilen</strong>.
           </li>
           <li>
-            <strong>Im Profil:</strong> oben die Schaltflächen „Schiedsrichterwart“, „Zeitnehmerwart“, „Ordnerwart“ und ggf.
+            <strong>Im Profil:</strong> oben die Schaltflächen „Schiedsrichterwart“, „Zeitnehmerwart“, „Ordnerwart“ und
             „Dienstwart“, am Handy zusätzlich unten in der Leiste („Schiris“, „Zeitnehmer“, „Ordner“, „Dienste“). So kommen auch
             Warte ohne Admin-Rechte hin.
           </li>
