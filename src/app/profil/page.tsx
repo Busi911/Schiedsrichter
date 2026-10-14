@@ -408,7 +408,7 @@ export default async function ProfilPage({
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-screen-2xl flex-col gap-6 p-6 pb-24 md:pb-6">
+      <main className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6 p-6 pb-24 md:pb-6">
         <Card>
           <CardHeader>
             <CardTitle>Mein Kalender</CardTitle>

@@ -160,7 +160,16 @@ Zwei wiederkehrende Muster:
   `components/monats-kalender.tsx` (Agenda-Liste statt Gitter unter `md`).
 
 Tabellen brauchen keine Sonderbehandlung: `components/ui/table.tsx`
-wrapped bereits jede Tabelle in `overflow-x-auto`.
+wrapped bereits jede Tabelle in `overflow-x-auto` — ABER nur, wenn der
+Seitencontainer eine feste Breite hat: ein `mx-auto max-w-…`-Container in
+einem Flex-Layout richtet sich sonst nach dem Inhalt (breite Tabelle) und
+wird breiter als der Bildschirm. Seitencontainer deshalb immer mit `w-full`
+(`mx-auto flex w-full max-w-3xl flex-col …`). Wichtig: `body` hat
+`overflow-x: hidden` — zu breite Inhalte erzeugen keinen Scrollbalken,
+sondern werden still ABGESCHNITTEN. Zeilen mit Formularen (Label + Feld +
+Button, Name + Aktionen) brauchen `flex-wrap` bzw. auf dem Handy volle Breite
+(`w-full sm:w-auto`, statt fester `min-w-56`/`w-32` in einer nicht
+umbrechenden Zeile).
 
 - **Lange Button-Labels**: `Button`/`SubmitButton`/`ConfirmSubmitButton`
   sind `whitespace-nowrap` (siehe `buttonVariants` in `ui/button.tsx`) —
