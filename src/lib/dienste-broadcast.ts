@@ -19,6 +19,8 @@ const ROLLE_LABEL: Record<Rolle, string> = {
   kioskdienst: "Kioskdienst",
   kassierer: "Kassierer",
   zeitnehmer: "Zeitnehmer/Sekretär",
+  // Eigene Dienste haben keine Rolleninhaber (eingeteilt wird jede Person), der Broadcast überspringt sie.
+  eigener_dienst: "Helfer",
 };
 
 // "zeitnehmer" in OffenePosten.luecken bündelt den gemeinsam gezählten
@@ -30,6 +32,7 @@ const ROLLE_ZU_FUNKTIONSTRAEGER_TYPEN: Record<Rolle, readonly FunktionstraegerTy
   kioskdienst: ["kioskdienst"],
   kassierer: ["kassierer"],
   zeitnehmer: ["zeitnehmer", "sekretaer"],
+  eigener_dienst: [],
 };
 
 export function offenerPostenBroadcastZeile(p: OffenePosten): string {
@@ -87,6 +90,7 @@ export async function sendeOffeneDiensteBroadcast() {
       }
 
       for (const [rolle, termine] of terminProRolle) {
+        if (ROLLE_ZU_FUNKTIONSTRAEGER_TYPEN[rolle].length === 0) continue;
         const rolleninhaber = await adminDb
           .select({ id: users.id, email: users.email })
           .from(funktionstraegerRollen)

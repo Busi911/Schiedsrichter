@@ -15,6 +15,7 @@ import {
 import { ORDNER_ROLLEN, pruefeOrdnerBesetzungsgrenze } from "@/lib/ordnerwart";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
+import { zuordnungsBezeichnung } from "@/lib/eigene-dienste-daten";
 
 // Alle über dieses Modal zuordenbaren Rollen — Schiedsrichter/Zeitnehmer/
 // Sekretär (feste Gespann-Obergrenze, siehe pruefeBesetzungsgrenze) UND
@@ -234,7 +235,8 @@ export async function zuordnungEntfernen(formData: FormData) {
     return {
       termin,
       email: person.email,
-      rolle: zuordnung.funktionstraegerTyp,
+      // Eigene Dienste mit ihrem Namen ("Fahrer"), sonst der Typ.
+      rolle: await zuordnungsBezeichnung(tx, zuordnung),
       vereinName: verein?.name ?? "HandballerPate",
     };
   });

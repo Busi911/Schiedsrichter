@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { AdminNav } from "@/components/admin-nav";
-import { WART_ITEMS } from "@/lib/wart-navigation";
+import { wartItems } from "@/lib/wart-navigation";
+import { hatAktiveEigeneDienste } from "@/lib/eigene-dienste-daten";
 import { BottomNav } from "@/components/bottom-nav";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { HilfeLink } from "@/components/hilfe-link";
@@ -46,10 +47,12 @@ export default async function AdminLayout({
   // Auf jeder Admin-Seite sichtbar (nicht nur auf der Übersicht) — der Admin
   // soll die Besetzung nur noch überwachen, die eigentliche Zuordnung
   // übernehmen die jeweiligen Wart-Rollen (siehe /admin/dienste).
-  const [offeneDiensteAnzahl, offeneSchiedsrichterAnzahl] = await Promise.all([
+  const [offeneDiensteAnzahl, offeneSchiedsrichterAnzahl, mitEigenenDiensten] = await Promise.all([
     holeOffenePosten(vereinId).then((p) => p.length),
     holeOffeneSchiedsrichterAnzahl(vereinId),
+    withTenant(vereinId, (tx) => hatAktiveEigeneDienste(tx, vereinId)),
   ]);
+  const warte = session.user.istAdmin ? wartItems(mitEigenenDiensten) : [];
 
   return (
     <div className="min-h-screen">
@@ -116,7 +119,7 @@ export default async function AdminLayout({
               </form>
             </div>
           </div>
-          <AdminNav zeigeWarte={session.user.istAdmin} />
+          <AdminNav warte={warte} />
           {/* Auf Mobile eine eigene, sonst leer wirkende Zeile (Nav ist dort
               hinter dem Hamburger versteckt) — dort zentriert statt wie auf
               Desktop (wo sie neben der Nav steht) am linken Rand mit viel
@@ -200,9 +203,7 @@ export default async function AdminLayout({
           },
           { href: "/admin/mannschaften", label: "Mannschaften", icon: "mannschaften", gruppe: "Planung" },
           { href: "/admin/funktionstraeger", label: "Funktionsträger", icon: "funktionstraeger", gruppe: "Planung" },
-          ...(session.user.istAdmin
-            ? WART_ITEMS.map((w) => ({ ...w, icon: "wart" as const, gruppe: "Dienste einteilen" }))
-            : []),
+          ...warte.map((w) => ({ ...w, icon: "wart" as const, gruppe: "Dienste einteilen" })),
           { href: "/admin/statistik", label: "Statistik", icon: "statistik", gruppe: "Auswertung" },
           { href: "/admin/auswertung", label: "Auswertung & Export", icon: "auswertung", gruppe: "Auswertung" },
           { href: "/admin/einstellungen", label: "Einstellungen", icon: "einstellungen", gruppe: "Verein & Konto" },

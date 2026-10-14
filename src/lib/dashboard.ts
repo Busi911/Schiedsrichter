@@ -10,6 +10,8 @@ import {
 } from "@/db/schema";
 import { bedarfFuer, bedarfOverrideFuer } from "./dienste";
 import { ORDNER_ROLLEN } from "./ordnerwart";
+import { eigeneDiensteLuecken, LEERER_KONTEXT, type EigeneDiensteKontext } from "./eigene-dienste";
+import { ladeEigeneDiensteKontext } from "./eigene-dienste-daten";
 import {
   berechneBesetzung,
   brauchtSchiedsrichterVomVerein,
@@ -91,15 +93,20 @@ export type OffenePosten = {
   ort: string | null;
   mannschaftLabel: string | null;
   luecken: {
-    rolle: "ordner" | "kioskdienst" | "kassierer" | "zeitnehmer";
+    rolle: "ordner" | "kioskdienst" | "kassierer" | "zeitnehmer" | "eigener_dienst";
     vorhanden: number;
     bedarf: number;
+    // Nur bei eigenen Diensten (rolle "eigener_dienst"): Name und Id des vom Verein definierten Dienstes.
+    label?: string;
+    dienstArtId?: string;
   }[];
 };
 
 type VereinBedarf = Parameters<typeof bedarfFuer>[0];
 type AnstehenderTermin = {
   id: string;
+  // Für eigene Dienste, die nur für ausgewählte Mannschaften gelten (lib/eigene-dienste.ts).
+  mannschaftId?: string | null;
   start: Date;
   typ: string;
   ort: string | null;
@@ -171,7 +178,7 @@ function mannschaftDeaktiviertFuerOrdnerRolle(
   if (rolle === "kioskdienst") return termin.mannschaftKioskdienstBedarfDeaktiviert;
   return termin.mannschaftKassiererBedarfDeaktiviert;
 }
-type Zuordnung = { terminId: string; funktionstraegerTyp: string };
+type Zuordnung = { terminId: string; funktionstraegerTyp: string; dienstArtId?: string | null };
 
 // Nur diese Typen brauchen eine Zeitnehmer-/Sekretär-Zuordnung — deckungsgleich
 // mit BESETZUNGSRELEVANTE_TYPEN in den Kalenderansichten (siehe
@@ -213,7 +220,9 @@ export function berechneUnbesetzteTermine(
   verein: VereinBedarf,
   anstehende: AnstehenderTermin[],
   zuordnungen: Zuordnung[],
-  ignorierteMannschaften: IgnorierteMannschaft[] = []
+  ignorierteMannschaften: IgnorierteMannschaft[] = [],
+  // Vom Verein definierte eigene Dienste (Fahrer, Kuchen, ...) zählen wie die Helferdienste zur Vollständigkeit.
+  eigene: EigeneDiensteKontext = LEERER_KONTEXT
 ): UnbesetzterTermin[] {
   const ergebnis: UnbesetzterTermin[] = [];
 
@@ -241,7 +250,7 @@ export function berechneUnbesetzteTermine(
     );
     // Vom Verein definierte Helferdienste (Ordner/Kioskdienst/Kassierer) zählen mit: ein Termin gilt nur als besetzt,
     // wenn auch diese ihren Bedarf erreichen (wie im Admin-Kalender und in "Offene Dienste").
-    const helferOffen = ORDNER_ROLLEN.some((rolle) => {
+    const helferOffen = eigeneDiensteLuecken(eigene, termin, eigeneZuordnungen).length > 0 || ORDNER_ROLLEN.some((rolle) => {
       const bedarf = bedarfFuer(
         verein,
         termin.typ,
@@ -314,6 +323,7 @@ export async function holeUnbesetzteTermine(
         ort: termine.ort,
         pflichtspiel: termine.pflichtspiel,
         freundschaftsTyp: termine.freundschaftsTyp,
+        mannschaftId: termine.mannschaftId,
         mannschaftName: mannschaften.name,
         mannschaftAltersklasse: mannschaften.altersklasse,
         kategorie: termine.kategorie,
@@ -343,18 +353,20 @@ export async function holeUnbesetzteTermine(
     if (anstehende.length === 0) return [];
 
     const terminIds = anstehende.map((t) => t.id);
-    const [zuordnungen, ignoriert] = await Promise.all([
+    const [zuordnungen, ignoriert, eigene] = await Promise.all([
       tx
         .select({
           terminId: terminZuordnungen.terminId,
           funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+          dienstArtId: terminZuordnungen.dienstArtId,
         })
         .from(terminZuordnungen)
         .where(inArray(terminZuordnungen.terminId, terminIds)),
       holeIgnorierteMannschaften(tx, vereinId),
+      ladeEigeneDiensteKontext(tx, vereinId, terminIds),
     ]);
 
-    return berechneUnbesetzteTermine(verein, anstehende, zuordnungen, ignoriert).slice(0, limit);
+    return berechneUnbesetzteTermine(verein, anstehende, zuordnungen, ignoriert, eigene).slice(0, limit);
   });
 }
 
@@ -367,7 +379,8 @@ export function berechneOffenePosten(
   verein: VereinBedarf,
   anstehende: AnstehenderTermin[],
   zuordnungen: Zuordnung[],
-  ignorierteMannschaften: IgnorierteMannschaft[] = []
+  ignorierteMannschaften: IgnorierteMannschaft[] = [],
+  eigene: EigeneDiensteKontext = LEERER_KONTEXT
 ): OffenePosten[] {
   const posten: OffenePosten[] = [];
 
@@ -410,6 +423,16 @@ export function berechneOffenePosten(
       if (vorhanden < bedarf) luecken.push({ rolle: "zeitnehmer", vorhanden, bedarf });
     }
 
+    for (const stelle of eigeneDiensteLuecken(eigene, termin, zuordnungen)) {
+      luecken.push({
+        rolle: "eigener_dienst",
+        vorhanden: stelle.vorhanden,
+        bedarf: stelle.bedarf,
+        label: stelle.name,
+        dienstArtId: stelle.dienstArtId,
+      });
+    }
+
     if (luecken.length > 0) {
       posten.push({
         terminId: termin.id,
@@ -444,6 +467,7 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
         ort: termine.ort,
         pflichtspiel: termine.pflichtspiel,
         freundschaftsTyp: termine.freundschaftsTyp,
+        mannschaftId: termine.mannschaftId,
         mannschaftName: mannschaften.name,
         mannschaftAltersklasse: mannschaften.altersklasse,
         kategorie: termine.kategorie,
@@ -476,18 +500,20 @@ export async function holeOffenePosten(vereinId: string): Promise<OffenePosten[]
     if (anstehende.length === 0) return [];
 
     const terminIds = anstehende.map((t) => t.id);
-    const [zuordnungen, ignoriert] = await Promise.all([
+    const [zuordnungen, ignoriert, eigene] = await Promise.all([
       tx
         .select({
           terminId: terminZuordnungen.terminId,
           funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
+          dienstArtId: terminZuordnungen.dienstArtId,
         })
         .from(terminZuordnungen)
         .where(inArray(terminZuordnungen.terminId, terminIds)),
       holeIgnorierteMannschaften(tx, vereinId),
+      ladeEigeneDiensteKontext(tx, vereinId, terminIds),
     ]);
 
-    return berechneOffenePosten(verein, anstehende, zuordnungen, ignoriert);
+    return berechneOffenePosten(verein, anstehende, zuordnungen, ignoriert, eigene);
   });
 }
 

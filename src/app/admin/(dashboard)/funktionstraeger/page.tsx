@@ -48,6 +48,7 @@ const TYP_LABEL: Record<string, string> = {
   schiedsrichterwart: "Schiedsrichterwart",
   zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
   ordnerwart: "Ordner-/Kioskdienst-/Kassiererwart",
+  dienstwart: "Dienstwart (eigene Dienste)",
 };
 
 export default async function FunktionstraegerPage({

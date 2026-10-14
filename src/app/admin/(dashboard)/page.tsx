@@ -395,8 +395,8 @@ export default async function AdminDashboardPage() {
           <CardHeader>
             <CardTitle className="text-base">Unbesetzte Termine</CardTitle>
             <CardDescription>
-              Nächste Termine, denen noch Schiedsrichter und/oder Zeitnehmer/
-              Sekretär fehlen — der vollständige Kalender steht unter
+              Nächste Termine, denen noch Schiedsrichter, Zeitnehmer/Sekretär
+              oder Helfer (auch eigene Dienste) fehlen — der vollständige Kalender steht unter
               &bdquo;Kalender&ldquo; in der Navigation.
             </CardDescription>
           </CardHeader>

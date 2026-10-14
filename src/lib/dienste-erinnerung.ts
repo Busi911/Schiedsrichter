@@ -25,7 +25,7 @@ const ROLLE_LABEL: Record<string, string> = {
 
 export function offenePostenZeile(p: OffenePosten): string {
   const rollenText = p.luecken
-    .map((l) => `${ROLLE_LABEL[l.rolle]} ${l.vorhanden}/${l.bedarf}`)
+    .map((l) => `${l.label ?? ROLLE_LABEL[l.rolle]} ${l.vorhanden}/${l.bedarf}`)
     .join(", ");
   const zusatz = [p.mannschaftLabel, p.ort].filter(Boolean).join(" · ");
   return `${formatDatumZeitLang(p.start)}${zusatz ? ` · ${zusatz}` : ""} — ${rollenText}`;

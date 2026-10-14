@@ -1,10 +1,28 @@
 import "server-only";
 import { eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { funktionstraegerRollen, hallen, mannschaften, termine, terminZuordnungen, trainingszeiten, users, vereine } from "@/db/schema";
+import {
+  dienstArten,
+  dienstArtMannschaften,
+  funktionstraegerRollen,
+  hallen,
+  mannschaften,
+  termine,
+  terminZuordnungen,
+  trainingszeiten,
+  users,
+  vereine,
+} from "@/db/schema";
 import { AVV_VERSION } from "@/lib/avv";
 import { baueDemoDaten, DEMO_ADMIN, demoEmail, demoErsatzAdresse } from "@/lib/demo-daten";
-import { DEMO_ADMIN_ID, DEMO_RESET_PAUSE_MS, DEMO_TOKEN_ORDNER, DEMO_TOKEN_ZEITNEHMER, DEMO_VEREIN_ID } from "@/lib/demo-konstanten";
+import {
+  DEMO_ADMIN_ID,
+  DEMO_RESET_PAUSE_MS,
+  DEMO_TOKEN_DIENSTE,
+  DEMO_TOKEN_ORDNER,
+  DEMO_TOKEN_ZEITNEHMER,
+  DEMO_VEREIN_ID,
+} from "@/lib/demo-konstanten";
 
 // Öffentlicher Demo-Verein: Interessierte (z.B. ein Verein, dem wir die App zeigen) probieren die Einteilung der Ehrenamtlichen mit Testdaten aus, OHNE
 // Konto und OHNE Mail an uns zu schicken (/demo). Es ist ein echter Mandant (RLS, alle Seiten wie bei jedem Verein), mit festen IDs:
@@ -94,6 +112,7 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
       // Beide öffentlichen Eintragungs-Links (Eltern/Helfer ohne Login) sind aktiv: /eintragen/<Token>
       zeitnehmerSelbstanmeldungToken: DEMO_TOKEN_ZEITNEHMER,
       ordnerSelbstanmeldungToken: DEMO_TOKEN_ORDNER,
+      diensteSelbstanmeldungToken: DEMO_TOKEN_DIENSTE,
       trainingsplanStartMinuten: 15 * 60,
       trainingsplanEndMinuten: 21 * 60,
     });
@@ -191,6 +210,44 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
         abmeldungAngefragtAm: z.abmeldung ? new Date(jetzt.getTime() - 3 * 60 * 60_000) : null,
       }))
     );
+
+    // Eigene Dienste (Kuchen, Fahrer) mit Mannschaftsauswahl und einigen Einteilungen.
+    const dienstIdNach = new Map<string, string>();
+    for (const [i, d] of daten.eigeneDienste.entries()) {
+      const [row] = await tx
+        .insert(dienstArten)
+        .values({
+          vereinId: DEMO_VEREIN_ID,
+          name: d.name,
+          beschreibung: d.beschreibung ?? null,
+          standardBedarf: d.standardBedarf,
+          fuerHeimspiele: d.fuerHeimspiele,
+          fuerFreundschaftsspiele: d.fuerFreundschaftsspiele,
+          fuerTurniere: d.fuerTurniere,
+          nurAusgewaehlteMannschaften: !!d.mannschaften?.length,
+          reihenfolge: i,
+        })
+        .returning({ id: dienstArten.id });
+      dienstIdNach.set(d.key, row.id);
+      if (d.mannschaften?.length) {
+        await tx
+          .insert(dienstArtMannschaften)
+          .values(d.mannschaften.map((m) => ({ dienstArtId: row.id, mannschaftId: mannschaftId(m), vereinId: DEMO_VEREIN_ID })));
+      }
+    }
+    if (daten.eigeneEinteilungen.length) {
+      await tx.insert(terminZuordnungen).values(
+        daten.eigeneEinteilungen.map((e) => ({
+          terminId: terminIdNach.get(e.termin)!,
+          userId: e.person ? userIdNach.get(e.person)! : null,
+          externerName: e.externerName ?? null,
+          funktionstraegerTyp: "eigener_dienst" as const,
+          dienstArtId: dienstIdNach.get(e.dienst)!,
+          quelle: e.person ? ("zugeordnet_durch_admin" as const) : ("selbst_eingetragen_oeffentlich" as const),
+          abmeldungAngefragtAm: e.abmeldung ? new Date(jetzt.getTime() - 2 * 60 * 60_000) : null,
+        }))
+      );
+    }
 
     return { personen: daten.personen.length, termine: daten.termine.length, zuordnungen: daten.zuordnungen.length };
   });

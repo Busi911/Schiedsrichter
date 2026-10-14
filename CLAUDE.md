@@ -633,3 +633,33 @@ Hallen-ID/Team-ID je Mannschaft sind entfernt. Die Wart-Seiten (`/profil/…wart
 Desktop-Dropdown in `admin-nav.tsx`, „Mehr“ auf dem Handy; Liste `lib/wart-navigation.ts`, nicht aus der "use client"-Datei importieren).
 Einmalige Rundmail an bestehende Vereine: `/system/mail` → „Rundmail Erste Schritte“ (`lib/erste-schritte-rundmail.ts`, Vorschau an sich selbst; je Verein nur
 einmal über den Protokolleintrag `erste_schritte_mail`, nur aktive Vereine, alle Admins).
+
+## Eigene Dienste (Fahrer, Kuchen, ...) und Dienstwart (Stand 14.10.2026, Stufe 1)
+
+Vereine legen zusätzlich zu den festen Diensten eigene an: Einstellungen → „Eigene Dienste“ (`#eigene-dienste`, `components/eigene-dienste-einstellungen.tsx`,
+Actions `einstellungen/eigene-dienste-actions.ts`). Tabellen (Migration 0099, RLS über `verein_id` wie mannschaft, im Mandantentrennungs-Test): `dienst_art`
+(Name, Hinweis für Helfer, aktiv, gilt für Heim-/Auswärts-/Freundschaftsspiele/Turniere, `standard_bedarf`, `nur_ausgewaehlte_mannschaften`), `dienst_art_mannschaft`
+(Auswahl), `termin_dienst_bedarf` (Bedarf je Termin, auch 0, geht immer vor). Einteilung = `termin_zuordnung` mit `funktionstraeger_typ = 'eigener_dienst'` +
+`dienst_art_id` (Cascade). Bewusst KEINE Personenrolle je Dienst: eingeteilt werden kann jede Person des Vereins oder ein freier Name; `eigener_dienst` ist nie
+eine Rolle in `funktionstraeger_rolle` und steht nicht in `TYP_LABEL` (sonst wäre er im Rollen-Picker). Neue Wart-Rolle `dienstwart` („Dienstwart (eigene Dienste)“).
+Regeln rein in `lib/eigene-dienste.ts` (getestet): `veranstaltungsArt` wie die festen Dienste (Rundenspiel ohne Pflichtspiel = Freundschaftsspiel/Turnier,
+Turnier = Container, nie turnier_spiel/spiel_ics), `bedarfEigenerDienst`, `eigeneDiensteLuecken`, `dienstwartStellen`, `rolleFuerAnzeige`. Laden in
+`eigene-dienste-daten.ts` (`ladeEigeneDiensteKontext` liefert aktive Regeln, Overrides und Namen aller Dienste). Eingebunden in: Besetzung „Vollständig/Offen“
+im Kalender (`admin-kalender.ts`, Zeilen „Fahrer: offen“/„2 von 3 besetzt“), „Unbesetzte Termine“ und „Offene Dienste“ (`berechneUnbesetzteTermine`/
+`berechneOffenePosten` mit optionalem Kontext, Lücke `rolle: "eigener_dienst"` + `label`), Admin-Erinnerung (`dienste-erinnerung.ts`); der Dienste-Broadcast
+überspringt eigene Dienste (keine Rolleninhaber). Einteilen nur auf `/profil/dienstwart` (Admins + Rolle dienstwart; Person oder Name ohne Login, Entfernen,
+„Bedarf anpassen“, nie mehr als der Bedarf; Mail mit Dienstname und Hinweis). Navigation: „Dienste einteilen“ im Admin-Menü (`lib/wart-navigation.ts`
+`wartItems`, Dienstwart nur wenn der Verein aktive eigene Dienste hat), Profil-Schaltfläche/-Tab „Dienste“. Verlegung durch den Sync entfernt Einteilungen
+eigener Dienste wie bei den Helferdiensten (bestehende Regel „außer Schiedsrichter“). Löschen eines Dienstes nur ohne Einteilungen, sonst deaktivieren.
+Hilfe: `/hilfe#eigene-dienste`. Einstellungs-Anker liegen jetzt IM Inhalt von `EinstellungsBereich` (`<span id>`), weil Browser beim Sprung nur umgebende
+`<details>` aufklappen, nicht das Ziel selbst.
+**Stufe 2 (Selbsteintragung, Abmeldung, Export):** dritter Freischalt-Token `vereine.dienste_selbstanmeldung_token` (Migration 0100, Dienstwart-Seite
+„Öffentliche Selbsteintragung“) auf derselben Seite `/eintragen/[token]`: je aktivem Dienst eine Gruppe mit Wert `eigen:<dienstArtId>`
+(`lib/eigene-dienste-eintragung.ts`, `eigeneRolle`/`dienstArtIdAusRolle`), Daten in `ladeEintragungsTermine` (`aktiv.eigene`, liefert `eigeneGruppen`).
+Absichtlich einfacher als bei Zeitnehmer/Ordner: kein Namensabgleich, keine Bestätigung durch den Wart, KEIN Konto anlegen — eingeloggt = Session-Person,
+E-Mail verknüpft nur mit einer Person DIESES Vereins (dann Bestätigungsmail), sonst Name ohne Login; je Termin eigene Transaktion, nie über den Bedarf.
+Abmeldung: Profil-Karte „Meine Helferdienste“ (`selbstAbmelden`), Mail an Dienstwarte bzw. ohne Dienstwart an die Admins (`holeDienstwarteOderAdminEmails`),
+Entscheidung auf `/profil/dienstwart` („Abmeldeanfragen“, `dienstAbmeldungGenehmigen`/`…Ablehnen`). Export: Rolle `eigeneDienste` in `AUSWERTUNG_ROLLEN`,
+eine Zelle je Termin (`eigeneDiensteZellenText`), ohne Auswahl nur, wenn ein Termin eigene Dienste hat (`standardRollen`). Statistik: `eigener_dienst` zählt
+in `DIENST_RELEVANTE_ROLLEN`. Demo: Kuchen + Fahrer (nur mA/wC) mit Einteilungen und Abmeldeanfrage, Token `DEMO_TOKEN_DIENSTE`, Anna ist Dienstwartin.
+Noch offen: Auswärtsspiele als Termine (`fuer_auswaertsspiele` liegt schon in der Tabelle, ohne Oberfläche), Fahrgemeinschaft.

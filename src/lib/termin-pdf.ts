@@ -2,7 +2,7 @@ import "server-only";
 import PDFDocument from "pdfkit";
 import type { holeTermineFuerAuswertung } from "./termin-auswertung";
 import {
-  AUSWERTUNG_ROLLEN,
+  standardRollen,
   AUSWERTUNG_ROLLE_LABEL,
   rollenZellenWert,
   type AuswertungsRolle,
@@ -29,6 +29,7 @@ const ROLLEN_BREITE: Record<AuswertungsRolle, number> = {
   kassierer: 55,
   zeitnehmer: 60,
   sekretaer: 60,
+  eigeneDienste: 110,
 };
 
 // "offen" statt einer leeren Zelle, wenn tatsächlich noch jemand fehlt
@@ -46,6 +47,7 @@ const ROLLEN_WERT: Record<AuswertungsRolle, (z: Zeile) => string> = {
     rollenZellenWert(z.zeitnehmerName, z.rollenBedarf?.zeitnehmer, "offen"),
   sekretaer: (z) =>
     rollenZellenWert(z.sekretaerName, z.rollenBedarf?.sekretaer, "offen"),
+  eigeneDienste: (z) => z.eigeneDiensteText ?? "",
 };
 
 // Beschreibung/Schiedsrichter-E-Mail bewusst weggelassen (anders als in der
@@ -59,7 +61,7 @@ export function terminAlsPdf(
   vereinName?: string
 ): Promise<Buffer> {
   // Keine (bzw. keine gültige) Auswahl → wie bisher alle Rollen zeigen.
-  const ausgewaehlteRollen = rollen?.length ? rollen : AUSWERTUNG_ROLLEN;
+  const ausgewaehlteRollen = rollen?.length ? rollen : standardRollen(zeilen);
 
   const basisSpalten = [
     { label: "Zeit", width: 35 },

@@ -21,6 +21,8 @@ import {
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "@/lib/dienste";
 import { standardFarbeFuerMannschaft } from "@/lib/trainingsplan";
 import { holeOrdnerEinsatzZahlen, ORDNER_ROLLEN } from "@/lib/ordnerwart";
+import { eigeneDiensteFuerTermin } from "@/lib/eigene-dienste";
+import { ladeEigeneDiensteKontext } from "@/lib/eigene-dienste-daten";
 import { holeZuordenbareFunktionstraeger } from "@/lib/zuordnung";
 import {
   angesetzteNamenPassenZu,
@@ -69,7 +71,7 @@ export async function holeAdminKalenderDaten(
 ) {
   const { von, bis } = monatsBereich(jahr, monatNull);
 
-  const [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe, verein] =
+  const [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe, verein, eigeneDienste] =
     await withTenant(vereinId, async (tx) => {
       const termineDesMonats = await tx
         .select({
@@ -136,6 +138,7 @@ export async function holeAdminKalenderDaten(
               name: users.name,
               email: users.email,
               externerName: terminZuordnungen.externerName,
+              dienstArtId: terminZuordnungen.dienstArtId,
             })
             .from(terminZuordnungen)
             .leftJoin(users, eq(terminZuordnungen.userId, users.id))
@@ -167,7 +170,10 @@ export async function holeAdminKalenderDaten(
         where: eq(vereine.id, vereinId),
       });
 
-      return [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe, verein];
+      // Vom Verein definierte eigene Dienste (Fahrer, Kuchen, ...): Bedarf je Termin und Namen für die Anzeige.
+      const eigeneDienste = await ladeEigeneDiensteKontext(tx, vereinId, terminIds);
+
+      return [termineDesMonats, zuordnungen, mannschaftsListe, trainerListe, verein, eigeneDienste] as const;
     });
 
   // Ordner/Kioskdienst/Kassierer waren im Zuordnen-Modal bisher gar nicht
@@ -285,7 +291,11 @@ export async function holeAdminKalenderDaten(
       entfernbar?: boolean;
     }[] = [];
     for (const z of eigeneZuordnungen) {
-      const label = `${ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp}: ${
+      const rollenName =
+        z.funktionstraegerTyp === "eigener_dienst"
+          ? (eigeneDienste.namen.get(z.dienstArtId ?? "") ?? "Helfer")
+          : (ROLLE_LABEL[z.funktionstraegerTyp] ?? z.funktionstraegerTyp);
+      const label = `${rollenName}: ${
         z.name ?? z.externerName ?? z.email
       }${z.externerName && !z.email ? " (ohne Login)" : ""}`;
       // z.name ist bei "ohne Login"-Zuordnungen (kein Account) immer null —
@@ -439,7 +449,25 @@ export async function holeAdminKalenderDaten(
           });
         }
       }
-      // Vom Verein definierte Dienste (Bedarf > 0 für Ordner/Kioskdienst/Kassierer) zählen zur Vollständigkeit:
+      // Eigene Dienste (Fahrer, Kuchen, ...): wie die Helferdienste eine "offen"-Zeile ohne jede Einteilung und
+      // Teil der Vollständigkeit. Eingeteilt wird auf /profil/dienstwart, nicht im Kalender-Modal.
+      for (const stelle of eigeneDiensteFuerTermin(eigeneDienste, t, eigeneZuordnungen)) {
+        if (stelle.vorhanden < stelle.bedarf) helferdienstOffen = true;
+        if (stelle.vorhanden === 0) {
+          besetzungsDetails.push({
+            id: `offen-eigen-${stelle.dienstArtId}-${t.id}`,
+            label: `${stelle.name}: offen (${stelle.bedarf} gebraucht)`,
+            entfernbar: false,
+          });
+        } else if (stelle.vorhanden < stelle.bedarf) {
+          besetzungsDetails.push({
+            id: `teilweise-eigen-${stelle.dienstArtId}-${t.id}`,
+            label: `${stelle.name}: ${stelle.vorhanden} von ${stelle.bedarf} besetzt`,
+            entfernbar: false,
+          });
+        }
+      }
+      // Vom Verein definierte Dienste (Bedarf > 0 für Ordner/Kioskdienst/Kassierer und eigene Dienste) zählen zur Vollständigkeit:
       // ist einer davon nicht besetzt, gilt die Besetzung als offen — passend zur Liste "Offene Dienste".
       if (besetzung === "vollstaendig" && helferdienstOffen) besetzung = "offen";
     }

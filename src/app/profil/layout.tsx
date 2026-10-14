@@ -4,6 +4,9 @@ import { BottomNav, type BottomNavItem } from "@/components/bottom-nav";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
 import { istOrdnerwart } from "@/lib/ordnerwart";
+import { istDienstwart } from "@/lib/dienstwart";
+import { hatAktiveEigeneDienste } from "@/lib/eigene-dienste-daten";
+import { withTenant } from "@/db";
 import { DemoBanner } from "@/components/demo-banner";
 import { DEMO_VEREIN_ID } from "@/lib/demo-konstanten";
 import { holeDemoVerein } from "@/lib/demo-verein";
@@ -78,6 +81,10 @@ export default async function ProfilLayout({
         istZeitnehmerwart(vereinId, userId),
         istOrdnerwart(vereinId, userId),
       ]);
+  // Eigene Dienste: Dienstwarte immer, Admins nur, wenn der Verein eigene Dienste angelegt hat.
+  const dienstwart = istAdmin
+    ? await withTenant(vereinId, (tx) => hatAktiveEigeneDienste(tx, vereinId))
+    : await istDienstwart(vereinId, userId);
 
   const tabs: BottomNavItem[] = [
     { href: "/profil", label: "Profil", icon: "profil", exact: true },
@@ -93,6 +100,9 @@ export default async function ProfilLayout({
   }
   if (ordnerwart) {
     tabs.push({ href: "/profil/ordnerwart", label: "Ordner", icon: "wart" });
+  }
+  if (dienstwart) {
+    tabs.push({ href: "/profil/dienstwart", label: "Dienste", icon: "wart" });
   }
   const nurProfil = tabs.length === 1;
   if (nurProfil) tabs.push({ href: "/hilfe", label: "Hilfe", icon: "hilfe" });

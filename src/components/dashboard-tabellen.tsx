@@ -117,8 +117,8 @@ export function UnbesetzteDiensteTabelle({
                   zusammenhängend, statt über mehrere Zeilen aufgeteilt zu
                   wirken. */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                {p.luecken.map((l) => (
-                  <div key={l.rolle} className="flex items-center gap-2">
+                {p.luecken.map((l, i) => (
+                  <div key={`${l.rolle}-${i}`} className="flex items-center gap-2">
                     <Badge variant="warning">{l.rolle}</Badge>
                     <span className="text-xs text-muted-foreground">
                       {l.vorhanden} von {l.bedarf} besetzt

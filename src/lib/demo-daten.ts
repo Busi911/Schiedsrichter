@@ -40,7 +40,8 @@ export type DemoRolleTyp =
   | "kassierer"
   | "schiedsrichterwart"
   | "zeitnehmerwart"
-  | "ordnerwart";
+  | "ordnerwart"
+  | "dienstwart";
 
 export type DemoPerson = {
   key: string;
@@ -88,7 +89,7 @@ const PERSONEN: DemoPerson[] = [
   {
     key: "anna",
     name: "Anna Admin",
-    rollen: [{ typ: "schiedsrichterwart" }, { typ: "zeitnehmerwart" }, { typ: "ordnerwart" }],
+    rollen: [{ typ: "schiedsrichterwart" }, { typ: "zeitnehmerwart" }, { typ: "ordnerwart" }, { typ: "dienstwart" }],
   },
   { key: "thomas", name: "Thomas Bauer", rollen: [{ typ: "schiedsrichter", lizenzTage: 200 }] },
   { key: "julia", name: "Julia Becker", rollen: [{ typ: "schiedsrichter", lizenzTage: 25 }] },
@@ -180,6 +181,43 @@ const ZUORDNUNGEN: DemoZuordnung[] = [
   { termin: "t12", typ: "zeitnehmer", externerName: "Petra Zimmerman", vorschlag: "petra", quelle: "selbst_eingetragen_oeffentlich" },
 ];
 
+// Eigene Dienste des Vereins (Einstellungen → Eigene Dienste) und ihre Einteilungen (Seite Dienstwart).
+export type DemoEigenerDienst = {
+  key: string;
+  name: string;
+  beschreibung?: string;
+  standardBedarf: number;
+  fuerHeimspiele: boolean;
+  fuerFreundschaftsspiele: boolean;
+  fuerTurniere: boolean;
+  mannschaften?: string[]; // nur diese (sonst alle)
+};
+export type DemoEigeneEinteilung = { termin: string; dienst: string; person?: string; externerName?: string; abmeldung?: boolean };
+
+const EIGENE_DIENSTE: DemoEigenerDienst[] = [
+  { key: "kuchen", name: "Kuchen", beschreibung: "Bitte bis 30 Minuten vor Anwurf am Kiosk abgeben.", standardBedarf: 2, fuerHeimspiele: true, fuerFreundschaftsspiele: false, fuerTurniere: true },
+  {
+    key: "fahrer",
+    name: "Fahrer",
+    beschreibung: "Treffpunkt 45 Minuten vor Anwurf an der Halle.",
+    standardBedarf: 3,
+    fuerHeimspiele: false,
+    fuerFreundschaftsspiele: true,
+    fuerTurniere: true,
+    mannschaften: ["männliche A-Jugend", "weibliche C-Jugend"],
+  },
+];
+
+const EIGENE_EINTEILUNGEN: DemoEigeneEinteilung[] = [
+  // t1 vollständig (2 Kuchen), t2 eine Abmeldeanfrage, t4 Fahrer teilweise, t7 Turnier: Kuchen und Fahrer offen
+  { termin: "t1", dienst: "kuchen", externerName: "Familie Roth" },
+  { termin: "t1", dienst: "kuchen", person: "marie" },
+  { termin: "t2", dienst: "kuchen", person: "sabine", abmeldung: true },
+  { termin: "t4", dienst: "fahrer", person: "jan" },
+  { termin: "t4", dienst: "fahrer", externerName: "Opa Heinz" },
+  { termin: "t7", dienst: "fahrer", externerName: "Familie Yilmaz" },
+];
+
 export type DemoDaten = {
   vereinName: string;
   mannschaften: typeof MANNSCHAFTEN;
@@ -187,6 +225,8 @@ export type DemoDaten = {
   termine: DemoTermin[];
   zuordnungen: DemoZuordnung[];
   trainingsplan: { mannschaft: string; wochentag: number; vonMinuten: number; bisMinuten: number; abteil?: number; farbe: string }[];
+  eigeneDienste: DemoEigenerDienst[];
+  eigeneEinteilungen: DemoEigeneEinteilung[];
 };
 
 export function baueDemoDaten(): DemoDaten {
@@ -196,6 +236,8 @@ export function baueDemoDaten(): DemoDaten {
     personen: PERSONEN,
     termine: TERMINE,
     zuordnungen: ZUORDNUNGEN,
+    eigeneDienste: EIGENE_DIENSTE,
+    eigeneEinteilungen: EIGENE_EINTEILUNGEN,
     trainingsplan: [
       { mannschaft: "1. Herren", wochentag: 0, vonMinuten: 18 * 60 + 30, bisMinuten: 20 * 60, abteil: 1, farbe: "#3b82f6" },
       { mannschaft: "weibliche C-Jugend", wochentag: 0, vonMinuten: 17 * 60, bisMinuten: 18 * 60 + 15, abteil: 2, farbe: "#f59e0b" },

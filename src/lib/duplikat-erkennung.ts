@@ -11,6 +11,8 @@ const ROLLE_LABEL: Record<string, string> = {
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
   kassierer: "Kassierer",
+  // Vom Verein definierter Dienst (Name steht in dienst_art, hier nur der allgemeine Rückfall).
+  eigener_dienst: "Helfer (eigener Dienst)",
 };
 
 // Admins legen Freundschaftsspiele/Turnier-Einzelspiele oft manuell an, bevor

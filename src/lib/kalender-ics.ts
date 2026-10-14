@@ -1,4 +1,6 @@
 import "server-only";
+import { rolleFuerAnzeige } from "@/lib/eigene-dienste";
+import { ladeDienstNamen } from "@/lib/eigene-dienste-daten";
 import { and, asc, eq, gte, inArray, lte, or } from "drizzle-orm";
 import { withTenant } from "@/db";
 import {
@@ -75,6 +77,10 @@ export async function holeEigeneTermineFuerIcsExport(
     const eigeneZuordnungen = await tx.query.terminZuordnungen.findMany({
       where: eq(terminZuordnungen.userId, userId),
     });
+
+    // Eigene Dienste (Fahrer, Kuchen, ...) mit ihrem Namen statt des Typs anzeigen.
+
+    const dienstNamen = await ladeDienstNamen(tx, vereinId);
     const zugeordneteTerminIds = eigeneZuordnungen.map((z) => z.terminId);
 
     const bedingungen = [eq(termine.icsSchiedsrichterId, userId)];
@@ -117,7 +123,7 @@ export async function holeEigeneTermineFuerIcsExport(
       const meineRollen = new Set<string>();
       if (t.hatIcsSchiedsrichter === userId) meineRollen.add("schiedsrichter");
       for (const z of eigeneZuordnungen) {
-        if (z.terminId === t.id) meineRollen.add(z.funktionstraegerTyp);
+        if (z.terminId === t.id) meineRollen.add(rolleFuerAnzeige(z, dienstNamen));
       }
       if (t.mannschaftId && mannschaftIds.includes(t.mannschaftId)) {
         meineRollen.add("trainer");

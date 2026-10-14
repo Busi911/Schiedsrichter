@@ -1,4 +1,6 @@
 import { and, eq, inArray, or } from "drizzle-orm";
+import { rolleFuerAnzeige } from "@/lib/eigene-dienste";
+import { hatAktiveEigeneDienste, ladeDienstNamen } from "@/lib/eigene-dienste-daten";
 import Link from "next/link";
 import { CalendarIcon, LogOutIcon } from "lucide-react";
 import { requireSession } from "@/lib/session";
@@ -62,6 +64,7 @@ const TYP_LABEL: Record<string, string> = {
   schiedsrichterwart: "Schiedsrichterwart",
   zeitnehmerwart: "Zeitnehmer-/Sekretärwart",
   ordnerwart: "Ordner-/Kioskdienst-/Kassiererwart",
+  dienstwart: "Dienstwart (eigene Dienste)",
 };
 
 export default async function ProfilPage({
@@ -77,7 +80,7 @@ export default async function ProfilPage({
   const { von, bis } = monatsBereich(jahr, monatNull);
 
   const [
-    { eigeneStammdaten, rollen, profil, eigeneTermine, verein, meineTurniere },
+    { eigeneStammdaten, rollen, profil, eigeneTermine, verein, meineTurniere, hatEigeneDienste, meineHelferdienste },
     eintraegeProTag,
     vereinsLogo,
   ] = await Promise.all([
@@ -118,6 +121,8 @@ export default async function ProfilPage({
       const eigeneZuordnungen = await tx.query.terminZuordnungen.findMany({
         where: eq(terminZuordnungen.userId, userId),
       });
+      // Eigene Dienste (Fahrer, Kuchen, ...) mit ihrem Namen statt des Typs anzeigen.
+      const dienstNamen = await ladeDienstNamen(tx, vereinId);
       const zugeordneteTerminIds = eigeneZuordnungen.map((z) => z.terminId);
 
       const terminBedingungen = [eq(termine.icsSchiedsrichterId, userId)];
@@ -136,7 +141,7 @@ export default async function ProfilPage({
         const meineRollen = new Set<string>();
         if (t.icsSchiedsrichterId === userId) meineRollen.add("schiedsrichter");
         for (const z of eigeneZuordnungen) {
-          if (z.terminId === t.id) meineRollen.add(z.funktionstraegerTyp);
+          if (z.terminId === t.id) meineRollen.add(rolleFuerAnzeige(z, dienstNamen));
         }
         if (t.mannschaftId && mannschaftIds.includes(t.mannschaftId)) {
           meineRollen.add("trainer");
@@ -165,6 +170,25 @@ export default async function ProfilPage({
         eigeneTermine,
         verein,
         meineTurniere,
+        hatEigeneDienste: await hatAktiveEigeneDienste(tx, vereinId),
+        // Eigene Dienste (Fahrer, Kuchen, ...), für die diese Person eingeteilt ist — künftige, mit Abmelde-Möglichkeit.
+        meineHelferdienste: eigeneZuordnungen
+          .filter((z) => z.funktionstraegerTyp === "eigener_dienst")
+          .flatMap((z) => {
+            const t = eigeneTermineRoh.find((x) => x.id === z.terminId);
+            if (!t || t.start < new Date()) return [];
+            return [
+              {
+                zuordnungId: z.id,
+                start: t.start,
+                ort: t.ort,
+                beschreibung: t.beschreibung,
+                dienstName: rolleFuerAnzeige(z, dienstNamen),
+                abmeldungAngefragt: !!z.abmeldungAngefragtAm,
+              },
+            ];
+          })
+          .sort((a, b) => a.start.getTime() - b.start.getTime()),
       };
     }),
     holeEigeneKalenderEintraege(vereinId, userId, von, bis),
@@ -185,6 +209,9 @@ export default async function ProfilPage({
   );
   const istOrdnerwart = rollen.some(
     (r) => r.typ === "ordnerwart" && r.aktiv
+  );
+  const istDienstwart = rollen.some(
+    (r) => r.typ === "dienstwart" && r.aktiv
   );
   const istDienstRolleninhaber = rollen.some(
     (r) =>
@@ -321,6 +348,16 @@ export default async function ProfilPage({
                 {TYP_LABEL.ordnerwart}
               </Button>
             )}
+            {(istDienstwart || (session.user.istAdmin && hatEigeneDienste)) && (
+              <Button
+                variant="outline"
+                size="sm"
+                render={<Link href="/profil/dienstwart" />}
+                nativeButton={false}
+              >
+                Dienstwart
+              </Button>
+            )}
             <div className="hidden md:block">
               {einstellungen()}
             </div>
@@ -351,8 +388,8 @@ export default async function ProfilPage({
             <CardTitle>Mein Kalender</CardTitle>
             <CardDescription>
               Alle Termine, bei denen du als Schiedsrichter, Zeitnehmer,
-              Sekretär, Ordner, Kioskdienst, Kassierer oder Trainer beteiligt
-              bist.
+              Sekretär, Ordner, Kioskdienst, Kassierer, Trainer oder für einen
+              eigenen Dienst des Vereins (z.B. Fahrer) eingeteilt bist.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -404,6 +441,35 @@ export default async function ProfilPage({
                   {t.beschreibung ?? "Turnier"} · {formatDateTime(t.start)}
                   {t.ort ? ` · ${t.ort}` : ""}
                 </Link>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {meineHelferdienste.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Meine Helferdienste</CardTitle>
+              <CardDescription>
+                Eigene Dienste eures Vereins, für die du eingeteilt bist. Kannst du doch nicht, frag hier die Abmeldung an; der
+                Dienstwart bestätigt sie.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {meineHelferdienste.map((d) => (
+                <div key={d.zuordnungId} className="flex flex-col gap-2 rounded-lg border p-3 text-sm">
+                  <p>
+                    <span className="font-medium">{d.dienstName}</span> · {formatDateTime(d.start)}
+                    {d.ort ? ` · ${d.ort}` : ""}
+                    {d.beschreibung ? ` · ${d.beschreibung}` : ""}
+                  </p>
+                  <form action={selbstAbmelden}>
+                    <input type="hidden" name="zuordnungId" value={d.zuordnungId} />
+                    <SubmitButton variant="outline" size="sm">
+                      {d.abmeldungAngefragt ? "Abmeldung angefragt — zurückziehen" : "Abmeldung anfragen"}
+                    </SubmitButton>
+                  </form>
+                </div>
               ))}
             </CardContent>
           </Card>

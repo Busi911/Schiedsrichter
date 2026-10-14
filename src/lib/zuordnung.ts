@@ -29,6 +29,8 @@ const ZUORDNUNGS_ROLLE_LABEL: Record<string, string> = {
   ordner: "Ordner",
   kioskdienst: "Kioskdienst",
   kassierer: "Kassierer",
+  // Eigene Dienste: Aufrufer übergeben möglichst den Namen des Dienstes (z.B. "Fahrer") statt des Typs, das hier ist nur der Rückfall.
+  eigener_dienst: "Helfer",
 };
 
 // Gemeinsam genutzt vom Kalender-Modal (admin/zuordnung/actions.ts, siehe
