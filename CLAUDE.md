@@ -478,6 +478,10 @@ und einem Tipp je Rolle (`lib/wart-onboarding.ts` rein/getestet: Personen vorhan
 ohnehin lädt, keine Extra-Abfrage; Wart ohne Admin-Rechte bekommen nur Ziele auf derselben Seite, keine Admin-Links). Sie verschwindet, wenn alle prüfbaren Schritte
 erledigt sind, oder per „Ausblenden“ (`wartOnboardingAusblenden`, Cookie `hp_wart_onboarding`, Pfad `/profil`, nur dieses Gerät, keine DB). Neue Wart-Funktion mit
 eigenem Einstieg: Schritt in `wartSchritte` ergänzen, Anker (`#selbsteintragung`, `#termine`) und Hilfe-Abschnitt nicht vergessen. Hilfe: `/hilfe#warte`.
+**Starthilfe in den Mails:** `lib/rollen-hinweise.ts` (rein/getestet) liefert für Wart-Rollen (Link zur eigenen Seite + Hinweis auf „So legst du los“, Button führt per
+`/login?redirect=…` nach dem Login dorthin) und Trainer (was sie im Profil sehen, Info-Mail bei Verlegungen) zusätzliche Zeilen. Eingebunden in `willkommensInhalt(…, rollenTypen)`
+(neuer Zugang: `createFunktionstraeger`, Aktivieren einzeln/Bulk, Excel-Import, Mannschaft mit Trainer) und `rollenHinzugefuegtInhalt` (zusätzliche Rolle einer bestehenden Person,
+admin/actions.ts, Typen über `typenAusLabels`). Neue Rolle mit eigener Seite: Eintrag in `WART_SEITEN`.
 
 ## Hilfe: wo Nutzer sie finden
 
