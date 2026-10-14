@@ -44,6 +44,7 @@ export default async function HilfePage() {
             ["eigene-termine", "Freundschaftsspiele & Turniere"],
             ["bedarf", "Dienste und Bedarf festlegen"],
             ["eigene-dienste", "Eigene Dienste (z.B. Fahrer, Kuchen)"],
+            ["fahrgemeinschaft", "Fahrgemeinschaft (Plätze je Auto, Mitfahrer)"],
             ["warte", "Die Wart-Seiten: wo, was, wer"],
             ["zuordnung", "Dienste verteilen & Selbsteintragung"],
             ["abmeldungen", "Wenn jemand doch nicht kann"],
@@ -590,6 +591,37 @@ export default async function HilfePage() {
           <li>
             Unter <strong>Auswertung &amp; Export</strong> stehen eure eigenen Dienste in einer eigenen Spalte („Fahrer: Eva, Opa
             Heinz (2/3); Kuchen: offen“), auch in Excel und PDF. In der Statistik zählen sie als Einsätze.
+          </li>
+        </ul>
+        <h3 id="fahrgemeinschaft" className="scroll-mt-6 text-sm font-medium">Fahrgemeinschaft (Plätze je Auto, wer fährt wen)</h3>
+        <p className="text-sm text-muted-foreground">
+          Bei einem eigenen Dienst wie „Fahrer“ setzt ihr unter{" "}
+          <Link href="/admin/einstellungen#eigene-dienste" className="font-medium underline">
+            Einstellungen → Dienste
+          </Link>{" "}
+          das Häkchen <strong>„Fahrgemeinschaft“</strong>. Dann gilt für jede eingeteilte Person:
+        </p>
+        <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
+          <li>
+            <strong>Freie Plätze und Treffpunkt:</strong> wie viele Kinder/Spieler mitfahren können (ohne den Fahrer, 0 bis 8) und
+            optional ein Hinweis wie „Treffpunkt Halle 12:45“. Eintragen kann das der Fahrer selbst im Profil unter „Meine
+            Helferdienste“ oder der Dienstwart bzw. Admin auf der Dienstwart-Seite (z.B. für Fahrer ohne Login).
+          </li>
+          <li>
+            <strong>Mitfahrer:</strong> per Name dem Fahrer zuteilen, höchstens so viele wie Plätze angegeben sind; ohne Angabe der
+            Plätze geht es noch nicht. Mitfahrer brauchen kein Konto. Entfernen jederzeit, ebenso vom Fahrer selbst.
+          </li>
+          <li>
+            <strong>Übersicht:</strong> Die Dienstwart-Seite zeigt je Termin „Mitfahrplätze frei: n“, der Kalender beim Fahrer
+            Plätze, Treffpunkt und Mitfahrer, der Export „Eva (+2 Mitfahrer)“.
+          </li>
+          <li>
+            <strong>Datenschutz:</strong> Auf der öffentlichen Eintragungsseite steht nur die Zahl der freien Plätze je Fahrer, nie
+            die Namen der Mitfahrer.
+          </li>
+          <li>
+            Wird der Fahrer ausgetragen oder das Spiel verlegt (die Einteilung entfällt dann), sind auch seine Mitfahrer wieder
+            frei und müssen neu zugeteilt werden.
           </li>
         </ul>
       </section>

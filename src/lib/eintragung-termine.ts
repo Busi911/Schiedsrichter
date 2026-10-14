@@ -1,8 +1,8 @@
 import "server-only";
-import { and, eq, gte, inArray } from "drizzle-orm";
+import { and, count, eq, gte, inArray } from "drizzle-orm";
 import { withTenant } from "@/db";
 import type { RollenGruppe } from "@/components/mehrfachauswahl";
-import { mannschaften, termine, terminZuordnungen, users, type vereine } from "@/db/schema";
+import { fahrtMitfahrer, mannschaften, termine, terminZuordnungen, users, type vereine } from "@/db/schema";
 import { berechneBesetzung } from "@/lib/besetzung";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "@/lib/dienste";
 import { formatDatumZeit, formatWochentagDatum } from "@/lib/format";
@@ -106,12 +106,27 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: EintragungAk
               name: users.name,
               externerName: terminZuordnungen.externerName,
               dienstArtId: terminZuordnungen.dienstArtId,
+              plaetze: terminZuordnungen.plaetze,
             })
             .from(terminZuordnungen)
             .leftJoin(users, eq(terminZuordnungen.userId, users.id))
             // Nur die hier angebotenen Rollen — sonst würden z.B. Schiedsrichter-Zuordnungen desselben Termins fälschlich gelabelt mitgeladen.
             .where(and(inArray(terminZuordnungen.terminId, terminIds), inArray(terminZuordnungen.funktionstraegerTyp, rollenFilter)))
         : [];
+
+    // Fahrgemeinschaft: öffentlich nur die Zahl der freien Mitfahrplätze je Fahrer, nie die Namen der Mitfahrer.
+    const mitfahrerJe = new Map<string, number>();
+    const fahrtIds = zuordnungen.filter((z) => z.plaetze !== null).map((z) => z.id);
+    if (fahrtIds.length) {
+      const zaehlung = await tx
+        .select({ zuordnungId: fahrtMitfahrer.zuordnungId, anzahl: count() })
+        .from(fahrtMitfahrer)
+        .where(and(eq(fahrtMitfahrer.vereinId, verein.id), inArray(fahrtMitfahrer.zuordnungId, fahrtIds)))
+        .groupBy(fahrtMitfahrer.zuordnungId);
+      for (const z of zaehlung) mitfahrerJe.set(z.zuordnungId, Number(z.anzahl));
+    }
+    const fahrtZusatz = (z: { id: string; plaetze: number | null }) =>
+      z.plaetze === null ? "" : ` (Mitfahrplätze frei: ${Math.max(0, z.plaetze - (mitfahrerJe.get(z.id) ?? 0))})`;
 
     const ergebnis: EintragungTermin[] = [];
     for (const t of relevante) {
@@ -187,7 +202,7 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: EintragungAk
         eintragbar: offeneRollen.length > 0,
         rollenMitBedarf,
         offeneRollen,
-        zuordnungen: eigeneZuordnungen.map((z) => ({ id: z.id, label: `${rollenLabel(z.funktionstraegerTyp, z.dienstArtId)}: ${z.name ?? z.externerName ?? "—"}` })),
+        zuordnungen: eigeneZuordnungen.map((z) => ({ id: z.id, label: `${rollenLabel(z.funktionstraegerTyp, z.dienstArtId)}: ${z.name ?? z.externerName ?? "—"}${fahrtZusatz(z)}` })),
       });
     }
     return { alleMannschaften, termine: ergebnis, eigeneGruppen };

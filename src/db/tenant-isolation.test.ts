@@ -252,4 +252,30 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Mandantentrennung (RLS)", () => {
       )
     ).rejects.toThrow(/row-level security/i);
   });
+
+  it("Fahrgemeinschaft (fahrt_mitfahrer) ist je Verein getrennt", async () => {
+    const { rows } = await adminPool.query(
+      `insert into termin_zuordnung (termin_id, externer_name, funktionstraeger_typ, quelle, plaetze)
+       values ($1, 'Fahrer B', 'eigener_dienst', 'zugeordnet_durch_admin', 3) returning id`,
+      [terminB]
+    );
+    const zuordnungB = rows[0].id;
+    await adminPool.query(`insert into fahrt_mitfahrer (zuordnung_id, verein_id, name) values ($1, $2, 'Kind B')`, [zuordnungB, vereinB]);
+
+    const ausSichtA = await withTenant(vereinA, (client) =>
+      client.query("select name from fahrt_mitfahrer where zuordnung_id = $1", [zuordnungB]).then((r) => r.rows)
+    );
+    expect(ausSichtA).toHaveLength(0);
+    const ausSichtB = await withTenant(vereinB, (client) =>
+      client.query("select name from fahrt_mitfahrer where zuordnung_id = $1", [zuordnungB]).then((r) => r.rows)
+    );
+    expect(ausSichtB).toEqual([{ name: "Kind B" }]);
+
+    // Verein A kann B keinen Mitfahrer unterschieben.
+    await expect(
+      withTenant(vereinA, (client) =>
+        client.query("insert into fahrt_mitfahrer (zuordnung_id, verein_id, name) values ($1, $2, 'Fremd')", [zuordnungB, vereinB])
+      )
+    ).rejects.toThrow(/row-level security/i);
+  });
 });

@@ -4,6 +4,7 @@ import { adminDb } from "@/db/admin";
 import {
   dienstArten,
   dienstArtMannschaften,
+  fahrtMitfahrer,
   funktionstraegerRollen,
   hallen,
   mannschaften,
@@ -224,6 +225,7 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
           bedarfAuswaerts: d.bedarf.auswaerts,
           bedarfFreundschaft: d.bedarf.freundschaft,
           bedarfTurnier: d.bedarf.turnier,
+          fahrgemeinschaft: !!d.fahrgemeinschaft,
           nurAusgewaehlteMannschaften: !!d.mannschaften?.length,
           reihenfolge: i,
         })
@@ -236,7 +238,7 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
       }
     }
     if (daten.eigeneEinteilungen.length) {
-      await tx.insert(terminZuordnungen).values(
+      const eingefuegt = await tx.insert(terminZuordnungen).values(
         daten.eigeneEinteilungen.map((e) => ({
           terminId: terminIdNach.get(e.termin)!,
           userId: e.person ? userIdNach.get(e.person)! : null,
@@ -245,8 +247,15 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
           dienstArtId: dienstIdNach.get(e.dienst)!,
           quelle: e.person ? ("zugeordnet_durch_admin" as const) : ("selbst_eingetragen_oeffentlich" as const),
           abmeldungAngefragtAm: e.abmeldung ? new Date(jetzt.getTime() - 2 * 60 * 60_000) : null,
+          plaetze: e.plaetze ?? null,
+          fahrtHinweis: e.fahrtHinweis ?? null,
         }))
+      ).returning({ id: terminZuordnungen.id });
+      // Mitfahrer der Fahrgemeinschaft (Postgres liefert RETURNING eines mehrzeiligen INSERT in der Reihenfolge der VALUES)
+      const mitfahrer = daten.eigeneEinteilungen.flatMap((e, i) =>
+        (e.mitfahrer ?? []).map((name) => ({ zuordnungId: eingefuegt[i].id, vereinId: DEMO_VEREIN_ID, name }))
       );
+      if (mitfahrer.length) await tx.insert(fahrtMitfahrer).values(mitfahrer);
     }
 
     return { personen: daten.personen.length, termine: daten.termine.length, zuordnungen: daten.zuordnungen.length };

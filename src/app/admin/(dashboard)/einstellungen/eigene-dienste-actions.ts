@@ -128,7 +128,7 @@ export async function dienstArtSpeichern(formData: FormData) {
       throw new Error("Bitte mindestens eine Mannschaft auswählen oder „alle Mannschaften“ wählen.");
     }
 
-    const werte = { name, beschreibung, nurAusgewaehlteMannschaften, ...bedarf };
+    const werte = { name, beschreibung, nurAusgewaehlteMannschaften, fahrgemeinschaft: formData.get("fahrgemeinschaft") === "on", ...bedarf };
     let dienstArtId = id;
     if (id) {
       const [geaendert] = await tx

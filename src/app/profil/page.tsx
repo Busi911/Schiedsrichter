@@ -1,4 +1,5 @@
 import { and, eq, inArray, or } from "drizzle-orm";
+import { FahrtBearbeiten } from "@/components/fahrt-bearbeiten";
 import { rolleFuerAnzeige } from "@/lib/eigene-dienste";
 import { hatAktiveEigeneDienste, ladeDienstNamen } from "@/lib/eigene-dienste-daten";
 import Link from "next/link";
@@ -6,6 +7,8 @@ import { CalendarIcon, LogOutIcon } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import {
+  dienstArten,
+  fahrtMitfahrer,
   funktionstraegerRollen,
   schiedsrichterProfile,
   termine,
@@ -123,6 +126,23 @@ export default async function ProfilPage({
       });
       // Eigene Dienste (Fahrer, Kuchen, ...) mit ihrem Namen statt des Typs anzeigen.
       const dienstNamen = await ladeDienstNamen(tx, vereinId);
+      // Fahrgemeinschaft (lib/fahrgemeinschaft.ts): Dienste mit Plätzen je Auto und die Mitfahrer der eigenen Fahrten.
+      const fahrgemeinschaftsDienste = new Set(
+        (
+          await tx
+            .select({ id: dienstArten.id })
+            .from(dienstArten)
+            .where(and(eq(dienstArten.vereinId, vereinId), eq(dienstArten.fahrgemeinschaft, true)))
+        ).map((d) => d.id)
+      );
+      const fahrtZuordnungIds = eigeneZuordnungen.filter((z) => z.dienstArtId && fahrgemeinschaftsDienste.has(z.dienstArtId)).map((z) => z.id);
+      const meineMitfahrer = fahrtZuordnungIds.length
+        ? await tx
+            .select({ id: fahrtMitfahrer.id, zuordnungId: fahrtMitfahrer.zuordnungId, name: fahrtMitfahrer.name })
+            .from(fahrtMitfahrer)
+            .where(and(eq(fahrtMitfahrer.vereinId, vereinId), inArray(fahrtMitfahrer.zuordnungId, fahrtZuordnungIds)))
+            .orderBy(fahrtMitfahrer.erstelltAm)
+        : [];
       const zugeordneteTerminIds = eigeneZuordnungen.map((z) => z.terminId);
 
       const terminBedingungen = [eq(termine.icsSchiedsrichterId, userId)];
@@ -185,6 +205,13 @@ export default async function ProfilPage({
                 beschreibung: t.beschreibung,
                 dienstName: rolleFuerAnzeige(z, dienstNamen),
                 abmeldungAngefragt: !!z.abmeldungAngefragtAm,
+                fahrt: fahrtZuordnungIds.includes(z.id)
+                  ? {
+                      plaetze: z.plaetze,
+                      fahrtHinweis: z.fahrtHinweis,
+                      mitfahrer: meineMitfahrer.filter((m) => m.zuordnungId === z.id).map((m) => ({ id: m.id, name: m.name })),
+                    }
+                  : null,
               },
             ];
           })
@@ -452,7 +479,7 @@ export default async function ProfilPage({
               <CardTitle>Meine Helferdienste</CardTitle>
               <CardDescription>
                 Eigene Dienste eures Vereins, für die du eingeteilt bist. Kannst du doch nicht, frag hier die Abmeldung an; der
-                Dienstwart bestätigt sie.
+                Dienstwart bestätigt sie. Als Fahrer gibst du hier deine freien Plätze und den Treffpunkt an und siehst, wer mitfährt.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
@@ -463,6 +490,14 @@ export default async function ProfilPage({
                     {d.ort ? ` · ${d.ort}` : ""}
                     {d.beschreibung ? ` · ${d.beschreibung}` : ""}
                   </p>
+                  {d.fahrt && (
+                    <FahrtBearbeiten
+                      zuordnungId={d.zuordnungId}
+                      plaetze={d.fahrt.plaetze}
+                      fahrtHinweis={d.fahrt.fahrtHinweis}
+                      mitfahrer={d.fahrt.mitfahrer}
+                    />
+                  )}
                   <form action={selbstAbmelden}>
                     <input type="hidden" name="zuordnungId" value={d.zuordnungId} />
                     <SubmitButton variant="outline" size="sm">

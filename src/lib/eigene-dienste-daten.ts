@@ -10,6 +10,7 @@ type Tx = Parameters<Parameters<typeof withTenant>[1]>[0];
 
 export type DienstArtMitDetails = DienstArtRegel & {
   beschreibung: string | null;
+  fahrgemeinschaft: boolean;
   reihenfolge: number;
 };
 
@@ -37,6 +38,7 @@ export async function ladeDienstArten(tx: Tx, vereinId: string, nurAktive = true
     id: a.id,
     name: a.name,
     beschreibung: a.beschreibung,
+    fahrgemeinschaft: a.fahrgemeinschaft,
     aktiv: a.aktiv,
     bedarfHeim: a.bedarfHeim,
     bedarfAuswaerts: a.bedarfAuswaerts,
