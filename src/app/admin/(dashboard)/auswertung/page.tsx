@@ -74,6 +74,8 @@ export default async function AuswertungPage({
   ]);
   const gibtWeitere = termineRoh.length > VORSCHAU_LIMIT;
   const termineListe = termineRoh.slice(0, VORSCHAU_LIMIT);
+  // Spalte "Eigene Dienste" nur, wenn der Verein welche hat (sonst bliebe sie leer).
+  const mitEigenenDiensten = termineListe.some((t) => !!t.eigeneDiensteText);
 
   return (
     // EIN gemeinsames Formular für Filter, Zeilen-Auswahl und alle drei
@@ -211,6 +213,7 @@ export default async function AuswertungPage({
                   <TableHead>Kassierer</TableHead>
                   <TableHead>Zeitnehmer</TableHead>
                   <TableHead>Sekretär</TableHead>
+                  {mitEigenenDiensten && <TableHead>Eigene Dienste</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -254,6 +257,7 @@ export default async function AuswertungPage({
                     <TableCell>
                       {rollenZellenWert(t.sekretaerName, t.rollenBedarf?.sekretaer, "—")}
                     </TableCell>
+                    {mitEigenenDiensten && <TableCell className="whitespace-normal">{t.eigeneDiensteText ?? "—"}</TableCell>}
                   </TableRow>
                 ))}
               </TableBody>

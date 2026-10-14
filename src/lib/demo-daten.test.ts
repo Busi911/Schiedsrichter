@@ -78,3 +78,20 @@ describe("demoErsatzAdresse", () => {
     expect(demoErsatzAdresse("@x.de")).toMatch(/^person-[0-9a-f]{8}@/);
   });
 });
+
+describe("Demo: eigene Dienste", () => {
+  const d = baueDemoDaten();
+  it("Einteilungen verweisen auf vorhandene Dienste, Termine und Personen, je Person oder Name", () => {
+    const dienste = new Set(d.eigeneDienste.map((x) => x.key));
+    const termine = new Set(d.termine.map((t) => t.key));
+    const personen = new Set(d.personen.map((p) => p.key));
+    const mannschaften = new Set(d.mannschaften.map((m) => m.name));
+    for (const e of d.eigeneEinteilungen) {
+      expect(dienste.has(e.dienst), e.dienst).toBe(true);
+      expect(termine.has(e.termin), e.termin).toBe(true);
+      if (e.person) expect(personen.has(e.person), e.person).toBe(true);
+      expect(Boolean(e.person) !== Boolean(e.externerName)).toBe(true);
+    }
+    for (const x of d.eigeneDienste) for (const m of x.mannschaften ?? []) expect(mannschaften.has(m), m).toBe(true);
+  });
+});

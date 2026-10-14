@@ -10,6 +10,9 @@ import { tagKey } from "@/lib/kalender";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { ORDNER_ROLLE_LABEL, ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { rundenspielTypLabel } from "@/lib/termin-label";
+import { eigeneDiensteFuerTermin } from "@/lib/eigene-dienste";
+import { ladeEigeneDiensteKontext } from "@/lib/eigene-dienste-daten";
+import { eigeneRolle } from "@/lib/eigene-dienste-eintragung";
 
 // Daten für die EINE öffentliche Eintragungsseite (/eintragen/[token]): Zeitnehmer/Sekretär und Ordner/Kioskdienst/Kassierer in einer Liste.
 // Welche Gruppen angeboten werden, entscheidet allein die Freischaltung der jeweiligen Warte (Token am Verein gesetzt) — die Gruppen
@@ -32,8 +35,12 @@ export const ORDNER_GRUPPEN: RollenGruppe[] = ORDNER_ROLLEN.map((r) => ({
   rollen: [{ value: r, label: ORDNER_ROLLE_LABEL[r] }],
 }));
 
-export function rollenGruppenFuer(aktiv: { zeitnehmer: boolean; ordner: boolean }): RollenGruppe[] {
-  return [...(aktiv.zeitnehmer ? [ZEITNEHMER_GRUPPE] : []), ...(aktiv.ordner ? ORDNER_GRUPPEN : [])];
+export type EintragungAktiv = { zeitnehmer: boolean; ordner: boolean; eigene: boolean };
+
+// eigeneGruppen: je aktivem eigenen Dienst eine Gruppe (Wert "eigen:<dienstArtId>", siehe lib/eigene-dienste-eintragung.ts), geliefert von
+// ladeEintragungsTermine.
+export function rollenGruppenFuer(aktiv: EintragungAktiv, eigeneGruppen: RollenGruppe[] = []): RollenGruppe[] {
+  return [...(aktiv.zeitnehmer ? [ZEITNEHMER_GRUPPE] : []), ...(aktiv.ordner ? ORDNER_GRUPPEN : []), ...(aktiv.eigene ? eigeneGruppen : [])];
 }
 
 export type EintragungTermin = {
@@ -56,11 +63,13 @@ export type EintragungTermin = {
 const ZEITNEHMER_TYPEN = ["testspiel", "turnier_spiel", "rundenspiel"];
 // Ordner-/Kiosk-/Kassierer-Bedarf gilt für den Turnier-CONTAINER selbst (typ = turnier), nicht für dessen Einzelspiele — siehe lib/ordnerwart.ts.
 const ORDNER_TYPEN = ["testspiel", "turnier", "rundenspiel"];
+// Eigene Dienste: wie Ordner (Turnier-Container, siehe veranstaltungsArt in lib/eigene-dienste.ts).
+const EIGENE_TYPEN = ["testspiel", "turnier", "rundenspiel"];
 const TYP_LABEL: Record<string, string> = { testspiel: "Freundschaftsspiel", turnier_spiel: "Turnierspiel", turnier: "Turnier", rundenspiel: "Rundenspiel" };
 
 type Verein = typeof vereine.$inferSelect;
 
-export async function ladeEintragungsTermine(verein: Verein, aktiv: { zeitnehmer: boolean; ordner: boolean }) {
+export async function ladeEintragungsTermine(verein: Verein, aktiv: EintragungAktiv) {
   return withTenant(verein.id, async (tx) => {
     const alleMannschaften = sortiereMannschaften(await tx.query.mannschaften.findMany({ where: eq(mannschaften.vereinId, verein.id) }));
     const mannschaftenNachId = new Map(alleMannschaften.map((m) => [m.id, m]));
@@ -69,10 +78,24 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: { zeitnehmer
       orderBy: (t, { asc }) => [asc(t.start)],
     });
 
-    const relevantTypen = new Set([...(aktiv.zeitnehmer ? ZEITNEHMER_TYPEN : []), ...(aktiv.ordner ? ORDNER_TYPEN : [])]);
+    const relevantTypen = new Set([
+      ...(aktiv.zeitnehmer ? ZEITNEHMER_TYPEN : []),
+      ...(aktiv.ordner ? ORDNER_TYPEN : []),
+      ...(aktiv.eigene ? EIGENE_TYPEN : []),
+    ]);
     const relevante = terminListe.filter((t) => relevantTypen.has(t.typ));
     const terminIds = relevante.map((t) => t.id);
-    const rollenFilter = [...(aktiv.zeitnehmer ? ZEITNEHMER_ROLLEN : []), ...(aktiv.ordner ? ORDNER_ROLLEN : [])];
+    const rollenFilter = [
+      ...(aktiv.zeitnehmer ? ZEITNEHMER_ROLLEN : []),
+      ...(aktiv.ordner ? ORDNER_ROLLEN : []),
+      ...(aktiv.eigene ? (["eigener_dienst"] as const) : []),
+    ];
+    const eigene = aktiv.eigene ? await ladeEigeneDiensteKontext(tx, verein.id, terminIds) : null;
+    const eigeneGruppen: RollenGruppe[] = (eigene?.arten ?? []).map((a) => ({
+      id: eigeneRolle(a.id),
+      label: a.name,
+      rollen: [{ value: eigeneRolle(a.id), label: a.name }],
+    }));
     const zuordnungen =
       terminIds.length && rollenFilter.length
         ? await tx
@@ -82,6 +105,7 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: { zeitnehmer
               funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
               name: users.name,
               externerName: terminZuordnungen.externerName,
+              dienstArtId: terminZuordnungen.dienstArtId,
             })
             .from(terminZuordnungen)
             .leftJoin(users, eq(terminZuordnungen.userId, users.id))
@@ -91,7 +115,7 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: { zeitnehmer
 
     const ergebnis: EintragungTermin[] = [];
     for (const t of relevante) {
-      const eigene = zuordnungen.filter((z) => z.terminId === t.id);
+      const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === t.id);
       const mannschaft = t.mannschaftId ? mannschaftenNachId.get(t.mannschaftId) : null;
       const rollenMitBedarf: string[] = [];
       const offeneRollen: string[] = [];
@@ -109,7 +133,7 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: { zeitnehmer
         );
         if (bedarf > 0) {
           const besetzung = berechneBesetzung(
-            eigene.filter((z) => (ZEITNEHMER_ROLLEN as readonly string[]).includes(z.funktionstraegerTyp)),
+            eigeneZuordnungen.filter((z) => (ZEITNEHMER_ROLLEN as readonly string[]).includes(z.funktionstraegerTyp)),
             false,
             bedarf
           );
@@ -125,9 +149,19 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: { zeitnehmer
           const bedarf = bedarfFuer(verein, t.typ, rolle, t.pflichtspiel, t.freundschaftsTyp, bedarfOverrideFuer(t, rolle), mannschaftBedarfDeaktiviertFuer(mannschaft, rolle));
           if (bedarf <= 0) continue;
           rollenMitBedarf.push(rolle);
-          const vorhanden = eigene.filter((z) => z.funktionstraegerTyp === rolle).length;
+          const vorhanden = eigeneZuordnungen.filter((z) => z.funktionstraegerTyp === rolle).length;
           if (vorhanden < bedarf) {
             offeneRollen.push(rolle);
+            erfuellt = false;
+          }
+        }
+      }
+
+      if (eigene && EIGENE_TYPEN.includes(t.typ)) {
+        for (const stelle of eigeneDiensteFuerTermin(eigene, t, eigeneZuordnungen)) {
+          rollenMitBedarf.push(eigeneRolle(stelle.dienstArtId));
+          if (stelle.vorhanden < stelle.bedarf) {
+            offeneRollen.push(eigeneRolle(stelle.dienstArtId));
             erfuellt = false;
           }
         }
@@ -136,8 +170,10 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: { zeitnehmer
       // Ohne jeden Bedarf (z.B. Freundschaftsspiele, für die der Verein nichts braucht) bleibt der Termin unsichtbar und nicht eintragbar.
       if (rollenMitBedarf.length === 0) continue;
 
-      const rollenLabel = (typ: string) =>
-        (ZEITNEHMER_ROLLE_LABEL as Record<string, string>)[typ] ?? (ORDNER_ROLLE_LABEL as Record<string, string>)[typ] ?? typ;
+      const rollenLabel = (typ: string, dienstArtId: string | null) =>
+        typ === "eigener_dienst"
+          ? (eigene?.namen.get(dienstArtId ?? "") ?? "Helfer")
+          : ((ZEITNEHMER_ROLLE_LABEL as Record<string, string>)[typ] ?? (ORDNER_ROLLE_LABEL as Record<string, string>)[typ] ?? typ);
       ergebnis.push({
         id: t.id,
         mannschaftId: t.mannschaftId,
@@ -151,9 +187,9 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: { zeitnehmer
         eintragbar: offeneRollen.length > 0,
         rollenMitBedarf,
         offeneRollen,
-        zuordnungen: eigene.map((z) => ({ id: z.id, label: `${rollenLabel(z.funktionstraegerTyp)}: ${z.name ?? z.externerName ?? "—"}` })),
+        zuordnungen: eigeneZuordnungen.map((z) => ({ id: z.id, label: `${rollenLabel(z.funktionstraegerTyp, z.dienstArtId)}: ${z.name ?? z.externerName ?? "—"}` })),
       });
     }
-    return { alleMannschaften, termine: ergebnis };
+    return { alleMannschaften, termine: ergebnis, eigeneGruppen };
   });
 }

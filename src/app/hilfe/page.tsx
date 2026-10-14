@@ -557,6 +557,29 @@ export default async function HilfePage() {
           des Vereins. Wird ein Spiel verlegt, werden die Einteilungen wie bei den anderen Helferdiensten aufgehoben und die
           Betroffenen informiert.
         </p>
+        <h3 className="text-sm font-medium">Selbst eintragen lassen</h3>
+        <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
+          <li>
+            Auf der Dienstwart-Seite unter <strong>„Öffentliche Selbsteintragung“</strong> den Link aktivieren und z.B. in die
+            Elterngruppe teilen. Es ist dieselbe Eintragungsseite wie für Zeitnehmer und Ordner (
+            <a href="#selbsteintragung" className="font-medium underline">mehr dazu</a>); eure eigenen Dienste stehen dort
+            zusätzlich zur Auswahl.
+          </li>
+          <li>
+            Ein Eintrag zählt <strong>sofort</strong>, eine Bestätigung durch den Wart ist nicht nötig. Wer im Verein ein Konto hat,
+            wird über die E-Mail (oder weil er eingeloggt ist) erkannt und bekommt eine Bestätigung; sonst wird der Name ohne Login
+            eingetragen. Ein Konto wird dabei nicht angelegt.
+          </li>
+          <li>
+            <strong>Abmelden:</strong> Personen mit Konto sehen ihre Einsätze im Profil unter „Meine Helferdienste“ und fragen dort
+            die Abmeldung an. Der Dienstwart bekommt eine Mail (gibt es keinen, die Vereinsadmins) und bestätigt oder lehnt auf
+            seiner Seite unter „Abmeldeanfragen“ ab.
+          </li>
+          <li>
+            Unter <strong>Auswertung &amp; Export</strong> stehen eure eigenen Dienste in einer eigenen Spalte („Fahrer: Eva, Opa
+            Heinz (2/3); Kuchen: offen“), auch in Excel und PDF. In der Statistik zählen sie als Einsätze.
+          </li>
+        </ul>
       </section>
 
       <section id="warte" className="flex flex-col gap-2 scroll-mt-6">

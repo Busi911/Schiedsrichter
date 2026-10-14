@@ -154,6 +154,8 @@ export type EingeteiltePerson = {
   userId: string | null;
   anzeigeName: string;
   ohneLogin: boolean;
+  // Die Person möchte sich abmelden (Profil), der Dienstwart entscheidet.
+  abmeldungAngefragt?: boolean;
 };
 
 export type DienstwartStelle = {
@@ -195,4 +197,16 @@ export function rolleFuerAnzeige(
 ): string {
   if (z.funktionstraegerTyp !== "eigener_dienst") return z.funktionstraegerTyp;
   return (z.dienstArtId && dienstNamen.get(z.dienstArtId)) || "Helfer";
+}
+
+// Eine Zelle für Auswertung/Export: "Fahrer: Eva, Opa Heinz (2/3); Kuchen: offen". null, wenn am Termin kein eigener Dienst gilt.
+export function eigeneDiensteZellenText(stellen: DienstwartStelle[]): string | null {
+  const teile = stellen
+    .filter((s) => s.bedarf > 0 || s.eingeteilt.length > 0)
+    .map((s) => {
+      const namen = s.eingeteilt.map((e) => e.anzeigeName).join(", ");
+      if (!namen) return `${s.name}: offen`;
+      return s.eingeteilt.length < s.bedarf ? `${s.name}: ${namen} (${s.eingeteilt.length}/${s.bedarf})` : `${s.name}: ${namen}`;
+    });
+  return teile.length ? teile.join("; ") : null;
 }

@@ -4,6 +4,8 @@ import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { tagKey } from "./kalender";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "./dienste";
+import { dienstwartStellen, eigeneDiensteZellenText, type EingeteiltePerson } from "./eigene-dienste";
+import { ladeDienstArten, ladeEigeneDiensteKontext } from "./eigene-dienste-daten";
 
 export type AuswertungFilter = {
   von?: string;
@@ -75,7 +77,8 @@ const ANDERE_ROLLE_FELD: Record<AndereRolle, string> = {
 // Für die Rollen-Auswahl beim Excel/PDF-Export (siehe admin/auswertung/
 // page.tsx sowie termin-pdf.ts/termin-excel.ts) — alle sechs Dienst-Rollen,
 // die im Dienstplan als Spalte auftauchen können.
-export const AUSWERTUNG_ROLLEN = ["schiedsrichter", ...ANDERE_ROLLEN] as const;
+// "eigeneDienste" = alle vom Verein selbst definierten Dienste (Fahrer, Kuchen, ...) in EINER Spalte, siehe eigeneDiensteZellenText.
+export const AUSWERTUNG_ROLLEN = ["schiedsrichter", ...ANDERE_ROLLEN, "eigeneDienste"] as const;
 export type AuswertungsRolle = (typeof AUSWERTUNG_ROLLEN)[number];
 export const AUSWERTUNG_ROLLE_LABEL: Record<AuswertungsRolle, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -84,7 +87,14 @@ export const AUSWERTUNG_ROLLE_LABEL: Record<AuswertungsRolle, string> = {
   kassierer: "Kassierer",
   zeitnehmer: "Zeitnehmer",
   sekretaer: "Sekretär",
+  eigeneDienste: "Eigene Dienste",
 };
+
+// Ohne Auswahl im Export: alle Rollen, die Spalte "Eigene Dienste" aber nur, wenn sie irgendwo etwas enthält (Vereine ohne eigene
+// Dienste bekämen sonst eine leere Spalte).
+export function standardRollen(zeilen: { eigeneDiensteText?: string | null }[]): AuswertungsRolle[] {
+  return AUSWERTUNG_ROLLEN.filter((r) => r !== "eigeneDienste" || zeilen.some((z) => !!z.eigeneDiensteText));
+}
 
 export type RollenBedarf = Record<Exclude<AuswertungsRolle, "schiedsrichter">, boolean>;
 
@@ -326,6 +336,7 @@ export async function holeTermineFuerAuswertung(
             funktionstraegerTyp: terminZuordnungen.funktionstraegerTyp,
             userId: terminZuordnungen.userId,
             externerName: terminZuordnungen.externerName,
+            dienstArtId: terminZuordnungen.dienstArtId,
             name: users.name,
             email: users.email,
           })
@@ -369,7 +380,7 @@ export async function holeTermineFuerAuswertung(
     const vereinRow = await tx.query.vereine.findFirst({
       where: eq(vereine.id, vereinId),
     });
-    const bedarfProTermin = new Map<string, RollenBedarf>();
+    const bedarfProTermin = new Map<string, Omit<RollenBedarf, "eigeneDienste">>();
     if (vereinRow) {
       for (const t of basisListe) {
         // t.mannschaftId === null → kein Mannschaftsbezug, dann kommen die
@@ -433,9 +444,34 @@ export async function holeTermineFuerAuswertung(
       }
     }
 
-    return ergebnis.map((z) => ({
-      ...z,
-      rollenBedarf: bedarfProTermin.get(z.id),
-    }));
+    // Eigene Dienste: je Termin ein Text wie "Fahrer: Eva, Opa Heinz (2/3); Kuchen: offen".
+    const alleArten = await ladeDienstArten(tx, vereinId, false);
+    const eigeneText = new Map<string, string>();
+    if (alleArten.length > 0 && basisListe.length > 0) {
+      const kontext = await ladeEigeneDiensteKontext(tx, vereinId, basisListe.map((t) => t.id));
+      const eingeteilt: EingeteiltePerson[] = alleZuordnungen
+        .filter((z) => z.funktionstraegerTyp === "eigener_dienst")
+        .map((z) => ({
+          zuordnungId: "",
+          terminId: z.terminId,
+          dienstArtId: z.dienstArtId,
+          userId: z.userId,
+          anzeigeName: z.name ?? z.externerName ?? z.email ?? "?",
+          ohneLogin: !z.userId,
+        }));
+      for (const t of basisListe) {
+        const text = eigeneDiensteZellenText(dienstwartStellen(kontext, alleArten, t, eingeteilt));
+        if (text) eigeneText.set(t.id, text);
+      }
+    }
+
+    return ergebnis.map((z) => {
+      const bedarf = bedarfProTermin.get(z.id);
+      return {
+        ...z,
+        eigeneDiensteText: eigeneText.get(z.id) ?? null,
+        rollenBedarf: bedarf ? { ...bedarf, eigeneDienste: eigeneText.has(z.id) } : undefined,
+      };
+    });
   });
 }

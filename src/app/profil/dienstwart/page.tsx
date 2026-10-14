@@ -17,7 +17,18 @@ import { PersonSelect } from "@/components/person-select";
 import { MannschaftFilterLeiste } from "@/components/mannschaft-filter-leiste";
 import { MonatsgruppenListe } from "@/components/monatsgruppen-liste";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
-import { dienstBedarfSetzen, dienstZuordnen, dienstZuordnungEntfernen } from "./actions";
+import { WeitereOptionen } from "@/components/weitere-optionen";
+import { SelbsteintragungLink } from "@/components/selbsteintragung-link";
+import { appUrl } from "@/lib/app-url";
+import {
+  dienstAbmeldungAblehnen,
+  dienstAbmeldungGenehmigen,
+  dienstBedarfSetzen,
+  diensteSelbstanmeldungDeaktivieren,
+  diensteSelbstanmeldungLinkErneuern,
+  dienstZuordnen,
+  dienstZuordnungEntfernen,
+} from "./actions";
 
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
@@ -40,7 +51,10 @@ export default async function DienstwartPage({
 
   const { filter, mannschaft: mannschaftFilter } = await searchParams;
   const nurOffene = filter === "offen";
-  const { alleArten, termine, personen, mannschaftsListe } = await holeDienstwartDaten(vereinId);
+  const { alleArten, termine, personen, mannschaftsListe, selbstanmeldungToken } = await holeDienstwartDaten(vereinId);
+  const abmeldeanfragen = termine.flatMap((t) =>
+    t.stellen.flatMap((s) => s.eingeteilt.filter((e) => e.abmeldungAngefragt).map((e) => ({ termin: t, stelle: s, person: e })))
+  );
 
   const gefiltert = termine.filter(
     (t) => (!mannschaftFilter || t.mannschaftId === mannschaftFilter) && (!nurOffene || istOffen(t))
@@ -91,6 +105,91 @@ export default async function DienstwartPage({
           )}
         </Card>
       ) : (
+        <>
+        <Card className="border-primary/40 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-base">Öffentliche Selbsteintragung</CardTitle>
+            <CardDescription>
+              Login-freier Link, über den sich Helfer (z.B. Eltern) selbst für eure eigenen Dienste eintragen. Es ist dieselbe
+              Eintragungsseite wie für Zeitnehmer und Ordner: angeboten wird, was die Warte jeweils freigeschaltet haben. Einträge zählen
+              sofort; wer im Verein ein Konto hat, wird über die E-Mail erkannt und bekommt eine Bestätigung.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {selbstanmeldungToken ? (
+              <SelbsteintragungLink
+                url={`${appUrl()}/eintragen/${selbstanmeldungToken}`}
+                teilText={`Tragt euch hier für Dienste ein (${alleArten.filter((a) => a.aktiv).map((a) => a.name).join(", ")}):`}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Noch nicht aktiviert.</p>
+            )}
+            <WeitereOptionen eingeklappt={!!selbstanmeldungToken}>
+              <form action={diensteSelbstanmeldungLinkErneuern}>
+                {selbstanmeldungToken ? (
+                  <ConfirmSubmitButton
+                    className="h-11 px-4 text-sm"
+                    variant="outline"
+                    confirmText="Neuen Link generieren? Der bisherige Link funktioniert danach nicht mehr."
+                  >
+                    Link neu generieren
+                  </ConfirmSubmitButton>
+                ) : (
+                  <SubmitButton className="h-11 px-4 text-sm" variant="outline">
+                    Aktivieren
+                  </SubmitButton>
+                )}
+              </form>
+              {selbstanmeldungToken && (
+                <form action={diensteSelbstanmeldungDeaktivieren}>
+                  <ConfirmSubmitButton
+                    className="h-11 px-4 text-sm"
+                    variant="ghost"
+                    confirmText="Selbsteintragung für eigene Dienste deaktivieren? Der bisherige Link funktioniert danach nicht mehr."
+                  >
+                    Deaktivieren
+                  </ConfirmSubmitButton>
+                </form>
+              )}
+            </WeitereOptionen>
+          </CardContent>
+        </Card>
+
+        {abmeldeanfragen.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Abmeldeanfragen ({abmeldeanfragen.length})</CardTitle>
+              <CardDescription>
+                Diese Personen möchten sich wieder abmelden. Die Einteilung bleibt bestehen, bis du zustimmst oder ablehnst.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {abmeldeanfragen.map(({ termin, stelle, person }) => (
+                <div key={person.zuordnungId} className="flex flex-col gap-2 rounded-lg border p-3 text-sm">
+                  <p>
+                    <span className="font-medium">{person.anzeigeName}</span> als {stelle.name} · {formatDateTime(termin.start)}
+                    {termin.mannschaftLabel ? ` · ${termin.mannschaftLabel}` : ""}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <form action={dienstAbmeldungGenehmigen}>
+                      <input type="hidden" name="zuordnungId" value={person.zuordnungId} />
+                      <SubmitButton className="h-11 px-4 text-sm" pendingText="Wird bestätigt…">
+                        Abmeldung bestätigen
+                      </SubmitButton>
+                    </form>
+                    <form action={dienstAbmeldungAblehnen}>
+                      <input type="hidden" name="zuordnungId" value={person.zuordnungId} />
+                      <SubmitButton className="h-11 px-4 text-sm" variant="outline" pendingText="Wird abgelehnt…">
+                        Ablehnen
+                      </SubmitButton>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -118,6 +217,7 @@ export default async function DienstwartPage({
             />
           </CardContent>
         </Card>
+        </>
       )}
     </div>
   );
@@ -164,6 +264,7 @@ function TerminKarte({
                       <span>
                         {e.anzeigeName}
                         {e.ohneLogin ? " (ohne Login)" : ""}
+                        {e.abmeldungAngefragt && <Badge variant="warning" className="ml-2">möchte sich abmelden</Badge>}
                       </span>
                       <form action={dienstZuordnungEntfernen}>
                         <input type="hidden" name="zuordnungId" value={e.zuordnungId} />

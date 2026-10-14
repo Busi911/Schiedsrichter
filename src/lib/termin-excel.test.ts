@@ -21,6 +21,7 @@ function zeile(overrides: Partial<Parameters<typeof terminAlsExcel>[0][number]> 
     zeitnehmerName: null,
     sekretaerName: null,
     rollenBedarf: undefined,
+    eigeneDiensteText: null,
     ...overrides,
   };
 }
@@ -91,7 +92,7 @@ describe("terminAlsExcel", () => {
 
   it("zeigt \"intern\" statt einer leeren Zelle, wenn die Rolle für diesen Termin keinen Bedarf hat", async () => {
     const buffer = await terminAlsExcel([
-      zeile({ ordnerName: null, rollenBedarf: { ordner: false, kioskdienst: true, kassierer: true, zeitnehmer: true, sekretaer: true } }),
+      zeile({ ordnerName: null, rollenBedarf: { ordner: false, kioskdienst: true, kassierer: true, zeitnehmer: true, sekretaer: true, eigeneDienste: false } }),
     ]);
     const workbook = new ExcelJS.Workbook();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,7 +103,7 @@ describe("terminAlsExcel", () => {
 
   it("zeigt \"offen\" statt einer leeren Zelle, wenn die Rolle noch unbesetzt ist", async () => {
     const buffer = await terminAlsExcel([
-      zeile({ ordnerName: null, rollenBedarf: { ordner: true, kioskdienst: true, kassierer: true, zeitnehmer: true, sekretaer: true } }),
+      zeile({ ordnerName: null, rollenBedarf: { ordner: true, kioskdienst: true, kassierer: true, zeitnehmer: true, sekretaer: true, eigeneDienste: false } }),
     ]);
     const workbook = new ExcelJS.Workbook();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -140,5 +141,20 @@ describe("terminAlsExcel", () => {
     await workbook.xlsx.load(buffer as any);
     const sheet = workbook.getWorksheet("Dienstplan")!;
     expect(sheet.rowCount).toBe(1);
+  });
+});
+
+describe("Spalte Eigene Dienste", () => {
+  it("erscheint ohne Auswahl nur, wenn ein Termin eigene Dienste hat", async () => {
+    const ExcelJS2 = (await import("exceljs")).default;
+    const kopf = async (buffer: Buffer) => {
+      const wb = new ExcelJS2.Workbook();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await wb.xlsx.load(buffer as any);
+      return (wb.getWorksheet("Dienstplan")!.getRow(1).values as unknown[]).filter(Boolean);
+    };
+    expect(await kopf(await terminAlsExcel([zeile()]))).not.toContain("Eigene Dienste");
+    const mit = await terminAlsExcel([zeile({ eigeneDiensteText: "Fahrer: Eva (1/3)" })]);
+    expect(await kopf(mit)).toContain("Eigene Dienste");
   });
 });

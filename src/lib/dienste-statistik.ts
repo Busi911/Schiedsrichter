@@ -206,10 +206,12 @@ const DIENST_RELEVANTE_ROLLEN = [
   "ordner",
   "kioskdienst",
   "kassierer",
+  // Vom Verein definierte eigene Dienste (Fahrer, Kuchen, ...) zählen ebenso als Einsatz.
+  "eigener_dienst",
 ] as const;
 
 // Über ALLE Funktionsträger-Rollen hinweg (Schiedsrichter, Zeitnehmer,
-// Sekretär, Ordner, Kioskdienst, Kassierer) — anders als die rollenspezifischen
+// Sekretär, Ordner, Kioskdienst, Kassierer, eigene Dienste) — anders als die rollenspezifischen
 // Einsatzzahlen der Wart-Seiten (z.B. holeZeitnehmerEinsatzZahlen), die
 // jeweils nur ihre eigene Rolle zählen. Nur vergangene Termine, damit eine
 // bereits erfolgte, aber noch nicht absolvierte Zuordnung nicht mitzählt.
