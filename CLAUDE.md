@@ -664,7 +664,8 @@ im Kalender (`admin-kalender.ts`, Zeilen „Fahrer: offen“/„2 von 3 besetzt�
 `berechneOffenePosten` mit optionalem Kontext, Lücke `rolle: "eigener_dienst"` + `label`), Admin-Erinnerung (`dienste-erinnerung.ts`); der Dienste-Broadcast
 überspringt eigene Dienste (keine Rolleninhaber). Einteilen nur auf `/profil/dienstwart` (Admins + Rolle dienstwart; Person oder Name ohne Login, Entfernen,
 „Bedarf anpassen“, nie mehr als der Bedarf; Mail mit Dienstname und Hinweis). Navigation: „Dienste einteilen“ im Admin-Menü (`lib/wart-navigation.ts`
-`wartItems`, Dienstwart nur wenn der Verein aktive eigene Dienste hat), Profil-Schaltfläche/-Tab „Dienste“. Verlegung durch den Sync entfernt Einteilungen
+`WART_ITEMS`; seit 14.10.2026 sehen Admins den Dienstwart IMMER, wie die anderen Warte, auch ohne angelegte eigene Dienste — die Seite
+verweist dann auf Einstellungen → Dienste), Profil-Schaltfläche/-Tab „Dienste“ (Admins immer, sonst Rolle dienstwart). Verlegung durch den Sync entfernt Einteilungen
 eigener Dienste wie bei den Helferdiensten (bestehende Regel „außer Schiedsrichter“). Löschen eines Dienstes nur ohne Einteilungen, sonst deaktivieren.
 Hilfe: `/hilfe#eigene-dienste`. Einstellungs-Anker liegen jetzt IM Inhalt von `EinstellungsBereich` (`<span id>`), weil Browser beim Sprung nur umgebende
 `<details>` aufklappen, nicht das Ziel selbst.

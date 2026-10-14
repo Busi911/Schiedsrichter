@@ -12,8 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { AdminNav } from "@/components/admin-nav";
-import { wartItems } from "@/lib/wart-navigation";
-import { hatAktiveEigeneDienste } from "@/lib/eigene-dienste-daten";
+import { WART_ITEMS } from "@/lib/wart-navigation";
 import { BottomNav } from "@/components/bottom-nav";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { HilfeLink } from "@/components/hilfe-link";
@@ -47,12 +46,11 @@ export default async function AdminLayout({
   // Auf jeder Admin-Seite sichtbar (nicht nur auf der Übersicht) — der Admin
   // soll die Besetzung nur noch überwachen, die eigentliche Zuordnung
   // übernehmen die jeweiligen Wart-Rollen (siehe /admin/dienste).
-  const [offeneDiensteAnzahl, offeneSchiedsrichterAnzahl, mitEigenenDiensten] = await Promise.all([
+  const [offeneDiensteAnzahl, offeneSchiedsrichterAnzahl] = await Promise.all([
     holeOffenePosten(vereinId).then((p) => p.length),
     holeOffeneSchiedsrichterAnzahl(vereinId),
-    withTenant(vereinId, (tx) => hatAktiveEigeneDienste(tx, vereinId)),
   ]);
-  const warte = session.user.istAdmin ? wartItems(mitEigenenDiensten) : [];
+  const warte = session.user.istAdmin ? WART_ITEMS : [];
 
   return (
     <div className="min-h-screen">

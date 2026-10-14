@@ -3,15 +3,11 @@
 // nur für volle Admins: "nur lesend" darf die Wart-Seiten nicht öffnen.
 export type WartItem = { href: string; label: string };
 
+// Alle vier Wart-Seiten, auch der Dienstwart (eigene Dienste wie Fahrer, Kuchen): Admins sehen ihn immer, wie die anderen
+// Warte; ohne angelegte eigene Dienste verweist die Seite auf Einstellungen → Dienste.
 export const WART_ITEMS: WartItem[] = [
   { href: "/profil/schiedsrichterwart", label: "Schiedsrichterwart" },
   { href: "/profil/zeitnehmerwart", label: "Zeitnehmer-/Sekretärwart" },
   { href: "/profil/ordnerwart", label: "Ordnerwart" },
+  { href: "/profil/dienstwart", label: "Dienstwart (eigene Dienste)" },
 ];
-
-// Eigene Dienste (Fahrer, Kuchen, ...): nur zeigen, wenn der Verein welche angelegt hat (lib/eigene-dienste.ts).
-export const DIENSTWART_ITEM: WartItem = { href: "/profil/dienstwart", label: "Dienstwart (eigene Dienste)" };
-
-export function wartItems(mitEigenenDiensten: boolean): WartItem[] {
-  return mitEigenenDiensten ? [...WART_ITEMS, DIENSTWART_ITEM] : WART_ITEMS;
-}
