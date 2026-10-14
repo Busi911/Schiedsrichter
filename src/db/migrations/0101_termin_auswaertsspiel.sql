@@ -1,0 +1,1 @@
+ALTER TYPE "public"."termin_typ" ADD VALUE 'auswaertsspiel';

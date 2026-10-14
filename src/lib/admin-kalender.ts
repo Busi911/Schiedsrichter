@@ -36,6 +36,7 @@ const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
+  auswaertsspiel: "Auswärtsspiel",
   rundenspiel: "Rundenspiel",
 };
 
@@ -451,7 +452,10 @@ export async function holeAdminKalenderDaten(
       }
       // Eigene Dienste (Fahrer, Kuchen, ...): wie die Helferdienste eine "offen"-Zeile ohne jede Einteilung und
       // Teil der Vollständigkeit. Eingeteilt wird auf /profil/dienstwart, nicht im Kalender-Modal.
-      for (const stelle of eigeneDiensteFuerTermin(eigeneDienste, t, eigeneZuordnungen)) {
+      const eigeneStellen = eigeneDiensteFuerTermin(eigeneDienste, t, eigeneZuordnungen);
+      // Auswärtsspiele (lib/auswaerts-termine.ts) haben nur eigene Dienste: Badge allein daraus.
+      if (t.typ === "auswaertsspiel" && eigeneStellen.length > 0) besetzung = "vollstaendig";
+      for (const stelle of eigeneStellen) {
         if (stelle.vorhanden < stelle.bedarf) helferdienstOffen = true;
         if (stelle.vorhanden === 0) {
           besetzungsDetails.push({
@@ -478,6 +482,7 @@ export async function holeAdminKalenderDaten(
       label,
       typLabel,
       besetzung,
+      auswaerts: t.typ === "auswaertsspiel",
       zuordenbar,
       volleRollen,
       schiedsrichterZuordnenErlaubt: brauchtSchiedsrichterVomVerein(t),

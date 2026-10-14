@@ -25,6 +25,7 @@ import { formatDatumZeit as formatDateTime } from "@/lib/format";
 const QUELL_TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
   turnier_spiel: "Turnierspiel",
+  auswaertsspiel: "Auswärtsspiel",
 };
 
 type Tab = "testspiele" | "rundenspiele";

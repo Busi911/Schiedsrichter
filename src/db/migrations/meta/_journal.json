@@ -708,6 +708,27 @@
       "when": 1791960470053,
       "tag": "0100_dienste_selbstanmeldung",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1791961387824,
+      "tag": "0101_termin_auswaertsspiel",
+      "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1791974025573,
+      "tag": "0102_dienst_art_bedarf_je_veranstaltung",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1791974035576,
+      "tag": "0103_dienst_art_alte_geltung_entfernen",
+      "breakpoints": true
     }
   ]
 }

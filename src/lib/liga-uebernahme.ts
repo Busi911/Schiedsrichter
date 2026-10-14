@@ -4,6 +4,7 @@ import { adminDb } from "@/db/admin";
 import { ligaVereine, mannschaften, termine, terminZuordnungen, vereine } from "@/db/schema";
 import { ermittleUebernahmeBasis } from "@/lib/hallenplan-abgleich-laden";
 import { uebernehmeAenderungen } from "@/lib/liga-aenderungen";
+import { pflegeAuswaertsTermine } from "@/lib/auswaerts-termine";
 import { findeMannschaft, type RundenspielEreignis } from "@/lib/rundenspiel-import";
 import { parseBerlinDatumZeit } from "@/lib/format";
 import { schreibeProtokoll } from "@/lib/treuhand";
@@ -188,6 +189,8 @@ export async function uebernehmeFuerAktiveVereine(
       const angelegt = (await uebernehmeLigaSpiele(a.vereinId, CRON_AKTEUR, opt.jetzt)).angelegt;
       // Verlegungen und Ergebnisse aus den öffentlichen Daten (mit Benachrichtigung der Betroffenen)
       const geaendert = await uebernehmeAenderungen(a.vereinId, CRON_AKTEUR, opt.jetzt);
+      // Auswärtsspiele für eigene Dienste (z.B. Fahrer): anlegen, Verlegungen/Absagen übernehmen (lib/auswaerts-termine.ts).
+      await pflegeAuswaertsTermine(a.vereinId, opt.jetzt);
       ergebnis.push({ vereinId: a.vereinId, angelegt, verlegt: geaendert.verlegt, ergebnisse: geaendert.ergebnisse });
     } catch (err) {
       ergebnis.push({ vereinId: a.vereinId, fehler: err instanceof Error ? err.message : String(err) });

@@ -33,6 +33,7 @@ import {
 const TYP_LABEL: Record<string, string> = {
   testspiel: "Freundschaftsspiel",
   turnier: "Turnier",
+  auswaertsspiel: "Auswärtsspiel",
 };
 
 function istOffen(t: DienstwartTermin) {
@@ -93,7 +94,7 @@ export default async function DienstwartPage({
           <CardHeader>
             <CardTitle className="text-base">Noch keine eigenen Dienste</CardTitle>
             <CardDescription>
-              Eigene Dienste wie Fahrer oder Kuchen legt der Vereinsadmin unter Einstellungen → Eigene Dienste an.
+              Eigene Dienste wie Fahrer oder Kuchen legt der Vereinsadmin unter Einstellungen → Dienste → „Eigenen Dienst anlegen“ an.
             </CardDescription>
           </CardHeader>
           {session.user.istAdmin && (

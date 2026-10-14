@@ -40,7 +40,7 @@ export async function uebernehmeHandballNetAnsetzungen(opt: {
     .innerJoin(ligaSpiele, eq(ligaSpiele.gruppeId, ligaGruppen.id))
     .innerJoin(termine, eq(termine.ligaSpielId, ligaSpiele.id))
     .innerJoin(vereine, eq(vereine.id, termine.vereinId))
-    .where(and(eq(ligaGruppen.quelle, "handball_net"), eq(vereine.ligaUebernahmeAktiv, true), inArray(vereine.id, berechtigte), gte(ligaSpiele.datum, heute)))
+    .where(and(eq(ligaGruppen.quelle, "handball_net"), eq(vereine.ligaUebernahmeAktiv, true), eq(termine.typ, "rundenspiel"), inArray(vereine.id, berechtigte), gte(ligaSpiele.datum, heute)))
     .orderBy(sql`${ligaGruppen.ansetzungGeprueftAm} asc nulls first`);
 
   const lauf: AnsetzungsLauf = { gruppenGeprueft: 0, gruppenUebrig: 0, gruppenFehler: 0, aktualisiert: 0 };
@@ -76,7 +76,7 @@ export async function uebernehmeHandballNetAnsetzungen(opt: {
         .from(termine)
         .innerJoin(ligaSpiele, eq(ligaSpiele.id, termine.ligaSpielId))
         .innerJoin(vereine, eq(vereine.id, termine.vereinId))
-        .where(and(eq(ligaSpiele.gruppeId, g.id), eq(vereine.ligaUebernahmeAktiv, true), inArray(vereine.id, berechtigte), gte(ligaSpiele.datum, heute)));
+        .where(and(eq(ligaSpiele.gruppeId, g.id), eq(vereine.ligaUebernahmeAktiv, true), eq(termine.typ, "rundenspiel"), inArray(vereine.id, berechtigte), gte(ligaSpiele.datum, heute)));
       for (const t of betroffene) {
         const oeffentlich = t.code ? nachCode.get(t.code) : undefined;
         if (!oeffentlich) continue;

@@ -67,6 +67,7 @@ const TYP_LABEL: Record<string, string> = {
   spiel_ics: "Spiel (ICS)",
   testspiel: "Freundschaftsspiel",
   turnier_spiel: "Turnierspiel",
+  auswaertsspiel: "Auswärtsspiel",
   rundenspiel: "Rundenspiel",
 };
 
@@ -366,6 +367,8 @@ export default async function ZeitnehmerwartPage({
               dieser Mannschaft, auch bereits bestehende offene. Ein für
               einen einzelnen Termin gesetzter Bedarf (siehe unten bei den
               Terminen) geht weiterhin vor.
+            {" "}
+              Dieselbe Einstellung wie die Mannschaftsauswahl unter Einstellungen → Dienste.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">

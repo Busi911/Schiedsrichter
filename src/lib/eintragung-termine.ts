@@ -64,8 +64,8 @@ const ZEITNEHMER_TYPEN = ["testspiel", "turnier_spiel", "rundenspiel"];
 // Ordner-/Kiosk-/Kassierer-Bedarf gilt für den Turnier-CONTAINER selbst (typ = turnier), nicht für dessen Einzelspiele — siehe lib/ordnerwart.ts.
 const ORDNER_TYPEN = ["testspiel", "turnier", "rundenspiel"];
 // Eigene Dienste: wie Ordner (Turnier-Container, siehe veranstaltungsArt in lib/eigene-dienste.ts).
-const EIGENE_TYPEN = ["testspiel", "turnier", "rundenspiel"];
-const TYP_LABEL: Record<string, string> = { testspiel: "Freundschaftsspiel", turnier_spiel: "Turnierspiel", turnier: "Turnier", rundenspiel: "Rundenspiel" };
+const EIGENE_TYPEN = ["testspiel", "turnier", "rundenspiel", "auswaertsspiel"];
+const TYP_LABEL: Record<string, string> = { testspiel: "Freundschaftsspiel", turnier_spiel: "Turnierspiel", auswaertsspiel: "Auswärtsspiel", turnier: "Turnier", rundenspiel: "Rundenspiel" };
 
 type Verein = typeof vereine.$inferSelect;
 

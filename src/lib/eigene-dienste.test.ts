@@ -18,11 +18,10 @@ const fahrer: DienstArtRegel = {
   id: "d1",
   name: "Fahrer",
   aktiv: true,
-  fuerHeimspiele: false,
-  fuerAuswaertsspiele: true,
-  fuerFreundschaftsspiele: false,
-  fuerTurniere: true,
-  standardBedarf: 3,
+  bedarfHeim: 0,
+  bedarfAuswaerts: 3,
+  bedarfFreundschaft: 0,
+  bedarfTurnier: 3,
   nurAusgewaehlteMannschaften: true,
   mannschaftIds: ["mJA"],
 };
@@ -30,17 +29,16 @@ const kuchen: DienstArtRegel = {
   id: "d2",
   name: "Kuchen",
   aktiv: true,
-  fuerHeimspiele: true,
-  fuerAuswaertsspiele: false,
-  fuerFreundschaftsspiele: true,
-  fuerTurniere: true,
-  standardBedarf: 2,
+  bedarfHeim: 2,
+  bedarfAuswaerts: 0,
+  bedarfFreundschaft: 2,
+  bedarfTurnier: 1,
   nurAusgewaehlteMannschaften: false,
   mannschaftIds: [],
 };
 
 const heim = { id: "t1", typ: "rundenspiel", pflichtspiel: true, mannschaftId: "mJA" };
-const auswaerts = { ...heim, id: "t2", auswaerts: true };
+const auswaerts = { ...heim, id: "t2", typ: "auswaertsspiel" };
 
 describe("veranstaltungsArt", () => {
   it("ordnet Termine wie die festen Dienste ein", () => {
@@ -134,13 +132,17 @@ describe("Formularprüfung", () => {
 });
 
 describe("geltungsText", () => {
-  it("beschreibt Veranstaltungen, Bedarf und Mannschaften", () => {
-    expect(geltungsText(fahrer, new Map([["mJA", "männl. A-Jugend"]]))).toBe(
-      "Auswärtsspiele, Turniere · 3 je Termin · nur männl. A-Jugend"
-    );
-    expect(geltungsText({ ...kuchen, fuerHeimspiele: false, fuerFreundschaftsspiele: false, fuerTurniere: false }, new Map())).toBe(
-      "keine Veranstaltung gewählt · 2 je Termin"
-    );
+  it("beschreibt Bedarf je Veranstaltung und Mannschaften", () => {
+    expect(geltungsText(fahrer, new Map([["mJA", "männl. A-Jugend"]]))).toBe("Auswärts 3 · Turnier 3 · nur männl. A-Jugend");
+    expect(geltungsText(kuchen, new Map())).toBe("Heim 2 · Freundschaft 2 · Turnier 1");
+    expect(geltungsText({ ...kuchen, bedarfHeim: 0, bedarfFreundschaft: 0, bedarfTurnier: 0 }, new Map())).toBe("nirgends gebraucht");
+  });
+
+  it("Bedarf je Veranstaltung: unterschiedliche Zahlen für Heim und Turnier", async () => {
+    const { bedarfEigenerDienst } = await import("./eigene-dienste");
+    expect(bedarfEigenerDienst(kuchen, { id: "h", typ: "rundenspiel", pflichtspiel: true })).toBe(2);
+    expect(bedarfEigenerDienst(kuchen, { id: "t", typ: "turnier" })).toBe(1);
+    expect(bedarfEigenerDienst(kuchen, { id: "a", typ: "auswaertsspiel" })).toBe(0);
   });
 });
 

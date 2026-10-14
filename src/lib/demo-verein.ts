@@ -96,7 +96,7 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
       avvAkzeptiertVersion: AVV_VERSION,
       avvAkzeptiertVonName: DEMO_ADMIN.name,
       avvAkzeptiertVonEmail: demoEmail(DEMO_ADMIN.key),
-      // Dienste-Bedarf je Veranstaltung (Einstellungen → Dienste-Bedarf pro Termin)
+      // Dienste-Bedarf je Veranstaltung (Einstellungen → Dienste)
       testspielOrdnerBedarf: 1,
       testspielKioskdienstBedarf: 1,
       testspielKassiererBedarf: 0,
@@ -185,7 +185,7 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
           typ: t.typ,
           start: berlinZeit(jetzt, t.tage, t.stunde, t.minute ?? 0),
           ende: new Date(berlinZeit(jetzt, t.tage, t.stunde, t.minute ?? 0).getTime() + t.dauerMinuten * 60_000),
-          ort: "Sporthalle Musterstadt",
+          ort: t.ort ?? "Sporthalle Musterstadt",
           beschreibung: t.beschreibung,
           mannschaftId: mannschaftId(t.mannschaft),
           pflichtspiel: t.pflichtspiel ?? null,
@@ -220,10 +220,10 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
           vereinId: DEMO_VEREIN_ID,
           name: d.name,
           beschreibung: d.beschreibung ?? null,
-          standardBedarf: d.standardBedarf,
-          fuerHeimspiele: d.fuerHeimspiele,
-          fuerFreundschaftsspiele: d.fuerFreundschaftsspiele,
-          fuerTurniere: d.fuerTurniere,
+          bedarfHeim: d.bedarf.heim,
+          bedarfAuswaerts: d.bedarf.auswaerts,
+          bedarfFreundschaft: d.bedarf.freundschaft,
+          bedarfTurnier: d.bedarf.turnier,
           nurAusgewaehlteMannschaften: !!d.mannschaften?.length,
           reihenfolge: i,
         })

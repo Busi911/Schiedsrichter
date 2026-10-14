@@ -3,20 +3,20 @@
 //
 // Ein eigener Dienst gilt für einen Termin, wenn
 //   - er aktiv ist,
-//   - die Veranstaltungsart passt (Heimspiel, Auswärtsspiel, Freundschaftsspiel, Turnier; siehe veranstaltungsArt), und
+//   - für die Veranstaltungsart (Heimspiel, Auswärtsspiel, Freundschaftsspiel, Turnier; siehe veranstaltungsArt) ein Bedarf > 0
+//     eingestellt ist (wie bei den festen Diensten: eine Zahl je Veranstaltung, 0 = gilt dort nicht), und
 //   - bei "nur ausgewählte Mannschaften" die Mannschaft des Termins ausgewählt ist.
-// Der Bedarf ist dann der Standard-Bedarf des Dienstes, außer für den Termin ist ein eigener Wert gesetzt (termin_dienst_bedarf, auch 0) —
+// Der Bedarf ist dann die Zahl für diese Veranstaltung, außer für den Termin ist ein eigener Wert gesetzt (termin_dienst_bedarf, auch 0) —
 // der geht immer vor, auch wenn der Dienst sonst nicht gälte (bewusste Einzelentscheidung des Warts).
 
 export type DienstArtRegel = {
   id: string;
   name: string;
   aktiv: boolean;
-  fuerHeimspiele: boolean;
-  fuerAuswaertsspiele: boolean;
-  fuerFreundschaftsspiele: boolean;
-  fuerTurniere: boolean;
-  standardBedarf: number;
+  bedarfHeim: number;
+  bedarfAuswaerts: number;
+  bedarfFreundschaft: number;
+  bedarfTurnier: number;
   nurAusgewaehlteMannschaften: boolean;
   // Nur ausgewertet, wenn nurAusgewaehlteMannschaften gesetzt ist.
   mannschaftIds: string[];
@@ -28,8 +28,6 @@ export type TerminFuerDienste = {
   pflichtspiel?: boolean | null;
   freundschaftsTyp?: "freundschaftsspiel" | "turnier" | null;
   mannschaftId?: string | null;
-  // Auswärtsspiel (nur aus den Liga-Daten angelegt, wenn ein Dienst "gilt für Auswärtsspiele" greift).
-  auswaerts?: boolean | null;
 };
 
 export type Veranstaltungsart = "heimspiel" | "auswaertsspiel" | "freundschaftsspiel" | "turnier";
@@ -41,22 +39,27 @@ export type Veranstaltungsart = "heimspiel" | "auswaertsspiel" | "freundschaftss
 export function veranstaltungsArt(t: TerminFuerDienste): Veranstaltungsart | null {
   if (t.typ === "rundenspiel") {
     if (t.pflichtspiel === false) return t.freundschaftsTyp === "turnier" ? "turnier" : "freundschaftsspiel";
-    return t.auswaerts ? "auswaertsspiel" : "heimspiel";
+    return "heimspiel";
   }
+  // Eigener Termintyp, angelegt aus den Liga-Daten (lib/auswaerts-termine.ts).
+  if (t.typ === "auswaertsspiel") return "auswaertsspiel";
   if (t.typ === "testspiel") return "freundschaftsspiel";
   if (t.typ === "turnier") return "turnier";
   return null;
 }
 
+// Eingestellter Bedarf eines Dienstes für eine Veranstaltungsart (ohne Mannschaftsauswahl und Termin-Override).
+export function bedarfJeArt(d: DienstArtRegel, art: Veranstaltungsart | null): number {
+  if (art === "heimspiel") return d.bedarfHeim;
+  if (art === "auswaertsspiel") return d.bedarfAuswaerts;
+  if (art === "freundschaftsspiel") return d.bedarfFreundschaft;
+  if (art === "turnier") return d.bedarfTurnier;
+  return 0;
+}
+
 export function dienstGiltFuerTermin(d: DienstArtRegel, t: TerminFuerDienste): boolean {
   if (!d.aktiv) return false;
-  const art = veranstaltungsArt(t);
-  const passt =
-    (art === "heimspiel" && d.fuerHeimspiele) ||
-    (art === "auswaertsspiel" && d.fuerAuswaertsspiele) ||
-    (art === "freundschaftsspiel" && d.fuerFreundschaftsspiele) ||
-    (art === "turnier" && d.fuerTurniere);
-  if (!passt) return false;
+  if (bedarfJeArt(d, veranstaltungsArt(t)) <= 0) return false;
   if (d.nurAusgewaehlteMannschaften) return !!t.mannschaftId && d.mannschaftIds.includes(t.mannschaftId);
   return true;
 }
@@ -65,7 +68,7 @@ export function dienstGiltFuerTermin(d: DienstArtRegel, t: TerminFuerDienste): b
 export function bedarfEigenerDienst(d: DienstArtRegel, t: TerminFuerDienste, override?: number | null): number {
   if (!d.aktiv) return 0;
   if (override != null) return Math.max(0, override);
-  return dienstGiltFuerTermin(d, t) ? Math.max(0, d.standardBedarf) : 0;
+  return dienstGiltFuerTermin(d, t) ? Math.max(0, bedarfJeArt(d, veranstaltungsArt(t))) : 0;
 }
 
 // Schlüssel für die Termin-Overrides (Map aus termin_dienst_bedarf).
@@ -131,20 +134,25 @@ export function pruefeBedarf(roh: unknown): number {
   return zahl;
 }
 
-// Kurzbeschreibung für die Einstellungen ("Heimspiele, Turniere · 2 je Termin · nur mJA, mJB").
-export function geltungsText(d: DienstArtRegel, mannschaftsNamen: Map<string, string>): string {
-  const arten = [
-    d.fuerHeimspiele && "Heimspiele",
-    d.fuerAuswaertsspiele && "Auswärtsspiele",
-    d.fuerFreundschaftsspiele && "Freundschaftsspiele",
-    d.fuerTurniere && "Turniere",
-  ].filter(Boolean) as string[];
-  const teile = [arten.length ? arten.join(", ") : "keine Veranstaltung gewählt", `${d.standardBedarf} je Termin`];
-  if (d.nurAusgewaehlteMannschaften) {
-    const namen = d.mannschaftIds.map((id) => mannschaftsNamen.get(id)).filter(Boolean) as string[];
-    teile.push(namen.length ? `nur ${namen.join(", ")}` : "keine Mannschaft gewählt");
-  }
+// Kurzbeschreibung für die Einstellungen, für feste UND eigene Dienste ("Heim 2 · Turnier 1 · nur Männer, mJA").
+// bedarf: Paare aus Kurzname der Veranstaltung und Zahl; nurMannschaften = null heißt alle Mannschaften.
+export function bedarfsText(bedarf: [string, number][], nurMannschaften: string[] | null): string {
+  const gesetzt = bedarf.filter(([, n]) => n > 0).map(([art, n]) => `${art} ${n}`);
+  const teile = [gesetzt.length ? gesetzt.join(" · ") : "nirgends gebraucht"];
+  if (nurMannschaften) teile.push(nurMannschaften.length ? `nur ${nurMannschaften.join(", ")}` : "keine Mannschaft gewählt");
   return teile.join(" · ");
+}
+
+export function geltungsText(d: DienstArtRegel, mannschaftsNamen: Map<string, string>): string {
+  return bedarfsText(
+    [
+      ["Heim", d.bedarfHeim],
+      ["Auswärts", d.bedarfAuswaerts],
+      ["Freundschaft", d.bedarfFreundschaft],
+      ["Turnier", d.bedarfTurnier],
+    ],
+    d.nurAusgewaehlteMannschaften ? (d.mannschaftIds.map((id) => mannschaftsNamen.get(id)).filter(Boolean) as string[]) : null
+  );
 }
 
 export type EingeteiltePerson = {

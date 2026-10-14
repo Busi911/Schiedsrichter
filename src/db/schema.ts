@@ -71,6 +71,10 @@ export const terminTypEnum = pgEnum("termin_typ", [
   // Spiele an der eigenen Halle, nicht nur die der eigenen Mannschaften —
   // relevant für Ordner-/Kioskdienst-Bedarf am Spieltag.
   "rundenspiel",
+  // Auswärtsspiel einer eigenen Mannschaft aus den Liga-Daten — nur angelegt, solange ein eigener Dienst mit "gilt für
+  // Auswärtsspiele" für die Mannschaft greift (z.B. Fahrer, siehe lib/auswaerts-termine.ts). Bewusst ein eigener Typ: feste
+  // Dienste, Schiedsrichter-Besetzung und Hallenplan-Abgleich betrachten nur Heimspiele ("rundenspiel").
+  "auswaertsspiel",
 ]);
 
 export const terminQuelleEnum = pgEnum("termin_quelle", [
@@ -870,13 +874,12 @@ export const dienstArten = pgTable("dienst_art", {
   beschreibung: text("beschreibung"),
   // Deaktiviert = taucht nirgends mehr als Bedarf auf, bestehende Einteilungen bleiben sichtbar.
   aktiv: boolean("aktiv").notNull().default(true),
-  // Für welche Veranstaltungen der Dienst gilt (siehe veranstaltungsArt in lib/eigene-dienste.ts).
-  fuerHeimspiele: boolean("fuer_heimspiele").notNull().default(true),
-  fuerAuswaertsspiele: boolean("fuer_auswaertsspiele").notNull().default(false),
-  fuerFreundschaftsspiele: boolean("fuer_freundschaftsspiele").notNull().default(false),
-  fuerTurniere: boolean("fuer_turniere").notNull().default(false),
-  // Wie viele Personen je Termin gebraucht werden; je Termin überschreibbar (termin_dienst_bedarf).
-  standardBedarf: integer("standard_bedarf").notNull().default(1),
+  // Bedarf je Veranstaltung (0 = gilt dort nicht; siehe veranstaltungsArt in lib/eigene-dienste.ts), wie bei den festen
+  // Diensten (vereine.*Bedarf); je Termin überschreibbar (termin_dienst_bedarf).
+  bedarfHeim: integer("bedarf_heim").notNull().default(0),
+  bedarfAuswaerts: integer("bedarf_auswaerts").notNull().default(0),
+  bedarfFreundschaft: integer("bedarf_freundschaft").notNull().default(0),
+  bedarfTurnier: integer("bedarf_turnier").notNull().default(0),
   // true = gilt nur für die Mannschaften in dienst_art_mannschaft (z.B. Fahrer nur für die Jugend).
   nurAusgewaehlteMannschaften: boolean("nur_ausgewaehlte_mannschaften").notNull().default(false),
   reihenfolge: integer("reihenfolge").notNull().default(0),

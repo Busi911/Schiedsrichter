@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CalendarIcon, CheckCircle2, Trophy } from "lucide-react";
+import { AlertCircle, CalendarIcon, Car, CheckCircle2, Trophy } from "lucide-react";
 import {
   monatKey,
   monatsGitter,
@@ -74,6 +74,9 @@ export type KalenderEintrag = {
   // Wird bei vorhandenem ergebnis ignoriert (siehe unten) — ein bereits
   // abgepfiffenes Spiel braucht keinen Besetzungs-Hinweis mehr.
   besetzung?: "vollstaendig" | "offen";
+  // Auswärtsspiel (nur für eigene Dienste wie Fahrer angelegt, siehe lib/auswaerts-termine.ts): anders dargestellt (Auto-Symbol,
+  // gestrichelter Rahmen), damit es sich auf einen Blick von Heimspielen mit allen Diensten unterscheidet.
+  auswaerts?: boolean;
   // Ob im Modal ein "Person zuordnen"-Mini-Formular angeboten wird (siehe
   // zuordenbarePersonen-Prop) — deckt sich mit BESETZUNGSRELEVANTE_TYPEN.
   zuordenbar?: boolean;
@@ -620,7 +623,9 @@ export function MonatsKalender({
               render={
                 <button
                   type="button"
-                  className="flex flex-col gap-1 rounded-lg border p-3 text-left hover:bg-muted/60"
+                  className={`flex flex-col gap-1 rounded-lg border p-3 text-left hover:bg-muted/60 ${
+                    e.auswaerts ? "border-dashed" : ""
+                  }`}
                 />
               }
             >
@@ -655,7 +660,10 @@ export function MonatsKalender({
                   )
                 )}
               </span>
-              <span className="truncate text-sm font-medium">{e.label}</span>
+              <span className="flex items-center gap-1.5 truncate text-sm font-medium">
+                {e.auswaerts && <Car className="size-4 shrink-0 text-muted-foreground" aria-label="Auswärtsspiel" />}
+                <span className="truncate">{e.label}</span>
+              </span>
               <span className="truncate text-xs text-muted-foreground">
                 {e.typLabel}
                 {e.ort ? ` · ${e.ort}` : ""}
@@ -807,7 +815,9 @@ export function MonatsKalender({
                       {sichtbareEintraege.map((e) => (
                         <span
                           key={e.id}
-                          className="flex items-center gap-1 truncate rounded-md bg-muted px-1.5 py-0.5 text-[11px]"
+                          className={`flex items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] ${
+                            e.auswaerts ? "border border-dashed bg-background" : "bg-muted"
+                          }`}
                         >
                           {e.farbe && (
                             <span
@@ -816,6 +826,7 @@ export function MonatsKalender({
                             />
                           )}
                           {e.zeit && <span className="shrink-0 font-medium">{e.zeit}</span>}
+                          {e.auswaerts && <Car className="size-2.5 shrink-0 text-muted-foreground" aria-label="Auswärtsspiel" />}
                           <span className="min-w-0 flex-1 truncate">{e.label}</span>
                           {e.ergebnis ? (
                             <span className="shrink-0 font-medium">{e.ergebnis}</span>

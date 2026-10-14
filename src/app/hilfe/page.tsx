@@ -42,7 +42,7 @@ export default async function HilfePage() {
             ["gesperrte-ids", "Vereins-ID gesperrt? Änderung beantragen"],
             ["kalender", "Kalender & Besetzung"],
             ["eigene-termine", "Freundschaftsspiele & Turniere"],
-            ["bedarf", "Dienste-Bedarf festlegen"],
+            ["bedarf", "Dienste und Bedarf festlegen"],
             ["eigene-dienste", "Eigene Dienste (z.B. Fahrer, Kuchen)"],
             ["warte", "Die Wart-Seiten: wo, was, wer"],
             ["zuordnung", "Dienste verteilen & Selbsteintragung"],
@@ -107,9 +107,9 @@ export default async function HilfePage() {
           <li>
             <strong>Dienste-Bedarf festlegen:</strong> unter{" "}
             <Link href="/admin/einstellungen#dienste-bedarf" className="font-medium underline">
-              Einstellungen → Dienste-Bedarf pro Termin
+              Einstellungen → Dienste
             </Link>
-            , wie viele Ordner, Kioskdienste, Kassierer und Zeitnehmer/Sekretär je Veranstaltung gebraucht werden (
+            , wie viele Ordner, Kioskdienste, Kassierer, Zeitnehmer/Sekretär und eigene Dienste je Veranstaltung gebraucht werden (
             <a href="#bedarf" className="font-medium underline">mehr dazu</a>). Ein Spiel gilt nur als <strong>vollständig besetzt</strong>, wenn auch
             diese Dienste ihren Bedarf erreichen. Braucht ihr noch etwas anderes, z.B. Fahrer oder Kuchen, legt es als{" "}
             <a href="#eigene-dienste" className="font-medium underline">eigenen Dienst</a> an.
@@ -457,36 +457,40 @@ export default async function HilfePage() {
 
       <section id="bedarf" className="flex flex-col gap-2 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">
-          Wie wird der Bedarf pro Rolle festgelegt?
+          Wie wird der Bedarf pro Dienst festgelegt?
         </h2>
         <p className="text-sm text-muted-foreground">
-          Für eigene Veranstaltungen — Freundschaftsspiel, Turnier und
-          Rundenspiel — legt ihr unter{" "}
-          <strong>Einstellungen → Dienste-Bedarf pro Termin</strong> fest,
-          wie viele Ordner, Kioskdienst-, Kassierer- und Zeitnehmer/
-          Sekretär-Helfer ihr braucht. Der Bedarf gilt getrennt je
-          Veranstaltungsart, ein Turnier braucht in der Regel mehr Helfer als
-          ein normales Rundenspiel. Zeitnehmer und Sekretär haben dabei immer
-          genau einen Platz pro Termin, Ordner/Kioskdienst/Kassierer können je
-          nach eingetragenem Bedarf auch mehrfach besetzt werden. Ein Spiel
-          zählt im Kalender und im Dashboard erst als <strong>vollständig
-          besetzt</strong>, wenn Zeitnehmer/Sekretär <em>und</em> alle so
-          festgelegten Helferdienste (Ordner, Kioskdienst, Kassierer) ihren
-          Bedarf erreichen; ein Bedarf von 0 oder eine abgeschaltete Mannschaft
-          zählt nicht.
+          Alle Dienste stehen an einer Stelle:{" "}
+          <Link href="/admin/einstellungen#dienste-bedarf" className="font-medium underline">
+            Einstellungen → Dienste
+          </Link>
+          . Jeder Dienst, ob fest eingebaut (Ordner, Kioskdienst, Kassierer, Zeitnehmer/Sekretär) oder selbst angelegt (z.B. Fahrer,
+          Kuchen), wird gleich eingestellt:
+        </p>
+        <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
+          <li>
+            <strong>Personen je Termin</strong>, getrennt für <strong>Heimspiel</strong>, <strong>Auswärtsspiel</strong>,{" "}
+            <strong>Freundschaftsspiel</strong> und <strong>Turnier</strong>. 0 heißt: bei dieser Veranstaltung nicht gebraucht. Ein
+            Turnier braucht meist mehr Helfer als ein Ligaspiel; Auswärtsspiele gibt es nur für eigene Dienste (z.B. Fahrer), die
+            festen Dienste sind Heimdienste.
+          </li>
+          <li>
+            <strong>Mannschaften:</strong> alle oder nur ausgewählte (mit Altersklasse angezeigt), z.B. Kioskdienst nur bei den
+            Senioren oder Fahrer nur für die Jugend.
+          </li>
+        </ul>
+        <p className="text-sm text-muted-foreground">
+          Zeitnehmer/Sekretär zählt beide zusammen (2 = ein Zeitnehmer und ein Sekretär). Ein Spiel zählt im Kalender und im
+          Dashboard erst als <strong>vollständig besetzt</strong>, wenn alle Dienste mit Bedarf ihn erreichen; ein Bedarf von 0 oder
+          eine nicht ausgewählte Mannschaft zählt nicht. Die Mannschaftsauswahl der festen Dienste ist dieselbe wie „Bedarf pro
+          Mannschaft“ auf den Seiten Ordnerwart und Zeitnehmerwart: eine Änderung an einer Stelle gilt überall.
         </p>
         <p className="text-sm text-muted-foreground">
-          Braucht eine einzelne Mannschaft grundsätzlich keinen eigenen
-          Helfer (z.B. manche Jugend-Mannschaften ohne eigenes Publikum),
-          lässt sich der Bedarf pro Rolle und Mannschaft auf den
-          Wart-Seiten (<strong>Zeitnehmerwart</strong> bzw.{" "}
-          <strong>Ordnerwart</strong>, Abschnitt „Bedarf pro Mannschaft“)
-          komplett abschalten — das wirkt auf alle Termine dieser
-          Mannschaft, auch bereits bestehende offene. Für einzelne Termine
-          lässt sich der Bedarf zusätzlich individuell überschreiben: der Zeitnehmerwart für Zeitnehmer/Sekretär, der Ordnerwart über
-          <strong>„Bedarf anpassen“</strong> je Termin für Ordner, Kioskdienst und Kassierer (auch auf 0, z.B. „bei diesem Spiel kein
-          Kiosk“, oder auf mehr als sonst). Ein leeres Feld bedeutet wieder den Standard. Bei einem persönlichen
-          Schiedsrichter-Einsatz (ICS-Feed, siehe oben) lässt sich so ausnahmsweise doch ein Zeitnehmer anfordern.
+          Für einzelne Termine lässt sich der Bedarf zusätzlich überschreiben: der Zeitnehmerwart für Zeitnehmer/Sekretär, der
+          Ordnerwart für Ordner, Kioskdienst und Kassierer, der Dienstwart für eigene Dienste, jeweils über{" "}
+          <strong>„Bedarf anpassen“</strong> (auch auf 0, z.B. „bei diesem Spiel kein Kiosk“, oder auf mehr als sonst). Ein leeres Feld
+          bedeutet wieder den Standard. Bei einem persönlichen Schiedsrichter-Einsatz (ICS-Feed, siehe oben) lässt sich so
+          ausnahmsweise doch ein Zeitnehmer anfordern.
         </p>
         <p className="text-sm text-muted-foreground">
           Der Schiedsrichter ist ein Sonderfall ohne eigenen Bedarfswert:
@@ -511,9 +515,10 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Unter{" "}
           <Link href="/admin/einstellungen#eigene-dienste" className="font-medium underline">
-            Einstellungen → Eigene Dienste
+            Einstellungen → Dienste → „Eigenen Dienst anlegen“
           </Link>{" "}
-          legt der Vereinsadmin je Dienst fest:
+          legt der Vereinsadmin je Dienst fest (die Einstellungen sind dieselben wie bei den festen Diensten,{" "}
+          <a href="#bedarf" className="font-medium underline">siehe oben</a>):
         </p>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
           <li>
@@ -521,10 +526,7 @@ export default async function HilfePage() {
             Minuten vor Abfahrt an der Halle“).
           </li>
           <li>
-            <strong>Je Termin:</strong> wie viele Personen gebraucht werden.
-          </li>
-          <li>
-            <strong>Gilt für:</strong> Heimspiele, Freundschaftsspiele und/oder Turniere.
+            <strong>Personen je Termin</strong> für Heimspiel, Auswärtsspiel, Freundschaftsspiel und Turnier (0 = dort nicht).
           </li>
           <li>
             <strong>Mannschaften:</strong> alle oder nur ausgewählte, z.B. Fahrer nur für die Jugend.
@@ -533,6 +535,16 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Ein Dienst, für den schon jemand eingeteilt wurde, lässt sich nur noch <strong>deaktivieren</strong>, nicht löschen: Die
           Einteilungen bleiben sichtbar, es entsteht aber kein neuer Bedarf mehr.
+        </p>
+        <h3 className="text-sm font-medium">Auswärtsspiele (z.B. Fahrer)</h3>
+        <p className="text-sm text-muted-foreground">
+          Hat ein eigener Dienst Bedarf bei <strong>Auswärtsspielen</strong>, legt HandballerPate die Auswärtsspiele der passenden
+          Mannschaften automatisch aus dem Spielplan als Termine an (nur dafür, feste Dienste wie Ordner gibt es dort nicht). Im
+          Kalender stehen sie mit <strong>Auto-Symbol</strong> und gestricheltem Rahmen, damit man sie von den Heimspielen
+          unterscheidet, und wie die anderen mit „Vollständig“/„Offen“ für die eigenen Dienste. Wird ein Auswärtsspiel{" "}
+          <strong>verlegt</strong>, werden die Einteilungen aufgehoben und die Eingeteilten bekommen eine Mail (sie tragen sich zum
+          neuen Termin neu ein); wird es <strong>abgesagt</strong>, entfällt der Termin, ebenfalls mit Mail. Ändert sich nur die Halle,
+          wird sie still angepasst und die Einteilungen bleiben. Voraussetzung ist die angebundene Vereins-ID (Spielplan).
         </p>
         <h3 className="text-sm font-medium">Einteilen: der Dienstwart</h3>
         <p className="text-sm text-muted-foreground">
@@ -624,7 +636,8 @@ export default async function HilfePage() {
           </li>
           <li>
             <strong>Bedarf pro Mannschaft:</strong> für Mannschaften ohne eigene Helfer (z.B. manche Jugend) den Bedarf ganz
-            abschalten.
+            abschalten. Das ist derselbe Schalter wie die Mannschaftsauswahl unter{" "}
+            <a href="#bedarf" className="font-medium underline">Einstellungen → Dienste</a>.
           </li>
           <li>
             <strong>Selbsteintragungen zum Bestätigen:</strong> Einträge über den öffentlichen Link, deren Name keiner

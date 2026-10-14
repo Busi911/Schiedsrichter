@@ -23,7 +23,7 @@ export type DienstwartTermin = {
 };
 
 // Für eigene Dienste relevante Termintypen (siehe veranstaltungsArt in eigene-dienste.ts).
-const TYPEN = ["testspiel", "turnier", "rundenspiel"] as const;
+const TYPEN = ["testspiel", "turnier", "rundenspiel", "auswaertsspiel"] as const;
 
 export async function holeDienstwartDaten(vereinId: string) {
   return withTenant(vereinId, async (tx) => {

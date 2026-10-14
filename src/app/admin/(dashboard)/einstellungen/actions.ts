@@ -22,15 +22,6 @@ import { geaenderteStammdaten, GESPERRTE_FELDER, istStammdatenFeld, pruefeStammd
 import { verbieteGesperrteAenderung } from "@/lib/stammdaten-sperre";
 import { benachrichtigeSystemAdminsUeberStammdatenAntrag } from "@/lib/system-admin-benachrichtigung";
 
-function parseAnzahl(formData: FormData, feld: string, min = 0): number {
-  const roh = formData.get(feld);
-  const zahl = typeof roh === "string" ? Number(roh) : NaN;
-  if (!Number.isInteger(zahl) || zahl < min) {
-    throw new Error(`Ungültiger Wert für ${feld}.`);
-  }
-  return zahl;
-}
-
 export async function vereinsdatenSpeichern(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
@@ -66,70 +57,15 @@ export async function vereinsdatenSpeichern(formData: FormData) {
   revalidatePath("/admin/einstellungen");
 }
 
-export async function dienstBedarfSpeichern(formData: FormData) {
+// Bedarf je Dienst und Veranstaltung speichert jetzt das gemeinsame Dienste-Formular (festenDienstSpeichern in
+// eigene-dienste-actions.ts); hier bleibt nur der Schalter für die Rundmail bei unbesetzten Diensten.
+export async function diensteBroadcastSpeichern(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
-
-  const testspielOrdnerBedarf = parseAnzahl(formData, "testspielOrdnerBedarf");
-  const testspielKioskdienstBedarf = parseAnzahl(
-    formData,
-    "testspielKioskdienstBedarf"
-  );
-  const turnierOrdnerBedarf = parseAnzahl(formData, "turnierOrdnerBedarf");
-  const turnierKioskdienstBedarf = parseAnzahl(
-    formData,
-    "turnierKioskdienstBedarf"
-  );
-  const rundenspielOrdnerBedarf = parseAnzahl(
-    formData,
-    "rundenspielOrdnerBedarf"
-  );
-  const rundenspielKioskdienstBedarf = parseAnzahl(
-    formData,
-    "rundenspielKioskdienstBedarf"
-  );
-  const testspielKassiererBedarf = parseAnzahl(formData, "testspielKassiererBedarf");
-  const turnierKassiererBedarf = parseAnzahl(formData, "turnierKassiererBedarf");
-  const rundenspielKassiererBedarf = parseAnzahl(
-    formData,
-    "rundenspielKassiererBedarf"
-  );
-  const testspielZeitnehmerBedarf = parseAnzahl(
-    formData,
-    "testspielZeitnehmerBedarf"
-  );
-  const turnierZeitnehmerBedarf = parseAnzahl(
-    formData,
-    "turnierZeitnehmerBedarf"
-  );
-  const rundenspielZeitnehmerBedarf = parseAnzahl(
-    formData,
-    "rundenspielZeitnehmerBedarf"
-  );
-  const offeneDiensteBroadcastAktiviert =
-    formData.get("offeneDiensteBroadcastAktiviert") === "on";
-
+  const offeneDiensteBroadcastAktiviert = formData.get("offeneDiensteBroadcastAktiviert") === "on";
   await withTenant(vereinId, (tx) =>
-    tx
-      .update(vereine)
-      .set({
-        testspielOrdnerBedarf,
-        testspielKioskdienstBedarf,
-        turnierOrdnerBedarf,
-        turnierKioskdienstBedarf,
-        rundenspielOrdnerBedarf,
-        rundenspielKioskdienstBedarf,
-        testspielKassiererBedarf,
-        turnierKassiererBedarf,
-        rundenspielKassiererBedarf,
-        testspielZeitnehmerBedarf,
-        turnierZeitnehmerBedarf,
-        rundenspielZeitnehmerBedarf,
-        offeneDiensteBroadcastAktiviert,
-      })
-      .where(eq(vereine.id, vereinId))
+    tx.update(vereine).set({ offeneDiensteBroadcastAktiviert }).where(eq(vereine.id, vereinId))
   );
-
   revalidatePath("/admin/einstellungen");
 }
 

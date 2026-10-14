@@ -1,5 +1,13 @@
 @AGENTS.md
 
+## Doku und Hilfe IMMER mitziehen (Betreiber, 14.10.2026)
+
+Jede Änderung an Verhalten, Oberfläche, Einstellungen, Rollen, Mails oder Datenmodell zieht im SELBEN PR die Doku nach:
+`/hilfe` (bzw. `/app-hilfe` für öffentliche Seiten) inklusive Inhaltsverzeichnis/Anker und `HilfeHinweis`, diese CLAUDE.md, die README,
+Texte und Verweise in der Oberfläche (Beschreibungen, Links auf Einstellungs-Anker, Leerzustände, Mails) und die Demo-Daten
+(`lib/demo-daten.ts`), wenn die Funktion dort vorkommt. Vor dem Commit nach alten Begriffen/Pfaden suchen (`grep` über `src`, README,
+CLAUDE.md) und veraltete Stellen anpassen.
+
 ## E-Mail-Layout
 
 Jede transaktionale Mail geht über `src/lib/email-layout.ts`
@@ -636,9 +644,16 @@ einmal über den Protokolleintrag `erste_schritte_mail`, nur aktive Vereine, all
 
 ## Eigene Dienste (Fahrer, Kuchen, ...) und Dienstwart (Stand 14.10.2026, Stufe 1)
 
-Vereine legen zusätzlich zu den festen Diensten eigene an: Einstellungen → „Eigene Dienste“ (`#eigene-dienste`, `components/eigene-dienste-einstellungen.tsx`,
-Actions `einstellungen/eigene-dienste-actions.ts`). Tabellen (Migration 0099, RLS über `verein_id` wie mannschaft, im Mandantentrennungs-Test): `dienst_art`
-(Name, Hinweis für Helfer, aktiv, gilt für Heim-/Auswärts-/Freundschaftsspiele/Turniere, `standard_bedarf`, `nur_ausgewaehlte_mannschaften`), `dienst_art_mannschaft`
+Vereine legen zusätzlich zu den festen Diensten eigene an. **Ein System für alle Dienste (Entscheidung Betreiber 14.10.2026):** Einstellungen → „Dienste“
+(`#dienste-bedarf`, Anker `#eigene-dienste` liegt darin; `components/dienste-einstellungen.tsx`, Actions `einstellungen/eigene-dienste-actions.ts`) zeigt feste
+(Ordner, Kioskdienst, Kassierer, Zeitnehmer/Sekretär) und eigene Dienste in EINER Liste mit derselben Bearbeitung: Personen je Termin für Heimspiel/Auswärts/
+Freundschaft/Turnier (0 = dort nicht; feste Dienste ohne Auswärts) + Mannschaften (alle / nur diese, Anzeige mit Altersklasse). Feste Dienste speichern wie bisher in
+`vereine.<rundenspiel|testspiel|turnier><Rolle>Bedarf` und `mannschaft.<rolle>BedarfDeaktiviert` (`festenDienstSpeichern`; „nur diese“ schaltet alle anderen ab,
+dieselben Schalter wie „Bedarf pro Mannschaft“ auf den Wart-Seiten); die frühere Tabelle „Bedarf pro Mannschaft“ auf `/admin/mannschaften` und das
+12-Felder-Formular sind entfernt (dort nur noch ein Verweis), `diensteBroadcastSpeichern` speichert nur noch den Rundmail-Schalter.
+Tabellen (Migration 0099, RLS über `verein_id` wie mannschaft, im Mandantentrennungs-Test): `dienst_art`
+(Name, Hinweis für Helfer, aktiv, `bedarf_heim`/`bedarf_auswaerts`/`bedarf_freundschaft`/`bedarf_turnier` (Migrationen 0102/0103 ersetzen die früheren Häkchen
+`fuer_*` + `standard_bedarf`), `nur_ausgewaehlte_mannschaften`), `dienst_art_mannschaft`
 (Auswahl), `termin_dienst_bedarf` (Bedarf je Termin, auch 0, geht immer vor). Einteilung = `termin_zuordnung` mit `funktionstraeger_typ = 'eigener_dienst'` +
 `dienst_art_id` (Cascade). Bewusst KEINE Personenrolle je Dienst: eingeteilt werden kann jede Person des Vereins oder ein freier Name; `eigener_dienst` ist nie
 eine Rolle in `funktionstraeger_rolle` und steht nicht in `TYP_LABEL` (sonst wäre er im Rollen-Picker). Neue Wart-Rolle `dienstwart` („Dienstwart (eigene Dienste)“).
@@ -662,4 +677,14 @@ Abmeldung: Profil-Karte „Meine Helferdienste“ (`selbstAbmelden`), Mail an Di
 Entscheidung auf `/profil/dienstwart` („Abmeldeanfragen“, `dienstAbmeldungGenehmigen`/`…Ablehnen`). Export: Rolle `eigeneDienste` in `AUSWERTUNG_ROLLEN`,
 eine Zelle je Termin (`eigeneDiensteZellenText`), ohne Auswahl nur, wenn ein Termin eigene Dienste hat (`standardRollen`). Statistik: `eigener_dienst` zählt
 in `DIENST_RELEVANTE_ROLLEN`. Demo: Kuchen + Fahrer (nur mA/wC) mit Einteilungen und Abmeldeanfrage, Token `DEMO_TOKEN_DIENSTE`, Anna ist Dienstwartin.
-Noch offen: Auswärtsspiele als Termine (`fuer_auswaertsspiele` liegt schon in der Tabelle, ohne Oberfläche), Fahrgemeinschaft.
+**Stufe 3 (Auswärtsspiele):** Termintyp `auswaertsspiel` (Migration 0101) NUR für eigene Dienste: `lib/auswaerts-termine.ts` `pflegeAuswaertsTermine`
+(im Übernahme-Cron nach `uebernehmeAenderungen` und nach jeder Änderung eines Dienstes per `after`, nur bei `liga_uebernahme_aktiv`) legt künftige Spiele mit
+eigenem Team als Gast (Gegner nicht der eigene Verein, kein Freundschaftsspiel) an, wenn ein aktiver Dienst mit `bedarf_auswaerts > 0` für die Mannschaft gilt
+(`icsUid` `liga:<spielId>`, `liga_spiel_id`, Mannschaft über `baueMannschaftsAufloeser`). Regeln rein in `auswaerts-regeln.ts` (`entscheideAuswaerts`): Verlegung =
+neue Zeit/Halle, Einteilungen ENTFALLEN, Betroffene mit Login bekommen eine Mail (Betreiber: Fahrer bleiben NICHT eingetragen); abgesagt/verschwunden = Termin
+gelöscht mit Mail; nur andere Halle = still angepasst, Einteilungen bleiben; bestätigtes Ergebnis still; Vergangenes nie verlegt/gelöscht; gilt kein Dienst mehr,
+werden künftige LEERE Auswärts-Termine entfernt. Feste Dienste, Schiri-/Zeitnehmer-Logik, Hallenplan-Abgleich, `liga-aenderungen.ts` und die Ansetzungs-Crons
+(`liga-ansetzung*.ts`, jetzt auf `typ = rundenspiel` beschränkt) fassen sie nie an (`bedarfFuer` liefert für den Typ 0). Kalender: `KalenderEintrag.auswaerts` →
+Auto-Symbol + gestrichelter Rahmen, Badge Vollständig/Offen nur aus den eigenen Diensten. Demo: Fahrer mit Auswärts-Bedarf, zwei Auswärtsspiele (t14 voll, t15 offen).
+Tests: `auswaerts-regeln.test.ts`, `auswaerts-termine.test.ts` (Postgres).
+Noch offen: Fahrgemeinschaft (Plätze je Auto, wer fährt wen).
