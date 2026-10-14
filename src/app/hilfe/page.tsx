@@ -640,6 +640,13 @@ export default async function HilfePage() {
           dazu eine für die <a href="#eigene-dienste" className="font-medium underline">eigenen Dienste</a> (Dienstwart, z.B.
           Fahrer oder Kuchen). Hat euer Verein noch keine eigenen Dienste, verweist die Dienstwart-Seite auf Einstellungen → Dienste.
         </p>
+        <h3 className="text-sm font-medium">„So legst du los“: die Starthilfe oben</h3>
+        <p className="text-sm text-muted-foreground">
+          Auf jeder Wart-Seite steht ganz oben eine kurze Karte mit den Schritten, mit denen es losgeht (z.B. Personen anlegen, Eintragungslink
+          teilen, ersten Termin besetzen) und einem Tipp. Die Haken setzen sich von selbst, sobald etwas erledigt ist; die Karte verschwindet,
+          wenn alles geschafft ist. Mit „Ausblenden“ bleibt sie auf diesem Gerät weg. Wer nicht Admin ist, sieht nur Schritte, die er selbst
+          erledigen kann; das Anlegen von Personen oder Diensten macht der Vereinsadmin.
+        </p>
         <h3 className="text-sm font-medium">Wer sieht sie?</h3>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
           <li>

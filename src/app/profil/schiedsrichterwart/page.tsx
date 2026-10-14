@@ -43,6 +43,7 @@ import { gruppiereNachMonat, jetzt } from "@/lib/monats-gruppierung";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
+import { WartOnboarding } from "@/components/wart-onboarding";
 import { LabeledSelect } from "@/components/labeled-select";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
@@ -199,6 +200,16 @@ export default async function SchiedsrichterwartPage({
         </p>
       </div>
 
+      <WartOnboarding
+        rolle="schiedsrichter"
+        stand={{
+          personen: schiedsrichterListe.length,
+          linkAktiv: false,
+          einteilungen: termineMitZuordnungen.reduce((n, t) => n + t.zuordnungen.filter((z) => z.funktionstraegerTyp === "schiedsrichter").length, 0),
+          istAdmin: session.user.istAdmin,
+        }}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Schiedsrichter im Verein</CardTitle>
@@ -250,7 +261,7 @@ export default async function SchiedsrichterwartPage({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="termine" className="scroll-mt-6">
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base">

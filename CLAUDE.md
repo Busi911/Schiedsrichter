@@ -471,6 +471,14 @@ Migration 0093 hat den Bestand einmalig angeglichen (wer nur eine der beiden hat
 Die öffentliche Eintragung (`/eintragen/[token]`) wählt die Aufgabe (Zeitnehmer ODER Sekretär) je Termin.
 Die Logik der öffentlichen Selbsteintragung (Zeitnehmer/Sekretär UND Ordner/Kioskdienst/Kassierer) steckt EINMAL in `lib/selbsteintragung.ts` (`selbstEintragenMehrfachOeffentlich`/`…Eingeloggt`, getestet in `selbsteintragung.test.ts`); `zeitnehmer-eintragen|ordner-eintragen/[token]/actions.ts` sind dünne Hüllen, die nur Rollen, Token-Spalte und die Besetzungs-/Doppelrollen-Prüfung (Zeitnehmer: harte Sperre, Ordner: Warnung) mitgeben. Änderungen an der Eintragung gehören in die Lib, nicht in die Hüllen.
 
+## Wart-Onboarding („So legst du los“)
+
+Jede Wart-Seite (`/profil/schiedsrichterwart|zeitnehmerwart|ordnerwart|dienstwart`) zeigt oben die Karte `components/wart-onboarding.tsx` mit 2–3 Schritten
+und einem Tipp je Rolle (`lib/wart-onboarding.ts` rein/getestet: Personen vorhanden, Eintragungslink aktiv, erster Termin besetzt — alles aus Daten, die die Seite
+ohnehin lädt, keine Extra-Abfrage; Wart ohne Admin-Rechte bekommen nur Ziele auf derselben Seite, keine Admin-Links). Sie verschwindet, wenn alle prüfbaren Schritte
+erledigt sind, oder per „Ausblenden“ (`wartOnboardingAusblenden`, Cookie `hp_wart_onboarding`, Pfad `/profil`, nur dieses Gerät, keine DB). Neue Wart-Funktion mit
+eigenem Einstieg: Schritt in `wartSchritte` ergänzen, Anker (`#selbsteintragung`, `#termine`) und Hilfe-Abschnitt nicht vergessen. Hilfe: `/hilfe#warte`.
+
 ## Hilfe: wo Nutzer sie finden
 
 Zwei Hilfeseiten: `/hilfe` (eingeloggt: Erste Schritte, Rollen, Kalender, Bedarf, Zuordnung, Mails, Statistik, Support; mit Inhaltsverzeichnis und Anker je Abschnitt)
