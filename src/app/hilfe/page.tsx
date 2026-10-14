@@ -636,7 +636,8 @@ export default async function HilfePage() {
           </li>
           <li>
             <strong>Bedarf pro Mannschaft:</strong> für Mannschaften ohne eigene Helfer (z.B. manche Jugend) den Bedarf ganz
-            abschalten.
+            abschalten. Das ist derselbe Schalter wie die Mannschaftsauswahl unter{" "}
+            <a href="#bedarf" className="font-medium underline">Einstellungen → Dienste</a>.
           </li>
           <li>
             <strong>Selbsteintragungen zum Bestätigen:</strong> Einträge über den öffentlichen Link, deren Name keiner

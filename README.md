@@ -252,10 +252,13 @@ Actions, RLS-Session) rendert.
 
 ## Dienste-Bedarf (Ordner/Kioskdienst-Kapazität)
 
-`/admin/einstellungen` legt pro Verein fest, wie viele Ordner und
-Kioskdienst-Kräfte pro Testspiel bzw. Turnier benötigt werden (vier
-unabhängige Werte, `verein.testspiel_ordner_bedarf` usw. —
-`src/lib/dienste.ts`). Gilt **nicht** für `spiel_ics`-Termine: das sind die
+`/admin/einstellungen` → „Dienste“ legt pro Verein in EINER Liste fest, wie viele
+Personen jeder Dienst (Ordner, Kioskdienst, Kassierer, Zeitnehmer/Sekretär und
+eigene Dienste wie Fahrer) je Heimspiel, Auswärtsspiel (nur eigene Dienste),
+Freundschaftsspiel und Turnier braucht und für welche Mannschaften er gilt
+(feste Dienste: `verein.<veranstaltung><Rolle>_bedarf` +
+`mannschaft.<rolle>_bedarf_deaktiviert`, `src/lib/dienste.ts`; eigene Dienste:
+`dienst_art.bedarf_*`, `src/lib/eigene-dienste.ts`). Gilt **nicht** für `spiel_ics`-Termine: das sind die
 persönlichen Einsätze des Schiedsrichters (oft bei fremden Vereinen), keine
 Veranstaltungen des eigenen Vereins mit eigenem Personalbedarf.
 

@@ -185,7 +185,7 @@ const ZUORDNUNGEN: DemoZuordnung[] = [
   { termin: "t12", typ: "zeitnehmer", externerName: "Petra Zimmerman", vorschlag: "petra", quelle: "selbst_eingetragen_oeffentlich" },
 ];
 
-// Eigene Dienste des Vereins (Einstellungen → Eigene Dienste) und ihre Einteilungen (Seite Dienstwart).
+// Eigene Dienste des Vereins (Einstellungen → Dienste) und ihre Einteilungen (Seite Dienstwart).
 export type DemoEigenerDienst = {
   key: string;
   name: string;

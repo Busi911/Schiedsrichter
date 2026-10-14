@@ -77,10 +77,10 @@ export default async function DienstePage() {
             <UnbesetzteDiensteTabelle posten={offenePostenZeilen} />
           )}
           <Link
-            href="/admin/einstellungen"
+            href="/admin/einstellungen#dienste-bedarf"
             className="mt-1 text-xs text-muted-foreground underline"
           >
-            Dienste-Bedarf einstellen
+            Dienste und Bedarf einstellen
           </Link>
         </CardContent>
       </Card>

@@ -338,6 +338,8 @@ export default async function OrdnerwartPage({
               Kioskdienst-/Kassierer-Bedarf hier komplett abschalten. Wirkt
               auf alle Termine der jeweiligen Mannschaft, auch bereits
               bestehende offene.
+            {" "}
+              Dieselbe Einstellung wie die Mannschaftsauswahl unter Einstellungen → Dienste.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">

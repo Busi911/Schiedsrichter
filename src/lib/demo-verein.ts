@@ -96,7 +96,7 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
       avvAkzeptiertVersion: AVV_VERSION,
       avvAkzeptiertVonName: DEMO_ADMIN.name,
       avvAkzeptiertVonEmail: demoEmail(DEMO_ADMIN.key),
-      // Dienste-Bedarf je Veranstaltung (Einstellungen → Dienste-Bedarf pro Termin)
+      // Dienste-Bedarf je Veranstaltung (Einstellungen → Dienste)
       testspielOrdnerBedarf: 1,
       testspielKioskdienstBedarf: 1,
       testspielKassiererBedarf: 0,

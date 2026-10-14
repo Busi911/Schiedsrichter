@@ -1,5 +1,13 @@
 @AGENTS.md
 
+## Doku und Hilfe IMMER mitziehen (Betreiber, 14.10.2026)
+
+Jede Änderung an Verhalten, Oberfläche, Einstellungen, Rollen, Mails oder Datenmodell zieht im SELBEN PR die Doku nach:
+`/hilfe` (bzw. `/app-hilfe` für öffentliche Seiten) inklusive Inhaltsverzeichnis/Anker und `HilfeHinweis`, diese CLAUDE.md, die README,
+Texte und Verweise in der Oberfläche (Beschreibungen, Links auf Einstellungs-Anker, Leerzustände, Mails) und die Demo-Daten
+(`lib/demo-daten.ts`), wenn die Funktion dort vorkommt. Vor dem Commit nach alten Begriffen/Pfaden suchen (`grep` über `src`, README,
+CLAUDE.md) und veraltete Stellen anpassen.
+
 ## E-Mail-Layout
 
 Jede transaktionale Mail geht über `src/lib/email-layout.ts`
