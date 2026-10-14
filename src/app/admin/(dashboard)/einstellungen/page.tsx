@@ -4,7 +4,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaMannschaften, ligaVereine, ligaSyncLaeufe, ligaVereinLogos, ligaVereinZusatzquellen, mannschaften, stammdatenAenderungen, terminZuordnungen, vereine } from "@/db/schema";
+import { ligaGruppen, ligaMannschaften, ligaTeilnahmen, ligaVereine, ligaSyncLaeufe, ligaVereinLogos, ligaVereinZusatzquellen, mannschaften, stammdatenAenderungen, terminZuordnungen, vereine } from "@/db/schema";
 import {
   diensteBroadcastSpeichern,
   logoEntfernen,
@@ -149,6 +149,7 @@ export default async function EinstellungenPage({
         id: mannschaften.id,
         name: mannschaften.name,
         altersklasse: mannschaften.altersklasse,
+        ligaMannschaftId: mannschaften.ligaMannschaftId,
         ordnerBedarfDeaktiviert: mannschaften.ordnerBedarfDeaktiviert,
         kioskdienstBedarfDeaktiviert: mannschaften.kioskdienstBedarfDeaktiviert,
         kassiererBedarfDeaktiviert: mannschaften.kassiererBedarfDeaktiviert,
@@ -170,10 +171,25 @@ export default async function EinstellungenPage({
     ] as const;
   });
   // Mannschaften mit Altersklasse, sonst sind z.B. mehrere "1. Mannschaft" nicht unterscheidbar.
-  const mannschaftsOptionen = mannschaftsAuswahl.map((m) => ({
-    id: m.id,
-    label: m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name,
-  }));
+  const grundLabel = (m: { name: string; altersklasse: string | null }) => (m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name);
+  // Gleich lautende Mannschaften (z.B. zwei "HSG … (MJE)" aus nuLiga) bekommen die Staffel dazu, sonst sind sie nicht unterscheidbar.
+  const doppelte = new Set(
+    mannschaftsAuswahl.map(grundLabel).filter((l, i, alle) => alle.indexOf(l) !== i)
+  );
+  const staffelJeLigaMannschaft = new Map<string, string>();
+  const zuKlaeren = mannschaftsAuswahl.filter((m) => doppelte.has(grundLabel(m)) && m.ligaMannschaftId).map((m) => m.ligaMannschaftId!);
+  if (zuKlaeren.length) {
+    const zeilen = await adminDb
+      .select({ ligaMannschaftId: ligaTeilnahmen.mannschaftId, ligaName: ligaGruppen.ligaName })
+      .from(ligaTeilnahmen)
+      .innerJoin(ligaGruppen, eq(ligaGruppen.id, ligaTeilnahmen.gruppeId))
+      .where(and(inArray(ligaTeilnahmen.mannschaftId, zuKlaeren), eq(ligaTeilnahmen.aktiv, true)));
+    for (const z of zeilen) if (!staffelJeLigaMannschaft.has(z.ligaMannschaftId)) staffelJeLigaMannschaft.set(z.ligaMannschaftId, z.ligaName);
+  }
+  const mannschaftsOptionen = mannschaftsAuswahl.map((m) => {
+    const staffel = m.ligaMannschaftId ? staffelJeLigaMannschaft.get(m.ligaMannschaftId) : undefined;
+    return { id: m.id, label: doppelte.has(grundLabel(m)) && staffel ? `${grundLabel(m)} · ${staffel}` : grundLabel(m) };
+  });
   const nurAktive = (feld: "ordnerBedarfDeaktiviert" | "kioskdienstBedarfDeaktiviert" | "kassiererBedarfDeaktiviert" | "zeitnehmerBedarfDeaktiviert") =>
     mannschaftsAuswahl.some((m) => m[feld]) ? mannschaftsAuswahl.filter((m) => !m[feld]).map((m) => m.id) : null;
   const festeDienste: FesterDienst[] = [

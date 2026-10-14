@@ -476,8 +476,9 @@ export default async function HilfePage() {
             festen Dienste sind Heimdienste.
           </li>
           <li>
-            <strong>Mannschaften:</strong> alle oder nur ausgewählte (mit Altersklasse angezeigt), z.B. Kioskdienst nur bei den
-            Senioren oder Fahrer nur für die Jugend.
+            <strong>Mannschaften:</strong> alle oder nur ausgewählte, z.B. Kioskdienst nur bei den Senioren oder Fahrer nur für die
+            Jugend. Die Liste ist nach Klasse sortiert (Männer, Frauen, dann Jugend A bis E) und zeigt die Altersklasse; heißen zwei
+            Mannschaften gleich, steht die Staffel dahinter.
           </li>
         </ul>
         <p className="text-sm text-muted-foreground">
