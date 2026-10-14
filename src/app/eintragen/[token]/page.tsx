@@ -37,18 +37,26 @@ export default async function EintragenPage({
   const { mannschaft: mannschaftFilter } = await searchParams;
 
   const verein = await adminDb.query.vereine.findFirst({
-    where: or(eq(vereine.zeitnehmerSelbstanmeldungToken, token), eq(vereine.ordnerSelbstanmeldungToken, token)),
+    where: or(
+      eq(vereine.zeitnehmerSelbstanmeldungToken, token),
+      eq(vereine.ordnerSelbstanmeldungToken, token),
+      eq(vereine.diensteSelbstanmeldungToken, token)
+    ),
   });
   if (!verein) notFound();
 
-  const aktiv = { zeitnehmer: !!verein.zeitnehmerSelbstanmeldungToken, ordner: !!verein.ordnerSelbstanmeldungToken };
-  const rollenGruppen = rollenGruppenFuer(aktiv);
+  const aktiv = {
+    zeitnehmer: !!verein.zeitnehmerSelbstanmeldungToken,
+    ordner: !!verein.ordnerSelbstanmeldungToken,
+    eigene: !!verein.diensteSelbstanmeldungToken,
+  };
 
   // Nur eine Session, die zu GENAU diesem Verein gehört, macht aus der Seite die "eingeloggt"-Ansicht (eine fremde bleibt anonym).
   const session = await auth();
   const eingeloggtePerson = session?.user?.vereinId === verein.id ? { name: session.user.name ?? session.user.email ?? "" } : null;
 
-  const { alleMannschaften, termine } = await ladeEintragungsTermine(verein, aktiv);
+  const { alleMannschaften, termine, eigeneGruppen } = await ladeEintragungsTermine(verein, aktiv);
+  const rollenGruppen = rollenGruppenFuer(aktiv, eigeneGruppen);
   const vereinsLogo = await holeVereinsLogoInfo(verein.id);
 
   // Nur Mannschaften als Filter anbieten, die auch mindestens einen eintragbaren Termin haben.

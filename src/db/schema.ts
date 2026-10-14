@@ -304,6 +304,8 @@ export const vereine = pgTable("verein", {
   // Kioskdienst (siehe /ordner-eintragen/[token]) — vom Ordnerwart
   // aktivierbar.
   ordnerSelbstanmeldungToken: text("ordner_selbstanmeldung_token").unique(),
+  // Dritter Teil der öffentlichen Eintragung (/eintragen/[token]): eigene Dienste (Fahrer, Kuchen, ...), freigeschaltet vom Dienstwart.
+  diensteSelbstanmeldungToken: text("dienste_selbstanmeldung_token").unique(),
   // Sichtbares Zeitfenster des Trainingsplan-Wochenrasters (siehe
   // TrainingsplanWoche) — als Minuten seit Mitternacht statt fester Stunden
   // gespeichert, konsistent mit trainingszeiten.startMinuten/endMinuten,

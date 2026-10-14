@@ -35,3 +35,15 @@ export async function holeDienstwarteEmails(vereinId: string): Promise<{ email: 
       )
   );
 }
+
+// Für Hinweise, die jemand sehen MUSS (z.B. Abmeldeanfragen): die Dienstwarte, gibt es keinen aktiven, die Vereinsadmins.
+export async function holeDienstwarteOderAdminEmails(vereinId: string): Promise<{ email: string }[]> {
+  const warte = await holeDienstwarteEmails(vereinId);
+  if (warte.length > 0) return warte;
+  return withTenant(vereinId, (tx) =>
+    tx
+      .select({ email: users.email })
+      .from(users)
+      .where(and(eq(users.vereinId, vereinId), eq(users.istAdmin, true)))
+  );
+}

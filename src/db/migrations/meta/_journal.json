@@ -701,6 +701,13 @@
       "when": 1791958435495,
       "tag": "0099_eigene_dienste",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1791960470053,
+      "tag": "0100_dienste_selbstanmeldung",
+      "breakpoints": true
     }
   ]
 }

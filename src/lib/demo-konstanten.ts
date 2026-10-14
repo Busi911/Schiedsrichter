@@ -3,6 +3,7 @@ export const DEMO_VEREIN_ID = "de300de3-0000-4000-8000-000000000001";
 export const DEMO_ADMIN_ID = "demo-admin-user";
 export const DEMO_TOKEN_ZEITNEHMER = "demo-eintragung-zeitnehmer";
 export const DEMO_TOKEN_ORDNER = "demo-eintragung-ordner";
+export const DEMO_TOKEN_DIENSTE = "demo-eintragung-dienste";
 // Mindestabstand zwischen zwei Zurücksetzungen per Knopf (die Nacht-Zurücksetzung ignoriert ihn).
 export const DEMO_RESET_PAUSE_MS = 10 * 60 * 1000;
 

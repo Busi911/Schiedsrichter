@@ -11,6 +11,9 @@ import { ladeEigeneDiensteKontext } from "@/lib/eigene-dienste-daten";
 import { zuordnungEntferntInhalt, zuordnungsMailInhalt } from "@/lib/zuordnung";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
+import { generiereOeffentlichenToken } from "@/lib/token";
+import { abmeldungEntschiedenInhalt } from "@/lib/zuordnung";
+import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 
 // Einteilen für eigene Dienste (Fahrer, Kuchen, ...) auf /profil/dienstwart. Dürfen: Vereinsadmins (nicht "nur lesend") und Personen
 // mit der Rolle Dienstwart.
@@ -29,6 +32,7 @@ function text(formData: FormData, feld: string): string {
 }
 
 function aktualisiereSeiten() {
+  revalidatePath("/profil");
   revalidatePath("/profil/dienstwart");
   revalidatePath("/admin/kalender");
   revalidatePath("/admin");
@@ -182,4 +186,74 @@ export async function dienstBedarfSetzen(formData: FormData) {
     }
   });
   aktualisiereSeiten();
+}
+
+// Öffentliche Selbsteintragung für eigene Dienste (dritter Teil von /eintragen/[token]): aktivieren bzw. neuen Link erzeugen (der alte
+// wird ungültig) und abschalten — wie beim Zeitnehmer- und Ordnerwart.
+export async function diensteSelbstanmeldungLinkErneuern() {
+  const { vereinId } = await pruefeDienstwart();
+  await withTenant(vereinId, async (tx) => {
+    const verein = await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) });
+    await tx
+      .update(vereine)
+      .set({ diensteSelbstanmeldungToken: generiereOeffentlichenToken(verein?.name ?? "") })
+      .where(eq(vereine.id, vereinId));
+  });
+  aktualisiereSeiten();
+}
+
+export async function diensteSelbstanmeldungDeaktivieren() {
+  const { vereinId } = await pruefeDienstwart();
+  await withTenant(vereinId, (tx) =>
+    tx.update(vereine).set({ diensteSelbstanmeldungToken: null }).where(eq(vereine.id, vereinId))
+  );
+  aktualisiereSeiten();
+}
+
+// Abmeldeanfragen für eigene Dienste (gestellt im Profil, siehe selbstAbmelden): genehmigen entfernt die Einteilung, ablehnen lässt sie
+// bestehen. Die Person bekommt in beiden Fällen eine Mail.
+async function entscheideAbmeldung(formData: FormData, genehmigt: boolean) {
+  const { vereinId } = await pruefeDienstwart();
+  const zuordnungId = text(formData, "zuordnungId");
+  const benachrichtigung = await withTenant(vereinId, async (tx) => {
+    const zuordnung = await tx.query.terminZuordnungen.findFirst({
+      where: and(eq(terminZuordnungen.id, zuordnungId), eq(terminZuordnungen.funktionstraegerTyp, "eigener_dienst")),
+    });
+    if (!zuordnung?.abmeldungAngefragtAm) throw new Error("Keine offene Abmeldeanfrage für diese Einteilung.");
+    if (genehmigt) {
+      await tx.delete(terminZuordnungen).where(eq(terminZuordnungen.id, zuordnungId));
+    } else {
+      await tx.update(terminZuordnungen).set({ abmeldungAngefragtAm: null }).where(eq(terminZuordnungen.id, zuordnungId));
+    }
+    if (!zuordnung.userId) return null;
+    const [person, termin, art] = await Promise.all([
+      tx.query.users.findFirst({ where: and(eq(users.id, zuordnung.userId), eq(users.vereinId, vereinId)) }),
+      tx.query.termine.findFirst({ where: eq(termine.id, zuordnung.terminId) }),
+      zuordnung.dienstArtId ? tx.query.dienstArten.findFirst({ where: eq(dienstArten.id, zuordnung.dienstArtId) }) : null,
+    ]);
+    if (!person || !termin) return null;
+    return { email: person.email, termin, dienstName: art?.name ?? "Helfer" };
+  });
+  if (benachrichtigung) {
+    const inhalt = abmeldungEntschiedenInhalt(benachrichtigung.dienstName, benachrichtigung.termin, genehmigt);
+    try {
+      await sendMail(
+        benachrichtigung.email,
+        genehmigt ? "Abmeldung bestätigt" : "Abmeldung abgelehnt",
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
+      );
+    } catch (err) {
+      console.error("Mail zur Abmeldeanfrage (eigener Dienst) konnte nicht gesendet werden:", err);
+    }
+  }
+  aktualisiereSeiten();
+}
+
+export async function dienstAbmeldungGenehmigen(formData: FormData) {
+  await entscheideAbmeldung(formData, true);
+}
+
+export async function dienstAbmeldungAblehnen(formData: FormData) {
+  await entscheideAbmeldung(formData, false);
 }

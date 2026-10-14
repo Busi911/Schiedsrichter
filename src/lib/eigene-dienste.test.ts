@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   bedarfEigenerDienst,
   dienstwartStellen,
+  eigeneDiensteZellenText,
   bedarfSchluessel,
   dienstGiltFuerTermin,
   eigeneDiensteFuerTermin,
@@ -179,5 +180,22 @@ describe("dienstwartStellen", () => {
 
   it("Termin ohne geltende Dienste: keine Stellen", () => {
     expect(dienstwartStellen(kontext, alle, { id: "x", typ: "spiel_ics" }, [])).toEqual([]);
+  });
+});
+
+describe("eigeneDiensteZellenText", () => {
+  const p = (name: string) => ({ zuordnungId: name, terminId: "t", dienstArtId: "d", userId: null, anzeigeName: name, ohneLogin: true });
+  it("fasst alle Dienste eines Termins in einer Zelle zusammen", () => {
+    expect(
+      eigeneDiensteZellenText([
+        { dienstArtId: "d1", name: "Fahrer", bedarf: 3, override: null, eingeteilt: [p("Eva"), p("Opa Heinz")] },
+        { dienstArtId: "d2", name: "Kuchen", bedarf: 2, override: null, eingeteilt: [] },
+        { dienstArtId: "d3", name: "Aufbau", bedarf: 1, override: null, eingeteilt: [p("Tom")] },
+      ])
+    ).toBe("Fahrer: Eva, Opa Heinz (2/3); Kuchen: offen; Aufbau: Tom");
+  });
+  it("ohne Bedarf und ohne Einteilung: nichts", () => {
+    expect(eigeneDiensteZellenText([{ dienstArtId: "d", name: "Kuchen", bedarf: 0, override: 0, eingeteilt: [] }])).toBeNull();
+    expect(eigeneDiensteZellenText([])).toBeNull();
   });
 });

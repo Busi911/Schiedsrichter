@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, eq, gte, inArray } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
+import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import { dienstwartStellen, type DienstwartStelle, type EingeteiltePerson } from "./eigene-dienste";
 import { ladeDienstArten, ladeEigeneDiensteKontext } from "./eigene-dienste-daten";
 import { formatMannschaft } from "./mannschaft-label";
@@ -28,12 +28,16 @@ const TYPEN = ["testspiel", "turnier", "rundenspiel"] as const;
 export async function holeDienstwartDaten(vereinId: string) {
   return withTenant(vereinId, async (tx) => {
     const alleArten = await ladeDienstArten(tx, vereinId, false);
+    const verein = await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { diensteSelbstanmeldungToken: true } });
+    const selbstanmeldungToken = verein?.diensteSelbstanmeldungToken ?? null;
     const personen = await tx
       .select({ userId: users.id, name: users.name, email: users.email })
       .from(users)
       .where(eq(users.vereinId, vereinId))
       .orderBy(asc(users.name), asc(users.email));
-    if (alleArten.length === 0) return { alleArten, termine: [] as DienstwartTermin[], personen, mannschaftsListe: [] };
+    if (alleArten.length === 0) {
+      return { alleArten, termine: [] as DienstwartTermin[], personen, mannschaftsListe: [], selbstanmeldungToken };
+    }
 
     const kommende = await tx
       .select({
@@ -65,6 +69,7 @@ export async function holeDienstwartDaten(vereinId: string) {
               dienstArtId: terminZuordnungen.dienstArtId,
               userId: terminZuordnungen.userId,
               externerName: terminZuordnungen.externerName,
+              abmeldungAngefragtAm: terminZuordnungen.abmeldungAngefragtAm,
               name: users.name,
               email: users.email,
             })
@@ -85,6 +90,7 @@ export async function holeDienstwartDaten(vereinId: string) {
       userId: z.userId,
       anzeigeName: z.name ?? z.externerName ?? z.email ?? "Unbekannt",
       ohneLogin: !z.userId,
+      abmeldungAngefragt: !!z.abmeldungAngefragtAm,
     }));
 
     const liste: DienstwartTermin[] = [];
@@ -110,6 +116,7 @@ export async function holeDienstwartDaten(vereinId: string) {
       termine: liste,
       personen,
       mannschaftsListe: mannschaftsListe.filter((m) => genutzteMannschaften.has(m.id)),
+      selbstanmeldungToken,
     };
   });
 }

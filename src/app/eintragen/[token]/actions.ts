@@ -10,6 +10,7 @@ import { vereine } from "@/db/schema";
 import type { MehrfachEintragErgebnis } from "@/components/mehrfachauswahl";
 import { ZEITNEHMER_ROLLEN } from "@/lib/eintragung-termine";
 import { ORDNER_ROLLEN } from "@/lib/ordnerwart";
+import { dienstArtIdAusRolle, eigeneDiensteSelbstEintragen } from "@/lib/eigene-dienste-eintragung";
 import {
   zeitnehmerSelbstEintragenMehrfachEingeloggt,
   zeitnehmerSelbstEintragenMehrfachOeffentlich,
@@ -34,7 +35,11 @@ export async function eintragenMehrfach(formData: FormData): Promise<MehrfachEin
   if (auswahl.length === 0) return { eingetragen: 0, gesamt: 0, fehler: "Bitte mindestens einen Termin auswählen." };
 
   const verein = await adminDb.query.vereine.findFirst({
-    where: or(eq(vereine.zeitnehmerSelbstanmeldungToken, token), eq(vereine.ordnerSelbstanmeldungToken, token)),
+    where: or(
+      eq(vereine.zeitnehmerSelbstanmeldungToken, token),
+      eq(vereine.ordnerSelbstanmeldungToken, token),
+      eq(vereine.diensteSelbstanmeldungToken, token)
+    ),
   });
   if (!verein) return { eingetragen: 0, gesamt: auswahl.length, fehler: "Ungültiger oder nicht mehr aktiver Link." };
 
@@ -51,6 +56,27 @@ export async function eintragenMehrfach(formData: FormData): Promise<MehrfachEin
   const fehler: string[] = [];
   const warnungen: string[] = [];
   for (const [rolle, terminIds] of nachRolle) {
+    // Eigene Dienste (Fahrer, Kuchen, ...): eigener, einfacherer Ablauf ohne Rollen und ohne Bestätigung durch einen Wart.
+    const dienstArtId = dienstArtIdAusRolle(rolle);
+    if (dienstArtId) {
+      if (!verein.diensteSelbstanmeldungToken) {
+        fehler.push("Diese Eintragung ist für den Verein nicht freigeschaltet.");
+        continue;
+      }
+      const name = formData.get("name");
+      const email = formData.get("email");
+      const ergebnis = await eigeneDiensteSelbstEintragen({
+        vereinId: verein.id,
+        dienstArtId,
+        terminIds,
+        name: typeof name === "string" ? name : "",
+        email: typeof email === "string" ? email : "",
+        eingeloggtUserId: eingeloggt ? session!.user.id : null,
+      });
+      eingetragen += ergebnis.eingetragen;
+      if (ergebnis.fehler) fehler.push(ergebnis.fehler);
+      continue;
+    }
     const istZeitnehmer = (ZEITNEHMER_ROLLEN as readonly string[]).includes(rolle);
     const istOrdner = (ORDNER_ROLLEN as readonly string[]).includes(rolle);
     const gruppenToken = istZeitnehmer ? verein.zeitnehmerSelbstanmeldungToken : istOrdner ? verein.ordnerSelbstanmeldungToken : null;

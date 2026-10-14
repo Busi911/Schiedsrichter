@@ -2,7 +2,7 @@ import "server-only";
 import ExcelJS from "exceljs";
 import type { holeTermineFuerAuswertung } from "./termin-auswertung";
 import {
-  AUSWERTUNG_ROLLEN,
+  standardRollen,
   rollenZellenWert,
   type AuswertungsRolle,
 } from "./termin-auswertung";
@@ -36,6 +36,7 @@ const ROLLEN_SPALTEN: Record<
   kassierer: [{ header: "Kassierer", key: "kassierer", width: 20 }],
   zeitnehmer: [{ header: "Zeitnehmer", key: "zeitnehmer", width: 20 }],
   sekretaer: [{ header: "Sekretär", key: "sekretaer", width: 20 }],
+  eigeneDienste: [{ header: "Eigene Dienste", key: "eigeneDienste", width: 40 }],
 };
 
 function rollenWerte(
@@ -75,6 +76,9 @@ function rollenWerte(
   if (rollen.includes("sekretaer")) {
     werte.sekretaer = rollenZellenWert(z.sekretaerName, z.rollenBedarf?.sekretaer, "offen");
   }
+  if (rollen.includes("eigeneDienste")) {
+    werte.eigeneDienste = z.eigeneDiensteText ?? "";
+  }
   return werte;
 }
 
@@ -85,7 +89,7 @@ export async function terminAlsExcel(
   rollen?: AuswertungsRolle[]
 ): Promise<Buffer> {
   // Keine (bzw. keine gültige) Auswahl → wie bisher alle Rollen zeigen.
-  const ausgewaehlteRollen = rollen?.length ? rollen : AUSWERTUNG_ROLLEN;
+  const ausgewaehlteRollen = rollen?.length ? rollen : standardRollen(zeilen);
 
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Dienstplan");

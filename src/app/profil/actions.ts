@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { zuordnungsBezeichnung } from "@/lib/eigene-dienste-daten";
+import { holeDienstwarteOderAdminEmails } from "@/lib/dienstwart";
 import { and, eq, inArray } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
@@ -445,19 +447,30 @@ export async function selbstAbmelden(formData: FormData) {
     ]);
     if (!termin || !verein || !nutzer) return null;
 
-    return { termin, verein, nutzer, rolle: zuordnung.funktionstraegerTyp };
+    return {
+      termin,
+      verein,
+      nutzer,
+      rolle: zuordnung.funktionstraegerTyp,
+      // Eigene Dienste (Fahrer, Kuchen, ...): Name des Dienstes für die Mail an den Dienstwart.
+      rollenName: await zuordnungsBezeichnung(tx, zuordnung),
+    };
   });
 
   if (anfrage) {
-    const { termin, verein, nutzer, rolle } = anfrage;
+    const { termin, verein, nutzer, rolle, rollenName } = anfrage;
     const istOrdnerFamilie = (ORDNER_ROLLEN as readonly string[]).includes(rolle);
-    const warte = istOrdnerFamilie
-      ? await holeOrdnerwarteEmails(vereinId)
-      : await holeZeitnehmerwarteEmails(vereinId);
-    const wartUrl = `${appUrl()}${istOrdnerFamilie ? "/profil/ordnerwart" : "/profil/zeitnehmerwart"}`;
+    const istEigenerDienst = rolle === "eigener_dienst";
+    // Eigene Dienste: an die Dienstwarte, gibt es keinen, an die Vereinsadmins (sonst bliebe die Anfrage unbemerkt).
+    const warte = istEigenerDienst
+      ? await holeDienstwarteOderAdminEmails(vereinId)
+      : istOrdnerFamilie
+        ? await holeOrdnerwarteEmails(vereinId)
+        : await holeZeitnehmerwarteEmails(vereinId);
+    const wartUrl = `${appUrl()}${istEigenerDienst ? "/profil/dienstwart" : istOrdnerFamilie ? "/profil/ordnerwart" : "/profil/zeitnehmerwart"}`;
     const inhalt = {
       vereinName: verein.name,
-      ...abmeldungAngefragtInhalt(nutzer.name ?? nutzer.email, rolle, termin, {
+      ...abmeldungAngefragtInhalt(nutzer.name ?? nutzer.email, rollenName, termin, {
         text: "Abmeldung bestätigen",
         url: wartUrl,
       }),
@@ -479,6 +492,7 @@ export async function selbstAbmelden(formData: FormData) {
   revalidatePath("/profil");
   revalidatePath("/profil/ordnerwart");
   revalidatePath("/profil/zeitnehmerwart");
+  revalidatePath("/profil/dienstwart");
   revalidatePath("/admin/kalender");
 }
 

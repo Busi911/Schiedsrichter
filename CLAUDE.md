@@ -653,5 +653,13 @@ im Kalender (`admin-kalender.ts`, Zeilen „Fahrer: offen“/„2 von 3 besetzt�
 eigener Dienste wie bei den Helferdiensten (bestehende Regel „außer Schiedsrichter“). Löschen eines Dienstes nur ohne Einteilungen, sonst deaktivieren.
 Hilfe: `/hilfe#eigene-dienste`. Einstellungs-Anker liegen jetzt IM Inhalt von `EinstellungsBereich` (`<span id>`), weil Browser beim Sprung nur umgebende
 `<details>` aufklappen, nicht das Ziel selbst.
-Noch offen (folgende Stufen): öffentliche Selbsteintragung/Profil-„Offene Dienste“/Abmeldung für eigene Dienste, Export/Statistik/Demo-Daten, Auswärtsspiele
-als Termine (`fuer_auswaertsspiele` liegt schon in der Tabelle, ohne Oberfläche), Fahrgemeinschaft.
+**Stufe 2 (Selbsteintragung, Abmeldung, Export):** dritter Freischalt-Token `vereine.dienste_selbstanmeldung_token` (Migration 0100, Dienstwart-Seite
+„Öffentliche Selbsteintragung“) auf derselben Seite `/eintragen/[token]`: je aktivem Dienst eine Gruppe mit Wert `eigen:<dienstArtId>`
+(`lib/eigene-dienste-eintragung.ts`, `eigeneRolle`/`dienstArtIdAusRolle`), Daten in `ladeEintragungsTermine` (`aktiv.eigene`, liefert `eigeneGruppen`).
+Absichtlich einfacher als bei Zeitnehmer/Ordner: kein Namensabgleich, keine Bestätigung durch den Wart, KEIN Konto anlegen — eingeloggt = Session-Person,
+E-Mail verknüpft nur mit einer Person DIESES Vereins (dann Bestätigungsmail), sonst Name ohne Login; je Termin eigene Transaktion, nie über den Bedarf.
+Abmeldung: Profil-Karte „Meine Helferdienste“ (`selbstAbmelden`), Mail an Dienstwarte bzw. ohne Dienstwart an die Admins (`holeDienstwarteOderAdminEmails`),
+Entscheidung auf `/profil/dienstwart` („Abmeldeanfragen“, `dienstAbmeldungGenehmigen`/`…Ablehnen`). Export: Rolle `eigeneDienste` in `AUSWERTUNG_ROLLEN`,
+eine Zelle je Termin (`eigeneDiensteZellenText`), ohne Auswahl nur, wenn ein Termin eigene Dienste hat (`standardRollen`). Statistik: `eigener_dienst` zählt
+in `DIENST_RELEVANTE_ROLLEN`. Demo: Kuchen + Fahrer (nur mA/wC) mit Einteilungen und Abmeldeanfrage, Token `DEMO_TOKEN_DIENSTE`, Anna ist Dienstwartin.
+Noch offen: Auswärtsspiele als Termine (`fuer_auswaertsspiele` liegt schon in der Tabelle, ohne Oberfläche), Fahrgemeinschaft.

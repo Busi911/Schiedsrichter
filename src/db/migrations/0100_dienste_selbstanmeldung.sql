@@ -1,0 +1,2 @@
+ALTER TABLE "verein" ADD COLUMN "dienste_selbstanmeldung_token" text;--> statement-breakpoint
+ALTER TABLE "verein" ADD CONSTRAINT "verein_dienste_selbstanmeldung_token_unique" UNIQUE("dienste_selbstanmeldung_token");
