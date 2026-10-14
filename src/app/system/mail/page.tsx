@@ -5,16 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { SubmitButton } from "@/components/submit-button";
-import { testMailSenden } from "../actions";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { holeErsteSchritteRundmailStand } from "@/lib/erste-schritte-rundmail";
+import { ersteSchritteRundmailSenden, ersteSchritteVorschauSenden, testMailSenden } from "../actions";
+
+// Die Rundmail "Erste Schritte" verschickt mehrere Mails nacheinander.
+export const maxDuration = 60;
 
 export default async function MailTestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ gesendet?: string; fehler?: string }>;
+  searchParams: Promise<{ gesendet?: string; fehler?: string; rundmail?: string }>;
 }) {
   const session = await requireSystemAdmin();
-  const { gesendet, fehler } = await searchParams;
-  const d = await pruefeMailKonfiguration();
+  const { gesendet, fehler, rundmail } = await searchParams;
+  const [d, rundmailStand] = await Promise.all([pruefeMailKonfiguration(), holeErsteSchritteRundmailStand()]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -58,6 +63,41 @@ export default async function MailTestPage({
             Tipp: Sende sie nacheinander an mehrere Anbieter (Gmail, Web.de/GMX, Outlook/Hotmail) — Spamfilter entscheiden
             unterschiedlich. Zusätzlich kannst du die Mail an die Adresse von mail-tester.com schicken, dort gibt es eine Bewertung.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Rundmail „Erste Schritte“ an Vereinsadmins</CardTitle>
+          <CardDescription>
+            Einmalig an die Admins aller aktiven Vereine: Hinweis auf die Anleitung „Erste Schritte“ und die Checkliste in
+            der Admin-Übersicht. Jeder Verein bekommt sie nur einmal (Vereinsprotokoll); ein erneuter Klick erreicht nur
+            Vereine, die noch keine bekommen haben.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm">
+          {rundmail && (
+            <p className="rounded-md border border-green-600/40 bg-green-600/10 p-2">{rundmail}</p>
+          )}
+          <p>
+            Noch offen: <strong>{rundmailStand.offeneVereine}</strong> Verein(e) mit{" "}
+            <strong>{rundmailStand.offeneEmpfaenger}</strong> Admin(s). Schon verschickt an{" "}
+            {rundmailStand.schonGesendet} Verein(e).
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <form action={ersteSchritteVorschauSenden}>
+              <SubmitButton variant="outline" pendingText="Sendet…">Vorschau an mich</SubmitButton>
+            </form>
+            {rundmailStand.offeneVereine > 0 && (
+              <form action={ersteSchritteRundmailSenden}>
+                <ConfirmSubmitButton
+                  confirmText={`Rundmail jetzt an ${rundmailStand.offeneEmpfaenger} Admin(s) in ${rundmailStand.offeneVereine} Verein(en) senden?`}
+                >
+                  Jetzt senden
+                </ConfirmSubmitButton>
+              </form>
+            )}
+          </div>
         </CardContent>
       </Card>
 

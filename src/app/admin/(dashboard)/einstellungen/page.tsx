@@ -207,7 +207,7 @@ export default async function EinstellungenPage({
       )}
 
       <h2 className="mt-2 text-sm font-medium text-muted-foreground">Erste Schritte</h2>
-      <EinstellungsBereich titel="Öffentliche Vereinsseite" kurz="Ligadaten aus nuLiga und handball.net, Namen, Logo" beschreibung={<>Zeigt Mannschaften, Spielpläne, Ergebnisse und Tabellen eures Vereins
+      <EinstellungsBereich id="oeffentliche-seite" titel="Öffentliche Vereinsseite" kurz="Ligadaten aus nuLiga und handball.net, Namen, Logo" beschreibung={<>Zeigt Mannschaften, Spielpläne, Ergebnisse und Tabellen eures Vereins
             aus nuLiga und handball.net auf einer öffentlichen Seite (ohne Login, für Suchmaschinen
             auffindbar). Es werden nur öffentliche Sportdaten übernommen — keine
             Personen.{" "}
@@ -345,7 +345,7 @@ export default async function EinstellungenPage({
             </p>
           </form>
           {session.user.istAdmin && (
-            <div className="mt-4 flex flex-col gap-2 border-t pt-4">
+            <div id="spielhallen" className="mt-4 flex scroll-mt-6 flex-col gap-2 border-t pt-4">
               <p className="text-sm font-medium">Eure Spielhallen</p>
             <form action={eigeneHallenNamenSpeichern} className="flex flex-col gap-3">
               <p className="text-xs text-muted-foreground">
@@ -610,7 +610,7 @@ export default async function EinstellungenPage({
           )}
         </EinstellungsBereich>
 
-        <EinstellungsBereich titel="Dienste-Bedarf pro Termin" kurz="Wie viele Helfer pro Termin gebraucht werden" beschreibung={<>Wie viele Ordner-, Kioskdienst-, Kassierer- und Zeitnehmer/
+        <EinstellungsBereich id="dienste-bedarf" titel="Dienste-Bedarf pro Termin" kurz="Wie viele Helfer pro Termin gebraucht werden" beschreibung={<>Wie viele Ordner-, Kioskdienst-, Kassierer- und Zeitnehmer/
               Sekretär-Kräfte pro Freundschaftsspiel, Turnier bzw. Rundenspiel
               benötigt werden.
               Sobald diese Anzahl erreicht ist, können sich weitere
@@ -862,7 +862,7 @@ export default async function EinstellungenPage({
             </form>
           </EinstellungsBereich>
 
-      <EinstellungsBereich titel="Vereinsdaten und Rechnung" kurz="Rechnungsadresse und E-Mail des Verantwortlichen" beschreibung={<>Adresse und E-Mail des Verantwortlichen bekommt die Rechnung
+      <EinstellungsBereich id="vereinsdaten" titel="Vereinsdaten und Rechnung" kurz="Rechnungsadresse und E-Mail des Verantwortlichen" beschreibung={<>Adresse und E-Mail des Verantwortlichen bekommt die Rechnung
             (per E-Mail). Nirgends in der App öffentlich sichtbar.</>}>
           <div className="mb-4 rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
             <p className="mb-1 font-medium text-foreground">Ablauf nach dem Ende der Beta</p>
@@ -911,7 +911,7 @@ export default async function EinstellungenPage({
         </EinstellungsBereich>
 
       <EinstellungsBereich titel="Sponsor" kurz="Kosten von einem Sponsor übernehmen lassen" beschreibung={<>Ein Sponsor kann die technischen Kosten übernehmen — dafür erscheint beim Öffnen eurer
-            Vereinsseite kurz sein Bild („Präsentiert von …"). Der Sponsor zahlt {PREIS_SPONSOR} € im Jahr für den
+            Vereinsseite kurz sein Bild („Präsentiert von …“). Der Sponsor zahlt {PREIS_SPONSOR} € im Jahr für den
             Platz und zusätzlich den Jahrespreis des Vereins — ihr zahlt dann nichts. Der Sponsor wird
             vom HandballerPate-Team eingerichtet; sagt Bescheid, wenn ihr einen Sponsor habt.</>}>
         <p className="text-sm">

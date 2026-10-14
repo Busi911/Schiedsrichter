@@ -11,6 +11,7 @@ import {
   DropdownMenuLinkItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { WART_ITEMS } from "@/lib/wart-navigation";
 
 // Nur Desktop (ab md) — mobil übernimmt die Bottom-Bar aus
 // admin-bottom-nav.tsx, deren Punkte mit den Listen hier übereinstimmen
@@ -36,6 +37,7 @@ const VERWALTUNG_ITEMS = [
   { href: "/admin/einstellungen", label: "Einstellungen" },
 ];
 
+
 function istAktiv(
   pathname: string | null,
   item: { href: string; exact?: boolean }
@@ -45,7 +47,7 @@ function istAktiv(
     : pathname === item.href || pathname?.startsWith(item.href + "/");
 }
 
-export function AdminNav() {
+export function AdminNav({ zeigeWarte = false }: { zeigeWarte?: boolean }) {
   const pathname = usePathname();
   const verwaltungAktiv = VERWALTUNG_ITEMS.some((item) => istAktiv(pathname, item));
 
@@ -91,6 +93,22 @@ export function AdminNav() {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {zeigeWarte && (
+          <DropdownMenu>
+            <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-1")}>
+              Dienste einteilen
+              <ChevronDownIcon className="size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {WART_ITEMS.map((item) => (
+                <DropdownMenuLinkItem key={item.href} render={<Link href={item.href} />}>
+                  {item.label}
+                </DropdownMenuLinkItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </nav>
     </>
   );

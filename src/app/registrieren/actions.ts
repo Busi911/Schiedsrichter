@@ -5,7 +5,7 @@ import { holeBetaStand } from "@/lib/system-einstellungen";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
-import { willkommensInhalt } from "@/lib/willkommens-mail";
+import { adminWillkommensInhalt } from "@/lib/willkommens-mail";
 import { benachrichtigeSystemAdminsUeberRegistrierung } from "@/lib/system-admin-benachrichtigung";
 
 // Öffentlich, login-frei erreichbar (siehe page.tsx) — daher der Beta-Stand
@@ -63,7 +63,7 @@ export async function vereinRegistrieren(
 
   const email = adminEmail.trim().toLowerCase();
   try {
-    const inhalt = willkommensInhalt(vereinsname.trim(), email, null);
+    const inhalt = adminWillkommensInhalt(vereinsname.trim(), email);
     await sendMail(
       email,
       "Willkommen bei HandballerPate",

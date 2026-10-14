@@ -33,9 +33,13 @@ type Mannschaft = {
 export function MannschaftenTabelle({
   liste,
   schreibzugriff = true,
+  zeigeTeamId = true,
 }: {
   liste: Mannschaft[];
   schreibzugriff?: boolean;
+  // Alter handball.net-Teamimport je Mannschaft: nur noch sichtbar für Vereine, die ihn nicht abgeschaltet haben
+  // (sonst kommen die Spiele über die Vereins-ID unter Einstellungen → Öffentliche Vereinsseite).
+  zeigeTeamId?: boolean;
 }) {
   const [suche, setSuche] = useState("");
   const [ausgewaehlt, setAusgewaehlt] = useState<Set<string>>(new Set());
@@ -132,7 +136,7 @@ export function MannschaftenTabelle({
               )}
               <TableHead>Name</TableHead>
               <TableHead>Altersklasse</TableHead>
-              <TableHead>handball.net-Team-ID</TableHead>
+              {zeigeTeamId && <TableHead>handball.net-Team-ID</TableHead>}
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -151,7 +155,7 @@ export function MannschaftenTabelle({
                 )}
                 <TableCell className="font-medium">{m.name}</TableCell>
                 <TableCell>{m.altersklasse ?? "—"}</TableCell>
-                <TableCell>{m.handballNetTeamId ?? "—"}</TableCell>
+                {zeigeTeamId && <TableCell>{m.handballNetTeamId ?? "—"}</TableCell>}
                 <TableCell className="text-right">
                   {schreibzugriff && (
                   <details className="group text-left">
@@ -176,13 +180,18 @@ export function MannschaftenTabelle({
                           placeholder="Altersklasse"
                           className="h-8 w-36"
                         />
-                        <Input
-                          name="handballNetTeamId"
-                          defaultValue={m.handballNetTeamId ?? ""}
-                          placeholder="handball.net-Team-ID"
-                          inputMode="numeric"
-                          className="h-8 w-40"
-                        />
+                        {zeigeTeamId ? (
+                          <Input
+                            name="handballNetTeamId"
+                            defaultValue={m.handballNetTeamId ?? ""}
+                            placeholder="handball.net-Team-ID"
+                            inputMode="numeric"
+                            className="h-8 w-40"
+                          />
+                        ) : (
+                          // Ausgeblendet, aber mitgeschickt: updateMannschaft würde einen fehlenden Wert sonst leeren.
+                          <input type="hidden" name="handballNetTeamId" value={m.handballNetTeamId ?? ""} />
+                        )}
                         <SubmitButton variant="outline" size="sm">
                           Speichern
                         </SubmitButton>
