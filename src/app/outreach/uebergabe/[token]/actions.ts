@@ -7,6 +7,7 @@ import { adminDb } from "@/db/admin";
 import { vereine, users, treuhandZugriffe, vereinProtokoll } from "@/db/schema";
 import { pruefeOutreachUebergabeToken } from "@/lib/outreach-uebergabe";
 import { sendMail } from "@/lib/mailer";
+import { uebergabeInhalt } from "@/lib/uebergabe-mail";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout";
 import { appUrl } from "@/lib/app-url";
 import { startKonditionen } from "@/lib/abrechnung";
@@ -90,6 +91,20 @@ export async function uebergebeVereinSelbstbedienung(formData: FormData) {
       details: `${name} <${email}>${kostenpflichtig ? " · kostenpflichtig (Beta-Plätze vergeben)" : ""}`,
     });
   });
+
+  // Willkommensmail mit der Erste-Schritte-Anleitung (wie bei der Übergabe durch den Systemadmin). Best-effort:
+  // die Übernahme ist schon erfolgt, der Login-Link unten kommt unabhängig davon.
+  try {
+    const willkommen = uebergabeInhalt(verein.name, email);
+    await sendMail(
+      email,
+      `Dein Verein ${verein.name} ist eingerichtet`,
+      emailAlsText(willkommen),
+      emailAlsHtml(willkommen)
+    );
+  } catch (err) {
+    console.error("Willkommensmail nach Outreach-Übernahme fehlgeschlagen:", err);
+  }
 
   // Magic-Link versenden — Auth.js Nodemailer-Provider schickt die
   // Verifikations-Mail an die angegebene Adresse.

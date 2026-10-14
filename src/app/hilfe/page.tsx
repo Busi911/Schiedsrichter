@@ -54,8 +54,9 @@ export default async function HilfePage() {
       <section id="erste-schritte" className="flex flex-col gap-3 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">Erste Schritte: HandballerPate einrichten</h2>
         <p className="text-sm text-muted-foreground">
-          In dieser Reihenfolge ist euer Verein in wenigen Minuten startklar. Der Systemadmin sieht ebenfalls, welche Punkte
-          noch fehlen.
+          In dieser Reihenfolge ist euer Verein in wenigen Minuten startklar. Auf der <strong>Übersicht</strong> im
+          Admin-Bereich zeigt euch die Liste „Erste Schritte“, was noch offen ist (sie verschwindet, sobald alles
+          eingerichtet ist).
         </p>
         <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-muted-foreground">
           <li>

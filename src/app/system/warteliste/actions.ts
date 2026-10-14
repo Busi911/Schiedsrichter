@@ -8,7 +8,7 @@ import { warteliste } from "@/db/schema";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
-import { willkommensInhalt } from "@/lib/willkommens-mail";
+import { adminWillkommensInhalt } from "@/lib/willkommens-mail";
 import { benachrichtigeSystemAdminsUeberRegistrierung } from "@/lib/system-admin-benachrichtigung";
 
 // Legt aus einem Warteliste-Eintrag denselben Verein+Admin-Datensatz an
@@ -33,7 +33,7 @@ export async function wartelisteFreischalten(formData: FormData) {
   await adminDb.delete(warteliste).where(eq(warteliste.id, id));
 
   try {
-    const inhalt = willkommensInhalt(eintrag.vereinsname, eintrag.adminEmail, null);
+    const inhalt = adminWillkommensInhalt(eintrag.vereinsname, eintrag.adminEmail);
     await sendMail(
       eintrag.adminEmail,
       "Willkommen bei HandballerPate",

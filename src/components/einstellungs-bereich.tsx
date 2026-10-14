@@ -14,6 +14,7 @@ export function EinstellungsBereich({
   offen = false,
   gefahr = false,
   className,
+  id,
   children,
 }: {
   titel: string;
@@ -22,13 +23,16 @@ export function EinstellungsBereich({
   offen?: boolean;
   gefahr?: boolean;
   className?: string;
+  // Anker für Links wie /admin/einstellungen#oeffentliche-seite (Browser klappen <details> beim Sprung auf).
+  id?: string;
   children: ReactNode;
 }) {
   return (
     <details
+      id={id}
       open={offen}
       className={cn(
-        "group max-w-2xl rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10",
+        "group max-w-2xl scroll-mt-6 rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10",
         gefahr && "ring-destructive/40",
         className
       )}

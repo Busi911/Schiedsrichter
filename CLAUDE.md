@@ -615,3 +615,14 @@ umgesetzt; der Verein bekommt eine Antwortmail. Neue Stammdaten-Felder, an denen
 ## Startseite des Vereins und "Meine" (öffentliche Fan-App, Stand 12.10.2026)
 
 Die meisten Vereine spielen nur an ein bis zwei Tagen pro Woche: die Vereinsstartseite zeigt deshalb ganz oben am Spieltag "Heute" (`sammleVereinsSpiele().heute`), sonst die nächsten Spiele (`NAECHSTE_ANZAHL`), danach die letzten Ergebnisse. `/meine` ist ein Dashboard aus den Favoriten (localStorage): "Jetzt" (läuft / Ergebnis folgt), "Als Nächstes" (alle Favoriten chronologisch, mit "heute/morgen/in n Tagen"), "Seit deinem letzten Besuch" (Datum des letzten Besuchs nur in `hp_meine_besuch`, kein Tracking), Meine Vereine/Mannschaften. `/api/liga/favoriten` lädt alle Favoriten mit EINER Abfragefolge (`holeMannschaftenGesammelt`, vorher je Verein eine komplette Saison nacheinander). `/sw.js` steht in `publicRoutes` (`proxy.ts`), sonst leitet die Middleware den Abruf anonymer Besucher auf /login um und der Service Worker lässt sich nicht registrieren.
+
+## Onboarding neuer Vereine (Erste Schritte)
+
+Jede Mail an einen NEUEN Vereinsadmin verweist auf `/hilfe#erste-schritte` (`ersteSchritteZeile` in `lib/willkommens-mail.ts`): Selbstregistrierung und
+Warteliste (`adminWillkommensInhalt`, Funktionsträger bekommen weiter `willkommensInhalt` ohne den Hinweis), Übergabe durch den Systemadmin und die
+Outreach-Übernahme (beide `uebergabeInhalt`; die Outreach-Übernahme schickt sie zusätzlich zum Login-Link). Die Admin-Übersicht `/admin` zeigt Vereinsadmins
+die Karte „Erste Schritte“ (`lib/erste-schritte.ts` rein/getestet, Zähler in `erste-schritte-daten.ts`: Spielplan angebunden, Mannschaften, Funktionsträger mit
+Rolle, ein Dienst eingetragen — dieselbe Definition wie die Stammdaten-Sperre), je Schritt mit Link zur Einstellung und zum Hilfe-Abschnitt; sie verschwindet,
+sobald alles erledigt ist. Einstellungsbereiche haben Anker (`EinstellungsBereich id=…`: `oeffentliche-seite`, `dienste-bedarf`, `vereinsdaten`).
+Einmalige Rundmail an bestehende Vereine: `/system/mail` → „Rundmail Erste Schritte“ (`lib/erste-schritte-rundmail.ts`, Vorschau an sich selbst; je Verein nur
+einmal über den Protokolleintrag `erste_schritte_mail`, nur aktive Vereine, alle Admins).

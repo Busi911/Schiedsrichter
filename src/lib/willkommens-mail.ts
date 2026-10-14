@@ -29,3 +29,41 @@ export function willkommensInhalt(
     kleingedrucktes: `Infos zur Datenverarbeitung: ${appUrl()}/datenschutz`,
   };
 }
+
+// Anleitung für neue Vereinsadmins (Abschnitt "Erste Schritte" in /hilfe, nur eingeloggt erreichbar).
+export function ersteSchritteUrl(): string {
+  return `${appUrl()}/hilfe#erste-schritte`;
+}
+
+export function ersteSchritteZeile(): string {
+  return `So geht's los: Die Anleitung „Erste Schritte“ führt in wenigen Schritten durch die Einrichtung (nach dem Login): ${ersteSchritteUrl()}. Auf der Übersicht im Admin-Bereich seht ihr außerdem, welche Schritte noch offen sind.`;
+}
+
+// Für einen neuen Vereinsadmin (Selbstregistrierung, Freischaltung von der Warteliste): wie willkommensInhalt,
+// zusätzlich mit dem Hinweis auf die Erste-Schritte-Anleitung. Funktionsträger bekommen den Hinweis nicht.
+export function adminWillkommensInhalt(vereinName: string, email: string): EmailInhalt {
+  const basis = willkommensInhalt(vereinName, email, null);
+  return {
+    ...basis,
+    ueberschrift: "Willkommen bei HandballerPate! Dein Verein ist angelegt.",
+    zeilen: [...basis.zeilen, ersteSchritteZeile()],
+    cta: { text: "Zum Admin-Bereich", url: `${appUrl()}/admin` },
+  };
+}
+
+// Einmalige Mail an die Admins bereits aktiver Vereine (ausgelöst vom Systemadmin unter /system/mail):
+// Hinweis auf die Anleitung und die neue Erste-Schritte-Übersicht.
+export function ersteSchritteInhalt(vereinName: string): EmailInhalt {
+  return {
+    vereinName,
+    ueberschrift: "Neu: Anleitung „Erste Schritte“ für euren Verein",
+    zeilen: [
+      "Damit ihr HandballerPate schnell vollständig nutzen könnt, gibt es jetzt eine kurze Anleitung „Erste Schritte“: Spielplan anbinden, Mannschaften und Funktionsträger anlegen, Dienste-Bedarf festlegen und Aufgaben verteilen.",
+      `Anleitung (nach dem Login): ${ersteSchritteUrl()}`,
+      "Auf der Übersicht im Admin-Bereich zeigt euch eine Checkliste, welche Schritte bei euch noch offen sind. Sie verschwindet, sobald alles eingerichtet ist.",
+      "Fragen oder Wünsche? Schreibt uns einfach über den Feedback-Button oben in der App.",
+    ],
+    cta: { text: "Zum Admin-Bereich", url: `${appUrl()}/admin` },
+    kleingedrucktes: "Diese Mail geht einmalig an die Admins aller aktiven Vereine.",
+  };
+}

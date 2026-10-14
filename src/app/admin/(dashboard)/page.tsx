@@ -7,6 +7,9 @@ import { formatTagKopf, SpielKarte } from "@/components/liga/liga-ui";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
 import { betaVorbei } from "@/lib/abrechnung";
+import { CheckCircle2Icon, CircleIcon } from "lucide-react";
+import { ersteSchritte, ersteSchritteOffen } from "@/lib/erste-schritte";
+import { holeErsteSchritteStand } from "@/lib/erste-schritte-daten";
 import {
   formatMannschaft,
   holeLetzteErgebnisse,
@@ -95,7 +98,7 @@ export default async function AdminDashboardPage() {
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
   );
 
-  const [unbesetzteTermine, letzteErgebnisse, ligaErgebnisse, offeneSelbsteintragungen, offeneAbmeldeanfragen] =
+  const [unbesetzteTermine, letzteErgebnisse, ligaErgebnisse, offeneSelbsteintragungen, offeneAbmeldeanfragen, ersteSchritteStand] =
     await Promise.all([
       // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
       // den Link "Alle Termine" unten.
@@ -112,7 +115,11 @@ export default async function AdminDashboardPage() {
       // in profil/actions.ts) — auch hier beide Wart-Bereiche zusammen, damit
       // der Admin es sieht, selbst ohne eigene Wart-Rolle.
       holeOffeneAbmeldeanfragen(vereinId),
+      // Checkliste "Erste Schritte" (nur für Vereinsadmins, verschwindet, sobald alles eingerichtet ist).
+      session.user.istAdmin ? holeErsteSchritteStand(vereinId) : null,
     ]);
+  const schritte = ersteSchritteStand ? ersteSchritte(ersteSchritteStand) : [];
+  const zeigeErsteSchritte = ersteSchritteOffen(schritte);
 
   const unbesetzteTermineZeilen = unbesetzteTermine.map((t) => ({
     terminId: t.terminId,
@@ -156,6 +163,51 @@ export default async function AdminDashboardPage() {
             <Link href="/admin/einstellungen#vereinsdaten" className="inline-flex min-h-11 items-center self-start rounded-lg border px-4 text-sm font-medium hover:bg-muted">
               Rechnungsdaten eintragen
             </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {zeigeErsteSchritte && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Erste Schritte ({schritte.filter((x) => x.erledigt).length} von {schritte.length} erledigt)
+            </CardTitle>
+            <CardDescription>
+              So ist euer Verein startklar. Die Liste verschwindet, sobald alles eingerichtet ist.{" "}
+              <Link href="/hilfe#erste-schritte" className="font-medium underline">
+                Ganze Anleitung lesen
+              </Link>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ol className="flex flex-col divide-y">
+              {schritte.map((x) => (
+                <li key={x.schluessel} className="flex gap-3 py-3 first:pt-0 last:pb-0">
+                  {x.erledigt ? (
+                    <CheckCircle2Icon className="mt-0.5 size-5 shrink-0 text-green-600" aria-label="erledigt" />
+                  ) : (
+                    <CircleIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-label="offen" />
+                  )}
+                  <div className="flex min-w-0 flex-col gap-1 text-sm">
+                    <span className={x.erledigt ? "text-muted-foreground line-through" : "font-medium"}>{x.titel}</span>
+                    {!x.erledigt && (
+                      <>
+                        <span className="text-muted-foreground">{x.text}</span>
+                        <span className="flex flex-wrap gap-x-4">
+                          <Link href={x.href} className="inline-flex min-h-11 items-center font-medium underline">
+                            Jetzt erledigen
+                          </Link>
+                          <Link href={`/hilfe#${x.hilfeAnker}`} className="inline-flex min-h-11 items-center text-muted-foreground underline">
+                            Hilfe dazu
+                          </Link>
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
           </CardContent>
         </Card>
       )}

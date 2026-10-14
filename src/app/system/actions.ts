@@ -9,6 +9,8 @@ import { requireSystemAdmin } from "@/lib/session";
 import { adminDb } from "@/db/admin";
 import { systemEinstellungen } from "@/db/schema";
 import { holeSystemEinstellungen } from "@/lib/system-einstellungen";
+import { ERSTE_SCHRITTE_BETREFF, sendeErsteSchritteRundmail } from "@/lib/erste-schritte-rundmail";
+import { ersteSchritteInhalt } from "@/lib/willkommens-mail";
 
 // Direkt über adminDb statt withTenant: system_einstellungen ist bewusst
 // OHNE verein_id/RLS (siehe Tabellen-Kommentar in db/schema.ts) — ein
@@ -62,4 +64,29 @@ export async function testMailSenden(formData: FormData) {
     redirect(`/system/mail?fehler=${encodeURIComponent(`Versand fehlgeschlagen: ${meldung.slice(0, 200)}`)}`);
   }
   redirect(`/system/mail?gesendet=${encodeURIComponent(empfaenger)}`);
+}
+
+// Einmalige Rundmail "Erste Schritte" an die Admins aller aktiven Vereine (je Verein nur einmal, siehe
+// lib/erste-schritte-rundmail.ts). Vorschau geht nur an den Systemadmin selbst.
+export async function ersteSchritteVorschauSenden() {
+  const session = await requireSystemAdmin();
+  const empfaenger = session.user.email;
+  if (!empfaenger) redirect(`/system/mail?fehler=${encodeURIComponent("Dein Konto hat keine E-Mail-Adresse.")}`);
+  const inhalt = ersteSchritteInhalt("Beispielverein");
+  try {
+    await sendMail(empfaenger, `Vorschau: ${ERSTE_SCHRITTE_BETREFF}`, emailAlsText(inhalt), emailAlsHtml(inhalt));
+  } catch (err) {
+    const meldung = err instanceof Error ? err.message : String(err);
+    redirect(`/system/mail?fehler=${encodeURIComponent(`Versand fehlgeschlagen: ${meldung.slice(0, 200)}`)}`);
+  }
+  redirect(`/system/mail?gesendet=${encodeURIComponent(empfaenger)}`);
+}
+
+export async function ersteSchritteRundmailSenden() {
+  const session = await requireSystemAdmin();
+  const { vereineGesendet, mails, fehler } = await sendeErsteSchritteRundmail(session.user.email ?? session.user.id);
+  revalidatePath("/system/mail");
+  const params = new URLSearchParams({ rundmail: `${mails} Mail(s) an ${vereineGesendet} Verein(e) verschickt.` });
+  if (fehler.length > 0) params.set("fehler", `Nicht zugestellt: ${fehler.join(", ").slice(0, 300)}`);
+  redirect(`/system/mail?${params}`);
 }
