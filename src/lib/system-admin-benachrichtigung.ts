@@ -88,3 +88,25 @@ export async function benachrichtigeSystemAdminsUeberStammdatenAntrag(
     cta: { text: "Antrag prüfen", url: `${appUrl()}/system/aenderungen` },
   });
 }
+
+// Feedback über den Button im Header (lib/feedback.ts): Text, Absender und Seite direkt in der Mail, damit der Systemadmin
+// ohne Umweg über /system/feedback antworten kann (per Mail an die angegebene Adresse).
+export async function benachrichtigeSystemAdminsUeberFeedback(
+  vereinId: string,
+  absender: { name: string | null; email: string | null },
+  seite: string,
+  nachricht: string
+) {
+  const [v] = await adminDb.select({ name: vereine.name }).from(vereine).where(eq(vereine.id, vereinId));
+  const vereinName = v?.name ?? "Ein Verein";
+  const wer = [absender.name, absender.email ? `<${absender.email}>` : null].filter(Boolean).join(" ") || "unbekannt";
+  await mailAnSystemAdmins(`Feedback: ${vereinName}`, {
+    ueberschrift: `Neues Feedback von ${vereinName}`,
+    zeilen: [
+      { text: nachricht, stark: true },
+      { text: `Von: ${wer}`, neueGruppe: true },
+      `Seite: ${seite}`,
+    ],
+    cta: { text: "Alle Rückmeldungen", url: `${appUrl()}/system/feedback` },
+  });
+}
