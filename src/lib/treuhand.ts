@@ -118,6 +118,20 @@ export async function loescheVorbereitungsVerein(userId: string, vereinId: strin
   return v.name;
 }
 
+// Löscht einen AKTIVEN Verein, der keine einzige Person hat (kein Admin, niemand: Überbleibsel eines Fehlers). Mit Personen nie — dann
+// Admin festlegen oder der Verein löscht sich selbst (Gefahrenzone). Demo-Verein nie.
+export async function loescheVereinOhnePersonen(userId: string, vereinId: string): Promise<string> {
+  await pruefeSystemAdmin(userId);
+  const [v] = await adminDb.select({ name: vereine.name, status: vereine.status, istDemo: vereine.istDemo }).from(vereine).where(eq(vereine.id, vereinId));
+  if (!v) throw new Error("Verein nicht gefunden.");
+  if (v.istDemo) throw new Error("Der Demo-Verein wird nicht gelöscht.");
+  const [{ anzahl }] = await adminDb.select({ anzahl: sql<number>`count(*)::int` }).from(users).where(eq(users.vereinId, vereinId));
+  if (anzahl > 0) throw new Error("Der Verein hat Personen — nur Vereine ohne jede Person lassen sich so löschen.");
+  await adminDb.delete(treuhandZugriffe).where(eq(treuhandZugriffe.vereinId, vereinId));
+  await adminDb.delete(vereine).where(eq(vereine.id, vereinId));
+  return v.name;
+}
+
 export async function beendeTreuhand(userId: string) {
   await adminDb.delete(treuhandZugriffe).where(eq(treuhandZugriffe.systemAdminUserId, userId));
 }
