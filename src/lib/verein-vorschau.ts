@@ -2,7 +2,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
-import { vereinVorschauLinks } from "@/db/schema";
+import { vereinKontakt, vereinVorschauLinks } from "@/db/schema";
 import { schreibeProtokoll } from "@/lib/treuhand";
 
 // Vorschau für Vereine im Vorbereitungs-Modus: Der Systemadmin erzeugt einen
@@ -21,6 +21,8 @@ export async function erzeugeVorschauLink(vereinId: string, tage: number, akteur
   const token = randomBytes(24).toString("base64url");
   const gueltigBis = new Date(Date.now() + tage * TAG_MS);
   await adminDb.insert(vereinVorschauLinks).values({ vereinId, token, gueltigBis });
+  // Ein neuer Link reaktiviert einen inaktiv gesetzten Verein (siehe lib/verein-inaktiv.ts).
+  await adminDb.update(vereinKontakt).set({ inaktivSeit: null }).where(eq(vereinKontakt.vereinId, vereinId));
   await schreibeProtokoll(vereinId, "vorschau_link_erzeugt", akteur, `${tage} Tag(e)`);
   return token;
 }

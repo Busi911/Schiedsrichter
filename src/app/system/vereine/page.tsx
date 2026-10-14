@@ -19,17 +19,25 @@ import { sucheVereinsindex } from "@/lib/nuliga/vereinsindex";
 import { EinrichtungsChecklisteListe, leseEinrichtungsErgebnis } from "@/components/einrichtungs-checkliste";
 import { Input } from "@/components/ui/input";
 import { formatDatum as formatDate } from "@/lib/format";
-import { treuhandStarten, vereinAusNuligaEinrichten, vereinsindexAktualisieren, vorbereitungsVereinLoeschen } from "./actions";
+import {
+  treuhandStarten,
+  vereinAdminFestlegen,
+  vereinAusNuligaEinrichten,
+  vereinInaktivSetzen,
+  vereinReaktivieren,
+  vereinsindexAktualisieren,
+  vorbereitungsVereinLoeschen,
+} from "./actions";
 
 export const maxDuration = 60;
 
 export default async function SystemVereinePage({
   searchParams,
 }: {
-  searchParams: Promise<{ suche?: string; einrichtung?: string; index?: string }>;
+  searchParams: Promise<{ suche?: string; einrichtung?: string; index?: string; q?: string; status?: string }>;
 }) {
   await requireSystemAdmin();
-  const { suche = "", einrichtung: einrichtungRoh, index: indexMeldung } = await searchParams;
+  const { suche = "", einrichtung: einrichtungRoh, index: indexMeldung, q = "", status: statusFilter = "alle" } = await searchParams;
   const einrichtung = leseEinrichtungsErgebnis(einrichtungRoh);
   const treffer = suche.trim().length >= 2 ? await sucheVereinsindex(adminDb, suche) : [];
   const eingerichtet = new Set(
@@ -72,10 +80,31 @@ export default async function SystemVereinePage({
   // Vereine in Vorbereitung zuerst (dort ist etwas zu tun), danach die aktiven; jeweils neueste zuerst.
   const sortiert = [...alleVereine].sort(
     (a, b) =>
+      Number(kontakte.get(a.id)?.inaktivSeit != null) - Number(kontakte.get(b.id)?.inaktivSeit != null) ||
       Number(b.status === "vorbereitung") - Number(a.status === "vorbereitung") ||
       b.erstelltAm.getTime() - a.erstelltAm.getTime()
   );
-  const anzahlVorbereitung = alleVereine.filter((v) => v.status === "vorbereitung").length;
+  const istInaktiv = (id: string) => !!kontakte.get(id)?.inaktivSeit;
+  const adminsJe = (id: string) => admins.filter((a) => a.vereinId === id);
+  const personenJe = new Map(
+    (await adminDb.select({ vereinId: users.vereinId, anzahl: count() }).from(users).groupBy(users.vereinId)).map((z) => [z.vereinId, z.anzahl])
+  );
+  const anzahlInaktiv = alleVereine.filter((v) => v.status === "vorbereitung" && istInaktiv(v.id)).length;
+  const anzahlVorbereitung = alleVereine.filter((v) => v.status === "vorbereitung").length - anzahlInaktiv;
+  const ohneAdmin = alleVereine.filter((v) => v.status === "aktiv" && !v.istDemo && adminsJe(v.id).length === 0);
+
+  // Suche und Filter über die Vereinsliste (Name, Adresse, Admin, Slug).
+  const begriff = q.trim().toLowerCase();
+  const passt = (v: (typeof alleVereine)[number]) => {
+    if (statusFilter === "vorbereitung" && !(v.status === "vorbereitung" && !istInaktiv(v.id))) return false;
+    if (statusFilter === "inaktiv" && !(v.status === "vorbereitung" && istInaktiv(v.id))) return false;
+    if (statusFilter === "aktiv" && v.status !== "aktiv") return false;
+    if (statusFilter === "ohne-admin" && !(v.status === "aktiv" && adminsJe(v.id).length === 0)) return false;
+    if (!begriff) return true;
+    const heu = [v.name, slugs.get(v.id) ?? "", ...adminsJe(v.id).flatMap((a) => [a.name ?? "", a.email])].join(" ").toLowerCase();
+    return begriff.split(/\s+/).every((t) => heu.includes(t));
+  };
+  const angezeigt = sortiert.filter(passt);
 
   return (
     <div className="flex flex-col gap-5">
@@ -85,6 +114,7 @@ export default async function SystemVereinePage({
           <p className="text-sm text-muted-foreground">
             {alleVereine.length} Vereine
             {anzahlVorbereitung > 0 && ` · ${anzahlVorbereitung} in Vorbereitung`}
+            {anzahlInaktiv > 0 && ` · ${anzahlInaktiv} inaktiv`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -168,13 +198,49 @@ export default async function SystemVereinePage({
         </section>
       )}
 
+      {ohneAdmin.length > 0 && (
+        <section className="flex flex-col gap-1 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
+          <h2 className="font-heading text-base font-semibold">{ohneAdmin.length} aktive Vereine ohne Admin</h2>
+          <p className="text-muted-foreground">
+            Das darf nicht sein (jeder Verein wird mit einem Admin angelegt). Mögliche Ursachen: die Person wurde gelöscht, ihr wurden die Admin-Rechte entzogen
+            oder der Verein ist ein Altbestand. Unten in der Karte kannst du eine Person als Admin festlegen:{" "}
+            {ohneAdmin.map((v) => v.name).join(", ")}.
+          </p>
+          <Link href="/system/vereine?status=ohne-admin" className="underline">
+            Nur diese anzeigen
+          </Link>
+        </section>
+      )}
+
+      <form action="/system/vereine" className="flex flex-wrap items-center gap-2">
+        <Input name="q" defaultValue={q} placeholder="Vereine filtern: Name, Admin, E-Mail" className="min-w-0 flex-1 basis-56" aria-label="Vereine filtern" />
+        <select name="status" defaultValue={statusFilter} className="h-9 rounded-md border bg-background px-2 text-sm" aria-label="Status">
+          <option value="alle">Alle</option>
+          <option value="aktiv">Aktiv</option>
+          <option value="vorbereitung">In Vorbereitung</option>
+          <option value="inaktiv">Inaktiv</option>
+          <option value="ohne-admin">Ohne Admin</option>
+        </select>
+        <SubmitButton variant="outline" pendingText="Filtert…">
+          Filtern
+        </SubmitButton>
+        {(q || statusFilter !== "alle") && (
+          <Link href="/system/vereine" className="text-sm underline">
+            Zurücksetzen
+          </Link>
+        )}
+      </form>
+
       {alleVereine.length === 0 ? (
         <p className="text-sm text-muted-foreground">Noch keine Vereine angelegt.</p>
+      ) : angezeigt.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Kein Verein passt zu „{q}“.</p>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {sortiert.map((v) => {
+          {angezeigt.map((v) => {
             const vereinsAdmins = admins.filter((a) => a.vereinId === v.id);
             const vorbereitung = v.status === "vorbereitung";
+            const inaktiv = vorbereitung && istInaktiv(v.id);
             const links = vorschauLinks.filter((l) => l.vereinId === v.id);
             const kontakt = kontakte.get(v.id);
             // Längster noch gültiger Link: er steht in der Nachricht, damit er möglichst lange hält.
@@ -202,7 +268,11 @@ export default async function SystemVereinePage({
                         Angelegt {formatDate(v.erstelltAm)}
                       </p>
                     </div>
-                    {vorbereitung ? (
+                    {inaktiv ? (
+                      <Badge variant="outline" className="shrink-0 text-muted-foreground">
+                        Inaktiv
+                      </Badge>
+                    ) : vorbereitung ? (
                       <Badge variant="outline" className="shrink-0">
                         In Vorbereitung
                       </Badge>
@@ -231,6 +301,25 @@ export default async function SystemVereinePage({
                     )}
                   </div>
 
+                  {!vorbereitung && !v.istDemo && vereinsAdmins.length === 0 && (
+                    <form action={vereinAdminFestlegen} className="flex flex-col gap-2 rounded-lg border border-destructive/40 p-3">
+                      <p className="text-sm font-medium text-destructive">
+                        Kein Admin ({personenJe.get(v.id) ?? 0} Personen im Verein)
+                      </p>
+                      <input type="hidden" name="vereinId" value={v.id} />
+                      <Input name="email" type="email" required placeholder="E-Mail der Person" aria-label="E-Mail des Admins" />
+                      <Input name="name" placeholder="Name (nur bei neuer Person)" aria-label="Name des Admins" />
+                      <SubmitButton size="sm" variant="outline" className="self-start" pendingText="Speichert…">
+                        Als Admin festlegen
+                      </SubmitButton>
+                    </form>
+                  )}
+                  {inaktiv && (
+                    <p className="text-xs text-muted-foreground">
+                      Seit {formatDate(kontakte.get(v.id)!.inaktivSeit!)} inaktiv: keine Vorschau, keine Abrufe, keine weitere Ansprache. Alle Daten sind erhalten.
+                    </p>
+                  )}
+
                   <div className="flex flex-wrap items-center gap-2 border-t pt-3">
                     {vorbereitung ? (
                       <>
@@ -241,6 +330,26 @@ export default async function SystemVereinePage({
                           </SubmitButton>
                         </form>
                         <VereinUebergebenDialog vereinId={v.id} vereinName={v.name} />
+                        {inaktiv ? (
+                          <form action={vereinReaktivieren}>
+                            <input type="hidden" name="vereinId" value={v.id} />
+                            <SubmitButton size="sm" variant="outline" pendingText="Reaktiviert…">
+                              Reaktivieren
+                            </SubmitButton>
+                          </form>
+                        ) : (
+                          <form action={vereinInaktivSetzen}>
+                            <input type="hidden" name="vereinId" value={v.id} />
+                            <ConfirmSubmitButton
+                              size="sm"
+                              variant="outline"
+                              pendingText="Setzt…"
+                              confirmText={`Verein „${v.name}“ inaktiv setzen? Die Vorschau-Links werden widerrufen, es gibt keine Abrufe und keine weitere Ansprache mehr. Alle Daten bleiben, Reaktivieren geht jederzeit.`}
+                            >
+                              Inaktiv setzen
+                            </ConfirmSubmitButton>
+                          </form>
+                        )}
                         <form action={vorbereitungsVereinLoeschen}>
                           <input type="hidden" name="vereinId" value={v.id} />
                           <ConfirmSubmitButton

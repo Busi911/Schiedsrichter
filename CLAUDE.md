@@ -328,6 +328,11 @@ abhängen (Favoriten-API mit Vorschau-Verein), dürfen nie im gemeinsamen Cache
 landen (`private, no-store`). Der Verein bleibt ohne Link 404 und taucht nicht
 in Suche/Sitemap auf. Der einrichtende Systemadmin im Treuhand-Kontext sieht
 die Seite ebenfalls.
+**Inaktiv (14.10.2026):** `verein_kontakt.inaktiv_seit` (Migration 0105). Ein Verein in Vorbereitung ohne Rückmeldung wird inaktiv gesetzt: automatisch im täglichen Followup-Lauf (`markiereInaktiveVereine`,
+Regel rein in `verein-inaktiv-regel.ts`: Verein in Vorbereitung, kein Demo, Erstkontakt ≥ 14 Tage her, kein gültiger Link, bei Mail-Ansprache erst nach der Erinnerung; ein Abgemeldeter sofort) oder von Hand
+(`/system/vereine` → „Inaktiv setzen“). Wirkung: Vorschau-Links widerrufen, kein Abruf (kein gültiger Link, `sync-berechtigung.ts`/`sync-cron.ts`), Erinnerung/Instagram-Nachfass/Outreach-Auswahl überspringen ihn;
+es wird NICHTS gelöscht. Reaktivieren (Button oder jeder neue Vorschau-Link, `erzeugeVorschauLink` leert den Wert) jederzeit. `/system/vereine` hat Suche/Filter (Name, Admin, Status
+Aktiv/Vorbereitung/Inaktiv/Ohne Admin) und warnt bei aktiven Vereinen ohne Admin (`vereinAdminFestlegen` repariert; `adminRechteToggeln`/`deleteFunktionstraeger` lassen nie den letzten Admin entfernen).
 
 ## Hallenplan + öffentliche Liga-Daten zusammenführen (in Arbeit)
 

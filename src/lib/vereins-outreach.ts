@@ -170,7 +170,7 @@ export async function fuehreOutreachAus(verband?: string): Promise<OutreachErgeb
     })
     .from(nuligaVereinsindex)
     .where(
-      sql`(NOT EXISTS (SELECT 1 FROM ${ligaVereine} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband}) OR EXISTS (SELECT 1 FROM ${ligaVereine} JOIN ${vereine} ON ${vereine.id} = ${ligaVereine.vereinId} LEFT JOIN ${vereinKontakt} ON ${vereinKontakt.vereinId} = ${vereine.id} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband} AND ${vereine.status} = 'vorbereitung' AND ${vereinKontakt.angeschriebenAm} IS NULL AND COALESCE(${vereinKontakt.outreachVersuche}, 0) < ${OUTREACH_KONSTANTEN.MAX_OUTREACH_VERSUCHE}))${verband ? sql` AND ${nuligaVereinsindex.verband} = ${verband}` : sql``}`
+      sql`(NOT EXISTS (SELECT 1 FROM ${ligaVereine} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband}) OR EXISTS (SELECT 1 FROM ${ligaVereine} JOIN ${vereine} ON ${vereine.id} = ${ligaVereine.vereinId} LEFT JOIN ${vereinKontakt} ON ${vereinKontakt.vereinId} = ${vereine.id} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband} AND ${vereine.status} = 'vorbereitung' AND ${vereinKontakt.angeschriebenAm} IS NULL AND ${vereinKontakt.inaktivSeit} IS NULL AND COALESCE(${vereinKontakt.outreachVersuche}, 0) < ${OUTREACH_KONSTANTEN.MAX_OUTREACH_VERSUCHE}))${verband ? sql` AND ${nuligaVereinsindex.verband} = ${verband}` : sql``}`
     )
     .limit(OUTREACH_KONSTANTEN.MAX_VERSUCH_PRO_LAUF);
 
@@ -480,6 +480,7 @@ export async function fuehreInstagramNachfassAus(): Promise<OutreachErgebnis> {
       and(
         eq(vereine.status, "vorbereitung"),
         isNull(vereinKontakt.anspracheEmail),
+        isNull(vereinKontakt.inaktivSeit),
         sql`${vereinKontakt.angeschriebenAm} IS NOT NULL`,
         sql`(SELECT count(*) FROM ${ligaMannschaften} WHERE ${ligaMannschaften.ligaVereinId} = ${ligaVereine.id}) > 0`
       )
@@ -578,6 +579,7 @@ export async function fuehreOutreachFollowupAus(): Promise<OutreachFollowupErgeb
       and(
         isNull(vereinKontakt.followupGesendetAm),
         isNull(vereinKontakt.outreachAbgemeldetAm),
+        isNull(vereinKontakt.inaktivSeit),
         // ansprache_gesendet_am muss gesetzt und älter als 7 Tage sein
         ne(vereinKontakt.anspracheGesendetAm, null as never),
         // Drizzle kann nicht direkt < auf timestamp mit mode date machen,

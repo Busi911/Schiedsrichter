@@ -1,0 +1,1 @@
+ALTER TABLE "verein_kontakt" ADD COLUMN "inaktiv_seit" timestamp;
