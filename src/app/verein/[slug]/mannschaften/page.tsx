@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { appUrl } from "@/lib/app-url";
+import { vereinsSeitenMetadata } from "@/lib/seo-meta";
 import { gruppiereMannschaften, holeVerein } from "@/lib/liga-oeffentlich";
 import { BereichsKopf } from "@/components/liga/bereichs-kopf";
 import { FavoritenBereich } from "@/components/liga/favoriten-bereich";
@@ -13,11 +13,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const verein = await holeVerein(slug);
   if (!verein) return { title: "Verein nicht gefunden" };
-  return {
-    title: `${verein.name} – Mannschaften | HandballerPate`,
-    description: `Alle Mannschaften des ${verein.name} mit Liga, Tabellenplatz und nächstem Spiel.`,
-    alternates: { canonical: `${appUrl()}/verein/${verein.slug}/mannschaften` },
-  };
+  return vereinsSeitenMetadata(verein, {
+    titel: `${verein.name} – Alle Mannschaften mit Liga und Tabellenplatz | HandballerPate`,
+    beschreibung: `Alle Mannschaften des ${verein.name} mit Liga, aktuellem Tabellenplatz und nächstem Spiel – zu jeder Mannschaft Spielplan, Ergebnisse und Tabelle.`,
+    pfad: "/mannschaften",
+  });
 }
 
 export default async function MannschaftenSeite({ params }: Props) {
@@ -27,7 +27,7 @@ export default async function MannschaftenSeite({ params }: Props) {
 
   return (
     <div className="space-y-6 pb-28 md:pb-0">
-      <BereichsKopf titel="Mannschaften" vereinId={verein.id} vereinName={verein.name} />
+      <BereichsKopf titel="Mannschaften" vereinId={verein.id} vereinName={verein.name} slug={verein.slug} pfad="/mannschaften" />
       {mannschaften.length === 0 ? (
         <p className="rounded-xl bg-background p-6 text-sm text-muted-foreground ring-1 ring-foreground/[0.06]">
           Die Mannschaften werden gerade geladen. Bitte in Kürze erneut versuchen.

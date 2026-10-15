@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { appUrl } from "@/lib/app-url";
+import { vereinsSeitenMetadata } from "@/lib/seo-meta";
 import { holeVerein, mannschaftsReihenfolge } from "@/lib/liga-oeffentlich";
 import { spielGruppe } from "@/lib/liga-spiele-hilfen";
 import { berechneMannschaftsKennzahlen, berechneVereinsKennzahlen } from "@/lib/spiel-statistik";
@@ -16,11 +16,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const verein = await holeVerein(slug);
   if (!verein) return { title: "Verein nicht gefunden" };
-  return {
-    title: `${verein.name} – Statistik | HandballerPate`,
-    description: `Bilanz, Tore und Form aller Mannschaften des ${verein.name}.`,
-    alternates: { canonical: `${appUrl()}/verein/${verein.slug}/statistik` },
-  };
+  return vereinsSeitenMetadata(verein, {
+    titel: `${verein.name} – Statistik: Bilanz, Tore & Form | HandballerPate`,
+    beschreibung: `Bilanz, Tore, Siegquote und Form aller Mannschaften des ${verein.name} in der laufenden Saison.`,
+    pfad: "/statistik",
+  });
 }
 
 export default async function StatistikSeite({ params }: Props) {
@@ -37,7 +37,7 @@ export default async function StatistikSeite({ params }: Props) {
 
   return (
     <div className="space-y-5 pb-28 md:pb-0">
-      <BereichsKopf titel="Statistik" vereinId={verein.id} vereinName={verein.name} />
+      <BereichsKopf titel="Statistik" vereinId={verein.id} vereinName={verein.name} slug={verein.slug} pfad="/statistik" />
 
       {eintraege.length === 0 ? (
         <p className="text-sm text-muted-foreground">

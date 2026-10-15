@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { appUrl } from "@/lib/app-url";
+import { vereinsSeitenMetadata } from "@/lib/seo-meta";
 import { holeVerein } from "@/lib/liga-oeffentlich";
 import { sammleVereinsSpiele } from "@/lib/liga-spiele-hilfen";
 import { BereichsKopf } from "@/components/liga/bereichs-kopf";
@@ -13,11 +13,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const verein = await holeVerein(slug);
   if (!verein) return { title: "Verein nicht gefunden" };
-  return {
-    title: `${verein.name} – Nächste Spiele | HandballerPate`,
-    description: `Alle anstehenden Spiele der Mannschaften des ${verein.name}.`,
-    alternates: { canonical: `${appUrl()}/verein/${verein.slug}/spiele` },
-  };
+  return vereinsSeitenMetadata(verein, {
+    titel: `${verein.name} – Spielplan: nächste Spiele | HandballerPate`,
+    beschreibung: `Wann und wo spielen die Mannschaften des ${verein.name}? Alle anstehenden Spiele mit Datum, Uhrzeit und Halle auf einen Blick.`,
+    pfad: "/spiele",
+  });
 }
 
 export default async function NaechsteSpieleSeite({ params }: Props) {
@@ -27,7 +27,7 @@ export default async function NaechsteSpieleSeite({ params }: Props) {
 
   return (
     <div className="space-y-5 pb-28 md:pb-0">
-      <BereichsKopf titel="Nächste Spiele" vereinId={verein.id} vereinName={verein.name} />
+      <BereichsKopf titel="Nächste Spiele" vereinId={verein.id} vereinName={verein.name} slug={verein.slug} pfad="/spiele" />
       <GefilterteListe
         leerText="Aktuell sind keine Spiele angesetzt."
         eintraege={anstehend.map((e) => ({

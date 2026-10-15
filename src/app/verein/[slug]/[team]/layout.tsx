@@ -4,6 +4,7 @@ import { ScrollNachOben } from "@/components/liga/scroll-nach-oben";
 import { TeamTabs } from "@/components/liga/team-tabs";
 import { TeamWechsler } from "@/components/liga/team-wechsler";
 import { ZurueckButton } from "@/components/zurueck-button";
+import { Brotkrumen } from "@/components/liga/brotkrumen";
 import { Badge } from "@/components/ui/badge";
 import { ladeTeam } from "./laden";
 
@@ -29,9 +30,20 @@ export default async function MannschaftsLayout({
           <ChevronLeftIcon className="size-4" />
           Zurück
         </ZurueckButton>
+        <Brotkrumen
+          kette={[
+            { name: "Vereine", href: "/verein" },
+            { name: verein.name, href: basis },
+            { name: "Mannschaften", href: `${basis}/mannschaften` },
+            { name: m.name, href: `${basis}/${m.slug}` },
+          ]}
+        />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="font-heading text-2xl font-bold sm:text-3xl">{m.name}</h1>
+            <h1 className="font-heading text-2xl font-bold sm:text-3xl">
+              <span className="sr-only">{verein.name} </span>
+              {m.name}
+            </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">{m.ligaName}</p>
             {m.rang !== null && !m.istMeldeliste && (
               <div className="mt-2 flex flex-wrap gap-2">

@@ -27,20 +27,20 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   // Absolute Basis für relative Pfade (Canonical, Open-Graph-Bilder) — ohne sie lösen Suchmaschinen/Link-Vorschauen sie falsch auf.
   metadataBase: new URL(appUrl()),
-  title: "HandballerPate – Hallenspielplan, Spielplan & Dienste für Handballvereine",
+  title: "HandballerPate – Handball Spielplan, Ergebnisse & Tabellen deines Vereins",
   description:
-    "HandballerPate organisiert Handballvereine: Schiedsrichter, Zeitnehmer, Ordner und Kiosk einteilen, Hallenspielplan aus nuLiga und handball.net automatisch übernehmen, Spielpläne und Ergebnisse als App für Spieler und Eltern.",
+    "Handball-Spielpläne, Ergebnisse und Tabellen deines Vereins – kostenlos und ohne Login. Für Vereine: Schiedsrichter, Zeitnehmer, Ordner und Kiosk einteilen, Spielplan aus nuLiga und handball.net übernehmen.",
   applicationName: "HandballerPate",
   openGraph: {
     type: "website",
     locale: "de_DE",
     siteName: "HandballerPate",
-    title: "HandballerPate – Dienste, Hallenspielplan und Ergebnisse für Handballvereine",
+    title: "HandballerPate – Handball Spielplan, Ergebnisse & Tabellen deines Vereins",
     description:
-      "Schiedsrichter, Zeitnehmer, Ordner und Kiosk einteilen, Hallenspielplan automatisch aus nuLiga und handball.net, Spielpläne und Ergebnisse als App.",
+      "Spielpläne, Ergebnisse und Tabellen deines Handballvereins – kostenlos und ohne Login.",
     images: [{ url: "/brand/logo-gross.png", width: 900, height: 634, alt: "HandballerPate" }],
   },
-  twitter: { card: "summary_large_image", title: "HandballerPate", description: "Dienste, Hallenspielplan und Ergebnisse für Handballvereine." },
+  twitter: { card: "summary_large_image", title: "HandballerPate", description: "Spielplan, Ergebnisse und Tabellen deines Handballvereins." },
   manifest: "/manifest.json",
   // Favicon selbst kommt bereits automatisch aus src/app/icon.png (Next.js
   // Metadata-File-Convention) — hier nur das Apple-Touch-Icon ergänzt, für

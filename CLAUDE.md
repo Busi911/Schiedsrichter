@@ -733,3 +733,13 @@ Link der eigenen Dienste) selbst ein (`lib/mitfahren.ts` `ladeMitfahrAngebote`/`
 `?mitgefahren=`/`?mitfahrfehler=`; getestet in `mitfahren.test.ts`): nur künftige Termine, nur aktive Dienste mit Fahrgemeinschaft, nie über die Plätze,
 kein Doppelname; der Fahrer mit Konto bekommt eine kurze Mail. Wart/Admin/Fahrer korrigieren nur noch. Demo: Fahrer mit Fahrgemeinschaft (t14 Plätze + Mitfahrer, t15
 ohne Angabe). Hilfe `#fahrgemeinschaft`.
+
+## SEO der öffentlichen Seiten (Stand 15.10.2026)
+
+Die Startseite `/` erklärt das Gesamtangebot und führt zu Verein/Mannschaft: erster Bildschirm = H1 "Dein Handballverein. Alle Mannschaften im Blick." + Vereinssuche (`Vereinsuche`, 6 Direktlinks, serverseitig gerendert,
+keine zusätzliche Abfrage; bewusst ohne `hero-rein`-Animation, die die Überschrift anfangs unsichtbar machte), danach "In drei Schritten", "Das findest du in der App", "Woher die Daten kommen" (nur belegte Quellen/Abdeckung,
+"kein offizielles Angebot der Verbände") und erst dann der Vereins-Teil (Registrieren, Preise, Funktionen, Produkttour) und die FAQ (Fan-Fragen zuerst, auch als FAQPage-JSON-LD). Nur Vorhandenes bewerben, keine Zahlen/Referenzen erfinden.
+Die konkreten Suchanfragen ("<Verein> Spielplan", "<Mannschaft> Tabelle") beantworten die Vereins- und Mannschaftsseiten. Metadaten dieser Seiten immer über `vereinsSeitenMetadata` (`lib/seo-meta.ts`): Next.js ersetzt
+`openGraph` je Feld komplett, ein eigenes `openGraph` im Layout/Seite würde sonst og:title/og:url/Bild der anderen Ebene verlieren. Sichtbare Brotkrumen + `BreadcrumbList` (`components/liga/brotkrumen.tsx`, in `BereichsKopf` und
+im Mannschafts-Layout); die H1 nennt den Vereinsnamen (sr-only, sichtbar steht er im Kopfband). Sitemap OHNE `lastmod` (der Sync schreibt bei jedem Lauf neu, es gibt keinen Zeitstempel für echte Änderungen); `/demo` ist nicht in
+robots.txt gesperrt, damit sein `noindex` gelesen werden kann (Token-Seiten bleiben gesperrt UND noindex). Test: `app/seo-seiten.test.ts`. Offen/extern: Search Console (Domain verifizieren, `/sitemap.xml` einreichen).

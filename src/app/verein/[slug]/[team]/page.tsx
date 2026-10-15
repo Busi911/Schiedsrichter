@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { appUrl } from "@/lib/app-url";
+import { saisonLabel } from "@/lib/saison";
+import { vereinsSeitenMetadata } from "@/lib/seo-meta";
 import {
   formKurve,
   letztesErgebnis,
@@ -16,11 +18,11 @@ type Props = { params: Promise<{ slug: string; team: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, team } = await params;
   const { verein, m } = await ladeTeam(slug, team);
-  return {
-    title: `${verein.name} ${m.name} – Spielplan, Ergebnisse & Tabelle | HandballerPate`,
-    description: `Spielplan, Ergebnisse und Tabelle der Mannschaft ${m.name} (${m.ligaName}) des ${verein.name}.`,
-    alternates: { canonical: `${appUrl()}/verein/${verein.slug}/${m.slug}` },
-  };
+  return vereinsSeitenMetadata(verein, {
+    titel: `${verein.name} ${m.name} – Spielplan, Ergebnisse & Tabelle | HandballerPate`,
+    beschreibung: `Nächstes Spiel, Ergebnisse und Tabellenplatz der Mannschaft ${m.name} des ${verein.name}${m.ligaName ? ` (${m.ligaName})` : ""} in der Saison ${saisonLabel(new Date())}.`,
+    pfad: `/${m.slug}`,
+  });
 }
 
 export default async function Uebersicht({ params }: Props) {

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { appUrl } from "@/lib/app-url";
 import { holeTabelle } from "@/lib/liga-oeffentlich";
 import { StandHinweis } from "@/components/liga/liga-ui";
 import {
@@ -11,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { vereinsSeitenMetadata } from "@/lib/seo-meta";
 import { ladeTeam } from "../laden";
 
 type Props = { params: Promise<{ slug: string; team: string }> };
@@ -18,11 +18,11 @@ type Props = { params: Promise<{ slug: string; team: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, team } = await params;
   const { verein, m } = await ladeTeam(slug, team);
-  return {
-    title: `${verein.name} ${m.name} – Tabelle | HandballerPate`,
-    description: `Tabelle der ${m.ligaName} mit der Mannschaft ${m.name} des ${verein.name}.`,
-    alternates: { canonical: `${appUrl()}/verein/${verein.slug}/${m.slug}/tabelle` },
-  };
+  return vereinsSeitenMetadata(verein, {
+    titel: `${verein.name} ${m.name} – Tabelle | HandballerPate`,
+    beschreibung: `Aktuelle Tabelle der ${m.ligaName || "Liga"} mit der Mannschaft ${m.name} des ${verein.name}: Platz, Punkte und Tore.`,
+    pfad: `/${m.slug}/tabelle`,
+  });
 }
 
 export default async function TabellenSeite({ params }: Props) {

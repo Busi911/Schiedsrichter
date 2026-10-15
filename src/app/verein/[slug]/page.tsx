@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { appUrl } from "@/lib/app-url";
-import { holeVerein, holeVereinsDesign } from "@/lib/liga-oeffentlich";
+import { holeMannschaften, holeVerein, holeVereinsDesign } from "@/lib/liga-oeffentlich";
+import { saisonLabel } from "@/lib/saison";
+import { vereinsSeitenMetadata } from "@/lib/seo-meta";
 import { jsonLdText, vereinJsonLd } from "@/lib/liga-seo";
 import { sammleVereinsSpiele } from "@/lib/liga-spiele-hilfen";
 import { BereichsKopf } from "@/components/liga/bereichs-kopf";
@@ -15,11 +17,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const verein = await holeVerein(slug);
   if (!verein) return { title: "Verein nicht gefunden" };
-  return {
-    title: `${verein.name} – Ergebnisse, Spielplan & Mannschaften | HandballerPate`,
-    description: `Letzte Ergebnisse, alle Mannschaften des ${verein.name} auf HandballerPate.`,
-    alternates: { canonical: `${appUrl()}/verein/${verein.slug}` },
-  };
+  const anzahl = (await holeMannschaften(verein.id)).length;
+  return vereinsSeitenMetadata(verein, {
+    titel: `${verein.name} – Spielplan, Ergebnisse & Mannschaften ${saisonLabel(new Date())} | HandballerPate`,
+    beschreibung:
+      anzahl > 0
+        ? `Spielplan, Ergebnisse und Tabellen der ${anzahl === 1 ? "Mannschaft" : `${anzahl} Mannschaften`} des ${verein.name} in der Saison ${saisonLabel(new Date())} – ohne Login, auf Handy und Computer.`
+        : `Spielplan, Ergebnisse und Tabellen des ${verein.name} in der Saison ${saisonLabel(new Date())}.`,
+    pfad: "",
+  });
 }
 
 // Startseite des Vereins: die letzten Ergebnisse aller Mannschaften.
@@ -43,7 +49,7 @@ export default async function ErgebnisseSeite({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdText(jsonLd) }}
       />
-      <BereichsKopf titel="Letzte Ergebnisse" vereinId={verein.id} vereinName={verein.name} />
+      <BereichsKopf titel="Letzte Ergebnisse" vereinId={verein.id} vereinName={verein.name} slug={verein.slug} pfad="" />
       <InstallHinweis appName={verein.name} appId={verein.slug} />
       {mannschaften.length === 0 ? (
         <p className="rounded-xl bg-background p-6 text-sm text-muted-foreground ring-1 ring-foreground/[0.06]">
