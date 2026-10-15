@@ -2,7 +2,8 @@ import type { MetadataRoute } from "next";
 import { appUrl } from "@/lib/app-url";
 import { holeAlleVereineFuerSitemap, holeMannschaften } from "@/lib/liga-oeffentlich";
 
-// Alle öffentlichen Vereins- und Mannschaftsseiten für Suchmaschinen.
+// Alle öffentlichen Vereins- und Mannschaftsseiten für Suchmaschinen. Bewusst OHNE lastmod: der Sync schreibt die Spiele bei jedem
+// Lauf neu, es gibt keinen Zeitstempel für eine tatsächliche inhaltliche Änderung — ein erfundenes lastmod würde Google ignorieren.
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -16,15 +17,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const v of await holeAlleVereineFuerSitemap()) {
     eintraege.push({
       url: `${basis}/verein/${v.slug}`,
-      lastModified: v.spieleSynchronisiertAm ?? undefined,
       changeFrequency: "daily",
       priority: 0.8,
     });
-    for (const pfad of ["/spiele", "/mannschaften"]) {
+    for (const pfad of ["/spiele", "/mannschaften", "/statistik"]) {
       eintraege.push({
         url: `${basis}/verein/${v.slug}${pfad}`,
-        lastModified: v.spieleSynchronisiertAm ?? undefined,
-        changeFrequency: "daily",
+          changeFrequency: "daily",
         priority: 0.7,
       });
     }
@@ -32,8 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       for (const pfad of ["", "/spielplan", "/ergebnisse", "/tabelle"]) {
         eintraege.push({
           url: `${basis}/verein/${v.slug}/${m.slug}${pfad}`,
-          lastModified: v.spieleSynchronisiertAm ?? undefined,
-          changeFrequency: "daily",
+              changeFrequency: "daily",
           priority: pfad === "" ? 0.7 : 0.5,
         });
       }

@@ -5,8 +5,11 @@ import {
   CalendarClockIcon,
   CalendarDaysIcon,
   ClipboardCheckIcon,
+  DatabaseIcon,
+  SearchIcon,
+  StarIcon,
+  TrophyIcon,
   MailCheckIcon,
-  MessageCircleIcon,
   RefreshCwIcon,
   ShieldCheckIcon,
   SmartphoneIcon,
@@ -33,7 +36,7 @@ const FEATURES = [
   {
     icon: SmartphoneIcon,
     titel: "Die App für Spieler, Eltern und Fans",
-    text: "Spielplan, Ergebnisse, Tabellen und Live-Ticker eures Vereins — ohne Login, als App aufs Handy installierbar, mit euren Lieblingsmannschaften als Favoriten.",
+    text: "Spielplan, Ergebnisse und Tabellen eures Vereins — ohne Login, als App aufs Handy installierbar, mit euren Lieblingsmannschaften als Favoriten.",
   },
   {
     icon: UsersIcon,
@@ -100,37 +103,77 @@ const PRODUKTTOUR = [
   },
 ];
 
-// Suchmaschinen und KI-Assistenten (Titel, Beschreibung, kanonische Adresse): gezielt auf die Begriffe, mit denen Vereine suchen.
+// Suchmaschinen und KI-Assistenten (Titel, Beschreibung, kanonische Adresse): die Startseite erklärt das Gesamtangebot und führt zu
+// Verein/Mannschaft; die konkreten Suchanfragen ("<Verein> Spielplan") beantworten die Vereins- und Mannschaftsseiten.
 export const metadata: Metadata = {
-  title: { absolute: "HandballerPate – Hallenspielplan, Spielplan & Dienste für Handballvereine" },
+  title: { absolute: "HandballerPate – Handball Spielplan, Ergebnisse & Tabellen deines Vereins" },
   description:
-    "Schiedsrichter, Zeitnehmer, Ordner und Kiosk einteilen, Hallenspielplan aus nuLiga und handball.net automatisch übernehmen, Spielpläne und Ergebnisse als App für Spieler und Eltern. Für Handballvereine.",
-  alternates: { canonical: "/" },
+    "Verein suchen, Mannschaft wählen, Spielplan, Ergebnisse und Tabellen im Blick – kostenlos, ohne Login, auf Handy und Computer. Für Handballvereine auch mit Dienstplanung.",
+  alternates: { canonical: appUrl() },
+  openGraph: {
+    type: "website",
+    locale: "de_DE",
+    siteName: "HandballerPate",
+    url: appUrl(),
+    title: "HandballerPate – Handball Spielplan, Ergebnisse & Tabellen deines Vereins",
+    description: "Verein suchen, Mannschaft wählen, Spielplan, Ergebnisse und Tabellen im Blick – kostenlos und ohne Login.",
+    images: [{ url: "/brand/logo-gross.png", width: 900, height: 634, alt: "HandballerPate" }],
+  },
+  twitter: { card: "summary_large_image", title: "HandballerPate – Handball Spielplan, Ergebnisse & Tabellen", description: "Spielplan, Ergebnisse und Tabellen deines Handballvereins – kostenlos und ohne Login." },
 };
 
-// Häufige Fragen: sichtbar auf der Seite UND als FAQPage-Daten (JSON-LD) — so finden und zitieren Suchmaschinen und KI-Assistenten die Antworten.
+// Drei Schritte der Fan-Nutzung (sichtbar unter der Suche).
+const SCHRITTE = [
+  { icon: SearchIcon, titel: "Verein suchen", text: "Namen eintippen oder in der Liste auswählen." },
+  { icon: UsersIcon, titel: "Mannschaft wählen", text: "Jede Mannschaft hat eigenen Spielplan, Ergebnisse und Tabelle." },
+  { icon: StarIcon, titel: "Überblick behalten", text: "Mit dem Stern merkst du dir Mannschaften – gespeichert nur in deinem Browser." },
+];
+
+// Was die öffentliche App tatsächlich kann (nur Vorhandenes, siehe /app-hilfe).
+const APP_VORTEILE = [
+  { icon: CalendarDaysIcon, titel: "Nächste Spiele", text: "Datum, Uhrzeit und Halle aller Mannschaften deines Vereins, am Spieltag ganz oben." },
+  { icon: TrophyIcon, titel: "Ergebnisse und Tabellen", text: "Letzte Ergebnisse, Tabellenplatz und Form je Mannschaft; Zwischenstände werden nicht als Endstand gezeigt." },
+  { icon: SmartphoneIcon, titel: "Als App aufs Handy", text: "Die Seite deines Vereins lässt sich über „Zum Home-Bildschirm“ wie eine App installieren." },
+];
+
+// Häufige Fragen: sichtbar auf der Seite UND als FAQPage-Daten (JSON-LD). Zuerst die Fragen von Spielern/Eltern/Fans, danach die der Vereine.
 function faqEintraege(live: boolean) {
   return [
     {
       frage: "Was ist HandballerPate?",
       antwort:
-        "HandballerPate ist eine Plattform für Handballvereine. Vereine verwalten ihre Funktionsträger (Schiedsrichter, Zeitnehmer, Sekretäre, Ordner, Kioskdienst, Kassierer, Trainer), teilen Einsätze fair ein und übernehmen den Hallenspielplan automatisch aus nuLiga oder handball.net. Spieler, Eltern und Fans sehen Spielpläne, Ergebnisse und Tabellen ihres Vereins als App.",
+        "HandballerPate zeigt Spielpläne, Ergebnisse und Tabellen der Mannschaften teilnehmender Handballvereine – übersichtlich auf dem Handy und am Computer, ohne Login. Vereine nutzen zusätzlich die Verwaltung, um Schiedsrichter, Zeitnehmer, Ordner und weitere Dienste einzuteilen.",
     },
     {
-      frage: "Welche Verbände und Ligen werden unterstützt?",
+      frage: "Wie finde ich den Spielplan meiner Mannschaft?",
       antwort:
-        "Über nuLiga der Hessische Handball-Verband (HHV) und der Handball-Verband Berlin (HVBerlin), weitere nuLiga-Verbände auf Anfrage. Über handball.net alle DHB-Wettbewerbe ab der 3. Liga, inklusive Jugendbundesliga. Die 1. und 2. Handball-Bundesliga kommen über den NDR.",
+        "Oben den Vereinsnamen eingeben und den Verein öffnen, dann unter „Teams“ die Mannschaft wählen. Dort stehen Spielplan, Ergebnisse und Tabelle. Mit dem Stern speicherst du Mannschaften als Favoriten.",
     },
     {
-      frage: "Was kostet HandballerPate?",
-      antwort: live
-        ? `HandballerPate kostet ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Die Rechnung kommt per E-Mail, das Zahlungsziel beträgt 30 Tage. Optional kann ein Sponsor die Kosten übernehmen („Präsentiert von …“ beim Öffnen der Vereinsseite).`
-        : `Die Beta-Phase läuft bis ${BETA_ENDE} und ist kostenlos. Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Vor dem Ende der Beta kann jeder Verein ohne Kosten aussteigen, dann werden alle Daten gelöscht. ${SPONSOR_KURZ}`,
+      frage: "Woher kommen die Daten und wie aktuell sind sie?",
+      antwort:
+        "Die Spieldaten stammen aus den öffentlichen Ergebnisseiten von nuLiga (Hessischer Handball-Verband und Handball-Verband Berlin), handball.net (DHB-Wettbewerbe ab der 3. Liga) und dem NDR (1. und 2. Handball-Bundesliga der Männer). Sie werden mehrmals täglich abgeglichen, am Spieltag häufiger. Auf jeder Vereinsseite steht, wann zuletzt aktualisiert wurde. Laufende Spiele zeigen wir mit dem Hinweis „Läuft gerade“ statt eines Zwischenstands als Ergebnis. HandballerPate ist kein offizielles Angebot der Verbände; verbindlich bleiben die Angaben der Verbände.",
+    },
+    {
+      frage: "Mein Verein fehlt. Was kann ich tun?",
+      antwort:
+        "Es sind nur Vereine zu finden, die sich bei HandballerPate angemeldet haben oder eingerichtet wurden. Sprich Vorstand oder Abteilungsleitung an: Ein Verein kann sich selbst registrieren.",
     },
     {
       frage: "Müssen sich Spieler und Eltern registrieren?",
       antwort:
         "Nein. Spielplan, Ergebnisse und Tabellen sind ohne Login sichtbar, und die Seite des Vereins lässt sich als App aufs Handy installieren. Favoriten werden nur im eigenen Browser gespeichert, es gibt kein Konto und kein Tracking.",
+    },
+    {
+      frage: "Welche Verbände und Ligen werden unterstützt?",
+      antwort:
+        "Über nuLiga der Hessische Handball-Verband (HHV) und der Handball-Verband Berlin (HVBerlin), weitere nuLiga-Verbände auf Anfrage. Über handball.net DHB-Wettbewerbe ab der 3. Liga, inklusive Jugendbundesliga. Die 1. und 2. Handball-Bundesliga der Männer kommen über den NDR.",
+    },
+    {
+      frage: "Was kostet HandballerPate für Vereine?",
+      antwort: live
+        ? `HandballerPate kostet ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Die Rechnung kommt per E-Mail, das Zahlungsziel beträgt 30 Tage. Optional kann ein Sponsor die Kosten übernehmen („Präsentiert von …“ beim Öffnen der Vereinsseite). Für Spieler, Eltern und Fans ist die App kostenlos.`
+        : `Die Beta-Phase läuft bis ${BETA_ENDE} und ist kostenlos. Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Vor dem Ende der Beta kann jeder Verein ohne Kosten aussteigen, dann werden alle Daten gelöscht. ${SPONSOR_KURZ} Für Spieler, Eltern und Fans ist die App kostenlos.`,
     },
     {
       frage: "Wie tragen sich Eltern für Dienste ein?",
@@ -140,7 +183,7 @@ function faqEintraege(live: boolean) {
     {
       frage: "Wie steht es um den Datenschutz?",
       antwort:
-        "Die Daten der Vereine sind strikt voneinander getrennt. Ein Auftragsverarbeitungsvertrag und die Datenschutzerklärung liegen von Anfang an bei. Auf den öffentlichen Vereinsseiten erscheinen nur Sport-Daten (Spielpläne, Ergebnisse, Tabellen) aus nuLiga, handball.net und NDR, keine Personendaten wie Schiedsrichter-Namen. Ansetzungen landen nur in den privaten Terminen des Vereins.",
+        "Die Daten der Vereine sind strikt voneinander getrennt. Ein Auftragsverarbeitungsvertrag und die Datenschutzerklärung liegen von Anfang an bei. Auf den öffentlichen Vereinsseiten erscheinen nur Sport-Daten (Spielpläne, Ergebnisse, Tabellen), keine Personendaten wie Schiedsrichter-Namen. Ansetzungen landen nur in den privaten Terminen des Vereins.",
     },
   ];
 }
@@ -158,11 +201,11 @@ function startseiteJsonLd(live: boolean) {
         "@id": `${basis}/#software`,
         name: "HandballerPate",
         url: basis,
-        applicationCategory: "BusinessApplication",
+        applicationCategory: "SportsApplication",
         operatingSystem: "Web, iOS, Android (als installierbare Web-App)",
         inLanguage: "de-DE",
         description:
-          "Plattform für Handballvereine: Funktionsträger verwalten, Einsätze einteilen, Hallenspielplan aus nuLiga und handball.net übernehmen, Spielpläne und Ergebnisse als App.",
+          "Spielpläne, Ergebnisse und Tabellen von Handballvereinen als Web-App; für Vereine zusätzlich Dienstplanung (Schiedsrichter, Zeitnehmer, Ordner) und Übernahme des Spielplans aus nuLiga und handball.net.",
         publisher: { "@id": `${basis}/#organisation` },
       },
       {
@@ -192,7 +235,7 @@ export default async function Home() {
   const beta = await holeBetaStand();
   // Neue Vereine zahlen nach dem Beta-Ende oder wenn alle Beta-Plätze vergeben sind (lib/beta-plaetze.ts): dann zeigt die Startseite den regulären Preis.
   const live = betaVorbei(new Date()) || beta.voll;
-  // Vereine mit öffentlicher Seite (Spielpläne/Ergebnisse) — stehen vor dem Beta-Hinweis.
+  // Vereine mit öffentlicher Seite: dieselbe Abfrage wie bisher (keine zusätzliche); sie speist Suche und Direkteinstiege im ausgelieferten HTML.
   const vereineMitSeite = await holeAlleVereine();
 
   const faq = faqEintraege(live);
@@ -203,100 +246,173 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(startseiteJsonLd(live)).replace(/</g, "\\u003c") }}
       />
-      {/* Oben bewusst NUR der Login-Zugang (kein Registrieren-Button) —
-          wiederkehrende Funktionsträger/Admins wollen direkt einloggen,
-          ohne erst an der Beta-Werbung vorbeiklicken zu müssen. Der
-          Registrieren-Weg lebt stattdessen prominent im Hero unten und im
-          Footer (siehe components/footer.tsx). */}
+      {/* Oben: Marke, die zwei Fan-Einstiege und der Login (wiederkehrende Funktionsträger/Admins wollen direkt einloggen). */}
       <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
             <Logo className="size-8" />
             <span className="font-heading font-semibold">HandballerPate</span>
           </div>
-          <Button
-            variant="outline"
-            className="h-12 px-6 text-base transition-transform active:scale-[0.97]"
-            render={<Link href="/login" />}
-            nativeButton={false}
-          >
-            Login
-          </Button>
+          <nav aria-label="Hauptnavigation" className="flex items-center gap-1 sm:gap-3">
+            <Link href="/verein" className="hidden min-h-11 items-center px-2 text-sm font-medium hover:underline sm:inline-flex">
+              Vereine
+            </Link>
+            <Link href="/meine" className="hidden min-h-11 items-center px-2 text-sm font-medium hover:underline sm:inline-flex">
+              Meine Mannschaften
+            </Link>
+            <Button variant="outline" className="h-11 px-5 text-base transition-transform active:scale-[0.97]" render={<Link href="/login" />} nativeButton={false}>
+              Login
+            </Button>
+          </nav>
         </div>
       </header>
 
       <main className="flex-1">
-        <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-16 text-center">
-          <Badge variant="secondary" className="hero-rein h-7 px-3 text-sm">{live ? `${PREIS_REGULAER} € netto im Jahr` : "Beta · 100% kostenlos"}</Badge>
-          <h1 style={{ ["--hero-verzoegerung" as string]: "100ms" }} className="hero-rein font-heading text-4xl font-semibold text-balance hyphens-auto [overflow-wrap:anywhere] sm:text-5xl">
-            Die Vereinsverwaltung für euren Handballspielbetrieb
-          </h1>
-          <p style={{ ["--hero-verzoegerung" as string]: "220ms" }} className="hero-rein max-w-xl text-lg text-muted-foreground text-balance">
-            Funktionsträger, Hallenspielplan und Einsatzplanung an einem Ort
-            — automatisch synchron mit nuLiga bzw. handball.net, statt
-            Excel-Listen und WhatsApp-Nachrichten hinterherzutelefonieren.
-          </p>
-          <div style={{ ["--hero-verzoegerung" as string]: "340ms" }} className="hero-rein flex flex-wrap items-center justify-center gap-3">
-            <Button className={GROSSER_BUTTON} render={<Link href="/registrieren" />} nativeButton={false}>
-              {live ? "Jetzt registrieren" : "Jetzt kostenlos registrieren"}
-            </Button>
-          </div>
-          <Link
-            href="#vereine"
-            style={{ ["--hero-verzoegerung" as string]: "460ms" }}
-            className="hero-rein inline-flex min-h-14 items-center gap-2 rounded-full border px-7 text-lg font-medium transition hover:bg-muted active:scale-[0.97]"
-          >
-            <SmartphoneIcon className="size-6 text-primary" />
-            Euren Verein als App finden
-          </Link>
-          {!live && <p className="text-sm text-muted-foreground">{betaPlaetzeSatz(beta.frei)}</p>}
-          <div className="max-w-xl space-y-1 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-            {live ? (
-              <p>
-                <span className="font-medium text-foreground">{PREIS_REGULAER} € im Jahr.</span> Rechnung per E-Mail, Zahlungsziel 30 Tage.
+        {/* Erster Bildschirm: Nutzen in einem Satz und sofort die Vereinssuche (ohne Einblend-Animation, damit Überschrift und Suche sofort da sind). */}
+        <section aria-labelledby="hero-titel" className="bg-primary/5">
+          <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14">
+            <div className="space-y-3 text-center">
+              <h1 id="hero-titel" className="font-heading text-3xl font-semibold text-balance hyphens-auto sm:text-5xl">
+                Dein Handballverein. Alle Mannschaften im Blick.
+              </h1>
+              <p className="mx-auto max-w-xl text-base text-muted-foreground text-balance sm:text-lg">
+                Entdecke Spielpläne, Ergebnisse und Tabellen deines Vereins – übersichtlich auf dem Handy und am Computer, kostenlos und ohne Login.
               </p>
-            ) : (
-              <>
+            </div>
+            <div id="vereine" className="scroll-mt-4 space-y-3 rounded-2xl border bg-background p-4 shadow-sm sm:p-5">
+              <h2 className="font-heading text-lg font-semibold">Verein finden</h2>
+              {vereineMitSeite.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Noch keine Vereine freigeschaltet.</p>
+              ) : (
+                <Vereinsuche vereine={vereineMitSeite} maxAnzeige={6} />
+              )}
+              <div className="flex flex-wrap gap-x-5 text-sm">
+                <Link href="/verein" className="inline-flex min-h-11 items-center font-medium underline underline-offset-4">
+                  Alle Vereine ansehen
+                </Link>
+                <Link href="/meine" className="inline-flex min-h-11 items-center font-medium underline underline-offset-4">
+                  Meine Mannschaften
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t" aria-labelledby="schritte-titel">
+          <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
+            <h2 id="schritte-titel" className="text-center font-heading text-2xl font-semibold">
+              In drei Schritten zum Spielplan
+            </h2>
+            <ol className="mt-8 grid gap-4 sm:grid-cols-3">
+              {SCHRITTE.map((st, i) => (
+                <li key={st.titel} className="flex gap-3 rounded-lg border bg-background p-4">
+                  <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 font-heading font-bold text-primary">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <h3 className="font-heading font-medium">{st.titel}</h3>
+                    <p className="text-sm text-muted-foreground">{st.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <section className="border-t bg-muted/30" aria-labelledby="vorteile-titel">
+          <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
+            <h2 id="vorteile-titel" className="text-center font-heading text-2xl font-semibold">
+              Das findest du in der App
+            </h2>
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              {APP_VORTEILE.map((f) => (
+                <div key={f.titel} className="flex flex-col gap-2 rounded-lg border bg-background p-4">
+                  <f.icon aria-hidden="true" className="size-6 text-primary" />
+                  <h3 className="font-heading font-medium">{f.titel}</h3>
+                  <p className="text-sm text-muted-foreground">{f.text}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Mehr dazu in der <Link href="/app-hilfe" className="font-medium underline underline-offset-4">Hilfe zur App</Link>.
+            </p>
+          </div>
+        </section>
+
+        <section className="border-t" aria-labelledby="daten-titel">
+          <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-12 sm:px-6">
+            <h2 id="daten-titel" className="flex items-center gap-2 font-heading text-2xl font-semibold">
+              <DatabaseIcon aria-hidden="true" className="size-6 text-primary" />
+              Woher die Daten kommen
+            </h2>
+            <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm text-muted-foreground">
+              <li>
+                <strong className="font-medium text-foreground">nuLiga:</strong> Hessischer Handball-Verband und Handball-Verband Berlin.
+              </li>
+              <li>
+                <strong className="font-medium text-foreground">handball.net:</strong> DHB-Wettbewerbe ab der 3. Liga, inklusive Jugendbundesliga.
+              </li>
+              <li>
+                <strong className="font-medium text-foreground">NDR:</strong> 1. und 2. Handball-Bundesliga der Männer.
+              </li>
+            </ul>
+            <p className="text-sm text-muted-foreground">
+              Es sind die Vereine zu finden, die bei HandballerPate angemeldet oder eingerichtet sind. Die Daten werden mehrmals täglich
+              abgeglichen; auf jeder Vereinsseite steht der Stand der letzten Aktualisierung. HandballerPate ist kein offizielles Angebot
+              der Verbände – verbindlich sind deren Angaben.
+            </p>
+          </div>
+        </section>
+
+        {/* Für Vereine: die bisherige Verwaltungs-Werbung, jetzt nach dem Fan-Angebot. */}
+        <section id="fuer-vereine" className="scroll-mt-4 border-t bg-muted/30" aria-labelledby="vereine-titel">
+          <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 px-4 py-14 text-center sm:px-6">
+            <Badge variant="secondary" className="h-7 px-3 text-sm">{live ? `${PREIS_REGULAER} € netto im Jahr` : "Beta · 100% kostenlos"}</Badge>
+            <h2 id="vereine-titel" className="font-heading text-3xl font-semibold text-balance">
+              Du bist im Verein aktiv? Organisiere Spielbetrieb und Dienste an einem Ort.
+            </h2>
+            <p className="max-w-xl text-lg text-muted-foreground text-balance">
+              Funktionsträger, Hallenspielplan und Einsatzplanung – automatisch synchron mit nuLiga bzw. handball.net, statt
+              Excel-Listen und WhatsApp-Nachrichten hinterherzutelefonieren.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Button className={GROSSER_BUTTON} render={<Link href="/registrieren" />} nativeButton={false}>
+                {live ? "Verein registrieren" : "Verein kostenlos registrieren"}
+              </Button>
+              <Button variant="outline" className={GROSSER_BUTTON} render={<Link href="/demo" />} nativeButton={false}>
+                Demo ansehen
+              </Button>
+            </div>
+            {!live && <p className="text-sm text-muted-foreground">{betaPlaetzeSatz(beta.frei)}</p>}
+            <div className="max-w-xl space-y-1 rounded-lg border bg-background p-4 text-sm text-muted-foreground">
+              {live ? (
+                <p>
+                  <span className="font-medium text-foreground">{PREIS_REGULAER} € im Jahr.</span> Rechnung per E-Mail, Zahlungsziel 30 Tage.
+                </p>
+              ) : (
                 <p>
                   <span className="font-medium text-foreground">Beta bis {BETA_ENDE}.</span> Wer in der Beta-Phase dabei ist,
                   zahlt danach nur {PREIS_BETA} € statt {PREIS_REGULAER} € im Jahr.
                 </p>
-              </>
-            )}
-            <p className="text-xs">{NETTO}</p>
-          </div>
-        </section>
-
-        {/* Die öffentlichen Vereinsseiten (direkt unter dem Hero): Spielpläne, Ergebnisse
-            und Mannschaften ohne Login — für Spieler, Eltern und Fans. */}
-        <section id="vereine" className="scroll-mt-4 border-t bg-muted/30">
-          <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10">
-            <div>
-              <h2 className="font-heading text-2xl font-semibold">Spielpläne &amp; Ergebnisse</h2>
-              <p className="text-sm text-muted-foreground">
-                Euren Verein finden: Mannschaften, nächste Spiele, Ergebnisse und Live-Ticker, ohne Login — und als App aufs
-                Handy installieren (im Browser „Teilen“ → „Zum Home-Bildschirm“).
-              </p>
+              )}
+              <p className="text-xs">{NETTO}</p>
+              {!live && <p>{KEIN_RISIKO}</p>}
+              <p>{SPONSOR_KURZ}</p>
             </div>
-            {vereineMitSeite.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Noch keine Vereine freigeschaltet.</p>
-            ) : (
-              <Vereinsuche vereine={vereineMitSeite} maxAnzeige={4} />
-            )}
           </div>
         </section>
 
         <section className="border-t">
-          <div className="mx-auto max-w-5xl px-6 py-16">
+          <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
             <h2 className="text-center font-heading text-2xl font-semibold">
-              Was HandballerPate kann
+              Was HandballerPate für Vereine kann
             </h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((f, i) => (
                 <Einblenden key={f.titel} verzoegerung={(i % 3) * 100} className="h-full">
                   <div className="group flex h-full flex-col gap-2 rounded-lg border bg-background p-4 transition duration-200 hover:-translate-y-1 hover:shadow-md">
-                    <f.icon className="size-6 text-primary transition-transform duration-200 group-hover:scale-110" />
-                    <p className="font-heading font-medium">{f.titel}</p>
+                    <f.icon aria-hidden="true" className="size-6 text-primary transition-transform duration-200 group-hover:scale-110" />
+                    <h3 className="font-heading font-medium">{f.titel}</h3>
                     <p className="text-sm text-muted-foreground">{f.text}</p>
                   </div>
                 </Einblenden>
@@ -306,14 +422,13 @@ export default async function Home() {
         </section>
 
         <section className="border-t bg-muted/30">
-          <div className="mx-auto max-w-5xl px-6 py-16">
+          <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
             <div className="mx-auto flex max-w-2xl flex-col items-center gap-2 text-center">
               <h2 className="font-heading text-2xl font-semibold">
-                So sieht HandballerPate in der Praxis aus
+                So sieht die Vereinsverwaltung in der Praxis aus
               </h2>
               <p className="text-sm text-muted-foreground">
-                Mit Beispieldaten eines fiktiven Vereins — kein Login nötig,
-                um euch ein Bild zu machen.
+                Mit Beispieldaten eines fiktiven Vereins.
               </p>
             </div>
             <div className="mt-10 flex flex-col gap-14">
@@ -322,11 +437,7 @@ export default async function Home() {
                   key={eintrag.bild}
                   className="grid items-center gap-6 md:grid-cols-2 md:gap-10"
                 >
-                  <div
-                    className={
-                      i % 2 === 1 ? "order-1 md:order-2" : "order-1"
-                    }
-                  >
+                  <div className={i % 2 === 1 ? "order-1 md:order-2" : "order-1"}>
                     <ProdukttourBild
                       src={eintrag.bild}
                       alt={eintrag.titel}
@@ -334,19 +445,9 @@ export default async function Home() {
                       hoehe={eintrag.hoehe}
                     />
                   </div>
-                  <div
-                    className={
-                      i % 2 === 1
-                        ? "order-2 flex flex-col gap-2 md:order-1"
-                        : "order-2 flex flex-col gap-2"
-                    }
-                  >
-                    <h3 className="font-heading text-lg font-medium">
-                      {eintrag.titel}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {eintrag.text}
-                    </p>
+                  <div className={i % 2 === 1 ? "order-2 flex flex-col gap-2 md:order-1" : "order-2 flex flex-col gap-2"}>
+                    <h3 className="font-heading text-lg font-medium">{eintrag.titel}</h3>
+                    <p className="text-sm text-muted-foreground">{eintrag.text}</p>
                   </div>
                 </Einblenden>
               ))}
@@ -354,44 +455,8 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="border-t">
-          <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-16">
-            <h2 className="font-heading text-2xl font-semibold">
-              Was bedeutet &bdquo;Beta&ldquo;?
-            </h2>
-            <ul className="flex flex-col gap-3 text-sm text-muted-foreground">
-              <li className="flex gap-3">
-                <ShieldCheckIcon className="size-5 shrink-0 text-primary" />
-                {live ? `${PREIS_REGULAER} € netto im Jahr, keine versteckten Kosten.` : "Aktuell komplett kostenlos, keine versteckten Kosten."}
-              </li>
-              {!live && (
-                <li className="flex gap-3">
-                  <ShieldCheckIcon className="size-5 shrink-0 text-primary" />
-                  {KEIN_RISIKO}
-                </li>
-              )}
-              <li className="flex gap-3">
-                <UsersIcon className="size-5 shrink-0 text-primary" />
-                Die Beta-Plätze sind begrenzt, damit wir eng am Feedback
-                bleiben können — danach ist die Registrierung kostenpflichtig.
-              </li>
-              <li className="flex gap-3">
-                <MessageCircleIcon className="size-5 shrink-0 text-primary" />
-                Direktes Feedback jederzeit über den Feedback-Button im
-                Header, sobald ihr eingeloggt seid.
-              </li>
-            </ul>
-            <p className="text-sm text-muted-foreground">{SPONSOR_KURZ}</p>
-            <div>
-              <Button className={GROSSER_BUTTON} render={<Link href="/registrieren" />} nativeButton={false}>
-                Verein registrieren
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-t bg-muted/30" aria-labelledby="faq-titel">
-          <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-16">
+        <section className="border-t" aria-labelledby="faq-titel">
+          <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-14 sm:px-6">
             <h2 id="faq-titel" className="font-heading text-2xl font-semibold">
               Häufige Fragen
             </h2>

@@ -18,7 +18,7 @@ export async function GET() {
   const vereinsListe = vereine.map((v) => `- [${v.name}](${basis}/verein/${v.slug}): Ergebnisse, nächste Spiele, Mannschaften, Statistik`).join("\n");
   const text = `# HandballerPate
 
-> HandballerPate ist eine Plattform für Handballvereine in Deutschland: Funktionsträger verwalten, Dienste einteilen, den Hallenspielplan automatisch aus nuLiga und handball.net übernehmen und Spielpläne, Ergebnisse und Tabellen als App für Spieler, Eltern und Fans bereitstellen.
+> HandballerPate zeigt Spielpläne, Ergebnisse und Tabellen der Mannschaften teilnehmender Handballvereine als App für Spieler, Eltern und Fans (ohne Login). Vereine verwalten zusätzlich Funktionsträger, teilen Dienste ein und übernehmen den Spielplan automatisch aus nuLiga und handball.net.
 
 ## Für wen
 - Vereine: Schiedsrichter, Zeitnehmer, Sekretäre, Ordner, Kioskdienst, Kassierer und Trainer verwalten; Einsätze fair verteilen; offene Dienste sehen; Erinnerungen per E-Mail; Selbsteintragung für Eltern ohne Login.
@@ -34,7 +34,7 @@ export async function GET() {
 - Beta-Phase bis ${BETA_ENDE}, kostenlos. Beta-Vereine zahlen danach ${PREIS_BETA} € netto pro Jahr, andere Vereine ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.).
 
 ## Öffentliche Seiten
-- [Startseite mit Funktionen und häufigen Fragen](${basis}/)
+- [Startseite mit Vereinssuche, Funktionen und häufigen Fragen](${basis}/)
 - [Alle Vereine mit öffentlicher Seite](${basis}/verein)
 - [Hilfe zur App für Spieler und Eltern](${basis}/app-hilfe)
 - [Verein registrieren](${basis}/registrieren)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { berlinIso, jsonLdText, mannschaftJsonLd, spielAlsEvent, vereinJsonLd } from "./liga-seo";
+import { berlinIso, breadcrumbJsonLd, jsonLdText, kuerzeBeschreibung, mannschaftJsonLd, spielAlsEvent, vereinJsonLd } from "./liga-seo";
 
 const spiel = { id: "s1", datum: "2026-10-17", uhrzeit: "17:00", heimName: "HSG Linden", gastName: "TSG Leihgestern", halleName: "Stadthalle Linden", status: "geplant" };
 
@@ -25,5 +25,25 @@ describe("strukturierte Daten der Vereinsseiten", () => {
   });
   it("maskiert < in JSON-LD", () => {
     expect(jsonLdText({ a: "</script>" })).not.toContain("</script>");
+  });
+});
+
+describe("Brotkrumen und Beschreibungen", () => {
+  it("BreadcrumbList: Positionen ab 1, absolute URLs in der übergebenen Reihenfolge", () => {
+    const b = breadcrumbJsonLd([
+      { name: "Vereine", url: "https://x/verein" },
+      { name: "HSG Linden", url: "https://x/verein/hsg-linden" },
+    ]);
+    expect(b["@type"]).toBe("BreadcrumbList");
+    expect(b.itemListElement.map((e) => e.position)).toEqual([1, 2]);
+    expect(b.itemListElement[1]).toMatchObject({ name: "HSG Linden", item: "https://x/verein/hsg-linden" });
+  });
+  it("Beschreibung wird an einer Wortgrenze gekürzt, kurze bleiben unverändert", () => {
+    expect(kuerzeBeschreibung("Kurz.")).toBe("Kurz.");
+    const lang = "Spielplan Ergebnisse und Tabellen ".repeat(10);
+    const k = kuerzeBeschreibung(lang);
+    expect(k.length).toBeLessThanOrEqual(155);
+    expect(k.endsWith("…")).toBe(true);
+    expect(k).not.toMatch(/\s…$/);
   });
 });

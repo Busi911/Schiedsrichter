@@ -84,5 +84,22 @@ export function mannschaftJsonLd(m: {
   };
 }
 
+// Brotkrumen für Suchmaschinen: genau die Kette, die die Seite auch sichtbar zeigt (components/liga/brotkrumen.tsx). Absolute URLs.
+export function breadcrumbJsonLd(kette: { name: string; url: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: kette.map((k, i) => ({ "@type": "ListItem", position: i + 1, name: k.name, item: k.url })),
+  };
+}
+
+// Meta-Beschreibungen zeigt Google bei ca. 155 Zeichen gekürzt: hier an einer Wortgrenze kürzen statt mitten im Wort.
+export function kuerzeBeschreibung(text: string, max = 155): string {
+  if (text.length <= max) return text;
+  const abgeschnitten = text.slice(0, max - 1);
+  const wortende = abgeschnitten.lastIndexOf(" ");
+  return `${(wortende > 60 ? abgeschnitten.slice(0, wortende) : abgeschnitten).replace(/[,;:\s]+$/, "")}…`;
+}
+
 // Als <script type="application/ld+json">-Inhalt: "<" maskieren, damit nie ein </script> im Namen die Seite aufbrechen kann.
 export const jsonLdText = (daten: unknown) => JSON.stringify(daten).replace(/</g, "\\u003c");
