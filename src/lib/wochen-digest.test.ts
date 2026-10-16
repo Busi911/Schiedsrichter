@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { digestInhalt } from "./wochen-digest";
+import { digestInhalt, istDigestNeuigkeit } from "./wochen-digest";
 import { zeileText } from "./email-layout";
 import type { KalenderEintrag } from "@/components/monats-kalender";
 
@@ -47,5 +47,29 @@ describe("digestInhalt", () => {
   it("verlinkt auf /profil als CTA", () => {
     const inhalt = digestInhalt("Musterverein", new Map([["2026-09-01", [eintrag]]]));
     expect(inhalt.cta?.url).toContain("/profil");
+  });
+});
+
+describe("Training und Vereinstermine in der Wochenübersicht", () => {
+  const training: KalenderEintrag = { id: "tr1", art: "training", zeit: "18:00", label: "Herren (Mä)", typLabel: "Training bis 19:30 Uhr", ort: "Sporthalle, Nord" };
+  const sitzung: KalenderEintrag = { id: "v1", art: "vereinstermin", zeit: "19:00", label: "Trainersitzung", typLabel: "Sitzung · jeden 4. Donnerstag im Monat", ort: "Vereinsheim" };
+
+  it("zeigt Trainings mit Mannschaft und Ort, ein ausfallendes deutlich markiert", () => {
+    const inhalt = digestInhalt("Musterverein", new Map([["2026-09-01", [training, { ...training, id: "tr2", zeit: "20:00", ausgefallen: true }]]]));
+    const zeilen = inhalt.zeilen.map(zeileText);
+    expect(zeilen.find((z) => z.includes("18:00"))).toContain("Training Herren (Mä) (Sporthalle, Nord)");
+    expect(zeilen.find((z) => z.includes("20:00"))).toContain("FÄLLT AUS");
+  });
+
+  it("zeigt Vereinstermine mit Art, Titel und Ort", () => {
+    const inhalt = digestInhalt("Musterverein", new Map([["2026-09-01", [sitzung]]]));
+    expect(zeileText(inhalt.zeilen.find((z) => zeileText(z).includes("19:00"))!)).toBe("  19:00 · Sitzung · jeden 4. Donnerstag im Monat: Trainersitzung (Vereinsheim)");
+  });
+
+  it("reguläre Trainings allein sind keine Neuigkeit, Vereinstermine, ausfallende Trainings und Spiele schon", () => {
+    expect(istDigestNeuigkeit(training)).toBe(false);
+    expect(istDigestNeuigkeit({ ...training, ausgefallen: true })).toBe(true);
+    expect(istDigestNeuigkeit(sitzung)).toBe(true);
+    expect(istDigestNeuigkeit(eintrag)).toBe(true);
   });
 });

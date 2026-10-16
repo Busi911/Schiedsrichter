@@ -343,7 +343,7 @@ Der Kalender (`/admin/kalender`, „Mein Kalender“ auf `/profil`) zeigt alles,
 und Vereinstermine (nur, was die Person sehen darf). Zusätzliche Einträge liefert `lib/kalender-ergaenzung.ts` (`holeKalenderErgaenzung`), sie werden je Tag nach Uhrzeit eingemischt (`mischeNachZeit`, `lib/kalender.ts`).
 Filter „Anzeigen“ über dem Kalender (`components/kalender-filter.tsx`, Suchparameter `zeige`, reine Hilfen in `lib/kalender-arten.ts`; bleibt beim Monatswechsel). Training im Admin-Kalender alle; im Profil Admins und
 (bei „Training für alle“) alle Personen alle, sonst Trainer die ihrer Mannschaften. Menü aufgeräumt: „Termine“ heißt „Spiele & Turniere“, Trainingsplan und Vereinstermine stehen unter „Verwaltung“ (mobil unter „Mehr“),
-der Kalender ist der Einstieg. Noch offen: Trainings/Vereinstermine in der Wochenübersicht-Mail.
+der Kalender ist der Einstieg. Die Wochenübersicht-Mail (`lib/wochen-digest.ts`) enthält dieselben Ergänzungen (Trainings der eigenen Mannschaften, Vereinstermine); sie geht nur, wenn es Einsätze, Vereinstermine oder ein ausfallendes Training gibt (`istDigestNeuigkeit`), reguläre Trainings allein lösen keine Mail aus.
 
 ## Systemadmin (vereinsübergreifend)
 

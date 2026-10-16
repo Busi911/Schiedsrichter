@@ -3,6 +3,9 @@ import { and, eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { users } from "@/db/schema";
 import { holeEigeneKalenderEintraege } from "./eigener-kalender";
+import { holeKalenderErgaenzung } from "./kalender-ergaenzung";
+import { parseKalenderArten } from "./kalender-arten";
+import { mischeNachZeit } from "./kalender";
 import { sendMail } from "./mailer";
 import { abmeldeInfo } from "./abmelden";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
@@ -24,8 +27,17 @@ function tagLabel(tagKeyWert: string): string {
 }
 
 function eintragZeile(e: KalenderEintrag): string {
+  // Training und Vereinstermine (Gesamtkalender): der Name steht im Label, nicht im Typ.
+  if (e.art === "training") return `${e.zeit} · Training ${e.label}${e.ausgefallen ? " — FÄLLT AUS" : ""}${e.ort ? ` (${e.ort})` : ""}`;
+  if (e.art === "vereinstermin") return `${e.zeit} · ${e.typLabel}: ${e.label}${e.ort ? ` (${e.ort})` : ""}`;
   const zusatz = [e.mannschaftLabel, e.ort].filter(Boolean).join(" · ");
   return `${e.zeit} · ${e.typLabel}${zusatz ? ` (${zusatz})` : ""}`;
+}
+
+// Regelmäßige Trainings allein sind keine Neuigkeit (sonst bekäme jeder Trainer jede Woche eine Mail): ein Digest geht nur raus, wenn es Einsätze, Vereinstermine
+// oder ein ausfallendes Training gibt. Dann stehen auch die regulären Trainings der Woche mit drin.
+export function istDigestNeuigkeit(e: KalenderEintrag): boolean {
+  return e.art !== "training" || !!e.ausgefallen;
 }
 
 export function digestInhalt(
@@ -43,7 +55,7 @@ export function digestInhalt(
   );
   return {
     vereinName,
-    ueberschrift: `Deine Einsätze in den nächsten ${TAGE_VORAUS} Tagen (${anzahlEinsaetze}).`,
+    ueberschrift: `Deine Termine in den nächsten ${TAGE_VORAUS} Tagen (${anzahlEinsaetze}).`,
     zeilen,
     cta: { text: "Zu meinem Kalender", url: `${appUrl()}/profil` },
   };
@@ -64,24 +76,32 @@ export async function sendeWochenDigests() {
 
   for (const verein of alleVereine) {
     const vereinsUsers = await adminDb
-      .select({ id: users.id, email: users.email })
+      .select({ id: users.id, email: users.email, istAdmin: users.istAdmin, istAdminLesend: users.istAdminLesend })
       .from(users)
       .where(and(eq(users.vereinId, verein.id), eq(users.wochenDigestAktiviert, true)));
 
     for (const user of vereinsUsers) {
       try {
-        const eintraegeProTag = await holeEigeneKalenderEintraege(
-          verein.id,
-          user.id,
-          jetzt,
-          bis
-        );
-        if (eintraegeProTag.size === 0) continue;
+        const eigene = await holeEigeneKalenderEintraege(verein.id, user.id, jetzt, bis);
+        // Zusätzlich Trainings (Trainer: die ihrer Mannschaften) und Vereinstermine, die die Person sehen darf (lib/kalender-ergaenzung.ts).
+        const ergaenzung = await holeKalenderErgaenzung({
+          vereinId: verein.id,
+          userId: user.id,
+          istAdmin: user.istAdmin,
+          istAdminLesend: user.istAdminLesend,
+          von: jetzt,
+          bis,
+          arten: parseKalenderArten(undefined),
+          ansicht: "profil",
+        });
+        const hatNeuigkeit = eigene.size > 0 || [...ergaenzung.eintraege.values()].flat().some(istDigestNeuigkeit);
+        if (!hatNeuigkeit) continue;
+        const eintraegeProTag = mischeNachZeit(eigene, ergaenzung.eintraege);
 
         const inhalt = { ...digestInhalt(verein.name, eintraegeProTag), abmelden: abmeldeInfo(user.id, "digest") };
         await sendMail(
           user.email,
-          `Deine Einsätze diese Woche bei ${verein.name}`,
+          `Deine Woche bei ${verein.name}`,
           emailAlsText(inhalt),
           emailAlsHtml(inhalt),
           { abmeldeUrl: inhalt.abmelden.url }
