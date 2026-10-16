@@ -8,6 +8,7 @@ import { ligaGruppen, ligaMannschaften, ligaTeilnahmen, ligaVereine, ligaSyncLae
 import {
   diensteBroadcastSpeichern,
   trainingSichtbarkeitSpeichern,
+  vereinstermineSpeichern,
   logoEntfernen,
   mannschaftsnamenSpeichern,
   supportZugriffSetzen,
@@ -759,6 +760,42 @@ export default async function EinstellungenPage({
                 id="trainingFuerAlleSichtbar"
                 name="trainingFuerAlleSichtbar"
                 defaultChecked={verein?.trainingFuerAlleSichtbar ?? false}
+              />
+            </div>
+          </fieldset>
+          {session.user.istAdmin && (
+            <SubmitButton variant="outline" size="sm" className="self-start">
+              Speichern
+            </SubmitButton>
+          )}
+        </form>
+      </EinstellungsBereich>
+
+      <EinstellungsBereich
+        id="vereinstermine"
+        titel="Vereinstermine"
+        kurz="Sitzungen und andere Termine mit Zu- und Absage"
+        beschreibung={<>Legt Sitzungen, Versammlungen oder Arbeitseinsätze an, bestimmt, wer sie sieht (alle, nur Admins oder eine Auswahl nach Rolle und Person),
+          und bekommt Zu- und Absagen. Verwaltet werden sie unter{" "}
+          <a href="/admin/vereinstermine" className="underline">Vereinstermine</a>. Auf der öffentlichen Vereinsseite erscheint nichts davon.</>}
+      >
+        <HilfeHinweis anker="vereinstermine" />
+        <form action={vereinstermineSpeichern} className="mt-2 flex flex-col gap-3">
+          <fieldset disabled={!session.user.istAdmin} className="contents">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Label htmlFor="vereinstermineAktiv" className="font-normal">
+                  Vereinstermine verwenden
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Aus (Standard): keine Menüpunkte, Seiten und Mails dazu. Bereits angelegte Termine bleiben beim Ausschalten erhalten.
+                </p>
+              </div>
+              <Switch
+                key={String(verein?.vereinstermineAktiv ?? false)}
+                id="vereinstermineAktiv"
+                name="vereinstermineAktiv"
+                defaultChecked={verein?.vereinstermineAktiv ?? false}
               />
             </div>
           </fieldset>

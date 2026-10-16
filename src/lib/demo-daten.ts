@@ -234,6 +234,52 @@ const EIGENE_EINTEILUNGEN: DemoEigeneEinteilung[] = [
   { termin: "t15", dienst: "fahrer", person: "marie" },
 ];
 
+export type DemoVereinstermin = {
+  art: string;
+  titel: string;
+  tage: number;
+  stunde: number;
+  dauerMinuten: number;
+  ort: string;
+  beschreibung: string;
+  sichtbarkeit: "alle" | "admins" | "auswahl";
+  rollen?: string[];
+  antworten: { person: string; antwort: "zusage" | "vielleicht" | "absage"; kommentar?: string }[];
+};
+
+const VEREINSTERMINE: DemoVereinstermin[] = [
+  {
+    art: "sitzung",
+    titel: "Trainersitzung",
+    tage: 6,
+    stunde: 19,
+    dauerMinuten: 90,
+    ort: "Vereinsheim",
+    beschreibung: "Hallenzeiten nach den Ferien, Trainingslager, Jugendspielrunde.",
+    sichtbarkeit: "auswahl",
+    rollen: ["trainer"],
+    antworten: [
+      { person: "michael", antwort: "zusage" },
+      { person: "sabine", antwort: "vielleicht", kommentar: "komme etwas später" },
+    ],
+  },
+  {
+    art: "arbeitseinsatz",
+    titel: "Arbeitseinsatz Hallenvorplatz",
+    tage: 12,
+    stunde: 10,
+    dauerMinuten: 180,
+    ort: "Sporthalle Musterstadt",
+    beschreibung: "Laub und Unkraut entfernen, danach Würstchen vom Grill.",
+    sichtbarkeit: "alle",
+    antworten: [
+      { person: "nina", antwort: "zusage" },
+      { person: "tim", antwort: "zusage" },
+      { person: "paul", antwort: "absage", kommentar: "im Urlaub" },
+    ],
+  },
+];
+
 export type DemoDaten = {
   vereinName: string;
   mannschaften: typeof MANNSCHAFTEN;
@@ -243,6 +289,7 @@ export type DemoDaten = {
   trainingsplan: { mannschaft: string; wochentag: number; vonMinuten: number; bisMinuten: number; abteil?: number; farbe: string }[];
   // Ausfälle: Position im Trainingsplan oben; das Datum ist das nächste künftige Training an dessen Wochentag (relativ zu "jetzt").
   trainingsausfaelle: { trainingIndex: number; grund: string }[];
+  vereinstermine: DemoVereinstermin[];
   eigeneDienste: DemoEigenerDienst[];
   eigeneEinteilungen: DemoEigeneEinteilung[];
 };
@@ -256,6 +303,7 @@ export function baueDemoDaten(): DemoDaten {
     zuordnungen: ZUORDNUNGEN,
     eigeneDienste: EIGENE_DIENSTE,
     eigeneEinteilungen: EIGENE_EINTEILUNGEN,
+    vereinstermine: VEREINSTERMINE,
     trainingsplan: [
       { mannschaft: "1. Herren", wochentag: 0, vonMinuten: 18 * 60 + 30, bisMinuten: 20 * 60, abteil: 1, farbe: "#3b82f6" },
       { mannschaft: "weibliche C-Jugend", wochentag: 0, vonMinuten: 17 * 60, bisMinuten: 18 * 60 + 15, abteil: 2, farbe: "#f59e0b" },

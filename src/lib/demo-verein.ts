@@ -11,6 +11,9 @@ import {
   termine,
   terminZuordnungen,
   trainingAusfaelle,
+  vereinstermine,
+  vereinsterminAntworten,
+  vereinsterminSichtbar,
   trainingszeiten,
   users,
   vereine,
@@ -96,6 +99,7 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
       istDemo: true,
       // Der Extra-Punkt "Training" ist im Demo für alle sichtbar, damit Besucher ihn sehen.
       trainingFuerAlleSichtbar: true,
+      vereinstermineAktiv: true,
       tarif: "befreit",
       avvAkzeptiertAm: jetzt,
       avvAkzeptiertVersion: AVV_VERSION,
@@ -189,6 +193,40 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
       if (!zeile) continue;
       const datum = [1, 2, 3, 4, 5, 6, 7].map((n) => addiereTage(heute, n)).find((d) => wochentagVonDatum(d) === plan.wochentag)!;
       await tx.insert(trainingAusfaelle).values({ vereinId: DEMO_VEREIN_ID, trainingszeitId: zeile.id, datum, grund: a.grund, gemeldetVon: DEMO_ADMIN_ID });
+    }
+
+    // Vereinstermine (Sitzung nur für Trainer, Arbeitseinsatz für alle) mit ein paar Antworten.
+    for (const v of daten.vereinstermine) {
+      const start = berlinZeit(jetzt, v.tage, v.stunde, 0);
+      const [vt] = await tx
+        .insert(vereinstermine)
+        .values({
+          vereinId: DEMO_VEREIN_ID,
+          titel: v.titel,
+          art: v.art,
+          beschreibung: v.beschreibung,
+          ort: v.ort,
+          start,
+          ende: new Date(start.getTime() + v.dauerMinuten * 60_000),
+          sichtbarkeit: v.sichtbarkeit,
+          antwortAbfrage: true,
+          erstelltVon: DEMO_ADMIN_ID,
+        })
+        .returning({ id: vereinstermine.id });
+      if (v.rollen?.length) {
+        await tx.insert(vereinsterminSichtbar).values(v.rollen.map((rolle) => ({ vereinsterminId: vt.id, vereinId: DEMO_VEREIN_ID, rolle })));
+      }
+      if (v.antworten.length) {
+        await tx.insert(vereinsterminAntworten).values(
+          v.antworten.map((a) => ({
+            vereinsterminId: vt.id,
+            userId: userIdNach.get(a.person)!,
+            vereinId: DEMO_VEREIN_ID,
+            antwort: a.antwort,
+            kommentar: a.kommentar ?? null,
+          }))
+        );
+      }
     }
 
     const terminIdNach = new Map<string, string>();

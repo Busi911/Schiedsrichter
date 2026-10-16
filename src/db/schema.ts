@@ -326,6 +326,8 @@ export const vereine = pgTable("verein", {
   // Extra-Punkt "Training" im eingeloggten Bereich für ALLE Personen des Vereins (Wochenplan, Ausfälle, freie Hallenzeiten). Default aus: dann sehen
   // ihn nur Admins und Trainer (lib/training-ausfall.ts, darfTrainingSehen). Hat mit dem Mailversand an Trainer nichts zu tun.
   trainingFuerAlleSichtbar: boolean("training_fuer_alle_sichtbar").notNull().default(false),
+  // Vereinstermine (Sitzungen u.ä., siehe vereinstermin unten) eingeschaltet? Default aus: dann keine Menüpunkte, Seiten und Mails (lib/vereinstermine.ts).
+  vereinstermineAktiv: boolean("vereinstermine_aktiv").notNull().default(false),
 });
 
 export const mannschaften = pgTable("mannschaft", {
@@ -460,6 +462,60 @@ export const trainingAusfaelle = pgTable(
     erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
   },
   (t) => [uniqueIndex("training_ausfall_zeit_datum_idx").on(t.trainingszeitId, t.datum)]
+);
+
+// Vereinstermine: Sitzungen, Versammlungen, Arbeitseinsätze o.ä. — Termine des Vereins, die keine Spiele sind (kein Bedarf, keine Dienste, nie auf der
+// öffentlichen Seite). Angelegt nur vom Admin (/admin/vereinstermine). sichtbarkeit: "alle" (jede Person mit Login), "admins" (nur Vereinsadmins) oder
+// "auswahl" (Rollen und/oder einzelne Personen aus vereinstermin_sichtbar); Admins sehen jeden Vereinstermin. antwort_abfrage = Zu-/Absage möglich.
+export const vereinstermine = pgTable("vereinstermin", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  titel: text("titel").notNull(),
+  art: text("art").notNull().default("sitzung"),
+  beschreibung: text("beschreibung"),
+  ort: text("ort"),
+  start: timestamp("start", { mode: "date" }).notNull(),
+  ende: timestamp("ende", { mode: "date" }),
+  sichtbarkeit: text("sichtbarkeit").notNull().default("alle"),
+  antwortAbfrage: boolean("antwort_abfrage").notNull().default(true),
+  erstelltVon: text("erstellt_von").references(() => users.id, { onDelete: "set null" }),
+  erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
+  aktualisiertAm: timestamp("aktualisiert_am").notNull().defaultNow(),
+});
+
+// Auswahl bei sichtbarkeit = "auswahl": eine Zeile je Rolle (rolle = Schlüssel aus lib/vereinstermine.ts) ODER je Person (user_id).
+export const vereinsterminSichtbar = pgTable("vereinstermin_sichtbar", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinsterminId: uuid("vereinstermin_id")
+    .notNull()
+    .references(() => vereinstermine.id, { onDelete: "cascade" }),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  rolle: text("rolle"),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+});
+
+// Zu-/Absage je Person und Vereinstermin ("zusage" | "vielleicht" | "absage"), optional mit kurzer Notiz.
+export const vereinsterminAntworten = pgTable(
+  "vereinstermin_antwort",
+  {
+    vereinsterminId: uuid("vereinstermin_id")
+      .notNull()
+      .references(() => vereinstermine.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references(() => vereine.id, { onDelete: "cascade" }),
+    antwort: text("antwort").notNull(),
+    kommentar: text("kommentar"),
+    aktualisiertAm: timestamp("aktualisiert_am").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.vereinsterminId, t.userId] })]
 );
 
 // Vom Admin bewusst übersprungene Vorschläge aus "Unbekannte Mannschaften"
@@ -624,6 +680,8 @@ export const users = pgTable("user", {
   // Persönliches Opt-out für die Info-Mail "Training fällt aus, Halle frei" (nur für Trainer, siehe lib/training-ausfall-mail.ts). Default true:
   // alle Trainer des Vereins bekommen sie, wer sie nicht will, schaltet sie im Profil (oder per Abmelde-Link) ab. Kein Vereins-Schalter.
   trainingAusfallHinweiseAktiviert: boolean("training_ausfall_hinweise_aktiviert").notNull().default(true),
+  // Persönliches Opt-out für Einladungs-/Änderungsmails zu Vereinsterminen (Sitzungen); die Mail geht nur, wenn der Admin sie beim Termin anhakt.
+  vereinsterminHinweiseAktiviert: boolean("vereinstermin_hinweise_aktiviert").notNull().default(true),
   // Zeitpunkt des letzten erfolgreichen Logins (Magic-Link oder Passwort) —
   // gesetzt im jwt-Callback in auth.ts, NUR bei frischem Login (nicht bei
   // jedem Request, siehe Kommentar dort). null = noch nie eingeloggt (z.B.

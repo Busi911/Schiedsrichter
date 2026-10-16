@@ -47,9 +47,13 @@ function istAktiv(
     : pathname === item.href || pathname?.startsWith(item.href + "/");
 }
 
-export function AdminNav({ warte = [] }: { warte?: WartItem[] }) {
+export function AdminNav({ warte = [], vereinstermine = false }: { warte?: WartItem[]; vereinstermine?: boolean }) {
   const pathname = usePathname();
-  const verwaltungAktiv = VERWALTUNG_ITEMS.some((item) => istAktiv(pathname, item));
+  // "Vereinstermine" erscheint nur, wenn der Verein sie eingeschaltet hat (Einstellungen → Vereinstermine).
+  const verwaltungItems = vereinstermine
+    ? [{ href: "/admin/vereinstermine", label: "Vereinstermine" }, ...VERWALTUNG_ITEMS]
+    : VERWALTUNG_ITEMS;
+  const verwaltungAktiv = verwaltungItems.some((item) => istAktiv(pathname, item));
 
   return (
     <>
@@ -82,7 +86,7 @@ export function AdminNav({ warte = [] }: { warte?: WartItem[] }) {
             <ChevronDownIcon className="size-3.5" />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            {VERWALTUNG_ITEMS.map((item) => (
+            {verwaltungItems.map((item) => (
               <DropdownMenuLinkItem
                 key={item.href}
                 render={<Link href={item.href} />}

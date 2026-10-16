@@ -49,6 +49,8 @@ export function ProfilEinstellungenMenu({
   offeneZeitnehmerErinnerungAktiviert,
   offeneDiensteBroadcastAktiviert,
   trainingAusfallHinweiseAktiviert,
+  vereinsterminHinweiseAktiviert,
+  vereinstermineAktiv,
   istTrainer,
   istSchiedsrichterwart,
   istZeitnehmerwart,
@@ -82,6 +84,8 @@ export function ProfilEinstellungenMenu({
   offeneZeitnehmerErinnerungAktiviert: boolean;
   offeneDiensteBroadcastAktiviert: boolean;
   trainingAusfallHinweiseAktiviert: boolean;
+  vereinsterminHinweiseAktiviert: boolean;
+  vereinstermineAktiv: boolean;
   istTrainer: boolean;
   istSchiedsrichterwart: boolean;
   istZeitnehmerwart: boolean;
@@ -356,6 +360,19 @@ export function ProfilEinstellungenMenu({
                   id="offeneDiensteHinweise"
                   name="offeneDiensteHinweise"
                   defaultChecked={offeneDiensteHinweiseAktiv}
+                />
+              </div>
+            )}
+            {vereinstermineAktiv && (
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="vereinsterminHinweise" className="font-normal">
+                  Einladungen und Änderungen zu Vereinsterminen (z.B. Sitzungen)
+                </Label>
+                <Switch
+                  key={String(vereinsterminHinweiseAktiviert)}
+                  id="vereinsterminHinweise"
+                  name="vereinsterminHinweise"
+                  defaultChecked={vereinsterminHinweiseAktiviert}
                 />
               </div>
             )}

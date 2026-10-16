@@ -49,6 +49,7 @@ import { holeVereinsLogoInfo } from "@/lib/vereins-logo";
 import { MonatsKalender } from "@/components/monats-kalender";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { HilfeLink } from "@/components/hilfe-link";
+import { VereinsterminOffenKarte } from "@/components/vereinstermine-offen-karte";
 import { ProfilEinstellungenMenu } from "@/components/profil-einstellungen-menu";
 import { SubmitButton } from "@/components/submit-button";
 import { saisonLabel, saisonSortKey } from "@/lib/saison";
@@ -105,6 +106,7 @@ export default async function ProfilPage({
           offeneZeitnehmerErinnerungAktiviert: true,
           offeneDiensteBroadcastAktiviert: true,
           trainingAusfallHinweiseAktiviert: true,
+          vereinsterminHinweiseAktiviert: true,
           kalenderToken: true,
         },
       });
@@ -299,6 +301,8 @@ export default async function ProfilPage({
                 eigeneStammdaten?.offeneDiensteBroadcastAktiviert ?? true
               }
               trainingAusfallHinweiseAktiviert={eigeneStammdaten?.trainingAusfallHinweiseAktiviert ?? true}
+              vereinsterminHinweiseAktiviert={eigeneStammdaten?.vereinsterminHinweiseAktiviert ?? true}
+              vereinstermineAktiv={verein?.vereinstermineAktiv ?? false}
               istTrainer={istTrainer}
               istSchiedsrichterwart={istSchiedsrichterwart}
               istZeitnehmerwart={istZeitnehmerwart}
@@ -396,6 +400,16 @@ export default async function ProfilPage({
                 Dienstwart
               </Button>
             )}
+            {verein?.vereinstermineAktiv && (
+              <Button
+                variant="outline"
+                size="sm"
+                render={<Link href="/profil/vereinstermine" />}
+                nativeButton={false}
+              >
+                Vereinstermine
+              </Button>
+            )}
             {sehenTraining && (
               <Button
                 variant="outline"
@@ -431,6 +445,9 @@ export default async function ProfilPage({
       </header>
 
       <main className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6 p-6 pb-24 md:pb-6">
+        {verein?.vereinstermineAktiv && (
+          <VereinsterminOffenKarte vereinId={vereinId} userId={userId} istAdmin={session.user.istAdmin || !!session.user.istAdminLesend} />
+        )}
         <Card>
           <CardHeader>
             <CardTitle>Mein Kalender</CardTitle>

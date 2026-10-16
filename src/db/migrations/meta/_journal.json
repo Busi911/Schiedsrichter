@@ -750,6 +750,13 @@
       "when": 1792157001354,
       "tag": "0106_training_ausfall",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1792158442669,
+      "tag": "0107_vereinstermine",
+      "breakpoints": true
     }
   ]
 }
