@@ -178,6 +178,16 @@ export default function DatenschutzPage() {
       </section>
 
       <section className="flex flex-col gap-2">
+        <h2 className="font-heading text-lg font-medium">Trainingszeiten auf den öffentlichen Vereinsseiten</h2>
+        <p className="text-sm text-muted-foreground">
+          Wenn ein Verein den Reiter „Training“ einschaltet, zeigt seine öffentliche Seite die Trainingszeiten der
+          nächsten zwei Wochen (Mannschaft, Tag, Uhrzeit, Ort, ausfallende Trainings durchgestrichen). Es werden keine
+          Namen von Personen, keine Gründe für Ausfälle und keine internen Notizen angezeigt. Ohne Einschalten durch den
+          Verein erscheint nichts davon.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">Cookies</h2>
         <p className="text-sm text-muted-foreground">
           Es wird ausschließlich ein technisch notwendiges Session-Cookie

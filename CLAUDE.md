@@ -503,7 +503,7 @@ Wochenplan (`trainingszeit`) bleibt unverändert; ein Ausfall gilt nur für EIN 
 (14 Tage, "Freie Hallenzeiten"). Rechnung rein in `lib/training-ausfall.ts` (deutsche Zeit, Tag als "YYYY-MM-DD"). Mail an ALLE aktiven Trainer des Vereins außer der meldenden Person (`training-ausfall-mail.ts`, `after()`, nur beim
 ersten Melden bzw. wenn die Rücknahme wirklich etwas löschte). Entscheidung Betreiber 16.10.2026: erstmal alle Trainer, KEIN Vereins-Schalter für die Mail; persönlicher Schalter `users.training_ausfall_hinweise_aktiviert` (Default an,
 Profil → Benachrichtigungen nur für Trainer, Abmelde-Art `training-ausfall`). Der Extra-Punkt „Training“ ist ein eigener Vereins-Schalter `vereine.training_fuer_alle_sichtbar` (Einstellungen → Training, Default aus): ohne ihn sehen nur
-Admins und Trainer ihn (`darfTrainingSehen`, `sehenTrainingPunkt` für Layout/Navigation). Nie auf der öffentlichen Seite. Demo: ein ausgefallenes Training (2. Herren), Schalter für alle an. Hilfe `#training`. Noch offen (nächste Stufen):
+Admins und Trainer ihn (`darfTrainingSehen`, `sehenTrainingPunkt` für Layout/Navigation). Auf der öffentlichen Seite nur über den eigenen Schalter `training_oeffentlich` (Abschnitt "Öffentlicher Reiter Training" unten). Demo: ein ausgefallenes Training (2. Herren), Schalter für alle an. Hilfe `#training`. Noch offen (nächste Stufen):
 (erledigt am 16.10.2026: Vereinstermine, Gesamtkalender, Plätze mit Saison, siehe unten).
 
 ## Vereinstermine (Sitzungen) mit Sichtbarkeit und Zu-/Absage (Stand 16.10.2026, Wunsch eines Interessenten)
@@ -535,6 +535,13 @@ Neue Eintragsart im Kalender: in `KalenderEintrag.art` + `holeKalenderErgaenzung
 einen Admin). Action `trainingBelegen` (`app/profil/training/actions.ts`): nur wenn ein Ausfall besteht, Datum gültig (Wochentag, nicht vorbei, Saison), `darfBelegen` (`lib/training-belegung.ts`: Admin für jede andere Mannschaft, Trainer für ihre eigenen, nie die ausfallende selbst). `trainingBelegungAufheben`: buchende Mannschaft oder Admin, Mail „wieder frei“ an
 ALLE Trainer. `trainingAusfallZuruecknehmen` bei belegter Zeit: nur Admin (`ausfallRuecknahmeErlaubt`), die Belegung wird mitgelöscht und die Trainer der buchenden Mannschaft informiert. Mails `lib/training-belegung-mail.ts` (Abmelde-Art `training-ausfall`, derselbe persönliche Schalter wie beim Ausfall). UI: Modal `components/zeit-belegen-dialog.tsx`
 auf `/profil/training` (oben unter „Freie Hallenzeiten“ und je Training), Kalender zeigt „belegt von …“. Integrationstest der Actions: `app/profil/training/actions.test.ts` (Postgres). Demo: eine freie und eine belegte Zeit. Hilfe `#training`.
+
+## Öffentlicher Reiter „Training“ in der Fan-App (Stand 16.10.2026)
+
+Ausnahme von „Training nie öffentlich“, nur ausdrücklich eingeschaltet: `vereine.training_oeffentlich` (Migration 0111, Default aus, Einstellungen → Training, Schalter nur sichtbar/aktiv, wenn der Verein eine öffentliche Vereinsseite hat; derselbe Formular-Submit wie `training_fuer_alle_sichtbar`). Seite
+`/verein/[slug]/training` (404 ohne Schalter, wie jede nicht vorhandene Seite), Reiter in `VereinsNav` nur mit `mitTraining` (vier statt fünf Spalten, kleinere Symbole bei fünf; die Mannschafts-Zuordnung der Leiste sucht den Reiter "/mannschaften" über den Pfad, nicht über den Index). Sicherheits-/Datenschutzregel: `lib/training-oeffentlich.ts` ist
+eine WHITELIST (Mannschaft, Tag, Uhrzeit, Ort, ausgefallen) — nie Grund, Notizen, Buchungen, Personen; Test prüft die Schlüssel. Daten über `adminDb` mit ausdrücklichem `verein_id`-Filter (`lib/training-oeffentlich-daten.ts`, öffentliche Seite ohne Anmeldung). Favoriten über `mannschaft.liga_mannschaft_id`
+(ohne Verknüpfung kein Favoriten-Treffer, Filter-Gruppe aus Name/Altersklasse). Sitemap nur mit Schalter. Wer neue Felder öffentlich zeigen will: in der Whitelist ergänzen UND den Test anpassen, Datenschutzseite/`/app-hilfe#training` prüfen. Hilfe `/hilfe#training` und `/app-hilfe#training`.
 
 ## Plätze mit Saison (Beachhandball, Stand 16.10.2026)
 

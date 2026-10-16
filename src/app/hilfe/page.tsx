@@ -877,7 +877,17 @@ export default async function HilfePage() {
           <Link href="/admin/einstellungen#training" className="font-medium underline">
             Einstellungen → Training
           </Link>{" "}
-          für alle Personen im Verein einschalten (Standard: aus). Auf der öffentlichen Vereinsseite erscheint nichts davon.
+          für alle Personen im Verein einschalten (Standard: aus). Für die <strong>öffentliche App</strong> (Spieler, Eltern, Fans) gibt es einen eigenen Schalter.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Training in der öffentlichen App:</strong> Unter Einstellungen → Training lässt sich „Training in der öffentlichen App zeigen“ einschalten (Standard:
+          aus, nur mit öffentlicher Vereinsseite). Dann erscheint dort der Reiter <strong>Training</strong> mit den Trainings der nächsten zwei Wochen (Mannschaft, Uhrzeit,
+          Ort), filterbar nach Gruppe und Favoriten; ausfallende Trainings sind durchgestrichen. <strong>Nie öffentlich</strong> sind der Grund eines Ausfalls, Notizen,
+          Buchungen frei gewordener Zeiten und Trainernamen. Orte mit Saison (z.B. Beachplatz) erscheinen nur in der Saison. Die Hilfe für Fans steht unter{" "}
+          <Link href="/app-hilfe#training" className="font-medium underline">
+            App-Hilfe → Training
+          </Link>
+          .
         </p>
       </section>
 

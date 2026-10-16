@@ -326,6 +326,9 @@ export const vereine = pgTable("verein", {
   // Extra-Punkt "Training" im eingeloggten Bereich für ALLE Personen des Vereins (Wochenplan, Ausfälle, freie Hallenzeiten). Default aus: dann sehen
   // ihn nur Admins und Trainer (lib/training-ausfall.ts, darfTrainingSehen). Hat mit dem Mailversand an Trainer nichts zu tun.
   trainingFuerAlleSichtbar: boolean("training_fuer_alle_sichtbar").notNull().default(false),
+  // Reiter "Training" in der ÖFFENTLICHEN Vereins-App (/verein/<slug>/training): Trainingszeiten der nächsten zwei Wochen, Ausfälle durchgestrichen. Default aus; ohne Grund, Notizen,
+  // Buchungen und Personen (lib/training-oeffentlich.ts).
+  trainingOeffentlich: boolean("training_oeffentlich").notNull().default(false),
   // Vereinstermine (Sitzungen u.ä., siehe vereinstermin unten) eingeschaltet? Default aus: dann keine Menüpunkte, Seiten und Mails (lib/vereinstermine.ts).
   vereinstermineAktiv: boolean("vereinstermine_aktiv").notNull().default(false),
 });

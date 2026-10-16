@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ADD COLUMN "training_oeffentlich" boolean DEFAULT false NOT NULL;

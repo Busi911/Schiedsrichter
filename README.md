@@ -321,7 +321,7 @@ Trainer der Mannschaft auf `/profil/training` („Fällt aus“, Grund optional;
 `konkreteTrainings`) und oben „Freie Hallenzeiten“. Alle aktiven Trainer des Vereins bekommen eine Info-Mail (`lib/training-ausfall-mail.ts`, auch bei der
 Rücknahme „Findet doch statt“, nicht an die meldende Person). Persönlicher Schalter `users.training_ausfall_hinweise_aktiviert` (Default an, Profil →
 Benachrichtigungen, nur für Trainer; Abmelde-Link Art `training-ausfall`), bewusst KEIN Vereins-Schalter. Der Extra-Punkt „Training“ (im Kalender über „Zum Training“ und unter „Mehr“) ist für Admins und Trainer immer sichtbar, für alle anderen nur mit `vereine.training_fuer_alle_sichtbar` (Einstellungen →
-Training, Default aus). Nichts davon erscheint auf der öffentlichen Vereinsseite. Frei gewordene Zeiten lassen sich belegen (`training_belegung`, Migration 0110, Unique je Trainingszeit+Datum = wer zuerst bucht, bekommt sie): Modal „Zeit belegen“
+Training, Default aus). Auf der öffentlichen Vereinsseite erscheint es nur über den eigenen Schalter `vereine.training_oeffentlich` (siehe unten „Öffentlicher Reiter Training“). Frei gewordene Zeiten lassen sich belegen (`training_belegung`, Migration 0110, Unique je Trainingszeit+Datum = wer zuerst bucht, bekommt sie): Modal „Zeit belegen“
 (`components/zeit-belegen-dialog.tsx`, Action `trainingBelegen`), Trainer buchen für ihre Mannschaft, Admins für jede andere, nie für die ausfallende; Aufheben durch die buchende Mannschaft oder Admins (`trainingBelegungAufheben`), Rücknahme
 des Ausfalls bei belegter Zeit nur durch einen Admin (die Belegung entfällt). Regeln rein in `lib/training-belegung.ts`, Mails in `lib/training-belegung-mail.ts` (belegt: Trainer der ausfallenden Mannschaft + Admins; wieder frei: alle Trainer; entfällt: Trainer der buchenden
 Mannschaft). Plätze (z.B. Beachhandball): `halle.art` ("halle" | "platz") und optionale Saison `saison_von_monat`/`saison_bis_monat` (Migration 0109; von > bis läuft über den Jahreswechsel, `istInSaison`, `lib/trainingsplan.ts`). Außerhalb der Saison entfallen die Trainings
@@ -347,6 +347,13 @@ und Vereinstermine (nur, was die Person sehen darf). Zusätzliche Einträge lief
 Filter „Anzeigen“ über dem Kalender (`components/kalender-filter.tsx`, Suchparameter `zeige`, reine Hilfen in `lib/kalender-arten.ts`; bleibt beim Monatswechsel). Training im Admin-Kalender alle; im Profil Admins und
 (bei „Training für alle“) alle Personen alle, sonst Trainer die ihrer Mannschaften. Menü aufgeräumt: „Termine“ heißt „Spiele & Turniere“, Trainingsplan und Vereinstermine stehen unter „Verwaltung“ (mobil unter „Mehr“),
 der Kalender ist der Einstieg. Die Wochenübersicht-Mail (`lib/wochen-digest.ts`) enthält dieselben Ergänzungen (Trainings der eigenen Mannschaften, Vereinstermine); sie geht nur, wenn es Einsätze, Vereinstermine oder ein ausfallendes Training gibt (`istDigestNeuigkeit`), reguläre Trainings allein lösen keine Mail aus.
+
+## Öffentlicher Reiter „Training“ (Fan-App)
+
+Optional je Verein (`vereine.training_oeffentlich`, Migration 0111, Default aus, Einstellungen → Training, nur mit öffentlicher Vereinsseite): fünfter Reiter `/verein/[slug]/training` in der öffentlichen App (`components/liga/vereins-nav.tsx`: ohne Training vier
+Reiter, mit Training fünf, `mitTraining` aus dem Layout; Seite sonst 404). Zeigt die Trainings der nächsten zwei Wochen nach Tagen, Filter nach Gruppe und Favoriten wie bei „Spiele“, Ausfälle durchgestrichen. Aufbereitung als Whitelist in `lib/training-oeffentlich.ts`
+(rein/getestet): NIE Grund eines Ausfalls, Notizen, Buchungen oder Trainernamen. Favoriten über `mannschaft.liga_mannschaft_id`, Gruppe aus der Liga-Kategorie, sonst aus Name/Altersklasse. Orte mit Saison erscheinen nur in der Saison. Daten über `adminDb` mit Vereinsfilter
+(`lib/training-oeffentlich-daten.ts`), Sitemap enthält `/training` nur bei eingeschaltetem Reiter. Datenschutzseite und `/app-hilfe#training` erklären es.
 
 ## Systemadmin (vereinsübergreifend)
 
