@@ -12,6 +12,7 @@ import {
   termine,
   terminZuordnungen,
   trainingAusfaelle,
+  trainingBelegungen,
   vereinstermine,
   vereinsterminAntworten,
   vereinsterminSichtbar,
@@ -200,6 +201,9 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
       if (!zeile) continue;
       const datum = [1, 2, 3, 4, 5, 6, 7].map((n) => addiereTage(heute, n)).find((d) => wochentagVonDatum(d) === plan.wochentag)!;
       await tx.insert(trainingAusfaelle).values({ vereinId: DEMO_VEREIN_ID, trainingszeitId: zeile.id, datum, grund: a.grund, gemeldetVon: DEMO_ADMIN_ID });
+      if (a.belegtVon) {
+        await tx.insert(trainingBelegungen).values({ vereinId: DEMO_VEREIN_ID, trainingszeitId: zeile.id, datum, mannschaftId: mannschaftId(a.belegtVon), notiz: a.belegtNotiz ?? null, gebuchtVon: DEMO_ADMIN_ID });
+      }
     }
 
     // Vereinstermine (Sitzung nur für Trainer, Arbeitseinsatz für alle) mit ein paar Antworten.

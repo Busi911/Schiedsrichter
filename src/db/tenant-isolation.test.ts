@@ -340,4 +340,32 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Mandantentrennung (RLS)", () => {
       )
     ).rejects.toThrow(/row-level security/i);
   });
+  it("Belegungen frei gewordener Trainingszeiten (training_belegung) sind je Verein getrennt", async () => {
+    const { rows: m } = await adminPool.query(`insert into mannschaft (verein_id, name) values ($1, 'Belegung B') returning id`, [vereinB]);
+    const { rows: h } = await adminPool.query(`insert into halle (verein_id, name) values ($1, 'Halle Belegung B') returning id`, [vereinB]);
+    const { rows: z } = await adminPool.query(
+      `insert into trainingszeit (verein_id, mannschaft_id, halle_id, wochentag, start_minuten, end_minuten) values ($1, $2, $3, 2, 1080, 1170) returning id`,
+      [vereinB, m[0].id, h[0].id]
+    );
+    await adminPool.query(`insert into training_belegung (verein_id, trainingszeit_id, datum, mannschaft_id, notiz) values ($1, $2, '2030-01-02', $3, 'Testspiel')`, [vereinB, z[0].id, m[0].id]);
+
+    const ausSichtA = await withTenant(vereinA, (client) => client.query("select notiz from training_belegung where trainingszeit_id = $1", [z[0].id]).then((r) => r.rows));
+    expect(ausSichtA).toHaveLength(0);
+    const ausSichtB = await withTenant(vereinB, (client) => client.query("select notiz from training_belegung where trainingszeit_id = $1", [z[0].id]).then((r) => r.rows));
+    expect(ausSichtB).toEqual([{ notiz: "Testspiel" }]);
+
+    // Verein A kann B keine Belegung unterschieben.
+    await expect(
+      withTenant(vereinA, (client) =>
+        client.query("insert into training_belegung (verein_id, trainingszeit_id, datum, mannschaft_id) values ($1, $2, '2030-01-09', $3)", [vereinB, z[0].id, m[0].id])
+      )
+    ).rejects.toThrow(/row-level security/i);
+
+    // Wer zuerst bucht: je Trainingszeit und Datum nur eine Belegung.
+    await expect(
+      withTenant(vereinB, (client) =>
+        client.query("insert into training_belegung (verein_id, trainingszeit_id, datum, mannschaft_id) values ($1, $2, '2030-01-02', $3)", [vereinB, z[0].id, m[0].id])
+      )
+    ).rejects.toThrow(/duplicate|unique/i);
+  });
 });

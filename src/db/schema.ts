@@ -527,6 +527,29 @@ export const vereinsterminAntworten = pgTable(
   (t) => [primaryKey({ columns: [t.vereinsterminId, t.userId] })]
 );
 
+// Belegung einer frei gewordenen Zeit (training_ausfall): eine andere Mannschaft nutzt Halle/Platz in dieser Zeit. Wer zuerst bucht, bekommt sie — der Unique-Index je
+// Trainingszeit+Datum entscheidet bei gleichzeitigen Buchungen. Gebucht von Admin oder Trainer der buchenden Mannschaft (app/profil/training/actions.ts).
+export const trainingBelegungen = pgTable(
+  "training_belegung",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references(() => vereine.id, { onDelete: "cascade" }),
+    trainingszeitId: uuid("trainingszeit_id")
+      .notNull()
+      .references(() => trainingszeiten.id, { onDelete: "cascade" }),
+    datum: date("datum", { mode: "string" }).notNull(),
+    mannschaftId: uuid("mannschaft_id")
+      .notNull()
+      .references(() => mannschaften.id, { onDelete: "cascade" }),
+    notiz: text("notiz"),
+    gebuchtVon: text("gebucht_von").references(() => users.id, { onDelete: "set null" }),
+    erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("training_belegung_zeit_datum_idx").on(t.trainingszeitId, t.datum)]
+);
+
 // Vom Admin bewusst übersprungene Vorschläge aus "Unbekannte Mannschaften"
 // (siehe gruppiereUnbekannteMannschaften in rundenspiel-import.ts) — meist
 // Mannschaften anderer Vereine, die an der eigenen Halle spielen und nie

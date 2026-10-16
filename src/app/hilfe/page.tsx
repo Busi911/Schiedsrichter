@@ -860,6 +860,14 @@ export default async function HilfePage() {
           der Zeit frei und steht oben unter <strong>Freie Hallenzeiten</strong>. „Findet doch statt“ nimmt die Meldung zurück.
         </p>
         <p className="text-sm text-muted-foreground">
+          <strong>Frei gewordene Zeit belegen:</strong> Bei jeder freien Zeit (oben unter „Freie Hallenzeiten“ und in der Liste) steht ein Button{" "}
+          <strong>„Zeit belegen“</strong>. Er öffnet ein Fenster, in dem ihr eure Mannschaft wählt (Trainer: die eigenen, Admins: jede andere) und optional eine Notiz
+          schreibt. <strong>Wer zuerst bucht, bekommt die Zeit</strong>; eine Freigabe ist nicht nötig. Die ausfallende Mannschaft (Trainer) und die Admins bekommen
+          eine Mail. Wer gebucht hat (oder ein Admin), kann die Belegung mit „Belegung aufheben“ wieder lösen, dann erfahren es alle Trainer. Solange die Zeit belegt
+          ist, kann die ausfallende Mannschaft den Ausfall nicht zurücknehmen; das entscheidet ein Admin (die Belegung entfällt dann, die buchende Mannschaft wird
+          informiert). Im Kalender steht „belegt von …“ am ausgefallenen Training.
+        </p>
+        <p className="text-sm text-muted-foreground">
           <strong>Wer erfährt es?</strong> Alle Trainer des Vereins bekommen eine Info-Mail (auch bei der Rücknahme), außer der
           meldenden Person. Jeder Trainer kann das im Profil-Menü unter <strong>Benachrichtigungen</strong> („Hinweis, wenn ein
           Training ausfällt und die Halle frei wird“) oder über den Abbestellen-Link in der Mail abschalten.
