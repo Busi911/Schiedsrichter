@@ -61,7 +61,7 @@ const FEATURES = [
   {
     icon: CalendarDaysIcon,
     titel: "Trainingsplan je Halle",
-    text: "Wöchentliche Trainingszeiten für alle Mannschaften und Hallen per Drag & Drop planen — inklusive geteilter Hallen mit bis zu vier benennbaren Abteilen.",
+    text: "Wöchentliche Trainingszeiten für alle Mannschaften und Hallen per Drag & Drop planen — inklusive geteilter Hallen mit bis zu vier benennbaren Abteilen. Fällt ein Training aus, melden Trainer das mit einem Klick, und alle Trainer erfahren per Mail, dass die Halle frei ist.",
   },
   {
     icon: MailCheckIcon,
