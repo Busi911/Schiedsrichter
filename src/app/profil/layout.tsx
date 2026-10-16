@@ -107,9 +107,6 @@ export default async function ProfilLayout({
   if (dienstwart) {
     tabs.push({ href: "/profil/dienstwart", label: "Dienste", icon: "wart" });
   }
-  if (training) {
-    tabs.push({ href: "/profil/training", label: "Training", icon: "training" });
-  }
   const nurProfil = tabs.length === 1;
   if (nurProfil) tabs.push({ href: "/hilfe", label: "Hilfe", icon: "hilfe" });
 
@@ -122,6 +119,8 @@ export default async function ProfilLayout({
       <BottomNav
         tabs={tabs}
         mehrItems={[
+          // Training und Vereinstermine sind im Kalender sichtbar (Eintrag → Details) und hier unter "Mehr" direkt erreichbar.
+          ...(training ? [{ href: "/profil/training", label: "Training", icon: "training" } as const] : []),
           ...(vereinstermine ? [{ href: "/profil/vereinstermine", label: "Vereinstermine", icon: "termine" } as const] : []),
           { href: "/profil#einstellungen", label: "Einstellungen", icon: "einstellungen" },
           { href: "/profil/passwort-aendern", label: "Passwort ändern", icon: "passwort" },

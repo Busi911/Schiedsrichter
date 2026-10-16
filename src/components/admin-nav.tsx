@@ -21,14 +21,16 @@ import type { WartItem } from "@/lib/wart-navigation";
 // (Stammdaten-Pflege, Auswertungen) wandern unter das "Verwaltung"-Dropdown
 // — sonst wächst die Leiste mit jedem neuen Admin-Bereich flach weiter und
 // bricht auf Desktop-Breite in mehrere Zeilen um.
+// Der Kalender ist der eine Einstieg für alles, was im Verein stattfindet (Spiele, Training, Vereinstermine). "Spiele & Turniere" pflegt Spiele und
+// Turniere; Trainingsplan und Vereinstermine stehen unter "Verwaltung".
 const PRIMARY_ITEMS = [
   { href: "/admin", label: "Übersicht", exact: true },
   { href: "/admin/kalender", label: "Kalender" },
-  { href: "/admin/termine", label: "Termine" },
-  { href: "/admin/trainingsplan", label: "Trainingsplan" },
+  { href: "/admin/termine", label: "Spiele & Turniere" },
 ];
 
 const VERWALTUNG_ITEMS = [
+  { href: "/admin/trainingsplan", label: "Trainingsplan" },
   { href: "/admin/mannschaften", label: "Mannschaften" },
   { href: "/admin/funktionstraeger", label: "Funktionsträger" },
   { href: "/admin/dienste", label: "Offene Dienste" },

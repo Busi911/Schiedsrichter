@@ -514,7 +514,15 @@ Vereinstermine stehen im persönlichen ICS-Abo (`holeVereinsterminFuerIcs`, UID 
 **Wiederholungen (Migration 0108):** `vereinstermin.serie_id` + `wiederholung` (woechentlich | zweiwoechentlich | monatlich = n-ter Wochentag, der 5. fällt in kurzen Monaten auf den letzten). Eine Serie besteht aus EINZELNEN Zeilen (höchstens `MAX_SERIEN_TERMINE` = 52, Rechnung
 rein in `lib/wiederholung.ts`: deutsche Wanduhrzeit, Uhrzeit bleibt über die Zeitumstellung), damit Sichtbarkeit und Zu-/Absagen je Termin unverändert funktionieren. Anlegen: `wiederholung` + `bis` (Pflicht bei Serie), EINE Einladungsmail zum ersten Termin mit Serien-Satz. Bearbeiten: nur dieser Termin oder
 `folgende` (Tage bleiben, Uhrzeit/Dauer/Ort/Titel/Sichtbarkeit werden übernommen, EINE Änderungsmail); Löschen: `scope=folgende` löscht diesen und alle folgenden (eine Absage je Person). Profil und „Rückmeldung steht aus“-Karte zeigen je Serie nur die nächsten drei (`kuerzeSerien`), der Admin alle.
-Noch offen: Plätze/Ressourcen (Beachhandball), Gesamtkalender mit Spielen.
+Noch offen: Plätze/Ressourcen (Beachhandball).
+
+## Gesamtkalender (Spiele, Training, Vereinstermine) und Menü (Stand 16.10.2026)
+
+Der Kalender ist der EINE Einstieg für alles, was im Verein stattfindet (Betreiber 16.10.2026: zu viele getrennte Stellen verwirrten). `MonatsKalender` bekommt zusätzliche Eintragsarten über `KalenderEintrag.art` ("training" | "vereinstermin", dazu `ausgefallen`, `detailText`,
+`detailHref`, `detailLinkText`); die Daten liefert `lib/kalender-ergaenzung.ts` (`holeKalenderErgaenzung`, Ansicht "admin" | "profil"), eingemischt mit `mischeNachZeit` (`lib/kalender.ts`). Training: Admin-Kalender alle, Profil Admins und (bei `training_fuer_alle_sichtbar`) alle Personen alle, sonst Trainer die ihrer
+Mannschaften; Vereinstermine nur nach `darfVereinsterminSehen`. Filter `?zeige=spiele,training,verein` (`kalender-arten.ts`, `KalenderFilter`; der Monatswechsel hängt `abfrageZusatz` an). Wochen-Digest-Mail und ICS-Abo nutzen weiter `holeEigeneKalenderEintraege` (nur Spiele/Dienste; Vereinstermine stehen zusätzlich im ICS).
+Menü: Admin-Leiste Übersicht · Kalender · „Spiele & Turniere“ (früher „Termine“) · Verwaltung (Trainingsplan, Vereinstermine wenn an, Mannschaften …); die Profil-Buttons „Training“/„Vereinstermine“ entfallen, beide stehen unter „Mehr“ (Profil-Navigation) und sind aus dem Kalender-Eintrag erreichbar.
+Neue Eintragsart im Kalender: in `KalenderEintrag.art` + `holeKalenderErgaenzung` + `KALENDER_ARTEN` ergänzen, Hilfe `#kalender` anpassen.
 
 ## Hilfe: wo Nutzer sie finden
 

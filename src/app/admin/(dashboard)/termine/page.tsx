@@ -47,7 +47,7 @@ export default async function TerminePage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold">Termine</h1>
+        <h1 className="font-heading text-2xl font-semibold">Spiele &amp; Turniere</h1>
         <p className="text-sm text-muted-foreground">
           Alle Spieltermine des Vereins — importierte Liga-Pflichtspiele
           (Hallenspielplan) und selbst angelegte Freundschaftsspiele/Turniere.

@@ -21,7 +21,7 @@ import {
   holeEigeneOffenenDienste,
   SELBST_ANMELDBARE_TYPEN,
 } from "@/lib/eigene-offene-dienste";
-import { monatsBereich, parseMonatParam } from "@/lib/kalender";
+import { mischeNachZeit, monatKey, monatsBereich, parseMonatParam } from "@/lib/kalender";
 import { holeEigeneKalenderEintraege } from "@/lib/eigener-kalender";
 import {
   emailAenderungAbbrechen,
@@ -56,7 +56,9 @@ import { saisonLabel, saisonSortKey } from "@/lib/saison";
 import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { appUrl } from "@/lib/app-url";
-import { darfTrainingSehen } from "@/lib/training-ausfall";
+import { kalenderArtenZusatz, parseKalenderArten } from "@/lib/kalender-arten";
+import { holeKalenderErgaenzung } from "@/lib/kalender-ergaenzung";
+import { KalenderFilter } from "@/components/kalender-filter";
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -75,18 +77,19 @@ const TYP_LABEL: Record<string, string> = {
 export default async function ProfilPage({
   searchParams,
 }: {
-  searchParams: Promise<{ monat?: string }>;
+  searchParams: Promise<{ monat?: string; zeige?: string }>;
 }) {
   const session = await requireSession();
   const vereinId = session.user.vereinId!;
   const userId = session.user.id;
-  const { monat } = await searchParams;
+  const { monat, zeige } = await searchParams;
+  const arten = parseKalenderArten(zeige);
   const { jahr, monatNull } = parseMonatParam(monat);
   const { von, bis } = monatsBereich(jahr, monatNull);
 
   const [
     { eigeneStammdaten, rollen, profil, eigeneTermine, verein, meineTurniere, meineHelferdienste },
-    eintraegeProTag,
+    eintraegeEigene,
     vereinsLogo,
   ] = await Promise.all([
     withTenant(vereinId, async (tx) => {
@@ -225,6 +228,19 @@ export default async function ProfilPage({
     holeVereinsLogoInfo(vereinId),
   ]);
 
+  // Gesamtkalender: eigene Einsätze, dazu (je nach Filter und Berechtigung) Trainings und Vereinstermine.
+  const ergaenzung = await holeKalenderErgaenzung({
+    vereinId,
+    userId,
+    istAdmin: session.user.istAdmin,
+    istAdminLesend: !!session.user.istAdminLesend,
+    von,
+    bis,
+    arten,
+    ansicht: "profil",
+  });
+  const eintraegeProTag = mischeNachZeit(arten.has("spiele") ? eintraegeEigene : new Map(), ergaenzung.eintraege);
+
   const istSchiedsrichter = rollen.some(
     (r) => r.typ === "schiedsrichter" && r.aktiv
   );
@@ -244,13 +260,6 @@ export default async function ProfilPage({
     (r) => r.typ === "dienstwart" && r.aktiv
   );
   const istTrainer = rollen.some((r) => r.typ === "trainer" && r.aktiv);
-  // Extra-Punkt "Training" (Wochenplan, Ausfälle): Admins und Trainer immer, alle anderen nur nach Freischaltung durch den Verein.
-  const sehenTraining = darfTrainingSehen({
-    istAdmin: session.user.istAdmin,
-    istAdminLesend: !!session.user.istAdminLesend,
-    istTrainer,
-    fuerAlleSichtbar: verein?.trainingFuerAlleSichtbar ?? false,
-  });
   const istDienstRolleninhaber = rollen.some(
     (r) =>
       r.aktiv &&
@@ -400,26 +409,6 @@ export default async function ProfilPage({
                 Dienstwart
               </Button>
             )}
-            {verein?.vereinstermineAktiv && (
-              <Button
-                variant="outline"
-                size="sm"
-                render={<Link href="/profil/vereinstermine" />}
-                nativeButton={false}
-              >
-                Vereinstermine
-              </Button>
-            )}
-            {sehenTraining && (
-              <Button
-                variant="outline"
-                size="sm"
-                render={<Link href="/profil/training" />}
-                nativeButton={false}
-              >
-                Training
-              </Button>
-            )}
             <div className="hidden md:block">
               {einstellungen()}
             </div>
@@ -452,17 +441,20 @@ export default async function ProfilPage({
           <CardHeader>
             <CardTitle>Mein Kalender</CardTitle>
             <CardDescription>
-              Alle Termine, bei denen du als Schiedsrichter, Zeitnehmer,
+              Alles, was für dich ansteht: Termine, bei denen du als Schiedsrichter, Zeitnehmer,
               Sekretär, Ordner, Kioskdienst, Kassierer, Trainer oder für einen
-              eigenen Dienst des Vereins (z.B. Fahrer) eingeteilt bist.
+              eigenen Dienst des Vereins (z.B. Fahrer) eingeteilt bist, dazu Trainings
+              und Vereinstermine, die du sehen darfst.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-3">
+            <KalenderFilter basisPfad="/profil" monat={monatKey(jahr, monatNull)} arten={arten} verfuegbar={ergaenzung.verfuegbar} />
             <MonatsKalender
               jahr={jahr}
               monatNull={monatNull}
               eintraegeProTag={eintraegeProTag}
               basisPfad="/profil"
+              abfrageZusatz={kalenderArtenZusatz(arten)}
             />
           </CardContent>
         </Card>

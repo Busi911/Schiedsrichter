@@ -188,3 +188,12 @@ export function monatsGitter(
 
   return wochen;
 }
+
+// Führt zusätzliche Einträge (Training, Vereinstermine) in eine vorhandene Tagesliste zusammen, je Tag nach Uhrzeit ("HH:MM") sortiert; die Eingabe bleibt unverändert.
+export function mischeNachZeit<T extends { zeit: string }>(basis: Map<string, T[]>, zusatz: Map<string, T[]>): Map<string, T[]> {
+  const ergebnis = new Map(basis);
+  for (const [tag, liste] of zusatz) {
+    ergebnis.set(tag, [...(ergebnis.get(tag) ?? []), ...liste].sort((a, b) => (a.zeit || "").localeCompare(b.zeit || "")));
+  }
+  return ergebnis;
+}

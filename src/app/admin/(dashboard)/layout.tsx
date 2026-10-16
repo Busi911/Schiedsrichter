@@ -188,8 +188,7 @@ export default async function AdminLayout({
         tabs={[
           { href: "/admin", label: "Übersicht", icon: "home", exact: true },
           { href: "/admin/kalender", label: "Kalender", icon: "kalender" },
-          { href: "/admin/termine", label: "Termine", icon: "termine" },
-          { href: "/admin/trainingsplan", label: "Training", icon: "training" },
+          { href: "/admin/termine", label: "Spiele", icon: "termine" },
         ]}
         mehrItems={[
           {
@@ -199,6 +198,7 @@ export default async function AdminLayout({
             badge: offeneDiensteAnzahl,
             gruppe: "Planung",
           },
+          { href: "/admin/trainingsplan", label: "Trainingsplan", icon: "training", gruppe: "Planung" },
           ...(verein?.vereinstermineAktiv
             ? [{ href: "/admin/vereinstermine", label: "Vereinstermine", icon: "termine" as const, gruppe: "Planung" }]
             : []),
