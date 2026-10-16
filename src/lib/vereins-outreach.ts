@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, count, eq, isNull, isNotNull, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaMannschaften, ligaVereine, nuligaVereinsindex, vereine, vereinKontakt, vereinVorschauLinks } from "@/db/schema";
 import { erzeugeVorschauLink } from "./verein-vorschau";
@@ -581,10 +581,8 @@ export async function fuehreOutreachFollowupAus(): Promise<OutreachFollowupErgeb
         isNull(vereinKontakt.outreachAbgemeldetAm),
         isNull(vereinKontakt.inaktivSeit),
         // ansprache_gesendet_am muss gesetzt und älter als 7 Tage sein
-        ne(vereinKontakt.anspracheGesendetAm, null as never),
-        // Drizzle kann nicht direkt < auf timestamp mit mode date machen,
-        // also über sql — aber wir nutzen ne + manuellen Filter:
-        ...[]
+        isNotNull(vereinKontakt.anspracheGesendetAm),
+        // Der < Vergleich mit vor7Tagen passiert in JS (Drizzle timestamp mode=date).
       )
     );
 
