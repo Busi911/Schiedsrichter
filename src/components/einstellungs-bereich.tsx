@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 // Einklappbarer Bereich der Einstellungsseite (natives <details>, daher ohne
 // JS, mit Tastatur bedienbar und auch in Server Components nutzbar). Zugeklappt
 // bleibt nur Titel + Kurzbeschreibung stehen — die Seite wird so zu einer
-// kompakten Liste statt einer langen Kartenwand. Formulare im aufgeklappten
+// kompakten Liste statt einer langen Kartenwand. Auf großen Bildschirmen stehen mehrere Bereiche nebeneinander (Raster in einstellungen/page.tsx). Formulare im aufgeklappten
 // Teil verhalten sich unverändert (Server Actions).
 export function EinstellungsBereich({
   titel,
@@ -13,6 +13,7 @@ export function EinstellungsBereich({
   beschreibung,
   offen = false,
   gefahr = false,
+  breit = false,
   className,
   id,
   children,
@@ -22,6 +23,8 @@ export function EinstellungsBereich({
   beschreibung?: ReactNode;
   offen?: boolean;
   gefahr?: boolean;
+  // Große Formulare: aufgeklappt über die ganze Breite des Rasters (zugeklappt steht der Bereich wie alle anderen in seiner Spalte).
+  breit?: boolean;
   className?: string;
   // Anker für Links wie /admin/einstellungen#oeffentliche-seite (der Bereich klappt beim Sprung auf, siehe unten).
   id?: string;
@@ -31,7 +34,8 @@ export function EinstellungsBereich({
     <details
       open={offen}
       className={cn(
-        "group max-w-2xl rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10",
+        "group w-full min-w-0 rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10",
+        breit && "open:col-span-full",
         gefahr && "ring-destructive/40",
         className
       )}
