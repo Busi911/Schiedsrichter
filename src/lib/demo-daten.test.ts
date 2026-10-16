@@ -105,6 +105,17 @@ describe("Demo: eigene Dienste", () => {
     }
   });
 
+  it("Demo zeigt eine freie und eine belegte Zeit, die buchende Mannschaft existiert", () => {
+    const namen = new Set(d.mannschaften.map((m) => m.name));
+    expect(d.trainingsausfaelle.some((a) => !a.belegtVon)).toBe(true);
+    const belegt = d.trainingsausfaelle.filter((a) => a.belegtVon);
+    expect(belegt.length).toBeGreaterThan(0);
+    for (const a of belegt) {
+      expect(namen.has(a.belegtVon!), a.belegtVon).toBe(true);
+      expect(d.trainingsplan[a.trainingIndex].mannschaft).not.toBe(a.belegtVon);
+    }
+  });
+
   it("Trainingsplan enthält ein Beachhandball-Training auf dem Platz", () => {
     expect(d.trainingsplan.some((e) => e.platz)).toBe(true);
   });

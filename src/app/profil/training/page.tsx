@@ -3,7 +3,7 @@ import Link from "next/link";
 import { and, eq, gte } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
-import { funktionstraegerRollen, hallen, mannschaften, trainingAusfaelle, trainingszeiten, vereine } from "@/db/schema";
+import { funktionstraegerRollen, hallen, mannschaften, trainingAusfaelle, trainingBelegungen, trainingszeiten, vereine } from "@/db/schema";
 import {
   berlinJetzt,
   darfAusfallMelden,
@@ -19,7 +19,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
-import { trainingAusfallMelden, trainingAusfallZuruecknehmen } from "./actions";
+import { ZeitBelegenDialog } from "@/components/zeit-belegen-dialog";
+import { ausfallRuecknahmeErlaubt, belegbareMannschaften, darfBelegungAufheben } from "@/lib/training-belegung";
+import { trainingAusfallMelden, trainingAusfallZuruecknehmen, trainingBelegungAufheben } from "./actions";
 
 const TAGE = 14;
 
@@ -32,10 +34,11 @@ export default async function TrainingPage() {
   const heute = berlinJetzt(new Date()).datum;
 
   const daten = await withTenant(vereinId, async (tx) => {
-    const [verein, zeiten, ausfaelle, mannschaftenListe, hallenListe, rollen] = await Promise.all([
+    const [verein, zeiten, ausfaelle, belegungen, mannschaftenListe, hallenListe, rollen] = await Promise.all([
       tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { trainingFuerAlleSichtbar: true } }),
       tx.query.trainingszeiten.findMany({ where: eq(trainingszeiten.vereinId, vereinId) }),
       tx.query.trainingAusfaelle.findMany({ where: and(eq(trainingAusfaelle.vereinId, vereinId), gte(trainingAusfaelle.datum, heute)) }),
+      tx.query.trainingBelegungen.findMany({ where: and(eq(trainingBelegungen.vereinId, vereinId), gte(trainingBelegungen.datum, heute)) }),
       tx.query.mannschaften.findMany({ where: eq(mannschaften.vereinId, vereinId) }),
       tx.query.hallen.findMany({ where: eq(hallen.vereinId, vereinId) }),
       tx.query.funktionstraegerRollen.findMany({
@@ -43,7 +46,7 @@ export default async function TrainingPage() {
         columns: { mannschaftId: true },
       }),
     ]);
-    return { verein, zeiten, ausfaelle, mannschaftenListe, hallenListe, rollen };
+    return { verein, zeiten, ausfaelle, belegungen, mannschaftenListe, hallenListe, rollen };
   });
 
   const istTrainer = daten.rollen.length > 0;
@@ -78,6 +81,38 @@ export default async function TrainingPage() {
   const hatPlatz = daten.hallenListe.some((h) => h.art === "platz");
   const frei_ = (t: KonkretesTraining) => `${ortWort(halleNachId.get(t.halleId)?.art)} frei`;
   const frei = trainings.filter((t) => t.ausgefallen);
+  // Belegung frei gewordener Zeiten: wer zuerst bucht, bekommt sie. Buchen dürfen Trainer für ihre Mannschaften und Admins für jede andere.
+  const belegungVon = new Map(daten.belegungen.map((b) => [`${b.trainingszeitId}|${b.datum}`, b]));
+  const rechte = { istAdmin: session.user.istAdmin, trainerMannschaftIds };
+  const alleMannschaftIds = daten.mannschaftenListe.map((m) => m.id);
+  const belegOptionen = (t: KonkretesTraining) =>
+    belegbareMannschaften(rechte, alleMannschaftIds, t.mannschaftId).map((id) => ({ id, label: mannschaftName.get(id) ?? "Mannschaft" }));
+  const zeitText = (t: KonkretesTraining) => `${formatTrainingDatum(t.datum)}, ${formatMinuten(t.startMinuten)}–${formatMinuten(t.endMinuten)} Uhr`;
+  // Zustand einer freien Zeit: "belegt von …" (mit Aufheben) oder frei (mit "Zeit belegen").
+  const belegBereich = (t: KonkretesTraining) => {
+    const b = belegungVon.get(`${t.id}|${t.datum}`);
+    if (b) {
+      return (
+        <div className="flex flex-col gap-1">
+          <p className="text-sm">
+            <Badge variant="secondary">Belegt von {mannschaftName.get(b.mannschaftId) ?? "Mannschaft"}</Badge>
+            {b.notiz ? <span className="text-muted-foreground"> · {b.notiz}</span> : null}
+          </p>
+          {darfBelegungAufheben(rechte, b.mannschaftId) && (
+            <form action={trainingBelegungAufheben}>
+              <input type="hidden" name="belegungId" value={b.id} />
+              <ConfirmSubmitButton variant="outline" size="sm" className="min-h-11 w-full sm:w-auto" confirmText="Belegung aufheben? Die Zeit ist dann wieder frei und alle Trainer erfahren es.">
+                Belegung aufheben
+              </ConfirmSubmitButton>
+            </form>
+          )}
+        </div>
+      );
+    }
+    const optionen = belegOptionen(t);
+    if (optionen.length === 0) return null;
+    return <ZeitBelegenDialog trainingszeitId={t.id} datum={t.datum} beschreibung={zeitText(t)} optionen={optionen} ort={hallenName(t)} />;
+  };
   const nachTag = new Map<string, KonkretesTraining[]>();
   for (const t of trainings) nachTag.set(t.datum, [...(nachTag.get(t.datum) ?? []), t]);
 
@@ -112,9 +147,12 @@ export default async function TrainingPage() {
           ) : (
             <ul className="flex flex-col gap-2 text-sm">
               {frei.map((t) => (
-                <li key={`${t.id}-${t.datum}`}>
-                  <strong>{formatTrainingDatum(t.datum, false)}, {formatMinuten(t.startMinuten)}–{formatMinuten(t.endMinuten)} Uhr</strong> ·{" "}
-                  {hallenName(t)} <span className="text-muted-foreground">(fällt aus: {mannschaftName.get(t.mannschaftId) ?? "Mannschaft"}{t.grund ? `, ${t.grund}` : ""})</span>
+                <li key={`${t.id}-${t.datum}`} className="flex flex-col gap-1.5">
+                  <span>
+                    <strong>{formatTrainingDatum(t.datum, false)}, {formatMinuten(t.startMinuten)}–{formatMinuten(t.endMinuten)} Uhr</strong> ·{" "}
+                    {hallenName(t)} <span className="text-muted-foreground">(fällt aus: {mannschaftName.get(t.mannschaftId) ?? "Mannschaft"}{t.grund ? `, ${t.grund}` : ""})</span>
+                  </span>
+                  {belegBereich(t)}
                 </li>
               ))}
             </ul>
@@ -151,14 +189,17 @@ export default async function TrainingPage() {
                       </span>
                       <span>{mannschaftName.get(t.mannschaftId) ?? "Mannschaft"}</span>
                       {eigene && <Badge variant="secondary">Deine Mannschaft</Badge>}
-                      {t.ausgefallen && <Badge>Fällt aus · {frei_(t)}</Badge>}
+                      {t.ausgefallen && <Badge>Fällt aus · {belegungVon.has(`${t.id}|${t.datum}`) ? "belegt" : frei_(t)}</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {hallenName(t)}
                       {t.grund ? ` · ${t.grund}` : ""}
                     </p>
+                    {t.ausgefallen && belegBereich(t)}
                     {darfMelden &&
-                      (t.ausgefallen ? (
+                      (t.ausgefallen ? !ausfallRuecknahmeErlaubt(belegungVon.has(`${t.id}|${t.datum}`), session.user.istAdmin) ? (
+                        <p className="text-xs text-muted-foreground">Die Zeit ist belegt; den Ausfall zurücknehmen kann nur der Admin.</p>
+                      ) : (
                         <form action={trainingAusfallZuruecknehmen}>
                           <input type="hidden" name="trainingszeitId" value={t.id} />
                           <input type="hidden" name="datum" value={t.datum} />

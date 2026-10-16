@@ -321,7 +321,10 @@ Trainer der Mannschaft auf `/profil/training` („Fällt aus“, Grund optional;
 `konkreteTrainings`) und oben „Freie Hallenzeiten“. Alle aktiven Trainer des Vereins bekommen eine Info-Mail (`lib/training-ausfall-mail.ts`, auch bei der
 Rücknahme „Findet doch statt“, nicht an die meldende Person). Persönlicher Schalter `users.training_ausfall_hinweise_aktiviert` (Default an, Profil →
 Benachrichtigungen, nur für Trainer; Abmelde-Link Art `training-ausfall`), bewusst KEIN Vereins-Schalter. Der Extra-Punkt „Training“ (im Kalender über „Zum Training“ und unter „Mehr“) ist für Admins und Trainer immer sichtbar, für alle anderen nur mit `vereine.training_fuer_alle_sichtbar` (Einstellungen →
-Training, Default aus). Nichts davon erscheint auf der öffentlichen Vereinsseite. Plätze (z.B. Beachhandball): `halle.art` ("halle" | "platz") und optionale Saison `saison_von_monat`/`saison_bis_monat` (Migration 0109; von > bis läuft über den Jahreswechsel, `istInSaison`, `lib/trainingsplan.ts`). Außerhalb der Saison entfallen die Trainings
+Training, Default aus). Nichts davon erscheint auf der öffentlichen Vereinsseite. Frei gewordene Zeiten lassen sich belegen (`training_belegung`, Migration 0110, Unique je Trainingszeit+Datum = wer zuerst bucht, bekommt sie): Modal „Zeit belegen“
+(`components/zeit-belegen-dialog.tsx`, Action `trainingBelegen`), Trainer buchen für ihre Mannschaft, Admins für jede andere, nie für die ausfallende; Aufheben durch die buchende Mannschaft oder Admins (`trainingBelegungAufheben`), Rücknahme
+des Ausfalls bei belegter Zeit nur durch einen Admin (die Belegung entfällt). Regeln rein in `lib/training-belegung.ts`, Mails in `lib/training-belegung-mail.ts` (belegt: Trainer der ausfallenden Mannschaft + Admins; wieder frei: alle Trainer; entfällt: Trainer der buchenden
+Mannschaft). Plätze (z.B. Beachhandball): `halle.art` ("halle" | "platz") und optionale Saison `saison_von_monat`/`saison_bis_monat` (Migration 0109; von > bis läuft über den Jahreswechsel, `istInSaison`, `lib/trainingsplan.ts`). Außerhalb der Saison entfallen die Trainings
 des Ortes in „Training“, im Kalender und bei Ausfallmeldungen; der Wochenplan bleibt unverändert, Wortwahl „Platz frei“ statt „Halle frei“.
 
 ## Vereinstermine (Sitzungen) mit Zu-/Absage

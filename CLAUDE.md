@@ -524,6 +524,13 @@ Mannschaften; Vereinstermine nur nach `darfVereinsterminSehen`. Filter `?zeige=s
 Menü: Admin-Leiste Übersicht · Kalender · „Spiele & Turniere“ (früher „Termine“) · Verwaltung (Trainingsplan, Vereinstermine wenn an, Mannschaften …); die Profil-Buttons „Training“/„Vereinstermine“ entfallen, beide stehen unter „Mehr“ (Profil-Navigation) und sind aus dem Kalender-Eintrag erreichbar.
 Neue Eintragsart im Kalender: in `KalenderEintrag.art` + `holeKalenderErgaenzung` + `KALENDER_ARTEN` ergänzen, Hilfe `#kalender` anpassen.
 
+## Frei gewordene Zeiten belegen (Stand 16.10.2026, Betreiber: „wer zuerst bucht“)
+
+`training_belegung` (Migration 0110, `verein_id` + RLS, Test in `tenant-isolation.test.ts`): eine andere Mannschaft nutzt die Zeit eines ausgefallenen Trainings. UNIQUE je `trainingszeit_id`+`datum` entscheidet bei gleichzeitigen Buchungen („wer zuerst bucht“, keine Freigabe durch
+einen Admin). Action `trainingBelegen` (`app/profil/training/actions.ts`): nur wenn ein Ausfall besteht, Datum gültig (Wochentag, nicht vorbei, Saison), `darfBelegen` (`lib/training-belegung.ts`: Admin für jede andere Mannschaft, Trainer für ihre eigenen, nie die ausfallende selbst). `trainingBelegungAufheben`: buchende Mannschaft oder Admin, Mail „wieder frei“ an
+ALLE Trainer. `trainingAusfallZuruecknehmen` bei belegter Zeit: nur Admin (`ausfallRuecknahmeErlaubt`), die Belegung wird mitgelöscht und die Trainer der buchenden Mannschaft informiert. Mails `lib/training-belegung-mail.ts` (Abmelde-Art `training-ausfall`, derselbe persönliche Schalter wie beim Ausfall). UI: Modal `components/zeit-belegen-dialog.tsx`
+auf `/profil/training` (oben unter „Freie Hallenzeiten“ und je Training), Kalender zeigt „belegt von …“. Integrationstest der Actions: `app/profil/training/actions.test.ts` (Postgres). Demo: eine freie und eine belegte Zeit. Hilfe `#training`.
+
 ## Plätze mit Saison (Beachhandball, Stand 16.10.2026)
 
 `halle` ist der EINE Ort für Trainings (Halle ODER Platz): `art` ("halle" | "platz", nur Wortwahl "Platz frei"/"Halle frei", `ortWort`) und optionale Saison `saison_von_monat`/`saison_bis_monat` (Migration 0109, beide oder keiner, von > bis läuft über den Jahreswechsel, `istInSaison`/`pruefeSaison` in

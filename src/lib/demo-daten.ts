@@ -291,7 +291,7 @@ export type DemoDaten = {
   zuordnungen: DemoZuordnung[];
   trainingsplan: { mannschaft: string; wochentag: number; vonMinuten: number; bisMinuten: number; abteil?: number; farbe: string; platz?: boolean }[];
   // Ausfälle: Position im Trainingsplan oben; das Datum ist das nächste künftige Training an dessen Wochentag (relativ zu "jetzt").
-  trainingsausfaelle: { trainingIndex: number; grund: string }[];
+  trainingsausfaelle: { trainingIndex: number; grund: string; belegtVon?: string; belegtNotiz?: string }[];
   vereinstermine: DemoVereinstermin[];
   eigeneDienste: DemoEigenerDienst[];
   eigeneEinteilungen: DemoEigeneEinteilung[];
@@ -321,7 +321,11 @@ export function baueDemoDaten(): DemoDaten {
       { mannschaft: "weibliche B-Jugend", wochentag: 5, vonMinuten: 10 * 60, bisMinuten: 11 * 60 + 30, farbe: "#f97316", platz: true },
     ],
     // 2. Herren (Mittwoch): Trainer krank, die Halle ist frei
-    trainingsausfaelle: [{ trainingIndex: 5, grund: "Trainer krank" }],
+    // zweiter Ausfall: 1. Herren am Freitag, die Zeit hat schon die männliche B-Jugend gebucht (zeigt "belegt von …" und "Belegung aufheben")
+    trainingsausfaelle: [
+      { trainingIndex: 5, grund: "Trainer krank" },
+      { trainingIndex: 7, grund: "Hallenfest", belegtVon: "männliche B-Jugend", belegtNotiz: "Vorbereitung auf das Pokalspiel" },
+    ],
   };
 }
 

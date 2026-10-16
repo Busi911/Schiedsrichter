@@ -771,6 +771,13 @@
       "when": 1792160479254,
       "tag": "0109_platz_saison",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1792161225226,
+      "tag": "0110_training_belegung",
+      "breakpoints": true
     }
   ]
 }
