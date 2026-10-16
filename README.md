@@ -334,7 +334,9 @@ Termine des Vereins, die keine Spiele sind (Sitzung, Versammlung, Arbeitseinsatz
 Personen); Admins sehen alles (`darfVereinsterminSehen`, `lib/vereinstermine.ts`, rein/getestet). Antworten bis zum Beginn, nur bei „Um Rückmeldung bitten“; wer
 geantwortet hat, sehen nur Admins, alle anderen Zahlen. Mails (`lib/vereinstermin-mail.ts`): Einladung, Änderung (Titel/Beginn/Ende/Ort), Absage an Zusagende; vom
 Admin je Termin anhakbar, persönlich abschaltbar (`users.vereinstermin_hinweise_aktiviert`, Abmelde-Art `vereinstermin`). Die Termine stehen auch im persönlichen
-ICS-Abo. Nie auf der öffentlichen Seite. Noch offen: Wiederholungen (z.B. monatliche Sitzung), Plätze/Ressourcen (Beachhandball), Gesamtkalender mit Spielen.
+ICS-Abo. Nie auf der öffentlichen Seite. Wiederholungen (Migration 0108, `serie_id` + `wiederholung`): jede Serie besteht aus einzelnen Terminen (höchstens 52; wöchentlich, alle 2 Wochen, monatlich am n-ten Wochentag; Rechnung rein in
+`lib/wiederholung.ts`, deutsche Wanduhrzeit), eine Mail je Serie, Bearbeiten/Löschen „nur diesen“ oder „diesen und alle folgenden“, im Profil je Serie die nächsten drei Termine (`kuerzeSerien`).
+Noch offen: Plätze/Ressourcen (Beachhandball), Gesamtkalender mit Spielen.
 
 ## Systemadmin (vereinsübergreifend)
 

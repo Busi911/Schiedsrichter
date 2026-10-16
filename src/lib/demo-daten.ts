@@ -244,6 +244,8 @@ export type DemoVereinstermin = {
   beschreibung: string;
   sichtbarkeit: "alle" | "admins" | "auswahl";
   rollen?: string[];
+  // Serie: Rhythmus und Dauer in Tagen ab dem ersten Termin (lib/wiederholung.ts)
+  serie?: { wiederholung: "woechentlich" | "zweiwoechentlich" | "monatlich"; bisTage: number };
   antworten: { person: string; antwort: "zusage" | "vielleicht" | "absage"; kommentar?: string }[];
 };
 
@@ -258,6 +260,7 @@ const VEREINSTERMINE: DemoVereinstermin[] = [
     beschreibung: "Hallenzeiten nach den Ferien, Trainingslager, Jugendspielrunde.",
     sichtbarkeit: "auswahl",
     rollen: ["trainer"],
+    serie: { wiederholung: "monatlich", bisTage: 120 },
     antworten: [
       { person: "michael", antwort: "zusage" },
       { person: "sabine", antwort: "vielleicht", kommentar: "komme etwas später" },

@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import {
@@ -20,6 +21,7 @@ import {
 } from "@/db/schema";
 import { AVV_VERSION } from "@/lib/avv";
 import { addiereTage, berlinJetzt, wochentagVonDatum } from "@/lib/training-ausfall";
+import { berechneSerie } from "@/lib/wiederholung";
 import { baueDemoDaten, DEMO_ADMIN, demoEmail, demoErsatzAdresse } from "@/lib/demo-daten";
 import {
   DEMO_ADMIN_ID,
@@ -198,28 +200,36 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
     // Vereinstermine (Sitzung nur für Trainer, Arbeitseinsatz für alle) mit ein paar Antworten.
     for (const v of daten.vereinstermine) {
       const start = berlinZeit(jetzt, v.tage, v.stunde, 0);
-      const [vt] = await tx
+      const starts = v.serie ? berechneSerie(start, v.serie.wiederholung, addiereTage(berlinJetzt(jetzt).datum, v.serie.bisTage)) : [start];
+      const serieId = v.serie ? randomUUID() : null;
+      const angelegt = await tx
         .insert(vereinstermine)
-        .values({
-          vereinId: DEMO_VEREIN_ID,
-          titel: v.titel,
-          art: v.art,
-          beschreibung: v.beschreibung,
-          ort: v.ort,
-          start,
-          ende: new Date(start.getTime() + v.dauerMinuten * 60_000),
-          sichtbarkeit: v.sichtbarkeit,
-          antwortAbfrage: true,
-          erstelltVon: DEMO_ADMIN_ID,
-        })
-        .returning({ id: vereinstermine.id });
+        .values(
+          starts.map((s) => ({
+            vereinId: DEMO_VEREIN_ID,
+            titel: v.titel,
+            art: v.art,
+            beschreibung: v.beschreibung,
+            ort: v.ort,
+            start: s,
+            ende: new Date(s.getTime() + v.dauerMinuten * 60_000),
+            sichtbarkeit: v.sichtbarkeit,
+            antwortAbfrage: true,
+            serieId,
+            wiederholung: v.serie?.wiederholung ?? null,
+            erstelltVon: DEMO_ADMIN_ID,
+          }))
+        )
+        .returning({ id: vereinstermine.id, start: vereinstermine.start });
+      angelegt.sort((a, b) => a.start.getTime() - b.start.getTime());
       if (v.rollen?.length) {
-        await tx.insert(vereinsterminSichtbar).values(v.rollen.map((rolle) => ({ vereinsterminId: vt.id, vereinId: DEMO_VEREIN_ID, rolle })));
+        await tx.insert(vereinsterminSichtbar).values(angelegt.flatMap((vt) => v.rollen!.map((rolle) => ({ vereinsterminId: vt.id, vereinId: DEMO_VEREIN_ID, rolle }))));
       }
+      // Antworten nur zum ersten Termin der Serie
       if (v.antworten.length) {
         await tx.insert(vereinsterminAntworten).values(
           v.antworten.map((a) => ({
-            vereinsterminId: vt.id,
+            vereinsterminId: angelegt[0].id,
             userId: userIdNach.get(a.person)!,
             vereinId: DEMO_VEREIN_ID,
             antwort: a.antwort,

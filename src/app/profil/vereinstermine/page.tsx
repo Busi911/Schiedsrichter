@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/submit-button";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
 import { formatDatumZeitLang, formatZeit } from "@/lib/format";
+import { istWiederholung, kuerzeSerien, serienText } from "@/lib/wiederholung";
 import { ANTWORTEN, ARTEN, antwortNochMoeglich, fasseAntwortenZusammen, istAnstehend, istAntwort, type Art } from "@/lib/vereinstermine";
 import { holeSichtbareVereinstermine, holeVereinsterminPerson, ladeAntworten, ladeVereinsPersonen, vereinstermineAktiv, zielgruppe } from "@/lib/vereinstermine-daten";
 import { vereinsterminAntwortenSetzen, vereinsterminAntwortZuruecknehmen } from "./actions";
@@ -21,7 +22,9 @@ export default async function VereinsterminePage() {
   const jetzt = new Date();
   const istAdmin = session.user.istAdmin || !!session.user.istAdminLesend;
   const person = await holeVereinsterminPerson(vereinId, userId, istAdmin);
-  const termine = (await holeSichtbareVereinstermine(vereinId, person, new Date(jetzt.getTime() - 24 * 3600_000))).filter((t) => istAnstehend(t, jetzt));
+  const alleAnstehend = (await holeSichtbareVereinstermine(vereinId, person, new Date(jetzt.getTime() - 24 * 3600_000))).filter((t) => istAnstehend(t, jetzt));
+  // Von einer Serie (z.B. monatliche Sitzung) die nächsten drei Termine; die weiteren erscheinen, sobald sie näher rücken.
+  const { sichtbar: termine, ausgeblendet } = kuerzeSerien(alleAnstehend, 3);
   const [antworten, personen] = await Promise.all([ladeAntworten(vereinId, termine.map((t) => t.id)), ladeVereinsPersonen(vereinId)]);
 
   return (
@@ -61,6 +64,7 @@ export default async function VereinsterminePage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="secondary">{ARTEN[t.art as Art] ?? t.art}</Badge>
                   <CardTitle className="text-base">{t.titel}</CardTitle>
+                  {t.serieId && t.wiederholung && istWiederholung(t.wiederholung) && <Badge variant="outline">{serienText(t.wiederholung, t.start)}</Badge>}
                 </div>
                 <CardDescription>
                   {formatDatumZeitLang(t.start)}
@@ -115,6 +119,11 @@ export default async function VereinsterminePage() {
             </Card>
           );
         })
+      )}
+      {ausgeblendet.size > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Von wiederkehrenden Terminen siehst du jeweils die nächsten drei; die weiteren erscheinen, sobald sie näher rücken.
+        </p>
       )}
     </div>
   );

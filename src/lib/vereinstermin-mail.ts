@@ -21,6 +21,8 @@ export type TerminMailDaten = {
   antwortAbfrage: boolean;
   variante: "einladung" | "geaendert" | "abgesagt";
   geaendert?: string[]; // z.B. ["Beginn", "Ort"]
+  // Bei Serien (eine Mail für die ganze Serie): fertiger Satz, z.B. "Wiederholt sich jeden 4. Donnerstag im Monat, bis 31.03.2027 (6 Termine)."
+  serie?: string;
 };
 
 const artLabel = (art: string) => ARTEN[art as Art] ?? "Termin";
@@ -29,11 +31,21 @@ const artLabel = (art: string) => ARTEN[art as Art] ?? "Termin";
 export function vereinsterminInhalt(d: TerminMailDaten): EmailInhalt {
   const wann = `${formatDatumZeitLang(d.start)}${d.ende ? ` bis ${formatZeit(d.ende)} Uhr` : " Uhr"}`;
   const kopf = `${artLabel(d.art)}: ${d.titel}`;
-  const details = [{ text: wann, stark: true }, ...(d.ort ? [`Ort: ${d.ort}`] : []), ...(d.beschreibung ? [d.beschreibung] : [])];
+  const details = [
+    { text: wann, stark: true },
+    ...(d.serie ? [d.serie] : []),
+    ...(d.ort ? [`Ort: ${d.ort}`] : []),
+    ...(d.beschreibung ? [d.beschreibung] : []),
+  ];
   const link = { text: d.antwortAbfrage ? "Zu- oder absagen" : "Termin ansehen", url: `${appUrl()}/profil/vereinstermine#termin-${d.id}` };
   const klein = "Du bekommst diese Mail, weil du zu diesem Termin eingeladen bist. Abschaltbar in deinen Benachrichtigungs-Einstellungen.";
   if (d.variante === "abgesagt") {
-    return { vereinName: d.vereinName, ueberschrift: `Abgesagt: ${kopf}`, zeilen: [{ text: wann, stark: true }, "Dieser Termin findet nicht statt."], kleingedrucktes: klein };
+    return {
+      vereinName: d.vereinName,
+      ueberschrift: `Abgesagt: ${kopf}`,
+      zeilen: [{ text: wann, stark: true }, ...(d.serie ? [d.serie] : []), "Dieser Termin findet nicht statt."],
+      kleingedrucktes: klein,
+    };
   }
   if (d.variante === "geaendert") {
     return {

@@ -43,4 +43,9 @@ describe("vereinsterminInhalt", () => {
     expect(a.ueberschrift).toMatch(/^Abgesagt:/);
     expect(a.cta).toBeUndefined();
   });
+  it("Serien-Satz erscheint in Einladung und Absage", () => {
+    const satz = "Wiederholt sich jeden 4. Donnerstag im Monat, bis 31.03.2027 (6 Termine).";
+    expect(JSON.stringify(vereinsterminInhalt({ ...basis, serie: satz }))).toContain(satz);
+    expect(JSON.stringify(vereinsterminInhalt({ ...basis, variante: "abgesagt", serie: satz }))).toContain(satz);
+  });
 });

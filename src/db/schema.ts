@@ -480,6 +480,9 @@ export const vereinstermine = pgTable("vereinstermin", {
   ende: timestamp("ende", { mode: "date" }),
   sichtbarkeit: text("sichtbarkeit").notNull().default("alle"),
   antwortAbfrage: boolean("antwort_abfrage").notNull().default(true),
+  // Termine einer Serie (z.B. monatliche Sitzung) sind einzelne Zeilen mit gemeinsamer serie_id; wiederholung = Rhythmus (lib/wiederholung.ts), null = Einzeltermin.
+  serieId: uuid("serie_id"),
+  wiederholung: text("wiederholung"),
   erstelltVon: text("erstellt_von").references(() => users.id, { onDelete: "set null" }),
   erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
   aktualisiertAm: timestamp("aktualisiert_am").notNull().defaultNow(),
