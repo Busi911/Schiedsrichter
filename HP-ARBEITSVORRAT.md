@@ -22,7 +22,7 @@ Stand: 2026-10-16
 ## Aufgabe 1: Sponsor-Splash Barrierefreiheit (a11y)
 
 **Priorität**: Barrierefreiheit (P1)
-**Status**: erledigt
+**Status**: implementiert – wartet auf Review
 **Branch**: hp/aufgabe-sponsor-splash-a11y
 **PR**: #409
 **Aufwand**: S (≤ 1 Tag)
