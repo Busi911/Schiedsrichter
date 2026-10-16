@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDatumZeitLang } from "@/lib/format";
 import { ARTEN, antwortNochMoeglich, type Art } from "@/lib/vereinstermine";
+import { kuerzeSerien } from "@/lib/wiederholung";
 import { holeSichtbareVereinstermine, holeVereinsterminPerson, ladeAntworten } from "@/lib/vereinstermine-daten";
 
 const MAX = 3;
@@ -13,7 +14,10 @@ export async function VereinsterminOffenKarte({ vereinId, userId, istAdmin }: { 
   const termine = (await holeSichtbareVereinstermine(vereinId, person, jetzt)).filter((t) => t.antwortAbfrage && antwortNochMoeglich(t.start, jetzt));
   if (termine.length === 0) return null;
   const antworten = await ladeAntworten(vereinId, termine.map((t) => t.id));
-  const offen = termine.filter((t) => !(antworten.get(t.id) ?? []).some((a) => a.userId === userId));
+  const offen = kuerzeSerien(
+    termine.filter((t) => !(antworten.get(t.id) ?? []).some((a) => a.userId === userId)),
+    3
+  ).sichtbar;
   if (offen.length === 0) return null;
   return (
     <Card className="border-primary/40 bg-primary/5">

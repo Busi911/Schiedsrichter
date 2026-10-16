@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toDatetimeLocalWert } from "@/lib/format";
 import { ARTEN, ROLLEN, SICHTBARKEITEN } from "@/lib/vereinstermine";
+import { WIEDERHOLUNGEN, istWiederholung, serienText } from "@/lib/wiederholung";
 
 export type FormularPerson = { id: string; label: string };
 export type FormularWerte = {
@@ -18,6 +19,8 @@ export type FormularWerte = {
   rollen: string[];
   personen: string[];
   antwortAbfrage: boolean;
+  serieId?: string | null;
+  wiederholung?: string | null;
 };
 
 const SELECT_KLASSE =
@@ -71,6 +74,28 @@ export function VereinsterminFormular({
           <Input id={f("ende")} name="ende" type="datetime-local" defaultValue={werte?.ende ? toDatetimeLocalWert(werte.ende) : undefined} />
         </div>
       </div>
+      {!werte && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={f("wiederholung")}>Wiederholung</Label>
+            <select id={f("wiederholung")} name="wiederholung" defaultValue="" className={SELECT_KLASSE}>
+              <option value="">Keine (einmaliger Termin)</option>
+              {Object.entries(WIEDERHOLUNGEN).map(([schluessel, label]) => (
+                <option key={schluessel} value={schluessel}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={f("bis")}>Wiederholen bis (nur bei Wiederholung)</Label>
+            <Input id={f("bis")} name="bis" type="date" />
+          </div>
+          <p className="text-xs text-muted-foreground sm:col-span-2">
+            Jeder Termin der Serie wird einzeln angelegt (höchstens 52), Zu- und Absagen gibt es je Termin. Die Eingeladenen bekommen nur eine Mail für die ganze Serie.
+          </p>
+        </div>
+      )}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={f("ort")}>Ort (optional)</Label>
         <Input id={f("ort")} name="ort" maxLength={200} defaultValue={werte?.ort ?? ""} placeholder="z.B. Vereinsheim" />
@@ -117,6 +142,13 @@ export function VereinsterminFormular({
         </div>
       </fieldset>
 
+      {werte?.serieId && (
+        <label className="flex min-h-11 items-center gap-2 text-sm">
+          <input type="checkbox" name="folgende" className="size-4 accent-primary" />
+          Auch alle folgenden Termine der Serie ändern
+          {werte.wiederholung && istWiederholung(werte.wiederholung) ? ` (${serienText(werte.wiederholung, werte.start)})` : ""} — sie behalten ihren Tag und übernehmen Uhrzeit, Ort, Titel und Sichtbarkeit
+        </label>
+      )}
       <label className="flex min-h-11 items-center gap-2 text-sm">
         <input type="checkbox" name="antwortAbfrage" defaultChecked={werte?.antwortAbfrage ?? true} className="size-4 accent-primary" />
         Um Rückmeldung bitten (Zusage / Vielleicht / Absage)

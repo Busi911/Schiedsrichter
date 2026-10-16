@@ -757,6 +757,13 @@
       "when": 1792158442669,
       "tag": "0107_vereinstermine",
       "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1792159573744,
+      "tag": "0108_vereinstermin_serie",
+      "breakpoints": true
     }
   ]
 }

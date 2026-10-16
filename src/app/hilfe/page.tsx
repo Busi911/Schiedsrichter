@@ -885,6 +885,13 @@ export default async function HilfePage() {
           nur die Zahlen. Ohne Haken bei „Um Rückmeldung bitten“ gibt es keine Antwort-Abfrage.
         </p>
         <p className="text-sm text-muted-foreground">
+          <strong>Wiederholungen:</strong> Beim Anlegen lässt sich ein Rhythmus wählen (jede Woche, alle 2 Wochen oder jeden Monat am gleichen Wochentag, z.B. jeden 4.
+          Donnerstag) und ein Enddatum („wiederholen bis“, höchstens 52 Termine). Jeder Termin der Serie ist ein eigener Termin mit eigenen Zu- und Absagen; die
+          Eingeladenen bekommen nur <strong>eine</strong> Mail für die ganze Serie, und im Profil sehen sie von einer Serie die nächsten drei Termine. Beim Bearbeiten
+          gilt eine Änderung nur für diesen Termin, oder mit „Auch alle folgenden Termine ändern“ ab diesem Termin (die Tage bleiben, Uhrzeit, Ort, Titel und
+          Sichtbarkeit werden übernommen). Löschen geht für „nur diesen Termin“ oder „diesen und alle folgenden“.
+        </p>
+        <p className="text-sm text-muted-foreground">
           <strong>Mails:</strong> Beim Anlegen kann der Admin die Eingeladenen per Mail informieren („Eingeladene per Mail informieren“). Bei einer Änderung
           von Titel, Beginn, Ende oder Ort bekommen sie eine Änderungsmail, neu Hinzugekommene eine Einladung; wird ein Termin gelöscht, bekommen alle, die
           zugesagt oder „vielleicht“ geantwortet haben, eine Absage. Jede Person kann diese Mails im Profil unter <strong>Benachrichtigungen</strong> oder per

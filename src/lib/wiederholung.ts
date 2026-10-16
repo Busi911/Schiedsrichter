@@ -68,3 +68,35 @@ export function serienText(wiederholung: Wiederholung, start: Date): string {
   }
   return wiederholung === "woechentlich" ? `jede Woche am ${name}` : `alle 2 Wochen am ${name}`;
 }
+
+// Eingabe aus dem Formular: leer = Einzeltermin. Sonst ist "bis" Pflicht (Kalendertag, nicht vor dem Start).
+export function pruefeSerienEingabe(
+  wiederholung: string,
+  bis: string,
+  start: Date
+): { fehler: string } | { wert: { wiederholung: Wiederholung; bis: string } | null } {
+  if (!wiederholung) return { wert: null };
+  if (!istWiederholung(wiederholung)) return { fehler: "Ungültige Wiederholung." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(bis)) return { fehler: "Bitte angeben, bis wann sich der Termin wiederholt." };
+  if (bis < lokal(start).datum) return { fehler: "„Bis“ liegt vor dem Beginn." };
+  return { wert: { wiederholung, bis } };
+}
+
+// Liste mit Terminen einer Serie kürzen: von jeder Serie nur die nächsten `max` Termine (Reihenfolge der Eingabe bleibt), dazu die Zahl der ausgeblendeten
+// je Serie — so füllt eine Jahres-Serie nicht die ganze Seite. Einzeltermine bleiben immer.
+export function kuerzeSerien<T extends { id: string; serieId: string | null }>(termine: T[], max: number): { sichtbar: T[]; ausgeblendet: Map<string, number> } {
+  const gezaehlt = new Map<string, number>();
+  const ausgeblendet = new Map<string, number>();
+  const sichtbar: T[] = [];
+  for (const t of termine) {
+    if (!t.serieId) {
+      sichtbar.push(t);
+      continue;
+    }
+    const n = (gezaehlt.get(t.serieId) ?? 0) + 1;
+    gezaehlt.set(t.serieId, n);
+    if (n <= max) sichtbar.push(t);
+    else ausgeblendet.set(t.serieId, (ausgeblendet.get(t.serieId) ?? 0) + 1);
+  }
+  return { sichtbar, ausgeblendet };
+}

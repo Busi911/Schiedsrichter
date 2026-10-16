@@ -315,7 +315,7 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Mandantentrennung (RLS)", () => {
   });
   it("Vereinstermine (vereinstermin, -sichtbar, -antwort) sind je Verein getrennt", async () => {
     const { rows: t } = await adminPool.query(
-      `insert into vereinstermin (verein_id, titel, start, sichtbarkeit) values ($1, 'Sitzung B', '2030-01-02T18:00:00Z', 'auswahl') returning id`,
+      `insert into vereinstermin (verein_id, titel, start, sichtbarkeit, serie_id, wiederholung) values ($1, 'Sitzung B', '2030-01-02T18:00:00Z', 'auswahl', gen_random_uuid(), 'monatlich') returning id`,
       [vereinB]
     );
     const terminB = t[0].id;

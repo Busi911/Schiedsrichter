@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { berechneSerie, MAX_SERIEN_TERMINE, nteWochentagImMonat, serienText } from "./wiederholung";
+import { berechneSerie, kuerzeSerien, MAX_SERIEN_TERMINE, nteWochentagImMonat, pruefeSerienEingabe, serienText } from "./wiederholung";
 import { toDatetimeLocalWert } from "./format";
 
 // Donnerstag, 22.10.2026, 19:00 deutsche Zeit (MESZ, UTC+2)
@@ -60,5 +60,27 @@ describe("nteWochentagImMonat / serienText", () => {
     expect(serienText("monatlich", START)).toBe("jeden 4. Donnerstag im Monat");
     expect(serienText("woechentlich", START)).toBe("jede Woche am Donnerstag");
     expect(serienText("zweiwoechentlich", START)).toBe("alle 2 Wochen am Donnerstag");
+  });
+});
+
+describe("pruefeSerienEingabe", () => {
+  it("leer = Einzeltermin", () => {
+    expect(pruefeSerienEingabe("", "", START)).toEqual({ wert: null });
+  });
+  it("braucht ein gültiges 'bis' nicht vor dem Start", () => {
+    expect(pruefeSerienEingabe("monatlich", "", START)).toHaveProperty("fehler");
+    expect(pruefeSerienEingabe("monatlich", "2026-10-01", START)).toHaveProperty("fehler");
+    expect(pruefeSerienEingabe("quatsch", "2027-01-01", START)).toHaveProperty("fehler");
+    expect(pruefeSerienEingabe("monatlich", "2026-10-22", START)).toEqual({ wert: { wiederholung: "monatlich", bis: "2026-10-22" } });
+  });
+});
+
+describe("kuerzeSerien", () => {
+  const t = (id: string, serieId: string | null) => ({ id, serieId });
+  it("zeigt je Serie nur die nächsten Termine, Einzeltermine immer", () => {
+    const { sichtbar, ausgeblendet } = kuerzeSerien([t("1", "a"), t("2", null), t("3", "a"), t("4", "a"), t("5", "b"), t("6", "a")], 2);
+    expect(sichtbar.map((x) => x.id)).toEqual(["1", "2", "3", "5"]);
+    expect(ausgeblendet.get("a")).toBe(2);
+    expect(ausgeblendet.has("b")).toBe(false);
   });
 });

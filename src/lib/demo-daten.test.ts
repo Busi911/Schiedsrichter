@@ -112,6 +112,7 @@ describe("Demo: eigene Dienste", () => {
       for (const a of t.antworten) expect(keys.has(a.person), a.person).toBe(true);
       for (const r of t.rollen ?? []) expect(istRollenSchluessel(r), r).toBe(true);
       if (t.sichtbarkeit === "auswahl") expect((t.rollen ?? []).length).toBeGreaterThan(0);
+      if (t.serie) expect(t.serie.bisTage).toBeGreaterThan(30);
     }
   });
 });

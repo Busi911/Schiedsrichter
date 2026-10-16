@@ -6,6 +6,7 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
 import { VereinsterminFormular } from "@/components/vereinstermin-formular";
 import { formatDatumZeitLang, formatZeit } from "@/lib/format";
+import { istWiederholung, serienText } from "@/lib/wiederholung";
 import { ANTWORTEN, ARTEN, ROLLEN, SICHTBARKEITEN, fasseAntwortenZusammen, istAnstehend, istAntwort, type Art } from "@/lib/vereinstermine";
 import { ladeAntworten, ladeVereinsPersonen, ladeVereinstermine, vereinstermineAktiv, zielgruppe, type VereinsterminListe } from "@/lib/vereinstermine-daten";
 import { vereinsterminAendern, vereinsterminAnlegen, vereinsterminLoeschen } from "./actions";
@@ -61,6 +62,7 @@ export default async function VereinsterminePage() {
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{ARTEN[t.art as Art] ?? t.art}</Badge>
             <CardTitle className="text-base">{t.titel}</CardTitle>
+            {t.serieId && t.wiederholung && istWiederholung(t.wiederholung) && <Badge variant="outline">Serie: {serienText(t.wiederholung, t.start)}</Badge>}
           </div>
           <CardDescription>
             {formatDatumZeitLang(t.start)}
@@ -111,12 +113,23 @@ export default async function VereinsterminePage() {
                   />
                 </div>
               </details>
-              <form action={vereinsterminLoeschen}>
-                <input type="hidden" name="id" value={t.id} />
-                <ConfirmSubmitButton variant="outline" size="sm" className="min-h-11 text-destructive" confirmText="Termin löschen? Wer zugesagt hat, bekommt eine Absage per Mail.">
-                  Termin löschen
-                </ConfirmSubmitButton>
-              </form>
+              <div className="flex flex-wrap gap-2">
+                <form action={vereinsterminLoeschen}>
+                  <input type="hidden" name="id" value={t.id} />
+                  <ConfirmSubmitButton variant="outline" size="sm" className="min-h-11 text-destructive" confirmText="Termin löschen? Wer zugesagt hat, bekommt eine Absage per Mail.">
+                    {t.serieId ? "Nur diesen Termin löschen" : "Termin löschen"}
+                  </ConfirmSubmitButton>
+                </form>
+                {t.serieId && (
+                  <form action={vereinsterminLoeschen}>
+                    <input type="hidden" name="id" value={t.id} />
+                    <input type="hidden" name="scope" value="folgende" />
+                    <ConfirmSubmitButton variant="outline" size="sm" className="min-h-11 text-destructive" confirmText="Diesen und alle folgenden Termine der Serie löschen? Wer zugesagt hat, bekommt eine Absage per Mail.">
+                      Diesen und alle folgenden löschen
+                    </ConfirmSubmitButton>
+                  </form>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
