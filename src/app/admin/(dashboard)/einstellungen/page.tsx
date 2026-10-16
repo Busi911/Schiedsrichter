@@ -211,15 +211,16 @@ export default async function EinstellungenPage({
     : [];
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="mb-2">
+    // Raster: mobil eine Spalte, ab lg zwei, ab 2xl drei Bereiche nebeneinander (Seitenbreite wie das Admin-Layout, max-w-screen-2xl).
+    <div className="grid items-start gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+      <div className="col-span-full mb-2">
         <h1 className="font-heading text-2xl font-semibold">Einstellungen</h1>
       </div>
 
       {nuligaErgebnis.nuligaNeu !== undefined && (
         <Alert
           variant={nuligaErgebnis.nuligaFehler ? "destructive" : "default"}
-          className="max-w-md"
+          className="col-span-full max-w-2xl"
         >
           <AlertTitle>
             nuLiga-Sync: {nuligaErgebnis.nuligaNeu} neu,{" "}
@@ -244,7 +245,7 @@ export default async function EinstellungenPage({
       {nuligaErgebnis.ligaStatus !== undefined && (
         <Alert
           variant={nuligaErgebnis.ligaStatus === "fehler" ? "destructive" : "default"}
-          className="max-w-2xl"
+          className="col-span-full max-w-2xl"
         >
           <AlertTitle>
             Öffentliche Vereinsseite: Synchronisation {nuligaErgebnis.ligaStatus} (
@@ -269,8 +270,8 @@ export default async function EinstellungenPage({
         </Alert>
       )}
 
-      <h2 className="mt-2 text-sm font-medium text-muted-foreground">Erste Schritte</h2>
-      <EinstellungsBereich id="oeffentliche-seite" titel="Öffentliche Vereinsseite" kurz="Ligadaten aus nuLiga und handball.net, Namen, Logo" beschreibung={<>Zeigt Mannschaften, Spielpläne, Ergebnisse und Tabellen eures Vereins
+      <h2 className="col-span-full mt-2 text-sm font-medium text-muted-foreground">Erste Schritte</h2>
+      <EinstellungsBereich id="oeffentliche-seite" breit titel="Öffentliche Vereinsseite" kurz="Ligadaten aus nuLiga und handball.net, Namen, Logo" beschreibung={<>Zeigt Mannschaften, Spielpläne, Ergebnisse und Tabellen eures Vereins
             aus nuLiga und handball.net auf einer öffentlichen Seite (ohne Login, für Suchmaschinen
             auffindbar). Es werden nur öffentliche Sportdaten übernommen — keine
             Personen.{" "}
@@ -675,6 +676,7 @@ export default async function EinstellungenPage({
 
         <EinstellungsBereich
           id="dienste-bedarf"
+          breit
           titel="Dienste"
           kurz={["Ordner", "Kioskdienst", "Kassierer", "Zeitnehmer/Sekretär", ...eigeneDienste.map((d) => d.name)].join(", ")}
           beschreibung={
