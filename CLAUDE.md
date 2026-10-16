@@ -501,6 +501,18 @@ Profil → Benachrichtigungen nur für Trainer, Abmelde-Art `training-ausfall`).
 Admins und Trainer ihn (`darfTrainingSehen`, `sehenTrainingPunkt` für Layout/Navigation). Nie auf der öffentlichen Seite. Demo: ein ausgefallenes Training (2. Herren), Schalter für alle an. Hilfe `#training`. Noch offen (nächste Stufen):
 allgemeine Vereinstermine/Sitzungen mit Sichtbarkeit nach Gruppe, Plätze/Ressourcen mit Saisonfenster (Beachhandball), Gesamtkalender.
 
+## Vereinstermine (Sitzungen) mit Sichtbarkeit und Zu-/Absage (Stand 16.10.2026, Wunsch eines Interessenten)
+
+Tabellen `vereinstermin`/`vereinstermin_sichtbar`/`vereinstermin_antwort` (Migration 0107, `verein_id` + RLS, Test in `tenant-isolation.test.ts`). Je Verein ein Schalter `vereine.vereinstermine_aktiv` (Default aus; Einstellungen → Vereinstermine, Anker
+`#vereinstermine`): aus = Seiten 404 bzw. Hinweis, kein Menüpunkt, keine Mails, kein ICS-Eintrag; Daten bleiben. Anlegen/Ändern/Löschen nur Admin (Schreibzugriff) auf `/admin/vereinstermine`; alle Personen sehen ihre Termine und antworten auf
+`/profil/vereinstermine` (Menüpunkt im „Mehr“, Button und Karte „Rückmeldung steht aus“ auf `/profil`). Regeln rein in `lib/vereinstermine.ts`: `darfVereinsterminSehen` (Admins immer; „alle“; „admins“; „auswahl“ = Rolle (`ROLLEN`, Zeitnehmer/Sekretär und Warte als
+Gruppe) oder namentlich), `pruefeVereinstermin`, `fasseAntwortenZusammen`, `aenderungen`, `istAnstehend`. Laden in `vereinstermine-daten.ts` (`user` hat keine RLS: Personen immer mit Vereinsfilter, ausgewählte Personen werden gegen den eigenen Verein
+geprüft, `nurEigenePersonen`). Antworten (`vereinsterminAntwortenSetzen`): nur wer den Termin sehen darf, nur bei `antwort_abfrage`, nur vor dem Beginn, eine neue Antwort ersetzt die alte; Namen sehen nur Admins (Übersicht je Termin), alle anderen die Zahlen.
+Mails (`vereinstermin-mail.ts`, über `after()`, abbestellbar: Abmelde-Art `vereinstermin`, persönlicher Schalter `users.vereinstermin_hinweise_aktiviert`, im Profil nur sichtbar, wenn die Funktion an ist): Einladung beim Anlegen (Haken „Eingeladene
+per Mail informieren“), bei Änderung Einladung an neu Hinzugekommene und Änderungsmail (nur bei Titel/Beginn/Ende/Ort) an die übrigen, beim Löschen Absage an Zusagende/„Vielleicht“ (nur für künftige Termine). Entscheidung Betreiber 16.10.2026: Sichtbarkeit einstellbar, Teilnahme-Antworten möglich.
+Vereinstermine stehen im persönlichen ICS-Abo (`holeVereinsterminFuerIcs`, UID `verein-<id>`). Nie auf der öffentlichen Seite. Demo: Trainersitzung (nur Trainer) und Arbeitseinsatz (alle) mit Antworten. Hilfe `#vereinstermine`.
+Noch offen: Wiederholungen, Plätze/Ressourcen (Beachhandball), Gesamtkalender mit Spielen.
+
 ## Hilfe: wo Nutzer sie finden
 
 Zwei Hilfeseiten: `/hilfe` (eingeloggt: Erste Schritte, Rollen, Kalender, Bedarf, Zuordnung, Mails, Statistik, Support; mit Inhaltsverzeichnis und Anker je Abschnitt)

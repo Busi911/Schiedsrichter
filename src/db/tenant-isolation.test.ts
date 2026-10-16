@@ -313,4 +313,31 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Mandantentrennung (RLS)", () => {
       )
     ).rejects.toThrow(/duplicate|unique/i);
   });
+  it("Vereinstermine (vereinstermin, -sichtbar, -antwort) sind je Verein getrennt", async () => {
+    const { rows: t } = await adminPool.query(
+      `insert into vereinstermin (verein_id, titel, start, sichtbarkeit) values ($1, 'Sitzung B', '2030-01-02T18:00:00Z', 'auswahl') returning id`,
+      [vereinB]
+    );
+    const terminB = t[0].id;
+    await adminPool.query(`insert into vereinstermin_sichtbar (vereinstermin_id, verein_id, rolle) values ($1, $2, 'trainer')`, [terminB, vereinB]);
+    await adminPool.query(`insert into vereinstermin_antwort (vereinstermin_id, user_id, verein_id, antwort) values ($1, $2, $3, 'zusage')`, [terminB, userB, vereinB]);
+
+    for (const tabelle of ["vereinstermin", "vereinstermin_sichtbar", "vereinstermin_antwort"]) {
+      const spalte = tabelle === "vereinstermin" ? "id" : "vereinstermin_id";
+      const ausSichtA = await withTenant(vereinA, (client) => client.query(`select 1 from ${tabelle} where ${spalte} = $1`, [terminB]).then((r) => r.rows));
+      expect(ausSichtA, tabelle).toHaveLength(0);
+      const ausSichtB = await withTenant(vereinB, (client) => client.query(`select 1 from ${tabelle} where ${spalte} = $1`, [terminB]).then((r) => r.rows));
+      expect(ausSichtB, tabelle).toHaveLength(1);
+    }
+
+    // Verein A kann B weder Termin noch Antwort unterschieben.
+    await expect(
+      withTenant(vereinA, (client) => client.query(`insert into vereinstermin (verein_id, titel, start) values ($1, 'Fremd', now())`, [vereinB]))
+    ).rejects.toThrow(/row-level security/i);
+    await expect(
+      withTenant(vereinA, (client) =>
+        client.query(`insert into vereinstermin_antwort (vereinstermin_id, user_id, verein_id, antwort) values ($1, $2, $3, 'absage')`, [terminB, userB, vereinB])
+      )
+    ).rejects.toThrow(/row-level security/i);
+  });
 });
