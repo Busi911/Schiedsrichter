@@ -71,15 +71,18 @@ export async function diensteBroadcastSpeichern(formData: FormData) {
 
 // Extra-Punkt "Training" (Wochenplan, Ausfälle, freie Hallenzeiten) für ALLE Personen des Vereins sichtbar; aus = nur Admins und Trainer
 // (siehe lib/training-ausfall.ts darfTrainingSehen). Die Info-Mail an Trainer hängt daran nicht (persönlicher Schalter im Profil).
+// Zweiter Schalter: Reiter "Training" in der ÖFFENTLICHEN Vereins-App (training_oeffentlich, nur Zeiten und Ausfälle, lib/training-oeffentlich.ts).
 export async function trainingSichtbarkeitSpeichern(formData: FormData) {
   const session = await requireAdminSchreibzugriff();
   const vereinId = session.user.vereinId!;
   const trainingFuerAlleSichtbar = formData.get("trainingFuerAlleSichtbar") === "on";
+  const trainingOeffentlich = formData.get("trainingOeffentlich") === "on";
   await withTenant(vereinId, (tx) =>
-    tx.update(vereine).set({ trainingFuerAlleSichtbar }).where(eq(vereine.id, vereinId))
+    tx.update(vereine).set({ trainingFuerAlleSichtbar, trainingOeffentlich }).where(eq(vereine.id, vereinId))
   );
   revalidatePath("/admin/einstellungen");
   revalidatePath("/profil/training");
+  revalidatePath("/verein", "layout");
 }
 
 // Vereinstermine (Sitzungen u.ä.) einschalten: aus = keine Menüpunkte, Seiten und Mails dazu; bestehende Termine bleiben erhalten.

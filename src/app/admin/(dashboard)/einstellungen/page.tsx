@@ -754,7 +754,7 @@ export default async function EinstellungenPage({
                 </Label>
                 <p className="text-xs text-muted-foreground">
                   Aus: nur Admins und Trainer sehen den Punkt „Training“ (Trainings der nächsten zwei Wochen, ausgefallene Trainings, freie Hallenzeiten).
-                  An: jede Person mit Login im Verein sieht ihn. Auf der öffentlichen Vereinsseite erscheint nichts davon.
+                  An: jede Person mit Login im Verein sieht ihn. Die öffentliche App steuert der Schalter darunter.
                 </p>
               </div>
               <Switch
@@ -762,6 +762,25 @@ export default async function EinstellungenPage({
                 id="trainingFuerAlleSichtbar"
                 name="trainingFuerAlleSichtbar"
                 defaultChecked={verein?.trainingFuerAlleSichtbar ?? false}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t pt-3">
+              <div>
+                <Label htmlFor="trainingOeffentlich" className="font-normal">
+                  „Training“ in der öffentlichen App zeigen
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {ligaVerein
+                    ? "Aus (Standard): Die öffentliche Vereinsseite zeigt keine Trainingszeiten. An: Ein Reiter „Training“ zeigt Spielern, Eltern und Fans die Trainings der nächsten zwei Wochen mit Mannschaft, Uhrzeit und Ort; ausfallende Trainings sind durchgestrichen. Nie öffentlich: Grund des Ausfalls, Notizen, Buchungen frei gewordener Zeiten und Trainernamen."
+                    : "Dafür braucht der Verein eine öffentliche Vereinsseite (Einstellungen → Öffentliche Vereinsseite)."}
+                </p>
+              </div>
+              <Switch
+                key={String(verein?.trainingOeffentlich ?? false)}
+                id="trainingOeffentlich"
+                name="trainingOeffentlich"
+                defaultChecked={verein?.trainingOeffentlich ?? false}
+                disabled={!ligaVerein}
               />
             </div>
           </fieldset>

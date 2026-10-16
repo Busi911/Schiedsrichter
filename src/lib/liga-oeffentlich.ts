@@ -164,6 +164,7 @@ export const holeAlleVereineFuerSitemap = async () =>
     adminDb
       .select({
         id: ligaVereine.id,
+        vereinId: ligaVereine.vereinId,
         slug: ligaVereine.slug,
         spieleSynchronisiertAm: ligaVereine.spieleSynchronisiertAm,
       })

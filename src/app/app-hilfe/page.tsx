@@ -27,6 +27,7 @@ export default function AppHilfePage() {
             ["installieren", "App aufs Handy installieren"],
             ["favoriten", "Favoriten merken"],
             ["statistik", "Statistik"],
+            ["training", "Training"],
             ["spiele", "Live, Ergebnis folgt, vorläufig"],
             ["daten", "Woher kommen die Daten?"],
             ["problem", "Etwas fehlt oder stimmt nicht"],
@@ -46,7 +47,8 @@ export default function AppHilfePage() {
           Auf der <Link href="/#vereine" className="underline">Startseite</Link> oder unter{" "}
           <Link href="/verein" className="underline">Alle Vereine</Link> euren Verein suchen und antippen. Dort seht ihr die
           letzten Ergebnisse, die nächsten Spiele und alle Mannschaften mit Tabelle und Spielplan. Unten gibt es eine Leiste zum
-          Wechseln zwischen <strong>Ergebnisse</strong>, <strong>Spiele</strong>, <strong>Teams</strong> und <strong>Statistik</strong>.
+          Wechseln zwischen <strong>Ergebnisse</strong>, <strong>Spiele</strong>, <strong>Teams</strong> und <strong>Statistik</strong> (und
+          <strong>Training</strong>, falls der Verein es zeigt).
         </p>
       </section>
 
@@ -91,6 +93,16 @@ export default function AppHilfePage() {
           Seite Ergebnisse zeigt „Diese Woche in Zahlen“, wie viele Spiele des Vereins diese Woche anstehen und wie sie
           bisher ausgegangen sind. Laufende Spiele zählen erst mit dem endgültigen Ergebnis, Nichtantritte gar nicht.
           Eine Tabelle mit Platzverlauf gibt es nicht: Wir kennen nur die Spiele unseres Vereins, nicht die der ganzen Staffel.
+        </p>
+      </section>
+
+      <section id="training" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Training</h2>
+        <p className="text-sm text-muted-foreground">
+          Manche Vereine zeigen zusätzlich den Reiter <strong>Training</strong>: die Trainingszeiten der nächsten zwei Wochen mit
+          Mannschaft, Uhrzeit und Ort, nach Tagen geordnet. Mit den Filtern oben (und euren Favoriten) seht ihr nur eure Mannschaft.
+          Ein Training, das ausfällt, ist <strong>durchgestrichen</strong> und mit „Fällt aus“ markiert. Die Zeiten pflegt der
+          Verein selbst; der Reiter fehlt, wenn der Verein ihn nicht eingeschaltet hat.
         </p>
       </section>
 

@@ -24,6 +24,11 @@ function klasseAusText(text: string): Klasse | null {
   return null;
 }
 
+// Spielklasse einer Mannschaft für Gruppierung/Filter: 0 Männer, 1 Frauen, 2-6 Jugend A-E, 7 Mini, 8 Maxi, 100 unbekannt (siehe klasseAusText).
+export function mannschaftsRang(m: { name: string; altersklasse?: string | null }): number {
+  return klasse(m).rang;
+}
+
 function klasse(m: { name: string; altersklasse?: string | null }): Klasse {
   return klasseAusText(m.name) ?? klasseAusText(m.altersklasse ?? "") ?? { rang: UNBEKANNT, geschlecht: 0 };
 }
