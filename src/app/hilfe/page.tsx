@@ -50,6 +50,7 @@ export default async function HilfePage() {
             ["abmeldungen", "Wenn jemand doch nicht kann"],
             ["trainingsplan", "Trainingsplan"],
             ["training", "Training: Ausfälle & freie Hallenzeiten"],
+            ["vereinstermine", "Vereinstermine (Sitzungen) mit Zu- und Absage"],
             ["ics-feed", "Persönlicher Kalender (ICS-Feed)"],
             ["mails", "E-Mails & Erinnerungen"],
             ["statistik", "Statistik & offene Dienste"],
@@ -794,7 +795,7 @@ export default async function HilfePage() {
           HandballerPate schickt Erinnerungen vor unbesetzten Diensten, auslaufenden Lizenzen und anstehenden Terminen sowie eine
           Wochenübersicht, und informiert bei Verlegungen: Wird ein Ligaspiel verlegt, bekommen die dafür eingetragenen Schiedsrichter und die Trainer der Mannschaft eine Info-Mail, Zeitnehmer, Ordner und andere Dienste werden ausgetragen und benachrichtigt. Jede Person stellt im Profil-Menü unter <strong>Benachrichtigungen</strong> ein,
           welche optionalen Mails sie bekommt. Jede dieser Mails hat unten einen <strong>Abbestellen-Link</strong> (auch Gmail und
-          Outlook zeigen „Abbestellen“). Trainer bekommen außerdem eine Mail, wenn irgendwo im Verein ein Training ausfällt und die Halle frei wird (<a href="#training" className="font-medium underline">Training</a>). Der Admin legt in den Einstellungen fest, welche Mail-Arten der Verein überhaupt
+          Outlook zeigen „Abbestellen“). Trainer bekommen außerdem eine Mail, wenn irgendwo im Verein ein Training ausfällt und die Halle frei wird (<a href="#training" className="font-medium underline">Training</a>); zu Sitzungen u.ä. gibt es Einladungen (<a href="#vereinstermine" className="font-medium underline">Vereinstermine</a>). Der Admin legt in den Einstellungen fest, welche Mail-Arten der Verein überhaupt
           verschickt. Login-Links, Verlegungen und Systemmails sind nicht abbestellbar.
         </p>
       </section>
@@ -859,6 +860,35 @@ export default async function HilfePage() {
             Einstellungen → Training
           </Link>{" "}
           für alle Personen im Verein einschalten (Standard: aus). Auf der öffentlichen Vereinsseite erscheint nichts davon.
+        </p>
+      </section>
+
+      <section id="vereinstermine" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Vereinstermine (Sitzungen) mit Zu- und Absage</h2>
+        <p className="text-sm text-muted-foreground">
+          Für Sitzungen, Versammlungen, Arbeitseinsätze und andere Termine, die keine Spiele sind. Der Admin schaltet die Funktion unter{" "}
+          <Link href="/admin/einstellungen#vereinstermine" className="font-medium underline">
+            Einstellungen → Vereinstermine
+          </Link>{" "}
+          ein (Standard: aus); danach gibt es im Admin-Menü <strong>Verwaltung → Vereinstermine</strong> und für alle im Profil den Punkt
+          „Vereinstermine“.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Wer sieht einen Termin?</strong> Das stellt ihr je Termin ein: <em>Alle im Verein</em>, <em>Nur Vereinsadmins</em> oder eine{" "}
+          <em>Auswahl</em> nach Rolle (Trainer, Schiedsrichter, Zeitnehmer/Sekretär, Ordner, Kioskdienst, Kassierer, Warte) und/oder einzelnen
+          Personen. Vereinsadmins sehen jeden Vereinstermin. Auf der öffentlichen Vereinsseite erscheint nichts davon.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Zu- und Absage:</strong> Wer einen Termin sehen darf, kann bis zum Beginn mit <em>Zusagen</em>, <em>Vielleicht</em> oder{" "}
+          <em>Absagen</em> antworten (optional mit kurzer Notiz) und die Antwort ändern oder zurücknehmen. Auf der Profilseite erinnert eine Karte an
+          offene Rückmeldungen. Wer geantwortet hat, sehen nur die Vereinsadmins (Übersicht je Termin, auch wer noch offen ist); alle anderen sehen
+          nur die Zahlen. Ohne Haken bei „Um Rückmeldung bitten“ gibt es keine Antwort-Abfrage.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Mails:</strong> Beim Anlegen kann der Admin die Eingeladenen per Mail informieren („Eingeladene per Mail informieren“). Bei einer Änderung
+          von Titel, Beginn, Ende oder Ort bekommen sie eine Änderungsmail, neu Hinzugekommene eine Einladung; wird ein Termin gelöscht, bekommen alle, die
+          zugesagt oder „vielleicht“ geantwortet haben, eine Absage. Jede Person kann diese Mails im Profil unter <strong>Benachrichtigungen</strong> oder per
+          Abmelde-Link abschalten. Die Termine stehen auch im persönlichen <a href="#ics-feed" className="font-medium underline">Kalender-Abo</a>.
         </p>
       </section>
 

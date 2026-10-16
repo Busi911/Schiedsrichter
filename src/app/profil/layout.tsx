@@ -6,6 +6,7 @@ import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
 import { istOrdnerwart } from "@/lib/ordnerwart";
 import { istDienstwart } from "@/lib/dienstwart";
 import { sehenTrainingPunkt } from "@/lib/training-sichtbar";
+import { vereinstermineAktiv } from "@/lib/vereinstermine-daten";
 import { DemoBanner } from "@/components/demo-banner";
 import { DEMO_VEREIN_ID } from "@/lib/demo-konstanten";
 import { holeDemoVerein } from "@/lib/demo-verein";
@@ -83,7 +84,10 @@ export default async function ProfilLayout({
   // Dienstwart (eigene Dienste): Admins immer, wie bei den anderen Warten.
   const dienstwart = istAdmin || (await istDienstwart(vereinId, userId));
   // Extra-Punkt "Training": Admins und Trainer immer, alle anderen nur, wenn der Verein ihn freigeschaltet hat.
-  const training = await sehenTrainingPunkt(vereinId, userId, istAdmin, !!session.user.istAdminLesend);
+  const [training, vereinstermine] = await Promise.all([
+    sehenTrainingPunkt(vereinId, userId, istAdmin, !!session.user.istAdminLesend),
+    vereinstermineAktiv(vereinId),
+  ]);
 
   const tabs: BottomNavItem[] = [
     { href: "/profil", label: "Profil", icon: "profil", exact: true },
@@ -118,6 +122,7 @@ export default async function ProfilLayout({
       <BottomNav
         tabs={tabs}
         mehrItems={[
+          ...(vereinstermine ? [{ href: "/profil/vereinstermine", label: "Vereinstermine", icon: "termine" } as const] : []),
           { href: "/profil#einstellungen", label: "Einstellungen", icon: "einstellungen" },
           { href: "/profil/passwort-aendern", label: "Passwort ändern", icon: "passwort" },
           ...(nurProfil ? [] : [{ href: "/hilfe", label: "Hilfe", icon: "hilfe" } as const]),

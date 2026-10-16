@@ -1,3 +1,4 @@
+import { istRollenSchluessel } from "./vereinstermine";
 import { describe, expect, it } from "vitest";
 import { baueDemoDaten, demoEmail, demoErsatzAdresse, DEMO_EMAIL_DOMAIN, istDemoAdresse } from "./demo-daten";
 
@@ -101,6 +102,16 @@ describe("Demo: eigene Dienste", () => {
     for (const e of mitMitfahrern) {
       expect(mitFahrt.has(e.dienst)).toBe(true);
       expect(e.mitfahrer!.length).toBeLessThanOrEqual(e.plaetze ?? 0);
+    }
+  });
+
+  it("Vereinstermine: Antwortende, Rollen und Sichtbarkeit sind gültig", () => {
+    const keys = new Set(d.personen.map((p) => p.key));
+    expect(d.vereinstermine.length).toBeGreaterThanOrEqual(2);
+    for (const t of d.vereinstermine) {
+      for (const a of t.antworten) expect(keys.has(a.person), a.person).toBe(true);
+      for (const r of t.rollen ?? []) expect(istRollenSchluessel(r), r).toBe(true);
+      if (t.sichtbarkeit === "auswahl") expect((t.rollen ?? []).length).toBeGreaterThan(0);
     }
   });
 });

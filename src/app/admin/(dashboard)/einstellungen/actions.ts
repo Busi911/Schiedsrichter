@@ -82,6 +82,19 @@ export async function trainingSichtbarkeitSpeichern(formData: FormData) {
   revalidatePath("/profil/training");
 }
 
+// Vereinstermine (Sitzungen u.ä.) einschalten: aus = keine Menüpunkte, Seiten und Mails dazu; bestehende Termine bleiben erhalten.
+export async function vereinstermineSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+  const vereinstermineAktiv = formData.get("vereinstermineAktiv") === "on";
+  await withTenant(vereinId, (tx) =>
+    tx.update(vereine).set({ vereinstermineAktiv }).where(eq(vereine.id, vereinId))
+  );
+  revalidatePath("/admin/einstellungen");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/profil", "layout");
+}
+
 // Mail an den Vereinsadmin bei verlegten Spielen/neuen Ergebnissen (egal ob aus dem Hallenplan-Import oder
 // den öffentlichen Liga-Daten).
 export async function spielplanBenachrichtigungSpeichern(formData: FormData) {

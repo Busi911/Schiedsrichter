@@ -8,7 +8,10 @@ import {
   mannschaften,
   termine,
   terminZuordnungen,
+  users,
 } from "@/db/schema";
+import { holeSichtbareVereinstermine, holeVereinsterminPerson, vereinstermineAktiv } from "@/lib/vereinstermine-daten";
+import { ARTEN, type Art } from "@/lib/vereinstermine";
 import { formatMannschaft } from "@/lib/dashboard";
 import { rundenspielTypLabel } from "@/lib/termin-label";
 import { appUrl } from "@/lib/app-url";
@@ -67,7 +70,7 @@ export async function holeEigeneTermineFuerIcsExport(
   const von = new Date(jetzt.getTime() - VERGANGENHEIT_TAGE * 24 * 60 * 60 * 1000);
   const bis = new Date(jetzt.getTime() + ZUKUNFT_TAGE * 24 * 60 * 60 * 1000);
 
-  return withTenant(vereinId, async (tx) => {
+  const spielUndDienste = await withTenant(vereinId, async (tx) => {
     const eigeneRollen = await tx.query.funktionstraegerRollen.findMany({
       where: eq(funktionstraegerRollen.userId, userId),
     });
@@ -149,6 +152,20 @@ export async function holeEigeneTermineFuerIcsExport(
       };
     });
   });
+  return [...spielUndDienste, ...(await holeVereinsterminFuerIcs(vereinId, userId, von, bis))].sort((a, b) => a.start.getTime() - b.start.getTime());
+}
+
+// Vereinstermine (Sitzungen u.ä.), die die Person sehen darf, im selben Kalender-Abo — nur wenn der Verein sie eingeschaltet hat.
+async function holeVereinsterminFuerIcs(vereinId: string, userId: string, von: Date, bis: Date): Promise<IcsTermin[]> {
+  if (!(await vereinstermineAktiv(vereinId))) return [];
+  const [person] = await withTenant(vereinId, (tx) =>
+    tx.select({ istAdmin: users.istAdmin, istAdminLesend: users.istAdminLesend }).from(users).where(and(eq(users.id, userId), eq(users.vereinId, vereinId)))
+  );
+  if (!person) return [];
+  const p = await holeVereinsterminPerson(vereinId, userId, person.istAdmin || person.istAdminLesend);
+  return (await holeSichtbareVereinstermine(vereinId, p, von))
+    .filter((t) => t.start.getTime() <= bis.getTime())
+    .map((t) => ({ id: `verein-${t.id}`, start: t.start, ende: t.ende, ort: t.ort, titel: `${ARTEN[t.art as Art] ?? "Termin"}: ${t.titel}` }));
 }
 
 function escapeIcsText(text: string): string {

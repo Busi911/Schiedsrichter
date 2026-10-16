@@ -325,6 +325,17 @@ Tab in der unteren Leiste) ist für Admins und Trainer immer sichtbar, für alle
 Training, Default aus). Nichts davon erscheint auf der öffentlichen Vereinsseite. Noch offen: Vereinstermine (Sitzungen) und Plätze/Ressourcen
 (z.B. Beachhandball).
 
+## Vereinstermine (Sitzungen) mit Zu-/Absage
+
+Termine des Vereins, die keine Spiele sind (Sitzung, Versammlung, Arbeitseinsatz …). Tabellen `vereinstermin`, `vereinstermin_sichtbar` (Auswahl je Rolle ODER Person) und
+`vereinstermin_antwort` (Zusage/Vielleicht/Absage + Notiz), Migration 0107, alle mit `verein_id` + RLS (im Mandantentrennungs-Test). Ein-/ausschaltbar je Verein
+(`vereine.vereinstermine_aktiv`, Default aus, Einstellungen → Vereinstermine); aus = keine Menüpunkte, Seiten, Mails. Verwaltung nur durch Admins unter
+`/admin/vereinstermine`, Ansicht und Antworten für alle unter `/profil/vereinstermine`. Sichtbarkeit je Termin: alle / nur Admins / Auswahl (Rollen und/oder
+Personen); Admins sehen alles (`darfVereinsterminSehen`, `lib/vereinstermine.ts`, rein/getestet). Antworten bis zum Beginn, nur bei „Um Rückmeldung bitten“; wer
+geantwortet hat, sehen nur Admins, alle anderen Zahlen. Mails (`lib/vereinstermin-mail.ts`): Einladung, Änderung (Titel/Beginn/Ende/Ort), Absage an Zusagende; vom
+Admin je Termin anhakbar, persönlich abschaltbar (`users.vereinstermin_hinweise_aktiviert`, Abmelde-Art `vereinstermin`). Die Termine stehen auch im persönlichen
+ICS-Abo. Nie auf der öffentlichen Seite. Noch offen: Wiederholungen (z.B. monatliche Sitzung), Plätze/Ressourcen (Beachhandball), Gesamtkalender mit Spielen.
+
 ## Systemadmin (vereinsübergreifend)
 
 Nutzer mit `user.ist_system_admin = true` haben **kein** `verein_id` (gehören

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { zuordnungsBezeichnung } from "@/lib/eigene-dienste-daten";
+import { vereinstermineAktiv } from "@/lib/vereinstermine-daten";
 import { holeDienstwarteOderAdminEmails } from "@/lib/dienstwart";
 import { and, eq, inArray } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
@@ -266,6 +267,10 @@ export async function updateBenachrichtigungen(formData: FormData) {
   );
   if (istTrainer) {
     werteZumSpeichern.trainingAusfallHinweiseAktiviert = formData.get("trainingAusfallHinweise") === "on";
+  }
+  // Der Schalter für Vereinstermine erscheint nur, wenn der Verein sie eingeschaltet hat (sonst würde ein Absenden ohne das Feld den Wert auf false setzen).
+  if (await vereinstermineAktiv(vereinId)) {
+    werteZumSpeichern.vereinsterminHinweiseAktiviert = formData.get("vereinsterminHinweise") === "on";
   }
 
   await withTenant(vereinId, (tx) =>
