@@ -797,7 +797,7 @@ export default async function HilfePage() {
         <h2 className="font-heading text-lg font-medium">E-Mails &amp; Erinnerungen</h2>
         <p className="text-sm text-muted-foreground">
           HandballerPate schickt Erinnerungen vor unbesetzten Diensten, auslaufenden Lizenzen und anstehenden Terminen sowie eine
-          Wochenübersicht, und informiert bei Verlegungen: Wird ein Ligaspiel verlegt, bekommen die dafür eingetragenen Schiedsrichter und die Trainer der Mannschaft eine Info-Mail, Zeitnehmer, Ordner und andere Dienste werden ausgetragen und benachrichtigt. Jede Person stellt im Profil-Menü unter <strong>Benachrichtigungen</strong> ein,
+          Wochenübersicht (eure Einsätze, dazu die Trainings der Woche und Vereinstermine, die ihr sehen dürft; sie kommt nur, wenn es Einsätze, Vereinstermine oder ein ausfallendes Training gibt), und informiert bei Verlegungen: Wird ein Ligaspiel verlegt, bekommen die dafür eingetragenen Schiedsrichter und die Trainer der Mannschaft eine Info-Mail, Zeitnehmer, Ordner und andere Dienste werden ausgetragen und benachrichtigt. Jede Person stellt im Profil-Menü unter <strong>Benachrichtigungen</strong> ein,
           welche optionalen Mails sie bekommt. Jede dieser Mails hat unten einen <strong>Abbestellen-Link</strong> (auch Gmail und
           Outlook zeigen „Abbestellen“). Trainer bekommen außerdem eine Mail, wenn irgendwo im Verein ein Training ausfällt und die Halle frei wird (<a href="#training" className="font-medium underline">Training</a>); zu Sitzungen u.ä. gibt es Einladungen (<a href="#vereinstermine" className="font-medium underline">Vereinstermine</a>). Der Admin legt in den Einstellungen fest, welche Mail-Arten der Verein überhaupt
           verschickt. Login-Links, Verlegungen und Systemmails sind nicht abbestellbar.
@@ -838,6 +838,12 @@ export default async function HilfePage() {
           Wochentag ziehen, Dauer an der unteren Kante anpassen), am Handy über „Bearbeiten“. Unterteilte Hallen haben eine
           Spalte je Abteil; Überschneidungen werden rot markiert. Der Plan gilt für jede Woche gleich und hat keinen Einfluss
           auf Spiele und Dienste.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Plätze und Saison (z.B. Beachhandball):</strong> Mit „+ Halle / Platz“ legt ihr auch einen <strong>Platz</strong> an, etwa einen Beachplatz. Für einen
+          Ort lässt sich eine <strong>Saison</strong> einstellen (z.B. Mai bis September, auch über den Jahreswechsel möglich): Trainings dort gibt es nur in diesen
+          Monaten, der Wochenplan bleibt unverändert. Im Kalender, unter „Training“ und bei Ausfällen erscheinen sie nur in der Saison, ein Ausfall sagt dann
+          „Platz frei“. Ohne Saison gilt der Ort ganzjährig.
         </p>
       </section>
 

@@ -159,3 +159,40 @@ describe("Abteile und Konflikte", () => {
     expect(pruefeTeilung(1020, 1080, 1080)).not.toBeNull();
   });
 });
+
+import { istInSaison, ortWort, pruefeSaison, saisonKurz, saisonText } from "./trainingsplan";
+
+describe("Orte: Saison und Wortwahl", () => {
+  const mai_sep = { saisonVonMonat: 5, saisonBisMonat: 9 };
+  it("ohne Saison gilt der Ort immer", () => {
+    expect(istInSaison({ saisonVonMonat: null, saisonBisMonat: null }, "2026-01-15")).toBe(true);
+  });
+  it("Saison Mai bis September inklusive der Grenzmonate", () => {
+    expect(istInSaison(mai_sep, "2026-05-01")).toBe(true);
+    expect(istInSaison(mai_sep, "2026-09-30")).toBe(true);
+    expect(istInSaison(mai_sep, "2026-04-30")).toBe(false);
+    expect(istInSaison(mai_sep, "2026-10-01")).toBe(false);
+  });
+  it("Saison über den Jahreswechsel (Oktober bis März)", () => {
+    const winter = { saisonVonMonat: 10, saisonBisMonat: 3 };
+    expect(istInSaison(winter, "2026-12-24")).toBe(true);
+    expect(istInSaison(winter, "2027-03-31")).toBe(true);
+    expect(istInSaison(winter, "2026-07-01")).toBe(false);
+  });
+  it("Texte", () => {
+    expect(saisonText(mai_sep)).toBe("Mai bis September");
+    expect(saisonKurz(mai_sep)).toBe("Mai–Sep");
+    expect(saisonText({ saisonVonMonat: null, saisonBisMonat: null })).toBeNull();
+    expect(ortWort("platz")).toBe("Platz");
+    expect(ortWort("halle")).toBe("Halle");
+    expect(ortWort(undefined)).toBe("Halle");
+  });
+  it("pruefeSaison: beide oder keiner, Monate 1-12", () => {
+    expect(pruefeSaison("", "")).toEqual({ wert: { saisonVonMonat: null, saisonBisMonat: null } });
+    expect(pruefeSaison("5", "9")).toEqual({ wert: { saisonVonMonat: 5, saisonBisMonat: 9 } });
+    expect(pruefeSaison("5", "")).toHaveProperty("fehler");
+    expect(pruefeSaison("0", "9")).toHaveProperty("fehler");
+    expect(pruefeSaison("5", "13")).toHaveProperty("fehler");
+    expect(pruefeSaison("5.5", "9")).toHaveProperty("fehler");
+  });
+});

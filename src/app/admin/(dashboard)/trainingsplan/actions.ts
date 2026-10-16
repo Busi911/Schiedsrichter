@@ -5,7 +5,7 @@ import { and, eq, gt } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant, type db } from "@/db";
 import { hallen, trainingszeiten, vereine } from "@/db/schema";
-import { begrenze, pruefeTeilung, rundeAufRaster } from "@/lib/trainingsplan";
+import { begrenze, istOrtArt, pruefeSaison, pruefeTeilung, rundeAufRaster } from "@/lib/trainingsplan";
 
 function parseHalleId(formData: FormData): string {
   const halleId = formData.get("halleId");
@@ -15,6 +15,19 @@ function parseHalleId(formData: FormData): string {
   return halleId;
 }
 
+// Art (Halle/Platz) und optionale Saison (Monate von/bis) aus dem Formular.
+function parseOrt(formData: FormData): { art: string; saisonVonMonat: number | null; saisonBisMonat: number | null } {
+  const artRoh = formData.get("art");
+  const art = typeof artRoh === "string" && istOrtArt(artRoh) ? artRoh : "halle";
+  const feld = (n: string) => {
+    const w = formData.get(n);
+    return typeof w === "string" ? w : "";
+  };
+  const saison = pruefeSaison(feld("saisonVonMonat"), feld("saisonBisMonat"));
+  if ("fehler" in saison) throw new Error(saison.fehler);
+  return { art, ...saison.wert };
+}
+
 export async function halleAnlegen(formData: FormData) {
   const { vereinId } = (await requireAdminSchreibzugriff()).user;
 
@@ -22,9 +35,10 @@ export async function halleAnlegen(formData: FormData) {
   if (typeof name !== "string" || !name.trim()) {
     throw new Error("Name ist erforderlich.");
   }
+  const ort = parseOrt(formData);
 
   await withTenant(vereinId!, (tx) =>
-    tx.insert(hallen).values({ vereinId: vereinId!, name: name.trim() })
+    tx.insert(hallen).values({ vereinId: vereinId!, name: name.trim(), ...ort })
   );
 
   revalidatePath("/admin/trainingsplan");
@@ -56,12 +70,14 @@ export async function halleBearbeiten(formData: FormData) {
   if (!Number.isInteger(abteilAnzahl) || abteilAnzahl < 0 || abteilAnzahl > 4) {
     throw new Error("Ungültige Anzahl Abteile (0-4).");
   }
+  const ort = parseOrt(formData);
 
   await withTenant(vereinId!, async (tx) => {
     await tx
       .update(hallen)
       .set({
         name: name.trim(),
+        ...ort,
         abteilAnzahl,
         // Namen von Abteilen jenseits der neuen Anzahl explizit löschen —
         // sonst würde ein später wieder erhöhtes abteilAnzahl den alten,

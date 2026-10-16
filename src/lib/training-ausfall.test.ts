@@ -68,11 +68,28 @@ describe("konkreteTrainings", () => {
   });
 });
 
+describe("Saison (Beachplatz)", () => {
+  const strand = { ...zeile("s", 3, 10 * 60, 11 * 60), halleId: "beach" };
+  const halle = zeile("h", 3, 18 * 60, 19 * 60);
+  const nurHalleImOktober = (halleId: string, datum: string) => halleId !== "beach" || datum < "2026-10-01";
+  it("Trainings an einem Ort außerhalb der Saison entfallen", () => {
+    const l = konkreteTrainings([strand, halle], [], DO_17, 8, nurHalleImOktober);
+    expect(l.map((t) => t.id)).toEqual(["h", "h"]);
+  });
+  it("ohne Saison-Prüfung bleibt alles (heute ist das Strandtraining schon vorbei)", () => {
+    expect(konkreteTrainings([strand, halle], [], DO_17, 8).map((t) => t.id)).toEqual(["h", "s", "h"]);
+  });
+});
+
 describe("pruefeAusfallDatum", () => {
   const z = { wochentag: 3, endMinuten: 19 * 60 };
   it("akzeptiert ein künftiges Training am richtigen Wochentag", () => {
     expect(pruefeAusfallDatum(z, "2026-10-22", DO_17)).toBeNull();
     expect(pruefeAusfallDatum(z, "2026-10-29", DO_17)).toBeNull();
+  });
+  it("lehnt ein Datum außerhalb der Saison des Ortes ab", () => {
+    expect(pruefeAusfallDatum(z, "2026-10-22", DO_17, false)).toMatch(/Saison/);
+    expect(pruefeAusfallDatum(z, "2026-10-22", DO_17, true)).toBeNull();
   });
   it("lehnt falschen Wochentag, Vergangenheit und Unsinn ab", () => {
     expect(pruefeAusfallDatum(z, "2026-10-23", DO_17)).toMatch(/nicht statt/);

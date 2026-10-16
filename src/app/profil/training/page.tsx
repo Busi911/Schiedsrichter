@@ -13,7 +13,7 @@ import {
   konkreteTrainings,
   type KonkretesTraining,
 } from "@/lib/training-ausfall";
-import { abteilLabel } from "@/lib/trainingsplan";
+import { abteilLabel, istInSaison, ortWort } from "@/lib/trainingsplan";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -69,7 +69,14 @@ export default async function TrainingPage() {
     return t.abteilNummer ? `${h.name}, ${abteilLabel(h, t.abteilNummer)}` : h.name;
   };
 
-  const trainings = konkreteTrainings(daten.zeiten, daten.ausfaelle, new Date(), TAGE);
+  // Orte mit Saison (z.B. Beachplatz Mai bis September): außerhalb der Saison gibt es dort keine Trainings.
+  const inSaison = (halleId: string, datum: string) => {
+    const h = halleNachId.get(halleId);
+    return !h || istInSaison(h, datum);
+  };
+  const trainings = konkreteTrainings(daten.zeiten, daten.ausfaelle, new Date(), TAGE, inSaison);
+  const hatPlatz = daten.hallenListe.some((h) => h.art === "platz");
+  const frei_ = (t: KonkretesTraining) => `${ortWort(halleNachId.get(t.halleId)?.art)} frei`;
   const frei = trainings.filter((t) => t.ausgefallen);
   const nachTag = new Map<string, KonkretesTraining[]>();
   for (const t of trainings) nachTag.set(t.datum, [...(nachTag.get(t.datum) ?? []), t]);
@@ -85,7 +92,7 @@ export default async function TrainingPage() {
           <HilfeHinweis anker="training" />
         </div>
         <p className="text-sm text-muted-foreground">
-          Die Trainings der nächsten {TAGE} Tage aus dem Trainingsplan. Fällt ein Training aus, steht die Halle in dieser Zeit frei.
+          Die Trainings der nächsten {TAGE} Tage aus dem Trainingsplan. Fällt ein Training aus, ist der Ort in dieser Zeit frei.
         </p>
         {session.user.istAdmin && (
           <Link href="/admin/trainingsplan" className="inline-flex min-h-11 items-center text-sm font-medium underline">
@@ -96,8 +103,8 @@ export default async function TrainingPage() {
 
       <Card id="frei" className="scroll-mt-6 border-primary/40 bg-primary/5">
         <CardHeader>
-          <CardTitle className="text-base">Freie Hallenzeiten</CardTitle>
-          <CardDescription>Hier fällt ein Training aus, die Halle ist in dieser Zeit nicht belegt.</CardDescription>
+          <CardTitle className="text-base">{hatPlatz ? "Freie Hallen- und Platzzeiten" : "Freie Hallenzeiten"}</CardTitle>
+          <CardDescription>Hier fällt ein Training aus, {hatPlatz ? "Halle oder Platz sind" : "die Halle ist"} in dieser Zeit nicht belegt.</CardDescription>
         </CardHeader>
         <CardContent>
           {frei.length === 0 ? (
@@ -144,7 +151,7 @@ export default async function TrainingPage() {
                       </span>
                       <span>{mannschaftName.get(t.mannschaftId) ?? "Mannschaft"}</span>
                       {eigene && <Badge variant="secondary">Deine Mannschaft</Badge>}
-                      {t.ausgefallen && <Badge>Fällt aus · Halle frei</Badge>}
+                      {t.ausgefallen && <Badge>Fällt aus · {frei_(t)}</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {hallenName(t)}

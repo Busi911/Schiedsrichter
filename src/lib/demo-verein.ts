@@ -172,13 +172,18 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
       .insert(hallen)
       .values({ vereinId: DEMO_VEREIN_ID, name: "Sporthalle Musterstadt", abteilAnzahl: 2, abteil1Name: "Halle A", abteil2Name: "Halle B" })
       .returning({ id: hallen.id });
+    // Zweiter Ort: Beachplatz mit Saison (April bis Oktober) für die Beachhandball-Trainings des Plans.
+    const [beachplatz] = await tx
+      .insert(hallen)
+      .values({ vereinId: DEMO_VEREIN_ID, name: "Beachplatz am Stadion", art: "platz", saisonVonMonat: 4, saisonBisMonat: 10 })
+      .returning({ id: hallen.id });
     const trainingszeitZeilen = await tx
       .insert(trainingszeiten)
       .values(
         daten.trainingsplan.map((e) => ({
           vereinId: DEMO_VEREIN_ID,
           mannschaftId: mannschaftId(e.mannschaft),
-          halleId: halle.id,
+          halleId: e.platz ? beachplatz.id : halle.id,
           wochentag: e.wochentag,
           startMinuten: e.vonMinuten,
           endMinuten: e.bisMinuten,

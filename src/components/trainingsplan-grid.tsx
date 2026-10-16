@@ -30,16 +30,21 @@ import {
 import { AlertTriangleIcon } from "lucide-react";
 import {
   ABTEIL_ANZAHL_OPTIONEN,
+  MONATSNAMEN,
+  ORT_ARTEN,
   abteilLabel,
   findeKonflikte,
   formatUhrzeit,
+  ortWort,
+  saisonKurz,
+  saisonText,
   type Konflikt,
   type KonfliktArt,
   WOCHENTAGE_LABEL,
   type HalleMitAbteilen,
 } from "@/lib/trainingsplan";
 
-type Halle = { id: string; name: string } & HalleMitAbteilen;
+type Halle = { id: string; name: string; art: string; saisonVonMonat: number | null; saisonBisMonat: number | null } & HalleMitAbteilen;
 type Mannschaft = { id: string; label: string };
 
 type DialogZustand =
@@ -54,23 +59,71 @@ type DialogZustand =
     }
   | { modus: "bearbeiten"; eintrag: TrainingszeitEintrag };
 
+// Art (Halle oder Platz, z.B. Beachhandball) und optionale Saison (von/bis Monat) — gemeinsam für Anlegen und Bearbeiten.
+function OrtFelder({ idPraefix, art, von, bis }: { idPraefix: string; art: string; von: number | null; bis: number | null }) {
+  // Natives <select> statt LabeledSelect: "keine Saison" ist ein leerer Wert, den das Base-UI-Select nicht sauber mitschickt.
+  const monatSelect = (id: string, name: string, wert: number | null) => (
+    <select
+      id={id}
+      name={name}
+      defaultValue={wert ? String(wert) : ""}
+      className="h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+    >
+      <option value="">—</option>
+      {MONATSNAMEN.map((m, i) => (
+        <option key={m} value={String(i + 1)}>
+          {m}
+        </option>
+      ))}
+    </select>
+  );
+  return (
+    <>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={`${idPraefix}-art`}>Art</Label>
+        <LabeledSelect
+          id={`${idPraefix}-art`}
+          name="art"
+          defaultValue={art}
+          options={Object.entries(ORT_ARTEN).map(([value, label]) => ({ value, label }))}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${idPraefix}-von`}>Saison von (optional)</Label>
+          {monatSelect(`${idPraefix}-von`, "saisonVonMonat", von)}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${idPraefix}-bis`}>Saison bis</Label>
+          {monatSelect(`${idPraefix}-bis`, "saisonBisMonat", bis)}
+        </div>
+        <p className="col-span-2 text-xs text-muted-foreground">
+          Mit Saison (z.B. ein Beachplatz von Mai bis September) gibt es Trainings dort nur in diesen Monaten; der Wochenplan bleibt, außerhalb der Saison fallen die Trainings
+          weg. Beide Felder leer lassen = ganzjährig.
+        </p>
+      </div>
+    </>
+  );
+}
+
 function NeueHalleDialog() {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
-        + Halle
+        + Halle / Platz
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Halle anlegen</DialogTitle>
+          <DialogTitle>Halle oder Platz anlegen</DialogTitle>
         </DialogHeader>
         <form action={halleAnlegen} className="flex flex-col gap-3">
           <SchliesseNachSpeichern onFertig={() => setOpen(false)} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="halle-name">Name</Label>
-            <Input id="halle-name" name="name" required placeholder="z.B. Sporthalle Nord" />
+            <Input id="halle-name" name="name" required placeholder="z.B. Sporthalle Nord oder Beachplatz" />
           </div>
+          <OrtFelder idPraefix="halle-neu" art="halle" von={null} bis={null} />
           <DialogFooter>
             <SubmitButton pendingText="Wird angelegt…">Anlegen</SubmitButton>
           </DialogFooter>
@@ -108,7 +161,7 @@ function HalleBearbeitenDialog({ halle }: { halle: Halle }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Halle bearbeiten</DialogTitle>
+          <DialogTitle>{ortWort(halle.art)} bearbeiten</DialogTitle>
         </DialogHeader>
         <form action={halleBearbeiten} className="flex flex-col gap-3">
           <SchliesseNachSpeichern onFertig={() => setOpen(false)} />
@@ -122,6 +175,7 @@ function HalleBearbeitenDialog({ halle }: { halle: Halle }) {
               defaultValue={halle.name}
             />
           </div>
+          <OrtFelder idPraefix={`halle-bearbeiten-${halle.id}`} art={halle.art} von={halle.saisonVonMonat} bis={halle.saisonBisMonat} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="halle-bearbeiten-abteilanzahl">
               Unterteilt in Abteile (z.B. per Hallentrenn-Vorhang)
@@ -318,6 +372,7 @@ export function TrainingsplanGrid({
             )}
           >
             {h.name}
+            {saisonKurz(h) ? ` (${saisonKurz(h)})` : ""}
           </button>
         ))}
         <NeueHalleDialog />
@@ -325,14 +380,17 @@ export function TrainingsplanGrid({
 
       {!halleAktiv && (
         <p className="text-sm text-muted-foreground">
-          Noch keine Halle angelegt — mit „+ Halle“ oben starten.
+          Noch keine Halle angelegt — mit „+ Halle / Platz“ oben starten.
         </p>
       )}
 
       {halleAktiv && (
         <>
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium">{halleAktiv.name}</h3>
+            <h3 className="text-sm font-medium">
+              {halleAktiv.name}
+              {saisonText(halleAktiv) && <span className="ml-2 font-normal text-muted-foreground">({ortWort(halleAktiv.art)} in der Saison {saisonText(halleAktiv)})</span>}
+            </h3>
             <div className="flex gap-1">
               <HalleBearbeitenDialog halle={halleAktiv} />
               <form action={halleLoeschen}>

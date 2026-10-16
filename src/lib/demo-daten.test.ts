@@ -105,6 +105,10 @@ describe("Demo: eigene Dienste", () => {
     }
   });
 
+  it("Trainingsplan enthält ein Beachhandball-Training auf dem Platz", () => {
+    expect(d.trainingsplan.some((e) => e.platz)).toBe(true);
+  });
+
   it("Vereinstermine: Antwortende, Rollen und Sichtbarkeit sind gültig", () => {
     const keys = new Set(d.personen.map((p) => p.key));
     expect(d.vereinstermine.length).toBeGreaterThanOrEqual(2);

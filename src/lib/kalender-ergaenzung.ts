@@ -7,7 +7,7 @@ import { formatZeit } from "@/lib/format";
 import { tagKey } from "@/lib/kalender";
 import type { KalenderArt } from "@/lib/kalender-arten";
 import { darfTrainingSehen, formatMinuten, trainingsImZeitraum } from "@/lib/training-ausfall";
-import { abteilLabel } from "@/lib/trainingsplan";
+import { abteilLabel, istInSaison, ortWort } from "@/lib/trainingsplan";
 import { ARTEN, type Art } from "@/lib/vereinstermine";
 import { holeSichtbareVereinstermine, holeVereinsterminPerson, vereinstermineAktiv } from "@/lib/vereinstermine-daten";
 import { istWiederholung, serienText } from "@/lib/wiederholung";
@@ -77,7 +77,10 @@ export async function holeKalenderErgaenzung(p: {
     const { zeiten, ausfaelle, mannschaftenListe, hallenListe } = trainingsDaten.zeilen;
     const mannschaft = new Map(mannschaftenListe.map((m) => [m.id, m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name]));
     const halle = new Map(hallenListe.map((h) => [h.id, h]));
-    for (const t of trainingsImZeitraum(zeiten, ausfaelle, vonTag, bisTag)) {
+    for (const t of trainingsImZeitraum(zeiten, ausfaelle, vonTag, bisTag, (halleId, datum) => {
+      const h = halle.get(halleId);
+      return !h || istInSaison(h, datum);
+    })) {
       const h = halle.get(t.halleId);
       const ort = h ? (t.abteilNummer ? `${h.name}, ${abteilLabel(h, t.abteilNummer)}` : h.name) : null;
       hinzu(t.datum, {
@@ -85,7 +88,7 @@ export async function holeKalenderErgaenzung(p: {
         art: "training",
         zeit: formatMinuten(t.startMinuten),
         label: mannschaft.get(t.mannschaftId) ?? "Training",
-        typLabel: `Training bis ${formatMinuten(t.endMinuten)} Uhr${t.ausgefallen ? " · fällt aus, Halle frei" : ""}`,
+        typLabel: `Training bis ${formatMinuten(t.endMinuten)} Uhr${t.ausgefallen ? ` · fällt aus, ${ortWort(h?.art)} frei` : ""}`,
         ort,
         farbe: t.farbe,
         ausgefallen: t.ausgefallen,
