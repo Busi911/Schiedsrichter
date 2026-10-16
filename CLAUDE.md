@@ -445,6 +445,11 @@ Bedarf je Termin überschreiben: Zeitnehmerwart (`zeitnehmer_bedarf_override`, g
 setzen pro Termin einen Wert (auch 0), null = Standard. `bedarfFuer(…, bedarfOverride, …)` bekommt den Override der jeweiligen Rolle über `bedarfOverrideFuer(termin, rolle)` — jeder Aufruf muss das tun, und jede
 Abfrage, die Termine für `bedarfFuer` lädt, muss alle vier Override-Spalten mitselektieren (sonst gilt still der Standard).
 
+## Klickbare Elemente
+
+`globals.css` (Basis-Ebene) gibt allen `button:not(:disabled)`, `[role="button"]` und `summary` den Hand-Cursor (Tailwind 4 lässt Buttons sonst beim Standard-Cursor, z.B. Kalendertage und Einträge sahen nicht klickbar aus). Neue klickbare Elemente, die KEIN Button/Link/`summary` sind
+(z.B. ein `div` mit `onClick`), brauchen `role="button"` oder `cursor-pointer`.
+
 ## Dark Mode (Hell/Dunkel/Automatisch)
 
 Klasse `dark` auf `<html>` (Variante `@custom-variant dark` in `globals.css`, `.dark`-Variablen dort). Ein Inline-Skript im Root-Layout setzt sie

@@ -134,6 +134,12 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Tailwind 4 setzt Buttons auf den Standard-Cursor: alles Klickbare (Kalendertage, Einträge, Dialog-Auslöser, aufklappbare Bereiche) zeigt die Hand. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary {
+    cursor: pointer;
+  }
   /* body ist flex-col (siehe layout.tsx). Ohne width:100% + min-width:0
      nimmt ein direktes Kind mit "mx-auto" (Auto-Margin auf der Cross-Achse)
      statt der vollen Breite seine inhaltsbasierte Breite an (z.B. eine
