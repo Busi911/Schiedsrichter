@@ -109,3 +109,19 @@ export function formatTrainingDatum(datum: string, lang = true): string {
 export function formatMinuten(minuten: number): string {
   return `${String(Math.floor(minuten / 60)).padStart(2, "0")}:${String(minuten % 60).padStart(2, "0")}`;
 }
+
+// Konkrete Trainings in einem Zeitraum (Kalendertage YYYY-MM-DD, beide inklusive) — für den Kalender, auch für vergangene Tage. Wie konkreteTrainings,
+// aber ohne "heute schon beendet fällt weg".
+export function trainingsImZeitraum(zeiten: TrainingsZeile[], ausfaelle: AusfallZeile[], vonDatum: string, bisDatum: string): KonkretesTraining[] {
+  const ausfall = new Map(ausfaelle.map((a) => [`${a.trainingszeitId}|${a.datum}`, a]));
+  const liste: KonkretesTraining[] = [];
+  for (let datum = vonDatum, n = 0; datum <= bisDatum && n < 400; datum = addiereTage(datum, 1), n++) {
+    const wochentag = wochentagVonDatum(datum);
+    for (const z of zeiten) {
+      if (z.wochentag !== wochentag) continue;
+      const a = ausfall.get(`${z.id}|${datum}`);
+      liste.push({ ...z, datum, ausgefallen: !!a, grund: a?.grund ?? null });
+    }
+  }
+  return liste.sort((x, y) => x.datum.localeCompare(y.datum) || x.startMinuten - y.startMinuten);
+}

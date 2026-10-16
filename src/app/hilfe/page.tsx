@@ -409,7 +409,11 @@ export default async function HilfePage() {
       <section id="kalender" className="flex flex-col gap-2 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">Kalender &amp; Besetzung</h2>
         <p className="text-sm text-muted-foreground">
-          Im <strong>Kalender</strong> seht ihr alle Termine des Vereins. Ein Spiel zeigt <strong>„Vollständig“</strong> (grün,
+          Der <strong>Kalender</strong> ist der eine Ort für alles, was im Verein stattfindet: <strong>Spiele &amp; Dienste</strong>,{" "}
+          <strong>Training</strong> (ausfallende Trainings durchgestrichen) und <strong>Vereinstermine</strong> (Sitzungen u.ä.). Über die Filter oben
+          („Anzeigen“) blendet ihr Arten aus oder ein; die Auswahl bleibt beim Blättern erhalten. Im Profil zeigt „Mein Kalender“ dasselbe für euch
+          persönlich: eure Einsätze, dazu Trainings (als Trainer die eurer Mannschaften, bei eingeschalteter Option alle) und die Vereinstermine, die ihr sehen
+          dürft. Ein Eintrag öffnet seine Details mit einem Link zur passenden Seite („Zum Training“, „Zu- oder absagen“, „Termin verwalten“). Ein Spiel zeigt <strong>„Vollständig“</strong> (grün,
           Häkchen), wenn Schiedsrichter (falls der Verein ihn stellen muss), Zeitnehmer/Sekretär und alle festgelegten
           Helferdienste besetzt sind, sonst <strong>„Offen“</strong> (rot, Ausrufezeichen). Am Handy markiert ein kleines
           Warnsymbol die Tage, an denen noch etwas offen ist. Tippt einen Termin an, um Details zu sehen und Personen
@@ -427,7 +431,7 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Freundschaftsspiele und Turniere stehen nicht in den Liga-Daten, ihr legt sie selbst an: unter{" "}
           <Link href="/admin/termine?tab=testspiele" className="font-medium underline">
-            Termine → Freundschaftsspiele &amp; Turniere
+            Spiele &amp; Turniere → Freundschaftsspiele &amp; Turniere
           </Link>{" "}
           über <strong>„Neuer Termin“</strong> mit Typ, Start, Ort, Gegner und optional der Mannschaft. Danach werden sie wie
           Ligaspiele besetzt; der Bedarf richtet sich nach der Veranstaltungsart (<a href="#bedarf" className="font-medium underline">Dienste-Bedarf</a>),
@@ -828,7 +832,7 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Unter{" "}
           <Link href="/admin/trainingsplan" className="font-medium underline">
-            Training
+            Verwaltung → Trainingsplan
           </Link>{" "}
           plant ihr die wöchentlich wiederkehrenden Trainingszeiten je Halle: am Computer per Ziehen (Mannschaft auf einen
           Wochentag ziehen, Dauer an der unteren Kante anpassen), am Handy über „Bearbeiten“. Unterteilte Hallen haben eine
@@ -844,7 +848,7 @@ export default async function HilfePage() {
           <Link href="/profil/training" className="font-medium underline">
             Training
           </Link>{" "}
-          (im Profil und in der unteren Leiste) stehen die Trainings der nächsten zwei Wochen aus dem Trainingsplan. Fällt ein
+          (im Kalender über „Zum Training“ und im Menü „Mehr“) stehen die Trainings der nächsten zwei Wochen aus dem Trainingsplan. Fällt ein
           Training einmal aus, meldet das ein <strong>Admin</strong> oder ein <strong>Trainer dieser Mannschaft</strong> mit
           „Fällt aus“ (Grund optional). Der Plan selbst bleibt unverändert; nur dieser Termin gilt als ausgefallen, die Halle ist in
           der Zeit frei und steht oben unter <strong>Freie Hallenzeiten</strong>. „Findet doch statt“ nimmt die Meldung zurück.
@@ -870,7 +874,7 @@ export default async function HilfePage() {
           <Link href="/admin/einstellungen#vereinstermine" className="font-medium underline">
             Einstellungen → Vereinstermine
           </Link>{" "}
-          ein (Standard: aus); danach gibt es im Admin-Menü <strong>Verwaltung → Vereinstermine</strong> und für alle im Profil den Punkt
+          ein (Standard: aus); danach gibt es im Admin-Menü <strong>Verwaltung → Vereinstermine</strong>; alle sehen ihre Termine im Kalender und im Profil unter „Mehr“ →
           „Vereinstermine“.
         </p>
         <p className="text-sm text-muted-foreground">

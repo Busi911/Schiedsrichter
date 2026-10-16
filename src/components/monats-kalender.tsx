@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CalendarIcon, Car, CheckCircle2, Trophy } from "lucide-react";
+import { AlertCircle, CalendarIcon, Car, CheckCircle2, Dumbbell, Trophy, Users } from "lucide-react";
 import {
   monatKey,
   monatsGitter,
@@ -121,6 +121,14 @@ export type KalenderEintrag = {
   // "24:20"-Format, nur gesetzt wenn beide Werte erfasst sind (siehe
   // ergebnisHeim/ergebnisAuswaerts in db/schema.ts).
   ergebnis?: string | null;
+  // Zusätzliche Arten im Gesamtkalender (lib/kalender-ergaenzung.ts): Trainings und Vereinstermine. undefined = Spiel/Dienst wie bisher.
+  art?: "training" | "vereinstermin";
+  // Training, das ausfällt (Halle frei): durchgestrichen dargestellt.
+  ausgefallen?: boolean;
+  // Zusatztext im Detail (z.B. Grund, Beschreibung) und Link zur Seite, auf der man den Eintrag bearbeitet bzw. beantwortet.
+  detailText?: string;
+  detailHref?: string;
+  detailLinkText?: string;
 };
 
 // Mehrtägiger Balken (z.B. Turnier-Container) — im Gitter nur noch als
@@ -157,6 +165,7 @@ export function MonatsKalender({
   trainerListe = [],
   zuordenbarePersonen = [],
   basisPfad,
+  abfrageZusatz = "",
   // Default true: die anderen Aufrufstellen (z.B. /profil "Mein Kalender")
   // übergeben ohnehin keine zuordenbarePersonen/mannschaftsListe, die
   // schreibenden Formulare bleiben dort also unabhängig davon unsichtbar —
@@ -172,6 +181,8 @@ export function MonatsKalender({
   trainerListe?: { userId: string; name: string | null; email: string }[];
   zuordenbarePersonen?: ZuordenbarePerson[];
   basisPfad: string;
+  // Zusätzliche Suchparameter für die Monatslinks (z.B. "&zeige=training"), damit die Filterwahl beim Blättern bleibt.
+  abfrageZusatz?: string;
   schreibzugriff?: boolean;
 }) {
   const router = useRouter();
@@ -357,6 +368,29 @@ export function MonatsKalender({
   // Detailspalte (Desktop) bzw. Detailliste (Mobile) des ausgewählten Tages
   // aufgerufen.
   function eintragDialogInhalt(e: KalenderEintrag) {
+    // Training und Vereinstermine: einfache Detailansicht mit Link zur Seite, auf der man sie bearbeitet bzw. beantwortet.
+    if (e.art) {
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle className={e.ausgefallen ? "line-through" : undefined}>{e.label}</DialogTitle>
+            <DialogDescription>
+              {e.typLabel}
+              {e.zeit ? ` · ${e.zeit} Uhr` : ""}
+              {e.ort ? ` · ${e.ort}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 text-sm">
+            {e.detailText && <p className="whitespace-pre-line text-muted-foreground">{e.detailText}</p>}
+            {e.detailHref && (
+              <Button size="sm" className="mt-2 w-fit" render={<Link href={e.detailHref} />} nativeButton={false}>
+                {e.detailLinkText ?? "Details"}
+              </Button>
+            )}
+          </div>
+        </>
+      );
+    }
     return (
       <>
         <DialogHeader>
@@ -624,7 +658,7 @@ export function MonatsKalender({
                 <button
                   type="button"
                   className={`flex flex-col gap-1 rounded-lg border p-3 text-left hover:bg-muted/60 ${
-                    e.auswaerts ? "border-dashed" : ""
+                    e.auswaerts || e.ausgefallen ? "border-dashed" : ""
                   }`}
                 />
               }
@@ -662,7 +696,9 @@ export function MonatsKalender({
               </span>
               <span className="flex items-center gap-1.5 truncate text-sm font-medium">
                 {e.auswaerts && <Car className="size-4 shrink-0 text-muted-foreground" aria-label="Auswärtsspiel" />}
-                <span className="truncate">{e.label}</span>
+                {e.art === "training" && <Dumbbell className="size-4 shrink-0 text-muted-foreground" aria-label="Training" />}
+                {e.art === "vereinstermin" && <Users className="size-4 shrink-0 text-muted-foreground" aria-label="Vereinstermin" />}
+                <span className={`truncate ${e.ausgefallen ? "line-through" : ""}`}>{e.label}</span>
               </span>
               <span className="truncate text-xs text-muted-foreground">
                 {e.typLabel}
@@ -683,7 +719,7 @@ export function MonatsKalender({
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <Link
-          href={`${basisPfad}?monat=${monatKey(vorherigerMonat.jahr, vorherigerMonat.monatNull)}`}
+          href={`${basisPfad}?monat=${monatKey(vorherigerMonat.jahr, vorherigerMonat.monatNull)}${abfrageZusatz}`}
           className="text-sm text-muted-foreground underline"
         >
           ← Vorheriger Monat
@@ -702,7 +738,7 @@ export function MonatsKalender({
               value={monatNull}
               onChange={(e) =>
                 router.push(
-                  `${basisPfad}?monat=${monatKey(jahr, Number(e.target.value))}`
+                  `${basisPfad}?monat=${monatKey(jahr, Number(e.target.value))}${abfrageZusatz}`
                 )
               }
               className="h-7 rounded-md border border-input bg-transparent px-1.5 text-sm capitalize outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
@@ -718,7 +754,7 @@ export function MonatsKalender({
               value={jahr}
               onChange={(e) =>
                 router.push(
-                  `${basisPfad}?monat=${monatKey(Number(e.target.value), monatNull)}`
+                  `${basisPfad}?monat=${monatKey(Number(e.target.value), monatNull)}${abfrageZusatz}`
                 )
               }
               className="h-7 rounded-md border border-input bg-transparent px-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
@@ -732,7 +768,7 @@ export function MonatsKalender({
           </div>
           {!istAktuellerMonat && (
             <Link
-              href={`${basisPfad}?monat=${monatKey(heute.getFullYear(), heute.getMonth())}`}
+              href={`${basisPfad}?monat=${monatKey(heute.getFullYear(), heute.getMonth())}${abfrageZusatz}`}
               className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted"
             >
               Heute
@@ -740,7 +776,7 @@ export function MonatsKalender({
           )}
         </div>
         <Link
-          href={`${basisPfad}?monat=${monatKey(naechsterMonat.jahr, naechsterMonat.monatNull)}`}
+          href={`${basisPfad}?monat=${monatKey(naechsterMonat.jahr, naechsterMonat.monatNull)}${abfrageZusatz}`}
           className="text-sm text-muted-foreground underline"
         >
           Nächster Monat →
@@ -816,7 +852,7 @@ export function MonatsKalender({
                         <span
                           key={e.id}
                           className={`flex items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] ${
-                            e.auswaerts ? "border border-dashed bg-background" : "bg-muted"
+                            e.auswaerts || e.ausgefallen ? "border border-dashed bg-background" : "bg-muted"
                           }`}
                         >
                           {e.farbe && (
@@ -827,7 +863,9 @@ export function MonatsKalender({
                           )}
                           {e.zeit && <span className="shrink-0 font-medium">{e.zeit}</span>}
                           {e.auswaerts && <Car className="size-2.5 shrink-0 text-muted-foreground" aria-label="Auswärtsspiel" />}
-                          <span className="min-w-0 flex-1 truncate">{e.label}</span>
+                          {e.art === "training" && <Dumbbell className="size-2.5 shrink-0 text-muted-foreground" aria-label="Training" />}
+                          {e.art === "vereinstermin" && <Users className="size-2.5 shrink-0 text-muted-foreground" aria-label="Vereinstermin" />}
+                          <span className={`min-w-0 flex-1 truncate ${e.ausgefallen ? "line-through" : ""}`}>{e.label}</span>
                           {e.ergebnis ? (
                             <span className="shrink-0 font-medium">{e.ergebnis}</span>
                           ) : (

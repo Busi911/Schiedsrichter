@@ -1,6 +1,9 @@
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
-import { parseMonatParam } from "@/lib/kalender";
+import { mischeNachZeit, monatKey, monatsBereich, parseMonatParam } from "@/lib/kalender";
+import { kalenderArtenZusatz, parseKalenderArten } from "@/lib/kalender-arten";
+import { holeKalenderErgaenzung } from "@/lib/kalender-ergaenzung";
+import { KalenderFilter } from "@/components/kalender-filter";
 import { holeAdminKalenderDaten } from "@/lib/admin-kalender";
 import { MonatsKalender } from "@/components/monats-kalender";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
@@ -8,15 +11,33 @@ import { HilfeHinweis } from "@/components/hilfe-hinweis";
 export default async function AdminKalenderPage({
   searchParams,
 }: {
-  searchParams: Promise<{ monat?: string }>;
+  searchParams: Promise<{ monat?: string; zeige?: string }>;
 }) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
-  const { monat } = await searchParams;
+  const { monat, zeige } = await searchParams;
   const { jahr, monatNull } = parseMonatParam(monat);
+  const arten = parseKalenderArten(zeige);
+  const { von, bis } = monatsBereich(jahr, monatNull);
 
-  const { eintraegeProTag, mehrtaegigeEintraege, mannschaftsListe, trainerListe, zuordenbarePersonen } =
-    await holeAdminKalenderDaten(vereinId, jahr, monatNull);
+  const [daten, ergaenzung] = await Promise.all([
+    holeAdminKalenderDaten(vereinId, jahr, monatNull),
+    holeKalenderErgaenzung({
+      vereinId,
+      userId: session.user.id,
+      istAdmin: session.user.istAdmin,
+      istAdminLesend: !!session.user.istAdminLesend,
+      von,
+      bis,
+      arten,
+      ansicht: "admin",
+    }),
+  ]);
+  const { mannschaftsListe, trainerListe, zuordenbarePersonen } = daten;
+  // Gesamtkalender: Spiele & Dienste (wenn nicht ausgeblendet) plus Training und Vereinstermine.
+  const zeigeSpiele = arten.has("spiele");
+  const eintraegeProTag = mischeNachZeit(zeigeSpiele ? daten.eintraegeProTag : new Map(), ergaenzung.eintraege);
+  const mehrtaegigeEintraege = zeigeSpiele ? daten.mehrtaegigeEintraege : [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -26,8 +47,8 @@ export default async function AdminKalenderPage({
           <HilfeHinweis anker="kalender" />
         </div>
         <p className="text-sm text-muted-foreground">
-          Alle Termine des Vereins — Spiele aus dem ICS-Feed sowie Freundschaftsspiele/Turniere. Zum
-          Anschauen der Details auf einen Termin klicken.
+          Alles, was im Verein stattfindet: Spiele und Turniere, Trainings (mit Ausfällen) und Vereinstermine. Zum
+          Anschauen der Details auf einen Eintrag klicken, mit den Filtern lassen sich Arten ausblenden.
           <span className="ml-2 inline-flex items-center gap-1">
             <CheckCircle2 className="size-3.5 text-emerald-700 dark:text-emerald-500" /> Besetzung vollständig
           </span>
@@ -36,6 +57,8 @@ export default async function AdminKalenderPage({
           </span>
         </p>
       </div>
+
+      <KalenderFilter basisPfad="/admin/kalender" monat={monatKey(jahr, monatNull)} arten={arten} verfuegbar={ergaenzung.verfuegbar} />
 
       <MonatsKalender
         jahr={jahr}
@@ -46,6 +69,7 @@ export default async function AdminKalenderPage({
         trainerListe={trainerListe}
         zuordenbarePersonen={zuordenbarePersonen}
         basisPfad="/admin/kalender"
+        abfrageZusatz={kalenderArtenZusatz(arten)}
         schreibzugriff={session.user.istAdmin}
       />
     </div>
