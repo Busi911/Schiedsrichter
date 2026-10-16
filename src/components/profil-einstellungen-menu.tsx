@@ -48,6 +48,8 @@ export function ProfilEinstellungenMenu({
   offeneSchiedsrichterErinnerungAktiviert,
   offeneZeitnehmerErinnerungAktiviert,
   offeneDiensteBroadcastAktiviert,
+  trainingAusfallHinweiseAktiviert,
+  istTrainer,
   istSchiedsrichterwart,
   istZeitnehmerwart,
   istDienstRolleninhaber,
@@ -79,6 +81,8 @@ export function ProfilEinstellungenMenu({
   offeneSchiedsrichterErinnerungAktiviert: boolean;
   offeneZeitnehmerErinnerungAktiviert: boolean;
   offeneDiensteBroadcastAktiviert: boolean;
+  trainingAusfallHinweiseAktiviert: boolean;
+  istTrainer: boolean;
   istSchiedsrichterwart: boolean;
   istZeitnehmerwart: boolean;
   istDienstRolleninhaber: boolean;
@@ -352,6 +356,19 @@ export function ProfilEinstellungenMenu({
                   id="offeneDiensteHinweise"
                   name="offeneDiensteHinweise"
                   defaultChecked={offeneDiensteHinweiseAktiv}
+                />
+              </div>
+            )}
+            {istTrainer && (
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="trainingAusfallHinweise" className="font-normal">
+                  Hinweis, wenn ein Training ausfällt und die Halle frei wird
+                </Label>
+                <Switch
+                  key={String(trainingAusfallHinweiseAktiviert)}
+                  id="trainingAusfallHinweise"
+                  name="trainingAusfallHinweise"
+                  defaultChecked={trainingAusfallHinweiseAktiviert}
                 />
               </div>
             )}

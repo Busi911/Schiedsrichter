@@ -69,6 +69,19 @@ export async function diensteBroadcastSpeichern(formData: FormData) {
   revalidatePath("/admin/einstellungen");
 }
 
+// Extra-Punkt "Training" (Wochenplan, Ausfälle, freie Hallenzeiten) für ALLE Personen des Vereins sichtbar; aus = nur Admins und Trainer
+// (siehe lib/training-ausfall.ts darfTrainingSehen). Die Info-Mail an Trainer hängt daran nicht (persönlicher Schalter im Profil).
+export async function trainingSichtbarkeitSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+  const trainingFuerAlleSichtbar = formData.get("trainingFuerAlleSichtbar") === "on";
+  await withTenant(vereinId, (tx) =>
+    tx.update(vereine).set({ trainingFuerAlleSichtbar }).where(eq(vereine.id, vereinId))
+  );
+  revalidatePath("/admin/einstellungen");
+  revalidatePath("/profil/training");
+}
+
 // Mail an den Vereinsadmin bei verlegten Spielen/neuen Ergebnissen (egal ob aus dem Hallenplan-Import oder
 // den öffentlichen Liga-Daten).
 export async function spielplanBenachrichtigungSpeichern(formData: FormData) {

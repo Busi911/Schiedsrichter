@@ -743,6 +743,13 @@
       "when": 1792002704603,
       "tag": "0105_verein_inaktiv",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1792157001354,
+      "tag": "0106_training_ausfall",
+      "breakpoints": true
     }
   ]
 }

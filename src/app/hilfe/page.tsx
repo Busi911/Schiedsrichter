@@ -49,6 +49,7 @@ export default async function HilfePage() {
             ["zuordnung", "Dienste verteilen & Selbsteintragung"],
             ["abmeldungen", "Wenn jemand doch nicht kann"],
             ["trainingsplan", "Trainingsplan"],
+            ["training", "Training: Ausfälle & freie Hallenzeiten"],
             ["ics-feed", "Persönlicher Kalender (ICS-Feed)"],
             ["mails", "E-Mails & Erinnerungen"],
             ["statistik", "Statistik & offene Dienste"],
@@ -793,7 +794,7 @@ export default async function HilfePage() {
           HandballerPate schickt Erinnerungen vor unbesetzten Diensten, auslaufenden Lizenzen und anstehenden Terminen sowie eine
           Wochenübersicht, und informiert bei Verlegungen: Wird ein Ligaspiel verlegt, bekommen die dafür eingetragenen Schiedsrichter und die Trainer der Mannschaft eine Info-Mail, Zeitnehmer, Ordner und andere Dienste werden ausgetragen und benachrichtigt. Jede Person stellt im Profil-Menü unter <strong>Benachrichtigungen</strong> ein,
           welche optionalen Mails sie bekommt. Jede dieser Mails hat unten einen <strong>Abbestellen-Link</strong> (auch Gmail und
-          Outlook zeigen „Abbestellen“). Der Admin legt in den Einstellungen fest, welche Mail-Arten der Verein überhaupt
+          Outlook zeigen „Abbestellen“). Trainer bekommen außerdem eine Mail, wenn irgendwo im Verein ein Training ausfällt und die Halle frei wird (<a href="#training" className="font-medium underline">Training</a>). Der Admin legt in den Einstellungen fest, welche Mail-Arten der Verein überhaupt
           verschickt. Login-Links, Verlegungen und Systemmails sind nicht abbestellbar.
         </p>
       </section>
@@ -832,6 +833,32 @@ export default async function HilfePage() {
           Wochentag ziehen, Dauer an der unteren Kante anpassen), am Handy über „Bearbeiten“. Unterteilte Hallen haben eine
           Spalte je Abteil; Überschneidungen werden rot markiert. Der Plan gilt für jede Woche gleich und hat keinen Einfluss
           auf Spiele und Dienste.
+        </p>
+      </section>
+
+      <section id="training" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Training: Ausfälle &amp; freie Hallenzeiten</h2>
+        <p className="text-sm text-muted-foreground">
+          Unter{" "}
+          <Link href="/profil/training" className="font-medium underline">
+            Training
+          </Link>{" "}
+          (im Profil und in der unteren Leiste) stehen die Trainings der nächsten zwei Wochen aus dem Trainingsplan. Fällt ein
+          Training einmal aus, meldet das ein <strong>Admin</strong> oder ein <strong>Trainer dieser Mannschaft</strong> mit
+          „Fällt aus“ (Grund optional). Der Plan selbst bleibt unverändert; nur dieser Termin gilt als ausgefallen, die Halle ist in
+          der Zeit frei und steht oben unter <strong>Freie Hallenzeiten</strong>. „Findet doch statt“ nimmt die Meldung zurück.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Wer erfährt es?</strong> Alle Trainer des Vereins bekommen eine Info-Mail (auch bei der Rücknahme), außer der
+          meldenden Person. Jeder Trainer kann das im Profil-Menü unter <strong>Benachrichtigungen</strong> („Hinweis, wenn ein
+          Training ausfällt und die Halle frei wird“) oder über den Abbestellen-Link in der Mail abschalten.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Wer sieht „Training“?</strong> Admins und Trainer immer. Der Admin kann den Punkt unter{" "}
+          <Link href="/admin/einstellungen#training" className="font-medium underline">
+            Einstellungen → Training
+          </Link>{" "}
+          für alle Personen im Verein einschalten (Standard: aus). Auf der öffentlichen Vereinsseite erscheint nichts davon.
         </p>
       </section>
 
