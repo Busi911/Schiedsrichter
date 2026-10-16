@@ -10,6 +10,8 @@ import { useEffect, useRef, useState } from "react";
 // Barrierefreiheit: Der Dialog hat role="dialog" + aria-modal="true", der Schließen-Button bekommt beim
 // Öffnen den Fokus, beim Schließen wird der Fokus auf das zuvor aktive Element zurückgeführt. Der
 // Schließen-Button hat eine Tippfläche von ≥ 44 px (min-h-11 min-w-11) und ein beschreibendes aria-label.
+// Während der Dialog sichtbar ist, werden alle Geschwister-Elemente inert (nicht bedienbar) und eine
+// Tab-Falle hält die Tastatur-Navigation innerhalb des Dialogs.
 export function SponsorSplash({
   bildUrl,
   name,
@@ -72,6 +74,45 @@ export function SponsorSplash({
       vorherigerFokus.current.focus();
       vorherigerFokus.current = null;
     }
+  }, [sichtbar]);
+
+  // Hintergrund nicht bedienbar machen, während der Dialog sichtbar ist:
+  // inert auf alle Geschwister-Elemente des Dialogs setzen.
+  useEffect(() => {
+    if (!sichtbar || !dialogRef.current) return;
+    const dialog = dialogRef.current;
+    const parent = dialog.parentElement;
+    if (!parent) return;
+    const geschwister = Array.from(parent.children).filter((el) => el !== dialog);
+    geschwister.forEach((el) => el.setAttribute("inert", ""));
+    return () => {
+      geschwister.forEach((el) => el.removeAttribute("inert"));
+    };
+  }, [sichtbar]);
+
+  // Tab-Falle: Tab/Shift+Tab innerhalb des Dialogs halten.
+  useEffect(() => {
+    if (!sichtbar) return;
+    const tabFalle = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const fokusierbar = dialog.querySelectorAll<HTMLElement>(
+        'button, a, input, [tabindex]:not([tabindex="-1"])',
+      );
+      if (fokusierbar.length === 0) return;
+      const erste = fokusierbar[0];
+      const letzte = fokusierbar[fokusierbar.length - 1];
+      if (e.shiftKey && document.activeElement === erste) {
+        e.preventDefault();
+        letzte.focus();
+      } else if (!e.shiftKey && document.activeElement === letzte) {
+        e.preventDefault();
+        erste.focus();
+      }
+    };
+    window.addEventListener("keydown", tabFalle);
+    return () => window.removeEventListener("keydown", tabFalle);
   }, [sichtbar]);
 
   if (!sichtbar) return null;
