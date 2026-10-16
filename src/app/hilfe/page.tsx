@@ -839,6 +839,12 @@ export default async function HilfePage() {
           Spalte je Abteil; Überschneidungen werden rot markiert. Der Plan gilt für jede Woche gleich und hat keinen Einfluss
           auf Spiele und Dienste.
         </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Plätze und Saison (z.B. Beachhandball):</strong> Mit „+ Halle / Platz“ legt ihr auch einen <strong>Platz</strong> an, etwa einen Beachplatz. Für einen
+          Ort lässt sich eine <strong>Saison</strong> einstellen (z.B. Mai bis September, auch über den Jahreswechsel möglich): Trainings dort gibt es nur in diesen
+          Monaten, der Wochenplan bleibt unverändert. Im Kalender, unter „Training“ und bei Ausfällen erscheinen sie nur in der Saison, ein Ausfall sagt dann
+          „Platz frei“. Ohne Saison gilt der Ort ganzjährig.
+        </p>
       </section>
 
       <section id="training" className="flex flex-col gap-2 scroll-mt-6">

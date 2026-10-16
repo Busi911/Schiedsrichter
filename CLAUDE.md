@@ -499,7 +499,7 @@ Wochenplan (`trainingszeit`) bleibt unverändert; ein Ausfall gilt nur für EIN 
 ersten Melden bzw. wenn die Rücknahme wirklich etwas löschte). Entscheidung Betreiber 16.10.2026: erstmal alle Trainer, KEIN Vereins-Schalter für die Mail; persönlicher Schalter `users.training_ausfall_hinweise_aktiviert` (Default an,
 Profil → Benachrichtigungen nur für Trainer, Abmelde-Art `training-ausfall`). Der Extra-Punkt „Training“ ist ein eigener Vereins-Schalter `vereine.training_fuer_alle_sichtbar` (Einstellungen → Training, Default aus): ohne ihn sehen nur
 Admins und Trainer ihn (`darfTrainingSehen`, `sehenTrainingPunkt` für Layout/Navigation). Nie auf der öffentlichen Seite. Demo: ein ausgefallenes Training (2. Herren), Schalter für alle an. Hilfe `#training`. Noch offen (nächste Stufen):
-allgemeine Vereinstermine/Sitzungen mit Sichtbarkeit nach Gruppe, Plätze/Ressourcen mit Saisonfenster (Beachhandball), Gesamtkalender.
+(erledigt am 16.10.2026: Vereinstermine, Gesamtkalender, Plätze mit Saison, siehe unten).
 
 ## Vereinstermine (Sitzungen) mit Sichtbarkeit und Zu-/Absage (Stand 16.10.2026, Wunsch eines Interessenten)
 
@@ -514,7 +514,7 @@ Vereinstermine stehen im persönlichen ICS-Abo (`holeVereinsterminFuerIcs`, UID 
 **Wiederholungen (Migration 0108):** `vereinstermin.serie_id` + `wiederholung` (woechentlich | zweiwoechentlich | monatlich = n-ter Wochentag, der 5. fällt in kurzen Monaten auf den letzten). Eine Serie besteht aus EINZELNEN Zeilen (höchstens `MAX_SERIEN_TERMINE` = 52, Rechnung
 rein in `lib/wiederholung.ts`: deutsche Wanduhrzeit, Uhrzeit bleibt über die Zeitumstellung), damit Sichtbarkeit und Zu-/Absagen je Termin unverändert funktionieren. Anlegen: `wiederholung` + `bis` (Pflicht bei Serie), EINE Einladungsmail zum ersten Termin mit Serien-Satz. Bearbeiten: nur dieser Termin oder
 `folgende` (Tage bleiben, Uhrzeit/Dauer/Ort/Titel/Sichtbarkeit werden übernommen, EINE Änderungsmail); Löschen: `scope=folgende` löscht diesen und alle folgenden (eine Absage je Person). Profil und „Rückmeldung steht aus“-Karte zeigen je Serie nur die nächsten drei (`kuerzeSerien`), der Admin alle.
-Noch offen: Plätze/Ressourcen (Beachhandball).
+Noch offen: nichts Geplantes mehr in dieser Reihe.
 
 ## Gesamtkalender (Spiele, Training, Vereinstermine) und Menü (Stand 16.10.2026)
 
@@ -523,6 +523,12 @@ Der Kalender ist der EINE Einstieg für alles, was im Verein stattfindet (Betrei
 Mannschaften; Vereinstermine nur nach `darfVereinsterminSehen`. Filter `?zeige=spiele,training,verein` (`kalender-arten.ts`, `KalenderFilter`; der Monatswechsel hängt `abfrageZusatz` an). Wochen-Digest-Mail und ICS-Abo nutzen weiter `holeEigeneKalenderEintraege` (nur Spiele/Dienste; Vereinstermine stehen zusätzlich im ICS).
 Menü: Admin-Leiste Übersicht · Kalender · „Spiele & Turniere“ (früher „Termine“) · Verwaltung (Trainingsplan, Vereinstermine wenn an, Mannschaften …); die Profil-Buttons „Training“/„Vereinstermine“ entfallen, beide stehen unter „Mehr“ (Profil-Navigation) und sind aus dem Kalender-Eintrag erreichbar.
 Neue Eintragsart im Kalender: in `KalenderEintrag.art` + `holeKalenderErgaenzung` + `KALENDER_ARTEN` ergänzen, Hilfe `#kalender` anpassen.
+
+## Plätze mit Saison (Beachhandball, Stand 16.10.2026)
+
+`halle` ist der EINE Ort für Trainings (Halle ODER Platz): `art` ("halle" | "platz", nur Wortwahl "Platz frei"/"Halle frei", `ortWort`) und optionale Saison `saison_von_monat`/`saison_bis_monat` (Migration 0109, beide oder keiner, von > bis läuft über den Jahreswechsel, `istInSaison`/`pruefeSaison` in
+`lib/trainingsplan.ts`). Der Wochenplan bleibt unverändert; außerhalb der Saison gibt es keine Trainings des Ortes: `konkreteTrainings`/`trainingsImZeitraum` bekommen dafür eine `SaisonPruefung`, `pruefeAusfallDatum` lehnt Ausfälle außerhalb ab. Wer neue Stellen baut, die konkrete Trainings berechnen, muss die Saison
+mitgeben (Training-Seite, Kalender-Ergänzung, Ausfall-Action tun es). Verwaltung im Trainingsplan („+ Halle / Platz“, Bearbeiten-Dialog, `OrtFelder`). Demo: „Beachplatz am Stadion“ (April bis Oktober) mit einem Beachhandball-Training. Hilfe `#trainingsplan`.
 
 ## Hilfe: wo Nutzer sie finden
 

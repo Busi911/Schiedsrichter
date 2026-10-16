@@ -16,6 +16,9 @@ export type AusfallZeile = { trainingszeitId: string; datum: string; grund: stri
 
 export type KonkretesTraining = TrainingsZeile & { datum: string; ausgefallen: boolean; grund: string | null };
 
+// Gilt der Ort der Trainingszeit an diesem Tag (Saison, z.B. Beachplatz Mai bis September)? Ohne Angabe gilt jeder Ort immer.
+export type SaisonPruefung = (halleId: string, datum: string) => boolean;
+
 const TAG_MS = 24 * 60 * 60 * 1000;
 
 function utcAusDatum(datum: string): Date {
@@ -58,7 +61,8 @@ export function konkreteTrainings(
   zeiten: TrainingsZeile[],
   ausfaelle: AusfallZeile[],
   jetzt: Date,
-  tage: number
+  tage: number,
+  inSaison?: SaisonPruefung
 ): KonkretesTraining[] {
   const { datum: heute, minuten } = berlinJetzt(jetzt);
   const ausfall = new Map(ausfaelle.map((a) => [`${a.trainingszeitId}|${a.datum}`, a]));
@@ -68,6 +72,7 @@ export function konkreteTrainings(
     const wochentag = wochentagVonDatum(datum);
     for (const z of zeiten) {
       if (z.wochentag !== wochentag) continue;
+      if (inSaison && !inSaison(z.halleId, datum)) continue;
       if (i === 0 && z.endMinuten <= minuten) continue;
       const a = ausfall.get(`${z.id}|${datum}`);
       liste.push({ ...z, datum, ausgefallen: !!a, grund: a?.grund ?? null });
@@ -77,9 +82,10 @@ export function konkreteTrainings(
 }
 
 // Prüft eine Meldung: Datum gültig, passt zum Wochentag der Trainingszeit und das Training ist noch nicht vorbei. Gibt eine Fehlermeldung oder null zurück.
-export function pruefeAusfallDatum(zeit: Pick<TrainingsZeile, "wochentag" | "endMinuten">, datum: string, jetzt: Date): string | null {
+export function pruefeAusfallDatum(zeit: Pick<TrainingsZeile, "wochentag" | "endMinuten">, datum: string, jetzt: Date, inSaison = true): string | null {
   if (!istGueltigesDatum(datum)) return "Ungültiges Datum.";
   if (wochentagVonDatum(datum) !== zeit.wochentag) return "An diesem Tag findet das Training nicht statt.";
+  if (!inSaison) return "An diesem Tag ist der Ort nicht in Betrieb (außerhalb der Saison).";
   const heute = berlinJetzt(jetzt);
   if (datum < heute.datum || (datum === heute.datum && zeit.endMinuten <= heute.minuten)) return "Dieses Training ist schon vorbei.";
   return null;
@@ -112,13 +118,14 @@ export function formatMinuten(minuten: number): string {
 
 // Konkrete Trainings in einem Zeitraum (Kalendertage YYYY-MM-DD, beide inklusive) — für den Kalender, auch für vergangene Tage. Wie konkreteTrainings,
 // aber ohne "heute schon beendet fällt weg".
-export function trainingsImZeitraum(zeiten: TrainingsZeile[], ausfaelle: AusfallZeile[], vonDatum: string, bisDatum: string): KonkretesTraining[] {
+export function trainingsImZeitraum(zeiten: TrainingsZeile[], ausfaelle: AusfallZeile[], vonDatum: string, bisDatum: string, inSaison?: SaisonPruefung): KonkretesTraining[] {
   const ausfall = new Map(ausfaelle.map((a) => [`${a.trainingszeitId}|${a.datum}`, a]));
   const liste: KonkretesTraining[] = [];
   for (let datum = vonDatum, n = 0; datum <= bisDatum && n < 400; datum = addiereTage(datum, 1), n++) {
     const wochentag = wochentagVonDatum(datum);
     for (const z of zeiten) {
       if (z.wochentag !== wochentag) continue;
+      if (inSaison && !inSaison(z.halleId, datum)) continue;
       const a = ausfall.get(`${z.id}|${datum}`);
       liste.push({ ...z, datum, ausgefallen: !!a, grund: a?.grund ?? null });
     }

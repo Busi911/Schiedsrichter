@@ -6,7 +6,7 @@ import { and, eq } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, hallen, mannschaften, trainingAusfaelle, trainingszeiten } from "@/db/schema";
-import { abteilLabel } from "@/lib/trainingsplan";
+import { abteilLabel, istInSaison } from "@/lib/trainingsplan";
 import { darfAusfallMelden, pruefeAusfallDatum } from "@/lib/training-ausfall";
 import { sendeTrainingAusfallHinweise } from "@/lib/training-ausfall-mail";
 
@@ -37,7 +37,7 @@ async function pruefeUndLade(formData: FormData) {
   if (!darfAusfallMelden({ istAdmin: session.user.istAdmin, trainerMannschaftIds: geladen.trainerMannschaftIds, mannschaftId: geladen.zeit.mannschaftId })) {
     throw new Error("Nur Admins und Trainer dieser Mannschaft dürfen Ausfälle melden.");
   }
-  const fehler = pruefeAusfallDatum(geladen.zeit, datum, new Date());
+  const fehler = pruefeAusfallDatum(geladen.zeit, datum, new Date(), geladen.halle ? istInSaison(geladen.halle, datum) : true);
   if (fehler) throw new Error(fehler);
 
   const mailDaten = {

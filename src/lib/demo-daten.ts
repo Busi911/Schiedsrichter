@@ -289,7 +289,7 @@ export type DemoDaten = {
   personen: DemoPerson[];
   termine: DemoTermin[];
   zuordnungen: DemoZuordnung[];
-  trainingsplan: { mannschaft: string; wochentag: number; vonMinuten: number; bisMinuten: number; abteil?: number; farbe: string }[];
+  trainingsplan: { mannschaft: string; wochentag: number; vonMinuten: number; bisMinuten: number; abteil?: number; farbe: string; platz?: boolean }[];
   // Ausfälle: Position im Trainingsplan oben; das Datum ist das nächste künftige Training an dessen Wochentag (relativ zu "jetzt").
   trainingsausfaelle: { trainingIndex: number; grund: string }[];
   vereinstermine: DemoVereinstermin[];
@@ -317,6 +317,8 @@ export function baueDemoDaten(): DemoDaten {
       { mannschaft: "männliche A-Jugend", wochentag: 3, vonMinuten: 18 * 60, bisMinuten: 19 * 60 + 30, abteil: 1, farbe: "#14b8a6" },
       { mannschaft: "1. Herren", wochentag: 4, vonMinuten: 18 * 60, bisMinuten: 19 * 60 + 30, abteil: 1, farbe: "#3b82f6" },
       { mannschaft: "männliche D-Jugend", wochentag: 5, vonMinuten: 15 * 60, bisMinuten: 16 * 60, abteil: 1, farbe: "#84cc16" },
+      // Beachhandball auf dem Beachplatz (Saison April bis Oktober, siehe demo-verein.ts)
+      { mannschaft: "weibliche B-Jugend", wochentag: 5, vonMinuten: 10 * 60, bisMinuten: 11 * 60 + 30, farbe: "#f97316", platz: true },
     ],
     // 2. Herren (Mittwoch): Trainer krank, die Halle ist frei
     trainingsausfaelle: [{ trainingIndex: 5, grund: "Trainer krank" }],

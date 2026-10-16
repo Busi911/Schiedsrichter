@@ -244,3 +244,50 @@ export function pruefeTeilung(start: number, ende: number, teil: number): string
   if (teil <= start || teil >= ende) return "Der Wechsel muss innerhalb des Trainings liegen.";
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Orte: Halle oder Platz (z.B. Beachhandball) mit optionaler Saison
+// ---------------------------------------------------------------------------
+
+export const ORT_ARTEN = { halle: "Halle", platz: "Platz (z.B. Beachhandball)" } as const;
+export type OrtArt = keyof typeof ORT_ARTEN;
+export const istOrtArt = (x: string): x is OrtArt => Object.hasOwn(ORT_ARTEN, x);
+
+// Wort für Anzeigen und Mails ("Halle frei" / "Platz frei").
+export function ortWort(art: string | null | undefined): "Halle" | "Platz" {
+  return art === "platz" ? "Platz" : "Halle";
+}
+
+export const MONATSNAMEN = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"] as const;
+
+export type Saison = { saisonVonMonat: number | null; saisonBisMonat: number | null };
+
+// Gilt der Ort an diesem Kalendertag (YYYY-MM-DD)? Ohne Saison immer; von > bis läuft über den Jahreswechsel (z.B. Oktober bis März).
+export function istInSaison(s: Saison, datum: string): boolean {
+  if (s.saisonVonMonat == null || s.saisonBisMonat == null) return true;
+  const monat = Number(datum.slice(5, 7));
+  const { saisonVonMonat: von, saisonBisMonat: bis } = s;
+  return von <= bis ? monat >= von && monat <= bis : monat >= von || monat <= bis;
+}
+
+// "Mai bis September", null ohne Saison.
+export function saisonText(s: Saison): string | null {
+  if (s.saisonVonMonat == null || s.saisonBisMonat == null) return null;
+  return `${MONATSNAMEN[s.saisonVonMonat - 1]} bis ${MONATSNAMEN[s.saisonBisMonat - 1]}`;
+}
+
+// Kurzform für Tabs/Listen: "Mai–Sep".
+export function saisonKurz(s: Saison): string | null {
+  if (s.saisonVonMonat == null || s.saisonBisMonat == null) return null;
+  return `${MONATSNAMEN[s.saisonVonMonat - 1].slice(0, 3)}–${MONATSNAMEN[s.saisonBisMonat - 1].slice(0, 3)}`;
+}
+
+// Formularwerte (leer = keine Saison): beide oder keiner, ganze Monate 1-12.
+export function pruefeSaison(vonRoh: string, bisRoh: string): { fehler: string } | { wert: Saison } {
+  if (!vonRoh && !bisRoh) return { wert: { saisonVonMonat: null, saisonBisMonat: null } };
+  const von = Number(vonRoh);
+  const bis = Number(bisRoh);
+  if (!vonRoh || !bisRoh) return { fehler: "Bitte Saison von und bis angeben (oder beides leer lassen)." };
+  if (![von, bis].every((m) => Number.isInteger(m) && m >= 1 && m <= 12)) return { fehler: "Ungültiger Monat." };
+  return { wert: { saisonVonMonat: von, saisonBisMonat: bis } };
+}

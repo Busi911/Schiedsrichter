@@ -321,8 +321,8 @@ Trainer der Mannschaft auf `/profil/training` („Fällt aus“, Grund optional;
 `konkreteTrainings`) und oben „Freie Hallenzeiten“. Alle aktiven Trainer des Vereins bekommen eine Info-Mail (`lib/training-ausfall-mail.ts`, auch bei der
 Rücknahme „Findet doch statt“, nicht an die meldende Person). Persönlicher Schalter `users.training_ausfall_hinweise_aktiviert` (Default an, Profil →
 Benachrichtigungen, nur für Trainer; Abmelde-Link Art `training-ausfall`), bewusst KEIN Vereins-Schalter. Der Extra-Punkt „Training“ (im Kalender über „Zum Training“ und unter „Mehr“) ist für Admins und Trainer immer sichtbar, für alle anderen nur mit `vereine.training_fuer_alle_sichtbar` (Einstellungen →
-Training, Default aus). Nichts davon erscheint auf der öffentlichen Vereinsseite. Noch offen: Vereinstermine (Sitzungen) und Plätze/Ressourcen
-(z.B. Beachhandball).
+Training, Default aus). Nichts davon erscheint auf der öffentlichen Vereinsseite. Plätze (z.B. Beachhandball): `halle.art` ("halle" | "platz") und optionale Saison `saison_von_monat`/`saison_bis_monat` (Migration 0109; von > bis läuft über den Jahreswechsel, `istInSaison`, `lib/trainingsplan.ts`). Außerhalb der Saison entfallen die Trainings
+des Ortes in „Training“, im Kalender und bei Ausfallmeldungen; der Wochenplan bleibt unverändert, Wortwahl „Platz frei“ statt „Halle frei“.
 
 ## Vereinstermine (Sitzungen) mit Zu-/Absage
 
@@ -335,7 +335,7 @@ geantwortet hat, sehen nur Admins, alle anderen Zahlen. Mails (`lib/vereinstermi
 Admin je Termin anhakbar, persönlich abschaltbar (`users.vereinstermin_hinweise_aktiviert`, Abmelde-Art `vereinstermin`). Die Termine stehen auch im persönlichen
 ICS-Abo. Nie auf der öffentlichen Seite. Wiederholungen (Migration 0108, `serie_id` + `wiederholung`): jede Serie besteht aus einzelnen Terminen (höchstens 52; wöchentlich, alle 2 Wochen, monatlich am n-ten Wochentag; Rechnung rein in
 `lib/wiederholung.ts`, deutsche Wanduhrzeit), eine Mail je Serie, Bearbeiten/Löschen „nur diesen“ oder „diesen und alle folgenden“, im Profil je Serie die nächsten drei Termine (`kuerzeSerien`).
-Noch offen: Plätze/Ressourcen (Beachhandball).
+Noch offen: nichts Geplantes mehr in dieser Reihe.
 
 ## Gesamtkalender (Spiele, Training, Vereinstermine)
 
@@ -343,7 +343,7 @@ Der Kalender (`/admin/kalender`, „Mein Kalender“ auf `/profil`) zeigt alles,
 und Vereinstermine (nur, was die Person sehen darf). Zusätzliche Einträge liefert `lib/kalender-ergaenzung.ts` (`holeKalenderErgaenzung`), sie werden je Tag nach Uhrzeit eingemischt (`mischeNachZeit`, `lib/kalender.ts`).
 Filter „Anzeigen“ über dem Kalender (`components/kalender-filter.tsx`, Suchparameter `zeige`, reine Hilfen in `lib/kalender-arten.ts`; bleibt beim Monatswechsel). Training im Admin-Kalender alle; im Profil Admins und
 (bei „Training für alle“) alle Personen alle, sonst Trainer die ihrer Mannschaften. Menü aufgeräumt: „Termine“ heißt „Spiele & Turniere“, Trainingsplan und Vereinstermine stehen unter „Verwaltung“ (mobil unter „Mehr“),
-der Kalender ist der Einstieg. Noch offen: Beachhandball-Plätze (Saison), Trainings/Vereinstermine in der Wochenübersicht-Mail.
+der Kalender ist der Einstieg. Noch offen: Trainings/Vereinstermine in der Wochenübersicht-Mail.
 
 ## Systemadmin (vereinsübergreifend)
 

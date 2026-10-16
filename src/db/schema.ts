@@ -399,6 +399,12 @@ export const hallen = pgTable("halle", {
   abteil2Name: text("abteil_2_name"),
   abteil3Name: text("abteil_3_name"),
   abteil4Name: text("abteil_4_name"),
+  // "halle" (Standard) oder "platz" (z.B. Beachhandball-Platz): nur Wortwahl in der Oberfläche ("Platz frei" statt "Halle frei").
+  art: text("art").notNull().default("halle"),
+  // Optionale Saison (Monate 1-12, beide oder keiner; von > bis = über den Jahreswechsel): Trainings an diesem Ort gibt es nur in diesen Monaten
+  // (lib/trainingsplan.ts istInSaison) — z.B. ein Beachplatz von Mai bis September. Der Wochenplan bleibt unverändert, außerhalb der Saison fallen die Trainings weg.
+  saisonVonMonat: integer("saison_von_monat"),
+  saisonBisMonat: integer("saison_bis_monat"),
   erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
 });
 

@@ -69,6 +69,12 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Gesamtkalender: Ergänzung (Postgres)",
       ])
       .returning({ id: schema.trainingszeiten.id, mannschaftId: schema.trainingszeiten.mannschaftId });
     zeitA = zeiten.find((z) => z.mannschaftId === mannschaftA)!.id;
+    // Beachplatz mit Saison Mai bis September: im Oktober keine Trainings dort, im Juni schon
+    const [platz] = await testDb
+      .insert(schema.hallen)
+      .values({ vereinId, name: "Beachplatz", art: "platz", saisonVonMonat: 5, saisonBisMonat: 9 })
+      .returning({ id: schema.hallen.id });
+    await testDb.insert(schema.trainingszeiten).values({ vereinId, mannschaftId: mannschaftA, halleId: platz.id, wochentag: 2, startMinuten: 1020, endMinuten: 1110 });
     await testDb.insert(schema.trainingAusfaelle).values({ vereinId, trainingszeitId: zeitA, datum: "2026-10-22", grund: "Halle gesperrt" });
     await testDb.insert(schema.vereinstermine).values([
       { vereinId, titel: "Vorstandssitzung", art: "sitzung", start: new Date("2026-10-27T17:00:00Z"), sichtbarkeit: "admins" },
@@ -119,6 +125,26 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Gesamtkalender: Ergänzung (Postgres)",
     const e = await hole(sonstigePerson, "profil");
     expect(ids(e, "training")).toHaveLength(9);
     await testDb.update(schema.vereine).set({ trainingFuerAlleSichtbar: false }).where(eq(schema.vereine.id, vereinId));
+  });
+
+  it("Beachplatz mit Saison: im Oktober keine Einträge, im Juni (in der Saison) alle Mittwochs-Trainings, Ausfall sagt 'Platz frei'", async () => {
+    const oktober = await hole(adminId, "admin", { istAdmin: true });
+    expect([...oktober.eintraege.values()].flat().filter((x) => x.ort === "Beachplatz")).toHaveLength(0);
+
+    const { holeKalenderErgaenzung } = await import("./kalender-ergaenzung");
+    const juni = await holeKalenderErgaenzung({
+      vereinId,
+      userId: adminId,
+      istAdmin: true,
+      istAdminLesend: false,
+      von: new Date("2026-05-31T22:00:00Z"),
+      bis: new Date("2026-06-30T21:59:59Z"),
+      arten: ALLE,
+      ansicht: "admin",
+    });
+    const beach = [...juni.eintraege.values()].flat().filter((x) => x.ort === "Beachplatz");
+    expect(beach).toHaveLength(4); // Mittwoche: 3., 10., 17., 24.6.
+    expect(beach.every((b) => b.label === "Herren (Mä)")).toBe(true);
   });
 
   it("Filter: nur Vereinstermine liefert keine Trainings", async () => {

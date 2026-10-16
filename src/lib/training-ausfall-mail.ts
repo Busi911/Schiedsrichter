@@ -30,7 +30,7 @@ export function trainingAusfallInhalt(d: AusfallMailDaten): EmailInhalt {
       ueberschrift: `Training findet doch statt: ${d.halle} ist am ${formatTrainingDatum(d.datum, false)} wieder belegt`,
       zeilen: [
         { text: datumLang, stark: true },
-        `Der Ausfall des Trainings von ${d.mannschaft} (${d.halle}) wurde zurückgenommen. Die Halle ist in dieser Zeit nicht mehr frei.`,
+        `Der Ausfall des Trainings von ${d.mannschaft} (${d.halle}) wurde zurückgenommen. ${d.halle} ist in dieser Zeit nicht mehr frei.`,
       ],
       cta: { text: "Trainingsplan ansehen", url: `${appUrl()}/profil/training` },
       kleingedrucktes: "Du bekommst diese Mail als Trainer des Vereins. Abschaltbar in deinen Benachrichtigungs-Einstellungen.",
@@ -41,7 +41,7 @@ export function trainingAusfallInhalt(d: AusfallMailDaten): EmailInhalt {
     ueberschrift: `Training fällt aus: ${d.halle} ist am ${formatTrainingDatum(d.datum, false)} frei`,
     zeilen: [
       { text: datumLang, stark: true },
-      `Das Training von ${d.mannschaft} (${d.halle}) fällt aus. In dieser Zeit ist die Halle frei.`,
+      `Das Training von ${d.mannschaft} (${d.halle}) fällt aus. In dieser Zeit ist ${d.halle} frei.`,
       ...(d.grund ? [`Grund: ${d.grund}`] : []),
     ],
     cta: { text: "Trainingsplan ansehen", url: `${appUrl()}/profil/training` },
