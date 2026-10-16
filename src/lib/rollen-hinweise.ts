@@ -27,7 +27,7 @@ export function rollenHinweise(typen: string[], basisUrl: string): RollenHinweis
   }
   if (einzigartig.includes("trainer")) {
     zeilen.push(
-      "Als Trainer siehst du im Profil die Heim- und Auswärtsspiele deiner Mannschaft, offene Dienste und deinen persönlichen Kalender (zum Abonnieren im Handy). Wird ein Spiel deiner Mannschaft verlegt, bekommst du automatisch eine Info-Mail."
+      "Als Trainer siehst du im Profil die Heim- und Auswärtsspiele deiner Mannschaft, offene Dienste und deinen persönlichen Kalender (zum Abonnieren im Handy). Wird ein Spiel deiner Mannschaft verlegt, bekommst du automatisch eine Info-Mail. Unter „Training“ siehst du den Trainingsplan und meldest ein ausfallendes Training; fällt ein Training im Verein aus, erfährst du per Mail, dass die Halle frei ist (im Profil abschaltbar)."
     );
   }
   if (zeilen.length > 0) zeilen.push(`Hilfe zu allen Rollen (nach dem Login): ${basisUrl}/hilfe#rollen`);

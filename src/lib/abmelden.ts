@@ -14,6 +14,7 @@ export const ABMELDE_ARTEN = {
   "sr-erinnerung": "die Erinnerung an offene Schiedsrichter-Dienste",
   "zn-erinnerung": "die Erinnerung an offene Zeitnehmer-/Sekretär-Dienste",
   broadcast: "die Anfragen zu unbesetzten Diensten",
+  "training-ausfall": "die Hinweise zu ausfallenden Trainings (freie Hallenzeiten)",
 } as const;
 export type AbmeldeArt = keyof typeof ABMELDE_ARTEN;
 export const istAbmeldeArt = (x: string): x is AbmeldeArt => Object.hasOwn(ABMELDE_ARTEN, x);
@@ -24,6 +25,7 @@ const FELD: Record<AbmeldeArt, (an: boolean) => Partial<typeof users.$inferInser
   "sr-erinnerung": (an) => ({ offeneSchiedsrichterErinnerungAktiviert: an }),
   "zn-erinnerung": (an) => ({ offeneZeitnehmerErinnerungAktiviert: an }),
   broadcast: (an) => ({ offeneDiensteBroadcastAktiviert: an }),
+  "training-ausfall": (an) => ({ trainingAusfallHinweiseAktiviert: an }),
 };
 
 function geheimnis(): string {
@@ -73,5 +75,6 @@ export async function istAngemeldet(userId: string, art: AbmeldeArt): Promise<bo
     "sr-erinnerung": u.offeneSchiedsrichterErinnerungAktiviert,
     "zn-erinnerung": u.offeneZeitnehmerErinnerungAktiviert,
     broadcast: u.offeneDiensteBroadcastAktiviert,
+    "training-ausfall": u.trainingAusfallHinweiseAktiviert,
   }[art];
 }

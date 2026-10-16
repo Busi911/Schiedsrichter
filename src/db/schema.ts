@@ -323,6 +323,9 @@ export const vereine = pgTable("verein", {
   trainingsplanEndMinuten: integer("trainingsplan_end_minuten")
     .notNull()
     .default(22 * 60),
+  // Extra-Punkt "Training" im eingeloggten Bereich für ALLE Personen des Vereins (Wochenplan, Ausfälle, freie Hallenzeiten). Default aus: dann sehen
+  // ihn nur Admins und Trainer (lib/training-ausfall.ts, darfTrainingSehen). Hat mit dem Mailversand an Trainer nichts zu tun.
+  trainingFuerAlleSichtbar: boolean("training_fuer_alle_sichtbar").notNull().default(false),
 });
 
 export const mannschaften = pgTable("mannschaft", {
@@ -436,6 +439,28 @@ export const trainingszeiten = pgTable("trainingszeit", {
   abteilNummer: integer("abteil_nummer"),
   erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
 });
+
+// Ausfall EINES Trainings an EINEM Datum (der Wochenplan oben gilt für jede Woche gleich und bleibt unverändert): in dieser Zeit ist die Halle
+// frei. Gemeldet vom Admin oder einem Trainer der Mannschaft (app/profil/training/actions.ts); die Rücknahme löscht die Zeile. Mit der
+// Trainingszeit weg (Cascade) sind auch ihre Ausfälle weg.
+export const trainingAusfaelle = pgTable(
+  "training_ausfall",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references(() => vereine.id, { onDelete: "cascade" }),
+    trainingszeitId: uuid("trainingszeit_id")
+      .notNull()
+      .references(() => trainingszeiten.id, { onDelete: "cascade" }),
+    // Kalendertag (deutsche Zeit) YYYY-MM-DD, muss auf den Wochentag der Trainingszeit fallen.
+    datum: date("datum", { mode: "string" }).notNull(),
+    grund: text("grund"),
+    gemeldetVon: text("gemeldet_von").references(() => users.id, { onDelete: "set null" }),
+    erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("training_ausfall_zeit_datum_idx").on(t.trainingszeitId, t.datum)]
+);
 
 // Vom Admin bewusst übersprungene Vorschläge aus "Unbekannte Mannschaften"
 // (siehe gruppiereUnbekannteMannschaften in rundenspiel-import.ts) — meist
@@ -596,6 +621,9 @@ export const users = pgTable("user", {
   // pro Verein. null = noch nicht aktiviert; Kenntnis des Tokens ist die
   // Berechtigung (login-freier Abruf durch Kalender-Apps).
   kalenderToken: text("kalender_token").unique(),
+  // Persönliches Opt-out für die Info-Mail "Training fällt aus, Halle frei" (nur für Trainer, siehe lib/training-ausfall-mail.ts). Default true:
+  // alle Trainer des Vereins bekommen sie, wer sie nicht will, schaltet sie im Profil (oder per Abmelde-Link) ab. Kein Vereins-Schalter.
+  trainingAusfallHinweiseAktiviert: boolean("training_ausfall_hinweise_aktiviert").notNull().default(true),
   // Zeitpunkt des letzten erfolgreichen Logins (Magic-Link oder Passwort) —
   // gesetzt im jwt-Callback in auth.ts, NUR bei frischem Login (nicht bei
   // jedem Request, siehe Kommentar dort). null = noch nie eingeloggt (z.B.

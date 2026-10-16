@@ -313,6 +313,18 @@ Nähe) als Vorschlagsliste zum manuellen Aufräumen — bewusst kein
 automatisches Löschen, da beide Signale nicht zuverlässig genug für eine
 automatische Entscheidung sind.
 
+## Training: Ausfälle und freie Hallenzeiten
+
+Der Trainingsplan (`/admin/trainingsplan`, Tabelle `trainingszeit`) gilt jede Woche gleich. Fällt ein Training einmal aus, meldet das ein Admin oder ein
+Trainer der Mannschaft auf `/profil/training` („Fällt aus“, Grund optional; `training_ausfall`, je Trainingszeit und Datum höchstens einmal, RLS über
+`verein_id`, im Mandantentrennungs-Test). Die Seite zeigt die Trainings der nächsten 14 Tage (`lib/training-ausfall.ts`, rein/getestet:
+`konkreteTrainings`) und oben „Freie Hallenzeiten“. Alle aktiven Trainer des Vereins bekommen eine Info-Mail (`lib/training-ausfall-mail.ts`, auch bei der
+Rücknahme „Findet doch statt“, nicht an die meldende Person). Persönlicher Schalter `users.training_ausfall_hinweise_aktiviert` (Default an, Profil →
+Benachrichtigungen, nur für Trainer; Abmelde-Link Art `training-ausfall`), bewusst KEIN Vereins-Schalter. Der Extra-Punkt „Training“ (Profil-Button,
+Tab in der unteren Leiste) ist für Admins und Trainer immer sichtbar, für alle anderen nur mit `vereine.training_fuer_alle_sichtbar` (Einstellungen →
+Training, Default aus). Nichts davon erscheint auf der öffentlichen Vereinsseite. Noch offen: Vereinstermine (Sitzungen) und Plätze/Ressourcen
+(z.B. Beachhandball).
+
 ## Systemadmin (vereinsübergreifend)
 
 Nutzer mit `user.ist_system_admin = true` haben **kein** `verein_id` (gehören

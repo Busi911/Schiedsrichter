@@ -55,6 +55,7 @@ import { saisonLabel, saisonSortKey } from "@/lib/saison";
 import { cn } from "@/lib/utils";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
 import { appUrl } from "@/lib/app-url";
+import { darfTrainingSehen } from "@/lib/training-ausfall";
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -103,6 +104,7 @@ export default async function ProfilPage({
           offeneSchiedsrichterErinnerungAktiviert: true,
           offeneZeitnehmerErinnerungAktiviert: true,
           offeneDiensteBroadcastAktiviert: true,
+          trainingAusfallHinweiseAktiviert: true,
           kalenderToken: true,
         },
       });
@@ -239,6 +241,14 @@ export default async function ProfilPage({
   const istDienstwart = rollen.some(
     (r) => r.typ === "dienstwart" && r.aktiv
   );
+  const istTrainer = rollen.some((r) => r.typ === "trainer" && r.aktiv);
+  // Extra-Punkt "Training" (Wochenplan, Ausfälle): Admins und Trainer immer, alle anderen nur nach Freischaltung durch den Verein.
+  const sehenTraining = darfTrainingSehen({
+    istAdmin: session.user.istAdmin,
+    istAdminLesend: !!session.user.istAdminLesend,
+    istTrainer,
+    fuerAlleSichtbar: verein?.trainingFuerAlleSichtbar ?? false,
+  });
   const istDienstRolleninhaber = rollen.some(
     (r) =>
       r.aktiv &&
@@ -288,6 +298,8 @@ export default async function ProfilPage({
               offeneDiensteBroadcastAktiviert={
                 eigeneStammdaten?.offeneDiensteBroadcastAktiviert ?? true
               }
+              trainingAusfallHinweiseAktiviert={eigeneStammdaten?.trainingAusfallHinweiseAktiviert ?? true}
+              istTrainer={istTrainer}
               istSchiedsrichterwart={istSchiedsrichterwart}
               istZeitnehmerwart={istZeitnehmerwart}
               istDienstRolleninhaber={istDienstRolleninhaber}
@@ -382,6 +394,16 @@ export default async function ProfilPage({
                 nativeButton={false}
               >
                 Dienstwart
+              </Button>
+            )}
+            {sehenTraining && (
+              <Button
+                variant="outline"
+                size="sm"
+                render={<Link href="/profil/training" />}
+                nativeButton={false}
+              >
+                Training
               </Button>
             )}
             <div className="hidden md:block">

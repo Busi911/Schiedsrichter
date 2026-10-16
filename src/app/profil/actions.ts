@@ -254,6 +254,20 @@ export async function updateBenachrichtigungen(formData: FormData) {
     werteZumSpeichern.offeneDiensteBroadcastAktiviert = offeneDiensteHinweise;
   }
 
+  // Nur Trainer sehen den Schalter (sonst würde ein Absenden ohne das Feld den Wert stumm auf false setzen).
+  const istTrainer = await withTenant(vereinId, async (tx) =>
+    !!(await tx.query.funktionstraegerRollen.findFirst({
+      where: and(
+        eq(funktionstraegerRollen.userId, userId),
+        eq(funktionstraegerRollen.typ, "trainer"),
+        eq(funktionstraegerRollen.aktiv, true)
+      ),
+    }))
+  );
+  if (istTrainer) {
+    werteZumSpeichern.trainingAusfallHinweiseAktiviert = formData.get("trainingAusfallHinweise") === "on";
+  }
+
   await withTenant(vereinId, (tx) =>
     tx.update(users).set(werteZumSpeichern).where(eq(users.id, userId))
   );

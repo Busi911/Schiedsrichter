@@ -491,6 +491,16 @@ eigenem Einstieg: Schritt in `wartSchritte` ergänzen, Anker (`#selbsteintragung
 (neuer Zugang: `createFunktionstraeger`, Aktivieren einzeln/Bulk, Excel-Import, Mannschaft mit Trainer) und `rollenHinzugefuegtInhalt` (zusätzliche Rolle einer bestehenden Person,
 admin/actions.ts, Typen über `typenAusLabels`). Neue Rolle mit eigener Seite: Eintrag in `WART_SEITEN`.
 
+## Training: Ausfälle und freie Hallenzeiten (Stand 16.10.2026, Wunsch eines Interessenten)
+
+Wochenplan (`trainingszeit`) bleibt unverändert; ein Ausfall gilt nur für EIN Datum (`training_ausfall`, Migration 0106, `verein_id` + RLS, unique je Trainingszeit+Datum, Test in `tenant-isolation.test.ts`). Melden/Zurücknehmen nur Admin
+(Schreibzugriff) oder Trainer DIESER Mannschaft (`darfAusfallMelden`), nur für noch nicht beendete Trainings am passenden Wochentag (`pruefeAusfallDatum`); Actions `app/profil/training/actions.ts`, Seite `/profil/training`
+(14 Tage, "Freie Hallenzeiten"). Rechnung rein in `lib/training-ausfall.ts` (deutsche Zeit, Tag als "YYYY-MM-DD"). Mail an ALLE aktiven Trainer des Vereins außer der meldenden Person (`training-ausfall-mail.ts`, `after()`, nur beim
+ersten Melden bzw. wenn die Rücknahme wirklich etwas löschte). Entscheidung Betreiber 16.10.2026: erstmal alle Trainer, KEIN Vereins-Schalter für die Mail; persönlicher Schalter `users.training_ausfall_hinweise_aktiviert` (Default an,
+Profil → Benachrichtigungen nur für Trainer, Abmelde-Art `training-ausfall`). Der Extra-Punkt „Training“ ist ein eigener Vereins-Schalter `vereine.training_fuer_alle_sichtbar` (Einstellungen → Training, Default aus): ohne ihn sehen nur
+Admins und Trainer ihn (`darfTrainingSehen`, `sehenTrainingPunkt` für Layout/Navigation). Nie auf der öffentlichen Seite. Demo: ein ausgefallenes Training (2. Herren), Schalter für alle an. Hilfe `#training`. Noch offen (nächste Stufen):
+allgemeine Vereinstermine/Sitzungen mit Sichtbarkeit nach Gruppe, Plätze/Ressourcen mit Saisonfenster (Beachhandball), Gesamtkalender.
+
 ## Hilfe: wo Nutzer sie finden
 
 Zwei Hilfeseiten: `/hilfe` (eingeloggt: Erste Schritte, Rollen, Kalender, Bedarf, Zuordnung, Mails, Statistik, Support; mit Inhaltsverzeichnis und Anker je Abschnitt)

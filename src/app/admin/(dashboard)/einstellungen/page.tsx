@@ -7,6 +7,7 @@ import { adminDb } from "@/db/admin";
 import { ligaGruppen, ligaMannschaften, ligaTeilnahmen, ligaVereine, ligaSyncLaeufe, ligaVereinLogos, ligaVereinZusatzquellen, mannschaften, stammdatenAenderungen, terminZuordnungen, vereine } from "@/db/schema";
 import {
   diensteBroadcastSpeichern,
+  trainingSichtbarkeitSpeichern,
   logoEntfernen,
   mannschaftsnamenSpeichern,
   supportZugriffSetzen,
@@ -31,6 +32,7 @@ import { parseHallenNamen } from "@/lib/hallenplan-abgleich";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { HilfeHinweis } from "@/components/hilfe-hinweis";
 import { Switch } from "@/components/ui/switch";
 import { SubmitButton } from "@/components/submit-button";
 import { EinstellungsBereich, Unterbereich } from "@/components/einstellungs-bereich";
@@ -730,6 +732,43 @@ export default async function EinstellungenPage({
             )}
           </form>
         </EinstellungsBereich>
+
+      <EinstellungsBereich
+        id="training"
+        titel="Training"
+        kurz="Wer den Trainingsplan und Ausfälle in der App sieht"
+        beschreibung={<>Fällt ein Training aus, melden Admins und Trainer das unter „Training“; alle Trainer bekommen dann eine Info-Mail, dass die Halle
+          frei ist (jede Person kann das im Profil abschalten). Den Trainingsplan pflegt ihr unter{" "}
+          <a href="/admin/trainingsplan" className="underline">Training</a>.</>}
+      >
+        <HilfeHinweis anker="training" />
+        <form action={trainingSichtbarkeitSpeichern} className="mt-2 flex flex-col gap-3">
+          <fieldset disabled={!session.user.istAdmin} className="contents">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Label htmlFor="trainingFuerAlleSichtbar" className="font-normal">
+                  „Training“ für alle Personen im Verein anzeigen
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Aus: nur Admins und Trainer sehen den Punkt „Training“ (Trainings der nächsten zwei Wochen, ausgefallene Trainings, freie Hallenzeiten).
+                  An: jede Person mit Login im Verein sieht ihn. Auf der öffentlichen Vereinsseite erscheint nichts davon.
+                </p>
+              </div>
+              <Switch
+                key={String(verein?.trainingFuerAlleSichtbar ?? false)}
+                id="trainingFuerAlleSichtbar"
+                name="trainingFuerAlleSichtbar"
+                defaultChecked={verein?.trainingFuerAlleSichtbar ?? false}
+              />
+            </div>
+          </fieldset>
+          {session.user.istAdmin && (
+            <SubmitButton variant="outline" size="sm" className="self-start">
+              Speichern
+            </SubmitButton>
+          )}
+        </form>
+      </EinstellungsBereich>
 
       <EinstellungsBereich id="vereinsdaten" titel="Vereinsdaten und Rechnung" kurz="Rechnungsadresse und E-Mail des Verantwortlichen" beschreibung={<>Adresse und E-Mail des Verantwortlichen bekommt die Rechnung
             (per E-Mail). Nirgends in der App öffentlich sichtbar.</>}>

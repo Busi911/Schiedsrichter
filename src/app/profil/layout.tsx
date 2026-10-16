@@ -5,6 +5,7 @@ import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 import { istZeitnehmerwart } from "@/lib/zeitnehmerwart";
 import { istOrdnerwart } from "@/lib/ordnerwart";
 import { istDienstwart } from "@/lib/dienstwart";
+import { sehenTrainingPunkt } from "@/lib/training-sichtbar";
 import { DemoBanner } from "@/components/demo-banner";
 import { DEMO_VEREIN_ID } from "@/lib/demo-konstanten";
 import { holeDemoVerein } from "@/lib/demo-verein";
@@ -81,6 +82,8 @@ export default async function ProfilLayout({
       ]);
   // Dienstwart (eigene Dienste): Admins immer, wie bei den anderen Warten.
   const dienstwart = istAdmin || (await istDienstwart(vereinId, userId));
+  // Extra-Punkt "Training": Admins und Trainer immer, alle anderen nur, wenn der Verein ihn freigeschaltet hat.
+  const training = await sehenTrainingPunkt(vereinId, userId, istAdmin, !!session.user.istAdminLesend);
 
   const tabs: BottomNavItem[] = [
     { href: "/profil", label: "Profil", icon: "profil", exact: true },
@@ -99,6 +102,9 @@ export default async function ProfilLayout({
   }
   if (dienstwart) {
     tabs.push({ href: "/profil/dienstwart", label: "Dienste", icon: "wart" });
+  }
+  if (training) {
+    tabs.push({ href: "/profil/training", label: "Training", icon: "training" });
   }
   const nurProfil = tabs.length === 1;
   if (nurProfil) tabs.push({ href: "/hilfe", label: "Hilfe", icon: "hilfe" });

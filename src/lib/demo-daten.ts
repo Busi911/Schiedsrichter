@@ -241,6 +241,8 @@ export type DemoDaten = {
   termine: DemoTermin[];
   zuordnungen: DemoZuordnung[];
   trainingsplan: { mannschaft: string; wochentag: number; vonMinuten: number; bisMinuten: number; abteil?: number; farbe: string }[];
+  // Ausfälle: Position im Trainingsplan oben; das Datum ist das nächste künftige Training an dessen Wochentag (relativ zu "jetzt").
+  trainingsausfaelle: { trainingIndex: number; grund: string }[];
   eigeneDienste: DemoEigenerDienst[];
   eigeneEinteilungen: DemoEigeneEinteilung[];
 };
@@ -265,6 +267,8 @@ export function baueDemoDaten(): DemoDaten {
       { mannschaft: "1. Herren", wochentag: 4, vonMinuten: 18 * 60, bisMinuten: 19 * 60 + 30, abteil: 1, farbe: "#3b82f6" },
       { mannschaft: "männliche D-Jugend", wochentag: 5, vonMinuten: 15 * 60, bisMinuten: 16 * 60, abteil: 1, farbe: "#84cc16" },
     ],
+    // 2. Herren (Mittwoch): Trainer krank, die Halle ist frei
+    trainingsausfaelle: [{ trainingIndex: 5, grund: "Trainer krank" }],
   };
 }
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
@@ -6,6 +7,7 @@ import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
+import { HilfeHinweis } from "@/components/hilfe-hinweis";
 import { TrainingsplanGrid } from "@/components/trainingsplan-grid";
 import { trainingsplanZeitfensterSpeichern } from "./actions";
 
@@ -62,6 +64,14 @@ export default async function TrainingsplanPage() {
           der unteren Kante anpassen), auf dem Handy über den
           Bearbeiten-Dialog. Gilt für jede Woche gleich, ohne Bezug zu einem
           konkreten Datum.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Fällt ein Training einmal aus?{" "}
+          <Link href="/profil/training" className="font-medium underline">
+            Unter „Training“ melden
+          </Link>{" "}
+          — die Halle ist dann frei und alle Trainer bekommen eine Info-Mail.{" "}
+          <HilfeHinweis anker="training" />
         </p>
       </div>
 

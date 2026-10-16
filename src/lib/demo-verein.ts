@@ -10,11 +10,13 @@ import {
   mannschaften,
   termine,
   terminZuordnungen,
+  trainingAusfaelle,
   trainingszeiten,
   users,
   vereine,
 } from "@/db/schema";
 import { AVV_VERSION } from "@/lib/avv";
+import { addiereTage, berlinJetzt, wochentagVonDatum } from "@/lib/training-ausfall";
 import { baueDemoDaten, DEMO_ADMIN, demoEmail, demoErsatzAdresse } from "@/lib/demo-daten";
 import {
   DEMO_ADMIN_ID,
@@ -92,6 +94,8 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
       ort: "Musterstadt",
       status: "vorbereitung",
       istDemo: true,
+      // Der Extra-Punkt "Training" ist im Demo für alle sichtbar, damit Besucher ihn sehen.
+      trainingFuerAlleSichtbar: true,
       tarif: "befreit",
       avvAkzeptiertAm: jetzt,
       avvAkzeptiertVersion: AVV_VERSION,
@@ -162,18 +166,30 @@ export async function setzeDemoVereinZurueck(jetzt: Date = new Date()): Promise<
       .insert(hallen)
       .values({ vereinId: DEMO_VEREIN_ID, name: "Sporthalle Musterstadt", abteilAnzahl: 2, abteil1Name: "Halle A", abteil2Name: "Halle B" })
       .returning({ id: hallen.id });
-    await tx.insert(trainingszeiten).values(
-      daten.trainingsplan.map((e) => ({
-        vereinId: DEMO_VEREIN_ID,
-        mannschaftId: mannschaftId(e.mannschaft),
-        halleId: halle.id,
-        wochentag: e.wochentag,
-        startMinuten: e.vonMinuten,
-        endMinuten: e.bisMinuten,
-        farbe: e.farbe,
-        abteilNummer: e.abteil ?? null,
-      }))
-    );
+    const trainingszeitZeilen = await tx
+      .insert(trainingszeiten)
+      .values(
+        daten.trainingsplan.map((e) => ({
+          vereinId: DEMO_VEREIN_ID,
+          mannschaftId: mannschaftId(e.mannschaft),
+          halleId: halle.id,
+          wochentag: e.wochentag,
+          startMinuten: e.vonMinuten,
+          endMinuten: e.bisMinuten,
+          farbe: e.farbe,
+          abteilNummer: e.abteil ?? null,
+        }))
+      )
+      .returning({ id: trainingszeiten.id, wochentag: trainingszeiten.wochentag, mannschaftId: trainingszeiten.mannschaftId, startMinuten: trainingszeiten.startMinuten });
+    // Ausfälle: das nächste künftige Training (ab morgen) an dem Wochentag der gemeldeten Zeile.
+    const heute = berlinJetzt(jetzt).datum;
+    for (const a of daten.trainingsausfaelle) {
+      const plan = daten.trainingsplan[a.trainingIndex];
+      const zeile = trainingszeitZeilen.find((z) => z.mannschaftId === mannschaftId(plan.mannschaft) && z.wochentag === plan.wochentag && z.startMinuten === plan.vonMinuten);
+      if (!zeile) continue;
+      const datum = [1, 2, 3, 4, 5, 6, 7].map((n) => addiereTage(heute, n)).find((d) => wochentagVonDatum(d) === plan.wochentag)!;
+      await tx.insert(trainingAusfaelle).values({ vereinId: DEMO_VEREIN_ID, trainingszeitId: zeile.id, datum, grund: a.grund, gemeldetVon: DEMO_ADMIN_ID });
+    }
 
     const terminIdNach = new Map<string, string>();
     for (const t of daten.termine) {
