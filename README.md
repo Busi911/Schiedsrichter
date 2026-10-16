@@ -335,7 +335,7 @@ geantwortet hat, sehen nur Admins, alle anderen Zahlen. Mails (`lib/vereinstermi
 Admin je Termin anhakbar, persönlich abschaltbar (`users.vereinstermin_hinweise_aktiviert`, Abmelde-Art `vereinstermin`). Die Termine stehen auch im persönlichen
 ICS-Abo. Nie auf der öffentlichen Seite. Wiederholungen (Migration 0108, `serie_id` + `wiederholung`): jede Serie besteht aus einzelnen Terminen (höchstens 52; wöchentlich, alle 2 Wochen, monatlich am n-ten Wochentag; Rechnung rein in
 `lib/wiederholung.ts`, deutsche Wanduhrzeit), eine Mail je Serie, Bearbeiten/Löschen „nur diesen“ oder „diesen und alle folgenden“, im Profil je Serie die nächsten drei Termine (`kuerzeSerien`).
-Noch offen: Plätze/Ressourcen (Beachhandball), Gesamtkalender mit Spielen.
+Noch offen: Plätze/Ressourcen (Beachhandball).
 
 ## Gesamtkalender (Spiele, Training, Vereinstermine)
 
