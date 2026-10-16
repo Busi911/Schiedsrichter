@@ -326,7 +326,7 @@ Mannschaften, Favoriten, installierbare Web-App) und nur zeitlich begrenzt;
 zusätzlich Banner mit Ablaufdatum und `noindex`. Antworten, die vom Cookie
 abhängen (Favoriten-API mit Vorschau-Verein), dürfen nie im gemeinsamen Cache
 landen (`private, no-store`). Der Verein bleibt ohne Link 404 und taucht nicht
-in Suche/Sitemap auf. Der einrichtende Systemadmin im Treuhand-Kontext sieht
+in Suche/Sitemap auf; `robots.txt` sperrt `/verein/*/vorschau/` (zusätzlich `noindex`, Test in `seo-seiten.test.ts`). Der einrichtende Systemadmin im Treuhand-Kontext sieht
 die Seite ebenfalls.
 **Inaktiv (14.10.2026):** `verein_kontakt.inaktiv_seit` (Migration 0105). Ein Verein in Vorbereitung ohne Rückmeldung wird inaktiv gesetzt: automatisch im täglichen Followup-Lauf (`markiereInaktiveVereine`,
 Regel rein in `verein-inaktiv-regel.ts`: Verein in Vorbereitung, kein Demo, Erstkontakt ≥ 14 Tage her, kein gültiger Link, bei Mail-Ansprache erst nach der Erinnerung; ein Abgemeldeter sofort) oder von Hand

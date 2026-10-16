@@ -63,3 +63,12 @@ describe("Brotkrumen", () => {
     expect(html).toContain("BreadcrumbList");
   });
 });
+
+describe("robots.txt", () => {
+  it("sperrt die zeitlich begrenzten Vorschau-Links, lässt die öffentlichen Vereinsseiten offen", async () => {
+    const { default: robots } = await import("./robots");
+    const regel = [robots().rules].flat()[0];
+    expect(regel.disallow).toContain("/verein/*/vorschau/");
+    expect(regel.allow).toContain("/verein/");
+  });
+});
