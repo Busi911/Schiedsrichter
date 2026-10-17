@@ -428,6 +428,10 @@ alles unter `/system/abgleich` (nur Systemadmin):
   `hhv-handball.liga.nu` noch `hbde-live.liga.nu`; Domain-Freigabe oder Netzwerk-Tab-Daten der SPA nötig). Spiele ohne
   angelegten Spielbericht haben noch keine `meeting_id` und damit keinen Live-Link.
 
+## Feedback (Systemadmin)
+
+`/system/feedback` zeigt die Rückmeldungen aus dem Header-Button, offene zuerst; „Als erledigt markieren“ / „Wieder öffnen“ setzt `produkt_feedback.erledigt_am` (Migration 0113, nur über `adminDb`, `feedbackErledigtSetzen`). Erledigte stehen eingeklappt darunter.
+
 ## Admin-Statistik
 
 `/admin/statistik` (früher Abschnitt auf `/admin/dienste` = "Offene Dienste", gehört dort nicht hin): Spielbilanz je Mannschaft

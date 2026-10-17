@@ -1,0 +1,1 @@
+ALTER TABLE "produkt_feedback" ADD COLUMN "erledigt_am" timestamp;
