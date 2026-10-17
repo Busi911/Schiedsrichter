@@ -69,7 +69,7 @@ export default function AppHilfePage() {
         </ul>
         <p className="text-sm text-muted-foreground">
           In der installierten App bleiben eure Favoriten zuverlässiger gespeichert (Safari löscht Webseiten-Daten nach längerer
-          Pause).
+          Pause). Zum Aktualisieren ziehst du die Seite ganz oben nach unten und lässt los.
         </p>
       </section>
 

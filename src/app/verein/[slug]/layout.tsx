@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { FanKopf, FanTheme } from "@/components/liga/fan-rahmen";
+import { PullToRefresh } from "@/components/liga/pull-to-refresh";
 import { SponsorSplash } from "@/components/liga/sponsor-splash";
 import { holeSponsor } from "@/lib/sponsor";
 import { VereinsNav } from "@/components/liga/vereins-nav";
@@ -80,6 +81,7 @@ export default async function VereinsHuelle({
             : "der Verein ist noch in Vorbereitung."}
         </div>
       )}
+      <PullToRefresh />
       <FanTheme hue={farbton ?? vereinsFarbton(verein.slug)} />
       <FanKopf
         titel={verein.name}

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { FanKopf, FanTheme } from "@/components/liga/fan-rahmen";
+import { PullToRefresh } from "@/components/liga/pull-to-refresh";
 
 // Fan-Web-App "Meine Mannschaften": eigenes Manifest (Name, Startseite) und
 // grünes Erscheinungsbild, unabhängig von der Funktionsträger-App.
@@ -15,6 +16,7 @@ export const viewport: Viewport = { themeColor: "#14532d" };
 export default function MeineLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="fan flex flex-1 flex-col">
+      <PullToRefresh />
       <FanTheme hue={150} />
       <FanKopf titel="Meine Mannschaften" untertitel="Deine Favoriten auf einen Blick" aktiv="meine" />
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">{children}</main>
