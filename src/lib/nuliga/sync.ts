@@ -55,6 +55,9 @@ export type SyncOptionen = {
   frist?: number;
   // Von Hand (Systemadmin): die 30-Minuten-Sperre für frisch geladene Spielpläne übergehen.
   erzwingen?: boolean;
+  // Nur diese Teilnahmen laden (Live-Fenster-Cron, siehe live-fenster.ts). Dann wird weder der Verein als "Spiele
+  // synchronisiert" gestempelt noch ein Protokoll geschrieben: der reguläre Sync soll den Rest weiter als fällig sehen.
+  nurTeilnahmeIds?: string[];
 };
 
 // Gruppentabellen/Spielpläne, die jünger sind, werden bei einem
@@ -121,6 +124,18 @@ class Lauf {
     this.hatFehler = true;
     this.meldungen.push(text);
   }
+}
+
+// Ergebnis eines Teil-Laufs (nurTeilnahmeIds): ohne Protokoll und ohne Stempel am Verein.
+function ergebnisOhneProtokoll(lauf: Lauf): SyncErgebnis {
+  return {
+    status: lauf.hatFehler || lauf.unvollstaendig ? "teilweise" : "erfolgreich",
+    anfragen: lauf.anfragen,
+    neu: lauf.neu,
+    aktualisiert: lauf.aktualisiert,
+    meldungen: lauf.meldungen,
+    unvollstaendig: lauf.unvollstaendig,
+  };
 }
 
 async function protokolliere(
@@ -679,7 +694,7 @@ export async function synchronisiereStruktur(
 
 export async function synchronisiereSpiele(
   ligaVereinId: string,
-  { db, holeHtml, jetzt = new Date(), frist, erzwingen }: SyncOptionen
+  { db, holeHtml, jetzt = new Date(), frist, erzwingen, nurTeilnahmeIds }: SyncOptionen
 ): Promise<SyncErgebnis> {
   const start = Date.now();
   const lauf = new Lauf(holeHtml, frist);
@@ -693,7 +708,7 @@ export async function synchronisiereSpiele(
     where: and(eq(ligaMannschaften.ligaVereinId, ligaVereinId), eq(ligaMannschaften.aktiv, true)),
     columns: { id: true },
   });
-  const teilnahmen = mannschaften.length
+  const teilnahmenAlle = mannschaften.length
     ? await db
         .select({ t: ligaTeilnahmen, g: ligaGruppen })
         .from(ligaTeilnahmen)
@@ -711,6 +726,9 @@ export async function synchronisiereSpiele(
           )
         )
     : [];
+  const teilnahmen = nurTeilnahmeIds
+    ? teilnahmenAlle.filter((x) => nurTeilnahmeIds.includes(x.t.id))
+    : teilnahmenAlle;
 
   const zusatzClubIds = new Set(
     (
@@ -883,6 +901,7 @@ export async function synchronisiereSpiele(
     await aktualisiereGruppentabelle(db, lauf, verein.verband, g.id, g.nuligaGroupId, g.championship);
   }
 
+  if (nurTeilnahmeIds) return ergebnisOhneProtokoll(lauf);
   return protokolliere(db, ligaVereinId, "spiele", start, lauf, false);
 }
 
