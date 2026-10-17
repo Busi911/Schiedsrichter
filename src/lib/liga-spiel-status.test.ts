@@ -34,14 +34,20 @@ import { laeuftVermutlich } from "./liga-spiel-status";
 describe("laeuftVermutlich", () => {
   const anwurf = new Date("2026-10-04T15:00:00Z");
   const t = (min: number) => new Date(anwurf.getTime() + min * 60_000);
-  it("nur mit Spielbericht, ohne Ergebnis und im Zeitfenster nach dem Anwurf", () => {
+  it("ohne Ergebnis und im Zeitfenster nach dem Anwurf", () => {
     const s = mit({ meetingId: "5", beginn: anwurf });
     expect(laeuftVermutlich(s, t(-5))).toBe(false);
     expect(laeuftVermutlich(s, t(10))).toBe(true);
     expect(laeuftVermutlich(s, t(91))).toBe(false);
   });
-  it("Zeit allein genügt nicht, ein Ergebnis beendet die Vermutung", () => {
-    expect(laeuftVermutlich(mit({ beginn: anwurf }), t(10))).toBe(false);
+  it("auch ohne (bereits sichtbaren) Spielbericht", () => {
+    const s = mit({ beginn: anwurf });
+    expect(laeuftVermutlich(s, t(-5))).toBe(false);
+    expect(laeuftVermutlich(s, t(27))).toBe(true);
+    expect(laeuftVermutlich(s, t(91))).toBe(false);
+  });
+  it("ein Ergebnis, Absage oder Verlegung beendet die Vermutung", () => {
+    expect(laeuftVermutlich(mit({ beginn: anwurf, status: "verlegt" }), t(10))).toBe(false);
     expect(
       laeuftVermutlich(mit({ meetingId: "5", beginn: anwurf, toreHeim: 20, toreGast: 18, ergebnisBestaetigt: true }), t(10))
     ).toBe(false);
