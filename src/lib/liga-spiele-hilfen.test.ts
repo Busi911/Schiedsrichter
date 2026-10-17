@@ -147,6 +147,14 @@ describe("laufende Spiele und fehlende Ergebnisse", () => {
     expect(ergebnisHinweis(heute, jetzt)).toBeNull();
   });
 
+  it("ein heutiges Spiel ohne Ergebnis, dessen Anwurf über 90 Min her ist, zeigt 'Ergebnis folgt'", () => {
+    const anwurf = new Date("2026-10-04T14:00:00Z");
+    const s = spiel("h2", "2026-10-04", { uhrzeit: "16:00", beginn: anwurf });
+    expect(ergebnisHinweis(s, new Date("2026-10-04T14:30:00Z"))).toBe("laeuft");
+    expect(ergebnisHinweis(s, new Date("2026-10-04T17:00:00Z"))).toBe("ergebnis_folgt");
+    expect(ergebnisHinweis({ ...s, status: "verlegt" } as SpielAnsicht, new Date("2026-10-04T17:00:00Z"))).toBeNull();
+  });
+
   it("an einem Tag ohne Spiel ist 'heute' leer (die Startseite zeigt dann die nächsten Spiele)", () => {
     const morgen = spiel("m", "2026-10-05");
     const r = sammleVereinsSpiele(mannschaft([morgen]), jetzt);
