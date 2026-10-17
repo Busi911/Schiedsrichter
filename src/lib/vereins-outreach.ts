@@ -1,4 +1,5 @@
 import "server-only";
+import { maxVersucheFuerZiel } from "@/lib/outreach-einstellungen";
 import { and, count, eq, isNull, isNotNull, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaMannschaften, ligaVereine, nuligaVereinsindex, vereine, vereinKontakt, vereinVorschauLinks } from "@/db/schema";
@@ -146,7 +147,11 @@ async function inkrementiereOutreachVersuch(clubId: string, verband: string): Pr
 // Hauptfunktion des Outreach-Crons: Findet neue Vereine aus dem nuLiga-Index,
 // die noch nicht in der App existieren, richtet sie ein, sucht die E-Mail aus
 // dem Impressum und sendet die Ansprache-Mail.
-export async function fuehreOutreachAus(verband?: string): Promise<OutreachErgebnis> {
+export async function fuehreOutreachAus(
+  verband?: string,
+  // Ziel erfolgreich angeschriebener Vereine dieses Laufs (Systemadmin: /system/ansprache), Standard wie bisher 5.
+  ziel: number = OUTREACH_KONSTANTEN.ZIEL_ANGESCHRIEBEN
+): Promise<OutreachErgebnis> {
   const ergebnis: OutreachErgebnis = {
     verarbeitet: 0,
     angeschrieben: 0,
@@ -172,10 +177,10 @@ export async function fuehreOutreachAus(verband?: string): Promise<OutreachErgeb
     .where(
       sql`(NOT EXISTS (SELECT 1 FROM ${ligaVereine} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband}) OR EXISTS (SELECT 1 FROM ${ligaVereine} JOIN ${vereine} ON ${vereine.id} = ${ligaVereine.vereinId} LEFT JOIN ${vereinKontakt} ON ${vereinKontakt.vereinId} = ${vereine.id} WHERE ${ligaVereine.nuligaClubId} = ${nuligaVereinsindex.clubId} AND ${ligaVereine.verband} = ${nuligaVereinsindex.verband} AND ${vereine.status} = 'vorbereitung' AND ${vereinKontakt.angeschriebenAm} IS NULL AND ${vereinKontakt.inaktivSeit} IS NULL AND COALESCE(${vereinKontakt.outreachVersuche}, 0) < ${OUTREACH_KONSTANTEN.MAX_OUTREACH_VERSUCHE}))${verband ? sql` AND ${nuligaVereinsindex.verband} = ${verband}` : sql``}`
     )
-    .limit(OUTREACH_KONSTANTEN.MAX_VERSUCH_PRO_LAUF);
+    .limit(maxVersucheFuerZiel(ziel));
 
   for (const k of kandidaten) {
-    if (ergebnis.angeschrieben >= OUTREACH_KONSTANTEN.ZIEL_ANGESCHRIEBEN) break;
+    if (ergebnis.angeschrieben >= ziel) break;
     ergebnis.verarbeitet++;
     try {
       // 2. Vereinsseite aus nuLiga laden (für Website, Stammdaten und

@@ -140,6 +140,12 @@ export const freundschaftsTypEnum = pgEnum("freundschafts_typ", [
 export const systemEinstellungen = pgTable("system_einstellungen", {
   id: uuid("id").primaryKey().defaultRandom(),
   betaVereinLimit: integer("beta_verein_limit").notNull().default(3),
+  // Automatische Ansprache neuer Vereine (Cron vereins-outreach, lib/vereins-outreach.ts), vom Systemadmin unter /system/ansprache steuerbar:
+  // aus = der Cron macht nichts; pro Lauf = Ziel erfolgreich angeschriebener Vereine (Cron läuft 2x täglich); Nachfassen = Erinnerungsmail
+  // nach 7 Tagen und Nachfass an Instagram-Vereine.
+  outreachAktiv: boolean("outreach_aktiv").notNull().default(true),
+  outreachProLauf: integer("outreach_pro_lauf").notNull().default(5),
+  outreachNachfassAktiv: boolean("outreach_nachfass_aktiv").notNull().default(true),
 });
 
 // Anfragen, die eintreffen, nachdem das Beta-Limit (systemEinstellungen.

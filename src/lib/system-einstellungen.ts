@@ -20,7 +20,15 @@ export async function holeSystemEinstellungen() {
   const zeile = await mitColdStartRetry(() =>
     adminDb.query.systemEinstellungen.findFirst()
   );
-  return zeile ?? { id: null, betaVereinLimit: 3 };
+  return (
+    zeile ?? {
+      id: null,
+      betaVereinLimit: 3,
+      outreachAktiv: true,
+      outreachProLauf: 5,
+      outreachNachfassAktiv: true,
+    }
+  );
 }
 
 // Anzahl der Vereine, die das Beta-Limit belegen: nur aktive. Vereine im

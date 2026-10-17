@@ -1,4 +1,6 @@
 import { pruefeCronSecret } from "@/lib/cron-auth";
+import { holeSystemEinstellungen } from "@/lib/system-einstellungen";
+import { begrenzeOutreachProLauf } from "@/lib/outreach-einstellungen";
 import { markiereInaktiveVereine } from "@/lib/verein-inaktiv";
 import { fuehreOutreachAus, fuehreOutreachFollowupAus, fuehreInstagramNachfassAus, resetOutreachVerein } from "@/lib/vereins-outreach";
 
@@ -6,7 +8,8 @@ export const maxDuration = 300;
 
 // Täglicher Outreach-Cron: Findet neue Vereine aus dem nuLiga-Index, richtet
 // sie ein, sucht die E-Mail aus dem Impressum und sendet die Ansprache-Mail.
-// Maximal 5 Vereine pro Lauf (Throttling/Anti-Spam).
+// Pro Lauf höchstens so viele Vereine, wie der Systemadmin unter /system/ansprache eingestellt hat (Standard 5), oder gar nichts,
+// wenn er den Schalter ausgeschaltet hat.
 // Mit ?followup=1 werden stattdessen Followup-Mails verschickt.
 // Mit ?instagram=1 werden Vereine, die per Instagram angeschrieben wurden,
 // per E-Mail nachgefasst (mit Hinweis auf den vorherigen Instagram-Kontakt).
@@ -27,18 +30,30 @@ export async function GET(request: Request) {
     return Response.json({ reset: ergebnis });
   }
 
+  // Schalter des Systemadmins (/system/ansprache): aus = es wird nichts angelegt und nichts verschickt.
+  const einstellungen = await holeSystemEinstellungen();
+
   if (followup) {
-    const ergebnis = await fuehreOutreachFollowupAus();
+    // Das Inaktiv-Setzen verschickt nichts und läuft deshalb immer.
+    const ergebnis = einstellungen.outreachNachfassAktiv
+      ? await fuehreOutreachFollowupAus()
+      : { uebersprungen: "Nachfassen ist ausgeschaltet (/system/ansprache)" };
     // Danach: Vereine ohne Rückmeldung und ohne gültigen Link inaktiv setzen (nie löschen, jederzeit reaktivierbar).
     const inaktiv = await markiereInaktiveVereine();
     return Response.json({ followup: ergebnis, inaktiv });
   }
 
   if (instagram) {
+    if (!einstellungen.outreachNachfassAktiv) {
+      return Response.json({ instagram: { uebersprungen: "Nachfassen ist ausgeschaltet (/system/ansprache)" } });
+    }
     const ergebnis = await fuehreInstagramNachfassAus();
     return Response.json({ instagram: ergebnis });
   }
 
-  const ergebnis = await fuehreOutreachAus(verband);
+  if (!einstellungen.outreachAktiv) {
+    return Response.json({ outreach: { uebersprungen: "Ansprache neuer Vereine ist ausgeschaltet (/system/ansprache)" } });
+  }
+  const ergebnis = await fuehreOutreachAus(verband, begrenzeOutreachProLauf(einstellungen.outreachProLauf));
   return Response.json({ outreach: ergebnis });
 }
