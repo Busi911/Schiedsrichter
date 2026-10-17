@@ -1111,6 +1111,8 @@ export const produktFeedback = pgTable("produkt_feedback", {
   seite: text("seite").notNull(),
   nachricht: text("nachricht").notNull(),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+  // Vom Systemadmin unter /system/feedback als erledigt markiert (null = offen). Nur über adminDb gesetzt.
+  erledigtAm: timestamp("erledigt_am", { mode: "date" }),
 });
 
 
