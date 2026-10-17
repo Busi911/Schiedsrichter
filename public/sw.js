@@ -2,16 +2,20 @@
 // einen registrierten Service Worker, siehe ServiceWorkerRegistrar in
 // src/components/sw-register.tsx) und (2) hält die ÖFFENTLICHEN Seiten der
 // Fan-Web-App offline bereit: /verein/…, /meine und /api/liga/… werden
-// "network first" geladen und der letzte Stand gecacht, damit z.B. in der
-// Halle ohne Empfang der zuletzt gesehene Spielplan erscheint.
+// "network first with timeout" geladen und der letzte Stand gecacht, damit
+// z.B. in der Halle ohne Empfang der zuletzt gesehene Spielplan erscheint.
+// Bei schlechter Verbindung (Timeout nach ~4 s) wird auf den Cache
+// zurückgefallen. Ist auch nichts im Cache, wird eine statische
+// Offline-Seite (offline.html) gezeigt.
 //
 // Bewusst NICHT gecacht: alles andere (Admin, Profil, Login, Server Actions,
 // Seiten mit Session) — dort wäre ein veralteter Stand falsch oder
 // datenschutzrelevant. Gecacht werden nur Seitenaufrufe (mode "navigate") und
 // die öffentliche Favoriten-API, keine RSC-/Prefetch-Anfragen (sonst würden
 // HTML und Flight-Daten derselben URL vermischt).
-const CACHE = "hp-oeffentlich-v1";
+const CACHE = "hp-oeffentlich-v2";
 const MAX_EINTRAEGE = 60;
+const NETZ_TIMEOUT_MS = 4000;
 
 self.addEventListener("install", () => self.skipWaiting());
 
@@ -42,6 +46,17 @@ async function begrenze(cache) {
   }
 }
 
+// fetch mit Timeout — liefert die Netz-Antwort oder wirft nach NETZ_TIMEOUT_MS,
+// damit bei schlechter Verbindung (Halle ohne Empfang) schnell auf den Cache
+// zurückgefallen wird statt lange zu warten.
+function fetchMitTimeout(request) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), NETZ_TIMEOUT_MS);
+  return fetch(request, { signal: controller.signal }).finally(() =>
+    clearTimeout(timer)
+  );
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
@@ -52,15 +67,21 @@ self.addEventListener("fetch", (event) => {
     (async () => {
       const cache = await caches.open(CACHE);
       try {
-        const antwort = await fetch(request);
+        const antwort = await fetchMitTimeout(request);
         // Nur erfolgreiche Antworten merken (keine Weiterleitung auf /login).
         if (antwort.ok && !antwort.redirected) {
           cache.put(request, antwort.clone()).then(() => begrenze(cache));
         }
         return antwort;
       } catch (fehler) {
+        // Netz fehlgeschlagen oder Timeout — Cache versuchen.
         const gemerkt = await cache.match(request);
         if (gemerkt) return gemerkt;
+        // Nichts im Cache — Offline-Fallback-Seite, wenn verfügbar.
+        const offline = await cache.match(new Request("/offline.html"));
+        if (offline) return offline;
+        // Letzter Ausweg: den Fehler weiterwerfen (Browser zeigt
+        // seine eigene Offline-Fehlerseite).
         throw fehler;
       }
     })()

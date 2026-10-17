@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Keine Verbindung — HandballerPate</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f4f4f5;
+      color: #18181b;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .container {
+      max-width: 28rem;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+    p {
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      color: #52525b;
+    }
+    .hint {
+      margin-top: 1.25rem;
+      font-size: 0.8125rem;
+      color: #a1a1aa;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #09090b; color: #fafafa; }
+      h1 { color: #fafafa; }
+      p { color: #a1a1aa; }
+      .hint { color: #71717a; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Keine Verbindung</h1>
+    <p>
+      Du bist offline oder die Verbindung ist gerade zu schwach — z. B. in der
+      Halle ohne Empfang. Die zuletzt gesehenen Inhalte aus dem Cache werden
+      angezeigt, sobald sie verfügbar sind.
+    </p>
+    <p class="hint">
+      Versuche es erneut, sobald du wieder Verbindung hast.
+    </p>
+  </div>
+</body>
+</html>
