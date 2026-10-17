@@ -5,7 +5,7 @@ export const PREIS_REGULAER = 300; // € im Jahr
 export const PREIS_BETA = 200; // € im Jahr für Vereine, die in der Beta-Phase dabei sind
 export const PREIS_SPONSOR = 200; // € im Jahr für den Sponsor-Platz (optional), zusätzlich zur Übernahme des Vereinspreises
 // Sind alle Beta-Plätze vergeben oder ist die Beta vorbei, testet ein neuer Verein 14 Tage kostenlos (lib/abrechnung.ts TESTPHASE_TAGE), danach Rechnung.
-export const TESTPHASE_KURZ = `14 Tage kostenlos testen, ohne Zahlungsdaten. Danach ${PREIS_REGULAER} € im Jahr (netto), Rechnung per E-Mail, Zahlungsziel 30 Tage.`;
+export const TESTPHASE_KURZ = `14 Tage kostenlos testen, ohne Zahlungsdaten und ohne automatische Verlängerung. Wer danach weitermachen möchte, bestätigt es selbst: ${PREIS_REGULAER} € im Jahr (netto), Rechnung per E-Mail, Zahlungsziel 30 Tage.`;
 export const NETTO = "Alle Preise netto (zzgl. gesetzl. MwSt.).";
 
 export const BETA_KURZ = `Die Beta läuft bis ${BETA_ENDE}. Wer in der Beta-Phase dabei ist, zahlt danach nur ${PREIS_BETA} € statt ${PREIS_REGULAER} € im Jahr (netto).`;

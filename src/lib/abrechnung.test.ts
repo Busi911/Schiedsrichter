@@ -33,14 +33,14 @@ describe("Startkonditionen neuer Vereine", () => {
     const k = startKonditionen(tag("2026-12-05"));
     expect(k.tarif).toBe("regulaer");
     expect(k.testphaseBis!.toISOString().slice(0, 10)).toBe("2026-12-19");
-    expect(k.zahlungFaelligAm!.toISOString().slice(0, 10)).toBe("2027-01-18");
+    expect(k.zahlungFaelligAm).toBeNull();
   });
 
   it("schon in der Beta regulär mit 30 Tagen, wenn alle Beta-Plätze vergeben sind", () => {
     const k = startKonditionen(tag("2026-10-20"), true);
     expect(k.tarif).toBe("regulaer");
     expect(k.testphaseBis!.toISOString().slice(0, 10)).toBe("2026-11-03");
-    expect(k.zahlungFaelligAm!.toISOString().slice(0, 10)).toBe("2026-12-03");
+    expect(k.zahlungFaelligAm).toBeNull();
   });
 });
 
@@ -50,7 +50,12 @@ describe("Testphase", () => {
   it("14 Tage kostenlos, ohne Zahlungs-Mails, danach normaler Ablauf", () => {
     expect(zahlungsStand(verein, tag("2026-12-10")).art).toBe("testphase");
     expect(stufeFuer("testphase")).toBeNull();
-    expect(zahlungsStand(verein, tag("2026-12-25")).art).toBe("bald_faellig");
+    expect(zahlungsStand(verein, tag("2026-12-25")).art).toBe("testphase_abgelaufen");
+  });
+  it("nach der Testphase gesperrt, bis der Admin bestätigt; Sperre aussetzbar", () => {
+    expect(zahlungsStand({ ...verein, zahlungSperreAus: true }, tag("2026-12-25")).art).not.toBe("testphase_abgelaufen");
+    const bestaetigt: ZahlungsEingabe = { ...verein, weiternutzungBestaetigtAm: tag("2026-12-25"), zahlungFaelligAm: tag("2027-01-24") };
+    expect(zahlungsStand(bestaetigt, tag("2026-12-26")).art).toBe("bald_faellig");
   });
   it("bezahlt beendet die Testphase", () => {
     expect(zahlungsStand({ ...verein, zahlungBis: tag("2027-12-01") }, tag("2026-12-10")).art).toBe("bezahlt");

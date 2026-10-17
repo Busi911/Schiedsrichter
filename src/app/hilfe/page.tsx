@@ -948,8 +948,9 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           <strong>14 Tage kostenlos testen:</strong> Registriert sich ein Verein, wenn alle Beta-Plätze vergeben sind oder die Beta
           vorbei ist, ist er die ersten 14 Tage kostenlos und ohne Zahlungsdaten dabei. Im Admin-Bereich steht oben, bis wann die
-          Testphase läuft. Danach kommt die Rechnung per E-Mail an die Rechnungsadresse (Zahlungsziel 30 Tage). Wer nicht weitermachen
-          möchte, löscht den Verein vorher unter Einstellungen → Gefahrenzone, dann fällt nichts an.
+          Testphase läuft. Danach ist der Zugang gesperrt (die Daten bleiben). Wer weitermachen möchte, meldet sich als Vereinsadmin an und klickt
+          „Ich möchte HandballerPate weiterhin nutzen“ — dort stehen die Konditionen. Erst damit entsteht die Rechnung (per E-Mail, Zahlungsziel 30 Tage);
+          automatisch zahlt niemand. Wer nicht weitermachen möchte, tut nichts oder löscht den Verein unter Einstellungen → Gefahrenzone.
         </p>
         <p className="text-sm text-muted-foreground">
           <strong>Aussteigen:</strong> Unter Einstellungen → Gefahrenzone → „Verein löschen“ wird der Verein mit allen

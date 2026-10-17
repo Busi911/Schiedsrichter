@@ -13,8 +13,8 @@ export function ZahlungsHinweis({ verein }: { verein: Verein }) {
     return (
       <div className="border-b bg-sky-100 px-6 py-2 text-sm text-sky-900 dark:bg-sky-950 dark:text-sky-100">
         <p className="mx-auto max-w-screen-2xl">
-          <strong>Kostenlose Testphase</strong> bis {formatDatum(stand.faelligAm)}. Danach kommt die Rechnung (
-          {betragNetto(verein.tarif, false).toLocaleString("de-DE")} € netto) per E-Mail. Aussteigen geht bis dahin jederzeit unter Einstellungen →
+          <strong>Kostenlose Testphase</strong> bis {formatDatum(stand.faelligAm)}. Danach ist der Zugang gesperrt, bis der Vereinsadmin bestätigt: „Ich möchte HandballerPate weiterhin nutzen“ (
+          {betragNetto(verein.tarif, false).toLocaleString("de-DE")} € netto im Jahr). Automatisch zahlt ihr nichts; aussteigen geht jederzeit unter Einstellungen →
           Gefahrenzone. Fragen: {KONTAKT_EMAIL}
         </p>
       </div>

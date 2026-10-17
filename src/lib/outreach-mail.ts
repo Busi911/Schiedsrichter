@@ -38,7 +38,7 @@ export function outreachInhalt(opt: {
   const betaVoll = opt.betaPlaetzeFrei === 0;
   const platzHinweis = opt.betaPlaetzeFrei === undefined ? null : betaPlaetzeSatz(opt.betaPlaetzeFrei);
   const konditionen = betaVoll
-    ? `Die Beta-Plätze sind inzwischen vergeben: Sie testen HandballerPate 14 Tage kostenlos, danach kostet es ${PREIS_REGULAER} € im Jahr, die Rechnung kommt per E-Mail, Zahlungsziel 30 Tage. ${NETTO} Die Vorschau ist bis ${DATUM.format(opt.gueltigBis)} gültig, dort können Sie alles vorher in Ruhe ansehen.`
+    ? `Die Beta-Plätze sind inzwischen vergeben: Sie testen HandballerPate 14 Tage kostenlos, danach entscheiden Sie, ob Sie weitermachen (${PREIS_REGULAER} € im Jahr, die Rechnung kommt erst dann per E-Mail, Zahlungsziel 30 Tage). ${NETTO} Die Vorschau ist bis ${DATUM.format(opt.gueltigBis)} gültig, dort können Sie alles vorher in Ruhe ansehen.`
     : `Das alles ist in der Beta-Phase für Sie kostenlos — Sie können alles in Ruhe ausprobieren, völlig unverbindlich. ${KEIN_RISIKO} Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto im Jahr. Die Beta läuft bis ${BETA_ENDE}, die Vorschau ist bis ${DATUM.format(opt.gueltigBis)} gültig.${platzHinweis ? ` ${platzHinweis}` : ""}`;
   const vereinsPreis = betaVoll ? PREIS_REGULAER : PREIS_BETA;
   return {

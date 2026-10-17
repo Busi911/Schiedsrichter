@@ -82,6 +82,52 @@ export function vereinInhalt(v: Zeile, stufe: ZahlungsStufe, faelligAm: Date, sp
   };
 }
 
+// Testphase (14 Tage, neue kostenpflichtige Vereine): Hinweis 3 Tage vorher (stufe 1) und beim Ablauf (stufe 2). Es entsteht keine Zahlungspflicht, bevor
+// der Vereinsadmin die Weiternutzung bestätigt hat (lib/weiternutzung.ts); bis dahin ist der Zugang nach Ablauf gesperrt, die Daten bleiben.
+export function testphaseInhalt(v: Zeile, stufe: 1 | 2, ende: Date): EmailInhalt {
+  const weiter = `Zum Weitermachen meldet euch an und bestätigt dort: „Ich möchte HandballerPate weiterhin nutzen“. Erst damit entsteht die Rechnung (${euro(betragNetto("regulaer", false))} netto für 12 Monate, per E-Mail an ${v.rechnungEmail ?? "eure Admin-E-Mail-Adresse"}, Zahlungsziel 30 Tage). Automatisch zahlt ihr nichts.`;
+  return {
+    vereinName: v.name,
+    ueberschrift: stufe === 1 ? `Eure kostenlose Testphase endet am ${formatDatum(ende)}.` : "Eure kostenlose Testphase ist abgelaufen.",
+    zeilen: [
+      stufe === 1
+        ? "Danach ist der Zugang gesperrt, bis ihr bestätigt, dass ihr HandballerPate weiter nutzen möchtet. Eure Daten bleiben erhalten."
+        : "Der Zugang ist gesperrt, eure Daten bleiben erhalten.",
+      weiter,
+      `Ihr wollt nicht weitermachen? Dann müsst ihr nichts tun; auf Wunsch löschen wir euren Verein (${KONTAKT_EMAIL}).`,
+    ],
+    cta: { text: "Anmelden und weiter nutzen", url: `${appUrl()}/admin` },
+  };
+}
+
+// Rückmeldung an die Systemadmins und den Verein, wenn der Admin die Weiternutzung bestätigt hat (Rechnung stellen).
+export async function sendeWeiternutzungBestaetigt(vereinId: string, wer: string): Promise<void> {
+  try {
+    const v = await adminDb.query.vereine.findFirst({ where: eq(vereine.id, vereinId) });
+    if (!v || !v.zahlungFaelligAm) return;
+    const systemAdmins = await adminDb.select({ email: users.email }).from(users).where(eq(users.istSystemAdmin, true));
+    const intern: EmailInhalt = {
+      ueberschrift: `Weiternutzung bestätigt: ${v.name}`,
+      zeilen: [...rechnungsZeilen(v), `Bestätigt von ${wer}. Zahlungsziel: ${formatDatum(v.zahlungFaelligAm)}.`, "Bitte die Rechnung stellen und nach Zahlungseingang unter „Abrechnung“ als bezahlt eintragen."],
+      cta: { text: "Zur Abrechnung", url: `${appUrl()}/system/abrechnung` },
+    };
+    for (const a of systemAdmins) await sende(a.email, `Weiternutzung bestätigt: ${v.name}`, intern);
+    if (!v.sponsorUebernimmt) {
+      const verein: EmailInhalt = {
+        vereinName: v.name,
+        ueberschrift: "Schön, dass ihr dabei bleibt!",
+        zeilen: [
+          `Der Zugang ist wieder frei. Die Rechnung über ${euro(betragNetto(v.tarif, false))} netto (12 Monate) geht per E-Mail an ${v.rechnungEmail ?? "eure Admin-E-Mail-Adresse"}, Zahlungsziel ${formatDatum(v.zahlungFaelligAm)}.`,
+          `Bei Fragen: ${KONTAKT_EMAIL}.`,
+        ],
+      };
+      for (const e of await vereinsEmpfaenger(v)) await sende(e, `HandballerPate: ${verein.ueberschrift}`, verein);
+    }
+  } catch (err) {
+    console.error("Mail zur bestätigten Weiternutzung fehlgeschlagen:", err);
+  }
+}
+
 // Ankündigung vor dem Beta-Ende: was ab wann gilt, was passiert, wenn nicht gezahlt wird, und wie der Verein stattdessen aussteigt.
 export function betaEndeInhalt(v: Zeile): EmailInhalt {
   const sperre = formatDatum(new Date(BETA_ERSTE_FRIST.getTime() + KARENZ_TAGE * 24 * 3600 * 1000));
@@ -155,6 +201,20 @@ export async function pruefeZahlungen(jetzt = new Date()): Promise<{ geprueft: n
       continue;
     }
     const stand = zahlungsStand(v, jetzt);
+    if ((stand.art === "testphase" || stand.art === "testphase_abgelaufen") && stand.faelligAm) {
+      const tStufe = stand.art === "testphase_abgelaufen" ? 2 : (stand.tageBisFaellig ?? 99) <= 3 ? 1 : null;
+      const marke = tStufe ? `testphase:${tStufe}` : null;
+      if (!tStufe || !marke || (v.zahlungMailMarke ?? "") >= marke || v.sponsorUebernimmt) continue;
+      const inhalt = testphaseInhalt(v, tStufe, stand.faelligAm);
+      let ok = 0;
+      for (const e of await vereinsEmpfaenger(v)) if (await sende(e, `HandballerPate: ${inhalt.ueberschrift}`, inhalt)) ok++;
+      if (ok > 0) {
+        gesendet += ok;
+        await adminDb.update(vereine).set({ zahlungMailMarke: marke }).where(eq(vereine.id, v.id));
+        await schreibeProtokoll(v.id, "zahlung_mail", "System", `Testphase Stufe ${tStufe}`);
+      }
+      continue;
+    }
     const stufe = stufeFuer(stand.art);
     if (!stufe || !stand.faelligAm || !stand.sperreAb) continue;
     if (!sollMailSenden(v.zahlungMailMarke, stand.faelligAm, stufe)) continue;
