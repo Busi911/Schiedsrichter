@@ -37,6 +37,7 @@ export const SYSTEM_BEREICHE: SystemBereich[] = [
       { href: "/system/ndr", label: "Bundesliga" },
       { href: "/system/abgleich", label: "Abgleich" },
       { href: "/system/nuliga-diagnose", label: "nuLiga-Diagnose" },
+      { href: "/system/handball-net-diagnose", label: "handball.net-Diagnose" },
     ],
   },
   {
