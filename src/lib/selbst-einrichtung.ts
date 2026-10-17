@@ -17,7 +17,7 @@ export function pruefeEinrichtungsEingabe(roh: {
   const nuliga = quelle === "handball_net" ? "" : roh.nuligaClubId.trim();
   const hnet = quelle === "nuliga" ? "" : roh.handballNetClubId.trim();
   if (nuliga && !/^\d{1,10}$/.test(nuliga)) return { fehler: "Die nuLiga-Vereins-ID besteht nur aus Ziffern (z.B. 69723)." };
-  if (hnet && !/^[a-z0-9]{3,20}$/i.test(hnet)) return { fehler: "Die handball.net-Vereins-ID besteht aus Buchstaben und Ziffern (z.B. 0b8y490)." };
+  if (hnet && !/^[a-z0-9]{3,20}$/i.test(hnet)) return { fehler: "Die handball.net-Vereins-ID besteht aus Buchstaben und Ziffern (z.B. 18rmntb)." };
   if (!nuliga && !hnet) {
     return {
       fehler:

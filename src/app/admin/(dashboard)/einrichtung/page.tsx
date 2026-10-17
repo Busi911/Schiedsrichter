@@ -74,7 +74,7 @@ export default async function EinrichtungPage({
         <h1 className="font-heading text-2xl font-semibold">Willkommen — richten wir {verein?.name ?? "euren Verein"} ein</h1>
         <p className="text-sm text-muted-foreground">
           Wir holen Mannschaften, Spielplan, Hallen und Logo automatisch aus eurer Liga-Seite und legen die Heimspiele als Termine an. Dafür brauchen
-          wir nur, wo eure Mannschaften gelistet sind. Es wird keine Mail verschickt.{" "}
+          wir nur, wo eure Mannschaften gelistet sind — unter jedem Feld steht, wo ihr die ID findet. Es wird keine Mail verschickt.{" "}
           <HilfeHinweis anker="einrichtung-assistent" />
         </p>
       </div>
@@ -126,19 +126,46 @@ export default async function EinrichtungPage({
               <div className="flex flex-col gap-2">
                 <Label htmlFor="nuligaClubId">{vorschlaege.length > 0 ? "Oder die nuLiga-Vereins-ID selbst eintragen" : "nuLiga-Vereins-ID"}</Label>
                 <Input id="nuligaClubId" name="nuligaClubId" inputMode="numeric" placeholder="z.B. 69723" className="w-full sm:w-56" />
-                <p className="text-xs text-muted-foreground">
-                  Steht in der Adresse eurer Vereinsseite bei nuLiga: …<code>club=</code>
-                  <b>69723</b>. Die Vereinsnummer (VNr.) ist nicht die ID.
-                </p>
+                <details className="text-xs text-muted-foreground">
+                  <summary className="inline-flex min-h-11 cursor-pointer items-center font-medium text-foreground underline">Wo finde ich die nuLiga-ID?</summary>
+                  <ol className="ml-4 list-decimal space-y-1 pb-1">
+                    <li>
+                      Öffnet nuLiga eures Verbands (z.B.{" "}
+                      <a href="https://hhv-handball.liga.nu" target="_blank" rel="noopener noreferrer" className="underline">
+                        hhv-handball.liga.nu
+                      </a>
+                      ) und sucht über „Vereine“ euren Verein.
+                    </li>
+                    <li>Öffnet die Vereinsseite (oder „Mannschaften“ eures Vereins) und schaut in die Adresszeile des Browsers.</li>
+                    <li>
+                      Die Zahl hinter <code>club=</code> ist die ID, z.B. …clubTeams?club=<b>69723</b>. Die Vereinsnummer (VNr.) auf der Seite ist{" "}
+                      <b>nicht</b> die ID.
+                    </li>
+                  </ol>
+                </details>
               </div>
             </div>
 
             <div className="flex flex-col gap-2 rounded-lg border border-dashed p-3">
               <Label htmlFor="handballNetClubId">handball.net-Vereins-ID</Label>
-              <Input id="handballNetClubId" name="handballNetClubId" placeholder="z.B. 0b8y490" className="w-full sm:w-56" />
-              <p className="text-xs text-muted-foreground">
-                Steht in der Adresse eurer Vereinsseite auf handball.net: …/clubs/<b>0b8y490</b>/…
-              </p>
+              <Input id="handballNetClubId" name="handballNetClubId" placeholder="z.B. 18rmntb" className="w-full sm:w-56" />
+              <details className="text-xs text-muted-foreground">
+                <summary className="inline-flex min-h-11 cursor-pointer items-center font-medium text-foreground underline">Wo finde ich die handball.net-ID?</summary>
+                <ol className="ml-4 list-decimal space-y-1 pb-1">
+                  <li>
+                    Öffnet{" "}
+                    <a href="https://www.handball.net" target="_blank" rel="noopener noreferrer" className="underline">
+                      handball.net
+                    </a>{" "}
+                    und sucht euren Verein.
+                  </li>
+                  <li>Öffnet die Vereinsseite und schaut in die Adresszeile des Browsers.</li>
+                  <li>
+                    Der Teil hinter <code>/club/</code> ist die ID, z.B. handball.net/club/<b>18rmntb</b>.
+                  </li>
+                </ol>
+                <p className="pb-1">Spielen eure Mannschaften nur in den Landesverbands-Ligen (nuLiga), lasst dieses Feld leer.</p>
+              </details>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
