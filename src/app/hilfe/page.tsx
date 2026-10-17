@@ -79,13 +79,19 @@ export default async function HilfePage() {
             <strong>Anmelden und AVV bestätigen:</strong> Der Vereinsadmin meldet sich per E-Mail-Link oder Passwort an und
             bestätigt beim ersten Login den Auftragsverarbeitungsvertrag.
           </li>
-          <li>
-            <strong>Spielplan anbinden:</strong> unter{" "}
+          <li id="einrichtung-assistent" className="scroll-mt-6">
+            <strong>Spielplan anbinden (Einrichtungs-Assistent):</strong> Direkt nach dem ersten Login öffnet sich der{" "}
+            <Link href="/admin/einrichtung" className="font-medium underline">
+              Assistent
+            </Link>
+            . Ihr gebt an, wo eure Mannschaften gelistet sind (<strong>nuLiga</strong>, <strong>handball.net</strong> oder
+            „beides / weiß ich nicht“) und tragt die Vereins-ID ein (<a href="#oeffentliche-seite" className="font-medium underline">so findet ihr sie</a>);
+            bei nuLiga schlagen wir euren Verein anhand des Namens vor. Der Assistent lädt dann Mannschaften, Spielplan, Hallen und Logo und legt die
+            Heimspiele als Termine an (dauert bis zu einer Minute, es wird keine Mail verschickt). Mit „Später“ richtet ihr alles selbst unter{" "}
             <Link href="/admin/einstellungen#oeffentliche-seite" className="font-medium underline">
               Einstellungen → Öffentliche Vereinsseite
             </Link>{" "}
-            die nuLiga- und/oder handball.net-Vereins-ID eintragen (<a href="#oeffentliche-seite" className="font-medium underline">so findet ihr sie</a>).
-            Danach kommen Spiele, Verlegungen, Ergebnisse und die Schiedsrichter-Ansetzung automatisch, tagsüber stündlich.
+            ein. Danach kommen Spiele, Verlegungen, Ergebnisse und die Schiedsrichter-Ansetzung automatisch, tagsüber stündlich.
           </li>
           <li>
             <strong>Eure Spielhallen eintragen:</strong> direkt darunter unter{" "}
@@ -938,6 +944,13 @@ export default async function HilfePage() {
           ; dort pflegt ihr auch Rechnungsadresse und Rechnungs-E-Mail. Vor dem Ende der Beta bekommt der Vereinsadmin eine
           Mail mit den Konditionen. Optional kann ein <strong>Sponsor</strong> die Kosten übernehmen (Einstellungen →
           Sponsor).
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>14 Tage kostenlos testen:</strong> Registriert sich ein Verein, wenn alle Beta-Plätze vergeben sind oder die Beta
+          vorbei ist, ist er die ersten 14 Tage kostenlos und ohne Zahlungsdaten dabei. Im Admin-Bereich steht oben, bis wann die
+          Testphase läuft. Danach ist der Zugang gesperrt (die Daten bleiben). Wer weitermachen möchte, meldet sich als Vereinsadmin an und klickt
+          „Ich möchte HandballerPate weiterhin nutzen“ — dort stehen die Konditionen. Erst damit entsteht die Rechnung (per E-Mail, Zahlungsziel 30 Tage);
+          automatisch zahlt niemand. Wer nicht weitermachen möchte, tut nichts oder löscht den Verein unter Einstellungen → Gefahrenzone.
         </p>
         <p className="text-sm text-muted-foreground">
           <strong>Aussteigen:</strong> Unter Einstellungen → Gefahrenzone → „Verein löschen“ wird der Verein mit allen

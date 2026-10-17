@@ -36,7 +36,7 @@ export default async function OutreachUebergabePage({
         <h1 className="text-2xl font-bold text-center mb-2">Verein übernehmen</h1>
         {kostenpflichtig && (
           <p className="mb-4 rounded-lg border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
-            Die Beta-Plätze sind vergeben: HandballerPate kostet {PREIS_REGULAER} € im Jahr, die Rechnung kommt per E-Mail, Zahlungsziel 30 Tage. {NETTO}
+            Die Beta-Plätze sind vergeben: Ihr testet HandballerPate 14 Tage kostenlos, danach entscheidet ihr, ob ihr weitermacht ({PREIS_REGULAER} € im Jahr, Rechnung erst dann per E-Mail, Zahlungsziel 30 Tage). {NETTO}
           </p>
         )}
         <p className="text-muted-foreground text-center mb-8 text-sm">

@@ -1,6 +1,9 @@
 import { eq } from "drizzle-orm";
 import { Fragment } from "react";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { EINRICHTUNG_UEBERSPRUNGEN_COOKIE, sollEinrichtungsAssistentZeigen } from "@/lib/selbst-einrichtung";
 import { requireAdmin } from "@/lib/session";
 import { holeLigaErgebnisse } from "@/lib/liga-dashboard";
 import { formatTagKopf, SpielKarte } from "@/components/liga/liga-ui";
@@ -119,6 +122,19 @@ export default async function AdminDashboardPage() {
       // Checkliste "Erste Schritte" (nur für Vereinsadmins, verschwindet, sobald alles eingerichtet ist).
       session.user.istAdmin ? holeErsteSchritteStand(vereinId) : null,
     ]);
+  // Neuer Verein ohne angebundenen Spielplan: direkt in den Einrichtungs-Assistenten (einmal "Später" und er lässt in Ruhe).
+  if (
+    ersteSchritteStand &&
+    sollEinrichtungsAssistentZeigen({
+      spielplanAngebunden: ersteSchritteStand.spielplanAngebunden,
+      uebersprungen: (await cookies()).has(EINRICHTUNG_UEBERSPRUNGEN_COOKIE),
+      istDemo: !!verein?.istDemo,
+      treuhand: !!session.user.treuhand,
+      istAdmin: !!session.user.istAdmin,
+    })
+  ) {
+    redirect("/admin/einrichtung");
+  }
   const schritte = ersteSchritteStand ? ersteSchritte(ersteSchritteStand) : [];
   const zeigeErsteSchritte = ersteSchritteOffen(schritte);
 

@@ -20,28 +20,37 @@ import type { VereinsInfo } from "./types";
 // Liga-Verein mit club-ID anlegen, Vereinsseite lesen (Stammdaten, Hallen, Logo), Mannschaften/Spiele laden, Vereins-Mannschaften
 // anlegen, Heimspiele als Termine anlegen. Alles still (keine Mails). Nicht zerstörend: vorhandene Spielhallen werden NIE überschrieben,
 // Mannschaften nur ergänzt (siehe mannschaften-anlegen.ts), ein eigenes Logo bleibt (siehe logo.ts). Gibt die Checkliste zurück.
+//
+// Seit 17.10.2026 auch für Vereine, die sich selbst einrichten (Assistent /admin/einrichtung): `clubId` (nuLiga) und/oder
+// `handballNetClubId` — mindestens eine. Ohne nuLiga-ID entfallen Vereinsseite (Stammdaten, Hallen, Logo).
 export async function fuehreNuligaEinrichtungAus(opt: {
   vereinId: string;
-  clubId: string;
+  clubId?: string | null;
+  handballNetClubId?: string | null;
   indexName: string;
   verband?: string;
 }): Promise<EinrichtungsSchritt[]> {
-  const { vereinId, clubId } = opt;
+  const { vereinId } = opt;
+  const clubId = opt.clubId || "";
+  const handballNetClubId = opt.handballNetClubId || null;
+  if (!clubId && !handballNetClubId) throw new Error("Mindestens eine Vereins-ID (nuLiga oder handball.net) ist nötig.");
   const verband = opt.verband ?? "HHV";
-  const ligaVerein = await legeLigaVereinAn(adminDb, { vereinId, nuligaClubId: clubId, name: opt.indexName, verband });
+  const ligaVerein = await legeLigaVereinAn(adminDb, { vereinId, nuligaClubId: clubId || null, handballNetClubId, name: opt.indexName, verband });
 
   // Vereinsseite (Stammdaten, Hallen): Fehler hier verhindern die Einrichtung nie.
   let info: VereinsInfo | null = null;
   let infoFehler: string | null = null;
   let seitenKontext: SeitenKontext | undefined;
-  try {
-    const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl(verband, "clubInfoDisplay", { club: clubId }));
-    seitenKontext = seite.kontext;
-    const geparst = parseVereinsInfo(seite.html);
-    info = geparst.daten;
-    if (geparst.warnungen.length) infoFehler = geparst.warnungen[0];
-  } catch (err) {
-    infoFehler = err instanceof Error ? err.message : String(err);
+  if (clubId) {
+    try {
+      const seite = await holeNuligaSeiteMitKontext(baueNuligaUrl(verband, "clubInfoDisplay", { club: clubId }));
+      seitenKontext = seite.kontext;
+      const geparst = parseVereinsInfo(seite.html);
+      info = geparst.daten;
+      if (geparst.warnungen.length) infoFehler = geparst.warnungen[0];
+    } catch (err) {
+      infoFehler = err instanceof Error ? err.message : String(err);
+    }
   }
   if (info) await speichereStammdaten(adminDb, ligaVerein.id, info);
 
@@ -98,6 +107,7 @@ export async function fuehreNuligaEinrichtungAus(opt: {
   const schritte = bewerteEinrichtung({
     indexName: opt.indexName,
     clubId,
+    handballNetClubId: handballNetClubId ?? undefined,
     info,
     infoFehler,
     hallenGespeichert,

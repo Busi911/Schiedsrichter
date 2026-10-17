@@ -20,6 +20,8 @@ const FARBE: Record<ZahlungsArt, string> = {
   gesperrt: "bg-red-700 text-white",
   ueberfaellig: "bg-red-700 text-white",
   bald_faellig: "bg-amber-600 text-white",
+  testphase_abgelaufen: "bg-red-700 text-white",
+  testphase: "bg-sky-700 text-white",
   beta_kostenlos: "bg-muted text-foreground",
   bezahlt: "bg-emerald-700 text-white",
   befreit: "bg-muted text-foreground",

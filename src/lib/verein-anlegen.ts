@@ -40,6 +40,7 @@ export async function legeVereinMitAdminAn(
       status: "aktiv", // Selbstregistrierung: direkt aktiv, Admin wird unten angelegt
       tarif: konditionen.tarif,
       zahlungFaelligAm: konditionen.zahlungFaelligAm,
+      testphaseBis: konditionen.testphaseBis,
       rechnungEmail: (rechnung?.email ?? adminEmail).trim().toLowerCase(),
       rechnungAnsprechpartner: (rechnung?.ansprechpartner ?? adminName).trim(),
       ...(adresse

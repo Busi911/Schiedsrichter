@@ -83,7 +83,8 @@ describe("outreachInhalt", () => {
     const text = JSON.stringify(voll.zeilen);
     expect(text).toContain("Beta-Plätze sind inzwischen vergeben");
     expect(text).toContain("300 €");
-    expect(text).not.toContain("kostenlos");
+    expect(text).toContain("14 Tage kostenlos");
+    expect(text).not.toContain("komplett kostenlos");
     expect(voll.cta?.text).toBe("Verein übernehmen");
   });
 });

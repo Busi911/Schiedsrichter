@@ -189,6 +189,10 @@ export const vereine = pgTable("verein", {
   rechnungAnsprechpartner: text("rechnung_ansprechpartner"),
   zahlungBis: timestamp("zahlung_bis", { mode: "date" }),
   zahlungFaelligAm: timestamp("zahlung_faellig_am", { mode: "date" }),
+  // Ende der kostenlosen Testphase (14 Tage) für neue kostenpflichtige Vereine; null = keine Testphase (Beta, Bestand). Siehe lib/abrechnung.ts.
+  testphaseBis: timestamp("testphase_bis", { mode: "date" }),
+  // Der Vereinsadmin hat nach der Testphase ausdrücklich bestätigt, HandballerPate weiter zu nutzen (und die Konditionen akzeptiert). Vorher: gesperrt.
+  weiternutzungBestaetigtAm: timestamp("weiternutzung_bestaetigt_am", { mode: "date" }),
   zahlungSperreAus: boolean("zahlung_sperre_aus").notNull().default(false),
   // Zuletzt verschickte Zahlungs-Mail der laufenden Periode ("<fällig-Datum>:<Stufe>"), damit jede Stufe nur einmal rausgeht.
   zahlungMailMarke: text("zahlung_mail_marke"),

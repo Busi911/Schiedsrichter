@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ADD COLUMN "weiternutzung_bestaetigt_am" timestamp;

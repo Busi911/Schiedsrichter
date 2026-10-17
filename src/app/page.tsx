@@ -172,7 +172,7 @@ function faqEintraege(live: boolean) {
     {
       frage: "Was kostet HandballerPate für Vereine?",
       antwort: live
-        ? `HandballerPate kostet ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Die Rechnung kommt per E-Mail, das Zahlungsziel beträgt 30 Tage. Optional kann ein Sponsor die Kosten übernehmen („Präsentiert von …“ beim Öffnen der Vereinsseite). Für Spieler, Eltern und Fans ist die App kostenlos.`
+        ? `Neue Vereine testen HandballerPate 14 Tage kostenlos. Danach entscheidet ihr, ob ihr weitermacht (ohne Bestätigung wird der Zugang pausiert, die Daten bleiben): ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.), die Rechnung kommt erst dann per E-Mail, das Zahlungsziel beträgt 30 Tage. Optional kann ein Sponsor die Kosten übernehmen („Präsentiert von …“ beim Öffnen der Vereinsseite). Für Spieler, Eltern und Fans ist die App kostenlos.`
         : `Die Beta-Phase läuft bis ${BETA_ENDE} und ist kostenlos. Wer in der Beta dabei ist, zahlt danach ${PREIS_BETA} € statt ${PREIS_REGULAER} € netto pro Jahr (zzgl. gesetzlicher MwSt.). Vor dem Ende der Beta kann jeder Verein ohne Kosten aussteigen, dann werden alle Daten gelöscht. ${SPONSOR_KURZ} Für Spieler, Eltern und Fans ist die App kostenlos.`,
     },
     {
@@ -377,7 +377,7 @@ export default async function Home() {
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button className={GROSSER_BUTTON} render={<Link href="/registrieren" />} nativeButton={false}>
-                {live ? "Verein registrieren" : "Verein kostenlos registrieren"}
+                {live ? "14 Tage kostenlos testen" : "Verein kostenlos registrieren"}
               </Button>
               <Button variant="outline" className={GROSSER_BUTTON} render={<Link href="/demo" />} nativeButton={false}>
                 Demo ansehen
@@ -387,7 +387,7 @@ export default async function Home() {
             <div className="max-w-xl space-y-1 rounded-lg border bg-background p-4 text-sm text-muted-foreground">
               {live ? (
                 <p>
-                  <span className="font-medium text-foreground">{PREIS_REGULAER} € im Jahr.</span> Rechnung per E-Mail, Zahlungsziel 30 Tage.
+                  <span className="font-medium text-foreground">14 Tage kostenlos testen.</span> Weitermachen bestätigt ihr selbst: {PREIS_REGULAER} € im Jahr, Rechnung erst dann per E-Mail, Zahlungsziel 30 Tage.
                 </p>
               ) : (
                 <p>
