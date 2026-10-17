@@ -5,6 +5,7 @@ import {
   BETA_ERSTE_FRIST,
   betragNetto,
   sollMailSenden,
+  stufeFuer,
   startKonditionen,
   vorschlagBezahltBis,
   zahlungsMarke,
@@ -28,16 +29,31 @@ describe("Beträge (netto)", () => {
 
 describe("Startkonditionen neuer Vereine", () => {
   it("vor dem Beta-Ende Beta-Tester ohne feste Frist, danach regulär mit 30 Tagen", () => {
-    expect(startKonditionen(tag("2026-11-15"))).toEqual({ tarif: "beta", zahlungFaelligAm: null });
+    expect(startKonditionen(tag("2026-11-15"))).toEqual({ tarif: "beta", zahlungFaelligAm: null, testphaseBis: null });
     const k = startKonditionen(tag("2026-12-05"));
     expect(k.tarif).toBe("regulaer");
-    expect(k.zahlungFaelligAm!.toISOString().slice(0, 10)).toBe("2027-01-04");
+    expect(k.testphaseBis!.toISOString().slice(0, 10)).toBe("2026-12-19");
+    expect(k.zahlungFaelligAm!.toISOString().slice(0, 10)).toBe("2027-01-18");
   });
 
   it("schon in der Beta regulär mit 30 Tagen, wenn alle Beta-Plätze vergeben sind", () => {
     const k = startKonditionen(tag("2026-10-20"), true);
     expect(k.tarif).toBe("regulaer");
-    expect(k.zahlungFaelligAm!.toISOString().slice(0, 10)).toBe("2026-11-19");
+    expect(k.testphaseBis!.toISOString().slice(0, 10)).toBe("2026-11-03");
+    expect(k.zahlungFaelligAm!.toISOString().slice(0, 10)).toBe("2026-12-03");
+  });
+});
+
+describe("Testphase", () => {
+  const k = startKonditionen(tag("2026-12-05"));
+  const verein: ZahlungsEingabe = { ...basis, tarif: "regulaer", zahlungFaelligAm: k.zahlungFaelligAm, testphaseBis: k.testphaseBis };
+  it("14 Tage kostenlos, ohne Zahlungs-Mails, danach normaler Ablauf", () => {
+    expect(zahlungsStand(verein, tag("2026-12-10")).art).toBe("testphase");
+    expect(stufeFuer("testphase")).toBeNull();
+    expect(zahlungsStand(verein, tag("2026-12-25")).art).toBe("bald_faellig");
+  });
+  it("bezahlt beendet die Testphase", () => {
+    expect(zahlungsStand({ ...verein, zahlungBis: tag("2027-12-01") }, tag("2026-12-10")).art).toBe("bezahlt");
   });
 });
 

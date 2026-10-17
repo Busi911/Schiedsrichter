@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ADD COLUMN "testphase_bis" timestamp;

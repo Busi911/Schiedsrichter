@@ -25,7 +25,7 @@ export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflich
         <p className="text-sm">
           Geschafft — euer Verein ist angelegt. Ihr bekommt gleich eine Mail
           mit dem Login-Link.
-          {ergebnis.kostenpflichtig && " Die Rechnung kommt per E-Mail an die angegebene Rechnungsadresse."}
+          {ergebnis.kostenpflichtig && " Ihr testet 14 Tage kostenlos, danach kommt die Rechnung per E-Mail an die angegebene Rechnungsadresse."}
         </p>
         <Button render={<Link href="/login" />} nativeButton={false}>
           Zum Login
@@ -71,7 +71,7 @@ export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflich
       <p className="text-xs text-muted-foreground">
         Adresse und E-Mail brauchen wir für die Rechnung — einmal hier eintragen statt separat nachfragen.
         {kostenpflichtig
-          ? " Die Rechnung kommt per E-Mail, Zahlungsziel 30 Tage."
+          ? " Die ersten 14 Tage sind kostenlos, danach kommt die Rechnung per E-Mail (Zahlungsziel 30 Tage)."
           : " Wer in der Beta-Phase dabei ist, bekommt die erste Rechnung ab 1.12.2026."}
       </p>
       {ergebnis && "fehler" in ergebnis && (

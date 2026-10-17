@@ -946,6 +946,12 @@ export default async function HilfePage() {
           Sponsor).
         </p>
         <p className="text-sm text-muted-foreground">
+          <strong>14 Tage kostenlos testen:</strong> Registriert sich ein Verein, wenn alle Beta-Plätze vergeben sind oder die Beta
+          vorbei ist, ist er die ersten 14 Tage kostenlos und ohne Zahlungsdaten dabei. Im Admin-Bereich steht oben, bis wann die
+          Testphase läuft. Danach kommt die Rechnung per E-Mail an die Rechnungsadresse (Zahlungsziel 30 Tage). Wer nicht weitermachen
+          möchte, löscht den Verein vorher unter Einstellungen → Gefahrenzone, dann fällt nichts an.
+        </p>
+        <p className="text-sm text-muted-foreground">
           <strong>Aussteigen:</strong> Unter Einstellungen → Gefahrenzone → „Verein löschen“ wird der Verein mit allen
           Personen, Mannschaften, Terminen und der Historie endgültig gelöscht. Vor dem Ende der Beta fallen dann keine
           Kosten an.

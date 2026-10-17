@@ -11,7 +11,8 @@ export const TARIF_NAMEN: Record<Tarif, string> = { befreit: "Befreit (zahlt nic
 export const BETA_ENDE_ZEITPUNKT = new Date("2026-12-01T00:00:00+01:00");
 // Erste Zahlungsfrist der Beta-Tester: Rechnung ab 1.12.2026, Zahlungsziel bis zum Jahresende.
 export const BETA_ERSTE_FRIST = new Date("2026-12-31T23:59:59+01:00");
-export const ZAHLUNGSFRIST_TAGE = 30; // neue Vereine nach dem Beta-Ende: Zeit bis zur ersten Zahlung
+export const ZAHLUNGSFRIST_TAGE = 30; // Zahlungsziel der ersten Rechnung (nach der Testphase)
+export const TESTPHASE_TAGE = 14; // neue kostenpflichtige Vereine (Beta-Plätze vergeben oder Beta vorbei): so lange kostenlos testen
 export const KARENZ_TAGE = 30; // nach Fälligkeit: erst danach wird gesperrt
 export const VORLAUF_TAGE = 30; // so früh vor Ablauf einer Periode wird erinnert
 
@@ -24,10 +25,16 @@ export function betragNetto(tarif: Tarif, sponsor: boolean): number {
   return verein + (sponsor ? PREIS_SPONSOR : 0);
 }
 
-// Tarif und erste Frist für einen NEUEN Verein: vor dem Beta-Ende Beta-Tester (erste Rechnung ab 1.12.), danach regulär mit 30 Tagen Frist.
-// Regulär auch, wenn alle Beta-Plätze vergeben sind (betaVoll, lib/beta-plaetze.ts).
-export function startKonditionen(jetzt: Date, betaVoll = false): { tarif: Tarif; zahlungFaelligAm: Date | null } {
-  return betaVorbei(jetzt) || betaVoll ? { tarif: "regulaer", zahlungFaelligAm: new Date(jetzt.getTime() + ZAHLUNGSFRIST_TAGE * TAG) } : { tarif: "beta", zahlungFaelligAm: null };
+// Tarif und erste Frist für einen NEUEN Verein: vor dem Beta-Ende Beta-Tester (erste Rechnung ab 1.12.), danach regulär.
+// Regulär auch, wenn alle Beta-Plätze vergeben sind (betaVoll, lib/beta-plaetze.ts). Reguläre neue Vereine testen 14 Tage kostenlos
+// (`testphaseBis`); danach kommt die Rechnung mit 30 Tagen Zahlungsziel (`zahlungFaelligAm` = Testende + 30 Tage).
+export function startKonditionen(
+  jetzt: Date,
+  betaVoll = false
+): { tarif: Tarif; zahlungFaelligAm: Date | null; testphaseBis: Date | null } {
+  if (!(betaVorbei(jetzt) || betaVoll)) return { tarif: "beta", zahlungFaelligAm: null, testphaseBis: null };
+  const testphaseBis = new Date(jetzt.getTime() + TESTPHASE_TAGE * TAG);
+  return { tarif: "regulaer", zahlungFaelligAm: new Date(testphaseBis.getTime() + ZAHLUNGSFRIST_TAGE * TAG), testphaseBis };
 }
 
 // Vorab-Ankündigung des Beta-Endes an Beta-Vereine: einmal, ab so vielen Tagen vor dem Beta-Ende (Marke am Verein, bis die erste Zahlungs-Mail sie ablöst).
@@ -44,6 +51,7 @@ export function sollBetaEndeMailSenden(
 export type ZahlungsArt =
   | "vorbereitung" // noch kein Vereinsadmin, nichts zu zahlen
   | "befreit"
+  | "testphase" // 14 Tage kostenlos testen (neue kostenpflichtige Vereine), noch keine Rechnung
   | "beta_kostenlos" // Beta läuft, noch nichts fällig
   | "bezahlt"
   | "bald_faellig" // Periode läuft in höchstens VORLAUF_TAGE Tagen ab, oder erste Rechnung innerhalb der Frist
@@ -56,6 +64,7 @@ export type ZahlungsEingabe = {
   zahlungBis: Date | null;
   zahlungFaelligAm: Date | null;
   zahlungSperreAus: boolean;
+  testphaseBis?: Date | null;
 };
 
 export type ZahlungsStand = { art: ZahlungsArt; faelligAm: Date | null; sperreAb: Date | null; tageBisFaellig: number | null };
@@ -65,6 +74,10 @@ export function zahlungsStand(v: ZahlungsEingabe, jetzt: Date): ZahlungsStand {
   const leer = (art: ZahlungsArt): ZahlungsStand => ({ art, faelligAm: null, sperreAb: null, tageBisFaellig: null });
   if (v.status === "vorbereitung") return leer("vorbereitung");
   if (v.tarif === "befreit") return leer("befreit");
+  if (!v.zahlungBis && v.testphaseBis && jetzt.getTime() < v.testphaseBis.getTime()) {
+    const tage = Math.ceil((v.testphaseBis.getTime() - jetzt.getTime()) / TAG);
+    return { art: "testphase", faelligAm: v.testphaseBis, sperreAb: null, tageBisFaellig: tage };
+  }
   const faelligAm = v.zahlungBis ?? v.zahlungFaelligAm ?? (v.tarif === "beta" ? BETA_ERSTE_FRIST : null);
   if (!faelligAm) return leer("beta_kostenlos");
   const tage = Math.ceil((faelligAm.getTime() - jetzt.getTime()) / TAG);
@@ -82,6 +95,7 @@ export function zahlungsStand(v: ZahlungsEingabe, jetzt: Date): ZahlungsStand {
 export const ZAHLUNGS_TEXT: Record<ZahlungsArt, string> = {
   vorbereitung: "In Vorbereitung",
   befreit: "Befreit",
+  testphase: "Testphase (14 Tage kostenlos)",
   beta_kostenlos: "Beta, noch kostenlos",
   bezahlt: "Bezahlt",
   bald_faellig: "Rechnung/Zahlung bald fällig",
@@ -90,7 +104,7 @@ export const ZAHLUNGS_TEXT: Record<ZahlungsArt, string> = {
 };
 
 // Dringlichkeit für die Sortierung der Liste (Dringendes zuerst).
-export const ZAHLUNGS_RANG: Record<ZahlungsArt, number> = { gesperrt: 0, ueberfaellig: 1, bald_faellig: 2, beta_kostenlos: 3, bezahlt: 4, befreit: 5, vorbereitung: 6 };
+export const ZAHLUNGS_RANG: Record<ZahlungsArt, number> = { gesperrt: 0, ueberfaellig: 1, bald_faellig: 2, testphase: 3, beta_kostenlos: 3, bezahlt: 4, befreit: 5, vorbereitung: 6 };
 
 const plusJahr = (d: Date) => {
   const n = new Date(d.getTime());

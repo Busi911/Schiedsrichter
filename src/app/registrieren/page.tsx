@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BETA_KURZ, KEIN_RISIKO, NETTO, PREIS_REGULAER, SPONSOR_KURZ } from "@/lib/beta-konditionen";
+import { BETA_KURZ, KEIN_RISIKO, NETTO, SPONSOR_KURZ, TESTPHASE_KURZ } from "@/lib/beta-konditionen";
 import { betaVorbei } from "@/lib/abrechnung";
 import { betaPlaetzeSatz } from "@/lib/beta-plaetze";
 import { holeBetaStand } from "@/lib/system-einstellungen";
@@ -38,7 +38,7 @@ export default async function RegistrierenPage() {
           <CardTitle className="text-xl">Verein registrieren</CardTitle>
           <CardDescription>
             {kostenpflichtig
-              ? `${PREIS_REGULAER} € im Jahr, Rechnung per E-Mail, Zahlungsziel 30 Tage. ${NETTO} ${SPONSOR_KURZ}`
+              ? `${TESTPHASE_KURZ} ${NETTO} ${SPONSOR_KURZ}`
               : `HandballerPate befindet sich in der Beta und ist aktuell komplett kostenlos. ${BETA_KURZ} ${KEIN_RISIKO}`}{" "}
             {kostenpflichtig ? (betaEnde ? "" : "Alle Beta-Plätze sind vergeben.") : betaPlaetzeSatz(beta.frei)}
           </CardDescription>

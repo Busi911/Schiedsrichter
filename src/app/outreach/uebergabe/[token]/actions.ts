@@ -59,7 +59,7 @@ export async function uebergebeVereinSelbstbedienung(formData: FormData) {
     );
   }
 
-  // Sind alle Beta-Plätze vergeben (lib/beta-plaetze.ts), übernimmt der Verein direkt kostenpflichtig (regulär, 30 Tage Zahlungsfrist);
+  // Sind alle Beta-Plätze vergeben (lib/beta-plaetze.ts), übernimmt der Verein direkt kostenpflichtig (regulär, 14 Tage kostenlose Testphase, danach 30 Tage Zahlungsziel);
   // sonst bleibt er Beta-Tester wie bei der Anlage.
   const konditionen = startKonditionen(new Date(), (await holeBetaStand()).voll);
   const kostenpflichtig = konditionen.tarif === "regulaer";
@@ -78,7 +78,7 @@ export async function uebergebeVereinSelbstbedienung(formData: FormData) {
       .set({
         status: "aktiv",
         uebergebenAm: new Date(),
-        ...(kostenpflichtig ? { tarif: konditionen.tarif, zahlungFaelligAm: konditionen.zahlungFaelligAm } : {}),
+        ...(kostenpflichtig ? { tarif: konditionen.tarif, zahlungFaelligAm: konditionen.zahlungFaelligAm, testphaseBis: konditionen.testphaseBis } : {}),
       })
       .where(eq(vereine.id, vereinId));
     await tx.delete(treuhandZugriffe).where(

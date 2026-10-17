@@ -12,7 +12,7 @@ export const istVereinGesperrt = cache(async (vereinId: string): Promise<boolean
     const v = await withTenant(vereinId, (tx) =>
       tx.query.vereine.findFirst({
         where: eq(vereine.id, vereinId),
-        columns: { status: true, tarif: true, zahlungBis: true, zahlungFaelligAm: true, zahlungSperreAus: true },
+        columns: { status: true, tarif: true, zahlungBis: true, zahlungFaelligAm: true, testphaseBis: true, zahlungSperreAus: true },
       })
     );
     return !!v && zahlungsStand(v, new Date()).art === "gesperrt";
