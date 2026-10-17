@@ -785,6 +785,13 @@
       "when": 1792162120915,
       "tag": "0111_training_oeffentlich",
       "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1792257833561,
+      "tag": "0112_outreach_schalter",
+      "breakpoints": true
     }
   ]
 }
