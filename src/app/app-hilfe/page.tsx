@@ -112,7 +112,7 @@ export default function AppHilfePage() {
           <li>
             <strong>Live-Ticker:</strong> rund um ein Spiel gibt es einen Link zum Live-Ticker mit dem aktuellen Stand, bei nuLiga-Spielen
             bei nuLiga (er erscheint, sobald der Verband den Spielbericht angelegt hat), bei den Spielen der 1. und 2. Handball-Bundesliga
-            beim NDR. Bei Spielen über handball.net (z. B. 3. Liga, Jugendbundesliga) führt der Link rund um das Spiel zur Spielseite bei handball.net; dort findest du den Tab „Liveticker“.
+            beim NDR. Bei Spielen über handball.net (z. B. 3. Liga, Jugendbundesliga) führt der Link rund um das Spiel zur Spielseite bei handball.net; dort findest du den Tab „Liveticker“. Nach dem Spiel steht dort „Spielseite bei handball.net“. Wo die Quelle den Halbzeitstand liefert, zeigen wir ihn unter dem Ergebnis.
           </li>
           <li>
             <strong>Live / Läuft gerade:</strong> Das Spiel läuft vermutlich. Wir zeigen bewusst keine Zwischenstände als

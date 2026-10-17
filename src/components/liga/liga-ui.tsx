@@ -137,6 +137,11 @@ export function SpielKarte({
             <p className="font-heading text-xl leading-tight font-bold tabular-nums">
               {spiel.toreHeim}:{spiel.toreGast}
             </p>
+            {spiel.halbzeitHeim !== null && spiel.halbzeitGast !== null && (
+              <p className="text-xs text-muted-foreground">
+                Halbzeit {spiel.halbzeitHeim}:{spiel.halbzeitGast}
+              </p>
+            )}
             {(ausgang || !spiel.ergebnisBestaetigt) && (
               <p className="text-xs text-muted-foreground">
                 {[ausgang && AUSGANG_TEXT[ausgang], !spiel.ergebnisBestaetigt && "vorläufig"].filter(Boolean).join(" · ")}
@@ -181,7 +186,7 @@ export function SpielKarte({
                   rel="noopener noreferrer"
                   className="-my-3 inline-flex min-h-11 items-center gap-1 font-medium text-primary hover:underline"
                 >
-                  Spielbericht
+                  {quelleFuer(spiel).berichtLabel}
                   <ExternalLinkIcon className="size-3" />
                 </a>
               )}

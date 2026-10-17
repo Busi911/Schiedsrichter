@@ -29,9 +29,20 @@ describe("Quellen-Zuordnung der Spielkarte", () => {
   it("handball.net-Spiel bekommt den Spielseiten-Link, nuLiga-Spiele bleiben unverändert", () => {
     const h = spiel({ quelle: "handball_net", ...BALINGEN });
     expect(quelleFuer(h).liveUrl(h)).toBe("https://www.handball.net/match/392196?season_id=2627");
-    expect(quelleFuer(h).berichtUrl(h)).toBeNull();
+    // Nach dem Spiel: dieselbe Spielseite, beschriftet als Spielseite (kein "Spielbericht": ein offizieller Bericht ist nicht belegt)
+    expect(quelleFuer(h).berichtUrl(h)).toBe("https://www.handball.net/match/392196?season_id=2627");
+    expect(quelleFuer(h).berichtLabel).toBe("Spielseite bei handball.net");
     const n = spiel({ quelle: "nuliga", meetingId: "8263197", berichtUrl: "/cgi-bin/WebObjects/nuLigaHBDE.woa/wa/groupMeetingReport?meeting=8263197&group=493253" });
     expect(quelleFuer(n).liveUrl(n)).toBe("https://hbde-live.liga.nu/nuScoreLive/#/groups/493253/meetings/8263197");
+  });
+  it("abgeschlossenes Spiel 392192 (HC Erlangen – HSG Dutenhofen/Münchholzhausen, 32:34, historischer Fall) -> Spielseite mit Saison 2627", () => {
+    const h = spiel({ quelle: "handball_net", externeId: "392192", spielcode: "2627DHBJBLAJMB0405", toreHeim: 32, toreGast: 34, ergebnisBestaetigt: true });
+    expect(quelleFuer(h).berichtUrl(h)).toBe("https://www.handball.net/match/392192?season_id=2627");
+  });
+  it("Fall ohne Spiel-ID (abgeschlossen, ohne Link): kein Link statt eines geratenen", () => {
+    const h = spiel({ quelle: "handball_net", externeId: null, spielcode: "2627DHBJBLAJMB0405", toreHeim: 20, toreGast: 18 });
+    expect(quelleFuer(h).berichtUrl(h)).toBeNull();
+    expect(quelleFuer(h).liveUrl(h)).toBeNull();
   });
   it("ein nuLiga-Spiel mit externer ID bekommt nie einen handball.net-Link", () => {
     const n = spiel({ quelle: "nuliga", ...BALINGEN });
