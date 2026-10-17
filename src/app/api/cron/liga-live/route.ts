@@ -6,7 +6,7 @@ import { synchronisiereLiveFenster } from "@/lib/nuliga/live-fenster";
 export const maxDuration = 60;
 
 // Live-Fenster: lädt nur die Mannschaften, die gerade (30 Min vor bis 3 h nach dem Anwurf) ein Spiel haben und deren
-// Spielbericht-Link bzw. Endstand noch fehlt (siehe lib/nuliga/live-fenster.ts). Läuft alle 5 Minuten tagsüber; der stündliche
+// Spielbericht-Link bzw. Endstand noch fehlt (siehe lib/nuliga/live-fenster.ts). Läuft alle 5 Minuten tagsüber, nur Freitag bis Sonntag (UTC, siehe vercel.json); der stündliche
 // Liga-Sync (/api/cron/liga-sync) bleibt unverändert und wird dadurch nicht als "frisch" markiert. Ohne passendes Spiel macht der
 // Lauf nichts (keine nuLiga-Abrufe).
 export async function GET(request: Request) {
