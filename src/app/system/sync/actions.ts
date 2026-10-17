@@ -8,7 +8,7 @@ import { synchronisiereFaellige } from "@/lib/nuliga/sync-cron";
 import { requireSystemAdmin } from "@/lib/session";
 
 // Dieselbe Logik wie der Cron /api/cron/liga-sync (entscheidet je Verein selbst, was fällig ist), nur von Hand
-// und ohne CRON_SECRET: für Tests durch den Systemadmin. Optional nur ein Verein (nuLiga-Vereins-Slug).
+// und ohne CRON_SECRET: für Tests durch den Systemadmin. Optional nur ein Verein (nuLiga-Vereins-Slug); mit "erzwingen" gelten weder Intervall noch 30-Minuten-Sperre.
 export async function ligaSyncJetztAusfuehren(formData: FormData) {
   await requireSystemAdmin();
   const slug = String(formData.get("slug") ?? "").trim();
@@ -18,6 +18,7 @@ export async function ligaSyncJetztAusfuehren(formData: FormData) {
     if (!v) redirect(`/system/sync?fehler=${encodeURIComponent(`Verein "${slug}" nicht gefunden`)}`);
     nurVereinId = v.id;
   }
+  const erzwingen = formData.get("erzwingen") === "on";
   const start = Date.now();
   let ergebnis: Awaited<ReturnType<typeof synchronisiereFaellige>>;
   try {
@@ -27,6 +28,7 @@ export async function ligaSyncJetztAusfuehren(formData: FormData) {
       holeJson: holeHandballNetApi,
       budgetMs: 40_000,
       nurVereinId,
+      erzwingen,
     });
   } catch (err) {
     redirect(`/system/sync?fehler=${encodeURIComponent(err instanceof Error ? err.message : String(err))}`);

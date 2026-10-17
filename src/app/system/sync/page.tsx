@@ -21,7 +21,7 @@ export default async function SyncPage({
         <h1 className="font-heading text-2xl font-semibold">Liga-Sync</h1>
         <p className="text-sm text-muted-foreground">
           Startet den Liga-Sync von Hand (derselbe wie der stündliche Cron). Er entscheidet je Verein selbst, was fällig
-          ist — Mannschaften, die in den letzten 30 Minuten geladen wurden, überspringt er.
+          ist — Mannschaften, die in den letzten 30 Minuten geladen wurden, überspringt er — außer du setzt das Häkchen „Alles neu laden“.
         </p>
       </div>
       <Card>
@@ -35,6 +35,16 @@ export default async function SyncPage({
               <Label htmlFor="slug">Nur dieser Verein (Slug, leer = alle)</Label>
               <Input id="slug" name="slug" placeholder="z. B. hsg-linden" />
             </div>
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" name="erzwingen" className="mt-1 size-4" />
+              <span>
+                Alles neu laden (auch wenn nicht fällig)
+                <span className="block text-xs text-muted-foreground">
+                  Übergeht Intervall und 30-Minuten-Sperre, z. B. um einen eben erschienenen Spielbericht-Link sofort zu
+                  holen. Am besten mit einem Verein, das dauert sonst länger.
+                </span>
+              </span>
+            </label>
             <SubmitButton pendingText="Sync läuft …" className="self-start">
               Liga-Sync jetzt ausführen
             </SubmitButton>

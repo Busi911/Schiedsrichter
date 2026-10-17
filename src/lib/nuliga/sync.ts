@@ -53,6 +53,8 @@ export type SyncOptionen = {
   // und setzt beim nächsten Aufruf fort — statt vom Serverless-Zeitlimit
   // hart abgebrochen zu werden (siehe maxDuration der aufrufenden Route).
   frist?: number;
+  // Von Hand (Systemadmin): die 30-Minuten-Sperre für frisch geladene Spielpläne übergehen.
+  erzwingen?: boolean;
 };
 
 // Gruppentabellen/Spielpläne, die jünger sind, werden bei einem
@@ -677,7 +679,7 @@ export async function synchronisiereStruktur(
 
 export async function synchronisiereSpiele(
   ligaVereinId: string,
-  { db, holeHtml, jetzt = new Date(), frist }: SyncOptionen
+  { db, holeHtml, jetzt = new Date(), frist, erzwingen }: SyncOptionen
 ): Promise<SyncErgebnis> {
   const start = Date.now();
   const lauf = new Lauf(holeHtml, frist);
@@ -769,6 +771,7 @@ export async function synchronisiereSpiele(
       continue;
     }
     if (
+      !erzwingen &&
       t.spieleSynchronisiertAm &&
       jetzt.getTime() - t.spieleSynchronisiertAm.getTime() < FRISCH_MS
     ) {

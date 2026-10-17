@@ -75,11 +75,13 @@ export async function synchronisiereFaellige(
     budgetMs?: number;
     nurVereinId?: string;
     holeJson?: HoleJson;
+    // Von Hand: Intervall und 30-Minuten-Sperre übergehen, alles jetzt laden.
+    erzwingen?: boolean;
     // Meldet den aktuellen Schritt (für den Watchdog der Cron-Route: wo hängt ein Lauf?)
     beiSchritt?: (text: string) => void;
   }
 ): Promise<FaelligeErgebnis> {
-  const { db, jetzt = new Date(), budgetMs = 45_000 } = opt;
+  const { db, jetzt = new Date(), budgetMs = 45_000, erzwingen = false } = opt;
   const start = Date.now();
   const schritt = opt.beiSchritt ?? (() => {});
   schritt("Vereine laden");
@@ -166,7 +168,7 @@ export async function synchronisiereFaellige(
         }
         if (
           eintrag.struktur !== "fehler" &&
-          (eintrag.struktur !== undefined || faellig(v.spieleSynchronisiertAm, intervall, jetzt))
+          (eintrag.struktur !== undefined || erzwingen || faellig(v.spieleSynchronisiertAm, intervall, jetzt))
         ) {
           schritt(`${v.slug}: nuLiga-Spiele`);
           eintrag.spiele = (await synchronisiereSpiele(v.id, { ...opt, jetzt, frist })).status;
@@ -178,7 +180,7 @@ export async function synchronisiereFaellige(
     schritt(`${v.slug}: handball.net prüfen`);
     if (opt.holeJson && (await hatHandballNetQuelle(db, v))) {
       try {
-        if (faellig(v.handballNetSynchronisiertAm, intervall, jetzt)) {
+        if (erzwingen || faellig(v.handballNetSynchronisiertAm, intervall, jetzt)) {
           schritt(`${v.slug}: handball.net-Spiele`);
           eintrag.handballNet = (
             await synchronisiereHandballNet(v.id, { db, holeJson: opt.holeJson, jetzt, frist })
