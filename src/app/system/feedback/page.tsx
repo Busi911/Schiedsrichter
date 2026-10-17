@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/card";
 import { SubmitButton } from "@/components/submit-button";
 import { formatDatumZeit } from "@/lib/format";
-import { feedbackErledigtSetzen } from "./actions";
+import { Textarea } from "@/components/ui/textarea";
+import { feedbackBeantworten, feedbackErledigtSetzen } from "./actions";
 
 // "Antworten" öffnet das eigene Mailprogramm mit Empfänger, Betreff und der zitierten Rückmeldung (mailto, kein Versand über
 // die App). Zitat gekürzt, damit der Link nicht zu lang wird (manche Mailprogramme schneiden lange mailto-Links ab).
@@ -30,8 +31,13 @@ function antwortLink(e: { personEmail: string; personName: string | null; nachri
   return `mailto:${e.personEmail}?${params.toString().replace(/\+/g, "%20")}`;
 }
 
-export default async function SystemFeedbackPage() {
+export default async function SystemFeedbackPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; fehler?: string }>;
+}) {
   await requireSystemAdmin();
+  const { ok, fehler } = await searchParams;
 
   // Bewusst adminDb (privilegiert, RLS-frei): Feedback wird vereinsübergreifend
   // ausgewertet, siehe gleiches Prinzip in /system/vereine.
@@ -62,9 +68,6 @@ export default async function SystemFeedbackPage() {
         {e.erledigtAm && ` · erledigt am ${formatDatumZeit(e.erledigtAm)}`}
       </p>
       <div className="mt-1 flex flex-wrap items-center gap-x-4">
-        <a href={antwortLink(e)} className="inline-flex min-h-11 items-center text-sm font-medium underline">
-          Antworten
-        </a>
         <form action={feedbackErledigtSetzen}>
           <input type="hidden" name="id" value={e.id} />
           <input type="hidden" name="erledigt" value={e.erledigtAm ? "0" : "1"} />
@@ -73,6 +76,25 @@ export default async function SystemFeedbackPage() {
           </SubmitButton>
         </form>
       </div>
+      <details className="mt-2 rounded-lg border bg-muted/30">
+        <summary className="min-h-11 cursor-pointer px-3 py-2.5 text-sm font-medium">Antworten</summary>
+        <form action={feedbackBeantworten} className="flex flex-col gap-2 px-3 pb-3">
+          <input type="hidden" name="id" value={e.id} />
+          <Textarea name="antwort" rows={5} required placeholder={`Antwort an ${e.personName ?? e.personEmail}`} />
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="erledigt" defaultChecked className="size-4" />
+            Danach als erledigt markieren
+          </label>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <SubmitButton pendingText="Sendet …" className="self-start">
+              Antwort senden
+            </SubmitButton>
+            <a href={antwortLink(e)} className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline">
+              Stattdessen im Mailprogramm öffnen
+            </a>
+          </div>
+        </form>
+      </details>
     </div>
   );
 
@@ -84,6 +106,9 @@ export default async function SystemFeedbackPage() {
           Rückmeldungen aus dem Feedback-Button im Header, vereinsübergreifend.
         </p>
       </div>
+
+      {ok && <p className="rounded-md border bg-muted p-3 text-sm break-words">{ok}</p>}
+      {fehler && <p className="rounded-md border border-destructive p-3 text-sm break-words text-destructive">{fehler}</p>}
 
       <Card>
         <CardHeader>
