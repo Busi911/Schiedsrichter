@@ -303,7 +303,7 @@ export default async function HilfePage() {
           Auf den Spielkarten gibt es bei nuLiga-Spielen einen Link zum <strong>Live-Ticker</strong> (rund um das Spiel) und
           zum <strong>Spielbericht</strong> (sobald ein Ergebnis angezeigt wird). Beides erscheint erst, wenn nuLiga den
           Spielbericht angelegt hat. Bei der 1. und 2. Handball-Bundesliga führt ein Link zur Spielseite des NDR (während des Spiels als
-          Live-Ticker, danach als Spielbericht), bei handball.net-Spielen gibt es keinen Link. Während ein Spiel läuft, zeigt die Karte „Live“ und „Läuft gerade“ statt einer Zahl,
+          Live-Ticker, danach als Spielbericht), bei handball.net-Spielen führt der Link rund um das Spiel zur Spielseite bei handball.net (dort der Tab „Liveticker“), einen Spielbericht-Link gibt es nicht. Während ein Spiel läuft, zeigt die Karte „Live“ und „Läuft gerade“ statt einer Zahl,
           danach „Ergebnis folgt“: Zwischenstände zeigen wir bewusst nicht als Ergebnis. Das Endergebnis erscheint, sobald
           nuLiga den Spielbericht genehmigt hat (bis dahin mit „vorläufig“). Die Daten werden stündlich aktualisiert, den
           aktuellen Spielstand liefert der Live-Ticker.

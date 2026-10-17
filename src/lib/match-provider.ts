@@ -1,4 +1,5 @@
 import type { SpielAnsicht } from "./liga-spiele-hilfen";
+import { handballNetSpielUrl } from "./handball-net/ticker-link";
 import { baueBerichtUrl, baueLiveSpielUrl, gruppenIdAusBerichtUrl } from "./nuliga/verbaende";
 
 // Schnittstelle für Spiel-Quellen (nuLiga, handball.net) — bewusst klein. Die Sync-Module
@@ -26,11 +27,14 @@ export const nuLigaQuelle: SpielQuelle = {
   // getLiveState: absichtlich nicht implementiert (kein verifizierter Endpunkt).
 };
 
-// handball.net: Die API liefert kein report-Feld mit URL. Spielbericht-Seiten unter
-// /spiele/{code} sind eine Angular-SPA ohne serverseitig gelieferte, stabile URLs —
-// alle /spiele/-Varianten (mit code, ID, /spielbericht, /info) liefern HTTP 404.
-// Bekannte Limitierung: kein Spielbericht-Link für handball.net-Spiele.
-export const handballNetQuelle: SpielQuelle = { berichtUrl: () => null, liveUrl: () => null };
+// handball.net: Die API liefert kein report-Feld mit URL; die früher probierten Pfade /spiele/{code} … lieferten 404 (siehe
+// CLAUDE.md). Belegt ist die Spielseite /match/<Spiel-ID>?season_id=<Saison> mit dem Tab "LIVETICKER" (im Browser geprüft). Die Karte
+// verlinkt deshalb im Live-Fenster (liveTickerRelevant) darauf, solange die Spiel-ID bekannt ist. Das ist nur ein Link: ob es Ticker-
+// Ereignisse gibt, steht nicht in unseren Daten. Einen "Spielbericht"-Link gibt es weiterhin nicht (kein belegter Pfad).
+export const handballNetQuelle: SpielQuelle = {
+  berichtUrl: () => null,
+  liveUrl: (s) => (s.quelle === "handball_net" ? handballNetSpielUrl(s.externeId, s.spielcode) : null),
+};
 
 // ndr.de (1./2. HBL, Phase 1): Spielbericht-Link aus der Spielstatistik-Seite.
 // Der NDR-Parser extrahiert den 'spielstatistik-NNNN.html'-Link aus dem HTML und
