@@ -24,12 +24,14 @@ const KURZ = (s: SpielAnsicht) => s.toreHeim !== null && s.toreGast !== null;
 export const LAUF_FENSTER_MS = 90 * 60 * 1000;
 
 // Vermutung, KEIN verifizierter Live-Status: nuLiga zeigt schon während des Spiels den Zwischenstand als
-// "vorläufiges" Ergebnis (noch nicht genehmigt). Ein Spiel gilt als laufend, wenn der Spielbericht angelegt ist, das
-// Ergebnis fehlt oder noch nicht genehmigt ist und der Anwurf höchstens 90 Min zurückliegt. Zeit allein genügt nie.
+// "vorläufiges" Ergebnis (noch nicht genehmigt). Ein Spiel gilt als laufend, wenn das Ergebnis fehlt oder noch nicht
+// genehmigt ist, es nicht abgesagt/verlegt ist und der Anwurf höchstens 90 Min zurückliegt. Ein angelegter Spielbericht
+// ist NICHT nötig: nuLiga legt ihn oft erst nach dem Anwurf an (bzw. der Sync sieht den Link erst später), das Spiel
+// stand dann bis dahin fälschlich als "geplant" da.
 // Grenze: ein gerade beendetes, noch nicht genehmigtes Spiel zeigt "Läuft" bis das Fenster abläuft.
 export function laeuftVermutlich(s: SpielAnsicht, jetzt: Date): boolean {
   const phase = spielPhase(s);
-  if ((phase !== "bericht_angelegt" && phase !== "ergebnis_vorlaeufig") || !s.beginn) return false;
+  if ((phase !== "geplant" && phase !== "bericht_angelegt" && phase !== "ergebnis_vorlaeufig") || !s.beginn) return false;
   const seit = jetzt.getTime() - s.beginn.getTime();
   return seit >= 0 && seit <= LAUF_FENSTER_MS;
 }
