@@ -79,13 +79,19 @@ export default async function HilfePage() {
             <strong>Anmelden und AVV bestätigen:</strong> Der Vereinsadmin meldet sich per E-Mail-Link oder Passwort an und
             bestätigt beim ersten Login den Auftragsverarbeitungsvertrag.
           </li>
-          <li>
-            <strong>Spielplan anbinden:</strong> unter{" "}
+          <li id="einrichtung-assistent" className="scroll-mt-6">
+            <strong>Spielplan anbinden (Einrichtungs-Assistent):</strong> Direkt nach dem ersten Login öffnet sich der{" "}
+            <Link href="/admin/einrichtung" className="font-medium underline">
+              Assistent
+            </Link>
+            . Ihr gebt an, wo eure Mannschaften gelistet sind (<strong>nuLiga</strong>, <strong>handball.net</strong> oder
+            „beides / weiß ich nicht“) und tragt die Vereins-ID ein (<a href="#oeffentliche-seite" className="font-medium underline">so findet ihr sie</a>);
+            bei nuLiga schlagen wir euren Verein anhand des Namens vor. Der Assistent lädt dann Mannschaften, Spielplan, Hallen und Logo und legt die
+            Heimspiele als Termine an (dauert bis zu einer Minute, es wird keine Mail verschickt). Mit „Später“ richtet ihr alles selbst unter{" "}
             <Link href="/admin/einstellungen#oeffentliche-seite" className="font-medium underline">
               Einstellungen → Öffentliche Vereinsseite
             </Link>{" "}
-            die nuLiga- und/oder handball.net-Vereins-ID eintragen (<a href="#oeffentliche-seite" className="font-medium underline">so findet ihr sie</a>).
-            Danach kommen Spiele, Verlegungen, Ergebnisse und die Schiedsrichter-Ansetzung automatisch, tagsüber stündlich.
+            ein. Danach kommen Spiele, Verlegungen, Ergebnisse und die Schiedsrichter-Ansetzung automatisch, tagsüber stündlich.
           </li>
           <li>
             <strong>Eure Spielhallen eintragen:</strong> direkt darunter unter{" "}

@@ -6,7 +6,9 @@ export type EinrichtungsSchritt = { schluessel: string; label: string; status: S
 
 export type EinrichtungsBefund = {
   indexName: string;
+  // Leer = nur handball.net (keine nuLiga-Vereinsseite: kein Stammdaten-/Logo-Schritt).
   clubId: string;
+  handballNetClubId?: string;
   // null = Vereinsseite nicht lesbar
   info: VereinsInfo | null;
   infoFehler: string | null;
@@ -32,9 +34,16 @@ export function bewerteEinrichtung(b: EinrichtungsBefund): EinrichtungsSchritt[]
   const s = (schluessel: string, label: string, status: SchrittStatus, detail: string) =>
     schritte.push({ schluessel, label, status, detail });
 
-  s("gefunden", "Verein bei nuLiga gefunden", "ok", `${b.indexName} (club ${b.clubId})`);
+  const nurHandballNet = !b.clubId;
+  if (nurHandballNet) {
+    s("gefunden", "Verein bei handball.net angebunden", "ok", `${b.indexName} (ID ${b.handballNetClubId ?? "?"})`);
+  } else {
+    s("gefunden", "Verein bei nuLiga gefunden", "ok", `${b.indexName} (club ${b.clubId})`);
+  }
 
-  if (!b.info) {
+  if (nurHandballNet) {
+    // Keine nuLiga-Vereinsseite: Stammdaten und Logo entfallen.
+  } else if (!b.info) {
     s("stammdaten", "Vereinsseite gelesen", "fehler", b.infoFehler ?? "nicht lesbar");
   } else {
     const teile = [b.info.nummer && `VNr. ${b.info.nummer}`, b.info.gruendung && `gegründet ${b.info.gruendung}`, b.info.website].filter(Boolean);
@@ -71,7 +80,9 @@ export function bewerteEinrichtung(b: EinrichtungsBefund): EinrichtungsSchritt[]
   }
 
   const l = b.logo;
-  if (!l) {
+  if (nurHandballNet) {
+    s("logo", "Logo", "pruefen", "handball.net liefert keins — unter Einstellungen hochladen, sonst erscheinen die Initialen");
+  } else if (!l) {
     s("logo", "Logo", "pruefen", "nicht geprüft — unter Einstellungen hochladen");
   } else if (l.status === "neu" || l.status === "aktualisiert" || l.status === "unveraendert") {
     s("logo", "Logo von nuLiga übernommen", b.logoSicher ? "ok" : "pruefen", b.logoSicher ? "Bild passt zum Vereinsnamen" : "Zuordnung unsicher (kein passender Bildtext) — bitte ansehen");

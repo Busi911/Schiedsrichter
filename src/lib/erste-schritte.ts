@@ -23,9 +23,9 @@ export function ersteSchritte(s: ErsteSchritteStand): ErsterSchritt[] {
     {
       schluessel: "spielplan",
       titel: "Spielplan anbinden",
-      text: "nuLiga- und/oder handball.net-Vereins-ID eintragen. Danach kommen Spiele, Verlegungen und Ergebnisse automatisch.",
+      text: "nuLiga- und/oder handball.net-Vereins-ID eintragen — der Assistent holt Mannschaften, Hallen, Logo und Spiele automatisch. Danach kommen Verlegungen und Ergebnisse von selbst.",
       erledigt: s.spielplanAngebunden,
-      href: "/admin/einstellungen#oeffentliche-seite",
+      href: "/admin/einrichtung",
       hilfeAnker: "oeffentliche-seite",
     },
     {
