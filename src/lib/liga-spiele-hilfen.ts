@@ -1,6 +1,6 @@
 import { ligaSpiele, type ligaMannschaften } from "@/db/schema";
 import { tagKey } from "@/lib/kalender";
-import { istZwischenstand, laeuftVermutlich } from "@/lib/liga-spiel-status";
+import { istZwischenstand, LAUF_FENSTER_MS, laeuftVermutlich } from "@/lib/liga-spiel-status";
 
 // Reine Hilfsfunktionen für Spiele der öffentlichen Seiten (ohne DB-Zugriff,
 // damit sie ohne Umgebung getestet werden können).
@@ -62,6 +62,16 @@ export type ErgebnisHinweis = "laeuft" | "ergebnis_folgt" | "ausstehend";
 export function ergebnisHinweis(s: SpielAnsicht, jetzt: Date): ErgebnisHinweis | null {
   if (laeuftVermutlich(s, jetzt)) return "laeuft";
   if (istZwischenstand(s, jetzt)) return "ergebnis_folgt";
+  // Heutiges Spiel ohne Ergebnis, dessen Anwurf länger als das Lauf-Fenster her ist: vermutlich vorbei, der Verband
+  // hat nur noch nichts eingetragen (ab morgen "Ergebnis ausstehend").
+  if (
+    !hatErgebnis(s) &&
+    s.status === "geplant" &&
+    s.beginn &&
+    s.beginn.getTime() < jetzt.getTime() - LAUF_FENSTER_MS
+  ) {
+    return "ergebnis_folgt";
+  }
   if (s.status !== "abgesagt" && istErgebnisAusstehend(s, jetzt)) return "ausstehend";
   return null;
 }
