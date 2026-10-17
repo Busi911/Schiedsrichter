@@ -630,8 +630,39 @@ gerade läuft, und der Ticker erreichbar sein.
   Ergebnisse nur für beendete Spiele (`is_finished`). Ob sie auch einen
   Live-Stand hat, an einer echten Antwort prüfen.
 
-**Reihenfolge:** Stufe 1 bauen, sobald eine Ticker-Adresse vorliegt. Stufe 2
+**Reihenfolge:** Stufe 1 ist umgesetzt (siehe unten, Stand 17.10.2026). Stufe 2
 erst nach Zustimmung des HHV und nach Sichtung der Daten.
+
+### Live-Ticker und Spielverlauf — Stand 17.10.2026 (Pause: Betreiber kann gerade nicht weitermachen)
+
+**Umgesetzt und live:**
+- Stufe 1 (Links) für alle drei Quellen: nuLiga nuScoreLive (Link, sobald nuLiga den Spielbericht zeigt), NDR (`spielstatistik`-Seite), handball.net
+  (Spielseite `/match/<Spiel-ID>?season_id=<Saison>` mit dem Tab "LIVETICKER"; vor/während des Spiels "Live-Ticker", nach dem Spiel
+  "Spielseite bei handball.net"). Es gibt in der App WEITERHIN KEINE eigene Tickeransicht und keine gespeicherten Ereignisse, für keine Quelle.
+- Anzeige "Live" / "Läuft gerade" (nur Vermutung aus der Anstoßzeit), "Ergebnis folgt" (heute, Anwurf > 90 Min her), "Ergebnis ausstehend".
+- Live-Fenster-Cron `/api/cron/liga-live` (alle 5 Min, Freitag bis Sonntag, nur nuLiga): holt den Spielbericht-Link (= Ticker) rund um den Anwurf
+  statt erst im Stundentakt. Halbzeitstand unter dem Ergebnis, wo die Quelle ihn liefert (nuLiga, NDR; handball.net nicht belegt).
+- Systemadmin: Häkchen "Alles neu laden" unter `/system/sync`, Schalter für die automatische Ansprache unter `/system/ansprache`,
+  Feedback als erledigt markieren/direkt beantworten, `/system/handball-net-diagnose` (rohe Spielantwort + ein `/api/`-Pfad aus dem Browser).
+
+**Offen (in dieser Reihenfolge):**
+1. **Belegen, woher handball.net die Ticker-Ereignisse holt** (von der Entwicklungsumgebung aus ist handball.net nicht erreichbar, Proxy-403). Dafür:
+   (a) `/system/handball-net-diagnose` mit Team `86819` und Spiel `392192` (und `392196`) ausführen und die Ausgabe weitergeben;
+   (b) im Browser auf der Spielseite den Tab LIVETICKER öffnen und im Netzwerk-Tab die `/api/…`-Requests sichern (Pfad, Parameter, Antwort gekürzt,
+   Polling/WebSocket/SSE); (c) den PDF-Spielbericht (`handball360.isquad.de/dhb_acta_completa_pdf.php?id_partido=<ID>`) prüfen: gibt es ihn für jedes
+   Spiel, ist die Adresse dauerhaft, was enthält er. Verifiziert sind bisher nur die Spielseiten 392196 (live, 42 Ereignisse bei Halbzeit) und
+   392192 (beendet, 89 Ereignisse, Spielende 60:00), nicht die zugrunde liegende API.
+2. **Entscheidungen des Betreibers:** (a) Freigabe/Nutzungsbedingungen des DHB für den Ticker-Endpunkt (die Zusage gilt Spielplänen/Ergebnissen);
+   (b) Datenschutz: Torschützen, Strafen und Aufstellungen sind Personendaten (Jugendbundesliga: Minderjährige). Optionen: nur Spielstand/Ereignistyp
+   ohne Namen anzeigen, oder nur auf das Original verlinken. Die Repository-Regel "Personendaten nie persistieren" gilt, bis das entschieden ist.
+3. **Dann bauen:** gemeinsames Ereignis-Modell (Quelle, externe Spiel-ID, Ereignis-ID/Typ/Mannschaft/Spielzeit/Spielstand), serverseitiger Cache
+   mit gebündelten Abrufen (nie je Besucher), Spielseite in der App ("Spielverlauf" bei abgeschlossenen, "Liveticker" bei laufenden Spielen),
+   Korrekturen übernehmen, ein Abruffehler löscht nichts, Nachlaufphase nach Spielende mit begrenzten Wiederholungen. Status "Live/Halbzeit/Beendet"
+   aus den Quelldaten statt aus der Anstoßzeit. Tests mit den historischen Spielen 392192 (Erlangen – Dutenhofen/Münchholzhausen 32:34) und einem
+   abgeschlossenen Fall ohne Ereignisse/PDF.
+4. **Kleinere Punkte:** handball.net-Halbzeitstand und Zwischenstand (Feld in der Spielliste prüfen; der Parser liest Ergebnisse bisher nur bei
+   `is_finished`); Live-Cron auch für handball.net-Spiele, sobald der Endpunkt belegt ist; Zeitplan des Live-Cron (Fr–So, UTC) prüfen, falls Spiele
+   unter der Woche oder nach 21 Uhr UTC dazukommen; NDR-Spielseite (`spielstatistik`) auf Inhalt/Ereignisse prüfen.
 
 ### Vereinfachung und Angleichen der Wart-Seiten (Stand 07.10.2026)
 
