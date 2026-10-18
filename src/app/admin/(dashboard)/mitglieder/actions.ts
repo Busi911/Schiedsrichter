@@ -13,6 +13,7 @@ import { findeMitglied } from "@/lib/mitglieder-ueberfuehrung";
 import { ergaenzeFunktionstraegerName, fuehreUeberfuehrungAus, ladeMitglieder, ladeMitgliedsarten, pruefeArtId, schreibeImportPlan, ueberfuehrungText, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
 import { artNameVergeben, fehlendeStandardArten, pruefeArtName } from "@/lib/mitgliedsarten";
 import { schreibeProtokoll } from "@/lib/treuhand";
+import { lehneAntragAb, loescheBearbeitetenAntrag, nehmeAntragAn } from "@/lib/beitritt-daten";
 import { entferneZuordnung, ordneZu } from "@/lib/mitglied-mannschaften-daten";
 
 function text(formData: FormData, feld: string): string {
@@ -213,4 +214,29 @@ export async function funktionstraegerNameErgaenzen(formData: FormData) {
   if ("fehler" in ergebnis) throw new Error(ergebnis.fehler);
   revalidatePath("/admin/mitglieder");
   revalidatePath("/admin/funktionstraeger");
+}
+
+// ---------------------------------------------------------------------------
+// Beitrittsanträge (Online-Beitritt)
+// ---------------------------------------------------------------------------
+
+export async function beitrittAnnehmen(formData: FormData) {
+  const vereinId = await startschuss();
+  const ergebnis = await nehmeAntragAn(vereinId, text(formData, "id"), { trotzdem: formData.get("trotzdem") === "on" });
+  if (!ergebnis.ok) throw new Error(ergebnis.fehler);
+  revalidatePath("/admin/mitglieder");
+}
+
+export async function beitrittAblehnen(formData: FormData) {
+  const vereinId = await startschuss();
+  const ergebnis = await lehneAntragAb(vereinId, text(formData, "id"), text(formData, "grund"));
+  if (!ergebnis.ok) throw new Error(ergebnis.fehler);
+  revalidatePath("/admin/mitglieder");
+}
+
+export async function beitrittAntragLoeschen(formData: FormData) {
+  const vereinId = await startschuss();
+  const ergebnis = await loescheBearbeitetenAntrag(vereinId, text(formData, "id"));
+  if (!ergebnis.ok) throw new Error(ergebnis.fehler);
+  revalidatePath("/admin/mitglieder");
 }

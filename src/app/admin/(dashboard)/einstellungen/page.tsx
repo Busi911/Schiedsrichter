@@ -8,6 +8,7 @@ import { ligaGruppen, ligaMannschaften, ligaTeilnahmen, ligaVereine, ligaSyncLae
 import {
   diensteBroadcastSpeichern,
   trainingSichtbarkeitSpeichern,
+  beitrittEinstellungenSpeichern,
   vereinstermineSpeichern,
   logoEntfernen,
   mannschaftsnamenSpeichern,
@@ -827,6 +828,46 @@ export default async function EinstellungenPage({
           )}
         </form>
       </EinstellungsBereich>
+
+      {verein?.vereinsverwaltungAktiv && (
+        <EinstellungsBereich
+          id="online-beitritt"
+          titel="Online-Beitritt"
+          kurz="Öffentliches Formular zum Mitglied werden"
+          beschreibung={<>Interessierte beantragen über ein öffentliches Formular die Mitgliedschaft (ohne Login). Ihr nehmt den Antrag unter{" "}
+            <a href="/admin/mitglieder#antraege" className="underline">Verein → Mitglieder</a> an oder lehnt ihn ab; erst mit der Annahme wird die Person Mitglied.</>}
+        >
+          <HilfeHinweis anker="online-beitritt" />
+          <form action={beitrittEinstellungenSpeichern} className="mt-2 flex flex-col gap-3">
+            <fieldset disabled={!session.user.istAdmin} className="contents">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label htmlFor="beitrittAktiv" className="font-normal">
+                    Online-Beitritt einschalten
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Aus (Standard): die Seite ist nicht erreichbar. {ligaVerein ? "Der Link ist danach:" : "Voraussetzung ist die öffentliche Vereinsseite (siehe oben)."}{" "}
+                    {ligaVerein && <code className="break-all">/verein/{ligaVerein.slug}/beitritt</code>}
+                  </p>
+                </div>
+                <Switch key={String(verein?.beitrittAktiv ?? false)} id="beitrittAktiv" name="beitrittAktiv" defaultChecked={verein?.beitrittAktiv ?? false} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="satzungUrl">Link zur Satzung (freiwillig, https)</Label>
+                <Input id="satzungUrl" name="satzungUrl" type="url" inputMode="url" maxLength={500} placeholder="https://…/satzung.pdf" defaultValue={verein?.satzungUrl ?? ""} />
+                <p className="text-xs text-muted-foreground">
+                  Mit Link fragt das Formular „Satzung gelesen und zugestimmt“ als Pflicht ab. Ohne Link entfällt diese Frage.
+                </p>
+              </div>
+            </fieldset>
+            {session.user.istAdmin && (
+              <SubmitButton variant="outline" size="sm" className="self-start">
+                Speichern
+              </SubmitButton>
+            )}
+          </form>
+        </EinstellungsBereich>
+      )}
 
       <EinstellungsBereich id="vereinsdaten" titel="Vereinsdaten und Rechnung" kurz="Rechnungsadresse und E-Mail des Verantwortlichen" beschreibung={<>Adresse und E-Mail des Verantwortlichen bekommt die Rechnung
             (per E-Mail). Nirgends in der App öffentlich sichtbar.</>}>

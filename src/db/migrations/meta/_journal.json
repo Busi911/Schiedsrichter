@@ -841,6 +841,13 @@
       "when": 1792603777477,
       "tag": "0119_mitgliedsart",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1792603777478,
+      "tag": "0120_online_beitritt",
+      "breakpoints": true
     }
   ]
 }

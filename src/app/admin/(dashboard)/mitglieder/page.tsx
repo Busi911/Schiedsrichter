@@ -9,10 +9,13 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
 import { MitgliedFormular } from "@/components/mitglied-formular";
 import { GESCHLECHTER, STATI, istStatus, zaehleNachStatus } from "@/lib/mitglieder";
-import { ladeMitglieder, ladeMitgliedsarten, ladeUeberfuehrungsPlan, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
+import { beitrittEingeschaltet, ladeMitglieder, ladeMitgliedsarten, ladeUeberfuehrungsPlan, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
 import { fehlendeStandardArten } from "@/lib/mitgliedsarten";
 import { waehleMitglieder } from "@/lib/mitglieder-auswahl";
-import { offeneUeberfuehrung } from "@/lib/mitglieder-ueberfuehrung";
+import { findeMitglied, offeneUeberfuehrung } from "@/lib/mitglieder-ueberfuehrung";
+import { holeOeffentlichenSlug, ladeAntraege } from "@/lib/beitritt-daten";
+import { alterAm } from "@/lib/beitritt";
+import { formatDatum } from "@/lib/format";
 import { SubmitButton } from "@/components/submit-button";
 import { MitgliedMannschaftenBlock } from "@/components/mitglied-mannschaften-block";
 import { saisonOptionen } from "@/lib/mitglied-mannschaften";
@@ -20,6 +23,9 @@ import { ladeVereinsMannschaften, ladeZuordnungen } from "@/lib/mitglied-mannsch
 import { saisonLabel } from "@/lib/saison";
 import {
   funktionstraegerNameErgaenzen,
+  beitrittAblehnen,
+  beitrittAnnehmen,
+  beitrittAntragLoeschen,
   funktionstraegerUebernehmen,
   mitgliedAendern,
   mitgliedAnlegen,
@@ -75,13 +81,19 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
   }
 
   const { q = "", status = "", mannschaft = "", art = "", ...importErgebnis } = await searchParams;
-  const [alle, plan, mannschaften, zuordnungen, arten] = await Promise.all([
+  const [alle, plan, mannschaften, zuordnungen, arten, antraege, oeffentlicherSlug, beitrittLaeuft] = await Promise.all([
     ladeMitglieder(vereinId),
     ladeUeberfuehrungsPlan(vereinId),
     ladeVereinsMannschaften(vereinId),
     ladeZuordnungen(vereinId),
     ladeMitgliedsarten(vereinId),
+    ladeAntraege(vereinId),
+    holeOeffentlichenSlug(vereinId),
+    beitrittEingeschaltet(vereinId),
   ]);
+  const offeneAntraege = antraege.filter((a) => a.status === "offen").sort((a, b) => (a.erstelltAm?.getTime() ?? 0) - (b.erstelltAm?.getTime() ?? 0));
+  const bearbeiteteAntraege = antraege.filter((a) => a.status !== "offen").slice(0, 30);
+  const mannschaftsName = new Map(mannschaften.map((m) => [m.id, m.name]));
   const artName = new Map(arten.map((a) => [a.id, a.name]));
   const zahlen = zaehleNachStatus(alle);
   const aktuelleSaison = saisonLabel(new Date());
@@ -185,6 +197,116 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
           </CardContent>
         </Card>
       )}
+
+      <Card id="antraege" className="scroll-mt-6">
+        <CardHeader>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="text-base">Beitrittsanträge</CardTitle>
+            {offeneAntraege.length > 0 && <Badge variant="warning">{offeneAntraege.length} offen</Badge>}
+          </div>
+          <CardDescription>
+            {beitrittLaeuft && oeffentlicherSlug ? (
+              <>
+                Der Online-Beitritt ist eingeschaltet. Link zum Formular: <code className="break-all">/verein/{oeffentlicherSlug}/beitritt</code>
+              </>
+            ) : (
+              <>
+                Der Online-Beitritt ist ausgeschaltet.{" "}
+                <Link href="/admin/einstellungen#online-beitritt" className="underline">
+                  Unter Einstellungen → Online-Beitritt einschalten
+                </Link>
+                .
+              </>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 text-sm">
+          {offeneAntraege.length === 0 && <p className="text-muted-foreground">Keine offenen Anträge.</p>}
+          {offeneAntraege.map((a) => {
+            const doppelt = findeMitglied({ vorname: a.vorname, name: a.name, email: a.email, geburtsdatum: a.geburtsdatum }, alle);
+            const e = a.einwilligungen ?? {};
+            return (
+              <div key={a.id} className="flex flex-col gap-2 rounded-lg border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium">
+                    {a.name}, {a.vorname}
+                  </p>
+                  {a.geburtsdatum && (
+                    <Badge variant="outline">
+                      {alterAm(a.geburtsdatum)} Jahre{alterAm(a.geburtsdatum) < 18 ? " (minderjährig)" : ""}
+                    </Badge>
+                  )}
+                </div>
+                <p className="break-words text-muted-foreground">
+                  {a.email}
+                  {a.telefon ? ` · ${a.telefon}` : ""}
+                  {a.geburtsdatum ? ` · geboren ${datum(a.geburtsdatum)}` : ""}
+                  {a.erstelltAm ? ` · eingegangen ${formatDatum(a.erstelltAm)}` : ""}
+                </p>
+                <p className="text-muted-foreground">
+                  {a.mannschaftId ? `Wunsch: ${mannschaftsName.get(a.mannschaftId) ?? "Mannschaft"} · ` : ""}Fotos/Videos: {e.fotos ? "erlaubt" : "nicht erlaubt"}
+                </p>
+                {doppelt && (
+                  <p className="rounded-md border border-amber-500/60 bg-amber-50 p-2 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                    Es gibt wohl schon ein Mitglied „{doppelt.mitglied.name}, {doppelt.mitglied.vorname}“. Bitte prüfen, bevor ihr annehmt.
+                  </p>
+                )}
+                {schreiben && (
+                  <div className="flex flex-col gap-2 border-t pt-2">
+                    <form action={beitrittAnnehmen} className="flex flex-wrap items-center gap-3">
+                      <input type="hidden" name="id" value={a.id} />
+                      {doppelt && (
+                        <label className="flex min-h-11 items-center gap-2">
+                          <input type="checkbox" name="trotzdem" className="size-4" />
+                          <span>Trotzdem als neues Mitglied annehmen</span>
+                        </label>
+                      )}
+                      <SubmitButton className="w-full sm:w-auto" pendingText="Nimmt an…">
+                        Annehmen
+                      </SubmitButton>
+                    </form>
+                    <form action={beitrittAblehnen} className="flex flex-wrap items-end gap-2">
+                      <input type="hidden" name="id" value={a.id} />
+                      <div className="flex min-w-0 flex-1 basis-48 flex-col gap-1">
+                        <label htmlFor={`grund-${a.id}`} className="text-xs text-muted-foreground">
+                          Hinweis an die Person (freiwillig)
+                        </label>
+                        <Input id={`grund-${a.id}`} name="grund" maxLength={500} />
+                      </div>
+                      <ConfirmSubmitButton variant="outline" className="w-full text-destructive sm:w-auto" confirmText="Antrag ablehnen? Die Person bekommt eine Mail.">
+                        Ablehnen
+                      </ConfirmSubmitButton>
+                    </form>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {bearbeiteteAntraege.length > 0 && (
+            <details>
+              <summary className="min-h-11 cursor-pointer py-2 font-medium">Zuletzt bearbeitet ({bearbeiteteAntraege.length})</summary>
+              <ul className="mt-1 flex flex-col gap-1 text-muted-foreground">
+                {bearbeiteteAntraege.map((a) => (
+                  <li key={a.id} className="flex flex-wrap items-center gap-x-3">
+                    <span>
+                      {a.name}, {a.vorname}: {a.status === "angenommen" ? "angenommen" : "abgelehnt"}
+                    </span>
+                    {schreiben && (
+                      <form action={beitrittAntragLoeschen}>
+                        <input type="hidden" name="id" value={a.id} />
+                        <ConfirmSubmitButton variant="ghost" size="sm" className="min-h-11 text-destructive" confirmText="Antrag endgültig löschen? Das Mitglied (falls angenommen) bleibt bestehen.">
+                          Löschen
+                        </ConfirmSubmitButton>
+                      </form>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 text-xs text-muted-foreground">Bearbeitete Anträge bleiben als Nachweis der Einwilligungen gespeichert, bis ihr sie löscht (z.B. auf Wunsch der Person).</p>
+            </details>
+          )}
+        </CardContent>
+      </Card>
 
       {importErgebnis.importAngelegt !== undefined && (
         <Alert>

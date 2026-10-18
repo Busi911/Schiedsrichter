@@ -3,6 +3,7 @@ import {
   customType,
   boolean,
   date,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -343,6 +344,10 @@ export const vereine = pgTable("verein", {
   vereinstermineAktiv: boolean("vereinstermine_aktiv").notNull().default(false),
   // Vereinsverwaltung (Mitglieder, Beitrittsanträge, Beitragsklassen, siehe mitglied unten) eingeschaltet? Default aus; kostenpflichtiges Add-on (lib/abrechnung.ts, betragNetto).
   vereinsverwaltungAktiv: boolean("vereinsverwaltung_aktiv").notNull().default(false),
+  // Online-Beitritt (öffentliches Formular /verein/[slug]/beitritt, nur mit Add-on): vom Vereinsadmin eingeschaltet, Default aus. Link zur Satzung (https, optional):
+  // nur mit Link gibt es im Formular die Pflicht-Einwilligung "Satzung gelesen".
+  beitrittAktiv: boolean("beitritt_aktiv").notNull().default(false),
+  satzungUrl: text("satzung_url"),
 });
 
 export const mannschaften = pgTable("mannschaft", {
@@ -1647,7 +1652,9 @@ export const beitrittAntraege = pgTable("beitritt_antrag", {
   einwilligungen: jsonb("einwilligungen").$type<Record<string, boolean>>(),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).defaultNow(),
   status: text("status").$type<"offen" | "angenommen" | "abgelehnt">().notNull().default("offen"),
-});
+},
+(t) => [index("beitritt_antrag_verein_erstellt_idx").on(t.vereinId, t.erstelltAm)]
+);
 
 // Arten der Mitgliedschaft, die ein Verein selbst pflegt (Aktives Mitglied, Fördermitglied, Ehrenmitglied ...). Eindeutig je Verein ohne Beachtung der Groß-/Kleinschreibung.
 export const mitgliedsarten = pgTable(

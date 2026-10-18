@@ -6,6 +6,7 @@ import { vereinstermineAktiv } from "@/lib/vereinstermine-daten";
 import { holeDienstwarteOderAdminEmails } from "@/lib/dienstwart";
 import { and, eq, inArray } from "drizzle-orm";
 import { requireSession } from "@/lib/session";
+import { adminHinweiseAbschaltbar } from "@/lib/abmelden";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
@@ -278,7 +279,9 @@ export async function updateBenachrichtigungen(formData: FormData) {
     tx.select({ istAdmin: users.istAdmin }).from(users).where(eq(users.id, userId))
   );
   if (ich?.istAdmin) {
-    werteZumSpeichern.adminHinweiseAktiviert = formData.get("adminHinweise") === "on";
+    // Mindestens ein Admin im Verein muss die Hinweise aktiv haben: der Letzte kann sie nicht abschalten (die Oberfläche zeigt den Schalter dann gesperrt).
+    const wunsch = formData.get("adminHinweise") === "on";
+    werteZumSpeichern.adminHinweiseAktiviert = wunsch || !(await adminHinweiseAbschaltbar(userId));
   }
 
   await withTenant(vereinId, (tx) =>
