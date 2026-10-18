@@ -1,6 +1,6 @@
 # Konzept: Handball-Vereinsverwaltung für HandballerPate
 
-Stand: 18.10.2026 · Autor: Claude (im Auftrag des Betreibers) · Status: gilt (Entscheidungen vom 18.10.2026, siehe Abschnitt 9); E6 (rechtliche Prüfung) ist noch offen
+Stand: 18.10.2026 · Autor: Claude (im Auftrag des Betreibers) · Status: gilt (Entscheidungen vom 18.10.2026, siehe Abschnitt 9); alle Entscheidungen E1–E7 getroffen
 
 Dieses Dokument ersetzt keine Detailpläne, sondern gibt ihnen ein gemeinsames Ziel. Es beantwortet vier Fragen:
 1. Wo stehen wir wirklich? (Abschnitt 2)
@@ -205,16 +205,16 @@ Hinweis zur Reihenfolge: Modul E ist nach hinten gerutscht, **weil es das größ
 
 ## 9. Entscheidungen, die der Betreiber treffen muss
 
-Entscheidung des Betreibers am 18.10.2026: **E1 ja, E2 TSF Heuchelheim, E3 ja, E4 ja, E5 ja, E7 ja. E6 ist noch nicht beantwortet.**
+Entscheidung des Betreibers am 18.10.2026: **E1 ja, E2 TSF Heuchelheim (Betreiber ist selbst Ansprechperson), E3 ja, E4 ja, E5 ja, E6 Betreiber prüft rechtlich selbst, E7 ja.**
 
 | # | Frage | Mein Vorschlag → Entscheidung |
 |---|---|---|
 | E1 | **Positionierung:** Handball-Betriebssystem (Abschnitt 3) oder allgemeine Vereinsverwaltung? | Handball-Betriebssystem. Allgemeine Software ist ein Verlustgeschäft. → **Ja** |
-| E2 | **Pilotverein** und eine feste Ansprechperson, die in jedem Meilenstein abnimmt | Einen aktiven Beta-Verein mit Jugendabteilung wählen, damit Altersklassen und Eltern vorkommen. → **TSF Heuchelheim** (Ansprechperson noch festzulegen; ob der Verein Jugendmannschaften hat, vor M1 prüfen) |
+| E2 | **Pilotverein** und eine feste Ansprechperson, die in jedem Meilenstein abnimmt | Einen aktiven Beta-Verein mit Jugendabteilung wählen, damit Altersklassen und Eltern vorkommen. → **TSF Heuchelheim**; der Betreiber ist selbst die Ansprechperson und nimmt die Meilensteine ab; der Verein hat Jugendmannschaften, damit kommen Altersklassen und Eltern im Pilot vor |
 | E3 | **Reihenfolge:** Kader und Mitteilungen vor Beiträgen? | Ja (Abschnitt 5). → **Ja** |
 | E4 | **Mitglieder-Zugang:** Bekommen Mitglieder/Eltern später ein Konto oder Magic-Link-Zugang? | Magic-Link ohne Passwort, an die eigene Mitglieds-E-Mail gebunden; Konto nur für Funktionsträger wie bisher. → **Ja** |
 | E5 | **Add-on:** Kader/Mitteilungen in die Basis, Rest ins Add-on? Beta-Preis des Add-ons? Darf der Vereinsadmin es selbst einschalten? | Ja zur Aufteilung; Beta-Preis bewusst festlegen und kommunizieren; Einschalten nur durch Systemadmin, solange die Abrechnung von Hand läuft. → **Ja** (der konkrete Beta-Preis des Add-ons ist damit noch nicht festgelegt) |
-| E6 | **Rechtliche Prüfung:** externe Prüfung vor dem ersten Verein mit echten Beitragsdaten, wer organisiert und bezahlt sie? | Ja, vor M6, und die Einwilligungstexte schon vor M1/M3. → **offen** |
+| E6 | **Rechtliche Prüfung:** externe Prüfung vor dem ersten Verein mit echten Beitragsdaten, wer organisiert und bezahlt sie? | Ja, vor M6, und die Einwilligungstexte schon vor M1/M3. → **Betreiber prüft selbst rechtlich** (Umfang und ob eine externe Stelle hinzukommt, entscheidet er vor M6) |
 | E7 | **Priorität gegen Synchronisation:** Wie viel Zeit geht in Spielbetrieb-Stabilität gegen Vereinsverwaltung? | Feste Regel: Solange die Überwachung einen Befund meldet, hat der Befund Vorrang; sonst gehört die Woche einem Meilenstein. → **Ja** |
 
 ---
