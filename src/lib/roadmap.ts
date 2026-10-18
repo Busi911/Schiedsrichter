@@ -48,7 +48,7 @@ export const ROADMAP: RoadmapPhase[] = [
       {
         titel: "Ergebnisse zuverlässig und zeitnah",
         status: "in_arbeit",
-        text: "Gespielte Spiele ohne Ergebnis werden bevorzugt nachgeladen, Zwischenstände werden nie als Endstand gezeigt. Wir prüfen die Abrufe im Spielbetrieb und beheben, was auffällt.",
+        text: "Gespielte Spiele ohne Ergebnis werden bevorzugt nachgeladen (seit 18.10.2026 auch nachgeholte, verlegte Spiele; bei verlegten Spielen steht der ursprüngliche Termin dabei), Zwischenstände werden nie als Endstand gezeigt. Wir prüfen die Abrufe im Spielbetrieb und beheben, was auffällt.",
       },
       {
         titel: "Überwachung der Synchronisation",
@@ -123,8 +123,8 @@ export const ROADMAP: RoadmapPhase[] = [
     punkte: [
       {
         titel: "Mitgliederverwaltung",
-        status: "idee",
-        text: "Stammdaten, Eintritt und Austritt, Zuordnung zu Mannschaften, Online-Beitrittsformular mit Einwilligungen.",
+        status: "in_arbeit",
+        text: "Der Grundstein steht (Datenmodell für Mitglieder, Mannschaftszuordnung, Beitrittsanträge und Beitragsklassen, je Verein freischaltbar). Als Nächstes kommt die Oberfläche: Mitgliederliste mit Suche und Filter, Stammdaten, Eintritt und Austritt, Import und Export. Danach das Online-Beitrittsformular mit Einwilligungen. Noch nicht für Vereine sichtbar.",
       },
       {
         titel: "Beiträge",

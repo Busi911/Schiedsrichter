@@ -130,7 +130,7 @@ export default function AppHilfePage() {
             ist es dieselbe Seite beim NDR wie der Live-Ticker).
           </li>
           <li>
-            <strong>Verlegt / Abgesagt:</strong> Solche Spiele sind mit einem Hinweis gekennzeichnet.
+            <strong>Verlegt / Abgesagt:</strong> Solche Spiele sind mit einem Hinweis gekennzeichnet. Bei verlegten Spielen aus nuLiga steht darunter, wann das Spiel ursprünglich angesetzt war („Ursprünglich: Sa., 10.10., 16:00 Uhr“). Ein nachgeholtes Spiel bekommt sein Ergebnis in der Regel kurz nach dem Spiel.
           </li>
         </ul>
       </section>
