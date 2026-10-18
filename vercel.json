@@ -6,6 +6,10 @@
       "schedule": "0 5-21 * * *"
     },
     {
+      "path": "/api/cron/handball-net-sync",
+      "schedule": "*/20 5-21 * * *"
+    },
+    {
       "path": "/api/cron/liga-uebernahme",
       "schedule": "30 5-21 * * *"
     },

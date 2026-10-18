@@ -1,6 +1,5 @@
 import { adminDb } from "@/db/admin";
 import { pruefeCronSecret } from "@/lib/cron-auth";
-import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { synchronisiereFaellige } from "@/lib/nuliga/sync-cron";
 
@@ -12,7 +11,7 @@ export const maxDuration = 60;
 // abbricht (504, ohne jede Spur im Log). Der Rest folgt beim nächsten Aufruf.
 const WATCHDOG_MS = 52_000;
 
-// Entscheidet je Verein selbst, was fällig ist (Struktur ~täglich, Spiele
+// Nur nuLiga. Entscheidet je Verein selbst, was fällig ist (Struktur ~täglich, Spiele
 // spieltagsnah ~45 Min, sonst ~6 Std., siehe sync-cron.ts) — der Cron kann
 // daher beliebig oft laufen, ein zu früher Aufruf macht schlicht nichts.
 export async function GET(request: Request) {
@@ -37,14 +36,8 @@ export async function GET(request: Request) {
         melde("nuLiga-Abruf fertig");
       }
     },
-    holeJson: async (pfad) => {
-      melde(`handball.net-Abruf ${kurz(pfad)}`);
-      try {
-        return await holeHandballNetApi(pfad);
-      } finally {
-        melde("handball.net-Abruf fertig");
-      }
-    },
+    // handball.net hat seit 18.10.2026 einen eigenen Cron (/api/cron/handball-net-sync) mit eigenem Zeitbudget.
+    quelle: "nuliga",
     budgetMs: 40_000,
     beiSchritt: melde,
   });

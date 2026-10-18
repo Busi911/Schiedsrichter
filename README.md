@@ -521,7 +521,8 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
     `parsers/group-page.ts`) und Mannschaftsportrait
     (`parsers/team-portrait.ts`) gelesen. Sync in `src/lib/nuliga/sync.ts`
     (Struktur und Spiele getrennt, idempotent, fehlertolerant), Cron
-    `/api/cron/liga-sync` über `sync-cron.ts` (spieltagsnah häufiger).
+    `/api/cron/liga-sync` über `sync-cron.ts` (spieltagsnah häufiger; nur nuLiga,
+    handball.net hat den eigenen Cron `/api/cron/handball-net-sync`, alle 20 Min).
     Tabellen liegen als `liga_tabellenzeile` in der DB (gecacht, kein Abruf
     pro Seitenaufruf). nuLiga ist bisher nur für den HHV konfiguriert
     (`src/lib/nuliga/verbaende.ts`; weitere Verbände = weiterer Eintrag).
