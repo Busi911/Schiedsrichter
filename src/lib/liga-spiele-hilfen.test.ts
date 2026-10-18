@@ -163,10 +163,16 @@ describe("laufende Spiele und fehlende Ergebnisse", () => {
     expect(r.anstehend.map((e) => e.spiel.id)).toEqual(["m"]);
   });
 
-  it("Hinweis statt Zahl: läuft gerade bzw. Ergebnis folgt", () => {
+  it("Hinweis statt Zahl nur, solange das Spiel vermutlich läuft (90 Min); danach steht das Ergebnis sofort da (vorläufig)", () => {
     expect(ergebnisHinweis(laufend, jetzt)).toBe("laeuft");
-    expect(ergebnisHinweis(laufend, new Date("2026-10-04T17:30:00Z"))).toBe("ergebnis_folgt"); // 150 Min nach Anwurf
-    expect(ergebnisHinweis(laufend, new Date("2026-10-04T19:00:00Z"))).toBeNull(); // 4 h: gilt wieder als vorläufiges Ergebnis
+    expect(ergebnisHinweis(laufend, new Date("2026-10-04T16:30:00Z"))).toBe("laeuft"); // 90 Min nach Anwurf
+    expect(ergebnisHinweis(laufend, new Date("2026-10-04T16:31:00Z"))).toBeNull(); // 91 Min: vermutlich vorbei, Ergebnis wird gezeigt
+    expect(ergebnisHinweis(laufend, new Date("2026-10-04T17:30:00Z"))).toBeNull(); // 150 Min
+    expect(ergebnisHinweis(laufend, new Date("2026-10-04T19:00:00Z"))).toBeNull(); // 4 h
+  });
+  it("kein Ergebnis eingetragen: nach dem Lauf-Fenster steht 'Ergebnis folgt'", () => {
+    const ohne = spiel("o", "2026-10-04", { meetingId: "5", beginn: anwurf });
+    expect(ergebnisHinweis(ohne, new Date("2026-10-04T16:31:00Z"))).toBe("ergebnis_folgt");
   });
 
   it("letztesErgebnis überspringt den Zwischenstand", () => {

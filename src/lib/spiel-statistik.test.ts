@@ -41,7 +41,7 @@ describe("berechneMannschaftsKennzahlen", () => {
     expect(k.form.at(-1)).toBe("S");
   });
   it("ignoriert Spiele ohne Ergebnis, Nichtantritte und Zwischenstände", () => {
-    const laufend = heim(19, 6, { ergebnisBestaetigt: false, beginn: new Date("2026-10-05T10:00:00Z") });
+    const laufend = heim(19, 6, { ergebnisBestaetigt: false, beginn: new Date("2026-10-05T11:00:00Z") }); // 60 Min vor "jetzt": läuft vermutlich
     const k = berechneMannschaftsKennzahlen(
       team([heim(null as unknown as number, null as unknown as number), heim(20, 0, { status: "nicht_angetreten" }), laufend]),
       jetzt
