@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findeMitglied, offeneUeberfuehrung, planeUeberfuehrung, teileName, type KontoPerson, type MitgliedKurz } from "./mitglieder-ueberfuehrung";
+import { ergaenzeName, findeMitglied, offeneUeberfuehrung, planeUeberfuehrung, teileName, type KontoPerson, type MitgliedKurz } from "./mitglieder-ueberfuehrung";
 
 const person = (userId: string, name: string | null, email: string, aktiv = true): KontoPerson => ({ userId, name, email, telefon: null, aktiv });
 const mitglied = (id: string, vorname: string, name: string, email: string | null = null, userId: string | null = null): MitgliedKurz => ({ id, vorname, name, email, userId });
@@ -75,5 +75,22 @@ describe("planeUeberfuehrung", () => {
     const plan = planeUeberfuehrung([person("a", "Tim Roth", "t1@x.de"), person("b", "Tim Roth", "t2@x.de")], []);
     expect(plan.neu).toHaveLength(1);
     expect(plan.pruefen).toHaveLength(1);
+  });
+});
+
+describe("ergaenzeName", () => {
+  it("ein Wort ist der Vorname, es fehlt nur der Nachname", () => {
+    expect(ergaenzeName("Anika", "", " Muster ")).toEqual({ name: "Anika Muster" });
+    expect(ergaenzeName("Anika", "ignoriert", "von der Heide")).toEqual({ name: "Anika von der Heide" });
+  });
+  it("ohne Namen oder mit mehreren Wörtern braucht es beide Angaben", () => {
+    expect(ergaenzeName(null, "", "Muster")).toHaveProperty("fehler");
+    expect(ergaenzeName(null, "Max", "Muster")).toEqual({ name: "Max Muster" });
+    expect(ergaenzeName("Muster, ", "Max", "Muster")).toEqual({ name: "Max Muster" });
+  });
+  it("lehnt Leeres, Komma und Überlanges ab", () => {
+    expect(ergaenzeName("Anika", "", "  ")).toHaveProperty("fehler");
+    expect(ergaenzeName("Anika", "", "Muster,x")).toHaveProperty("fehler");
+    expect(ergaenzeName("Anika", "", "x".repeat(101))).toHaveProperty("fehler");
   });
 });

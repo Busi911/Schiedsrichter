@@ -10,7 +10,7 @@ import { heuteBerlin, pruefeMitglied, type GeprueftesMitglied } from "@/lib/mitg
 import { planeImport } from "@/lib/mitglieder-import";
 import { leseMitgliederExcel } from "@/lib/mitglieder-excel";
 import { findeMitglied } from "@/lib/mitglieder-ueberfuehrung";
-import { fuehreUeberfuehrungAus, ladeMitglieder, ladeMitgliedsarten, pruefeArtId, schreibeImportPlan, ueberfuehrungText, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
+import { ergaenzeFunktionstraegerName, fuehreUeberfuehrungAus, ladeMitglieder, ladeMitgliedsarten, pruefeArtId, schreibeImportPlan, ueberfuehrungText, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
 import { artNameVergeben, fehlendeStandardArten, pruefeArtName } from "@/lib/mitgliedsarten";
 import { schreibeProtokoll } from "@/lib/treuhand";
 import { entferneZuordnung, ordneZu } from "@/lib/mitglied-mannschaften-daten";
@@ -204,4 +204,13 @@ export async function mitgliederImportieren(formData: FormData) {
   if (plan.neueArten.length) params.set("importArten", plan.neueArten.join(", "));
   if (probleme.length) params.set("importProbleme", probleme.slice(0, 15).join(" | ") + (probleme.length > 15 ? ` | … und ${probleme.length - 15} weitere` : ""));
   redirect(`/admin/mitglieder?${params.toString()}`);
+}
+
+// Fehlenden Nachnamen (bzw. Vor- und Nachnamen) eines Funktionsträgers ergänzen: der Name wird beim Funktionsträger gesetzt und die Person sofort als Mitglied übernommen.
+export async function funktionstraegerNameErgaenzen(formData: FormData) {
+  const vereinId = await startschuss();
+  const ergebnis = await ergaenzeFunktionstraegerName(vereinId, text(formData, "userId"), text(formData, "vorname"), text(formData, "nachname"));
+  if ("fehler" in ergebnis) throw new Error(ergebnis.fehler);
+  revalidatePath("/admin/mitglieder");
+  revalidatePath("/admin/funktionstraeger");
 }
