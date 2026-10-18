@@ -52,8 +52,8 @@ export const ROADMAP: RoadmapPhase[] = [
       },
       {
         titel: "Überwachung der Synchronisation",
-        status: "geplant",
-        text: "Bisher sieht nur der Vereinsadmin das Protokoll des letzten Abrufs in den Einstellungen. Geplant ist ein automatischer Hinweis an uns, wenn ein Abruf ausfällt oder ein Verein zu lange keine neuen Daten bekommt.",
+        status: "fertig",
+        text: "Ein automatischer Prüflauf (fünfmal täglich) schaut nach, ob die Abrufe aus nuLiga, handball.net und NDR sowie die Übernahme in die Termine laufen, und meldet uns jeden Ausfall per Mail, damit wir eingreifen, bevor Vereine es merken. Der Stand steht außerdem für uns im Systembereich.",
       },
       {
         titel: "Funktionsträger und Dienste",

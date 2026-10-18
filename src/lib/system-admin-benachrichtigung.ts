@@ -37,7 +37,7 @@ function vereinRegistriertInhalt(
 
 // Best effort an ALLE Systemadmins: ein Mail-Fehler darf die auslösende
 // Aktion nie verhindern.
-async function mailAnSystemAdmins(betreff: string, inhalt: EmailInhalt, replyTo?: string) {
+export async function mailAnSystemAdmins(betreff: string, inhalt: EmailInhalt, replyTo?: string) {
   const systemAdmins = await adminDb
     .select({ email: users.email })
     .from(users)
