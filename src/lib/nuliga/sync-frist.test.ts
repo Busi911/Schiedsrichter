@@ -59,10 +59,12 @@ describe("bewerteSpieltagsNaehe", () => {
     expect(bewerteSpieltagsNaehe([spiel("2026-10-17", "gespielt", 29, true)], heute)).toBe(1);
     expect(bewerteSpieltagsNaehe([spiel("2026-10-19")], heute)).toBe(1);
   });
-  it("vorläufiges Ergebnis bleibt offen; abgesagt/verlegt/nicht angetreten zählen nicht", () => {
+  it("verlegtes Spiel (neuer Termin vorbei, kein Ergebnis) = 2, wie ein geplantes", () => {
+    expect(bewerteSpieltagsNaehe([spiel("2026-10-17", "verlegt")], heute)).toBe(2);
+  });
+  it("vorläufiges Ergebnis bleibt offen; abgesagt/nicht angetreten zählen nicht", () => {
     expect(bewerteSpieltagsNaehe([spiel("2026-10-17", "gespielt", 29, false)], heute)).toBe(2);
     expect(bewerteSpieltagsNaehe([spiel("2026-10-17", "abgesagt")], heute)).toBe(1);
-    expect(bewerteSpieltagsNaehe([spiel("2026-10-17", "verlegt")], heute)).toBe(1);
     expect(bewerteSpieltagsNaehe([spiel("2026-10-17", "nicht_angetreten")], heute)).toBe(1);
   });
   it("keine Spiele im Fenster = 0", () => {
