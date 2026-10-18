@@ -5,7 +5,8 @@
 Jede Änderung an Verhalten, Oberfläche, Einstellungen, Rollen, Mails oder Datenmodell zieht im SELBEN PR die Doku nach:
 `/hilfe` (bzw. `/app-hilfe` für öffentliche Seiten) inklusive Inhaltsverzeichnis/Anker und `HilfeHinweis`, diese CLAUDE.md, die README,
 Texte und Verweise in der Oberfläche (Beschreibungen, Links auf Einstellungs-Anker, Leerzustände, Mails) und die Demo-Daten
-(`lib/demo-daten.ts`), wenn die Funktion dort vorkommt. Vor dem Commit nach alten Begriffen/Pfaden suchen (`grep` über `src`, README,
+(`lib/demo-daten.ts`), wenn die Funktion dort vorkommt. Gelernte Stolpersteine (Erkenntnisse) kommen kurz und dauerhaft in den passenden Abschnitt DIESER Datei (nur das Wichtigste, nichts doppelt, Veraltetes streichen), genau wie Hilfe und Demo.
+Vor dem Commit nach alten Begriffen/Pfaden suchen (`grep` über `src`, README,
 CLAUDE.md) und veraltete Stellen anpassen.
 
 ## E-Mail-Layout
@@ -99,6 +100,13 @@ wenn der Verein-Schalter an ist). Referenzimplementierung:
 Bestehende ältere Erinnerungs-Flags (`wochenDigestAktiviert` etc.) haben
 dieses zweistufige Muster NICHT — nicht rückwirkend umbauen, ohne
 explizit danach gefragt zu werden.
+
+## Migrationen und Deploy (Erkenntnisse 18.10.2026)
+
+- **Migrations-Journal:** `drizzle-kit migrate` wendet nur Migrationen an, deren `when` in `meta/_journal.json` NEUER ist als die zuletzt angewendete; ein kleineres `when` wird STILL übersprungen (Build läuft durch, der Code fragt dann fehlende Spalten ab — so fiel 0117 in Produktion aus). Die Einträge ab 0114 haben künstliche Zukunfts-Zeitstempel: nach `drizzle-kit generate` das `when` des neuen Eintrags über den größten bestehenden Wert setzen. Test `db/migrations-journal.test.ts` prüft das. Migrationen sind wiederholbar (`IF NOT EXISTS`, FKs in `DO`-Blöcken, `DROP POLICY IF EXISTS`); `migrate-on-deploy.mjs` läuft nur bei `VERCEL_ENV=production`.
+- **Nach dem Deploy prüfen:** Build-Log ("wende ausstehende Migrationen an") und eine Admin-Seite, die die neue Spalte liest.
+- **Alte Version im offenen Tab:** `error.tsx` erkennt Versionsfehler (`lib/versions-fehler.ts`, z.B. "Failed to find Server Action", ChunkLoadError) und lädt einmal neu (Schleifenschutz über `sessionStorage`); `global-error.tsx` fängt Fehler im Root-Layout. Skew Protection ist eine Vercel-Projekteinstellung (nicht im Code).
+- **Merge-Weg:** PRs je Änderung auf `main` (Squash); jeder Merge auf `main` löst einen Produktiv-Deploy aus. Commits laufen als Busi911 (info@deweconsulting.de).
 
 ## Datenbank: Cold-Start-Schutz
 
@@ -836,4 +844,4 @@ robots.txt gesperrt, damit sein `noindex` gelesen werden kann (Token-Seiten blei
 
 ## Vereinsverwaltung (Phase 1: Datenmodell, 18.10.2026)
 
-Achtung Migrationen: das `when` im `_journal.json` muss immer NEUER sein als das der vorigen (Test `migrations-journal.test.ts`), sonst überspringt `drizzle-kit migrate` sie still. Tabellen `mitglied`, `mitglied_mannschaft` (Verweis auf `liga_mannschaft`, je Saison), `beitritt_antrag`, `beitragsklasse` und Schalter `vereine.vereinsverwaltung_aktiv` (Default aus), Migration 0117. RLS: `mitglied`/`beitragsklasse` über `verein_id`, `mitglied_mannschaft` indirekt über `mitglied.verein_id`, `beitritt_antrag` Lesen/Ändern/Löschen nur im eigenen Verein, INSERT ohne Einschränkung (öffentliches Formular ohne Login; das Formular selbst folgt in einer späteren Phase und sollte `verein_id` serverseitig aus dem Slug setzen). Abrechnung: `betragNetto(tarif, sponsor, vereinsverwaltungAktiv)` addiert das Add-on (`PREIS_VEREINSVERWALTUNG`, Beta `…_BETA`; befreit = 0), der Sponsor übernimmt weiter alles. Freischalten je Verein NUR der Systemadmin: `/system/abrechnung` → Häkchen „Add-on Vereinsverwaltung“ (`vereinsverwaltungSpeichern`, Protokoll `vereinsverwaltung_geaendert`). Neue Seiten der Vereinsverwaltung müssen `vereinsverwaltungAktiv` prüfen (aus = 404, kein Menüpunkt). Hilfe und Roadmap folgen mit der Funktion. Smoke-Test: `src/db/mitglied.test.ts`; Mandantentrennungs-Test (`tenant-isolation.test.ts`) für die neuen Tabellen steht noch aus (braucht Postgres).
+Tabellen `mitglied`, `mitglied_mannschaft` (Verweis auf `liga_mannschaft`, je Saison), `beitritt_antrag`, `beitragsklasse` und Schalter `vereine.vereinsverwaltung_aktiv` (Default aus), Migration 0117. RLS: `mitglied`/`beitragsklasse` über `verein_id`, `mitglied_mannschaft` indirekt über `mitglied.verein_id`, `beitritt_antrag` Lesen/Ändern/Löschen nur im eigenen Verein, INSERT ohne Einschränkung (öffentliches Formular ohne Login; das Formular selbst folgt in einer späteren Phase und sollte `verein_id` serverseitig aus dem Slug setzen). Abrechnung: `betragNetto(tarif, sponsor, vereinsverwaltungAktiv)` addiert das Add-on (`PREIS_VEREINSVERWALTUNG`, Beta `…_BETA`; befreit = 0), der Sponsor übernimmt weiter alles. Freischalten je Verein NUR der Systemadmin: `/system/abrechnung` → Häkchen „Add-on Vereinsverwaltung“ (`vereinsverwaltungSpeichern`, Protokoll `vereinsverwaltung_geaendert`). Neue Seiten der Vereinsverwaltung müssen `vereinsverwaltungAktiv` prüfen (aus = 404, kein Menüpunkt). Hilfe und Roadmap folgen mit der Funktion. Smoke-Test: `src/db/mitglied.test.ts`; Mandantentrennungs-Test (`tenant-isolation.test.ts`) für die neuen Tabellen steht noch aus (braucht Postgres).
