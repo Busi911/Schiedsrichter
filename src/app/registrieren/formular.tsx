@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,11 @@ export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflich
     async (_zustand: unknown, formData: FormData) => vereinRegistrieren(formData),
     null
   );
+  // "Eingaben ändern" auf der Rückfrage: zurück zum Formular, mit den bisherigen Werten. Gilt nur für genau diese Antwort: kommt nach dem
+  // nächsten Absenden eine neue, erscheint die Rückfrage wieder.
+  const [bearbeitetErgebnis, setBearbeitetErgebnis] = useState<unknown>(null);
+  const vorbefuellt =
+    ergebnis && "ergebnis" in ergebnis && ergebnis.ergebnis === "aehnlich" && bearbeitetErgebnis === ergebnis ? ergebnis.werte : null;
 
   if (ergebnis && "ergebnis" in ergebnis && ergebnis.ergebnis === "registriert") {
     return (
@@ -49,7 +54,7 @@ export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflich
   }
 
   // Ein Verein mit ähnlichem Namen existiert: erst fragen, nichts anlegen. Die Werte kommen als versteckte Felder wieder mit.
-  if (ergebnis && "ergebnis" in ergebnis && ergebnis.ergebnis === "aehnlich") {
+  if (ergebnis && "ergebnis" in ergebnis && ergebnis.ergebnis === "aehnlich" && !vorbefuellt) {
     const werte = ergebnis.werte;
     return (
       <form action={formAction} className="flex flex-col gap-4">
@@ -78,43 +83,46 @@ export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflich
         <SubmitButton className="w-full" variant="outline" name="entscheidung" value="anderer">
           Nein, ein anderer Verein
         </SubmitButton>
+        <Button type="button" variant="link" className="min-h-11 w-full" onClick={() => setBearbeitetErgebnis(ergebnis)}>
+          Eingaben ändern
+        </Button>
       </form>
     );
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form key={vorbefuellt ? "bearbeiten" : "neu"} action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="vereinsname">Vereinsname</Label>
-        <Input id="vereinsname" name="vereinsname" required />
+        <Input id="vereinsname" name="vereinsname" defaultValue={vorbefuellt?.vereinsname} required />
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="adminName">Dein Name</Label>
-        <Input id="adminName" name="adminName" required />
+        <Input id="adminName" name="adminName" defaultValue={vorbefuellt?.adminName} required />
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="adminEmail">Deine E-Mail-Adresse</Label>
-        <Input id="adminEmail" name="adminEmail" type="email" required />
+        <Input id="adminEmail" name="adminEmail" defaultValue={vorbefuellt?.adminEmail} type="email" required />
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="strasse">Straße und Hausnummer</Label>
-        <Input id="strasse" name="strasse" required />
+        <Input id="strasse" name="strasse" defaultValue={vorbefuellt?.strasse} required />
       </div>
       <div className="flex gap-3">
         <div className="flex w-28 flex-col gap-2">
           <Label htmlFor="plz">PLZ</Label>
-          <Input id="plz" name="plz" required inputMode="numeric" />
+          <Input id="plz" name="plz" defaultValue={vorbefuellt?.plz} required inputMode="numeric" />
         </div>
         <div className="flex flex-1 flex-col gap-2">
           <Label htmlFor="ort">Ort</Label>
-          <Input id="ort" name="ort" required />
+          <Input id="ort" name="ort" defaultValue={vorbefuellt?.ort} required />
         </div>
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="rechnungEmail">
           E-Mail des Verantwortlichen für die Rechnung{kostenpflichtig ? "" : " (optional)"}
         </Label>
-        <Input id="rechnungEmail" name="rechnungEmail" type="email" required={kostenpflichtig} />
+        <Input id="rechnungEmail" name="rechnungEmail" defaultValue={vorbefuellt?.rechnungEmail} type="email" required={kostenpflichtig} />
       </div>
       <p className="text-xs text-muted-foreground">
         Adresse und E-Mail brauchen wir für die Rechnung — einmal hier eintragen statt separat nachfragen.
