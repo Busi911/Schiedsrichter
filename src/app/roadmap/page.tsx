@@ -160,7 +160,7 @@ const abschnitte: Abschnitt[] = [
     titel: "Vereinsverwaltung (optionales Add-on)",
     zeit: "ab Januar 2027",
     einleitung:
-      "Die Funktionsträger-Verwaltung und die App bleiben der Kern (300 € im Jahr). Wer darüber hinaus eine vollständige Vereinsverwaltung braucht — Mitgliederverwaltung, Online-Beitritt, Beitragsklassen und SEPA — schaltet das als optionales Add-on hinzu (200 € zusätzlich, also 500 € gesamt). Reihenfolge und Umfang entscheiden wir mit den Vereinen.",
+      "Die Funktionsträger-Verwaltung und die App bleiben der Kern (300 € im Jahr). Wer darüber hinaus eine vollständige Vereinsverwaltung braucht — Mitgliederverwaltung, Online-Beitritt, Beitragsklassen und SEPA — schaltet das als optionales Add-on hinzu (200 € zusätzlich, also 500 € gesamt). Ein Sponsor übernimmt immer den kompletten Vereinspreis (Basis oder Basis + Add-on) plus 200 € für den Sponsor-Platz — der Verein zahlt dann nichts. Reihenfolge und Umfang entscheiden wir mit den Vereinen.",
     eintraege: [
       {
         titel: "Mitgliederverwaltung und Online-Beitritt",
@@ -188,9 +188,9 @@ const abschnitte: Abschnitt[] = [
         text: "Kader je Mannschaft und Saison. Was mit Spielberechtigungen möglich ist, muss mit den Verbänden geklärt werden.",
       },
       {
-        titel: "Sponsoren, Dokumente, Versammlungen",
-        status: "idee",
-        text: "Heute gibt es das Sponsorenbild auf der öffentlichen Seite. Eine Sponsorenübersicht, die Ablage von Protokollen und Satzung und die Einladung zur Mitgliederversammlung sind Ideen.",
+        titel: "Sponsor für einen Verein übernehmen",
+        status: "geplant",
+        text: "Wer als Sponsor einem Handballverein die App ermöglichen möchte — nur die Basis oder inklusive Vereinsverwaltung — kann sich melden. Der Sponsor übernimmt den kompletten Vereinspreis plus 200 € für den Sponsor-Platz (Bild beim Öffnen der Vereinsseite). Der Verein zahlt nichts. Interessierte Sponsoren melden sich bei info@deweconsulting.de.",
       },
     ],
   },

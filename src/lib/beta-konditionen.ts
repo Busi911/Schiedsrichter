@@ -11,6 +11,11 @@ export const PREIS_SPONSOR = 200; // € im Jahr für den Sponsor-Platz (optiona
 export const PREIS_VEREINSVERWALTUNG = 200; // € im Jahr (regulär), zusätzlich zum Basispreis
 export const PREIS_VEREINSVERWALTUNG_BETA = 200; // € im Jahr (Beta-Vorteil), zusätzlich zum Beta-Basispreis
 // Gesamtpreise: Basis 300 + VV 200 = 500 € regulär; Basis 200 + VV 200 = 400 € Beta
+//
+// Sponsor-Regelung: Ein Sponsor übernimmt IMMER den kompletten Vereinspreis
+// (Basis oder Basis + Add-on) plus 200 € für den Sponsor-Platz. Der Verein zahlt nichts.
+// Beispiele: Verein mit Basis + Sponsor: 300 + 200 = 500 € (Sponsor zahlt alles)
+//            Verein mit Basis + VV + Sponsor: 500 + 200 = 700 € (Sponsor zahlt alles)
 // Sind alle Beta-Plätze vergeben oder ist die Beta vorbei, testet ein neuer Verein 14 Tage kostenlos (lib/abrechnung.ts TESTPHASE_TAGE), danach Rechnung.
 export const TESTPHASE_KURZ = `14 Tage kostenlos testen, ohne Zahlungsdaten und ohne automatische Verlängerung. Wer danach weitermachen möchte, bestätigt es selbst: ${PREIS_REGULAER} € im Jahr (netto), Rechnung per E-Mail, Zahlungsziel 30 Tage.`;
 export const NETTO = "Alle Preise netto (zzgl. gesetzl. MwSt.).";
