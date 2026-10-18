@@ -51,12 +51,17 @@ describe("vereinRegistrieren", () => {
     expect(mocks.registrierungMail).toHaveBeenCalledWith("HSG Dutenhofen", "Anna", "anna@example.de", []);
   });
 
-  it("mit ähnlichem Verein und ohne Entscheidung: nichts anlegen, nur zurückfragen (Werte kommen zurück, kein gespeicherter Name)", async () => {
+  it("mit ähnlichem Verein und ohne Entscheidung: nichts anlegen, nur zurückfragen (Werte und Name des vorhandenen Vereins kommen zurück)", async () => {
     mocks.findeAehnlicheVereine.mockResolvedValue(treffer);
     const { vereinRegistrieren } = await import("./actions");
     const r = await vereinRegistrieren(formular());
-    expect(r).toMatchObject({ ergebnis: "aehnlich", werte: { vereinsname: "HSG Dutenhofen", adminName: "Anna", plz: "35000" } });
-    expect(JSON.stringify(r)).not.toContain("Münchholzhausen");
+    expect(r).toMatchObject({
+      ergebnis: "aehnlich",
+      vorhandene: ["HSG Dutenhofen/Münchholzhausen"],
+      werte: { vereinsname: "HSG Dutenhofen", adminName: "Anna", plz: "35000" },
+    });
+    // Der Zustand des vorhandenen Vereins (aktiv/in Vorbereitung/inaktiv) wird nie ausgegeben.
+    expect(JSON.stringify(r)).not.toMatch(/aktiv|vorbereitung|inaktiv/);
     expect(mocks.legeVereinMitAdminAn).not.toHaveBeenCalled();
     expect(mocks.anfrageMail).not.toHaveBeenCalled();
     expect(mocks.registrierungMail).not.toHaveBeenCalled();
