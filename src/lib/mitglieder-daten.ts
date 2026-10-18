@@ -1,6 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mitglieder, mitgliedsarten, users, vereine } from "@/db/schema";
+import type { ImportPlan } from "@/lib/mitglieder-import";
 import { planeUeberfuehrung, type KontoPerson, type UeberfuehrungPlan } from "@/lib/mitglieder-ueberfuehrung";
 
 // Add-on Vereinsverwaltung eingeschaltet? Nur der Systemadmin schaltet es frei (/system/abrechnung). Aus = Seiten zeigen einen Hinweis, Actions lehnen ab.
@@ -126,4 +127,21 @@ export async function pruefeArtId(vereinId: string, roh: string): Promise<{ artI
     tx.query.mitgliedsarten.findFirst({ where: and(eq(mitgliedsarten.id, id), eq(mitgliedsarten.vereinId, vereinId)), columns: { id: true } })
   );
   return art ? { artId: art.id } : { fehler: "Unbekannte Art der Mitgliedschaft." };
+}
+
+/** Schreibt die neuen Mitglieder eines Import-Plans in EINER Transaktion; fehlende Arten werden vorher angelegt (der Index verhindert Doppelte ohne Beachtung der Schreibweise). */
+export async function schreibeImportPlan(vereinId: string, plan: ImportPlan): Promise<void> {
+  if (plan.neu.length === 0) return;
+  await withTenant(vereinId, async (tx) => {
+    if (plan.neueArten.length > 0) await tx.insert(mitgliedsarten).values(plan.neueArten.map((name) => ({ vereinId, name }))).onConflictDoNothing();
+    const alleArten = await tx.select({ id: mitgliedsarten.id, name: mitgliedsarten.name }).from(mitgliedsarten).where(eq(mitgliedsarten.vereinId, vereinId));
+    const artId = new Map(alleArten.map((a) => [a.name.toLowerCase(), a.id]));
+    await tx.insert(mitglieder).values(
+      plan.neu.map((n) => {
+        // Leeres Eintrittsdatum: der Spaltenstandard (heute) greift nur, wenn der Wert fehlt.
+        const { eintrittsdatum, ...rest } = n.wert;
+        return { vereinId, ...rest, artId: n.artName ? (artId.get(n.artName.toLowerCase()) ?? null) : null, ...(eintrittsdatum ? { eintrittsdatum } : {}) };
+      })
+    );
+  });
 }

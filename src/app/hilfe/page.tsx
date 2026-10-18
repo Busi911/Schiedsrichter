@@ -485,8 +485,16 @@ export default async function HilfePage() {
           stehen. Die Zuordnung ist freiwillig: Fördermitglieder, Vorstand oder Passive brauchen keine Mannschaft. Mit dem Filter „Mannschaft“ seht ihr, wer in der laufenden Saison zu einer bestimmten Mannschaft gehört, oder mit „Ohne Mannschaft“, wer keiner zugeordnet ist.
         </p>
         <p className="text-sm text-muted-foreground">
+          <strong>Excel-Import und -Export:</strong> Unter „Excel-Import und -Export“ ladet ihr eine Vorlage herunter, tragt die Mitglieder ein und importiert die Datei.
+          Pflicht sind nur Vorname und Nachname; Datum als TT.MM.JJJJ, Geschlecht männlich/weiblich/divers, Status Aktiv/Passiv/Ausgetreten, eine noch unbekannte Art wird neu
+          angelegt. Wer es schon gibt (gleiche E-Mail-Adresse oder gleicher Name, auch doppelt in der Datei), wird übersprungen; fehlerhafte Zeilen werden nicht importiert und
+          mit Zeilennummer aufgelistet, der Rest wird trotzdem angelegt. Mannschaften werden nicht importiert, ordnet sie danach zu. Der Export enthält die Mitglieder mit den
+          aktuellen Filtern der Liste und zusätzlich die Mannschaften der laufenden Saison; die Datei enthält Personendaten, geht sorgfältig damit um. Import und Export werden
+          im Vereinsprotokoll vermerkt.
+        </p>
+        <p className="text-sm text-muted-foreground">
           <strong>Suchen und filtern:</strong> Die Suche findet Vor- und Nachname sowie E-Mail (mehrere Wörter müssen alle passen), der Filter zeigt nur einen
-          Status. Die Liste ist nach Nachname sortiert. Noch nicht enthalten, aber geplant: Import und Export, Online-Beitrittsformular (siehe{" "}
+          Status. Die Liste ist nach Nachname sortiert. Noch nicht enthalten, aber geplant: Online-Beitrittsformular (siehe{" "}
           <Link href="/roadmap" className="font-medium underline">
             Roadmap
           </Link>

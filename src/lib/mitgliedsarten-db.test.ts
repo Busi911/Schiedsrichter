@@ -64,4 +64,26 @@ describe.skipIf(!ADMIN_URL)("Arten der Mitgliedschaft (Postgres)", () => {
     const danach = await testDb.query.mitglieder.findFirst({ where: eq(schema.mitglieder.id, m.id) });
     expect(danach).toMatchObject({ name: "Muster", artId: null });
   });
+
+  it("Import-Plan: legt Mitglieder und fehlende Arten an (Schreibweise egal), nur im eigenen Verein", async () => {
+    const { planeImport } = await import("./mitglieder-import");
+    const arten = await d.ladeMitgliedsarten(vereinB);
+    const plan = planeImport(
+      [
+        { zeilenNr: 2, felder: { vorname: "Anna", name: "Meier", art: "fördermitglied" } },
+        { zeilenNr: 3, felder: { vorname: "Tim", name: "Roth", art: "Gönner", eintritt: "01.07.2020" } },
+        { zeilenNr: 4, felder: { vorname: "Uwe", name: "Lang", art: "GÖNNER" } },
+      ],
+      { vorhandene: [], arten, heute: "2026-10-18" }
+    );
+    await d.schreibeImportPlan(vereinB, plan);
+    const liste = await testDb.query.mitglieder.findMany({ where: eq(schema.mitglieder.vereinId, vereinB) });
+    expect(liste.map((m) => m.name).sort()).toEqual(["Lang", "Meier", "Roth"]);
+    const artenB = await d.ladeMitgliedsarten(vereinB);
+    expect(artenB.map((a) => a.name).sort()).toEqual(["Fördermitglied", "Gönner"]);
+    expect(liste.find((m) => m.name === "Meier")?.artId).toBe(artB);
+    expect(liste.find((m) => m.name === "Lang")?.artId).toBe(liste.find((m) => m.name === "Roth")?.artId);
+    expect(liste.find((m) => m.name === "Roth")?.eintrittsdatum).toBe("2020-07-01");
+    expect(await testDb.query.mitglieder.findMany({ where: eq(schema.mitglieder.vereinId, vereinA) })).toHaveLength(1);
+  });
 });

@@ -3,13 +3,15 @@ import { requireAdmin } from "@/lib/session";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
 import { MitgliedFormular } from "@/components/mitglied-formular";
-import { GESCHLECHTER, STATI, filtereMitglieder, istStatus, zaehleNachStatus } from "@/lib/mitglieder";
+import { GESCHLECHTER, STATI, istStatus, zaehleNachStatus } from "@/lib/mitglieder";
 import { ladeMitglieder, ladeMitgliedsarten, ladeUeberfuehrungsPlan, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
 import { fehlendeStandardArten } from "@/lib/mitgliedsarten";
+import { waehleMitglieder } from "@/lib/mitglieder-auswahl";
 import { offeneUeberfuehrung } from "@/lib/mitglieder-ueberfuehrung";
 import { SubmitButton } from "@/components/submit-button";
 import { MitgliedMannschaftenBlock } from "@/components/mitglied-mannschaften-block";
@@ -21,6 +23,7 @@ import {
   mitgliedAendern,
   mitgliedAnlegen,
   mitgliedLoeschen,
+  mitgliederImportieren,
   mitgliedsartAnlegen,
   mitgliedsartLoeschen,
   mitgliedsartUmbenennen,
@@ -33,7 +36,17 @@ function datum(d: string | null): string {
 }
 
 // Mitgliederliste des Vereins (Add-on Vereinsverwaltung, vom Systemadmin je Verein freigeschaltet).
-export default async function MitgliederPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; mannschaft?: string; art?: string }> }) {
+export default async function MitgliederPage({ searchParams }: { searchParams: Promise<{
+    q?: string;
+    status?: string;
+    mannschaft?: string;
+    art?: string;
+    importAngelegt?: string;
+    importUebersprungen?: string;
+    importFehler?: string;
+    importArten?: string;
+    importProbleme?: string;
+  }> }) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
   const schreiben = session.user.istAdmin;
@@ -60,7 +73,7 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
     );
   }
 
-  const { q = "", status = "", mannschaft = "", art = "" } = await searchParams;
+  const { q = "", status = "", mannschaft = "", art = "", ...importErgebnis } = await searchParams;
   const [alle, plan, mannschaften, zuordnungen, arten] = await Promise.all([
     ladeMitglieder(vereinId),
     ladeUeberfuehrungsPlan(vereinId),
@@ -72,20 +85,9 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
   const zahlen = zaehleNachStatus(alle);
   const aktuelleSaison = saisonLabel(new Date());
   const saisons = saisonOptionen(aktuelleSaison, zuordnungen.map((z) => z.saison));
-  // Filter "Mannschaft": Mitglieder, die in der laufenden Saison dieser Mannschaft zugeordnet sind.
-  // Sonderwert "ohne": Mitglieder ohne Mannschaft in der laufenden Saison (z.B. Fördermitglieder, Vorstand, Passive).
-  const jetzigeZuordnungen = zuordnungen.filter((z) => z.saison === aktuelleSaison);
-  const inMannschaft =
-    mannschaft === "ohne"
-      ? null
-      : mannschaft
-        ? new Set(jetzigeZuordnungen.filter((z) => z.mannschaftId === mannschaft).map((z) => z.mitgliedId))
-        : null;
-  const mitMannschaft = new Set(jetzigeZuordnungen.map((z) => z.mitgliedId));
-  // Filter "Art": eine bestimmte Art oder "ohne" (keine Art gesetzt).
-  const liste = filtereMitglieder(alle, q, status)
-    .filter((m) => (mannschaft === "ohne" ? !mitMannschaft.has(m.id) : !inMannschaft || inMannschaft.has(m.id)))
-    .filter((m) => (art === "ohne" ? !m.artId : art ? m.artId === art : true));
+  // Suche, Status, Art und Mannschaft (laufende Saison): dieselbe Auswahl nutzt der Excel-Export.
+  const liste = waehleMitglieder(alle, zuordnungen, { q, status, art, mannschaft, saison: aktuelleSaison });
+  const exportParams = new URLSearchParams(Object.entries({ q, status, art, mannschaft }).filter(([, v]) => v));
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -152,6 +154,58 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
           </CardContent>
         </Card>
       )}
+
+      {importErgebnis.importAngelegt !== undefined && (
+        <Alert>
+          <AlertTitle>Import abgeschlossen</AlertTitle>
+          <AlertDescription>
+            <p>
+              {importErgebnis.importAngelegt} angelegt, {importErgebnis.importUebersprungen ?? "0"} übersprungen (gibt es schon), {importErgebnis.importFehler ?? "0"} mit Fehler.
+              {importErgebnis.importArten ? ` Neue Arten: ${importErgebnis.importArten}.` : ""}
+            </p>
+            {importErgebnis.importProbleme && (
+              <ul className="mt-1 list-disc pl-5">
+                {importErgebnis.importProbleme.split(" | ").map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <details className="rounded-xl border bg-card px-4">
+        <summary className="min-h-11 cursor-pointer py-3 font-medium">Excel-Import und -Export</summary>
+        <div className="flex flex-col gap-3 pb-4 text-sm">
+          <p className="text-muted-foreground">
+            Der Export enthält die Mitglieder mit den aktuellen Filtern von unten, zusätzlich die Mannschaften der laufenden Saison. Er enthält Personendaten und wird im
+            Vereinsprotokoll vermerkt. Der Import legt neue Mitglieder aus einer Excel-Datei an (am besten die Vorlage verwenden); wer es schon gibt, wird übersprungen.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <a href={`/admin/mitglieder/export${exportParams.size ? `?${exportParams}` : ""}`} className={buttonVariants({ variant: "outline" })}>
+              Als Excel exportieren
+            </a>
+            {schreiben && (
+              <a href="/admin/mitglieder/export?vorlage=1" className={buttonVariants({ variant: "outline" })}>
+                Vorlage herunterladen
+              </a>
+            )}
+          </div>
+          {schreiben && (
+            <form action={mitgliederImportieren} className="flex flex-wrap items-end gap-3">
+              <div className="flex min-w-0 flex-col gap-2">
+                <label htmlFor="mitglieder-datei" className="text-sm font-medium">
+                  Excel-Datei (.xlsx)
+                </label>
+                <input id="mitglieder-datei" name="datei" type="file" accept=".xlsx" required className="max-w-full text-sm" />
+              </div>
+              <SubmitButton className="w-full sm:w-auto" pendingText="Importiert…">
+                Importieren
+              </SubmitButton>
+            </form>
+          )}
+        </div>
+      </details>
 
       {schreiben && (
         <details className="rounded-xl border bg-card px-4">

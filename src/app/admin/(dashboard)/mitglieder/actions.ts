@@ -1,13 +1,16 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mitglieder, mitgliedsarten } from "@/db/schema";
-import { pruefeMitglied, type GeprueftesMitglied } from "@/lib/mitglieder";
+import { heuteBerlin, pruefeMitglied, type GeprueftesMitglied } from "@/lib/mitglieder";
+import { planeImport } from "@/lib/mitglieder-import";
+import { leseMitgliederExcel } from "@/lib/mitglieder-excel";
 import { findeMitglied } from "@/lib/mitglieder-ueberfuehrung";
-import { fuehreUeberfuehrungAus, ladeMitglieder, ladeMitgliedsarten, pruefeArtId, ueberfuehrungText, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
+import { fuehreUeberfuehrungAus, ladeMitglieder, ladeMitgliedsarten, pruefeArtId, schreibeImportPlan, ueberfuehrungText, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
 import { artNameVergeben, fehlendeStandardArten, pruefeArtName } from "@/lib/mitgliedsarten";
 import { schreibeProtokoll } from "@/lib/treuhand";
 import { entferneZuordnung, ordneZu } from "@/lib/mitglied-mannschaften-daten";
@@ -147,4 +150,58 @@ export async function standardArtenAnlegen() {
     await withTenant(vereinId, (tx) => tx.insert(mitgliedsarten).values(fehlend.map((name) => ({ vereinId, name }))).onConflictDoNothing());
   }
   revalidatePath("/admin/mitglieder");
+}
+
+// ---------------------------------------------------------------------------
+// Excel-Import
+// ---------------------------------------------------------------------------
+
+const MAX_DATEI_BYTES = 5 * 1024 * 1024;
+
+// Legt die gültigen neuen Mitglieder aus einer Excel-Datei an. Wer es schon gibt (E-Mail oder Name, auch in der Datei selbst), wird übersprungen; unbekannte Arten werden angelegt.
+// Ergebnis (Zahlen und die ersten Probleme) geht per Redirect an die Seite.
+export async function mitgliederImportieren(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = await startschuss();
+
+  const datei = formData.get("datei");
+  if (!(datei instanceof File) || datei.size === 0) throw new Error("Bitte eine Excel-Datei (.xlsx) auswählen.");
+  if (datei.size > MAX_DATEI_BYTES) throw new Error("Die Datei ist zu groß (höchstens 5 MB).");
+
+  let gelesen;
+  try {
+    gelesen = await leseMitgliederExcel(Buffer.from(await datei.arrayBuffer()));
+  } catch {
+    throw new Error("Die Datei konnte nicht gelesen werden. Bitte eine Excel-Datei (.xlsx) verwenden.");
+  }
+  if (gelesen.fehler) throw new Error(gelesen.fehler);
+
+  const [vorhandene, arten] = await Promise.all([ladeMitglieder(vereinId), ladeMitgliedsarten(vereinId)]);
+  const plan = planeImport(gelesen.zeilen, {
+    vorhandene: vorhandene.map((m) => ({ id: m.id, name: m.name, vorname: m.vorname, email: m.email, userId: m.userId, geburtsdatum: m.geburtsdatum })),
+    arten,
+    heute: heuteBerlin(),
+  });
+
+  await schreibeImportPlan(vereinId, plan);
+
+  await schreibeProtokoll(
+    vereinId,
+    "mitglieder_import",
+    session.user.email ?? "Admin",
+    `Excel-Import: ${plan.neu.length} angelegt, ${plan.uebersprungen.length} übersprungen, ${plan.fehler.length} mit Fehler${plan.neueArten.length ? `, neue Arten: ${plan.neueArten.join(", ")}` : ""}`
+  ).catch(() => undefined);
+  revalidatePath("/admin/mitglieder");
+
+  const probleme = [
+    ...plan.fehler.map((f) => `Zeile ${f.zeilenNr}: ${f.grund}`),
+    ...plan.uebersprungen.map((u) => `Zeile ${u.zeilenNr}: übersprungen. ${u.grund}`),
+  ].sort((a, b) => Number(/\d+/.exec(a)?.[0]) - Number(/\d+/.exec(b)?.[0]));
+  const params = new URLSearchParams();
+  params.set("importAngelegt", String(plan.neu.length));
+  params.set("importUebersprungen", String(plan.uebersprungen.length));
+  params.set("importFehler", String(plan.fehler.length));
+  if (plan.neueArten.length) params.set("importArten", plan.neueArten.join(", "));
+  if (probleme.length) params.set("importProbleme", probleme.slice(0, 15).join(" | ") + (probleme.length > 15 ? ` | … und ${probleme.length - 15} weitere` : ""));
+  redirect(`/admin/mitglieder?${params.toString()}`);
 }
