@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { ZEITZONE } from "@/lib/format";
 import { istZwischenstand, laeuftVermutlich, liveTickerRelevant } from "@/lib/liga-spiel-status";
 import { quelleFuer } from "@/lib/match-provider";
+import { ursprungsTermin } from "@/lib/liga-spiele-hilfen";
 import { ergebnisHinweis, hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "./favorit-stern";
 
@@ -117,6 +118,7 @@ export function SpielKarte({
           {STATUS_LABEL[spiel.status] && <Badge variant="outline">{STATUS_LABEL[spiel.status]}</Badge>}
         </span>
       </div>
+      {ursprungsTermin(spiel) && <p className="text-xs text-muted-foreground">Ursprünglich: {ursprungsTermin(spiel)}</p>}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-0.5 text-sm">
           <p className={cn("truncate", fett(spiel.heimTeamtableId))}>{spiel.heimName}</p>

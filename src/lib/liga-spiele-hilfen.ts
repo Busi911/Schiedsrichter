@@ -1,5 +1,6 @@
 import { ligaSpiele, type ligaMannschaften } from "@/db/schema";
 import { tagKey } from "@/lib/kalender";
+import { ZEITZONE } from "@/lib/format";
 import { istZwischenstand, LAUF_FENSTER_MS, laeuftVermutlich } from "@/lib/liga-spiel-status";
 
 // Reine Hilfsfunktionen für Spiele der öffentlichen Seiten (ohne DB-Zugriff,
@@ -11,6 +12,15 @@ export type SpielAnsicht = typeof ligaSpiele.$inferSelect & {
   // Optional, da nicht alle Queries ihn befüllen (z.B. Admin-Dashboard).
   verband?: string;
 };
+
+// Verlegtes Spiel: der ursprüngliche Termin (nuLiga nennt ihn im Hinweis der Zeitzelle), z.B. "Sa., 10.10., 16:00 Uhr". Sonst null.
+export function ursprungsTermin(s: Pick<SpielAnsicht, "status" | "urspruenglicherBeginn">): string | null {
+  if (s.status !== "verlegt" || !s.urspruenglicherBeginn) return null;
+  const d = new Date(s.urspruenglicherBeginn);
+  const tag = new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", timeZone: ZEITZONE }).format(d);
+  const zeit = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: ZEITZONE }).format(d);
+  return `${tag}, ${zeit} Uhr`;
+}
 
 const ERGEBNIS_STATI = new Set(["gespielt", "nicht_angetreten"]);
 
