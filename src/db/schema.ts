@@ -1602,6 +1602,8 @@ export const mitglieder = pgTable("mitglied", {
   email: text("email"),
   telefon: text("telefon"),
   geschlecht: text("geschlecht").$type<"m" | "w" | "divers">(),
+  // Art der Mitgliedschaft (vom Verein gepflegt, z.B. Fördermitglied); null = keine Angabe. Löschen der Art lässt das Mitglied bestehen.
+  artId: uuid("art_id").references((): AnyPgColumn => mitgliedsarten.id, { onDelete: "set null" }),
   status: text("status").$type<"aktiv" | "passiv" | "ausgetreten">().notNull().default("aktiv"),
   eintrittsdatum: date("eintrittsdatum", { mode: "string" }).defaultNow(),
   austrittsdatum: date("austrittsdatum", { mode: "string" }),
@@ -1646,6 +1648,19 @@ export const beitrittAntraege = pgTable("beitritt_antrag", {
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).defaultNow(),
   status: text("status").$type<"offen" | "angenommen" | "abgelehnt">().notNull().default("offen"),
 });
+
+// Arten der Mitgliedschaft, die ein Verein selbst pflegt (Aktives Mitglied, Fördermitglied, Ehrenmitglied ...). Eindeutig je Verein ohne Beachtung der Groß-/Kleinschreibung.
+export const mitgliedsarten = pgTable(
+  "mitgliedsart",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references(() => vereine.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+  },
+  (t) => [uniqueIndex("mitgliedsart_verein_name_idx").on(t.vereinId, sql`lower(${t.name})`)]
+);
 
 export const beitragsklassen = pgTable("beitragsklasse", {
   id: uuid("id").primaryKey().defaultRandom(),

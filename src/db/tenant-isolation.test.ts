@@ -395,6 +395,14 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Mandantentrennung (RLS)", () => {
     const geloescht = await withTenant(vereinA, (client) => client.query(`delete from beitritt_antrag where verein_id = $1`, [vereinB]));
     expect(geloescht.rowCount).toBe(0);
 
+    // Mitgliedsarten sind je Verein getrennt; Verein A kann B keine Art unterschieben.
+    await adminPool.query(`insert into mitgliedsart (verein_id, name) values ($1, 'Fördermitglied')`, [vereinB]);
+    const artenA = await withTenant(vereinA, (client) => client.query(`select id from mitgliedsart where verein_id = $1`, [vereinB]).then((r) => r.rows));
+    expect(artenA).toHaveLength(0);
+    await expect(
+      withTenant(vereinA, (client) => client.query(`insert into mitgliedsart (verein_id, name) values ($1, 'Fremd')`, [vereinB]))
+    ).rejects.toThrow(/row-level security/i);
+
     // Öffentliches Formular: Anlegen für einen Verein ist ohne dessen Mandantenkontext erlaubt (INSERT ohne Einschränkung), Lesen bleibt getrennt.
     await withTenant(vereinA, (client) =>
       client.query(`insert into beitritt_antrag (verein_id, name, vorname, email) values ($1, 'Oeffentlich', 'Olga', 'olga@example.test')`, [vereinB])

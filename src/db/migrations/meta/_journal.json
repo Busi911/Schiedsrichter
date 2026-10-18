@@ -834,6 +834,13 @@
       "when": 1792603777476,
       "tag": "0118_mitglied_konto",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1792603777477,
+      "tag": "0119_mitgliedsart",
+      "breakpoints": true
     }
   ]
 }

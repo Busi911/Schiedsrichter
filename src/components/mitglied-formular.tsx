@@ -15,6 +15,7 @@ export type MitgliedWerte = {
   email: string | null;
   telefon: string | null;
   geschlecht: string | null;
+  artId: string | null;
   status: string;
   eintrittsdatum: string | null;
   austrittsdatum: string | null;
@@ -25,11 +26,13 @@ export type MitgliedWerte = {
 export function MitgliedFormular({
   action,
   werte,
+  arten = [],
   absenden,
   idPraefix,
 }: {
   action: (formData: FormData) => Promise<void>;
   werte?: MitgliedWerte;
+  arten?: { id: string; name: string }[];
   absenden: string;
   idPraefix: string;
 }) {
@@ -69,6 +72,19 @@ export function MitgliedFormular({
           <Label htmlFor={f("telefon")}>Telefon</Label>
           <Input id={f("telefon")} name="telefon" type="tel" maxLength={50} defaultValue={werte?.telefon ?? ""} autoComplete="off" />
         </div>
+        {arten.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={f("artId")}>Art der Mitgliedschaft</Label>
+            <select id={f("artId")} name="artId" defaultValue={werte?.artId ?? ""} className={SELECT_KLASSE}>
+              <option value="">Keine Angabe</option>
+              {arten.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={f("status")}>Status</Label>
           <select id={f("status")} name="status" defaultValue={werte?.status ?? "aktiv"} className={SELECT_KLASSE}>

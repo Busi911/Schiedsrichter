@@ -8,14 +8,24 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
 import { MitgliedFormular } from "@/components/mitglied-formular";
 import { GESCHLECHTER, STATI, filtereMitglieder, istStatus, zaehleNachStatus } from "@/lib/mitglieder";
-import { ladeMitglieder, ladeUeberfuehrungsPlan, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
+import { ladeMitglieder, ladeMitgliedsarten, ladeUeberfuehrungsPlan, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
+import { fehlendeStandardArten } from "@/lib/mitgliedsarten";
 import { offeneUeberfuehrung } from "@/lib/mitglieder-ueberfuehrung";
 import { SubmitButton } from "@/components/submit-button";
 import { MitgliedMannschaftenBlock } from "@/components/mitglied-mannschaften-block";
 import { saisonOptionen } from "@/lib/mitglied-mannschaften";
 import { ladeVereinsMannschaften, ladeZuordnungen } from "@/lib/mitglied-mannschaften-daten";
 import { saisonLabel } from "@/lib/saison";
-import { funktionstraegerUebernehmen, mitgliedAendern, mitgliedAnlegen, mitgliedLoeschen } from "./actions";
+import {
+  funktionstraegerUebernehmen,
+  mitgliedAendern,
+  mitgliedAnlegen,
+  mitgliedLoeschen,
+  mitgliedsartAnlegen,
+  mitgliedsartLoeschen,
+  mitgliedsartUmbenennen,
+  standardArtenAnlegen,
+} from "./actions";
 
 const DATUM = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 function datum(d: string | null): string {
@@ -23,7 +33,7 @@ function datum(d: string | null): string {
 }
 
 // Mitgliederliste des Vereins (Add-on Vereinsverwaltung, vom Systemadmin je Verein freigeschaltet).
-export default async function MitgliederPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; mannschaft?: string }> }) {
+export default async function MitgliederPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; mannschaft?: string; art?: string }> }) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
   const schreiben = session.user.istAdmin;
@@ -50,13 +60,15 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
     );
   }
 
-  const { q = "", status = "", mannschaft = "" } = await searchParams;
-  const [alle, plan, mannschaften, zuordnungen] = await Promise.all([
+  const { q = "", status = "", mannschaft = "", art = "" } = await searchParams;
+  const [alle, plan, mannschaften, zuordnungen, arten] = await Promise.all([
     ladeMitglieder(vereinId),
     ladeUeberfuehrungsPlan(vereinId),
     ladeVereinsMannschaften(vereinId),
     ladeZuordnungen(vereinId),
+    ladeMitgliedsarten(vereinId),
   ]);
+  const artName = new Map(arten.map((a) => [a.id, a.name]));
   const zahlen = zaehleNachStatus(alle);
   const aktuelleSaison = saisonLabel(new Date());
   const saisons = saisonOptionen(aktuelleSaison, zuordnungen.map((z) => z.saison));
@@ -70,9 +82,10 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
         ? new Set(jetzigeZuordnungen.filter((z) => z.mannschaftId === mannschaft).map((z) => z.mitgliedId))
         : null;
   const mitMannschaft = new Set(jetzigeZuordnungen.map((z) => z.mitgliedId));
-  const liste = filtereMitglieder(alle, q, status).filter((m) =>
-    mannschaft === "ohne" ? !mitMannschaft.has(m.id) : !inMannschaft || inMannschaft.has(m.id)
-  );
+  // Filter "Art": eine bestimmte Art oder "ohne" (keine Art gesetzt).
+  const liste = filtereMitglieder(alle, q, status)
+    .filter((m) => (mannschaft === "ohne" ? !mitMannschaft.has(m.id) : !inMannschaft || inMannschaft.has(m.id)))
+    .filter((m) => (art === "ohne" ? !m.artId : art ? m.artId === art : true));
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -135,9 +148,56 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
             <CardTitle className="text-base">Neues Mitglied</CardTitle>
           </CardHeader>
           <CardContent>
-            <MitgliedFormular action={mitgliedAnlegen} absenden="Mitglied anlegen" idPraefix="neu" />
+            <MitgliedFormular action={mitgliedAnlegen} arten={arten} absenden="Mitglied anlegen" idPraefix="neu" />
           </CardContent>
         </Card>
+      )}
+
+      {schreiben && (
+        <details className="rounded-xl border bg-card px-4">
+          <summary className="min-h-11 cursor-pointer py-3 font-medium">Arten der Mitgliedschaft verwalten ({arten.length})</summary>
+          <div className="flex flex-col gap-3 pb-4 text-sm">
+            <p className="text-muted-foreground">
+              Eigene Arten wie „Fördermitglied“ oder „Ehrenmitglied“. Beim Mitglied wählt ihr eine davon aus; eine gelöschte Art lässt die Mitglieder bestehen (ohne Angabe).
+            </p>
+            {arten.map((a) => (
+              <div key={a.id} className="flex flex-wrap items-center gap-2">
+                <form action={mitgliedsartUmbenennen} className="flex min-w-0 flex-1 basis-56 items-center gap-2">
+                  <input type="hidden" name="id" value={a.id} />
+                  <Input name="name" defaultValue={a.name} maxLength={60} required aria-label={`Name der Art ${a.name}`} />
+                  <SubmitButton variant="outline" size="sm" className="min-h-8" pendingText="Speichert…">
+                    Umbenennen
+                  </SubmitButton>
+                </form>
+                <form action={mitgliedsartLoeschen}>
+                  <input type="hidden" name="id" value={a.id} />
+                  <ConfirmSubmitButton variant="outline" size="sm" className="min-h-8 text-destructive" confirmText={`Art „${a.name}“ löschen? Die Mitglieder bleiben bestehen, ihre Art ist danach leer.`}>
+                    Löschen
+                  </ConfirmSubmitButton>
+                </form>
+              </div>
+            ))}
+            <form action={mitgliedsartAnlegen} className="flex flex-wrap items-end gap-2">
+              <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1.5">
+                <label htmlFor="neue-art" className="text-sm font-medium">
+                  Neue Art
+                </label>
+                <Input id="neue-art" name="name" maxLength={60} required placeholder="z.B. Fördermitglied" />
+              </div>
+              <SubmitButton variant="secondary" className="w-full sm:w-auto" pendingText="Legt an…">
+                Hinzufügen
+              </SubmitButton>
+            </form>
+            {fehlendeStandardArten(arten).length > 0 && (
+              <form action={standardArtenAnlegen} className="flex flex-col gap-2">
+                <p className="text-muted-foreground">Vorschläge: {fehlendeStandardArten(arten).join(", ")}.</p>
+                <SubmitButton variant="outline" className="w-full sm:w-auto" pendingText="Legt an…">
+                  Übliche Arten anlegen
+                </SubmitButton>
+              </form>
+            )}
+          </div>
+        </details>
       )}
 
       <form className="flex flex-wrap items-end gap-2" role="search">
@@ -165,6 +225,22 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
             ))}
           </select>
         </div>
+        {arten.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="artfilter" className="text-sm font-medium">
+              Art
+            </label>
+            <select id="artfilter" name="art" defaultValue={art} className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm dark:bg-input/30">
+              <option value="">Alle</option>
+              <option value="ohne">Ohne Angabe</option>
+              {arten.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         {(mannschaften.length > 0 || alle.length > 0) && (
           <div className="flex flex-col gap-1.5">
             <label htmlFor="mannschaftsfilter" className="text-sm font-medium">
@@ -208,6 +284,7 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
                     {m.name}, {m.vorname}
                   </CardTitle>
                   <Badge variant={m.status === "aktiv" ? "secondary" : "outline"}>{istStatus(m.status) ? STATI[m.status] : m.status}</Badge>
+                  {m.artId && artName.get(m.artId) && <Badge variant="outline">{artName.get(m.artId)}</Badge>}
                 </div>
                 <CardDescription>
                   Eintritt {datum(m.eintrittsdatum)}
@@ -238,7 +315,7 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
                     <details>
                       <summary className="min-h-11 cursor-pointer py-2 font-medium">Bearbeiten</summary>
                       <div className="pt-2">
-                        <MitgliedFormular action={mitgliedAendern} werte={m} absenden="Änderungen speichern" idPraefix={`e-${m.id}`} />
+                        <MitgliedFormular action={mitgliedAendern} werte={m} arten={arten} absenden="Änderungen speichern" idPraefix={`e-${m.id}`} />
                       </div>
                     </details>
                     <form action={mitgliedLoeschen}>
