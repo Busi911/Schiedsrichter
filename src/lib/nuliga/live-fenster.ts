@@ -78,7 +78,7 @@ export async function holeLiveKandidaten(db: SyncOptionen["db"], jetzt: Date): P
         isNotNull(ligaVereine.nuligaClubId),
         eq(vereine.status, "aktiv"),
         eq(ligaMannschaften.aktiv, true),
-        inArray(ligaSpiele.status, ["geplant", "verlegt"]), // verlegt: neuer Termin gespeichert, nuLiga lässt das "v" stehen
+        inArray(ligaSpiele.status, ["geplant", "verlegt", "gespielt"]), // verlegt: neuer Termin gespeichert, nuLiga lässt das "v" stehen; gespielt: gespeicherter, noch nicht genehmigter Zwischenstand
         eq(ligaSpiele.ergebnisBestaetigt, false),
         gte(ligaSpiele.beginn, von),
         lte(ligaSpiele.beginn, bis)

@@ -163,13 +163,13 @@ describe("laufende Spiele und fehlende Ergebnisse", () => {
     expect(r.anstehend.map((e) => e.spiel.id)).toEqual(["m"]);
   });
 
-  it("nicht genehmigter Stand: nie als Zahl; 'Läuft gerade' (90 Min), dann 'Ergebnis folgt', erst nach 48 Stunden als vorläufiges Ergebnis", () => {
+  it("nicht genehmigter Stand: nie als Zahl; 'Läuft gerade' (90 Min), dann 'Ergebnis folgt', erst nach 12 Stunden als vorläufiges Ergebnis", () => {
     expect(ergebnisHinweis(laufend, jetzt)).toBe("laeuft");
     expect(ergebnisHinweis(laufend, new Date("2026-10-04T16:30:00Z"))).toBe("laeuft"); // 90 Min nach Anwurf
     expect(ergebnisHinweis(laufend, new Date("2026-10-04T16:31:00Z"))).toBe("ergebnis_folgt"); // vorbei, aber nichts Endgültiges
     expect(ergebnisHinweis(laufend, new Date("2026-10-04T19:00:00Z"))).toBe("ergebnis_folgt"); // 4 h
-    expect(ergebnisHinweis(laufend, new Date("2026-10-05T14:00:00Z"))).toBe("ergebnis_folgt"); // 23 h
-    expect(ergebnisHinweis(laufend, new Date("2026-10-06T16:00:00Z"))).toBeNull(); // 49 h: gilt als vorläufiges Ergebnis
+    expect(ergebnisHinweis(laufend, new Date("2026-10-05T01:00:00Z"))).toBe("ergebnis_folgt"); // 10 h
+    expect(ergebnisHinweis(laufend, new Date("2026-10-05T04:00:00Z"))).toBeNull(); // 13 h: gilt als vorläufiges Ergebnis
   });
   it("nach den 90 Minuten steht das Spiel bei den Ergebnissen (mit 'Ergebnis folgt'), nicht mehr unter 'Heute'", () => {
     const spaeter = new Date("2026-10-04T17:00:00Z"); // 120 Min nach Anwurf
