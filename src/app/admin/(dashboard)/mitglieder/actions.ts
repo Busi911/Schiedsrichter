@@ -9,6 +9,7 @@ import { pruefeMitglied, type GeprueftesMitglied } from "@/lib/mitglieder";
 import { findeMitglied } from "@/lib/mitglieder-ueberfuehrung";
 import { fuehreUeberfuehrungAus, ladeMitglieder, ueberfuehrungText, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
 import { schreibeProtokoll } from "@/lib/treuhand";
+import { entferneZuordnung, ordneZu } from "@/lib/mitglied-mannschaften-daten";
 
 function text(formData: FormData, feld: string): string {
   const w = formData.get(feld);
@@ -81,5 +82,24 @@ export async function funktionstraegerUebernehmen() {
   const vereinId = await startschuss();
   const ergebnis = await fuehreUeberfuehrungAus(vereinId);
   await schreibeProtokoll(vereinId, "mitglieder_ueberfuehrt", session.user.email ?? "Admin", `Funktionsträger übernommen: ${ueberfuehrungText(ergebnis)}`);
+  revalidatePath("/admin/mitglieder");
+}
+
+// Mitglied einer Mannschaft für eine Saison zuordnen (Rolle Spieler/Trainer/Betreuer). Die Mannschaft muss zum eigenen Verein gehören.
+export async function mitgliedMannschaftZuordnen(formData: FormData) {
+  const vereinId = await startschuss();
+  const ergebnis = await ordneZu(vereinId, {
+    mitgliedId: text(formData, "mitgliedId"),
+    mannschaftId: text(formData, "mannschaftId"),
+    saison: text(formData, "saison"),
+    rolle: text(formData, "rolle"),
+  });
+  if ("fehler" in ergebnis) throw new Error(ergebnis.fehler);
+  revalidatePath("/admin/mitglieder");
+}
+
+export async function mitgliedMannschaftEntfernen(formData: FormData) {
+  const vereinId = await startschuss();
+  await entferneZuordnung(vereinId, text(formData, "id"));
   revalidatePath("/admin/mitglieder");
 }

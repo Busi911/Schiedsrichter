@@ -473,8 +473,14 @@ export default async function HilfePage() {
           gleichem Namen setzt ihr den Haken „Trotzdem neu anlegen“.
         </p>
         <p className="text-sm text-muted-foreground">
+          <strong>Mannschaften zuordnen:</strong> Jedes Mitglied lässt sich je Saison einer oder mehreren Mannschaften zuordnen, als <em>Spieler/in</em>, <em>Trainer/in</em> oder{" "}
+          <em>Betreuer/in</em> (auf der Karte des Mitglieds unter „Mannschaften“). Zur Auswahl stehen die Mannschaften aus eurem angebundenen Spielplan (Einstellungen →
+          Öffentliche Vereinsseite); ohne Spielplan gibt es noch keine. Dieselbe Zuordnung in derselben Saison wird nicht doppelt angelegt, ältere Saisons bleiben als Verlauf
+          stehen. Die Zuordnung ist freiwillig: Fördermitglieder, Vorstand oder Passive brauchen keine Mannschaft. Mit dem Filter „Mannschaft“ seht ihr, wer in der laufenden Saison zu einer bestimmten Mannschaft gehört, oder mit „Ohne Mannschaft“, wer keiner zugeordnet ist.
+        </p>
+        <p className="text-sm text-muted-foreground">
           <strong>Suchen und filtern:</strong> Die Suche findet Vor- und Nachname sowie E-Mail (mehrere Wörter müssen alle passen), der Filter zeigt nur einen
-          Status. Die Liste ist nach Nachname sortiert. Noch nicht enthalten, aber geplant: Mannschaftszuordnung, Import und Export, Online-Beitrittsformular (siehe{" "}
+          Status. Die Liste ist nach Nachname sortiert. Noch nicht enthalten, aber geplant: Import und Export, Online-Beitrittsformular (siehe{" "}
           <Link href="/roadmap" className="font-medium underline">
             Roadmap
           </Link>
