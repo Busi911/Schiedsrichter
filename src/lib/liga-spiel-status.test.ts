@@ -85,9 +85,12 @@ describe("istZwischenstand", () => {
   const anwurf = new Date("2026-10-04T15:00:00Z");
   const t = (min: number) => new Date(anwurf.getTime() + min * 60_000);
   const lauf = mit({ beginn: anwurf, toreHeim: 19, toreGast: 6 });
-  it("nicht genehmigtes Ergebnis bis 3 h nach Anwurf wird nicht als Ergebnis gezeigt", () => {
+  it("nicht genehmigtes Ergebnis wird nur bis 90 Min nach Anwurf (solange das Spiel vermutlich läuft) nicht als Ergebnis gezeigt", () => {
     expect(istZwischenstand(lauf, t(40))).toBe(true);
-    expect(istZwischenstand(lauf, t(106))).toBe(true);
+    expect(istZwischenstand(lauf, t(90))).toBe(true);
+    // Danach steht es sofort da (vorläufig), auch wenn nuLiga es noch nicht genehmigt hat.
+    expect(istZwischenstand(lauf, t(91))).toBe(false);
+    expect(istZwischenstand(lauf, t(106))).toBe(false);
     expect(istZwischenstand(lauf, t(181))).toBe(false);
   });
   it("genehmigt, ohne Ergebnis, Nichtantritt oder vor dem Anwurf: kein Zwischenstand", () => {
