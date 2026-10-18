@@ -219,7 +219,7 @@ umbrechenden Zeile).
   werden Tabellenzeilen und Spiele je Phase in EINER Anweisung geschrieben (`excluded`-Upsert).
   **handball.net hat seit 18.10.2026 einen eigenen Cron** `/api/cron/handball-net-sync` (stündlich um :45, 5–21 Uhr UTC, eigenes 40-s-Budget): `synchronisiereFaellige({ quelle })` (`sync-cron.ts`) trennt die Quellen
   ("nuliga" = `liga-sync`, "handball_net" = nur Vereine MIT handball.net-Quelle, "alle" = von Hand unter `/system/sync`). Vorher verbrauchte nuLiga im selben Lauf das Budget und Vereine mit gestern gespielten DHB-Spielen kamen stundenlang nicht dran.
-  Dringlichkeit (`bewerteSpieltagsNaehe`, rein/getestet): 3 = Spiel heute, 2 = Spiel der letzten 3 Tage (geplant/gespielt) ohne endgültiges Ergebnis, 1 = Spiel gestern/morgen, 0 = sonst; innerhalb gleicher Stufe der am längsten nicht VERSUCHTE zuerst.
+  Dringlichkeit (`bewerteSpieltagsNaehe`, rein/getestet): 3 = Spiel heute, 2 = Spiel der letzten 3 Tage (geplant/gespielt) ohne endgültiges Ergebnis, 1 = Spiel gestern/morgen, 0 = sonst; innerhalb gleicher Stufe der am längsten nicht VERSUCHTE zuerst. Innerhalb eines handball.net-Vereins kommen Mannschaften mit Spiel heute oder gespieltem Spiel ohne Ergebnis zuerst dran (`dringendeTeamIds`, `handball-net/team-dringlichkeit.ts`), danach die am längsten nicht geladene; große Vereine schaffen nicht alle Mannschaften in einem Lauf (500 ms Abstand je Abruf). Der manuelle Sync unter `/system/sync` zeigt die Meldungen des handball.net-Laufs (Zeitlimit, Fehler je Team).
 - Der HHV hat dem automatischen Abruf zugestimmt (Zusage schriftlich
   ablegen). Weitere Landesverbände: Eintrag in `nuliga/verbaende.ts`.
 - DB-Integrationstests (`nuliga/sync.test.ts`, `liga-oeffentlich.test.ts`)

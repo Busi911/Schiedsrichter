@@ -34,7 +34,7 @@ export async function ligaSyncJetztAusfuehren(formData: FormData) {
     redirect(`/system/sync?fehler=${encodeURIComponent(err instanceof Error ? err.message : String(err))}`);
   }
   const text = ergebnis
-    .map((e) => `${e.slug}: ${[e.struktur && `Struktur ${e.struktur}`, e.spiele && `Spiele ${e.spiele}`, e.handballNet && `handball.net ${e.handballNet}`].filter(Boolean).join(", ") || "nichts fällig"}`)
+    .map((e) => `${e.slug}: ${[e.struktur && `Struktur ${e.struktur}`, e.spiele && `Spiele ${e.spiele}`, e.handballNet && `handball.net ${e.handballNet}${e.handballNetMeldungen?.length ? ` (${e.handballNetMeldungen.slice(0, 3).join("; ")})` : ""}`].filter(Boolean).join(", ") || "nichts fällig"}`)
     .join(" | ");
   redirect(`/system/sync?ok=${encodeURIComponent(`${ergebnis.length} Verein(e), ${Math.round((Date.now() - start) / 1000)} s — ${text}`.slice(0, 1500))}`);
 }

@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, lte, notInArray, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   ligaGruppen,
@@ -15,6 +15,7 @@ import { saisonLabel as saisonLabelFuerDatum } from "@/lib/saison";
 import type { LigaDb, SyncErgebnis } from "@/lib/nuliga/sync";
 import { mitHarterFrist, spielGeaendert, type SpielFelder } from "@/lib/nuliga/sync-hilfen";
 import type { HoleJson } from "./client";
+import { dringendeTeamIds } from "./team-dringlichkeit";
 import {
   berechneTabelle,
   parseOffizielleTabelle,
@@ -316,7 +317,33 @@ export async function synchronisiereHandballNet(
       .map((b) => b.t.spieleSynchronisiertAm?.getTime() ?? 0);
     return zeiten.length ? Math.min(...zeiten) : 0;
   };
-  teamIds.sort((a, b) => letzterSync(a) - letzterSync(b));
+  // Mannschaften mit Spiel heute oder gespieltem Spiel ohne Ergebnis zuerst, dann die am längsten nicht geladene: bei knapper Zeit
+  // (große Vereine schaffen nicht alle Mannschaften in einem Lauf) sind die aktuellen Ergebnisse sicher dran.
+  const gruppenIds = [...new Set(bekannte.map((b) => b.t.gruppeId))];
+  const heute = tagKey(jetzt);
+  const jungeSpiele = gruppenIds.length
+    ? await db
+        .select({
+          heimTeamId: ligaSpiele.heimTeamtableId,
+          gastTeamId: ligaSpiele.gastTeamtableId,
+          datum: ligaSpiele.datum,
+          status: ligaSpiele.status,
+          toreHeim: ligaSpiele.toreHeim,
+        })
+        .from(ligaSpiele)
+        .where(
+          and(
+            inArray(ligaSpiele.gruppeId, gruppenIds),
+            eq(ligaSpiele.quelle, QUELLE),
+            gte(ligaSpiele.datum, tagKey(new Date(jetzt.getTime() - 7 * 24 * 60 * 60 * 1000))),
+            lte(ligaSpiele.datum, heute)
+          )
+        )
+    : [];
+  const dringend = dringendeTeamIds(jungeSpiele, heute);
+  teamIds.sort(
+    (a, b) => Number(dringend.has(b)) - Number(dringend.has(a)) || letzterSync(a) - letzterSync(b)
+  );
 
   const tabellenDieserLauf = new Set<string>(); // Phasen, deren Tabelle schon geladen wurde
   const gesehen: string[] = [];
