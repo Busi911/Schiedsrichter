@@ -10,7 +10,7 @@ import { vereinRegistrieren } from "./actions";
 
 // useActionState statt einer einfachen <form action={...}> (wie sonst in
 // der App üblich, siehe CLAUDE.md), weil das Ergebnis hier zwei
-// Ausgänge hat (registriert, Fehler), die auf DERSELBEN Seite angezeigt
+// Ausgänge hat (registriert, Rückfrage bei ähnlichem Verein, Fehler), die auf DERSELBEN Seite angezeigt
 // werden müssen, statt nur bei einem Fehler in ein generisches
 // Error-Overlay zu laufen.
 export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflichtig?: boolean }) {
@@ -31,6 +31,44 @@ export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflich
           Zum Login
         </Button>
       </div>
+    );
+  }
+
+  if (ergebnis && "ergebnis" in ergebnis && ergebnis.ergebnis === "anfrage_gesendet") {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm">
+          Danke, wir haben deine Anfrage erhalten. Weil es euren Verein bei uns schon gibt, legen wir keinen zweiten an. Wir melden uns
+          per E-Mail bei dir und klären, wie du Zugang bekommst.
+        </p>
+        <Button render={<Link href="/" />} nativeButton={false} variant="outline">
+          Zur Startseite
+        </Button>
+      </div>
+    );
+  }
+
+  // Ein Verein mit ähnlichem Namen existiert: erst fragen, nichts anlegen. Die Werte kommen als versteckte Felder wieder mit.
+  if (ergebnis && "ergebnis" in ergebnis && ergebnis.ergebnis === "aehnlich") {
+    const werte = ergebnis.werte;
+    return (
+      <form action={formAction} className="flex flex-col gap-4">
+        {Object.entries(werte).map(([name, wert]) => (
+          <input key={name} type="hidden" name={name} value={wert} />
+        ))}
+        <p className="text-sm">
+          Zu „{werte.vereinsname}“ gibt es bei HandballerPate schon einen Verein. Ist das euer Verein?
+        </p>
+        <SubmitButton className="w-full" name="entscheidung" value="derselbe">
+          Ja, das ist unser Verein
+        </SubmitButton>
+        <p className="text-xs text-muted-foreground">
+          Dann legen wir keinen zweiten an, sondern melden uns bei dir und klären den Zugang.
+        </p>
+        <SubmitButton className="w-full" variant="outline" name="entscheidung" value="anderer">
+          Nein, ein anderer Verein
+        </SubmitButton>
+      </form>
     );
   }
 
