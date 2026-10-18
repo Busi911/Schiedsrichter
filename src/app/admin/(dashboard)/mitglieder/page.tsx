@@ -61,8 +61,18 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
   const aktuelleSaison = saisonLabel(new Date());
   const saisons = saisonOptionen(aktuelleSaison, zuordnungen.map((z) => z.saison));
   // Filter "Mannschaft": Mitglieder, die in der laufenden Saison dieser Mannschaft zugeordnet sind.
-  const inMannschaft = mannschaft ? new Set(zuordnungen.filter((z) => z.mannschaftId === mannschaft && z.saison === aktuelleSaison).map((z) => z.mitgliedId)) : null;
-  const liste = filtereMitglieder(alle, q, status).filter((m) => !inMannschaft || inMannschaft.has(m.id));
+  // Sonderwert "ohne": Mitglieder ohne Mannschaft in der laufenden Saison (z.B. Fördermitglieder, Vorstand, Passive).
+  const jetzigeZuordnungen = zuordnungen.filter((z) => z.saison === aktuelleSaison);
+  const inMannschaft =
+    mannschaft === "ohne"
+      ? null
+      : mannschaft
+        ? new Set(jetzigeZuordnungen.filter((z) => z.mannschaftId === mannschaft).map((z) => z.mitgliedId))
+        : null;
+  const mitMannschaft = new Set(jetzigeZuordnungen.map((z) => z.mitgliedId));
+  const liste = filtereMitglieder(alle, q, status).filter((m) =>
+    mannschaft === "ohne" ? !mitMannschaft.has(m.id) : !inMannschaft || inMannschaft.has(m.id)
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -155,7 +165,7 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
             ))}
           </select>
         </div>
-        {mannschaften.length > 0 && (
+        {(mannschaften.length > 0 || alle.length > 0) && (
           <div className="flex flex-col gap-1.5">
             <label htmlFor="mannschaftsfilter" className="text-sm font-medium">
               Mannschaft ({aktuelleSaison})
@@ -167,6 +177,7 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
               className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm dark:bg-input/30"
             >
               <option value="">Alle</option>
+              <option value="ohne">Ohne Mannschaft</option>
               {mannschaften.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}

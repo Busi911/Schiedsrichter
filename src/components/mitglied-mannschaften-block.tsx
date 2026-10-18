@@ -28,7 +28,7 @@ export function MitgliedMannschaftenBlock({
     <div className="flex flex-col gap-2">
       <p className="font-medium">Mannschaften</p>
       {zuordnungen.length === 0 ? (
-        <p className="text-muted-foreground">Keiner Mannschaft zugeordnet.</p>
+        <p className="text-muted-foreground">Keine Mannschaft (z.B. Fördermitglied, Vorstand oder passiv). Eine Zuordnung ist freiwillig.</p>
       ) : (
         <ul className="flex flex-col gap-1">
           {zuordnungen.map((z) => (
