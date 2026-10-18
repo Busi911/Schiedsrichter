@@ -61,8 +61,9 @@ Header `List-Unsubscribe` + `List-Unsubscribe-Post` (RFC 8058, Ein-Klick über
 `/abmelden/[token]` (öffentlich, ändert erst nach Klick/POST — Mail-Scanner rufen Links vorab ab) und
 schaltet denselben persönlichen Schalter aus wie Profil → Benachrichtigungen. Neue abbestellbare Mail:
 Art in `ABMELDE_ARTEN` + `FELD` ergänzen, `abmelden: abmeldeInfo(userId, art)` in den `EmailInhalt` und
-`{ abmeldeUrl }` als 5. Argument an `sendMail`. Login-Link, Verlegungen, Admin-/System-Mails sind bewusst
-NICHT abbestellbar.
+`{ abmeldeUrl }` als 5. Argument an `sendMail`. Login-Link, Verlegungen an eingetragene Personen, Zahlungs- und System-Mails sind bewusst
+NICHT abbestellbar. Ausnahme (18.10.2026): die Hinweis-Mails an Vereinsadmins (Spielplan-Änderungen `rundenspiel-benachrichtigung.ts`, offene Dienste `dienste-erinnerung.ts`, Lizenz-Erinnerung an die Admins `lizenz-erinnerung.ts`) haben den persönlichen Schalter
+`users.admin_hinweise_aktiviert` (Migration 0116, Default an, Art `admin-hinweise`, Profil → Benachrichtigungen nur für volle Admins, nicht für lesende) plus Abmelde-Link; wer ihn ausschaltet, bekommt sie nicht mehr, die übrigen Admins weiter. Der Vereins-Schalter für Spielplan-Änderungen bleibt zusätzlich.
 Im Profil (Benachrichtigungen) gibt es dafür nur zwei Schalter plus EINEN gemeinsamen "Hinweise zu offenen Diensten" (`offeneDiensteHinweise`): er setzt in `updateBenachrichtigungen` die drei Einzel-Flags (Schiedsrichter-/Zeitnehmer-Erinnerung, Dienste-Broadcast), soweit sie für die Rollen der Person gelten; die Spalten bleiben getrennt (Abmelde-Link je Mailart).
 
 ## Formular-Buttons (Server Actions)

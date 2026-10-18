@@ -23,6 +23,14 @@ describe("Abmelde-Token", () => {
     expect(a.abmeldeUrl(id, "termin")).toMatch(/^https:\/\/example\.test\/abmelden\/[\w-]+\.[\w-]+$/);
   });
 
+  it("Admin-Hinweise sind eine eigene, abbestellbare Art", async () => {
+    const a = await import("./abmelden");
+    const id = randomUUID();
+    expect(a.istAbmeldeArt("admin-hinweise")).toBe(true);
+    expect(a.pruefeAbmeldeToken(a.abmeldeToken(id, "admin-hinweise"))).toEqual({ userId: id, art: "admin-hinweise" });
+    expect(a.abmeldeInfo(id, "admin-hinweise").text).toContain("Spielplan-Änderungen");
+  });
+
   it("manipulierte, fremde oder kaputte Token werden abgelehnt", async () => {
     const a = await import("./abmelden");
     const id = randomUUID();
@@ -66,7 +74,7 @@ describe.skipIf(!ADMIN_URL)("Abmelden (Postgres)", () => {
     await a.setzeAbmeldung(userId, "digest", true);
     expect(await a.istAngemeldet(userId, "digest")).toBe(true);
     // jede Art wirkt auf ihr eigenes Feld
-    for (const art of ["termin", "sr-erinnerung", "zn-erinnerung", "broadcast"] as const) {
+    for (const art of ["termin", "sr-erinnerung", "zn-erinnerung", "broadcast", "admin-hinweise"] as const) {
       await a.setzeAbmeldung(userId, art, false);
       expect(await a.istAngemeldet(userId, art)).toBe(false);
       await a.setzeAbmeldung(userId, art, true);

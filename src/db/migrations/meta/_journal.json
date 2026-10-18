@@ -813,6 +813,13 @@
       "when": 1792430977475,
       "tag": "0115_weiternutzung",
       "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1792517377475,
+      "tag": "0116_admin_hinweise",
+      "breakpoints": true
     }
   ]
 }

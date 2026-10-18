@@ -7,6 +7,7 @@ import { sendMail } from "./mailer";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
 import { formatDatumZeitLang } from "./format";
 import { appUrl } from "./app-url";
+import { abmeldeInfo } from "./abmelden";
 
 // Fenster für "bald" — Termine mit offenem Bedarf, die weiter in der Zukunft
 // liegen, sieht der Admin ohnehin passiv auf /admin/dienste; hier geht es nur
@@ -61,13 +62,14 @@ export async function sendeOffenePostenErinnerungen() {
       const admins = await adminDb
         .select({ id: users.id, email: users.email })
         .from(users)
-        .where(and(eq(users.vereinId, verein.id), eq(users.istAdmin, true)));
+        .where(and(eq(users.vereinId, verein.id), eq(users.istAdmin, true), eq(users.adminHinweiseAktiviert, true)));
       if (admins.length === 0) continue;
 
       const inhalt = offenePostenInhalt(verein.name, baldOffen);
       const betreff = `${baldOffen.length} unbesetzte Dienste in den nächsten ${FENSTER_TAGE} Tagen`;
       for (const admin of admins) {
-        await sendMail(admin.email, betreff, emailAlsText(inhalt), emailAlsHtml(inhalt));
+        const mitAbmeldung = { ...inhalt, abmelden: abmeldeInfo(admin.id, "admin-hinweise") };
+        await sendMail(admin.email, betreff, emailAlsText(mitAbmeldung), emailAlsHtml(mitAbmeldung), { abmeldeUrl: mitAbmeldung.abmelden.url });
         versendet++;
       }
     } catch (err) {

@@ -806,7 +806,7 @@ export default async function HilfePage() {
           Wochenübersicht (eure Einsätze, dazu die Trainings der Woche und Vereinstermine, die ihr sehen dürft; sie kommt nur, wenn es Einsätze, Vereinstermine oder ein ausfallendes Training gibt), und informiert bei Verlegungen: Wird ein Ligaspiel verlegt, bekommen die dafür eingetragenen Schiedsrichter und die Trainer der Mannschaft eine Info-Mail, Zeitnehmer, Ordner und andere Dienste werden ausgetragen und benachrichtigt. Jede Person stellt im Profil-Menü unter <strong>Benachrichtigungen</strong> ein,
           welche optionalen Mails sie bekommt. Jede dieser Mails hat unten einen <strong>Abbestellen-Link</strong> (auch Gmail und
           Outlook zeigen „Abbestellen“). Trainer bekommen außerdem eine Mail, wenn irgendwo im Verein ein Training ausfällt und die Halle frei wird (<a href="#training" className="font-medium underline">Training</a>); zu Sitzungen u.ä. gibt es Einladungen (<a href="#vereinstermine" className="font-medium underline">Vereinstermine</a>). Der Admin legt in den Einstellungen fest, welche Mail-Arten der Verein überhaupt
-          verschickt. Login-Links, Verlegungen und Systemmails sind nicht abbestellbar.
+          verschickt. <strong>Admins</strong> bekommen zusätzlich Hinweise zu Spielplan-Änderungen (Verlegungen, neue Ergebnisse), offenen Diensten und ablaufenden Lizenzen; jeder Admin schaltet sie für sich im Profil unter <strong>Benachrichtigungen</strong> („Hinweise für Admins“) oder per Abbestellen-Link ab, die anderen Admins bekommen sie weiter. Login-Links, Verlegungen an eingetragene Personen und Zahlungsmails sind nicht abbestellbar.
         </p>
       </section>
 
