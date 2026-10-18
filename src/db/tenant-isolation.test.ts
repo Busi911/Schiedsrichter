@@ -368,4 +368,60 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Mandantentrennung (RLS)", () => {
       )
     ).rejects.toThrow(/duplicate|unique/i);
   });
+  it("Vereinsverwaltung (mitglied, mitglied_mannschaft, beitragsklasse, beitritt_antrag) ist je Verein getrennt", async () => {
+    const { rows: mi } = await adminPool.query(`insert into mitglied (verein_id, name, vorname) values ($1, 'Muster', 'Max') returning id`, [vereinB]);
+    await adminPool.query(`insert into beitragsklasse (verein_id, name, betrag) values ($1, 'Erwachsene', 12000)`, [vereinB]);
+    await adminPool.query(`insert into beitritt_antrag (verein_id, name, vorname, email) values ($1, 'Antrag', 'Anna', 'anna@example.test')`, [vereinB]);
+
+    // Verein A sieht nichts von B, B sieht seine Zeilen.
+    for (const tabelle of ["mitglied", "beitragsklasse", "beitritt_antrag"]) {
+      const a = await withTenant(vereinA, (client) => client.query(`select id from ${tabelle} where verein_id = $1`, [vereinB]).then((r) => r.rows));
+      expect(a, tabelle).toHaveLength(0);
+      const b = await withTenant(vereinB, (client) => client.query(`select id from ${tabelle} where verein_id = $1`, [vereinB]).then((r) => r.rows));
+      expect(b, tabelle).toHaveLength(1);
+    }
+
+    // Verein A kann B keine Mitglieder, Beitragsklassen unterschieben.
+    await expect(
+      withTenant(vereinA, (client) => client.query(`insert into mitglied (verein_id, name, vorname) values ($1, 'Fremd', 'X')`, [vereinB]))
+    ).rejects.toThrow(/row-level security/i);
+    await expect(
+      withTenant(vereinA, (client) => client.query(`insert into beitragsklasse (verein_id, name, betrag) values ($1, 'Fremd', 1)`, [vereinB]))
+    ).rejects.toThrow(/row-level security/i);
+
+    // Ändern/Löschen fremder Anträge wirkt auf 0 Zeilen.
+    const geaendert = await withTenant(vereinA, (client) => client.query(`update beitritt_antrag set status = 'abgelehnt' where verein_id = $1`, [vereinB]));
+    expect(geaendert.rowCount).toBe(0);
+    const geloescht = await withTenant(vereinA, (client) => client.query(`delete from beitritt_antrag where verein_id = $1`, [vereinB]));
+    expect(geloescht.rowCount).toBe(0);
+
+    // Öffentliches Formular: Anlegen für einen Verein ist ohne dessen Mandantenkontext erlaubt (INSERT ohne Einschränkung), Lesen bleibt getrennt.
+    await withTenant(vereinA, (client) =>
+      client.query(`insert into beitritt_antrag (verein_id, name, vorname, email) values ($1, 'Oeffentlich', 'Olga', 'olga@example.test')`, [vereinB])
+    );
+    const nachAnlegen = await withTenant(vereinA, (client) => client.query(`select id from beitritt_antrag where verein_id = $1`, [vereinB]).then((r) => r.rows));
+    expect(nachAnlegen).toHaveLength(0);
+
+    // mitglied_mannschaft hängt indirekt am Verein des Mitglieds.
+    const slug = `mitglied-${randomUUID().slice(0, 8)}`;
+    const { rows: lv } = await adminPool.query(`insert into liga_verein (verein_id, slug, name) values ($1, $2, 'Mitglied Test') returning id`, [vereinB, slug]);
+    const { rows: team } = await adminPool.query(
+      `insert into liga_mannschaft (liga_verein_id, slug, schluessel, name, kategorie) values ($1, 'm1', 'm1', 'Team', (select enumlabel::liga_kategorie from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typname = 'liga_kategorie' order by e.enumsortorder limit 1)) returning id`,
+      [lv[0].id]
+    );
+    try {
+      await adminPool.query(`insert into mitglied_mannschaft (mitglied_id, mannschaft_id, saison) values ($1, $2, '2030/31')`, [mi[0].id, team[0].id]);
+      const mmA = await withTenant(vereinA, (client) => client.query("select id from mitglied_mannschaft where mitglied_id = $1", [mi[0].id]).then((r) => r.rows));
+      expect(mmA).toHaveLength(0);
+      const mmB = await withTenant(vereinB, (client) => client.query("select id from mitglied_mannschaft where mitglied_id = $1", [mi[0].id]).then((r) => r.rows));
+      expect(mmB).toHaveLength(1);
+      await expect(
+        withTenant(vereinA, (client) =>
+          client.query("insert into mitglied_mannschaft (mitglied_id, mannschaft_id, saison) values ($1, $2, '2031/32')", [mi[0].id, team[0].id])
+        )
+      ).rejects.toThrow(/row-level security/i);
+    } finally {
+      await adminPool.query(`delete from liga_verein where id = $1`, [lv[0].id]);
+    }
+  });
 });

@@ -51,6 +51,7 @@ export default async function HilfePage() {
             ["trainingsplan", "Trainingsplan"],
             ["training", "Training: Ausfälle & freie Hallenzeiten"],
             ["vereinstermine", "Vereinstermine (Sitzungen) mit Zu- und Absage"],
+            ["mitglieder", "Mitglieder (Add-on Vereinsverwaltung)"],
             ["ics-feed", "Persönlicher Kalender (ICS-Feed)"],
             ["mails", "E-Mails & Erinnerungen"],
             ["statistik", "Statistik & offene Dienste"],
@@ -446,6 +447,29 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Bei einem <strong>Turnier</strong> könnt ihr in der Termin-Ansicht die einzelnen Spiele als Spielplan anlegen und
           einen <strong>öffentlichen Link</strong> teilen, über den andere Vereine und Eltern den Spielplan ohne Login sehen.
+        </p>
+      </section>
+
+      <section id="mitglieder" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Mitglieder (Add-on Vereinsverwaltung)</h2>
+        <p className="text-sm text-muted-foreground">
+          Die Mitgliederverwaltung gehört zum Zusatzangebot <strong>Vereinsverwaltung</strong>. Wir schalten sie für euren Verein frei; danach gibt es im Admin-Menü{" "}
+          <strong>Verwaltung → Mitglieder</strong>. Ohne Freischaltung zeigt die Seite nur einen Hinweis. Die Mitgliederdaten sehen ausschließlich Vereinsadmins,
+          sie erscheinen nie auf der öffentlichen Vereinsseite.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Anlegen und bearbeiten:</strong> Vor- und Nachname sind Pflicht, alles andere (Geburtsdatum, Geschlecht, E-Mail, Telefon, Eintritt, Bemerkung) ist
+          freiwillig. Ein Mitglied ist <em>Aktiv</em>, <em>Passiv</em> oder <em>Ausgetreten</em>; bei „Ausgetreten“ wird das Austrittsdatum auf heute gesetzt, wenn ihr
+          keines eintragt. Für einen Austritt nehmt den Status, damit die Angaben erhalten bleiben; „Löschen“ entfernt das Mitglied endgültig. Nur Admins mit
+          Schreibzugriff können ändern, lesende Admins sehen die Liste.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Suchen und filtern:</strong> Die Suche findet Vor- und Nachname sowie E-Mail (mehrere Wörter müssen alle passen), der Filter zeigt nur einen
+          Status. Die Liste ist nach Nachname sortiert. Noch nicht enthalten, aber geplant: Mannschaftszuordnung, Import und Export, Online-Beitrittsformular (siehe{" "}
+          <Link href="/roadmap" className="font-medium underline">
+            Roadmap
+          </Link>
+          ).
         </p>
       </section>
 

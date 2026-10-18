@@ -117,7 +117,7 @@ export default async function AdminLayout({
               </form>
             </div>
           </div>
-          <AdminNav warte={warte} vereinstermine={verein?.vereinstermineAktiv ?? false} />
+          <AdminNav warte={warte} vereinstermine={verein?.vereinstermineAktiv ?? false} mitglieder={verein?.vereinsverwaltungAktiv ?? false} />
           {/* Auf Mobile eine eigene, sonst leer wirkende Zeile (Nav ist dort
               hinter dem Hamburger versteckt) — dort zentriert statt wie auf
               Desktop (wo sie neben der Nav steht) am linken Rand mit viel
@@ -201,6 +201,9 @@ export default async function AdminLayout({
           { href: "/admin/trainingsplan", label: "Trainingsplan", icon: "training", gruppe: "Planung" },
           ...(verein?.vereinstermineAktiv
             ? [{ href: "/admin/vereinstermine", label: "Vereinstermine", icon: "termine" as const, gruppe: "Planung" }]
+            : []),
+          ...(verein?.vereinsverwaltungAktiv
+            ? [{ href: "/admin/mitglieder", label: "Mitglieder", icon: "funktionstraeger" as const, gruppe: "Planung" }]
             : []),
           { href: "/admin/mannschaften", label: "Mannschaften", icon: "mannschaften", gruppe: "Planung" },
           { href: "/admin/funktionstraeger", label: "Funktionsträger", icon: "funktionstraeger", gruppe: "Planung" },
