@@ -13,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: basis, changeFrequency: "weekly", priority: 1 },
     { url: `${basis}/verein`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${basis}/app-hilfe`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${basis}/roadmap`, changeFrequency: "weekly", priority: 0.4 },
     { url: `${basis}/registrieren`, changeFrequency: "monthly", priority: 0.5 },
   ];
   const mitTraining = await holeVereineMitOeffentlichemTraining();

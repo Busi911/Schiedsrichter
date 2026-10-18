@@ -953,7 +953,7 @@ export default async function EinstellungenPage({
           )}
         </EinstellungsBereich>
 
-        <EinstellungsBereich titel="Benachrichtigung bei Spielplan-Änderungen" kurz={verein?.rundenspielAenderungenBenachrichtigungAktiviert ? "An — Admin bekommt eine Mail bei Verlegungen und neuen Ergebnissen" : "Aus"} beschreibung={<>Wird ein Spiel verlegt oder trägt der Verband ein Ergebnis ein, bekommt der Admin auf Wunsch eine Mail. Die eingetragenen Personen werden bei einer Verlegung immer benachrichtigt.</>}>
+        <EinstellungsBereich titel="Benachrichtigung bei Spielplan-Änderungen" kurz={verein?.rundenspielAenderungenBenachrichtigungAktiviert ? "An — Admin bekommt eine Mail bei Verlegungen und neuen Ergebnissen" : "Aus"} beschreibung={<>Wird ein Spiel verlegt oder trägt der Verband ein Ergebnis ein, bekommen die Admins auf Wunsch eine Mail (jeder Admin kann sie zusätzlich für sich im Profil unter Benachrichtigungen abschalten). Die eingetragenen Personen werden bei einer Verlegung immer benachrichtigt.</>}>
           <form action={spielplanBenachrichtigungSpeichern} className="flex flex-col gap-4">
             <fieldset disabled={!session.user.istAdmin} className="contents">
               <div className="flex items-center justify-between gap-3">

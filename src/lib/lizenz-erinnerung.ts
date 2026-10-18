@@ -7,6 +7,7 @@ import { sendMail } from "./mailer";
 import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
 import { formatDatum } from "./format";
 import { appUrl } from "./app-url";
+import { abmeldeInfo } from "./abmelden";
 import { LIZENZ_ROLLEN, type LizenzRolle } from "./lizenz-rollen";
 import { gruppiereLizenzRollen } from "./funktionstraeger-rollen";
 
@@ -76,20 +77,20 @@ export function lizenzAblaufAdminInhalt(
   };
 }
 
-const vereinCache = new Map<string, { name: string; adminEmails: string[] }>();
+const vereinCache = new Map<string, { name: string; admins: { id: string; email: string }[] }>();
 async function holeVereinInfo(vereinId: string) {
   const gecacht = vereinCache.get(vereinId);
   if (gecacht) return gecacht;
   const [verein, admins] = await Promise.all([
     adminDb.query.vereine.findFirst({ where: eq(vereine.id, vereinId) }),
     adminDb
-      .select({ email: users.email })
+      .select({ id: users.id, email: users.email })
       .from(users)
-      .where(and(eq(users.vereinId, vereinId), eq(users.istAdmin, true))),
+      .where(and(eq(users.vereinId, vereinId), eq(users.istAdmin, true), eq(users.adminHinweiseAktiviert, true))),
   ]);
   const info = {
     name: verein?.name ?? "HandballerPate",
-    adminEmails: admins.map((a) => a.email),
+    admins,
   };
   vereinCache.set(vereinId, info);
   return info;
@@ -102,6 +103,8 @@ async function holeVereinInfo(vereinId: string) {
 // einer generischen benachrichtigung-Zeile wie in terminerinnerungen.ts, da
 // diese Erinnerung an einer Rolle statt an einem Termin hängt.
 export async function sendeLizenzAblaufErinnerungen() {
+  // Der Cache gilt nur für diesen Lauf: der persönliche Admin-Schalter muss sofort wirken, nicht erst wenn die Instanz kalt wird.
+  vereinCache.clear();
   const heute = new Date();
   heute.setHours(0, 0, 0, 0);
 
@@ -144,7 +147,7 @@ export async function sendeLizenzAblaufErinnerungen() {
     }
 
     try {
-      const { name: vereinName, adminEmails } = await holeVereinInfo(r.vereinId);
+      const { name: vereinName, admins } = await holeVereinInfo(r.vereinId);
       const rolleLabel = r.label;
 
       const personInhalt = lizenzAblaufPersonInhalt(vereinName, rolleLabel, stufe, r.gueltigBis);
@@ -155,19 +158,17 @@ export async function sendeLizenzAblaufErinnerungen() {
         emailAlsHtml(personInhalt)
       );
 
-      for (const adminEmail of adminEmails) {
-        const adminInhalt = lizenzAblaufAdminInhalt(
-          vereinName,
-          r.userName ?? r.userEmail,
-          rolleLabel,
-          stufe,
-          r.gueltigBis
-        );
+      for (const admin of admins) {
+        const adminInhalt = {
+          ...lizenzAblaufAdminInhalt(vereinName, r.userName ?? r.userEmail, rolleLabel, stufe, r.gueltigBis),
+          abmelden: abmeldeInfo(admin.id, "admin-hinweise"),
+        };
         await sendMail(
-          adminEmail,
+          admin.email,
           `${rolleLabel}-Lizenz von ${r.userName ?? r.userEmail} ${stufe === "abgelaufen" ? "abgelaufen" : "läuft bald ab"}`,
           emailAlsText(adminInhalt),
-          emailAlsHtml(adminInhalt)
+          emailAlsHtml(adminInhalt),
+          { abmeldeUrl: adminInhalt.abmelden.url }
         );
       }
 

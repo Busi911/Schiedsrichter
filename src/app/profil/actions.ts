@@ -273,6 +273,14 @@ export async function updateBenachrichtigungen(formData: FormData) {
     werteZumSpeichern.vereinsterminHinweiseAktiviert = formData.get("vereinsterminHinweise") === "on";
   }
 
+  // Nur volle Admins sehen den Schalter (sonst würde ein Absenden ohne das Feld den Wert stumm auf false setzen).
+  const [ich] = await withTenant(vereinId, (tx) =>
+    tx.select({ istAdmin: users.istAdmin }).from(users).where(eq(users.id, userId))
+  );
+  if (ich?.istAdmin) {
+    werteZumSpeichern.adminHinweiseAktiviert = formData.get("adminHinweise") === "on";
+  }
+
   await withTenant(vereinId, (tx) =>
     tx.update(users).set(werteZumSpeichern).where(eq(users.id, userId))
   );

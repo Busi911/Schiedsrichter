@@ -9,6 +9,7 @@ import { formatDatumZeit } from "./format";
 import { formatErgebnis } from "./termin-label";
 import { appUrl } from "./app-url";
 import { terminVerlegtInhalt, zuordnungEntferntWegenVerlegungInhalt } from "./zuordnung";
+import { abmeldeInfo } from "./abmelden";
 
 // Pro Spiel ein kompakter Block statt eines langen Satzes: Spielname fett, darunter Klasse/Termin/Halle und WAS sich
 // geändert hat (alter → neuer Termin bei einer Verlegung, das eingetragene Ergebnis bei einem neuen Ergebnis, siehe
@@ -69,7 +70,7 @@ export async function sendeRundenspielAenderungenBenachrichtigung(
   const admins = await adminDb
     .select({ id: users.id, email: users.email })
     .from(users)
-    .where(and(eq(users.vereinId, verein.id), eq(users.istAdmin, true)));
+    .where(and(eq(users.vereinId, verein.id), eq(users.istAdmin, true), eq(users.adminHinweiseAktiviert, true)));
   if (admins.length === 0) return { versendet: 0 };
 
   const inhalt = rundenspielAenderungenInhalt(verein.name, aenderungen);
@@ -77,7 +78,9 @@ export async function sendeRundenspielAenderungenBenachrichtigung(
 
   let versendet = 0;
   for (const admin of admins) {
-    await sendMail(admin.email, betreff, emailAlsText(inhalt), emailAlsHtml(inhalt));
+    // Persönlicher Aus-Schalter je Admin (Profil → Benachrichtigungen, Abmelde-Link im Mailfuß).
+    const mitAbmeldung = { ...inhalt, abmelden: abmeldeInfo(admin.id, "admin-hinweise") };
+    await sendMail(admin.email, betreff, emailAlsText(mitAbmeldung), emailAlsHtml(mitAbmeldung), { abmeldeUrl: mitAbmeldung.abmelden.url });
     versendet++;
   }
   return { versendet };

@@ -61,8 +61,9 @@ Header `List-Unsubscribe` + `List-Unsubscribe-Post` (RFC 8058, Ein-Klick über
 `/abmelden/[token]` (öffentlich, ändert erst nach Klick/POST — Mail-Scanner rufen Links vorab ab) und
 schaltet denselben persönlichen Schalter aus wie Profil → Benachrichtigungen. Neue abbestellbare Mail:
 Art in `ABMELDE_ARTEN` + `FELD` ergänzen, `abmelden: abmeldeInfo(userId, art)` in den `EmailInhalt` und
-`{ abmeldeUrl }` als 5. Argument an `sendMail`. Login-Link, Verlegungen, Admin-/System-Mails sind bewusst
-NICHT abbestellbar.
+`{ abmeldeUrl }` als 5. Argument an `sendMail`. Login-Link, Verlegungen an eingetragene Personen, Zahlungs- und System-Mails sind bewusst
+NICHT abbestellbar. Ausnahme (18.10.2026): die Hinweis-Mails an Vereinsadmins (Spielplan-Änderungen `rundenspiel-benachrichtigung.ts`, offene Dienste `dienste-erinnerung.ts`, Lizenz-Erinnerung an die Admins `lizenz-erinnerung.ts`) haben den persönlichen Schalter
+`users.admin_hinweise_aktiviert` (Migration 0116, Default an, Art `admin-hinweise`, Profil → Benachrichtigungen nur für volle Admins, nicht für lesende) plus Abmelde-Link; wer ihn ausschaltet, bekommt sie nicht mehr, die übrigen Admins weiter. Der Vereins-Schalter für Spielplan-Änderungen bleibt zusätzlich.
 Im Profil (Benachrichtigungen) gibt es dafür nur zwei Schalter plus EINEN gemeinsamen "Hinweise zu offenen Diensten" (`offeneDiensteHinweise`): er setzt in `updateBenachrichtigungen` die drei Einzel-Flags (Schiedsrichter-/Zeitnehmer-Erinnerung, Dienste-Broadcast), soweit sie für die Rollen der Person gelten; die Spalten bleiben getrennt (Abmelde-Link je Mailart).
 
 ## Formular-Buttons (Server Actions)
@@ -808,6 +809,13 @@ Link der eigenen Dienste) selbst ein (`lib/mitfahren.ts` `ladeMitfahrAngebote`/`
 `?mitgefahren=`/`?mitfahrfehler=`; getestet in `mitfahren.test.ts`): nur künftige Termine, nur aktive Dienste mit Fahrgemeinschaft, nie über die Plätze,
 kein Doppelname; der Fahrer mit Konto bekommt eine kurze Mail. Wart/Admin/Fahrer korrigieren nur noch. Demo: Fahrer mit Fahrgemeinschaft (t14 Plätze + Mitfahrer, t15
 ohne Angabe). Hilfe `#fahrgemeinschaft`.
+
+## Öffentliche Roadmap (`/roadmap`, 18.10.2026) — IMMER mitziehen
+
+Öffentlich einsehbar (ohne Login, `publicRoutes`, Fußzeile, Sitemap): was fertig ist, woran wir arbeiten und was als Idee im Raum steht. Inhalt und Status stehen an EINER Stelle: `lib/roadmap.ts` (`ROADMAP`, `ROADMAP_STAND`, Test `roadmap.test.ts`).
+**Regel (Betreiber, 18.10.2026): Bei jeder fertigen, begonnenen oder verschobenen Funktion den Punkt dort anpassen UND `ROADMAP_STAND` auf das heutige Datum setzen** (im selben PR, wie Hilfe/CLAUDE.md/README). Nur als "fertig" eintragen, was im Produkt läuft; Ideen haben bewusst KEIN Datum
+(keine Zusagen). Ziele der Beta-Phase bis 30.11.2026: stabile öffentliche App, stabile Synchronisation von Spielen und Ergebnissen, vollständige Funktionsträger- und Vereinstermine-Verwaltung. Danach als Ideen (noch nicht zugesagt): Vereinsverwaltung mit Mitgliederverwaltung,
+Beiträgen, Neuigkeiten, Datenschutz, Kader; Reihenfolge mit den Vereinen.
 
 ## SEO der öffentlichen Seiten (Stand 15.10.2026)
 

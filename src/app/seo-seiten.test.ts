@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 // Rendert die Startseite und die Brotkrumen serverseitig (wie sie ausgeliefert werden) und prüft, was Suchmaschinen im HTML sehen.
 vi.mock("@/auth", () => ({ auth: async () => null }));
-vi.mock("next/navigation", () => ({ redirect: () => { throw new Error("redirect"); }, usePathname: () => "/" }));
+vi.mock("next/navigation", () => ({ redirect: () => { throw new Error("redirect"); }, usePathname: () => "/", useRouter: () => ({ back: () => {}, push: () => {} }) }));
 vi.mock("@/lib/liga-oeffentlich", () => ({
   holeAlleVereine: async () => [
     { id: "1", name: "HSG Linden", slug: "hsg-linden", logoAktualisiertAm: null },
@@ -60,6 +60,23 @@ describe("Brotkrumen", () => {
     expect(html).not.toContain("<a ");
     expect(html).toContain("https://www.handballerpate.example/verein/hsg-linden");
     expect(html).toContain("BreadcrumbList");
+  });
+});
+
+describe("Roadmap (ausgeliefertes HTML)", () => {
+  it("hat genau eine H1, zeigt Stand, Status und alle Phasen ohne Login", async () => {
+    const { default: Roadmap } = await import("./roadmap/page");
+    const { ROADMAP, ROADMAP_STAND } = await import("@/lib/roadmap");
+    const html = renderToStaticMarkup(createElement(Roadmap));
+    expect(html.match(/<h1[ >]/g)).toHaveLength(1);
+    for (const phase of ROADMAP) {
+      expect(html).toContain(`id="${phase.id}"`);
+      expect(html).toContain(phase.titel);
+    }
+    const [j, m, t] = ROADMAP_STAND.split("-");
+    expect(html).toContain(`${t}.${m}.${j}`);
+    expect(html).toContain("Fertig");
+    expect(html).toContain("Idee");
   });
 });
 

@@ -110,6 +110,7 @@ export default async function ProfilPage({
           offeneDiensteBroadcastAktiviert: true,
           trainingAusfallHinweiseAktiviert: true,
           vereinsterminHinweiseAktiviert: true,
+          adminHinweiseAktiviert: true,
           kalenderToken: true,
         },
       });
@@ -311,6 +312,8 @@ export default async function ProfilPage({
               }
               trainingAusfallHinweiseAktiviert={eigeneStammdaten?.trainingAusfallHinweiseAktiviert ?? true}
               vereinsterminHinweiseAktiviert={eigeneStammdaten?.vereinsterminHinweiseAktiviert ?? true}
+              adminHinweiseAktiviert={eigeneStammdaten?.adminHinweiseAktiviert ?? true}
+              istVollerAdmin={!!session.user.istAdmin}
               vereinstermineAktiv={verein?.vereinstermineAktiv ?? false}
               istTrainer={istTrainer}
               istSchiedsrichterwart={istSchiedsrichterwart}

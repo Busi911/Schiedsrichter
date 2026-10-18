@@ -16,6 +16,7 @@ export const ABMELDE_ARTEN = {
   broadcast: "die Anfragen zu unbesetzten Diensten",
   "training-ausfall": "die Hinweise zu ausfallenden Trainings (freie Hallenzeiten)",
   vereinstermin: "die Einladungen und Änderungen zu Vereinsterminen (z.B. Sitzungen)",
+  "admin-hinweise": "die Hinweise für Admins (Spielplan-Änderungen, offene Dienste, Lizenzen)",
 } as const;
 export type AbmeldeArt = keyof typeof ABMELDE_ARTEN;
 export const istAbmeldeArt = (x: string): x is AbmeldeArt => Object.hasOwn(ABMELDE_ARTEN, x);
@@ -28,6 +29,7 @@ const FELD: Record<AbmeldeArt, (an: boolean) => Partial<typeof users.$inferInser
   broadcast: (an) => ({ offeneDiensteBroadcastAktiviert: an }),
   "training-ausfall": (an) => ({ trainingAusfallHinweiseAktiviert: an }),
   vereinstermin: (an) => ({ vereinsterminHinweiseAktiviert: an }),
+  "admin-hinweise": (an) => ({ adminHinweiseAktiviert: an }),
 };
 
 function geheimnis(): string {
@@ -79,5 +81,6 @@ export async function istAngemeldet(userId: string, art: AbmeldeArt): Promise<bo
     broadcast: u.offeneDiensteBroadcastAktiviert,
     "training-ausfall": u.trainingAusfallHinweiseAktiviert,
     vereinstermin: u.vereinsterminHinweiseAktiviert,
+    "admin-hinweise": u.adminHinweiseAktiviert,
   }[art];
 }

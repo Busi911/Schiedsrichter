@@ -49,6 +49,8 @@ export function ProfilEinstellungenMenu({
   offeneZeitnehmerErinnerungAktiviert,
   offeneDiensteBroadcastAktiviert,
   trainingAusfallHinweiseAktiviert,
+  adminHinweiseAktiviert,
+  istVollerAdmin,
   vereinsterminHinweiseAktiviert,
   vereinstermineAktiv,
   istTrainer,
@@ -84,6 +86,8 @@ export function ProfilEinstellungenMenu({
   offeneZeitnehmerErinnerungAktiviert: boolean;
   offeneDiensteBroadcastAktiviert: boolean;
   trainingAusfallHinweiseAktiviert: boolean;
+  adminHinweiseAktiviert: boolean;
+  istVollerAdmin: boolean;
   vereinsterminHinweiseAktiviert: boolean;
   vereinstermineAktiv: boolean;
   istTrainer: boolean;
@@ -386,6 +390,19 @@ export function ProfilEinstellungenMenu({
                   id="trainingAusfallHinweise"
                   name="trainingAusfallHinweise"
                   defaultChecked={trainingAusfallHinweiseAktiviert}
+                />
+              </div>
+            )}
+            {istVollerAdmin && (
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="adminHinweise" className="font-normal">
+                  Hinweise für Admins (Spielplan-Änderungen, offene Dienste, Lizenzen)
+                </Label>
+                <Switch
+                  key={String(adminHinweiseAktiviert)}
+                  id="adminHinweise"
+                  name="adminHinweise"
+                  defaultChecked={adminHinweiseAktiviert}
                 />
               </div>
             )}

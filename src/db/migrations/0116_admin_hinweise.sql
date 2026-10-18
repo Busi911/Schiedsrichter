@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "admin_hinweise_aktiviert" boolean DEFAULT true NOT NULL;
