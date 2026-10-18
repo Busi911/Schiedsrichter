@@ -6,7 +6,31 @@ import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import { sendMail } from "@/lib/mailer";
 import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 import { adminWillkommensInhalt } from "@/lib/willkommens-mail";
-import { benachrichtigeSystemAdminsUeberRegistrierung } from "@/lib/system-admin-benachrichtigung";
+import {
+  benachrichtigeSystemAdminsUeberRegistrierung,
+  benachrichtigeSystemAdminsUeberUebernahmeAnfrage,
+} from "@/lib/system-admin-benachrichtigung";
+import { findeAehnlicheVereine } from "@/lib/verein-duplikat-daten";
+
+// Eingaben des Formulars, die bei der Rückfrage "Ist das euer Verein?" unverändert zurückgegeben werden (React leert das Formular nach
+// einer Server Action; die Rückfrage schickt die Werte als versteckte Felder wieder mit).
+export type RegistrierenWerte = {
+  vereinsname: string;
+  adminName: string;
+  adminEmail: string;
+  strasse: string;
+  plz: string;
+  ort: string;
+  rechnungEmail: string;
+};
+
+export type RegistrierenErgebnis =
+  | { ergebnis: "registriert"; kostenpflichtig: boolean }
+  // Es gibt einen Verein mit ähnlichem Namen: nichts wurde angelegt, die Person wird gefragt.
+  | { ergebnis: "aehnlich"; werte: RegistrierenWerte }
+  // "Das ist unser Verein": kein zweiter Verein, die Systemadmins melden sich.
+  | { ergebnis: "anfrage_gesendet" }
+  | { fehler: string };
 
 // Öffentlich, login-frei erreichbar (siehe page.tsx) — daher der Beta-Stand
 // ERST HIER, direkt vor dem Insert, statt nur auf einem beim Seitenaufruf
@@ -16,7 +40,7 @@ import { benachrichtigeSystemAdminsUeberRegistrierung } from "@/lib/system-admin
 // direkt kostenpflichtig (keine Warteliste mehr).
 export async function vereinRegistrieren(
   formData: FormData
-): Promise<{ ergebnis: "registriert"; kostenpflichtig: boolean } | { fehler: string }> {
+): Promise<RegistrierenErgebnis> {
   const vereinsname = formData.get("vereinsname");
   const adminName = formData.get("adminName");
   const adminEmail = formData.get("adminEmail");
@@ -48,6 +72,35 @@ export async function vereinRegistrieren(
     return { fehler: "Bitte alle Felder ausfüllen." };
   }
 
+  // Gibt es den Verein schon (egal ob aktiv, in Vorbereitung oder inaktiv)? Dann wird er nicht still ein zweites Mal angelegt.
+  // "derselbe" = die Person bestätigt, dass es ihr Verein ist; "anderer" = sie bestätigt, dass es ein anderer Verein ist.
+  const entscheidung = formData.get("entscheidung");
+  const aehnliche = await findeAehnlicheVereine(vereinsname);
+  if (aehnliche.length > 0 && entscheidung !== "anderer") {
+    if (entscheidung === "derselbe") {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail.trim())) return { fehler: "Die E-Mail-Adresse ist ungültig." };
+      await benachrichtigeSystemAdminsUeberUebernahmeAnfrage(
+        vereinsname.trim(),
+        adminName.trim(),
+        adminEmail.trim().toLowerCase(),
+        aehnliche
+      );
+      return { ergebnis: "anfrage_gesendet" };
+    }
+    return {
+      ergebnis: "aehnlich",
+      werte: {
+        vereinsname: vereinsname.trim(),
+        adminName: adminName.trim(),
+        adminEmail: adminEmail.trim(),
+        strasse: strasse.trim(),
+        plz: plz.trim(),
+        ort: ort.trim(),
+        rechnungEmail,
+      },
+    };
+  }
+
   try {
     await legeVereinMitAdminAn(vereinsname, adminName, adminEmail, {
       strasse,
@@ -77,7 +130,8 @@ export async function vereinRegistrieren(
   await benachrichtigeSystemAdminsUeberRegistrierung(
     vereinsname.trim(),
     adminName.trim(),
-    email
+    email,
+    aehnliche
   );
 
   return { ergebnis: "registriert", kostenpflichtig };
