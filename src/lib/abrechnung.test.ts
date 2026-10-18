@@ -24,6 +24,13 @@ describe("Beträge (netto)", () => {
     expect(betragNetto("beta", true)).toBe(400);
     expect(betragNetto("regulaer", true)).toBe(500);
     expect(betragNetto("befreit", true)).toBe(200); // nur der Werbeplatz
+    // Add-on Vereinsverwaltung (+200 €), Sponsor übernimmt weiter ALLES
+    expect(betragNetto("beta", false, true)).toBe(400);
+    expect(betragNetto("regulaer", false, true)).toBe(500);
+    expect(betragNetto("beta", true, true)).toBe(600);
+    expect(betragNetto("regulaer", true, true)).toBe(700);
+    expect(betragNetto("befreit", false, true)).toBe(0);
+    expect(betragNetto("befreit", true, true)).toBe(200);
   });
 });
 

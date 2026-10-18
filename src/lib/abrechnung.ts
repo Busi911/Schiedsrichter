@@ -1,4 +1,4 @@
-import { PREIS_BETA, PREIS_REGULAER, PREIS_SPONSOR } from "./beta-konditionen";
+import { PREIS_BETA, PREIS_REGULAER, PREIS_SPONSOR, PREIS_VEREINSVERWALTUNG, PREIS_VEREINSVERWALTUNG_BETA } from "./beta-konditionen";
 
 // Abrechnung (Live-Gang Ende 11.2026). Reine Logik, ohne Datenbank: Tarif -> Betrag, Zahlungsstatus, Vorschlag für "bezahlt bis".
 // Die Rechnung stellt der Systemadmin von Hand (/system/abrechnung); die App rechnet nichts ab und zieht nichts ein.
@@ -19,10 +19,12 @@ export const VORLAUF_TAGE = 30; // so früh vor Ablauf einer Periode wird erinne
 const TAG = 24 * 3600 * 1000;
 export const betaVorbei = (jetzt: Date) => jetzt.getTime() >= BETA_ENDE_ZEITPUNKT.getTime();
 
-// Netto-Jahresbetrag, den der Rechnungsempfänger zahlt. Sponsor übernimmt ALLES: Vereinspreis + Werbeplatz.
-export function betragNetto(tarif: Tarif, sponsor: boolean): number {
-  const verein = tarif === "befreit" ? 0 : tarif === "beta" ? PREIS_BETA : PREIS_REGULAER;
-  return verein + (sponsor ? PREIS_SPONSOR : 0);
+// Netto-Jahresbetrag, den der Rechnungsempfänger zahlt. Sponsor übernimmt ALLES: Vereinspreis (Basis, bei aktiver Vereinsverwaltung plus Add-on) + Werbeplatz.
+// Das Add-on Vereinsverwaltung kostet beim Tarif "befreit" nichts.
+export function betragNetto(tarif: Tarif, sponsor: boolean, vereinsverwaltungAktiv = false): number {
+  const basis = tarif === "befreit" ? 0 : tarif === "beta" ? PREIS_BETA : PREIS_REGULAER;
+  const addOn = !vereinsverwaltungAktiv || tarif === "befreit" ? 0 : tarif === "beta" ? PREIS_VEREINSVERWALTUNG_BETA : PREIS_VEREINSVERWALTUNG;
+  return basis + addOn + (sponsor ? PREIS_SPONSOR : 0);
 }
 
 // Tarif und erste Frist für einen NEUEN Verein: vor dem Beta-Ende Beta-Tester (erste Rechnung ab 1.12.), danach regulär.

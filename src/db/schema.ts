@@ -341,6 +341,8 @@ export const vereine = pgTable("verein", {
   trainingOeffentlich: boolean("training_oeffentlich").notNull().default(false),
   // Vereinstermine (Sitzungen u.ä., siehe vereinstermin unten) eingeschaltet? Default aus: dann keine Menüpunkte, Seiten und Mails (lib/vereinstermine.ts).
   vereinstermineAktiv: boolean("vereinstermine_aktiv").notNull().default(false),
+  // Vereinsverwaltung (Mitglieder, Beitrittsanträge, Beitragsklassen, siehe mitglied unten) eingeschaltet? Default aus; kostenpflichtiges Add-on (lib/abrechnung.ts, betragNetto).
+  vereinsverwaltungAktiv: boolean("vereinsverwaltung_aktiv").notNull().default(false),
 });
 
 export const mannschaften = pgTable("mannschaft", {
@@ -1579,4 +1581,75 @@ export const stammdatenAenderungen = pgTable("stammdaten_aenderung", {
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
   entschiedenAm: timestamp("entschieden_am", { mode: "date" }),
   entscheidungNotiz: text("entscheidung_notiz"),
+});
+
+// ---------------------------------------------------------------------------
+// Vereinsverwaltung (Phase 1: Datenmodell). Je Verein ein Schalter `vereine.vereinsverwaltungAktiv`.
+// RLS: migrations/0117 (mitglied/beitragsklasse über verein_id, mitglied_mannschaft indirekt über mitglied,
+// beitritt_antrag: Lesen/Ändern nur eigener Verein, Anlegen ohne Login über das öffentliche Formular).
+// ---------------------------------------------------------------------------
+
+export const mitglieder = pgTable("mitglied", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  vorname: text("vorname").notNull(),
+  geburtsdatum: date("geburtsdatum", { mode: "string" }),
+  email: text("email"),
+  telefon: text("telefon"),
+  geschlecht: text("geschlecht").$type<"m" | "w" | "divers">(),
+  status: text("status").$type<"aktiv" | "passiv" | "ausgetreten">().notNull().default("aktiv"),
+  eintrittsdatum: date("eintrittsdatum", { mode: "string" }).defaultNow(),
+  austrittsdatum: date("austrittsdatum", { mode: "string" }),
+  bemerkung: text("bemerkung"),
+  erstelltAm: timestamp("erstellt_am", { mode: "date" }).defaultNow(),
+  aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).defaultNow(),
+});
+
+// Mitglied <-> Mannschaft je Saison (Verweis auf die öffentliche liga_mannschaft). Kein eigenes verein_id: die Policy prüft über mitglied.
+export const mitgliedMannschaften = pgTable(
+  "mitglied_mannschaft",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    mitgliedId: uuid("mitglied_id")
+      .notNull()
+      .references(() => mitglieder.id, { onDelete: "cascade" }),
+    mannschaftId: uuid("mannschaft_id")
+      .notNull()
+      .references(() => ligaMannschaften.id, { onDelete: "cascade" }),
+    saison: text("saison").notNull(),
+    rolle: text("rolle").$type<"spieler" | "trainer" | "betreuer">().notNull().default("spieler"),
+  },
+  (t) => [uniqueIndex("mitglied_mannschaft_mitglied_mannschaft_saison_idx").on(t.mitgliedId, t.mannschaftId, t.saison)]
+);
+
+// Beitrittsanträge aus dem öffentlichen Formular (ohne Login).
+export const beitrittAntraege = pgTable("beitritt_antrag", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  vorname: text("vorname").notNull(),
+  geburtsdatum: date("geburtsdatum", { mode: "string" }),
+  email: text("email").notNull(),
+  telefon: text("telefon"),
+  geschlecht: text("geschlecht").$type<"m" | "w" | "divers">(),
+  mannschaftId: uuid("mannschaft_id").references(() => ligaMannschaften.id, { onDelete: "set null" }),
+  einwilligungen: jsonb("einwilligungen").$type<Record<string, boolean>>(),
+  erstelltAm: timestamp("erstellt_am", { mode: "date" }).defaultNow(),
+  status: text("status").$type<"offen" | "angenommen" | "abgelehnt">().notNull().default("offen"),
+});
+
+export const beitragsklassen = pgTable("beitragsklasse", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vereinId: uuid("verein_id")
+    .notNull()
+    .references(() => vereine.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  betrag: integer("betrag").notNull(), // Euro-Cents
+  beschreibung: text("beschreibung"),
+  aktiv: boolean("aktiv").default(true),
 });

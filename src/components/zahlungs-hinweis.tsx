@@ -2,7 +2,7 @@ import { betragNetto, zahlungsStand, type ZahlungsEingabe } from "@/lib/abrechnu
 import { KONTAKT_EMAIL } from "@/lib/beta-konditionen";
 import { formatDatum } from "@/lib/format";
 
-type Verein = ZahlungsEingabe & { sponsorUebernimmt: boolean; rechnungEmail: string | null };
+type Verein = ZahlungsEingabe & { sponsorUebernimmt: boolean; rechnungEmail: string | null; vereinsverwaltungAktiv?: boolean };
 
 // Hinweis für den Vereinsadmin im Admin-Bereich: Zahlungsperiode läuft bald ab bzw. Zahlung überfällig. Nichts bei befreiten Vereinen, in der
 // Beta ohne fällige Rechnung, bei bezahlter Periode und wenn ein Sponsor alles übernimmt.
@@ -14,14 +14,14 @@ export function ZahlungsHinweis({ verein }: { verein: Verein }) {
       <div className="border-b bg-sky-100 px-6 py-2 text-sm text-sky-900 dark:bg-sky-950 dark:text-sky-100">
         <p className="mx-auto max-w-screen-2xl">
           <strong>Kostenlose Testphase</strong> bis {formatDatum(stand.faelligAm)}. Danach ist der Zugang gesperrt, bis der Vereinsadmin bestätigt: „Ich möchte HandballerPate weiterhin nutzen“ (
-          {betragNetto(verein.tarif, false).toLocaleString("de-DE")} € netto im Jahr). Automatisch zahlt ihr nichts; aussteigen geht jederzeit unter Einstellungen →
+          {betragNetto(verein.tarif, false, verein.vereinsverwaltungAktiv ?? false).toLocaleString("de-DE")} € netto im Jahr). Automatisch zahlt ihr nichts; aussteigen geht jederzeit unter Einstellungen →
           Gefahrenzone. Fragen: {KONTAKT_EMAIL}
         </p>
       </div>
     );
   }
   if ((stand.art !== "bald_faellig" && stand.art !== "ueberfaellig") || !stand.faelligAm || !stand.sperreAb) return null;
-  const betrag = `${betragNetto(verein.tarif, false).toLocaleString("de-DE")} € netto`;
+  const betrag = `${betragNetto(verein.tarif, false, verein.vereinsverwaltungAktiv ?? false).toLocaleString("de-DE")} € netto`;
   const an = verein.rechnungEmail ? ` an ${verein.rechnungEmail}` : "";
   const text =
     stand.art === "ueberfaellig"
