@@ -22,18 +22,21 @@ function faellig(letzter: Date | null, intervallMinuten: number, jetzt: Date): b
   return !letzter || jetzt.getTime() - letzter.getTime() >= intervallMinuten * MINUTE_MS;
 }
 
-// Spieltagsnähe eines Vereins: 2 = Spiel HEUTE (dringend, Ergebnisse), 1 = Spiel gestern/morgen
+// Spieltagsnähe eines Vereins: 3 = Spiel HEUTE (dringend, Ergebnisse), 2 = Spiel der letzten Tage ohne Ergebnis
+// (gespielt, aber noch nicht eingetragen: so kommen sie am Folgetag vor allen anderen dran), 1 = Spiel gestern/morgen
 // (spieltagsnah, häufiger synchronisieren), 0 = sonst (selten).
+export const OFFENE_ERGEBNISSE_TAGE = 3;
+
 async function spieltagsNaehe(
   db: SyncOptionen["db"],
   ligaVereinId: string,
   jetzt: Date
-): Promise<0 | 1 | 2> {
-  const von = tagKey(new Date(jetzt.getTime() - TAG_MS));
+): Promise<0 | 1 | 2 | 3> {
+  const von = tagKey(new Date(jetzt.getTime() - Math.max(1, OFFENE_ERGEBNISSE_TAGE) * TAG_MS));
   const bis = tagKey(new Date(jetzt.getTime() + TAG_MS));
   const heute = tagKey(jetzt);
   const treffer = await db
-    .select({ datum: ligaSpiele.datum })
+    .select({ datum: ligaSpiele.datum, status: ligaSpiele.status, toreHeim: ligaSpiele.toreHeim, bestaetigt: ligaSpiele.ergebnisBestaetigt })
     .from(ligaSpiele)
     .innerJoin(
       ligaTeilnahmen,
@@ -54,8 +57,21 @@ async function spieltagsNaehe(
         lte(ligaSpiele.datum, bis)
       )
     );
-  if (treffer.length === 0) return 0;
-  return treffer.some((t) => t.datum === heute) ? 2 : 1;
+  return bewerteSpieltagsNaehe(treffer, heute);
+}
+
+// Rein (testbar): Stufe aus den Spielen des Zeitfensters.
+export function bewerteSpieltagsNaehe(
+  spiele: { datum: string; status: string; toreHeim: number | null; bestaetigt: boolean }[],
+  heute: string
+): 0 | 1 | 2 | 3 {
+  if (spiele.length === 0) return 0;
+  if (spiele.some((t) => t.datum === heute)) return 3;
+  // Vergangenes Spiel ohne endgültiges Ergebnis (fehlt oder nur vorläufig); abgesagte/verlegte/nicht angetretene zählen nicht.
+  const offen = spiele.some(
+    (t) => t.datum < heute && (t.status === "geplant" || t.status === "gespielt") && (t.toreHeim === null || !t.bestaetigt)
+  );
+  return offen ? 2 : 1;
 }
 
 export type FaelligeErgebnis = {
@@ -77,11 +93,14 @@ export async function synchronisiereFaellige(
     holeJson?: HoleJson;
     // Von Hand: Intervall und 30-Minuten-Sperre übergehen, alles jetzt laden.
     erzwingen?: boolean;
+    // Welche Quelle dieser Lauf bedient: "nuliga" (Cron liga-sync), "handball_net" (eigener Cron handball-net-sync, nur Vereine MIT
+    // handball.net-Quelle und eigenes Budget) oder "alle" (Standard, z.B. von Hand unter /system/sync).
+    quelle?: "alle" | "nuliga" | "handball_net";
     // Meldet den aktuellen Schritt (für den Watchdog der Cron-Route: wo hängt ein Lauf?)
     beiSchritt?: (text: string) => void;
   }
 ): Promise<FaelligeErgebnis> {
-  const { db, jetzt = new Date(), budgetMs = 45_000, erzwingen = false } = opt;
+  const { db, jetzt = new Date(), budgetMs = 45_000, erzwingen = false, quelle = "alle" } = opt;
   const start = Date.now();
   const schritt = opt.beiSchritt ?? (() => {});
   schritt("Vereine laden");
@@ -131,10 +150,17 @@ export async function synchronisiereFaellige(
   } else {
     for (const lv of alleVereine) aktiveIds.add(lv.id);
   }
-  const syncVereine = alleVereine.filter((v) => aktiveIds.has(v.id));
+  let syncVereine = alleVereine.filter((v) => aktiveIds.has(v.id));
+  // Je Quelle nur Vereine, die dort wirklich etwas haben: spart Abfragen und Budget.
+  if (quelle === "nuliga") syncVereine = syncVereine.filter((v) => !!v.nuligaClubId);
+  if (quelle === "handball_net") {
+    const mitQuelle: typeof syncVereine = [];
+    if (opt.holeJson) for (const v of syncVereine) if (await hatHandballNetQuelle(db, v)) mitQuelle.push(v);
+    syncVereine = mitQuelle;
+  }
   // Vereine mit Spielen heute zuerst, dann der am längsten nicht geladene: bei knapper Zeit
   // sind die aktuellen Ergebnisse sicher dran, der Rest folgt beim nächsten Lauf.
-  const naehe = new Map<string, 0 | 1 | 2>();
+  const naehe = new Map<string, 0 | 1 | 2 | 3>();
   schritt("Spieltagsnähe berechnen");
   for (const v of syncVereine) naehe.set(v.id, await spieltagsNaehe(db, v.id, jetzt));
   // Innerhalb gleicher Dringlichkeit reihum nach dem letzten VERSUCH: ein Verein, dessen Lauf wegen des
@@ -143,13 +169,19 @@ export async function synchronisiereFaellige(
   const versuche = await db
     .select({ id: ligaSyncLaeufe.ligaVereinId, zuletzt: sql<Date>`max(${ligaSyncLaeufe.gestartetAm})` })
     .from(ligaSyncLaeufe)
-    .where(inArray(ligaSyncLaeufe.art, ["spiele", "handball_net"]))
+    .where(
+      inArray(
+        ligaSyncLaeufe.art,
+        quelle === "handball_net" ? ["handball_net"] : quelle === "nuliga" ? ["spiele"] : ["spiele", "handball_net"]
+      )
+    )
     .groupBy(ligaSyncLaeufe.ligaVereinId);
   const letzterVersuch = new Map(versuche.map((r) => [r.id, r.zuletzt ? new Date(r.zuletzt) : null]));
   const sortierteVereine = sortiereNachDringlichkeit(
     syncVereine,
     (v) => naehe.get(v.id) ?? 0,
-    (v) => letzterVersuch.get(v.id) ?? v.spieleSynchronisiertAm
+    (v) =>
+      letzterVersuch.get(v.id) ?? (quelle === "handball_net" ? v.handballNetSynchronisiertAm : v.spieleSynchronisiertAm)
   );
   const ergebnis: FaelligeErgebnis = [];
   const frist = start + budgetMs;
@@ -160,7 +192,7 @@ export async function synchronisiereFaellige(
     // Jede Quelle für sich: ein Fehler/Ausfall einer Quelle betrifft die andere nicht.
     const spieltagsnah = (naehe.get(v.id) ?? 0) > 0;
     const intervall = spieleIntervallMinuten(spieltagsnah);
-    if (v.nuligaClubId) {
+    if (v.nuligaClubId && quelle !== "handball_net") {
       try {
         if (faellig(v.strukturSynchronisiertAm, STRUKTUR_INTERVALL_MINUTEN, jetzt)) {
           schritt(`${v.slug}: Struktur`);
@@ -177,8 +209,8 @@ export async function synchronisiereFaellige(
         eintrag.struktur = `fehler: ${err instanceof Error ? err.message : String(err)}`;
       }
     }
-    schritt(`${v.slug}: handball.net prüfen`);
-    if (opt.holeJson && (await hatHandballNetQuelle(db, v))) {
+    if (quelle !== "nuliga") schritt(`${v.slug}: handball.net prüfen`);
+    if (quelle !== "nuliga" && opt.holeJson && (quelle === "handball_net" || (await hatHandballNetQuelle(db, v)))) {
       try {
         if (erzwingen || faellig(v.handballNetSynchronisiertAm, intervall, jetzt)) {
           schritt(`${v.slug}: handball.net-Spiele`);
@@ -192,7 +224,7 @@ export async function synchronisiereFaellige(
     }
     // Freundschaftsspiele zuletzt und im selben Takt wie die Spiele (fertige
     // werden übersprungen): so verdrängen sie handball.net nicht aus dem Budget.
-    if (v.nuligaClubId && eintrag.spiele !== undefined) {
+    if (v.nuligaClubId && quelle !== "handball_net" && eintrag.spiele !== undefined) {
       schritt(`${v.slug}: Freundschaftsspiele`);
       await synchronisiereFreundschaftsspieleSicher(v.id, { ...opt, jetzt, frist });
     }

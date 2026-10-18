@@ -46,7 +46,7 @@ describe("Startseite (ausgeliefertes HTML)", () => {
 });
 
 describe("Brotkrumen", () => {
-  it("sichtbare Links, aktuelle Seite ohne Link, BreadcrumbList mit absoluten URLs", async () => {
+  it("nur BreadcrumbList mit absoluten URLs, keine sichtbare Leiste", async () => {
     const { Brotkrumen } = await import("@/components/liga/brotkrumen");
     const html = renderToStaticMarkup(
       createElement(Brotkrumen, {
@@ -56,9 +56,8 @@ describe("Brotkrumen", () => {
         ],
       }),
     );
-    expect(html).toContain('<a class="');
-    expect(html).toContain('href="/verein"');
-    expect(html).toContain('aria-current="page"');
+    expect(html).not.toContain("<nav");
+    expect(html).not.toContain("<a ");
     expect(html).toContain("https://www.handballerpate.example/verein/hsg-linden");
     expect(html).toContain("BreadcrumbList");
   });

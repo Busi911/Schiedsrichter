@@ -84,7 +84,7 @@ export function mannschaftJsonLd(m: {
   };
 }
 
-// Brotkrumen für Suchmaschinen: genau die Kette, die die Seite auch sichtbar zeigt (components/liga/brotkrumen.tsx). Absolute URLs.
+// Brotkrumen für Suchmaschinen: die Kette der Seite (components/liga/brotkrumen.tsx). Absolute URLs.
 export function breadcrumbJsonLd(kette: { name: string; url: string }[]) {
   return {
     "@context": "https://schema.org",

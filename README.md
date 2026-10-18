@@ -521,7 +521,8 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
     `parsers/group-page.ts`) und Mannschaftsportrait
     (`parsers/team-portrait.ts`) gelesen. Sync in `src/lib/nuliga/sync.ts`
     (Struktur und Spiele getrennt, idempotent, fehlertolerant), Cron
-    `/api/cron/liga-sync` über `sync-cron.ts` (spieltagsnah häufiger).
+    `/api/cron/liga-sync` über `sync-cron.ts` (spieltagsnah häufiger; nur nuLiga,
+    handball.net hat den eigenen Cron `/api/cron/handball-net-sync`, stündlich um :45).
     Tabellen liegen als `liga_tabellenzeile` in der DB (gecacht, kein Abruf
     pro Seitenaufruf). nuLiga ist bisher nur für den HHV konfiguriert
     (`src/lib/nuliga/verbaende.ts`; weitere Verbände = weiterer Eintrag).
@@ -576,7 +577,7 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
   (`src/components/bottom-nav.tsx`) mit Tabs Tabelle / Ergebnisse /
   Spielplan. Favoriten ("Meine Vereine") zunächst lokal im Browser
   (`localStorage`, mit try/catch), kein Konto nötig.
-- SEO/Teilen: sprechende URLs pro Verein/Mannschaft, je Seite eigener Titel/Beschreibung/Canonical/Open Graph (`lib/seo-meta.ts`), sichtbare Brotkrumen mit BreadcrumbList, Sitemap + robots.txt (Details: `CLAUDE.md` → SEO).
+- SEO/Teilen: sprechende URLs pro Verein/Mannschaft, je Seite eigener Titel/Beschreibung/Canonical/Open Graph (`lib/seo-meta.ts`), BreadcrumbList (nur Markup, keine sichtbare Leiste), Sitemap + robots.txt (Details: `CLAUDE.md` → SEO).
 - Rechtliches: `/datenschutz` enthält einen Abschnitt zu den öffentlichen
   Vereins- und Mannschaftsseiten sowie zu Zugriffsdaten (Server-Protokolle,
   IP-Adresse) auch ohne Konto (der frühere Entwurf-Warnhinweis auf `/datenschutz` und `/admin/avv`

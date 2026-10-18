@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { bewerteSpieltagsNaehe } from "./sync-cron";
 import { FRIST_NACHLAUF_MS, mitHarterFrist, sortiereNachDringlichkeit } from "./sync-hilfen";
 
 describe("mitHarterFrist", () => {
@@ -40,5 +41,31 @@ describe("sortiereNachDringlichkeit", () => {
     ];
     const r = sortiereNachDringlichkeit(liste, (x) => x.d, (x) => x.z).map((x) => x.n);
     expect(r).toEqual(["heute-alt", "heute-neu", "nie", "alt"]);
+  });
+});
+
+describe("bewerteSpieltagsNaehe", () => {
+  const heute = "2026-10-18";
+  const spiel = (datum: string, status = "geplant", toreHeim: number | null = null, bestaetigt = false) => ({ datum, status, toreHeim, bestaetigt });
+
+  it("Spiel heute = 3, vor allem anderen", () => {
+    expect(bewerteSpieltagsNaehe([spiel("2026-10-17"), spiel(heute)], heute)).toBe(3);
+  });
+  it("gestern gespielt ohne Ergebnis (auch Status gespielt) = 2", () => {
+    expect(bewerteSpieltagsNaehe([spiel("2026-10-17")], heute)).toBe(2);
+    expect(bewerteSpieltagsNaehe([spiel("2026-10-16", "gespielt")], heute)).toBe(2);
+  });
+  it("gestern mit endgültigem Ergebnis oder nur morgen = 1", () => {
+    expect(bewerteSpieltagsNaehe([spiel("2026-10-17", "gespielt", 29, true)], heute)).toBe(1);
+    expect(bewerteSpieltagsNaehe([spiel("2026-10-19")], heute)).toBe(1);
+  });
+  it("vorläufiges Ergebnis bleibt offen; abgesagt/verlegt/nicht angetreten zählen nicht", () => {
+    expect(bewerteSpieltagsNaehe([spiel("2026-10-17", "gespielt", 29, false)], heute)).toBe(2);
+    expect(bewerteSpieltagsNaehe([spiel("2026-10-17", "abgesagt")], heute)).toBe(1);
+    expect(bewerteSpieltagsNaehe([spiel("2026-10-17", "verlegt")], heute)).toBe(1);
+    expect(bewerteSpieltagsNaehe([spiel("2026-10-17", "nicht_angetreten")], heute)).toBe(1);
+  });
+  it("keine Spiele im Fenster = 0", () => {
+    expect(bewerteSpieltagsNaehe([], heute)).toBe(0);
   });
 });

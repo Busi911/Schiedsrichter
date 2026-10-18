@@ -217,6 +217,9 @@ umbrechenden Zeile).
   `fra1` (`vercel.json` → `regions`), im selben Raum wie die Neon-Datenbank (eu-central-1): jede einzelne
   Abfrage über den Atlantik (iad1) kostete ~100 ms und brachte den Lauf ins Zeitlimit. Beim handball.net-Sync
   werden Tabellenzeilen und Spiele je Phase in EINER Anweisung geschrieben (`excluded`-Upsert).
+  **handball.net hat seit 18.10.2026 einen eigenen Cron** `/api/cron/handball-net-sync` (stündlich um :45, 5–21 Uhr UTC, eigenes 40-s-Budget): `synchronisiereFaellige({ quelle })` (`sync-cron.ts`) trennt die Quellen
+  ("nuliga" = `liga-sync`, "handball_net" = nur Vereine MIT handball.net-Quelle, "alle" = von Hand unter `/system/sync`). Vorher verbrauchte nuLiga im selben Lauf das Budget und Vereine mit gestern gespielten DHB-Spielen kamen stundenlang nicht dran.
+  Dringlichkeit (`bewerteSpieltagsNaehe`, rein/getestet): 3 = Spiel heute, 2 = Spiel der letzten 3 Tage (geplant/gespielt) ohne endgültiges Ergebnis, 1 = Spiel gestern/morgen, 0 = sonst; innerhalb gleicher Stufe der am längsten nicht VERSUCHTE zuerst.
 - Der HHV hat dem automatischen Abruf zugestimmt (Zusage schriftlich
   ablegen). Weitere Landesverbände: Eintrag in `nuliga/verbaende.ts`.
 - DB-Integrationstests (`nuliga/sync.test.ts`, `liga-oeffentlich.test.ts`)
@@ -812,6 +815,6 @@ Die Startseite `/` erklärt das Gesamtangebot und führt zu Verein/Mannschaft: e
 keine zusätzliche Abfrage; bewusst ohne `hero-rein`-Animation, die die Überschrift anfangs unsichtbar machte), danach "In drei Schritten", "Das findest du in der App", "Woher die Daten kommen" (nur belegte Quellen/Abdeckung,
 "kein offizielles Angebot der Verbände") und erst dann der Vereins-Teil (Registrieren, Preise, Funktionen, Produkttour) und die FAQ (Fan-Fragen zuerst, auch als FAQPage-JSON-LD). Nur Vorhandenes bewerben, keine Zahlen/Referenzen erfinden.
 Die konkreten Suchanfragen ("<Verein> Spielplan", "<Mannschaft> Tabelle") beantworten die Vereins- und Mannschaftsseiten. Metadaten dieser Seiten immer über `vereinsSeitenMetadata` (`lib/seo-meta.ts`): Next.js ersetzt
-`openGraph` je Feld komplett, ein eigenes `openGraph` im Layout/Seite würde sonst og:title/og:url/Bild der anderen Ebene verlieren. Sichtbare Brotkrumen + `BreadcrumbList` (`components/liga/brotkrumen.tsx`, in `BereichsKopf` und
-im Mannschafts-Layout); die H1 nennt den Vereinsnamen (sr-only, sichtbar steht er im Kopfband). Sitemap OHNE `lastmod` (der Sync schreibt bei jedem Lauf neu, es gibt keinen Zeitstempel für echte Änderungen); `/demo` ist nicht in
+`openGraph` je Feld komplett, ein eigenes `openGraph` im Layout/Seite würde sonst og:title/og:url/Bild der anderen Ebene verlieren. `BreadcrumbList` als reines JSON-LD (`components/liga/brotkrumen.tsx`, in `BereichsKopf` und
+im Mannschafts-Layout; KEINE sichtbare Brotkrumenleiste mehr, Betreiber 18.10.2026); die H1 nennt den Vereinsnamen (sr-only, sichtbar steht er im Kopfband). Sitemap OHNE `lastmod` (der Sync schreibt bei jedem Lauf neu, es gibt keinen Zeitstempel für echte Änderungen); `/demo` ist nicht in
 robots.txt gesperrt, damit sein `noindex` gelesen werden kann (Token-Seiten bleiben gesperrt UND noindex). Test: `app/seo-seiten.test.ts`. Offen/extern: Search Console (Domain verifizieren, `/sitemap.xml` einreichen).

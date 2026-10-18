@@ -1,0 +1,57 @@
+import { adminDb } from "@/db/admin";
+import { pruefeCronSecret } from "@/lib/cron-auth";
+import { holeHandballNetApi } from "@/lib/handball-net/client";
+import { synchronisiereFaellige } from "@/lib/nuliga/sync-cron";
+
+export const maxDuration = 60;
+
+// Spätestens nach dieser Zeit antwortet die Route selbst (Vercel bricht nach 60 s hart ab); der Rest folgt beim nächsten Aufruf.
+const WATCHDOG_MS = 52_000;
+
+// Eigener Cron für handball.net (DHB: 3. Liga, Jugendbundesliga, Quali), getrennt vom nuLiga-Sync (/api/cron/liga-sync): dort
+// verbrauchte nuLiga das Zeitbudget, und Vereine mit gestern gespielten DHB-Spielen kamen stundenlang nicht dran. Läuft nur für
+// Vereine MIT handball.net-Quelle; die Reihenfolge (Spiel heute, dann gespielt ohne Ergebnis, dann gestern/morgen, dann reihum)
+// steht in sync-cron.ts.
+export async function GET(request: Request) {
+  const unauthorized = pruefeCronSecret(request);
+  if (unauthorized) return unauthorized;
+
+  const start = Date.now();
+  let schritt = "Start";
+  const melde = (text: string) => {
+    schritt = `+${Math.round((Date.now() - start) / 1000)} s ${text}`;
+  };
+
+  const lauf = synchronisiereFaellige({
+    db: adminDb,
+    holeHtml: async () => {
+      throw new Error("handball-net-sync ruft kein nuLiga ab");
+    },
+    holeJson: async (pfad) => {
+      melde(`handball.net-Abruf ${pfad.replace(/^https?:\/\/[^/]+/, "").slice(0, 120)}`);
+      return holeHandballNetApi(pfad);
+    },
+    quelle: "handball_net",
+    budgetMs: 40_000,
+    beiSchritt: melde,
+  });
+  lauf.catch((err) => console.error("[handball-net-sync] Fehler nach dem Watchdog:", err));
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const watchdog = new Promise<"haengt">((resolve) => {
+    timer = setTimeout(() => resolve("haengt"), WATCHDOG_MS);
+  });
+  try {
+    const ergebnisse = await Promise.race([lauf, watchdog]);
+    if (ergebnisse === "haengt") {
+      console.error(`[handball-net-sync] Watchdog nach ${WATCHDOG_MS / 1000} s – letzter Schritt: ${schritt}`);
+      return Response.json({ abgebrochen: true, letzterSchritt: schritt });
+    }
+    return Response.json({ synchronisiert: ergebnisse.length, ergebnisse });
+  } catch (err) {
+    console.error(`[handball-net-sync] Fehler (Schritt: ${schritt}):`, err);
+    return Response.json({ fehler: err instanceof Error ? err.message : String(err), letzterSchritt: schritt }, { status: 500 });
+  } finally {
+    clearTimeout(timer);
+  }
+}
