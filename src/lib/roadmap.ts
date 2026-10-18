@@ -124,7 +124,7 @@ export const ROADMAP: RoadmapPhase[] = [
       {
         titel: "Mitgliederverwaltung",
         status: "in_arbeit",
-        text: "Der Grundstein steht (Datenmodell für Mitglieder, Mannschaftszuordnung, Beitrittsanträge und Beitragsklassen, je Verein freischaltbar). Als Nächstes kommt die Oberfläche: Mitgliederliste mit Suche und Filter, Stammdaten, Eintritt und Austritt, Import und Export. Danach das Online-Beitrittsformular mit Einwilligungen. Noch nicht für Vereine sichtbar.",
+        text: "Die Mitgliederliste steht (für Vereine mit freigeschaltetem Add-on): anlegen, bearbeiten, suchen, nach Status filtern, Austritt vermerken. Funktionsträger werden beim Freischalten automatisch als Mitglieder übernommen, mit Duplikatprüfung. Als Nächstes kommen die Zuordnung zu Mannschaften, Import und Export. Danach das Online-Beitrittsformular mit Einwilligungen.",
       },
       {
         titel: "Beiträge",

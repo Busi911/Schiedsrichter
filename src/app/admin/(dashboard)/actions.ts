@@ -17,6 +17,7 @@ import {
   users,
   vereine,
 } from "@/db/schema";
+import { gleicheFunktionstraegerAb } from "@/lib/mitglieder-daten";
 import { parseFunktionstraegerExcel } from "@/lib/funktionstraeger-import";
 import { normalisiereMannschaftsname } from "@/lib/rundenspiel-import";
 import { synchronisiereHandballNetMannschaften } from "@/lib/handball-net-sync";
@@ -438,6 +439,8 @@ export async function createFunktionstraeger(formData: FormData) {
     }
   }
 
+  // Add-on Vereinsverwaltung: neue Funktionsträger in die Mitgliederliste übernehmen (nur wenn eingeschaltet, mit Duplikatprüfung).
+  await gleicheFunktionstraegerAb(vereinId);
   revalidatePath("/admin/funktionstraeger");
 }
 
@@ -533,6 +536,8 @@ export async function rolleHinzufuegen(formData: FormData) {
     }
   }
 
+  // Add-on Vereinsverwaltung: neue Funktionsträger in die Mitgliederliste übernehmen (nur wenn eingeschaltet, mit Duplikatprüfung).
+  await gleicheFunktionstraegerAb(vereinId);
   revalidatePath("/admin/funktionstraeger");
 }
 
@@ -627,6 +632,8 @@ export async function rollenHinzufuegenMehrfach(formData: FormData) {
     }
   }
 
+  // Add-on Vereinsverwaltung: neue Funktionsträger in die Mitgliederliste übernehmen (nur wenn eingeschaltet, mit Duplikatprüfung).
+  await gleicheFunktionstraegerAb(vereinId);
   revalidatePath("/admin/funktionstraeger");
 }
 
@@ -1426,6 +1433,8 @@ export async function funktionstraegerImportieren(formData: FormData) {
     }
   }
 
+  // Add-on Vereinsverwaltung: neue Funktionsträger in die Mitgliederliste übernehmen (nur wenn eingeschaltet, mit Duplikatprüfung).
+  await gleicheFunktionstraegerAb(vereinId);
   revalidatePath("/admin/funktionstraeger");
 
   const params = new URLSearchParams();

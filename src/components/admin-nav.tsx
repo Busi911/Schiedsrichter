@@ -49,12 +49,15 @@ function istAktiv(
     : pathname === item.href || pathname?.startsWith(item.href + "/");
 }
 
-export function AdminNav({ warte = [], vereinstermine = false }: { warte?: WartItem[]; vereinstermine?: boolean }) {
+export function AdminNav({ warte = [], vereinstermine = false, mitglieder = false }: { warte?: WartItem[]; vereinstermine?: boolean; mitglieder?: boolean }) {
   const pathname = usePathname();
   // "Vereinstermine" erscheint nur, wenn der Verein sie eingeschaltet hat (Einstellungen → Vereinstermine).
-  const verwaltungItems = vereinstermine
-    ? [{ href: "/admin/vereinstermine", label: "Vereinstermine" }, ...VERWALTUNG_ITEMS]
-    : VERWALTUNG_ITEMS;
+  // "Mitglieder" nur mit freigeschaltetem Add-on Vereinsverwaltung (vom Systemadmin je Verein gesetzt).
+  const verwaltungItems = [
+    ...(vereinstermine ? [{ href: "/admin/vereinstermine", label: "Vereinstermine" }] : []),
+    ...(mitglieder ? [{ href: "/admin/mitglieder", label: "Mitglieder" }] : []),
+    ...VERWALTUNG_ITEMS,
+  ];
   const verwaltungAktiv = verwaltungItems.some((item) => istAktiv(pathname, item));
 
   return (
