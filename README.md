@@ -576,7 +576,7 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
   (`src/components/bottom-nav.tsx`) mit Tabs Tabelle / Ergebnisse /
   Spielplan. Favoriten ("Meine Vereine") zunächst lokal im Browser
   (`localStorage`, mit try/catch), kein Konto nötig.
-- SEO/Teilen: sprechende URLs pro Verein/Mannschaft, je Seite eigener Titel/Beschreibung/Canonical/Open Graph (`lib/seo-meta.ts`), sichtbare Brotkrumen mit BreadcrumbList, Sitemap + robots.txt (Details: `CLAUDE.md` → SEO).
+- SEO/Teilen: sprechende URLs pro Verein/Mannschaft, je Seite eigener Titel/Beschreibung/Canonical/Open Graph (`lib/seo-meta.ts`), BreadcrumbList (nur Markup, keine sichtbare Leiste), Sitemap + robots.txt (Details: `CLAUDE.md` → SEO).
 - Rechtliches: `/datenschutz` enthält einen Abschnitt zu den öffentlichen
   Vereins- und Mannschaftsseiten sowie zu Zugriffsdaten (Server-Protokolle,
   IP-Adresse) auch ohne Konto (der frühere Entwurf-Warnhinweis auf `/datenschutz` und `/admin/avv`
