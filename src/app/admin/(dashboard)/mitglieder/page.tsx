@@ -11,6 +11,10 @@ import { GESCHLECHTER, STATI, filtereMitglieder, istStatus, zaehleNachStatus } f
 import { ladeMitglieder, ladeUeberfuehrungsPlan, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
 import { offeneUeberfuehrung } from "@/lib/mitglieder-ueberfuehrung";
 import { SubmitButton } from "@/components/submit-button";
+import { MitgliedMannschaftenBlock } from "@/components/mitglied-mannschaften-block";
+import { saisonOptionen } from "@/lib/mitglied-mannschaften";
+import { ladeVereinsMannschaften, ladeZuordnungen } from "@/lib/mitglied-mannschaften-daten";
+import { saisonLabel } from "@/lib/saison";
 import { funktionstraegerUebernehmen, mitgliedAendern, mitgliedAnlegen, mitgliedLoeschen } from "./actions";
 
 const DATUM = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
@@ -19,7 +23,7 @@ function datum(d: string | null): string {
 }
 
 // Mitgliederliste des Vereins (Add-on Vereinsverwaltung, vom Systemadmin je Verein freigeschaltet).
-export default async function MitgliederPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
+export default async function MitgliederPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; mannschaft?: string }> }) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
   const schreiben = session.user.istAdmin;
@@ -46,10 +50,19 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
     );
   }
 
-  const { q = "", status = "" } = await searchParams;
-  const [alle, plan] = await Promise.all([ladeMitglieder(vereinId), ladeUeberfuehrungsPlan(vereinId)]);
+  const { q = "", status = "", mannschaft = "" } = await searchParams;
+  const [alle, plan, mannschaften, zuordnungen] = await Promise.all([
+    ladeMitglieder(vereinId),
+    ladeUeberfuehrungsPlan(vereinId),
+    ladeVereinsMannschaften(vereinId),
+    ladeZuordnungen(vereinId),
+  ]);
   const zahlen = zaehleNachStatus(alle);
-  const liste = filtereMitglieder(alle, q, status);
+  const aktuelleSaison = saisonLabel(new Date());
+  const saisons = saisonOptionen(aktuelleSaison, zuordnungen.map((z) => z.saison));
+  // Filter "Mannschaft": Mitglieder, die in der laufenden Saison dieser Mannschaft zugeordnet sind.
+  const inMannschaft = mannschaft ? new Set(zuordnungen.filter((z) => z.mannschaftId === mannschaft && z.saison === aktuelleSaison).map((z) => z.mitgliedId)) : null;
+  const liste = filtereMitglieder(alle, q, status).filter((m) => !inMannschaft || inMannschaft.has(m.id));
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -142,6 +155,26 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
             ))}
           </select>
         </div>
+        {mannschaften.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="mannschaftsfilter" className="text-sm font-medium">
+              Mannschaft ({aktuelleSaison})
+            </label>
+            <select
+              id="mannschaftsfilter"
+              name="mannschaft"
+              defaultValue={mannschaft}
+              className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm dark:bg-input/30"
+            >
+              <option value="">Alle</option>
+              {mannschaften.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <Button type="submit" variant="secondary" className="min-h-8">
           Filtern
         </Button>
@@ -181,6 +214,14 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
                   </p>
                 )}
                 {m.bemerkung && <p className="whitespace-pre-line text-muted-foreground">{m.bemerkung}</p>}
+                <MitgliedMannschaftenBlock
+                  mitgliedId={m.id}
+                  zuordnungen={zuordnungen.filter((z) => z.mitgliedId === m.id)}
+                  mannschaften={mannschaften}
+                  saisons={saisons}
+                  aktuelleSaison={aktuelleSaison}
+                  schreiben={schreiben}
+                />
                 {schreiben && (
                   <div className="flex flex-col gap-2 border-t pt-3">
                     <details>
