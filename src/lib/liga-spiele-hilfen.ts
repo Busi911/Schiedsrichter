@@ -1,7 +1,7 @@
 import { ligaSpiele, type ligaMannschaften } from "@/db/schema";
 import { tagKey } from "@/lib/kalender";
 import { ZEITZONE } from "@/lib/format";
-import { istZwischenstand, LAUF_FENSTER_MS, laeuftVermutlich } from "@/lib/liga-spiel-status";
+import { istZwischenstand, laeuftMitStand, LAUF_FENSTER_MS, laeuftVermutlich } from "@/lib/liga-spiel-status";
 
 // Reine Hilfsfunktionen für Spiele der öffentlichen Seiten (ohne DB-Zugriff,
 // damit sie ohne Umgebung getestet werden können).
@@ -43,9 +43,10 @@ export function istErgebnisAusstehend(s: SpielAnsicht, jetzt: Date): boolean {
 }
 
 // Gehört in die Ergebnisliste: Endergebnis (auch vorläufig), gewertet bzw. nicht angetreten oder ein vergangenes Spiel
-// ohne Ergebnis. Ein laufendes Spiel mit Zwischenstand gehört NICHT dazu (siehe istAnstehend) — es zeigt "Läuft gerade".
+// ohne Ergebnis oder mit noch nicht genehmigtem Stand (dann "Ergebnis folgt" statt der Zahl). Ein LAUFENDES Spiel mit
+// Zwischenstand gehört NICHT dazu (siehe istAnstehend) — es zeigt "Läuft gerade".
 export function istVergangen(s: SpielAnsicht, jetzt: Date): boolean {
-  if (istZwischenstand(s, jetzt)) return false;
+  if (laeuftMitStand(s, jetzt)) return false;
   return hatErgebnis(s) || ERGEBNIS_STATI.has(s.status) || istErgebnisAusstehend(s, jetzt);
 }
 
@@ -53,7 +54,7 @@ export function istVergangen(s: SpielAnsicht, jetzt: Date): boolean {
 // inzwischen gewechselt hat). Abgesagte Spiele ab heute bleiben sichtbar, mit Status-Hinweis.
 export function istAnstehend(s: SpielAnsicht, jetzt: Date): boolean {
   if (istVergangen(s, jetzt)) return false;
-  return s.datum >= tagKey(jetzt) || istZwischenstand(s, jetzt);
+  return s.datum >= tagKey(jetzt) || laeuftMitStand(s, jetzt);
 }
 
 // Letztes ECHTES Ergebnis einer (chronologisch sortierten) Spieleliste: ein laufendes Spiel mit Zwischenstand zählt nicht.
@@ -64,7 +65,7 @@ export function letztesErgebnis<T extends SpielAnsicht>(spiele: T[], jetzt: Date
   return null;
 }
 
-// Was statt eines Ergebnisses angezeigt wird: Zwischenstände zeigen wir NIE als Zahl (bei stündlichem Sync oft veraltet,
+// Was statt eines Ergebnisses angezeigt wird: nicht genehmigte Stände zeigen wir NIE als Zahl (veraltet oder laufend,
 // sieht wie ein Endstand aus). "laeuft" = läuft vermutlich, "ergebnis_folgt" = vermutlich vorbei, noch nicht genehmigt,
 // "ausstehend" = vergangen, der Verband hat noch nichts eingetragen.
 export type ErgebnisHinweis = "laeuft" | "ergebnis_folgt" | "ausstehend";
@@ -167,7 +168,7 @@ export function sammleVereinsSpiele(
     .sort(nachZeit);
   // "Heute": noch offene Spiele des heutigen Tages und laufende Spiele (auch nach Mitternacht).
   const heuteKey = tagKey(jetzt);
-  const heute = anstehend.filter((e) => e.spiel.datum === heuteKey || istZwischenstand(e.spiel, jetzt));
+  const heute = anstehend.filter((e) => e.spiel.datum === heuteKey || laeuftMitStand(e.spiel, jetzt));
   return {
     heute,
     ergebnisse: eintraege

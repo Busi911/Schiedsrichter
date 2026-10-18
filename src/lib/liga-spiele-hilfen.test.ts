@@ -163,12 +163,22 @@ describe("laufende Spiele und fehlende Ergebnisse", () => {
     expect(r.anstehend.map((e) => e.spiel.id)).toEqual(["m"]);
   });
 
-  it("Hinweis statt Zahl nur, solange das Spiel vermutlich läuft (90 Min); danach steht das Ergebnis sofort da (vorläufig)", () => {
+  it("nicht genehmigter Stand: nie als Zahl; 'Läuft gerade' (90 Min), dann 'Ergebnis folgt', erst nach 12 Stunden als vorläufiges Ergebnis", () => {
     expect(ergebnisHinweis(laufend, jetzt)).toBe("laeuft");
     expect(ergebnisHinweis(laufend, new Date("2026-10-04T16:30:00Z"))).toBe("laeuft"); // 90 Min nach Anwurf
-    expect(ergebnisHinweis(laufend, new Date("2026-10-04T16:31:00Z"))).toBeNull(); // 91 Min: vermutlich vorbei, Ergebnis wird gezeigt
-    expect(ergebnisHinweis(laufend, new Date("2026-10-04T17:30:00Z"))).toBeNull(); // 150 Min
-    expect(ergebnisHinweis(laufend, new Date("2026-10-04T19:00:00Z"))).toBeNull(); // 4 h
+    expect(ergebnisHinweis(laufend, new Date("2026-10-04T16:31:00Z"))).toBe("ergebnis_folgt"); // vorbei, aber nichts Endgültiges
+    expect(ergebnisHinweis(laufend, new Date("2026-10-04T19:00:00Z"))).toBe("ergebnis_folgt"); // 4 h
+    expect(ergebnisHinweis(laufend, new Date("2026-10-05T01:00:00Z"))).toBe("ergebnis_folgt"); // 10 h
+    expect(ergebnisHinweis(laufend, new Date("2026-10-05T04:00:00Z"))).toBeNull(); // 13 h: gilt als vorläufiges Ergebnis
+  });
+  it("nach den 90 Minuten steht das Spiel bei den Ergebnissen (mit 'Ergebnis folgt'), nicht mehr unter 'Heute'", () => {
+    const spaeter = new Date("2026-10-04T17:00:00Z"); // 120 Min nach Anwurf
+    expect(istVergangen(laufend, spaeter)).toBe(true);
+    expect(istAnstehend(laufend, spaeter)).toBe(false);
+    const r = sammleVereinsSpiele(mannschaft([laufend]), spaeter);
+    expect(r.heute).toHaveLength(0);
+    expect(r.ergebnisse.map((e) => e.spiel.id)).toEqual(["l"]);
+    expect(letztesErgebnis([laufend], spaeter)).toBeNull();
   });
   it("kein Ergebnis eingetragen: nach dem Lauf-Fenster steht 'Ergebnis folgt'", () => {
     const ohne = spiel("o", "2026-10-04", { meetingId: "5", beginn: anwurf });

@@ -44,17 +44,23 @@ export function liveTickerRelevant(s: SpielAnsicht, jetzt: Date): boolean {
   return ab >= -60 * 60 * 1000 && ab <= 4 * 60 * 60 * 1000;
 }
 
-// Zwischenstand: nuLiga zeigt schon während des Spiels den laufenden Stand als noch nicht genehmigtes Ergebnis. Die Seite
-// zeigt ihn NIE als Ergebnis (sieht sonst wie ein Endstand aus): solange das Ergebnis nicht genehmigt ist und der Anwurf
-// höchstens 90 Min zurückliegt (= solange das Spiel vermutlich läuft, LAUF_FENSTER_MS), steht stattdessen "Läuft gerade".
-// Danach ist das Spiel vermutlich vorbei und ein vorhandenes Ergebnis steht SOFORT da, mit "vorläufig", bis nuLiga es
-// genehmigt (Betreiber 18.10.2026: das Endergebnis soll so bald wie möglich sichtbar sein; vorher galten 3 h).
-export const ZWISCHENSTAND_FENSTER_MS = LAUF_FENSTER_MS;
+// Zwischenstand: nuLiga zeigt schon während des Spiels den laufenden Stand als noch nicht genehmigtes Ergebnis, und die
+// Spielplan-Spalte kann lange veraltet bleiben (18.10.2026: 8:7 stand als "vorläufig" da, obwohl das Spiel längst 44:24
+// geendet hatte). Ob ein nicht genehmigter Stand endgültig ist, sagt nuLiga nicht. Die Seite zeigt deshalb NUR ein
+// Endergebnis (genehmigt, Betreiber 18.10.2026): ein nicht genehmigter Stand steht nie als Zahl da ("Läuft gerade" in den
+// ersten 90 Min, danach "Ergebnis folgt"), erst nach 12 Stunden als "vorläufig" (z.B. wenn nuLiga ein Spiel nie genehmigt).
+export const ZWISCHENSTAND_FENSTER_MS = 12 * 60 * 60 * 1000;
 
 export function istZwischenstand(s: SpielAnsicht, jetzt: Date): boolean {
   if (!KURZ(s) || s.ergebnisBestaetigt || s.status === "nicht_angetreten" || !s.beginn) return false;
   const seit = jetzt.getTime() - s.beginn.getTime();
   return seit >= 0 && seit <= ZWISCHENSTAND_FENSTER_MS;
+}
+
+// Läuft vermutlich (höchstens 90 Min nach dem Anwurf) UND hat einen nicht genehmigten Stand: gehört unter "Heute"/"Läuft gerade".
+// Danach ist das Spiel vorbei und steht bei den Ergebnissen, mit "Ergebnis folgt" statt der Zahl (istZwischenstand gilt weiter).
+export function laeuftMitStand(s: SpielAnsicht, jetzt: Date): boolean {
+  return istZwischenstand(s, jetzt) && !!s.beginn && jetzt.getTime() - s.beginn.getTime() <= LAUF_FENSTER_MS;
 }
 
 export function spielPhase(s: SpielAnsicht): SpielPhase {

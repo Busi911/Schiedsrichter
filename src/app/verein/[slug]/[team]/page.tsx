@@ -8,7 +8,7 @@ import {
   holeTabelle,
   istAnstehend,
 } from "@/lib/liga-oeffentlich";
-import { istZwischenstand, laeuftVermutlich } from "@/lib/liga-spiel-status";
+import { laeuftMitStand, laeuftVermutlich } from "@/lib/liga-spiel-status";
 import { jsonLdText, mannschaftJsonLd } from "@/lib/liga-seo";
 import { FormChips, SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
 import { ladeTeam } from "./laden";
@@ -32,7 +32,7 @@ export default async function Uebersicht({ params }: Props) {
   const zeile = tabelle.find((z) => z.nuligaTeamtableId === m.teamtableId);
   const jetzt = new Date();
   const letztes = letztesErgebnis(m.spiele, jetzt);
-  const laeuftGerade = m.naechstesSpiel ? laeuftVermutlich(m.naechstesSpiel, jetzt) || istZwischenstand(m.naechstesSpiel, jetzt) : false;
+  const laeuftGerade = m.naechstesSpiel ? laeuftVermutlich(m.naechstesSpiel, jetzt) || laeuftMitStand(m.naechstesSpiel, jetzt) : false;
   const form = formKurve(m);
   const teamUrl = `${appUrl()}/verein/${verein.slug}/${m.slug}`;
   const jsonLd = mannschaftJsonLd({

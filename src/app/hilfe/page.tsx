@@ -311,9 +311,9 @@ export default async function HilfePage() {
           zum <strong>Spielbericht</strong> (sobald ein Ergebnis angezeigt wird). Beides erscheint erst, wenn nuLiga den
           Spielbericht angelegt hat. Bei der 1. und 2. Handball-Bundesliga führt ein Link zur Spielseite des NDR (während des Spiels als
           Live-Ticker, danach als Spielbericht), bei handball.net-Spielen führt der Link rund um das Spiel zur Spielseite bei handball.net (dort der Tab „Liveticker“), einen Spielbericht-Link gibt es nicht. Während ein Spiel läuft, zeigt die Karte „Live“ und „Läuft gerade“ statt einer Zahl,
-          danach, etwa anderthalb Stunden nach dem Anwurf: Zwischenstände zeigen wir bewusst nicht als Ergebnis. Sobald das Spiel vermutlich
-          vorbei ist, erscheint ein bei nuLiga eingetragenes Ergebnis sofort, bis zur Genehmigung mit „vorläufig“; trägt der Verband noch nichts ein, steht
-          „Ergebnis folgt“. Am Spieltag wird rund um den Anwurf häufiger abgerufen, sonst stündlich; den aktuellen Spielstand liefert der Live-Ticker.
+          danach „Ergebnis folgt“: Wir zeigen nur ein Endergebnis. Ein bei nuLiga eingetragener, aber noch nicht genehmigter Stand kann ein Zwischenstand oder veraltet sein
+          (nuLiga sagt nicht, welches), deshalb erscheint die Zahl erst, wenn der Spielbericht genehmigt ist; nur wenn das zwölf Stunden nach dem Spiel noch nicht
+          passiert ist, zeigen wir den Stand mit „vorläufig“. Am Spieltag wird rund um den Anwurf häufiger abgerufen, sonst stündlich; den aktuellen Spielstand liefert der Live-Ticker.
         </p>
 
         <h3 className="text-sm font-medium">Eine Mannschaft fehlt oder ist leer?</h3>
