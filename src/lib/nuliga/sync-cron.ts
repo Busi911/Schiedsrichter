@@ -80,6 +80,8 @@ export type FaelligeErgebnis = {
   struktur?: string;
   spiele?: string;
   handballNet?: string;
+  // Meldungen des handball.net-Laufs (z.B. "Zeitlimit erreicht", Fehler je Team): zur Diagnose unter /system/sync.
+  handballNetMeldungen?: string[];
 }[];
 
 // Vom Cron aufgerufen (beliebig oft): entscheidet pro Verein, was fällig ist
@@ -214,9 +216,9 @@ export async function synchronisiereFaellige(
       try {
         if (erzwingen || faellig(v.handballNetSynchronisiertAm, intervall, jetzt)) {
           schritt(`${v.slug}: handball.net-Spiele`);
-          eintrag.handballNet = (
-            await synchronisiereHandballNet(v.id, { db, holeJson: opt.holeJson, jetzt, frist })
-          ).status;
+          const hnet = await synchronisiereHandballNet(v.id, { db, holeJson: opt.holeJson, jetzt, frist });
+          eintrag.handballNet = hnet.status;
+          eintrag.handballNetMeldungen = hnet.meldungen;
         }
       } catch (err) {
         eintrag.handballNet = `fehler: ${err instanceof Error ? err.message : String(err)}`;
