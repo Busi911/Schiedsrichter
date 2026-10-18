@@ -35,6 +35,17 @@ export async function tarifSpeichern(formData: FormData) {
   redirect(meldung("ok", `${v.name}: Tarif gespeichert.`));
 }
 
+// Add-on Vereinsverwaltung je Verein ein-/ausschalten (nur Systemadmin). Ändert den Jahresbetrag (betragNetto); die Mail-Marke bleibt, Daten bleiben beim Ausschalten erhalten.
+export async function vereinsverwaltungSpeichern(formData: FormData) {
+  const session = await requireSystemAdmin();
+  const v = await ladeVerein(formData);
+  const aktiv = formData.get("vereinsverwaltung") === "on";
+  await adminDb.update(vereine).set({ vereinsverwaltungAktiv: aktiv }).where(eq(vereine.id, v.id));
+  await schreibeProtokoll(v.id, "vereinsverwaltung_geaendert", session.user.email ?? "Systemadmin", `Vereinsverwaltung ${aktiv ? "an" : "aus"} (${betragNetto(v.tarif, v.sponsorUebernimmt, aktiv)} € netto im Jahr)`);
+  revalidatePath("/system/abrechnung");
+  redirect(meldung("ok", `${v.name}: Vereinsverwaltung ${aktiv ? "eingeschaltet" : "ausgeschaltet"}.`));
+}
+
 // Nach Zahlungseingang: Verein "bezahlt bis" setzen. Frist und Mail-Marke werden zurückgesetzt, die Sperre (falls aktiv) ist damit sofort weg.
 export async function alsBezahltMarkieren(formData: FormData) {
   const session = await requireSystemAdmin();

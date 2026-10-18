@@ -12,7 +12,7 @@ import { NETTO } from "@/lib/beta-konditionen";
 import { formatDatum } from "@/lib/format";
 import { tagKey } from "@/lib/kalender";
 import { requireSystemAdmin } from "@/lib/session";
-import { alsBezahltMarkieren, sperreUmschalten, tarifSpeichern, zahlungszielSetzen } from "./actions";
+import { alsBezahltMarkieren, sperreUmschalten, tarifSpeichern, vereinsverwaltungSpeichern, zahlungszielSetzen } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +80,7 @@ export default async function AbrechnungSeite({ searchParams }: { searchParams: 
                   <h2 className="font-heading text-base leading-snug font-semibold [overflow-wrap:anywhere]">{v.name}</h2>
                   <p className="text-xs text-muted-foreground">
                     {TARIF_NAMEN[v.tarif]}
-                    {v.sponsorUebernimmt ? " · Sponsor übernimmt alles" : ""} · {betrag.toLocaleString("de-DE")} € netto im Jahr
+                    {v.sponsorUebernimmt ? " · Sponsor übernimmt alles" : ""}{v.vereinsverwaltungAktiv ? " · inkl. Vereinsverwaltung" : ""} · {betrag.toLocaleString("de-DE")} € netto im Jahr
                   </p>
                 </div>
                 <Badge className={`shrink-0 ${FARBE[stand.art]}`}>{ZAHLUNGS_TEXT[stand.art]}</Badge>
@@ -153,6 +153,16 @@ export default async function AbrechnungSeite({ searchParams }: { searchParams: 
                   </select>
                   <label className="flex items-center gap-1.5 text-sm">
                     <input type="checkbox" name="sponsor" defaultChecked={v.sponsorUebernimmt} /> Sponsor übernimmt alles
+                  </label>
+                  <SubmitButton size="sm" variant="outline" pendingText="Speichert…">
+                    Speichern
+                  </SubmitButton>
+                </form>
+
+                <form action={vereinsverwaltungSpeichern} className="flex flex-wrap items-center gap-2">
+                  <input type="hidden" name="vereinId" value={v.id} />
+                  <label className="flex items-center gap-1.5 text-sm">
+                    <input type="checkbox" name="vereinsverwaltung" defaultChecked={v.vereinsverwaltungAktiv} /> Add-on Vereinsverwaltung
                   </label>
                   <SubmitButton size="sm" variant="outline" pendingText="Speichert…">
                     Speichern
