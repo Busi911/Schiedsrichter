@@ -751,6 +751,11 @@ export default async function HilfePage() {
         </h3>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
           <li>
+            <strong>Mit oder ohne Zugang:</strong> Wer nicht angemeldet ist, wählt oben auf der Seite zwischen <strong>„Mit Zugang“</strong>{" "}
+            (Login-Link per E-Mail, danach geht es ohne erneutes Tippen weiter) und <strong>„Ohne Zugang“</strong> (nur Namen angeben,
+            die E-Mail ist optional). Umschalten geht ohne Neuladen; es ist immer nur ein Weg sichtbar.
+          </li>
+          <li>
             <strong>Freischalten:</strong> Der Zeitnehmerwart schaltet auf seiner Seite unter „Öffentliche Selbsteintragung“
             den Teil für Zeitnehmer/Sekretär frei, der Ordnerwart den Teil für Ordner, Kioskdienst und Kassierer.
           </li>
