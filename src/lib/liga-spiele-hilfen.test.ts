@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ursprungsTermin,
   ergebnisHinweis,
   istAnstehend,
   istVergangen,
@@ -172,5 +173,14 @@ describe("laufende Spiele und fehlende Ergebnisse", () => {
     const vorher = spiel("v", "2026-09-27", { toreHeim: 30, toreGast: 25, status: "gespielt", ergebnisBestaetigt: true });
     expect(letztesErgebnis([vorher, laufend], jetzt)?.id).toBe("v");
     expect(letztesErgebnis([laufend], jetzt)).toBeNull();
+  });
+});
+
+describe("ursprungsTermin", () => {
+  it("zeigt den ursprünglichen Termin nur bei verlegten Spielen", () => {
+    const alt = new Date("2026-10-10T14:00:00Z"); // 16:00 deutsche Zeit
+    expect(ursprungsTermin({ status: "verlegt", urspruenglicherBeginn: alt })).toBe("Sa., 10.10., 16:00 Uhr");
+    expect(ursprungsTermin({ status: "geplant", urspruenglicherBeginn: alt })).toBeNull();
+    expect(ursprungsTermin({ status: "verlegt", urspruenglicherBeginn: null })).toBeNull();
   });
 });

@@ -198,6 +198,7 @@ umbrechenden Zeile).
   (`extrahiereErgebnis`) — ein Nichtantritt steht als eigener Marker (NH/NG). Neue Felder nur mit
   Test, dass die Platzhalter-Namen aus `__fixtures__/README.md` nicht
   auftauchen. Fixtures nie ungekürzt/mit echten Namen einchecken.
+- **Verlegt (18.10.2026):** `SpielKarte` zeigt bei verlegten nuLiga-Spielen unter dem Badge "Ursprünglich: Sa., 10.10., 16:00 Uhr" (`ursprungsTermin`, aus `liga_spiel.urspruenglicher_beginn`, vom Parser aus dem Hinweis der Zeitzelle gelesen; handball.net liefert ihn nicht).
 - **Teamidentität:** nie über den angezeigten Namen. Stabil sind
   `liga_mannschaft.schluessel` (Normalisierung, saisonübergreifend) und die
   nuLiga-IDs `group`/`teamtable` (je Saison). Ein Spiel ist eindeutig über
