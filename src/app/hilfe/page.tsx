@@ -454,7 +454,7 @@ export default async function HilfePage() {
         <h2 className="font-heading text-lg font-medium">Mitglieder (Add-on Vereinsverwaltung)</h2>
         <p className="text-sm text-muted-foreground">
           Die Mitgliederverwaltung gehört zum Zusatzangebot <strong>Vereinsverwaltung</strong>. Wir schalten sie für euren Verein frei; danach gibt es im Admin-Menü{" "}
-          <strong>Verwaltung → Mitglieder</strong>. Ohne Freischaltung zeigt die Seite nur einen Hinweis. Die Mitgliederdaten sehen ausschließlich Vereinsadmins,
+          <strong>Verein → Mitglieder</strong>. Ohne Freischaltung zeigt die Seite nur einen Hinweis. Die Mitgliederdaten sehen ausschließlich Vereinsadmins,
           sie erscheinen nie auf der öffentlichen Vereinsseite.
         </p>
         <p className="text-sm text-muted-foreground">
@@ -622,7 +622,7 @@ export default async function HilfePage() {
         </p>
         <h3 className="text-sm font-medium">Einteilen: der Dienstwart</h3>
         <p className="text-sm text-muted-foreground">
-          Eingeteilt wird auf der Seite <strong>Dienstwart</strong> (im Admin-Bereich unter „Dienste einteilen“, im Profil über die
+          Eingeteilt wird auf der Seite <strong>Dienstwart</strong> (im Admin-Bereich unter „Dienste“, Abschnitt „Dienste einteilen“, im Profil über die
           Schaltfläche „Dienstwart“ bzw. unten „Dienste“). Dort arbeiten alle Vereinsadmins und Personen mit der Rolle{" "}
           <strong>„Dienstwart (eigene Dienste)“</strong>, die ihr unter Funktionsträger vergebt. Je Termin seht ihr alle geltenden
           eigenen Dienste mit „eingeteilt / gebraucht“ und könnt
@@ -737,8 +737,8 @@ export default async function HilfePage() {
         <h3 className="text-sm font-medium">Wie komme ich hin?</h3>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
           <li>
-            <strong>Im Admin-Bereich:</strong> am Computer oben im Menü <strong>„Dienste einteilen“</strong>, am Handy unten
-            unter <strong>„Mehr“ → Dienste einteilen</strong>.
+            <strong>Im Admin-Bereich:</strong> am Computer oben im Menü <strong>„Dienste“</strong> (Abschnitt „Dienste einteilen“), am Handy unten
+            unter <strong>„Mehr“ → Dienste einteilen</strong> (ein Abschnitt der Gruppe „Dienste“).
           </li>
           <li>
             <strong>Im Profil:</strong> oben die Schaltflächen „Schiedsrichterwart“, „Zeitnehmerwart“, „Ordnerwart“ und
@@ -871,8 +871,8 @@ export default async function HilfePage() {
       <section id="statistik" className="flex flex-col gap-2 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">Statistik &amp; offene Dienste</h2>
         <p className="text-sm text-muted-foreground">
-          Unter <strong>Verwaltung → Offene Dienste</strong> steht, was noch zu besetzen ist (ein Spiel mit mehreren offenen Rollen
-          zählt einmal). Unter <strong>Verwaltung → Statistik</strong> seht ihr die Bilanz aller Mannschaften über alle Spiele (Heim
+          Unter <strong>Dienste → Offene Dienste</strong> steht, was noch zu besetzen ist (ein Spiel mit mehreren offenen Rollen
+          zählt einmal). Unter <strong>Auswertung → Statistik</strong> seht ihr die Bilanz aller Mannschaften über alle Spiele (Heim
           und Auswärts; laufende Spiele zählen erst mit dem endgültigen Ergebnis), darunter je Mannschaft eine Karte mit Form, Tore pro Spiel, Heim/Auswärts,
           höchstem Sieg und Halbzeit-Auswertung, und die Top-Dienstleistenden. Dieselbe Mannschaftsstatistik sehen Spieler und Eltern
           in der öffentlichen App im Reiter „Statistik“.
@@ -896,7 +896,7 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Unter{" "}
           <Link href="/admin/trainingsplan" className="font-medium underline">
-            Verwaltung → Trainingsplan
+            Spielbetrieb → Trainingsplan
           </Link>{" "}
           plant ihr die wöchentlich wiederkehrenden Trainingszeiten je Halle: am Computer per Ziehen (Mannschaft auf einen
           Wochentag ziehen, Dauer an der unteren Kante anpassen), am Handy über „Bearbeiten“. Unterteilte Hallen haben eine
@@ -962,7 +962,7 @@ export default async function HilfePage() {
           <Link href="/admin/einstellungen#vereinstermine" className="font-medium underline">
             Einstellungen → Vereinstermine
           </Link>{" "}
-          ein (Standard: aus); danach gibt es im Admin-Menü <strong>Verwaltung → Vereinstermine</strong>; alle sehen ihre Termine im Kalender und im Profil unter „Mehr“ →
+          ein (Standard: aus); danach gibt es im Admin-Menü <strong>Verein → Vereinstermine</strong>; alle sehen ihre Termine im Kalender und im Profil unter „Mehr“ →
           „Vereinstermine“.
         </p>
         <p className="text-sm text-muted-foreground">
