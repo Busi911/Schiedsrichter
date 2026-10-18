@@ -4,6 +4,13 @@ export const BETA_ENDE = "30.11.2026";
 export const PREIS_REGULAER = 300; // € im Jahr
 export const PREIS_BETA = 200; // € im Jahr für Vereine, die in der Beta-Phase dabei sind
 export const PREIS_SPONSOR = 200; // € im Jahr für den Sponsor-Platz (optional), zusätzlich zur Übernahme des Vereinspreises
+
+// Optionales Add-on: Vereinsverwaltung (Mitgliederverwaltung, Online-Beitritt, Beiträge, SEPA)
+// Baut auf der Basis auf — wird nicht separat ohne Basis angeboten.
+// Förderfähig über #deinehrenamt.de (Landessportbund Hessen, bis zu 30.000 € pro Projekt).
+export const PREIS_VEREINSVERWALTUNG = 200; // € im Jahr (regulär), zusätzlich zum Basispreis
+export const PREIS_VEREINSVERWALTUNG_BETA = 200; // € im Jahr (Beta-Vorteil), zusätzlich zum Beta-Basispreis
+// Gesamtpreise: Basis 300 + VV 200 = 500 € regulär; Basis 200 + VV 200 = 400 € Beta
 // Sind alle Beta-Plätze vergeben oder ist die Beta vorbei, testet ein neuer Verein 14 Tage kostenlos (lib/abrechnung.ts TESTPHASE_TAGE), danach Rechnung.
 export const TESTPHASE_KURZ = `14 Tage kostenlos testen, ohne Zahlungsdaten und ohne automatische Verlängerung. Wer danach weitermachen möchte, bestätigt es selbst: ${PREIS_REGULAER} € im Jahr (netto), Rechnung per E-Mail, Zahlungsziel 30 Tage.`;
 export const NETTO = "Alle Preise netto (zzgl. gesetzl. MwSt.).";
