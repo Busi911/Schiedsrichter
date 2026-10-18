@@ -18,6 +18,7 @@ import { holeHandballNetApi } from "@/lib/handball-net/client";
 import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { signOut } from "@/auth";
 import { verbieteImDemo } from "@/lib/demo-verein";
+import { pruefeHttpsUrl } from "@/lib/beitritt";
 import { geaenderteStammdaten, GESPERRTE_FELDER, istStammdatenFeld, pruefeStammdatenWert, STAMMDATEN_FELDER } from "@/lib/stammdaten-felder";
 import { verbieteGesperrteAenderung } from "@/lib/stammdaten-sperre";
 import { benachrichtigeSystemAdminsUeberStammdatenAntrag } from "@/lib/system-admin-benachrichtigung";
@@ -96,6 +97,21 @@ export async function vereinstermineSpeichern(formData: FormData) {
   revalidatePath("/admin/einstellungen");
   revalidatePath("/admin", "layout");
   revalidatePath("/profil", "layout");
+}
+
+// Online-Beitritt (öffentliches Formular /verein/[slug]/beitritt, nur mit Add-on Vereinsverwaltung): ein-/ausschalten und Link zur Satzung (https, optional).
+export async function beitrittEinstellungenSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+  const v = await withTenant(vereinId, (tx) => tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { vereinsverwaltungAktiv: true } }));
+  if (!v?.vereinsverwaltungAktiv) throw new Error("Die Vereinsverwaltung ist für diesen Verein nicht freigeschaltet.");
+  const link = pruefeHttpsUrl(String(formData.get("satzungUrl") ?? ""));
+  if ("fehler" in link) throw new Error(link.fehler);
+  const beitrittAktiv = formData.get("beitrittAktiv") === "on";
+  await withTenant(vereinId, (tx) => tx.update(vereine).set({ beitrittAktiv, satzungUrl: link.url }).where(eq(vereine.id, vereinId)));
+  revalidatePath("/admin/einstellungen");
+  revalidatePath("/admin/mitglieder");
+  revalidatePath("/verein", "layout");
 }
 
 // Mail an den Vereinsadmin bei verlegten Spielen/neuen Ergebnissen (egal ob aus dem Hallenplan-Import oder

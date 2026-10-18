@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/submit-button";
 import { formatDatumZeit as formatDateTime } from "@/lib/format";
+import { ABSCHALTEN_GESPERRT_TEXT } from "@/lib/admin-hinweise-regel";
 
 type DialogSchluessel = "kalender" | "stammdaten" | "benachrichtigungen" | "ics";
 
@@ -50,6 +51,7 @@ export function ProfilEinstellungenMenu({
   offeneDiensteBroadcastAktiviert,
   trainingAusfallHinweiseAktiviert,
   adminHinweiseAktiviert,
+  adminHinweiseGesperrt,
   istVollerAdmin,
   vereinsterminHinweiseAktiviert,
   vereinstermineAktiv,
@@ -87,6 +89,8 @@ export function ProfilEinstellungenMenu({
   offeneDiensteBroadcastAktiviert: boolean;
   trainingAusfallHinweiseAktiviert: boolean;
   adminHinweiseAktiviert: boolean;
+  // Letzter Admin mit diesen Hinweisen: Abschalten gesperrt (siehe lib/admin-hinweise-regel.ts).
+  adminHinweiseGesperrt: boolean;
   istVollerAdmin: boolean;
   vereinsterminHinweiseAktiviert: boolean;
   vereinstermineAktiv: boolean;
@@ -403,8 +407,12 @@ export function ProfilEinstellungenMenu({
                   id="adminHinweise"
                   name="adminHinweise"
                   defaultChecked={adminHinweiseAktiviert}
+                  disabled={adminHinweiseGesperrt}
                 />
               </div>
+            )}
+            {istVollerAdmin && adminHinweiseGesperrt && (
+              <p className="-mt-2 text-xs text-muted-foreground">{ABSCHALTEN_GESPERRT_TEXT}</p>
             )}
             <SubmitButton className="w-full">Speichern</SubmitButton>
           </form>

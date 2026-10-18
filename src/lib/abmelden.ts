@@ -1,9 +1,10 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { users } from "@/db/schema";
 import { appUrl } from "./app-url";
+import { ABSCHALTEN_GESPERRT_TEXT, abschaltenErlaubt } from "./admin-hinweise-regel";
 
 // Abbestellbare Mailarten (nur die optionalen Erinnerungs-/Übersichtsmails; Login-Link, Verlegungen
 // u.ä. gehören zum Betrieb und sind bewusst NICHT abbestellbar). Jede Art entspricht dem persönlichen
@@ -66,8 +67,23 @@ export function abmeldeInfo(userId: string, art: AbmeldeArt): { url: string; tex
   return { url: abmeldeUrl(userId, art), text: `Diese Mails (${ABMELDE_ARTEN[art]}) nicht mehr erhalten:` };
 }
 
-export async function setzeAbmeldung(userId: string, art: AbmeldeArt, aktiv: boolean): Promise<void> {
+/** Darf diese Person die Admin-Hinweise abschalten? Nicht, wenn sie als Letzte im Verein übrig ist (siehe admin-hinweise-regel.ts). */
+export async function adminHinweiseAbschaltbar(userId: string): Promise<boolean> {
+  const [u] = await adminDb.select({ vereinId: users.vereinId, istAdmin: users.istAdmin, aktiv: users.adminHinweiseAktiviert }).from(users).where(eq(users.id, userId));
+  if (!u || !u.vereinId || !u.istAdmin || !u.aktiv) return true;
+  const andere = await adminDb
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.vereinId, u.vereinId), eq(users.istAdmin, true), eq(users.adminHinweiseAktiviert, true), ne(users.id, userId)));
+  return abschaltenErlaubt({ istVollerAdmin: u.istAdmin, istAktiv: u.aktiv, andereAktiveAdmins: andere.length });
+}
+
+export type AbmeldeErgebnis = { ok: true } | { ok: false; grund: string };
+
+export async function setzeAbmeldung(userId: string, art: AbmeldeArt, aktiv: boolean): Promise<AbmeldeErgebnis> {
+  if (art === "admin-hinweise" && !aktiv && !(await adminHinweiseAbschaltbar(userId))) return { ok: false, grund: ABSCHALTEN_GESPERRT_TEXT };
   await adminDb.update(users).set(FELD[art](aktiv)).where(eq(users.id, userId));
+  return { ok: true };
 }
 
 export async function istAngemeldet(userId: string, art: AbmeldeArt): Promise<boolean | null> {

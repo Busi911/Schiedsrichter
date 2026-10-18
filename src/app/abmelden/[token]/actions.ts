@@ -10,9 +10,9 @@ async function setze(formData: FormData, aktiv: boolean) {
   const token = formData.get("token");
   const gueltig = typeof token === "string" ? pruefeAbmeldeToken(token) : null;
   if (!gueltig || typeof token !== "string") throw new Error("Ungültiger Link.");
-  await setzeAbmeldung(gueltig.userId, gueltig.art, aktiv);
+  const ergebnis = await setzeAbmeldung(gueltig.userId, gueltig.art, aktiv);
   revalidatePath(`/abmelden/${token}`);
-  redirect(`/abmelden/${token}`);
+  redirect(ergebnis.ok ? `/abmelden/${token}` : `/abmelden/${token}?gesperrt=1`);
 }
 
 export async function abbestellen(formData: FormData) {

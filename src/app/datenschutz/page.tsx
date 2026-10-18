@@ -178,6 +178,19 @@ export default function DatenschutzPage() {
       </section>
 
       <section className="flex flex-col gap-2">
+        <h2 className="font-heading text-lg font-medium">Online-Beitritt (Mitglied werden)</h2>
+        <p className="text-sm text-muted-foreground">
+          Wenn ein Verein den Online-Beitritt einschaltet, kannst du über ein Formular auf seiner Vereinsseite die Mitgliedschaft beantragen. Dafür
+          werden Vor- und Nachname, Geburtsdatum, E-Mail-Adresse und freiwillig Telefonnummer, Geschlecht und gewünschte Mannschaft gespeichert,
+          dazu deine Einwilligungen (Datenschutzerklärung, Satzung, freiwillig Fotos und Videos). Kinder und Jugendliche unter 18 Jahren sollen das
+          Formular über eine erziehungsberechtigte Person ausfüllen lassen. Der Antrag geht an die Admins des Vereins, du bekommst eine
+          Bestätigung per E-Mail und später die Annahme oder Absage. Verantwortlich für diese Daten ist der jeweilige Verein, HandballerPate
+          verarbeitet sie in seinem Auftrag. Erst mit der Annahme durch den Verein wirst du Mitglied; bearbeitete Anträge bleiben als Nachweis der
+          Einwilligungen gespeichert, bis der Verein sie löscht. Du kannst jederzeit beim Verein Auskunft und Löschung verlangen.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">Trainingszeiten auf den öffentlichen Vereinsseiten</h2>
         <p className="text-sm text-muted-foreground">
           Wenn ein Verein den Reiter „Training“ einschaltet, zeigt seine öffentliche Seite die Trainingszeiten der

@@ -12,6 +12,14 @@ export async function vereinsverwaltungAktiv(vereinId: string): Promise<boolean>
   });
 }
 
+// Online-Beitritt eingeschaltet (Add-on UND Schalter)? Für die Hinweise auf der Mitgliederseite.
+export async function beitrittEingeschaltet(vereinId: string): Promise<boolean> {
+  return withTenant(vereinId, async (tx) => {
+    const v = await tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { vereinsverwaltungAktiv: true, beitrittAktiv: true } });
+    return !!v?.vereinsverwaltungAktiv && !!v.beitrittAktiv;
+  });
+}
+
 export type MitgliedZeile = typeof mitglieder.$inferSelect;
 
 export async function ladeMitglieder(vereinId: string): Promise<MitgliedZeile[]> {

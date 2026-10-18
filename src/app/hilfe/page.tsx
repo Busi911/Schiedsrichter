@@ -494,8 +494,19 @@ export default async function HilfePage() {
           im Vereinsprotokoll vermerkt.
         </p>
         <p className="text-sm text-muted-foreground">
+          <strong id="online-beitritt" className="scroll-mt-6">Online-Beitritt:</strong> Unter <strong>Einstellungen → Online-Beitritt</strong> schaltet ihr ein öffentliches Formular ein
+          (<code>/verein/…/beitritt</code>, braucht die öffentliche Vereinsseite) und hinterlegt optional den Link zur Satzung. Interessierte tragen Name, Geburtsdatum, E-Mail und
+          freiwillig Telefon, Geschlecht und Wunschmannschaft ein und bestätigen Datenschutz (und, wenn ihr einen Satzungslink hinterlegt habt, die Satzung); die Foto-Einwilligung ist freiwillig.
+          Der Antrag erscheint unter <strong>Verein → Mitglieder → Beitrittsanträge</strong>, alle Admins mit eingeschalteten Admin-Hinweisen bekommen eine Mail mit Name und E-Mail. Mit{" "}
+          <em>Annehmen</em> wird die Person Mitglied (aktiv, Eintritt heute, Wunschmannschaft für die laufende Saison, die Einwilligungen stehen in der Bemerkung) und bekommt eine Willkommens-Mail;
+          mit <em>Ablehnen</em> bekommt sie eine Absage, auf Wunsch mit eurem Hinweis. Gibt es das Mitglied wohl schon (gleiche E-Mail oder gleicher Name), nehmt ihr nur nach ausdrücklicher
+          Bestätigung „Trotzdem als neues Mitglied annehmen“ an. Bearbeitete Anträge bleiben als Nachweis der Einwilligungen gespeichert, bis ihr sie löscht. Gegen Missbrauch gibt es ein
+          verstecktes Köderfeld und eine Grenze von 20 Anträgen je Stunde. <strong>Admin-Hinweise:</strong> Mindestens ein Admin im Verein muss sie aktiv haben, der letzte kann sie nicht
+          abschalten (Profil → Benachrichtigungen bzw. Abmelde-Link der Mail).
+        </p>
+        <p className="text-sm text-muted-foreground">
           <strong>Suchen und filtern:</strong> Die Suche findet Vor- und Nachname sowie E-Mail (mehrere Wörter müssen alle passen), der Filter zeigt nur einen
-          Status. Die Liste ist nach Nachname sortiert. Noch nicht enthalten, aber geplant: Online-Beitrittsformular (siehe{" "}
+          Status. Die Liste ist nach Nachname sortiert. Noch nicht enthalten, aber geplant: Beitragsklassen und Beiträge (siehe{" "}
           <Link href="/roadmap" className="font-medium underline">
             Roadmap
           </Link>

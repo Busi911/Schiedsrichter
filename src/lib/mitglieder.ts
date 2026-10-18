@@ -40,7 +40,7 @@ export type GeprueftesMitglied = {
 
 const DATUM = /^\d{4}-\d{2}-\d{2}$/;
 
-function istEchtesDatum(w: string): boolean {
+export function istEchtesDatum(w: string): boolean {
   if (!DATUM.test(w)) return false;
   const d = new Date(`${w}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === w;

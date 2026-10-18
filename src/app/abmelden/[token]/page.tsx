@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ABMELDE_ARTEN, istAngemeldet, pruefeAbmeldeToken } from "@/lib/abmelden";
+import { ABSCHALTEN_GESPERRT_TEXT } from "@/lib/admin-hinweise-regel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubmitButton } from "@/components/submit-button";
 import { abbestellen, wiederAnmelden } from "./actions";
 
 export const metadata: Metadata = { title: "Mails abbestellen", robots: { index: false, follow: false } };
 
-export default async function AbmeldenPage({ params }: { params: Promise<{ token: string }> }) {
+export default async function AbmeldenPage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ gesperrt?: string }> }) {
   const { token } = await params;
+  const { gesperrt } = await searchParams;
   const gueltig = pruefeAbmeldeToken(token);
   const angemeldet = gueltig ? await istAngemeldet(gueltig.userId, gueltig.art) : null;
 
@@ -33,6 +35,7 @@ export default async function AbmeldenPage({ params }: { params: Promise<{ token
           )}
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          {gesperrt && <p className="rounded-md border border-destructive p-3 text-sm text-destructive">{ABSCHALTEN_GESPERRT_TEXT}</p>}
           {gueltig && angemeldet === true && (
             <form action={abbestellen} className="flex flex-col gap-2">
               <input type="hidden" name="token" value={token} />

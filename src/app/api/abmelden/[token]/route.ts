@@ -8,7 +8,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ to
   const { token } = await params;
   const gueltig = pruefeAbmeldeToken(token);
   if (!gueltig) return new NextResponse("Ungültiger Link.", { status: 400 });
-  await setzeAbmeldung(gueltig.userId, gueltig.art, false);
+  const ergebnis = await setzeAbmeldung(gueltig.userId, gueltig.art, false);
+  if (!ergebnis.ok) return new NextResponse(ergebnis.grund, { status: 409 });
   return new NextResponse("Abgemeldet.", { status: 200 });
 }
 

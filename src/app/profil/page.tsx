@@ -59,6 +59,7 @@ import { appUrl } from "@/lib/app-url";
 import { kalenderArtenZusatz, parseKalenderArten } from "@/lib/kalender-arten";
 import { holeKalenderErgaenzung } from "@/lib/kalender-ergaenzung";
 import { KalenderFilter } from "@/components/kalender-filter";
+import { adminHinweiseAbschaltbar } from "@/lib/abmelden";
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -260,6 +261,8 @@ export default async function ProfilPage({
   const istDienstwart = rollen.some(
     (r) => r.typ === "dienstwart" && r.aktiv
   );
+  // Letzter Admin mit den Admin-Hinweisen: der Schalter ist gesperrt (lib/admin-hinweise-regel.ts).
+  const adminHinweiseGesperrt = !!session.user.istAdmin && !(await adminHinweiseAbschaltbar(session.user.id));
   const istTrainer = rollen.some((r) => r.typ === "trainer" && r.aktiv);
   const istDienstRolleninhaber = rollen.some(
     (r) =>
@@ -313,6 +316,7 @@ export default async function ProfilPage({
               trainingAusfallHinweiseAktiviert={eigeneStammdaten?.trainingAusfallHinweiseAktiviert ?? true}
               vereinsterminHinweiseAktiviert={eigeneStammdaten?.vereinsterminHinweiseAktiviert ?? true}
               adminHinweiseAktiviert={eigeneStammdaten?.adminHinweiseAktiviert ?? true}
+              adminHinweiseGesperrt={adminHinweiseGesperrt}
               istVollerAdmin={!!session.user.istAdmin}
               vereinstermineAktiv={verein?.vereinstermineAktiv ?? false}
               istTrainer={istTrainer}

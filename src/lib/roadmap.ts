@@ -124,7 +124,7 @@ export const ROADMAP: RoadmapPhase[] = [
       {
         titel: "Mitgliederverwaltung",
         status: "in_arbeit",
-        text: "Die Mitgliederliste steht (für Vereine mit freigeschaltetem Add-on): anlegen, bearbeiten, suchen, nach Status filtern, Austritt vermerken. Funktionsträger werden beim Freischalten automatisch als Mitglieder übernommen, mit Duplikatprüfung. Mitglieder lassen sich je Saison Mannschaften zuordnen (Spieler, Trainer, Betreuer) und haben eine vom Verein gepflegte Art der Mitgliedschaft (z.B. Fördermitglied). Mitglieder lassen sich als Excel-Datei importieren und exportieren. Als Nächstes kommt das Online-Beitrittsformular mit Einwilligungen.",
+        text: "Die Mitgliederliste steht (für Vereine mit freigeschaltetem Add-on): anlegen, bearbeiten, suchen, nach Status filtern, Austritt vermerken. Funktionsträger werden beim Freischalten automatisch als Mitglieder übernommen, mit Duplikatprüfung. Mitglieder lassen sich je Saison Mannschaften zuordnen (Spieler, Trainer, Betreuer) und haben eine vom Verein gepflegte Art der Mitgliedschaft (z.B. Fördermitglied). Mitglieder lassen sich als Excel-Datei importieren und exportieren. Interessierte können online die Mitgliedschaft beantragen (öffentliches Formular mit Einwilligungen); der Verein nimmt Anträge an oder lehnt sie ab. Als Nächstes kommen Beitragsklassen und Beiträge.",
       },
       {
         titel: "Beiträge",
