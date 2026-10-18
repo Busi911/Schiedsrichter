@@ -19,6 +19,7 @@ import { saisonOptionen } from "@/lib/mitglied-mannschaften";
 import { ladeVereinsMannschaften, ladeZuordnungen } from "@/lib/mitglied-mannschaften-daten";
 import { saisonLabel } from "@/lib/saison";
 import {
+  funktionstraegerNameErgaenzen,
   funktionstraegerUebernehmen,
   mitgliedAendern,
   mitgliedAnlegen,
@@ -129,9 +130,39 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
               </div>
             )}
             {plan.unvollstaendig.length > 0 && (
-              <p className="text-muted-foreground">
-                Ohne Vor- und Nachnamen nicht übernehmbar: {plan.unvollstaendig.map((p) => p.name || p.email).join(", ")}. Ergänzt den Namen unter Funktionsträger.
-              </p>
+              <div className="flex flex-col gap-2">
+                <p className="font-medium">Name unvollständig (so lassen sie sich nicht als Mitglied übernehmen):</p>
+                {plan.unvollstaendig.map((p) => {
+                  const einWort = !!p.name?.trim() && !/[\s,]/.test(p.name.trim());
+                  return schreiben ? (
+                    <form key={p.userId} action={funktionstraegerNameErgaenzen} className="flex flex-wrap items-end gap-2">
+                      <input type="hidden" name="userId" value={p.userId} />
+                      {!einWort && (
+                        <div className="flex min-w-0 flex-1 basis-36 flex-col gap-1">
+                          <label htmlFor={`vn-${p.userId}`} className="text-xs text-muted-foreground">
+                            Vorname
+                          </label>
+                          <Input id={`vn-${p.userId}`} name="vorname" required maxLength={100} autoComplete="off" />
+                        </div>
+                      )}
+                      <div className="flex min-w-0 flex-1 basis-36 flex-col gap-1">
+                        <label htmlFor={`nn-${p.userId}`} className="text-xs text-muted-foreground">
+                          {einWort ? `Nachname zu „${p.name?.trim()}“` : `Nachname (${p.email})`}
+                        </label>
+                        <Input id={`nn-${p.userId}`} name="nachname" required maxLength={100} autoComplete="off" />
+                      </div>
+                      <SubmitButton variant="outline" className="w-full sm:w-auto" pendingText="Ergänzt…">
+                        Ergänzen
+                      </SubmitButton>
+                    </form>
+                  ) : (
+                    <p key={p.userId} className="text-muted-foreground">
+                      {p.name?.trim() || p.email}
+                    </p>
+                  );
+                })}
+                <p className="text-xs text-muted-foreground">Der Name wird auch beim Funktionsträger ergänzt.</p>
+              </div>
             )}
             {schreiben && (plan.neu.length > 0 || plan.verknuepfen.length > 0) && (
               <form action={funktionstraegerUebernehmen}>

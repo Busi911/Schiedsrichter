@@ -2,7 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { funktionstraegerRollen, mitglieder, mitgliedsarten, users, vereine } from "@/db/schema";
 import type { ImportPlan } from "@/lib/mitglieder-import";
-import { planeUeberfuehrung, type KontoPerson, type UeberfuehrungPlan } from "@/lib/mitglieder-ueberfuehrung";
+import { ergaenzeName, planeUeberfuehrung, type KontoPerson, type UeberfuehrungPlan } from "@/lib/mitglieder-ueberfuehrung";
 
 // Add-on Vereinsverwaltung eingeschaltet? Nur der Systemadmin schaltet es frei (/system/abrechnung). Aus = Seiten zeigen einen Hinweis, Actions lehnen ab.
 export async function vereinsverwaltungAktiv(vereinId: string): Promise<boolean> {
@@ -71,7 +71,8 @@ export async function fuehreUeberfuehrungAus(vereinId: string): Promise<Ueberfue
           vorname: n.vorname,
           email: n.person.email,
           telefon: n.person.telefon,
-          status: n.person.aktiv ? "aktiv" : "passiv",
+          // Immer aktiv: ein Funktionsträger ohne aktivierte Rolle (z.B. nie für den Login freigeschaltet) ist deshalb kein passives Mitglied.
+          status: "aktiv",
           eintrittsdatum: null,
           bemerkung: "Aus den Funktionsträgern übernommen.",
         })
@@ -144,4 +145,27 @@ export async function schreibeImportPlan(vereinId: string, plan: ImportPlan): Pr
       })
     );
   });
+}
+
+/**
+ * Ergänzt den Namen eines Funktionsträgers (Konto) um den fehlenden Nachnamen/Vornamen und übernimmt ihn danach in die Mitgliederliste.
+ * Nur Personen DIESES Vereins mit mindestens einer Rolle ("user" hat keine RLS: der Vereinsfilter steht ausdrücklich in der Abfrage).
+ */
+export async function ergaenzeFunktionstraegerName(vereinId: string, userId: string, vorname: string, nachname: string): Promise<{ ok: true } | { fehler: string }> {
+  const gefunden = await withTenant(vereinId, async (tx) => {
+    const zeilen = await tx
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .innerJoin(funktionstraegerRollen, eq(funktionstraegerRollen.userId, users.id))
+      .where(and(eq(users.id, userId), eq(users.vereinId, vereinId)))
+      .limit(1);
+    if (zeilen.length === 0) return { fehler: "Person nicht gefunden." } as const;
+    const ergebnis = ergaenzeName(zeilen[0].name, vorname, nachname);
+    if ("fehler" in ergebnis) return ergebnis;
+    await tx.update(users).set({ name: ergebnis.name }).where(and(eq(users.id, userId), eq(users.vereinId, vereinId)));
+    return { ok: true } as const;
+  });
+  if ("fehler" in gefunden) return gefunden;
+  await fuehreUeberfuehrungAus(vereinId);
+  return { ok: true };
 }
