@@ -30,7 +30,7 @@ export async function tarifSpeichern(formData: FormData) {
   if (tarif !== "befreit" && tarif !== "beta" && tarif !== "regulaer") redirect(meldung("fehler", "Unbekannter Tarif."));
   const sponsor = formData.get("sponsor") === "on";
   await adminDb.update(vereine).set({ tarif: tarif as Tarif, sponsorUebernimmt: sponsor, zahlungMailMarke: null }).where(eq(vereine.id, v.id));
-  await schreibeProtokoll(v.id, "tarif_geaendert", session.user.email ?? "Systemadmin", `Tarif ${tarif}, Sponsor ${sponsor ? "übernimmt" : "nein"} (${betragNetto(tarif as Tarif, sponsor)} € netto)`);
+  await schreibeProtokoll(v.id, "tarif_geaendert", session.user.email ?? "Systemadmin", `Tarif ${tarif}, Sponsor ${sponsor ? "übernimmt" : "nein"} (${betragNetto(tarif as Tarif, sponsor, v.vereinsverwaltungAktiv)} € netto)`);
   revalidatePath("/system/abrechnung");
   redirect(meldung("ok", `${v.name}: Tarif gespeichert.`));
 }

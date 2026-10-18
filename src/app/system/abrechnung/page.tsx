@@ -39,7 +39,7 @@ export default async function AbrechnungSeite({ searchParams }: { searchParams: 
     .map((v) => ({ v, stand: zahlungsStand(v, jetzt) }))
     .sort((a, b) => ZAHLUNGS_RANG[a.stand.art] - ZAHLUNGS_RANG[b.stand.art] || (a.stand.faelligAm?.getTime() ?? Infinity) - (b.stand.faelligAm?.getTime() ?? Infinity) || a.v.name.localeCompare(b.v.name));
   const zaehle = (...arten: ZahlungsArt[]) => zeilen.filter((z) => arten.includes(z.stand.art)).length;
-  const summe = zeilen.reduce((s, z) => s + (z.stand.art === "befreit" ? 0 : betragNetto(z.v.tarif, z.v.sponsorUebernimmt)), 0);
+  const summe = zeilen.reduce((s, z) => s + (z.stand.art === "befreit" ? 0 : betragNetto(z.v.tarif, z.v.sponsorUebernimmt, z.v.vereinsverwaltungAktiv)), 0);
 
   return (
     <div className="flex max-w-3xl flex-col gap-5">
@@ -71,7 +71,7 @@ export default async function AbrechnungSeite({ searchParams }: { searchParams: 
       {zeilen.map(({ v, stand }) => {
         const adresse = [v.strasse, [v.plz, v.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
         const vorschlag = tagKey(vorschlagBezahltBis(v, jetzt));
-        const betrag = betragNetto(v.tarif, v.sponsorUebernimmt);
+        const betrag = betragNetto(v.tarif, v.sponsorUebernimmt, v.vereinsverwaltungAktiv);
         return (
           <Card key={v.id}>
             <CardContent className="flex flex-col gap-3">

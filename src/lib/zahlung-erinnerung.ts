@@ -23,7 +23,7 @@ function rechnungsZeilen(v: Zeile): string[] {
   const adresse = [v.strasse, [v.plz, v.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return [
     `Verein: ${v.name}`,
-    `Tarif: ${v.tarif === "beta" ? "Beta-Tester" : "Regulär"}${v.sponsorUebernimmt ? " · Sponsor übernimmt alles" : ""} — ${euro(betragNetto(v.tarif, v.sponsorUebernimmt))} netto im Jahr`,
+    `Tarif: ${v.tarif === "beta" ? "Beta-Tester" : "Regulär"}${v.sponsorUebernimmt ? " · Sponsor übernimmt alles" : ""} — ${euro(betragNetto(v.tarif, v.sponsorUebernimmt, v.vereinsverwaltungAktiv))} netto im Jahr`,
     `Rechnung an: ${v.rechnungAnsprechpartner ?? "—"}, ${v.rechnungEmail ?? "(keine Rechnungs-E-Mail hinterlegt)"}`,
     `Anschrift: ${adresse || "(keine Anschrift hinterlegt)"}`,
   ];
@@ -54,7 +54,7 @@ export function systemAdminInhalt(v: Zeile, stufe: ZahlungsStufe, faelligAm: Dat
 }
 
 export function vereinInhalt(v: Zeile, stufe: ZahlungsStufe, faelligAm: Date, sperreAb: Date): EmailInhalt {
-  const betrag = euro(betragNetto(v.tarif, v.sponsorUebernimmt));
+  const betrag = euro(betragNetto(v.tarif, v.sponsorUebernimmt, v.vereinsverwaltungAktiv));
   const an = v.rechnungEmail ?? "eure Admin-E-Mail-Adresse";
   return {
     vereinName: v.name,
@@ -117,7 +117,7 @@ export async function sendeWeiternutzungBestaetigt(vereinId: string, wer: string
         vereinName: v.name,
         ueberschrift: "Schön, dass ihr dabei bleibt!",
         zeilen: [
-          `Der Zugang ist wieder frei. Die Rechnung über ${euro(betragNetto(v.tarif, false))} netto (12 Monate) geht per E-Mail an ${v.rechnungEmail ?? "eure Admin-E-Mail-Adresse"}, Zahlungsziel ${formatDatum(v.zahlungFaelligAm)}.`,
+          `Der Zugang ist wieder frei. Die Rechnung über ${euro(betragNetto(v.tarif, false, v.vereinsverwaltungAktiv))} netto (12 Monate) geht per E-Mail an ${v.rechnungEmail ?? "eure Admin-E-Mail-Adresse"}, Zahlungsziel ${formatDatum(v.zahlungFaelligAm)}.`,
           `Bei Fragen: ${KONTAKT_EMAIL}.`,
         ],
       };
