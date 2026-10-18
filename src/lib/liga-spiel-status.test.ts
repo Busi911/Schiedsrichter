@@ -85,12 +85,11 @@ describe("istZwischenstand", () => {
   const anwurf = new Date("2026-10-04T15:00:00Z");
   const t = (min: number) => new Date(anwurf.getTime() + min * 60_000);
   const lauf = mit({ beginn: anwurf, toreHeim: 19, toreGast: 6 });
-  it("nicht genehmigtes Ergebnis wird 12 Stunden lang nicht als Ergebnis gezeigt (kann ein veralteter Zwischenstand sein), danach als vorläufig", () => {
+  it("nicht genehmigtes Ergebnis wird 3 Stunden lang nicht als Ergebnis gezeigt (kann ein veralteter Zwischenstand sein), danach als vorläufig", () => {
     expect(istZwischenstand(lauf, t(40))).toBe(true);
     expect(istZwischenstand(lauf, t(91))).toBe(true);
-    expect(istZwischenstand(lauf, t(181))).toBe(true);
-    expect(istZwischenstand(lauf, t(11 * 60))).toBe(true);
-    expect(istZwischenstand(lauf, t(13 * 60))).toBe(false);
+    expect(istZwischenstand(lauf, t(179))).toBe(true);
+    expect(istZwischenstand(lauf, t(181))).toBe(false);
   });
   it("laeuftMitStand: nur in den ersten 90 Minuten (dann Heute/Läuft gerade), danach bei den Ergebnissen", () => {
     expect(laeuftMitStand(lauf, t(89))).toBe(true);

@@ -48,8 +48,8 @@ describe("berechneMannschaftsKennzahlen", () => {
     );
     expect(k).toBeNull();
   });
-  it("zählt einen nicht genehmigten Stand auch nach dem Spiel nicht (kann veraltet sein)", () => {
-    const alt = heim(19, 6, { ergebnisBestaetigt: false, beginn: new Date("2026-10-05T08:00:00Z") }); // 4 h vor "jetzt"
+  it("zählt einen nicht genehmigten Stand innerhalb von 3 Stunden nicht (kann veraltet sein)", () => {
+    const alt = heim(19, 6, { ergebnisBestaetigt: false, beginn: new Date("2026-10-05T10:00:00Z") }); // 2 h vor "jetzt"
     expect(berechneMannschaftsKennzahlen(team([alt]), jetzt)).toBeNull();
     const genehmigt = heim(30, 25, { ergebnisBestaetigt: true, beginn: new Date("2026-10-05T08:00:00Z") });
     expect(berechneMannschaftsKennzahlen(team([genehmigt]), jetzt)).not.toBeNull();

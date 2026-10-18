@@ -48,8 +48,8 @@ export function liveTickerRelevant(s: SpielAnsicht, jetzt: Date): boolean {
 // Spielplan-Spalte kann lange veraltet bleiben (18.10.2026: 8:7 stand als "vorläufig" da, obwohl das Spiel längst 44:24
 // geendet hatte). Ob ein nicht genehmigter Stand endgültig ist, sagt nuLiga nicht. Die Seite zeigt deshalb NUR ein
 // Endergebnis (genehmigt, Betreiber 18.10.2026): ein nicht genehmigter Stand steht nie als Zahl da ("Läuft gerade" in den
-// ersten 90 Min, danach "Ergebnis folgt"), erst nach 12 Stunden als "vorläufig" (z.B. wenn nuLiga ein Spiel nie genehmigt).
-export const ZWISCHENSTAND_FENSTER_MS = 12 * 60 * 60 * 1000;
+// ersten 90 Min, danach "Ergebnis folgt"), erst nach 3 Stunden als "vorläufig" (z.B. wenn nuLiga ein Spiel nie genehmigt).
+export const ZWISCHENSTAND_FENSTER_MS = 3 * 60 * 60 * 1000;
 
 export function istZwischenstand(s: SpielAnsicht, jetzt: Date): boolean {
   if (!KURZ(s) || s.ergebnisBestaetigt || s.status === "nicht_angetreten" || !s.beginn) return false;
