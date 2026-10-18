@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import { LogOutIcon } from "lucide-react";
+import { LogOutIcon, SettingsIcon } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
@@ -9,10 +9,12 @@ import { signOut } from "@/auth";
 import { treuhandBeenden } from "@/app/system/vereine/actions";
 import { holeOffenePosten, holeOffeneSchiedsrichterAnzahl } from "@/lib/dashboard";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { SubmitButton } from "@/components/submit-button";
 import { AdminNav } from "@/components/admin-nav";
 import { WART_ITEMS } from "@/lib/wart-navigation";
+import { baueAdminNavigation, mobileNavigation } from "@/lib/admin-navigation";
 import { BottomNav } from "@/components/bottom-nav";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { HilfeLink } from "@/components/hilfe-link";
@@ -51,6 +53,14 @@ export default async function AdminLayout({
     holeOffeneSchiedsrichterAnzahl(vereinId),
   ]);
   const warte = session.user.istAdmin ? WART_ITEMS : [];
+  // Eine Quelle für Desktop und Handy (lib/admin-navigation.ts); Wart-Seiten nur für volle Admins, Add-on-Punkte nur bei eingeschaltetem Schalter.
+  const nav = baueAdminNavigation({
+    vereinstermine: verein?.vereinstermineAktiv ?? false,
+    vereinsverwaltung: verein?.vereinsverwaltungAktiv ?? false,
+    warte,
+    offeneDienste: offeneDiensteAnzahl,
+  });
+  const mobil = mobileNavigation(nav);
 
   return (
     <div className="min-h-screen">
@@ -117,7 +127,7 @@ export default async function AdminLayout({
               </form>
             </div>
           </div>
-          <AdminNav warte={warte} vereinstermine={verein?.vereinstermineAktiv ?? false} mitglieder={verein?.vereinsverwaltungAktiv ?? false} />
+          <AdminNav nav={nav} />
           {/* Auf Mobile eine eigene, sonst leer wirkende Zeile (Nav ist dort
               hinter dem Hamburger versteckt) — dort zentriert statt wie auf
               Desktop (wo sie neben der Nav steht) am linken Rand mit viel
@@ -159,6 +169,14 @@ export default async function AdminLayout({
             <div className="hidden md:block">
               <HilfeLink />
             </div>
+            <Link
+              href="/admin/einstellungen"
+              aria-label="Einstellungen"
+              title="Einstellungen"
+              className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }), "hidden md:inline-flex")}
+            >
+              <SettingsIcon className="size-4" />
+            </Link>
             <div className="hidden md:block">
               <FeedbackDialog />
             </div>
@@ -183,37 +201,8 @@ export default async function AdminLayout({
       </header>
       <main className="mx-auto max-w-screen-2xl p-6 pb-24 md:pb-6">{children}</main>
       <BottomNav
-        // Muss mit PRIMARY_ITEMS/VERWALTUNG_ITEMS in admin-nav.tsx
-        // übereinstimmen (Desktop-Pendant).
-        tabs={[
-          { href: "/admin", label: "Übersicht", icon: "home", exact: true },
-          { href: "/admin/kalender", label: "Kalender", icon: "kalender" },
-          { href: "/admin/termine", label: "Spiele", icon: "termine" },
-        ]}
-        mehrItems={[
-          {
-            href: "/admin/dienste",
-            label: "Offene Dienste",
-            icon: "dienste",
-            badge: offeneDiensteAnzahl,
-            gruppe: "Planung",
-          },
-          { href: "/admin/trainingsplan", label: "Trainingsplan", icon: "training", gruppe: "Planung" },
-          ...(verein?.vereinstermineAktiv
-            ? [{ href: "/admin/vereinstermine", label: "Vereinstermine", icon: "termine" as const, gruppe: "Planung" }]
-            : []),
-          ...(verein?.vereinsverwaltungAktiv
-            ? [{ href: "/admin/mitglieder", label: "Mitglieder", icon: "funktionstraeger" as const, gruppe: "Planung" }]
-            : []),
-          { href: "/admin/mannschaften", label: "Mannschaften", icon: "mannschaften", gruppe: "Planung" },
-          { href: "/admin/funktionstraeger", label: "Funktionsträger", icon: "funktionstraeger", gruppe: "Planung" },
-          ...warte.map((w) => ({ ...w, icon: "wart" as const, gruppe: "Dienste einteilen" })),
-          { href: "/admin/statistik", label: "Statistik", icon: "statistik", gruppe: "Auswertung" },
-          { href: "/admin/auswertung", label: "Auswertung & Export", icon: "auswertung", gruppe: "Auswertung" },
-          { href: "/admin/einstellungen", label: "Einstellungen", icon: "einstellungen", gruppe: "Verein & Konto" },
-          { href: "/profil", label: "Mein Profil", icon: "profil", gruppe: "Verein & Konto" },
-          { href: "/hilfe", label: "Hilfe", icon: "hilfe", gruppe: "Verein & Konto" },
-        ]}
+        tabs={mobil.tabs}
+        mehrItems={mobil.mehr}
         logoutAction={async () => {
           "use server";
           await signOut({ redirectTo: "/login" });
