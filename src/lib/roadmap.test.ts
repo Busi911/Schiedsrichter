@@ -24,9 +24,10 @@ describe("Roadmap", () => {
     }
   });
 
-  it("Ideen der Vereinsverwaltung haben kein Datum (keine Zusagen)", () => {
+  it("Vereinsverwaltung hat kein Datum (keine Zusagen), nur die begonnene Mitgliederverwaltung ist mehr als eine Idee", () => {
     const verwaltung = ROADMAP.find((p) => p.id === "vereinsverwaltung")!;
     expect(verwaltung.zeitraum).toMatch(/nicht terminiert/);
-    expect(verwaltung.punkte.every((p) => p.status === "idee")).toBe(true);
+    const nichtIdee = verwaltung.punkte.filter((p) => p.status !== "idee").map((p) => p.titel);
+    expect(nichtIdee).toEqual(["Mitgliederverwaltung"]);
   });
 });
