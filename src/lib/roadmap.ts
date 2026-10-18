@@ -38,35 +38,50 @@ export const ROADMAP: RoadmapPhase[] = [
       {
         titel: "Öffentliche Vereins-App",
         status: "fertig",
-        text: "Ergebnisse, nächste Spiele, Mannschaften, Tabellen, Statistik und Training je Verein, ohne Anmeldung, als installierbare App mit Favoriten und eigener Vereinsfarbe.",
+        text: "Ergebnisse, nächste Spiele, Mannschaften mit Tabelle und Spielplan, Statistik und (wenn der Verein es einschaltet) Training, ohne Anmeldung. Installierbar aufs Handy, mit Favoriten, eigener Vereinsfarbe und Hell-/Dunkel-Ansicht.",
       },
       {
         titel: "Spiele und Ergebnisse aus nuLiga, handball.net und NDR",
         status: "fertig",
-        text: "Spielpläne, Ergebnisse und Tabellen aus den Quellen der Verbände, stündlich aktualisiert; handball.net hat seit 18.10.2026 einen eigenen Abruf.",
+        text: "nuLiga (Hessischer Handball-Verband), handball.net (DHB: 3. Liga, Jugendbundesliga, Qualifikation) und NDR (1. und 2. Bundesliga). nuLiga und handball.net werden mindestens stündlich abgerufen, NDR alle 15 Minuten; nuLiga-Spiele lädt am Wochenende ein eigener Lauf rund um den Anwurf häufiger nach. handball.net hat seit 18.10.2026 einen eigenen Abruf.",
       },
       {
         titel: "Ergebnisse zuverlässig und zeitnah",
         status: "in_arbeit",
-        text: "Gespielte Spiele ohne Ergebnis werden bevorzugt nachgeladen, Zwischenstände werden nie als Endstand gezeigt. Wir beobachten die Läufe im Spielbetrieb und beheben, was auffällt.",
+        text: "Gespielte Spiele ohne Ergebnis werden bevorzugt nachgeladen, Zwischenstände werden nie als Endstand gezeigt. Wir prüfen die Abrufe im Spielbetrieb und beheben, was auffällt.",
       },
       {
         titel: "Überwachung der Synchronisation",
         status: "geplant",
-        text: "Automatischer Hinweis an uns, wenn ein Abruf ausfällt oder ein Verein zu lange keine neuen Daten bekommt.",
+        text: "Bisher sieht nur der Vereinsadmin das Protokoll des letzten Abrufs in den Einstellungen. Geplant ist ein automatischer Hinweis an uns, wenn ein Abruf ausfällt oder ein Verein zu lange keine neuen Daten bekommt.",
       },
       {
         titel: "Funktionsträger und Dienste",
         status: "in_arbeit",
-        text: "Rollen, Excel-Import, Schiedsrichter-, Zeitnehmer-, Ordner- und Dienstwart, eigene Dienste, Selbsteintragung und Abmeldung sind im Einsatz. Bis Ende November prüfen wir alles gemeinsam mit Pilotvereinen und schließen Lücken.",
+        text: "Rollen (u. a. Trainer, Schiedsrichter, Zeitnehmer/Sekretär, Ordner, Kioskdienst, Kassierer), Excel-Import, Wart-Seiten, eigene Dienste mit Fahrgemeinschaft, öffentliche Selbsteintragung und Abmeldung sind im Einsatz. Bis Ende November prüfen wir alles mit den Beta-Vereinen und schließen Lücken.",
       },
       {
         titel: "Vereinstermine mit Zu- und Absage",
         status: "in_arbeit",
-        text: "Sitzungen und Termine mit Sichtbarkeit, Zu-/Absage, Erinnerungen und Wiederholungen sind fertig. Bis Ende November: Abnahme im Alltag der Pilotvereine.",
+        text: "Sitzungen und Termine mit Sichtbarkeit für Rollen oder Personen, Zu-/Absage, Wiederholungen, Mails bei Einladung, Änderung und Absage sowie Kalender-Abo sind fertig. Bis Ende November: Abnahme im Alltag der Beta-Vereine.",
       },
       {
-        titel: "Abnahme mit Pilotvereinen",
+        titel: "Erinnerung vor Vereinsterminen",
+        status: "geplant",
+        text: "Bisher gibt es Mails bei Einladung, Änderung und Absage, aber noch keine Erinnerung kurz vor dem Termin.",
+      },
+      {
+        titel: "Training und Kalender",
+        status: "fertig",
+        text: "Trainingsplan mit Ausfällen und freien Hallenzeiten (wer zuerst bucht), Plätze mit Saison für Beachhandball, ein Gesamtkalender für Spiele, Training und Vereinstermine, persönliches Kalender-Abo und eine Wochenübersicht per Mail.",
+      },
+      {
+        titel: "Einstieg für neue Vereine",
+        status: "fertig",
+        text: "Einrichtungs-Assistent mit automatischer Einrichtung über die Vereins-ID von nuLiga oder handball.net und eine Demo zum Ausprobieren.",
+      },
+      {
+        titel: "Abnahme mit den Beta-Vereinen",
         status: "geplant",
         text: "Gemeinsamer Durchgang aller Funktionen mit Vereinen, die die App im Spielbetrieb nutzen; offene Punkte kommen in diese Roadmap.",
       },
@@ -119,7 +134,7 @@ export const ROADMAP: RoadmapPhase[] = [
       {
         titel: "Neuigkeiten und Mitteilungen",
         status: "idee",
-        text: "Eine Neuigkeiten-Seite je Verein, Rundmails an Gruppen, Mitteilungen an Mannschaften.",
+        text: "Eine Neuigkeiten-Seite je Verein, freie Rundmails an Gruppen, Mitteilungen an Mannschaften (heute gibt es nur automatische Mails, z. B. zu offenen Diensten).",
       },
       {
         titel: "Datenschutz im Verein",
@@ -134,7 +149,7 @@ export const ROADMAP: RoadmapPhase[] = [
       {
         titel: "Sponsoren, Dokumente, Versammlungen",
         status: "idee",
-        text: "Sponsorenübersicht, Ablage von Protokollen und Satzung, Einladung zur Mitgliederversammlung.",
+        text: "Heute gibt es das Sponsorenbild auf der öffentlichen Seite. Eine Sponsorenübersicht, die Ablage von Protokollen und Satzung und die Einladung zur Mitgliederversammlung sind Ideen.",
       },
     ],
   },

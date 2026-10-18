@@ -30,7 +30,7 @@ export default function RoadmapPage() {
       </div>
       <h1 className="font-heading text-2xl font-semibold">Roadmap</h1>
       <p className="text-sm text-muted-foreground">
-        Woran wir gerade arbeiten und was danach kommen könnte. Die App ist in der Beta; wir halten diese Seite aktuell.
+        Woran wir gerade arbeiten und was danach kommen könnte. Die App ist in der Beta, die Beta endet am 30.11.2026. Wir halten diese Seite aktuell.
         Stand: {formatiereStand(ROADMAP_STAND)}.
       </p>
 
