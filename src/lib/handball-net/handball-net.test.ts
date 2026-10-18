@@ -128,9 +128,8 @@ describe("handball.net-Modell", () => {
   });
 
   it("mappt Status und Ergebnis (nur bei beendeten Spielen)", () => {
-    // „Pendiente" ohne is_live = gespielt, Ergebnis ausstehend
-    expect(mappeStatus(status.offen)).toBe("gespielt");
-    // „Pendiente" mit is_live = laufend, noch nicht gespielt
+    // „Pendiente" = ausstehend (auch bei künftigen Spielen), nie "gespielt"
+    expect(mappeStatus(status.offen)).toBe("geplant");
     expect(mappeStatus({ ...status.offen, is_live: true })).toBe("geplant");
     expect(mappeStatus(status.fertig)).toBe("gespielt");
     expect(mappeStatus({ is_sanction: true })).toBe("nicht_angetreten");

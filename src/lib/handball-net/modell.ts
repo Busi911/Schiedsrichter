@@ -115,24 +115,19 @@ export function parseSaisons(roh: unknown): HnetSaison[] {
 }
 
 // Statusmapping: bevorzugt die strukturierten Flags (is_finished/is_sanction),
-// bei Sonderfällen der Statustext (die API liefert ihn teils spanisch,
-// „Pendiente" = gespielt, Ergebnis noch nicht eingetragen; „Finalizado" = mit
-// Ergebnis). „Pendiente" wird als „gespielt" gemappt — das Spiel hat
-// stattgefunden, nur der Ergebnisstand fehlt. Sobald handball.net den Status
-// auf „Finalizado" ändert, liefert der nächste Sync die Tore.
+// bei Sonderfällen der Statustext (die API liefert ihn teils spanisch).
+// WICHTIG: „Pendiente" heißt "ausstehend" und steht auch bei ALLEN künftigen Spielen. Es darf NIE als "gespielt" gelten
+// (18.10.2026: das ließ alle künftigen Spiele unter "Letzte Ergebnisse" erscheinen, "gespielt" zählt in der App als Ergebnis,
+// siehe ERGEBNIS_STATI in liga-spiele-hilfen.ts). Ein vergangenes Spiel ohne Ergebnis erkennt die App am Datum
+// ("Ergebnis ausstehend"). Unbekanntes bleibt "geplant" — ohne Ergebnis wird nie etwas als gespielt dargestellt.
 export function mappeStatus(roh: unknown): SpielStatus {
   const s = obj(roh);
   if (!s) return "geplant";
   if (s.is_sanction === true) return "nicht_angetreten";
   if (s.is_finished === true) return "gespielt";
-  // Ein laufendes Spiel (is_live) ist nicht „gespielt" — auch wenn der
-  // Statusname „Pendiente" lautet, läuft das Spiel noch.
-  if (s.is_live === true) return "geplant";
   const t = `${text(s.name) ?? ""} ${text(s.short_name) ?? ""}`.toLowerCase();
   if (/aplaz|verleg|postpon|verschob|suspend/.test(t)) return "verlegt";
   if (/cancel|anul|abgesag|ausgefall/.test(t)) return "abgesagt";
-  // „Pendiente" = gespielt, Ergebnis noch ausstehend — nicht „geplant".
-  if (/pendiente|pend/.test(t)) return "gespielt";
   return "geplant";
 }
 
