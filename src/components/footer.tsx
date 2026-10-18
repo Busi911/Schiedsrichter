@@ -24,6 +24,9 @@ export function Footer() {
         <Link href="/app-hilfe" className="inline-flex min-h-11 items-center underline">
           Hilfe zur App
         </Link>
+        <Link href="/roadmap" className="inline-flex min-h-11 items-center underline">
+          Roadmap
+        </Link>
         <RegistrierenLink />
         <Link href="/datenschutz" className="inline-flex min-h-11 items-center underline">
           Datenschutz
