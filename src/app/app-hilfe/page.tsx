@@ -122,7 +122,7 @@ export default function AppHilfePage() {
             <strong>Ergebnis folgt:</strong> Das Spiel ist vermutlich vorbei, aber es gibt noch kein bestätigtes Endergebnis. Wir zeigen nur ein Endergebnis, nicht den Stand, der beim Verband zwischendurch stehen kann.
           </li>
           <li>
-            <strong>vorläufig:</strong> Der Verband hat das Ergebnis auch zwölf Stunden nach dem Spiel noch nicht genehmigt; wir zeigen es dann trotzdem, es kann sich noch
+            <strong>vorläufig:</strong> Der Verband hat das Ergebnis auch drei Stunden nach dem Spiel noch nicht genehmigt; wir zeigen es dann trotzdem, es kann sich noch
             ändern.
           </li>
           <li>
