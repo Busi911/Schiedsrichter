@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { adminDb } from "@/db/admin";
 import { vereine } from "@/db/schema";
+import { EintragungsWeg } from "@/components/eintragungs-weg";
 import { KopfLogo } from "@/components/kopf-logo";
 import { holeVereinsLogoInfo } from "@/lib/vereins-logo";
 import { LinkSpinner } from "@/components/link-spinner";
@@ -42,7 +43,7 @@ export default async function EintragenPage({
     where: or(
       eq(vereine.zeitnehmerSelbstanmeldungToken, token),
       eq(vereine.ordnerSelbstanmeldungToken, token),
-      eq(vereine.diensteSelbstanmeldungToken, token)
+      eq(vereine.diensteSelbstanmeldungToken, token),
     ),
   });
   if (!verein) notFound();
@@ -73,65 +74,59 @@ export default async function EintragenPage({
   const eintragbareTermine: EintragbarerTermin[] = gefilterteTermine;
   const offeneAnzahl = gefilterteTermine.filter((t) => !t.vollstaendig).length;
 
-  return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-6">
-      <div className="flex items-center gap-3">
-        <KopfLogo logo={vereinsLogo} className="size-12" />
-        <div>
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{verein.name}</p>
-          <h1 className="font-heading text-2xl font-semibold">Für Dienste eintragen</h1>
-        </div>
-      </div>
-
-      {eingeloggtePerson ? (
-        <p className="text-base text-muted-foreground">
-          Angemeldet als <strong>{eingeloggtePerson.name}</strong> — Termine antippen und eintragen, Name und E-Mail sind schon bekannt.
-        </p>
-      ) : (
-        <>
-          <p className="text-base text-muted-foreground">
-            Kein Login nötig: Namen angeben, Termine antippen, eintragen. Bereits im System angelegte Personen werden automatisch erkannt — bei
-            Unsicherheit prüft der zuständige Wart nach.
+  const loginKarte = (
+    <Card className="border-primary/40 bg-primary/5">
+      <CardContent>
+        <form action={loginLinkAnfordern} className="flex flex-col gap-3">
+          <input type="hidden" name="token" value={token} />
+          <p className="text-sm text-muted-foreground">
+            Wir schicken dir einen Login-Link per E-Mail. Danach kommst du hierher zurück und trägst dich mit einem Tipp ein.
           </p>
-          {/* Login direkt hier anfordern: der Link in der Mail führt wieder auf diese Seite zurück, ohne Namenseingabe. */}
-          <Card className="border-primary/40 bg-primary/5">
-            <CardContent>
-              <form action={loginLinkAnfordern} className="flex flex-col gap-3">
-                <input type="hidden" name="token" value={token} />
-                <p className="text-base font-semibold">Schon einen Zugang? Dann geht es schneller.</p>
-                <p className="text-sm text-muted-foreground">
-                  Wir schicken euch einen Login-Link per E-Mail. Danach kommt ihr hierher zurück, ohne Namen und E-Mail erneut einzutippen.
-                </p>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="login-email" className="text-base">
-                    E-Mail-Adresse
-                  </Label>
-                  <Input id="login-email" name="email" type="email" required placeholder="name@verein.de" autoComplete="email" className="h-12 px-3" />
-                </div>
-                <SubmitButton className="h-12 text-base" pendingText="Wird gesendet…">
-                  Login-Link senden
-                </SubmitButton>
-                <Link
-                  href={`/login?redirect=${encodeURIComponent(`/eintragen/${token}`)}`}
-                  className="inline-flex min-h-11 items-center justify-center text-base underline"
-                >
-                  Lieber mit Passwort einloggen
-                </Link>
-              </form>
-            </CardContent>
-          </Card>
-        </>
-      )}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="login-email" className="text-base">
+              E-Mail-Adresse
+            </Label>
+            <Input
+              id="login-email"
+              name="email"
+              type="email"
+              required
+              placeholder="name@verein.de"
+              autoComplete="email"
+              className="h-12 px-3"
+            />
+          </div>
+          <SubmitButton className="h-12 text-base" pendingText="Wird gesendet…">
+            Login-Link senden
+          </SubmitButton>
+          <Link
+            href={`/login?redirect=${encodeURIComponent(`/eintragen/${token}`)}`}
+            className="inline-flex min-h-11 items-center justify-center text-base underline"
+          >
+            Lieber mit Passwort einloggen
+          </Link>
+        </form>
+      </CardContent>
+    </Card>
+  );
 
+  const termineBereich = (
+    <>
       {gefilterteTermine.length > 0 && (
         <p className="text-base font-medium">
-          {offeneAnzahl} von {gefilterteTermine.length} {gefilterteTermine.length === 1 ? "Termin" : "Terminen"} noch nicht vollständig besetzt
+          {offeneAnzahl} von {gefilterteTermine.length} {gefilterteTermine.length === 1 ? "Termin" : "Terminen"} noch nicht vollständig
+          besetzt
         </p>
       )}
 
       {anzeigbareMannschaften.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          <Button variant={!mannschaftFilter ? "default" : "outline"} className="h-11 px-4 text-base" render={<Link href="?" />} nativeButton={false}>
+          <Button
+            variant={!mannschaftFilter ? "default" : "outline"}
+            className="h-11 px-4 text-base"
+            render={<Link href="?" />}
+            nativeButton={false}
+          >
             Alle
             <LinkSpinner />
           </Button>
@@ -161,6 +156,29 @@ export default async function EintragenPage({
           eingeloggtAls={eingeloggtePerson?.name}
           zeigeEmailFeld={!eingeloggtePerson && !verein.istDemo}
         />
+      )}
+    </>
+  );
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-6">
+      <div className="flex items-center gap-3">
+        <KopfLogo logo={vereinsLogo} className="size-12" />
+        <div>
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{verein.name}</p>
+          <h1 className="font-heading text-2xl font-semibold">Für Dienste eintragen</h1>
+        </div>
+      </div>
+
+      {eingeloggtePerson ? (
+        <>
+          <p className="text-base text-muted-foreground">
+            Angemeldet als <strong>{eingeloggtePerson.name}</strong> — Termine antippen und eintragen, Name und E-Mail sind schon bekannt.
+          </p>
+          {termineBereich}
+        </>
+      ) : (
+        <EintragungsWeg loginKarte={loginKarte}>{termineBereich}</EintragungsWeg>
       )}
 
       {(mitfahrAngebote.length > 0 || mitgefahren || mitfahrfehler) && (
@@ -201,7 +219,14 @@ export default async function EintragenPage({
                         {f.hinweis ? ` · ${f.hinweis}` : ""}
                       </p>
                       <div className="flex gap-2">
-                        <Input name="name" required maxLength={60} placeholder="Name des Mitfahrers" aria-label={`Mitfahren bei ${f.fahrer}: Name`} className="h-12 min-w-0 flex-1 px-3" />
+                        <Input
+                          name="name"
+                          required
+                          maxLength={60}
+                          placeholder="Name des Mitfahrers"
+                          aria-label={`Mitfahren bei ${f.fahrer}: Name`}
+                          className="h-12 min-w-0 flex-1 px-3"
+                        />
                         <SubmitButton className="h-12 px-4 text-base" pendingText="…">
                           Mitfahren
                         </SubmitButton>
