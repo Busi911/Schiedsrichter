@@ -809,6 +809,13 @@ Link der eigenen Dienste) selbst ein (`lib/mitfahren.ts` `ladeMitfahrAngebote`/`
 kein Doppelname; der Fahrer mit Konto bekommt eine kurze Mail. Wart/Admin/Fahrer korrigieren nur noch. Demo: Fahrer mit Fahrgemeinschaft (t14 Plätze + Mitfahrer, t15
 ohne Angabe). Hilfe `#fahrgemeinschaft`.
 
+## Öffentliche Roadmap (`/roadmap`, 18.10.2026) — IMMER mitziehen
+
+Öffentlich einsehbar (ohne Login, `publicRoutes`, Fußzeile, Sitemap): was fertig ist, woran wir arbeiten und was als Idee im Raum steht. Inhalt und Status stehen an EINER Stelle: `lib/roadmap.ts` (`ROADMAP`, `ROADMAP_STAND`, Test `roadmap.test.ts`).
+**Regel (Betreiber, 18.10.2026): Bei jeder fertigen, begonnenen oder verschobenen Funktion den Punkt dort anpassen UND `ROADMAP_STAND` auf das heutige Datum setzen** (im selben PR, wie Hilfe/CLAUDE.md/README). Nur als "fertig" eintragen, was im Produkt läuft; Ideen haben bewusst KEIN Datum
+(keine Zusagen). Ziele der Beta-Phase bis 30.11.2026: stabile öffentliche App, stabile Synchronisation von Spielen und Ergebnissen, vollständige Funktionsträger- und Vereinstermine-Verwaltung. Danach als Ideen (noch nicht zugesagt): Vereinsverwaltung mit Mitgliederverwaltung,
+Beiträgen, Neuigkeiten, Datenschutz, Kader; Reihenfolge mit den Vereinen.
+
 ## SEO der öffentlichen Seiten (Stand 15.10.2026)
 
 Die Startseite `/` erklärt das Gesamtangebot und führt zu Verein/Mannschaft: erster Bildschirm = H1 "Dein Handballverein. Alle Mannschaften im Blick." + Vereinssuche (`Vereinsuche`, 6 Direktlinks, serverseitig gerendert,
