@@ -827,6 +827,13 @@
       "when": 1792603777475,
       "tag": "0117_vereinsverwaltung",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1792603777476,
+      "tag": "0118_mitglied_konto",
+      "breakpoints": true
     }
   ]
 }

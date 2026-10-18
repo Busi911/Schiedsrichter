@@ -1,5 +1,6 @@
 "use server";
 
+import { fuehreUeberfuehrungAus, ueberfuehrungText } from "@/lib/mitglieder-daten";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -42,8 +43,21 @@ export async function vereinsverwaltungSpeichern(formData: FormData) {
   const aktiv = formData.get("vereinsverwaltung") === "on";
   await adminDb.update(vereine).set({ vereinsverwaltungAktiv: aktiv }).where(eq(vereine.id, v.id));
   await schreibeProtokoll(v.id, "vereinsverwaltung_geaendert", session.user.email ?? "Systemadmin", `Vereinsverwaltung ${aktiv ? "an" : "aus"} (${betragNetto(v.tarif, v.sponsorUebernimmt, aktiv)} € netto im Jahr)`);
+  // Beim Einschalten werden die Funktionsträger als Mitglieder übernommen (mit Duplikatprüfung, idempotent). Ein Fehler hier darf das Freischalten nicht kippen:
+  // die Mitgliederseite bietet den Abgleich dann per Knopf an.
+  let uebernahme = "";
+  if (aktiv) {
+    try {
+      const ergebnis = await fuehreUeberfuehrungAus(v.id);
+      uebernahme = ueberfuehrungText(ergebnis);
+      await schreibeProtokoll(v.id, "mitglieder_ueberfuehrt", session.user.email ?? "Systemadmin", `Funktionsträger übernommen: ${uebernahme}`);
+    } catch (err) {
+      console.error("Überführung der Funktionsträger fehlgeschlagen:", err);
+      uebernahme = "Übernahme der Funktionsträger fehlgeschlagen (auf der Mitgliederseite erneut versuchen)";
+    }
+  }
   revalidatePath("/system/abrechnung");
-  redirect(meldung("ok", `${v.name}: Vereinsverwaltung ${aktiv ? "eingeschaltet" : "ausgeschaltet"}.`));
+  redirect(meldung("ok", `${v.name}: Vereinsverwaltung ${aktiv ? "eingeschaltet" : "ausgeschaltet"}.${uebernahme ? ` ${uebernahme}.` : ""}`));
 }
 
 // Nach Zahlungseingang: Verein "bezahlt bis" setzen. Frist und Mail-Marke werden zurückgesetzt, die Sperre (falls aktiv) ist damit sofort weg.

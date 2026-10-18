@@ -92,6 +92,14 @@ export function MitgliedFormular({
         <Label htmlFor={f("bemerkung")}>Bemerkung (nur für die Verwaltung)</Label>
         <Textarea id={f("bemerkung")} name="bemerkung" rows={2} maxLength={2000} defaultValue={werte?.bemerkung ?? ""} />
       </div>
+      {!werte && (
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="trotzdem" className="mt-1 size-4" />
+          <span>
+            Trotzdem neu anlegen, falls es schon ein Mitglied mit gleichem Namen oder gleicher E-Mail gibt (eine andere Person).
+          </span>
+        </label>
+      )}
       <SubmitButton className="w-full sm:w-auto" pendingText="Speichert…">
         {absenden}
       </SubmitButton>

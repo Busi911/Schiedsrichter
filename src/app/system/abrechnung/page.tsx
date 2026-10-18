@@ -164,6 +164,7 @@ export default async function AbrechnungSeite({ searchParams }: { searchParams: 
                   <label className="flex items-center gap-1.5 text-sm">
                     <input type="checkbox" name="vereinsverwaltung" defaultChecked={v.vereinsverwaltungAktiv} /> Add-on Vereinsverwaltung
                   </label>
+                  <span className="text-xs text-muted-foreground">Beim Einschalten werden die Funktionsträger als Mitglieder übernommen (ohne Doppelte).</span>
                   <SubmitButton size="sm" variant="outline" pendingText="Speichert…">
                     Speichern
                   </SubmitButton>

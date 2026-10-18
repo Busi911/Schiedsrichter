@@ -1594,6 +1594,8 @@ export const mitglieder = pgTable("mitglied", {
   vereinId: uuid("verein_id")
     .notNull()
     .references(() => vereine.id, { onDelete: "cascade" }),
+  // Verweis auf das Konto, wenn das Mitglied aus den Funktionsträgern übernommen oder mit ihnen abgeglichen wurde (verhindert Doppelanlage).
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   vorname: text("vorname").notNull(),
   geburtsdatum: date("geburtsdatum", { mode: "string" }),
@@ -1606,7 +1608,9 @@ export const mitglieder = pgTable("mitglied", {
   bemerkung: text("bemerkung"),
   erstelltAm: timestamp("erstellt_am", { mode: "date" }).defaultNow(),
   aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).defaultNow(),
-});
+},
+(t) => [uniqueIndex("mitglied_verein_user_idx").on(t.vereinId, t.userId).where(sql`${t.userId} is not null`)]
+);
 
 // Mitglied <-> Mannschaft je Saison (Verweis auf die öffentliche liga_mannschaft). Kein eigenes verein_id: die Policy prüft über mitglied.
 export const mitgliedMannschaften = pgTable(

@@ -464,6 +464,15 @@ export default async function HilfePage() {
           Schreibzugriff können ändern, lesende Admins sehen die Liste.
         </p>
         <p className="text-sm text-muted-foreground">
+          <strong>Funktionsträger sind automatisch Mitglieder:</strong> Funktionsträger funktionieren auch ohne Vereinsverwaltung. Sobald das Add-on freigeschaltet
+          ist, werden alle Funktionsträger (Personen mit mindestens einer Rolle) einmalig als Mitglieder übernommen, danach auch jede neu angelegte Person. Dabei wird
+          nichts doppelt angelegt: Ein vorhandenes Mitglied mit <em>gleicher E-Mail-Adresse</em> oder <em>gleichem Namen</em> (ohne abweichende Adresse) wird nur mit dem
+          Funktionsträger verknüpft. Gleicher Name, aber andere Adresse kann dieselbe Person sein oder nicht: dann wird nichts angelegt, die Mitgliederseite zeigt
+          den Fall unter „Funktionsträger und Mitglieder abgleichen“ zur Prüfung. Personen ohne Vor- und Nachnamen (nur ein Wort) lassen sich nicht übernehmen, ergänzt
+          dafür den Namen. Vorhandene Mitgliedsdaten werden nie überschrieben. Beim Anlegen von Hand prüft die App ebenfalls auf Doppelte; bei einer anderen Person mit
+          gleichem Namen setzt ihr den Haken „Trotzdem neu anlegen“.
+        </p>
+        <p className="text-sm text-muted-foreground">
           <strong>Suchen und filtern:</strong> Die Suche findet Vor- und Nachname sowie E-Mail (mehrere Wörter müssen alle passen), der Filter zeigt nur einen
           Status. Die Liste ist nach Nachname sortiert. Noch nicht enthalten, aber geplant: Mannschaftszuordnung, Import und Export, Online-Beitrittsformular (siehe{" "}
           <Link href="/roadmap" className="font-medium underline">

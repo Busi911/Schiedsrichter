@@ -8,8 +8,10 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
 import { MitgliedFormular } from "@/components/mitglied-formular";
 import { GESCHLECHTER, STATI, filtereMitglieder, istStatus, zaehleNachStatus } from "@/lib/mitglieder";
-import { ladeMitglieder, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
-import { mitgliedAendern, mitgliedAnlegen, mitgliedLoeschen } from "./actions";
+import { ladeMitglieder, ladeUeberfuehrungsPlan, vereinsverwaltungAktiv } from "@/lib/mitglieder-daten";
+import { offeneUeberfuehrung } from "@/lib/mitglieder-ueberfuehrung";
+import { SubmitButton } from "@/components/submit-button";
+import { funktionstraegerUebernehmen, mitgliedAendern, mitgliedAnlegen, mitgliedLoeschen } from "./actions";
 
 const DATUM = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 function datum(d: string | null): string {
@@ -45,7 +47,7 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
   }
 
   const { q = "", status = "" } = await searchParams;
-  const alle = await ladeMitglieder(vereinId);
+  const [alle, plan] = await Promise.all([ladeMitglieder(vereinId), ladeUeberfuehrungsPlan(vereinId)]);
   const zahlen = zaehleNachStatus(alle);
   const liste = filtereMitglieder(alle, q, status);
 
@@ -60,6 +62,49 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
           {alle.length} Mitglieder: {zahlen.aktiv} aktiv, {zahlen.passiv} passiv, {zahlen.ausgetreten} ausgetreten. Die Daten sehen nur Vereinsadmins.
         </p>
       </div>
+
+      {offeneUeberfuehrung(plan) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Funktionsträger und Mitglieder abgleichen</CardTitle>
+            <CardDescription>
+              Funktionsträger gehören automatisch zu den Mitgliedern. Beim Abgleich wird niemand doppelt angelegt: gleiche E-Mail oder gleicher Name (ohne Widerspruch) wird mit dem
+              vorhandenen Mitglied verknüpft.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm">
+            <ul className="list-disc pl-5">
+              {plan.neu.length > 0 && <li>{plan.neu.length} noch nicht in der Liste: {plan.neu.map((n) => `${n.name}, ${n.vorname}`).join("; ")}</li>}
+              {plan.verknuepfen.length > 0 && <li>{plan.verknuepfen.length} passen zu vorhandenen Mitgliedern und werden verknüpft.</li>}
+            </ul>
+            {plan.pruefen.length > 0 && (
+              <div>
+                <p className="font-medium">Bitte selbst prüfen (nichts wird automatisch angelegt):</p>
+                <ul className="list-disc pl-5">
+                  {plan.pruefen.map((p) => (
+                    <li key={p.person.userId}>
+                      {p.person.name} ({p.person.email}) und Mitglied {p.mitglied.name}, {p.mitglied.vorname}: {p.grund}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-muted-foreground">Ist es dieselbe Person, ergänzt die E-Mail-Adresse beim Mitglied und gleicht erneut ab. Sonst legt sie bei Bedarf mit dem Haken „Trotzdem neu anlegen“ an.</p>
+              </div>
+            )}
+            {plan.unvollstaendig.length > 0 && (
+              <p className="text-muted-foreground">
+                Ohne Vor- und Nachnamen nicht übernehmbar: {plan.unvollstaendig.map((p) => p.name || p.email).join(", ")}. Ergänzt den Namen unter Funktionsträger.
+              </p>
+            )}
+            {schreiben && (plan.neu.length > 0 || plan.verknuepfen.length > 0) && (
+              <form action={funktionstraegerUebernehmen}>
+                <SubmitButton className="w-full sm:w-auto" pendingText="Gleicht ab…">
+                  Jetzt abgleichen
+                </SubmitButton>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {schreiben && (
         <Card>
