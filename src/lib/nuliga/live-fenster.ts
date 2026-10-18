@@ -1,4 +1,4 @@
-import { and, eq, gte, isNotNull, lte, or } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, lte, or } from "drizzle-orm";
 import { ligaGruppen, ligaMannschaften, ligaSpiele, ligaTeilnahmen, ligaVereine, vereine } from "@/db/schema";
 import { synchronisiereSpiele, type SyncOptionen } from "./sync";
 
@@ -78,7 +78,7 @@ export async function holeLiveKandidaten(db: SyncOptionen["db"], jetzt: Date): P
         isNotNull(ligaVereine.nuligaClubId),
         eq(vereine.status, "aktiv"),
         eq(ligaMannschaften.aktiv, true),
-        eq(ligaSpiele.status, "geplant"),
+        inArray(ligaSpiele.status, ["geplant", "verlegt"]), // verlegt: neuer Termin gespeichert, nuLiga lässt das "v" stehen
         eq(ligaSpiele.ergebnisBestaetigt, false),
         gte(ligaSpiele.beginn, von),
         lte(ligaSpiele.beginn, bis)

@@ -67,9 +67,11 @@ export function bewerteSpieltagsNaehe(
 ): 0 | 1 | 2 | 3 {
   if (spiele.length === 0) return 0;
   if (spiele.some((t) => t.datum === heute)) return 3;
-  // Vergangenes Spiel ohne endgültiges Ergebnis (fehlt oder nur vorläufig); abgesagte/verlegte/nicht angetretene zählen nicht.
+  // Vergangenes Spiel ohne endgültiges Ergebnis (fehlt oder nur vorläufig); abgesagte/nicht angetretene zählen nicht.
+  // "verlegt" zählt mit: das gespeicherte Datum ist der NEUE Termin, nuLiga lässt das "v" auch nach dem Spiel stehen — ein nachgeholtes Spiel ohne
+  // Ergebnis muss zügig nachgeladen werden (sonst bleibt es bei "Verlegt / Ergebnis ausstehend", obwohl nuLiga das Ergebnis schon zeigt).
   const offen = spiele.some(
-    (t) => t.datum < heute && (t.status === "geplant" || t.status === "gespielt") && (t.toreHeim === null || !t.bestaetigt)
+    (t) => t.datum < heute && (t.status === "geplant" || t.status === "verlegt" || t.status === "gespielt") && (t.toreHeim === null || !t.bestaetigt)
   );
   return offen ? 2 : 1;
 }
