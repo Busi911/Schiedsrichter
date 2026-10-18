@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { istVersionsFehler } from "@/lib/versions-fehler";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,9 +24,33 @@ export default function ErrorBoundary({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Nach einem Deploy: alte Version im offenen Tab -> einmal automatisch neu laden (Schutz vor Schleife über sessionStorage).
+  const versionsFehler = istVersionsFehler(error);
   useEffect(() => {
     console.error(error);
-  }, [error]);
+    if (!versionsFehler) return;
+    try {
+      if (sessionStorage.getItem("hp-neu-geladen")) return;
+      sessionStorage.setItem("hp-neu-geladen", "1");
+    } catch {}
+    window.location.reload();
+  }, [error, versionsFehler]);
+
+  if (versionsFehler) {
+    return (
+      <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col justify-center p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Neue Version verfügbar</CardTitle>
+            <CardDescription>Die App wurde gerade aktualisiert. Bitte lade die Seite neu, dann geht es weiter. Nichts ist verloren.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => window.location.reload()}>Seite neu laden</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col justify-center p-6">
