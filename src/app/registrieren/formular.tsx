@@ -57,7 +57,17 @@ export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflich
           <input key={name} type="hidden" name={name} value={wert} />
         ))}
         <p className="text-sm">
-          Zu „{werte.vereinsname}“ gibt es bei HandballerPate schon einen Verein. Ist das euer Verein?
+          {ergebnis.vorhandene.length === 1
+            ? "Bei HandballerPate gibt es schon diesen Verein:"
+            : "Bei HandballerPate gibt es schon diese Vereine:"}
+        </p>
+        <ul className="flex flex-col gap-1 text-sm font-medium">
+          {ergebnis.vorhandene.map((name) => (
+            <li key={name}>{name}</li>
+          ))}
+        </ul>
+        <p className="text-sm">
+          Ist das euer Verein? Ihr habt „{werte.vereinsname}“ eingegeben.
         </p>
         <SubmitButton className="w-full" name="entscheidung" value="derselbe">
           Ja, das ist unser Verein

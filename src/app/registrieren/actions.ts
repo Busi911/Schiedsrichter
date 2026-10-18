@@ -27,7 +27,8 @@ export type RegistrierenWerte = {
 export type RegistrierenErgebnis =
   | { ergebnis: "registriert"; kostenpflichtig: boolean }
   // Es gibt einen Verein mit ähnlichem Namen: nichts wurde angelegt, die Person wird gefragt.
-  | { ergebnis: "aehnlich"; werte: RegistrierenWerte }
+  // `vorhandene` = die Namen, wie die ähnlichen Vereine in der App heißen (ohne Zustand wie aktiv/inaktiv).
+  | { ergebnis: "aehnlich"; werte: RegistrierenWerte; vorhandene: string[] }
   // "Das ist unser Verein": kein zweiter Verein, die Systemadmins melden sich.
   | { ergebnis: "anfrage_gesendet" }
   | { fehler: string };
@@ -89,6 +90,7 @@ export async function vereinRegistrieren(
     }
     return {
       ergebnis: "aehnlich",
+      vorhandene: [...new Set(aehnliche.map((v) => v.name))].slice(0, 3),
       werte: {
         vereinsname: vereinsname.trim(),
         adminName: adminName.trim(),
