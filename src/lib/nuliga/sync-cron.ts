@@ -164,23 +164,42 @@ export async function synchronisiereFaellige(
   }
   // Vereine mit Spielen heute zuerst, dann der am längsten nicht geladene: bei knapper Zeit
   // sind die aktuellen Ergebnisse sicher dran, der Rest folgt beim nächsten Lauf.
+  // Ein Verein mit STALEN Daten (spieleSynchronisiertAm > 24h oder null) bekommt mindestens
+  // Priorität 1 — sonst steht seine Spieltagsnähe auf 0 (keine heutigen Spiele in der DB,
+  // weil die Daten alt sind) und er kommt bei knapper Zeit nie dran (Teufelskreis).
+  const STALE_MS = 24 * 60 * 60 * 1000;
   const naehe = new Map<string, 0 | 1 | 2 | 3>();
   schritt("Spieltagsnähe berechnen");
-  for (const v of syncVereine) naehe.set(v.id, await spieltagsNaehe(db, v.id, jetzt));
+  for (const v of syncVereine) {
+    const n = await spieltagsNaehe(db, v.id, jetzt);
+    if (n === 0 && (!v.spieleSynchronisiertAm || jetzt.getTime() - v.spieleSynchronisiertAm.getTime() > STALE_MS)) {
+      naehe.set(v.id, 1); // stale — boosten, damit der Verein erneut synced wird
+    } else {
+      naehe.set(v.id, n);
+    }
+  }
   // Innerhalb gleicher Dringlichkeit reihum nach dem letzten VERSUCH: ein Verein, dessen Lauf wegen des
   // Zeitlimits nie ganz fertig wird, behält seinen Zeitstempel "zuletzt vollständig" und stünde sonst
   // bei jedem Lauf wieder vorn — die übrigen kämen nie dran. Jeder Lauf schreibt ein Protokoll.
+  // Auch den letzten STRUKTUR-Versuch laden: eine abgebrochene Struktur setzt den Zeitstempel nicht,
+  // wäre sonst immer fällig und frisst jedes Mal das ganze Budget — die Spiele kämen nie dran.
   const versuche = await db
-    .select({ id: ligaSyncLaeufe.ligaVereinId, zuletzt: sql<Date>`max(${ligaSyncLaeufe.gestartetAm})` })
+    .select({ id: ligaSyncLaeufe.ligaVereinId, art: ligaSyncLaeufe.art, zuletzt: sql<Date>`max(${ligaSyncLaeufe.gestartetAm})` })
     .from(ligaSyncLaeufe)
     .where(
       inArray(
         ligaSyncLaeufe.art,
-        quelle === "handball_net" ? ["handball_net"] : quelle === "nuliga" ? ["spiele"] : ["spiele", "handball_net"]
+        quelle === "handball_net" ? ["handball_net"] : quelle === "nuliga" ? ["spiele", "struktur"] : ["spiele", "struktur", "handball_net"]
       )
     )
-    .groupBy(ligaSyncLaeufe.ligaVereinId);
-  const letzterVersuch = new Map(versuche.map((r) => [r.id, r.zuletzt ? new Date(r.zuletzt) : null]));
+    .groupBy(ligaSyncLaeufe.ligaVereinId, ligaSyncLaeufe.art);
+  const letzterVersuch = new Map<string, Date | null>();
+  const letzterStrukturVersuch = new Map<string, Date | null>();
+  for (const r of versuche) {
+    const d = r.zuletzt ? new Date(r.zuletzt) : null;
+    if (r.art === "struktur") letzterStrukturVersuch.set(r.id, d);
+    else letzterVersuch.set(r.id, d);
+  }
   const sortierteVereine = sortiereNachDringlichkeit(
     syncVereine,
     (v) => naehe.get(v.id) ?? 0,
@@ -190,6 +209,12 @@ export async function synchronisiereFaellige(
   const ergebnis: FaelligeErgebnis = [];
   const frist = start + budgetMs;
 
+  // Struktur-Sync überspringen, wenn er kürzlich VERSUCHT wurde (auch unvollständig):
+  // Eine abgebrochene Struktur setzt strukturSynchronisiertAm nicht, wäre sonst immer
+  // fällig und frisst jedes Mal das ganze Budget — die Spiele kämen nie dran.
+  // Nach Ablauf der Sperrfrist (2h) wird die Struktur erneut versucht.
+  const STRUKTUR_VERSUCH_MS = 2 * 60 * 60 * 1000;
+
   for (const v of sortierteVereine) {
     if (Date.now() - start > budgetMs) break;
     const eintrag: FaelligeErgebnis[number] = { ligaVereinId: v.id, slug: v.slug };
@@ -197,8 +222,11 @@ export async function synchronisiereFaellige(
     const spieltagsnah = (naehe.get(v.id) ?? 0) > 0;
     const intervall = spieleIntervallMinuten(spieltagsnah);
     if (v.nuligaClubId && quelle !== "handball_net") {
+      const strukturZuletzt = letzterStrukturVersuch.get(v.id);
+      const strukturUeberspringen =
+        !!strukturZuletzt && jetzt.getTime() - strukturZuletzt.getTime() < STRUKTUR_VERSUCH_MS;
       try {
-        if (faellig(v.strukturSynchronisiertAm, STRUKTUR_INTERVALL_MINUTEN, jetzt)) {
+        if (!strukturUeberspringen && faellig(v.strukturSynchronisiertAm, STRUKTUR_INTERVALL_MINUTEN, jetzt)) {
           schritt(`${v.slug}: Struktur`);
           eintrag.struktur = (await synchronisiereStruktur(v.id, { ...opt, jetzt, frist })).status;
         }
