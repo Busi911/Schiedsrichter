@@ -119,11 +119,11 @@ export default function AppHilfePage() {
             Ergebnis, damit niemand einen Spielstand für das Endergebnis hält. Den aktuellen Stand zeigt der Live-Ticker.
           </li>
           <li>
-            <strong>Ergebnis folgt:</strong> Das Spiel ist vermutlich vorbei, das Ergebnis ist noch nicht vom Verband bestätigt.
+            <strong>Ergebnis folgt:</strong> Das Spiel ist vermutlich vorbei, aber der Verband hat noch kein Ergebnis eingetragen. Sobald es dort steht, zeigen wir es an.
           </li>
           <li>
-            <strong>vorläufig:</strong> Ein Ergebnis steht schon, ist aber noch nicht endgültig genehmigt. Es kann sich noch
-            ändern.
+            <strong>vorläufig:</strong> Ein Ergebnis steht schon (wir zeigen es etwa anderthalb Stunden nach dem Anwurf), ist aber noch nicht endgültig
+            genehmigt. Es kann sich noch ändern.
           </li>
           <li>
             <strong>Spielbericht:</strong> Der Link zum Spielbericht erscheint, sobald das Ergebnis feststeht (bei der 1. und 2. Bundesliga
