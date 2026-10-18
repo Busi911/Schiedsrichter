@@ -1,6 +1,6 @@
 # Konzept: Handball-Vereinsverwaltung für HandballerPate
 
-Stand: 18.10.2026 · Autor: Claude (im Auftrag des Betreibers) · Status: Entwurf zur Entscheidung
+Stand: 18.10.2026 · Autor: Claude (im Auftrag des Betreibers) · Status: gilt (Entscheidungen vom 18.10.2026, siehe Abschnitt 9); E6 (rechtliche Prüfung) ist noch offen
 
 Dieses Dokument ersetzt keine Detailpläne, sondern gibt ihnen ein gemeinsames Ziel. Es beantwortet vier Fragen:
 1. Wo stehen wir wirklich? (Abschnitt 2)
@@ -190,7 +190,7 @@ Zeitangaben sind Richtwerte für die Planung, keine Zusagen nach außen. Jeder M
 
 | Meilenstein | Zeitraum | Inhalt | Fertig, wenn … |
 |---|---|---|---|
-| **M0 Ruhe und Richtung** | bis 30.11.2026 | Synchronisation stabil (Überwachung grün), Entscheidungen E1–E7 getroffen, Pilotverein und Ansprechperson festgelegt, 3 Kurzgespräche (Vorstand, Trainer, Kassenwart) zu Alltag und Schmerzpunkten, Docs konsolidiert | Überwachung eine Woche ohne Befund; Pilot benannt; dieses Konzept gilt |
+| **M0 Ruhe und Richtung** | bis 30.11.2026 | Synchronisation stabil (Überwachung grün), Entscheidungen E1–E7 getroffen, Pilotverein und Ansprechperson festgelegt, 3 Kurzgespräche (Vorstand, Trainer, Kassenwart) zu Alltag und Schmerzpunkten, Docs konsolidiert | Überwachung eine Woche ohne Befund; Pilot benannt (TSF Heuchelheim); dieses Konzept gilt |
 | **M1 Pilot-Reife Mitglieder** | Dezember 2026 | Paginierung, Server-Action-Tests, Demo-Daten, Hilfe und Link „Mitglied werden“, Rolle Mitgliederwart, Datenschutz-Basis (Einwilligungen als Daten, Auskunft als Export, Löschfrist-Vorschlag), Knopf „passive Importe auf aktiv“ | Pilotverein hat seine Mitglieder drin und sagt: „So pflege ich sie jetzt wirklich“ |
 | **M2 Kader und Saisonwechsel** | Januar bis März 2027 | Modul C: Vorschläge aus Alter/Mannschaft, Trainer aus Funktionsträgern, geführter Saisonwechsel (zuerst als Probelauf im Pilot) | Pilotverein baut die Saison 2027/28 damit auf, nicht in Excel |
 | **M3 Mitteilungen** | März bis Mai 2027 | Modul D inkl. Eltern-Kontakte und Einwilligung, Rückmeldung per Klick | Ein Trainer verschickt Spieltagsinfo über die App statt per Messenger-Gruppe |
@@ -205,15 +205,17 @@ Hinweis zur Reihenfolge: Modul E ist nach hinten gerutscht, **weil es das größ
 
 ## 9. Entscheidungen, die der Betreiber treffen muss
 
-| # | Frage | Mein Vorschlag |
+Entscheidung des Betreibers am 18.10.2026: **E1 ja, E2 TSF Heuchelheim, E3 ja, E4 ja, E5 ja, E7 ja. E6 ist noch nicht beantwortet.**
+
+| # | Frage | Mein Vorschlag → Entscheidung |
 |---|---|---|
-| E1 | **Positionierung:** Handball-Betriebssystem (Abschnitt 3) oder allgemeine Vereinsverwaltung? | Handball-Betriebssystem. Allgemeine Software ist ein Verlustgeschäft. |
-| E2 | **Pilotverein** und eine feste Ansprechperson, die in jedem Meilenstein abnimmt | Einen aktiven Beta-Verein mit Jugendabteilung wählen, damit Altersklassen und Eltern vorkommen. |
-| E3 | **Reihenfolge:** Kader und Mitteilungen vor Beiträgen? | Ja (Abschnitt 5). |
-| E4 | **Mitglieder-Zugang:** Bekommen Mitglieder/Eltern später ein Konto oder Magic-Link-Zugang? | Magic-Link ohne Passwort, an die eigene Mitglieds-E-Mail gebunden; Konto nur für Funktionsträger wie bisher. |
-| E5 | **Add-on:** Kader/Mitteilungen in die Basis, Rest ins Add-on? Beta-Preis des Add-ons? Darf der Vereinsadmin es selbst einschalten? | Ja zur Aufteilung; Beta-Preis bewusst festlegen und kommunizieren; Einschalten nur durch Systemadmin, solange die Abrechnung von Hand läuft. |
-| E6 | **Rechtliche Prüfung:** externe Prüfung vor dem ersten Verein mit echten Beitragsdaten, wer organisiert und bezahlt sie? | Ja, vor M6, und die Einwilligungstexte schon vor M1/M3. |
-| E7 | **Priorität gegen Synchronisation:** Wie viel Zeit geht in Spielbetrieb-Stabilität gegen Vereinsverwaltung? | Feste Regel: Solange die Überwachung einen Befund meldet, hat der Befund Vorrang; sonst gehört die Woche einem Meilenstein. |
+| E1 | **Positionierung:** Handball-Betriebssystem (Abschnitt 3) oder allgemeine Vereinsverwaltung? | Handball-Betriebssystem. Allgemeine Software ist ein Verlustgeschäft. → **Ja** |
+| E2 | **Pilotverein** und eine feste Ansprechperson, die in jedem Meilenstein abnimmt | Einen aktiven Beta-Verein mit Jugendabteilung wählen, damit Altersklassen und Eltern vorkommen. → **TSF Heuchelheim** (Ansprechperson noch festzulegen; ob der Verein Jugendmannschaften hat, vor M1 prüfen) |
+| E3 | **Reihenfolge:** Kader und Mitteilungen vor Beiträgen? | Ja (Abschnitt 5). → **Ja** |
+| E4 | **Mitglieder-Zugang:** Bekommen Mitglieder/Eltern später ein Konto oder Magic-Link-Zugang? | Magic-Link ohne Passwort, an die eigene Mitglieds-E-Mail gebunden; Konto nur für Funktionsträger wie bisher. → **Ja** |
+| E5 | **Add-on:** Kader/Mitteilungen in die Basis, Rest ins Add-on? Beta-Preis des Add-ons? Darf der Vereinsadmin es selbst einschalten? | Ja zur Aufteilung; Beta-Preis bewusst festlegen und kommunizieren; Einschalten nur durch Systemadmin, solange die Abrechnung von Hand läuft. → **Ja** (der konkrete Beta-Preis des Add-ons ist damit noch nicht festgelegt) |
+| E6 | **Rechtliche Prüfung:** externe Prüfung vor dem ersten Verein mit echten Beitragsdaten, wer organisiert und bezahlt sie? | Ja, vor M6, und die Einwilligungstexte schon vor M1/M3. → **offen** |
+| E7 | **Priorität gegen Synchronisation:** Wie viel Zeit geht in Spielbetrieb-Stabilität gegen Vereinsverwaltung? | Feste Regel: Solange die Überwachung einen Befund meldet, hat der Befund Vorrang; sonst gehört die Woche einem Meilenstein. → **Ja** |
 
 ---
 

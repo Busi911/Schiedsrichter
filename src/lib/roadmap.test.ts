@@ -24,10 +24,10 @@ describe("Roadmap", () => {
     }
   });
 
-  it("Vereinsverwaltung hat kein Datum (keine Zusagen), nur die begonnene Mitgliederverwaltung ist mehr als eine Idee", () => {
+  it("Vereinsverwaltung hat kein Datum (keine Zusagen), nur Mitgliederverwaltung, Kader/Saisonwechsel, Mitteilungen und der Sponsor-Platz sind mehr als eine Idee", () => {
     const verwaltung = ROADMAP.find((p) => p.id === "vereinsverwaltung")!;
     expect(verwaltung.zeitraum).toMatch(/nicht terminiert/);
     const nichtIdee = verwaltung.punkte.filter((p) => p.status !== "idee").map((p) => p.titel);
-    expect(nichtIdee).toEqual(["Mitgliederverwaltung"]);
+    expect(nichtIdee).toEqual(["Mitgliederverwaltung", "Kader und Saisonwechsel", "Mitteilungen an Mannschaften und Eltern", "Sponsor für einen Verein übernehmen"]);
   });
 });
