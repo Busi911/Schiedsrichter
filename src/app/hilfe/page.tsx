@@ -473,6 +473,12 @@ export default async function HilfePage() {
           gleichem Namen setzt ihr den Haken „Trotzdem neu anlegen“.
         </p>
         <p className="text-sm text-muted-foreground">
+          <strong>Art der Mitgliedschaft:</strong> Unter „Arten der Mitgliedschaft verwalten“ legt ihr eigene Arten an (z.B. Aktives Mitglied, Fördermitglied, Ehrenmitglied,
+          Kind/Jugend), mit „Übliche Arten anlegen“ übernehmt ihr Vorschläge. Beim Mitglied wählt ihr eine davon aus (freiwillig); sie erscheint als Markierung auf der
+          Karte, und die Suche kann danach filtern. Eine Art lässt sich umbenennen oder löschen, die Mitglieder bleiben dabei bestehen. Der Status (Aktiv, Passiv,
+          Ausgetreten) bleibt davon getrennt.
+        </p>
+        <p className="text-sm text-muted-foreground">
           <strong>Mannschaften zuordnen:</strong> Jedes Mitglied lässt sich je Saison einer oder mehreren Mannschaften zuordnen, als <em>Spieler/in</em>, <em>Trainer/in</em> oder{" "}
           <em>Betreuer/in</em> (auf der Karte des Mitglieds unter „Mannschaften“). Zur Auswahl stehen die Mannschaften aus eurem angebundenen Spielplan (Einstellungen →
           Öffentliche Vereinsseite); ohne Spielplan gibt es noch keine. Dieselbe Zuordnung in derselben Saison wird nicht doppelt angelegt, ältere Saisons bleiben als Verlauf

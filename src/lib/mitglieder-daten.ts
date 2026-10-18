@@ -1,6 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { funktionstraegerRollen, mitglieder, users, vereine } from "@/db/schema";
+import { funktionstraegerRollen, mitglieder, mitgliedsarten, users, vereine } from "@/db/schema";
 import { planeUeberfuehrung, type KontoPerson, type UeberfuehrungPlan } from "@/lib/mitglieder-ueberfuehrung";
 
 // Add-on Vereinsverwaltung eingeschaltet? Nur der Systemadmin schaltet es frei (/system/abrechnung). Aus = Seiten zeigen einen Hinweis, Actions lehnen ab.
@@ -102,4 +102,28 @@ export async function gleicheFunktionstraegerAb(vereinId: string): Promise<void>
   } catch (err) {
     console.error("Abgleich Funktionsträger -> Mitglieder fehlgeschlagen:", err);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Arten der Mitgliedschaft
+// ---------------------------------------------------------------------------
+
+export type MitgliedsartZeile = { id: string; name: string };
+
+export async function ladeMitgliedsarten(vereinId: string): Promise<MitgliedsartZeile[]> {
+  const zeilen = await withTenant(vereinId, (tx) =>
+    tx.select({ id: mitgliedsarten.id, name: mitgliedsarten.name }).from(mitgliedsarten).where(eq(mitgliedsarten.vereinId, vereinId))
+  );
+  return zeilen.sort((a, b) => a.name.localeCompare(b.name, "de"));
+}
+
+/** Eine Art-ID aus dem Formular: leer = keine Angabe, sonst muss die Art zu DIESEM Verein gehören (die Fremdschlüssel-Prüfung kennt keine Mandanten). */
+export async function pruefeArtId(vereinId: string, roh: string): Promise<{ artId: string | null } | { fehler: string }> {
+  const id = roh.trim();
+  if (!id) return { artId: null };
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return { fehler: "Unbekannte Art der Mitgliedschaft." };
+  const art = await withTenant(vereinId, (tx) =>
+    tx.query.mitgliedsarten.findFirst({ where: and(eq(mitgliedsarten.id, id), eq(mitgliedsarten.vereinId, vereinId)), columns: { id: true } })
+  );
+  return art ? { artId: art.id } : { fehler: "Unbekannte Art der Mitgliedschaft." };
 }
