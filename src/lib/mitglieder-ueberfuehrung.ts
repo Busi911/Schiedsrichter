@@ -114,3 +114,21 @@ export function planeUeberfuehrung(personen: KontoPerson[], mitglieder: Mitglied
 export function offeneUeberfuehrung(plan: UeberfuehrungPlan): number {
   return plan.neu.length + plan.verknuepfen.length + plan.pruefen.length + plan.unvollstaendig.length;
 }
+
+/**
+ * Ergänzt den Namen einer Person, die sich nicht übernehmen lässt, weil nur ein Wort im Namen steht (oder gar keiner):
+ * steht dort genau ein Wort, ist es der Vorname und es fehlt nur der Nachname; sonst braucht es beide Angaben.
+ * Das Ergebnis hat die Form "Vorname Nachname" (wie ein im Funktionsträger angelegter Name).
+ */
+export function ergaenzeName(bestehend: string | null, vornameEingabe: string, nachnameEingabe: string): { name: string } | { fehler: string } {
+  const nachname = nachnameEingabe.trim().replace(/\s+/g, " ");
+  if (!nachname) return { fehler: "Bitte den Nachnamen eingeben." };
+  const alt = (bestehend ?? "").trim();
+  const einWort = alt !== "" && !/[\s,]/.test(alt);
+  const vorname = (einWort ? alt : vornameEingabe).trim().replace(/\s+/g, " ");
+  if (!vorname) return { fehler: "Bitte auch den Vornamen eingeben." };
+  if (vorname.length > 100 || nachname.length > 100) return { fehler: "Der Name ist zu lang (höchstens 100 Zeichen je Teil)." };
+  if (/[,]/.test(vorname + nachname)) return { fehler: "Bitte ohne Komma eingeben, Vor- und Nachname getrennt." };
+  const name = `${vorname} ${nachname}`;
+  return teileName(name) ? { name } : { fehler: "Der Name ist unvollständig." };
+}

@@ -25,6 +25,7 @@ type Daten = typeof import("./mitglieder-daten");
 let fuehreUeberfuehrungAus: Daten["fuehreUeberfuehrungAus"];
 let gleicheFunktionstraegerAb: Daten["gleicheFunktionstraegerAb"];
 let ladeUeberfuehrungsPlan: Daten["ladeUeberfuehrungsPlan"];
+let ergaenzeFunktionstraegerName: Daten["ergaenzeFunktionstraegerName"];
 
 describe.skipIf(!ADMIN_URL)("Funktionsträger -> Mitglieder (Postgres)", () => {
   const vereinId = randomUUID();
@@ -38,7 +39,7 @@ describe.skipIf(!ADMIN_URL)("Funktionsträger -> Mitglieder (Postgres)", () => {
   const alle = (verein = vereinId) => testDb.select().from(schema.mitglieder).where(eq(schema.mitglieder.vereinId, verein));
 
   beforeAll(async () => {
-    ({ fuehreUeberfuehrungAus, gleicheFunktionstraegerAb, ladeUeberfuehrungsPlan } = await import("./mitglieder-daten"));
+    ({ fuehreUeberfuehrungAus, gleicheFunktionstraegerAb, ladeUeberfuehrungsPlan, ergaenzeFunktionstraegerName } = await import("./mitglieder-daten"));
     await testDb.insert(schema.vereine).values([{ id: vereinId, name: "TSV Mitglieder" }, { id: fremdId, name: "TSV Fremd" }]);
     await person(u("a"), "Neu Person", `neu-${vereinId}@x.test`);
     await person(u("b"), "Max Müller", `max-${vereinId}@x.test`);
@@ -73,7 +74,8 @@ describe.skipIf(!ADMIN_URL)("Funktionsträger -> Mitglieder (Postgres)", () => {
     const max = liste.find((m) => m.name === "Müller")!;
     expect(max.userId).toBe(u("b"));
     expect(liste.find((m) => m.userId === u("a"))).toMatchObject({ vorname: "Neu", name: "Person", status: "aktiv", eintrittsdatum: null });
-    expect(liste.find((m) => m.userId === u("c"))?.status).toBe("passiv");
+    // Auch ohne aktive Rolle: Status aktiv (kein passives Mitglied).
+    expect(liste.find((m) => m.userId === u("c"))?.status).toBe("aktiv");
     expect(liste.some((m) => m.userId === u("g") || m.userId === u("f"))).toBe(false);
     expect(await alle(fremdId)).toHaveLength(0);
   });
@@ -100,5 +102,19 @@ describe.skipIf(!ADMIN_URL)("Funktionsträger -> Mitglieder (Postgres)", () => {
     const e = await fuehreUeberfuehrungAus(vereinId);
     expect(e).toMatchObject({ angelegt: 0, pruefen: 1 });
     expect(await alle()).toHaveLength(4);
+  });
+
+  it("Nachname ergänzen: Einwort-Name wird vervollständigt und sofort als Mitglied übernommen; fremde Personen nicht", async () => {
+    const vorher = (await alle()).length;
+    expect(await ergaenzeFunktionstraegerName(vereinId, u("d"), "", "Namenlos")).toEqual({ ok: true });
+    const konto = await testDb.query.users.findFirst({ where: eq(schema.users.id, u("d")) });
+    expect(konto?.name).toBe("Einname Namenlos");
+    const liste = await alle();
+    expect(liste).toHaveLength(vorher + 1);
+    expect(liste.find((m) => m.userId === u("d"))).toMatchObject({ vorname: "Einname", name: "Namenlos" });
+    expect(await ergaenzeFunktionstraegerName(vereinId, u("f"), "", "Fremd")).toHaveProperty("fehler");
+    expect(await ergaenzeFunktionstraegerName(vereinId, u("g"), "Nur", "Admin")).toHaveProperty("fehler");
+    expect(await ergaenzeFunktionstraegerName(vereinId, u("h"), "", "  ")).toHaveProperty("fehler");
+    expect((await testDb.query.users.findFirst({ where: eq(schema.users.id, u("f")) }))?.name).toBe("Fremde Person");
   });
 });

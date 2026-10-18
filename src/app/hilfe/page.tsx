@@ -468,8 +468,9 @@ export default async function HilfePage() {
           ist, werden alle Funktionsträger (Personen mit mindestens einer Rolle) einmalig als Mitglieder übernommen, danach auch jede neu angelegte Person. Dabei wird
           nichts doppelt angelegt: Ein vorhandenes Mitglied mit <em>gleicher E-Mail-Adresse</em> oder <em>gleichem Namen</em> (ohne abweichende Adresse) wird nur mit dem
           Funktionsträger verknüpft. Gleicher Name, aber andere Adresse kann dieselbe Person sein oder nicht: dann wird nichts angelegt, die Mitgliederseite zeigt
-          den Fall unter „Funktionsträger und Mitglieder abgleichen“ zur Prüfung. Personen ohne Vor- und Nachnamen (nur ein Wort) lassen sich nicht übernehmen, ergänzt
-          dafür den Namen. Vorhandene Mitgliedsdaten werden nie überschrieben. Beim Anlegen von Hand prüft die App ebenfalls auf Doppelte; bei einer anderen Person mit
+          den Fall unter „Funktionsträger und Mitglieder abgleichen“ zur Prüfung. Personen ohne Vor- und Nachnamen (nur ein Wort) lassen sich nicht übernehmen: auf der Abgleich-Karte ergänzt ihr den
+          Nachnamen direkt (er wird auch beim Funktionsträger gesetzt, die Person wird sofort übernommen). Übernommene Funktionsträger sind immer „Aktiv“, auch wenn sie noch
+          nicht für den Login freigeschaltet sind. Vorhandene Mitgliedsdaten werden nie überschrieben. Beim Anlegen von Hand prüft die App ebenfalls auf Doppelte; bei einer anderen Person mit
           gleichem Namen setzt ihr den Haken „Trotzdem neu anlegen“.
         </p>
         <p className="text-sm text-muted-foreground">
