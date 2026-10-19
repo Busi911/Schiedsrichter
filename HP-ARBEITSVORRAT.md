@@ -176,6 +176,17 @@ Keine ICS-Kalender-Abonniermöglichkeit je Mannschaft. Mobile-Roadmap Phase 3.5 
 - **Datum**: 2026-10-16
 - \`role="dialog"\` + \`aria-modal="true"\` + \`aria-label\`, Fokus auf Schließen-Button beim Öffnen, Fokus-Rückkehr beim Schließen, \`aria-label\` + \`min-h-11 min-w-11\` am Button. tsc 0 Fehler, vitest 667 grün.
 
+### Podcast-Landingpage + 100 € Rabatt (Handballkäs) — erledigt
+
+- **Branch**: hp/aufgabe-podcast-seite
+- **PR**: #459 (Draft)
+- **Datum**: 2026-10-19
+- Landingpage /podcast stellt Podcast + HandballerPate vor, CTA mit 100 € Rabatt.
+- \`vereine.herkunft\` (Migration 0122) protokolliert die Registrierungsquelle.
+- \`betragNetto()\` + \`rabattFuerHerkunft()\`: Podcast-Beta 100 statt 200 €, regulär 200 statt 300 € (erstes Jahr).
+- System-Admin /system/abrechnung zeigt Badge + reduzierten Betrag + Hinweis erstes Jahr.
+- tsc 0 Fehler, vitest 109 passed (17 DB fails expected), migrations-journal passed.
+
 ## Blockierte Aufgaben
 
 *(noch keine)*

@@ -1,6 +1,6 @@
 # HandballerPate – Projektstand (Automatisierter Entwicklungsassistent)
 
-Stand: 2026-10-16
+Stand: 2026-10-19
 
 ## Projekt
 
@@ -10,8 +10,8 @@ Stand: 2026-10-16
 - **Stack**: Next.js 16.4.0, React 19, Drizzle ORM, Neon Postgres (RLS multi-tenant), Auth.js (JWT), Vitest, PWA
 - **Hosting**: Vercel (fra1), Produktion unter handballerpate.de
 - **Branch**: main (Working Tree clean)
-- **Letzter Commit**: 75a9b51 (fix: followup-cron verwendet isNotNull)
-- **Dateien**: 545 TS/TSX, 109 Test-Dateien, 106 Migrationen
+- **Letzter Commit**: 513c153 (feat: Podcast-Landingpage /podcast mit 100 € Rabatt)
+- **Dateien**: 546 TS/TSX, 110 Test-Dateien, 107 Migrationen
 - **tsc**: 0 Fehler (clean)
 - **Vitest**: 73 passed, 17 failed (DB-Integrationstests ohne DATABASE_URL), 19 skipped, 667 Tests grün
 - **CLAUDE.md**: 86 KB, Stand 15. Okt. — Projektkonventionen, vor jedem Durchlauf lesen
