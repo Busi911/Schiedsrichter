@@ -25,8 +25,8 @@ function kurzDatum(d: Date): string {
 }
 
 const AUFGABEN_TON: Record<Aufgabe["ton"], string> = {
-  warnung: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
-  info: "bg-secondary text-secondary-foreground",
+  warnung: "bg-amber-400 text-amber-950 dark:bg-amber-500 dark:text-amber-950",
+  info: "bg-primary text-primary-foreground",
 };
 
 export type Kachel = { href: string; label: string; hinweis: string; icon: LucideIcon; badge?: number };
@@ -78,30 +78,30 @@ function AufgabenKarte({ aufgaben }: { aufgaben: Aufgabe[] }) {
   <div className="flex flex-col gap-2.5 rounded-3xl border bg-card p-4 md:p-5">
     <div className="flex items-baseline justify-between">
       <h2 className="font-heading text-lg font-bold">Braucht dich</h2>
-      <span className="text-sm text-muted-foreground">{aufgaben.length === 0 ? "nichts offen" : aufgaben.length === 1 ? "1 Aufgabe" : `${aufgaben.length} Aufgaben`}</span>
+      <span className="text-sm font-medium text-foreground/70">{aufgaben.length === 0 ? "nichts offen" : aufgaben.length === 1 ? "1 Aufgabe" : `${aufgaben.length} Aufgaben`}</span>
     </div>
     {aufgaben.length === 0 ? (
-      <p className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
+      <p className="flex items-center gap-2 py-3 text-base text-foreground/75">
         <CheckCircle2Icon className="size-5 shrink-0 text-green-600" aria-hidden />
         Alles erledigt. Nichts wartet auf dich.
       </p>
     ) : (
       <ul className="flex flex-col divide-y">
         {aufgaben.map((a) => (
-          <li key={a.schluessel} className="flex min-h-16 items-center gap-3 py-2 first:pt-0 last:pb-0">
+          <li key={a.schluessel} className="flex min-h-20 flex-wrap items-center gap-x-3 gap-y-2 py-3 first:pt-0 last:pb-0">
             <span
-              className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl text-base font-extrabold", AUFGABEN_TON[a.ton])}
+              className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-extrabold", AUFGABEN_TON[a.ton])}
               aria-hidden
             >
               {a.anzahl}
             </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-base leading-tight font-semibold">{a.titel}</p>
-              <p className="text-sm text-muted-foreground">{a.hinweis}</p>
+            <div className="min-w-40 flex-1">
+              <p className="text-lg leading-tight font-bold">{a.titel}</p>
+              <p className="text-base text-foreground/75">{a.hinweis}</p>
             </div>
             <Link
               href={a.href}
-              className="inline-flex min-h-11 shrink-0 items-center rounded-xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground hover:bg-secondary/70"
+              className="inline-flex min-h-12 shrink-0 items-center rounded-xl bg-primary px-5 text-base font-semibold text-primary-foreground hover:bg-primary/90"
             >
               {a.aktion}
             </Link>
@@ -129,7 +129,7 @@ function KachelGitter({ kacheln }: { kacheln: Kachel[] }) {
           </span>
           <span>
             <span className="block text-base leading-tight font-semibold">{k.label}</span>
-            <span className="text-sm text-muted-foreground">{k.hinweis}</span>
+            <span className="text-sm text-foreground/75">{k.hinweis}</span>
           </span>
           {!!k.badge && (
             <span
@@ -169,7 +169,7 @@ export function NeuesDashboard({
     <section aria-label="Start" className="flex flex-col gap-5">
       <div>
         <h1 className="font-heading text-2xl font-extrabold">{gruss}</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-foreground/75">
           {vereinName} · {rolle}
         </p>
       </div>
@@ -263,7 +263,7 @@ export function BereichsTasten({ eintraege }: { eintraege: { href: string; label
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-base leading-tight font-semibold">{e.label}</span>
-              {e.hinweis && <span className="text-sm text-muted-foreground">{e.hinweis}</span>}
+              {e.hinweis && <span className="text-sm text-foreground/75">{e.hinweis}</span>}
             </span>
             {!!e.badge && (
               <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-destructive px-2 text-sm font-bold text-white" aria-label={`${e.badge} offen`}>
@@ -300,7 +300,7 @@ export function NeuesProfilStart({
     <section aria-label="Start" className="flex flex-col gap-5">
       <div>
         <h1 className="font-heading text-2xl font-extrabold">{gruss}</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-foreground/75">
           {vereinName} · {rolleText}
         </p>
       </div>
