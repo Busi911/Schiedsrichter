@@ -49,4 +49,4 @@ Funktionsträgern, Mannschaften, Hallen, Trainingszeiten und Terminen an
 schneidet die Screenshots auf den relevanten Ausschnitt zu (Crop-Werte in
 `screenshot.mjs` ggf. nachjustieren, falls sich die Kartenhöhen ändern).
 
-Die Bilder zeigen das neue App-Design (Seitenleiste, Dashboard): der Seed setzt `users.design_neu` für den Demo-Admin. Zuschnitte (`CROPS`) sind darauf abgestimmt (Übersicht ganzer Bildschirm).
+Die Bilder zeigen das neue App-Design (Seitenleiste, Dashboard): der Seed setzt `users.design_neu` für den Demo-Admin. Die Bilder zeigen die GANZE Seite (kein Zuschnitt); das Skript schreibt die Bildmaße nach `public/produkttour/masse.json`, die die Startseite liest.
