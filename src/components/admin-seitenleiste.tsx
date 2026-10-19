@@ -35,7 +35,7 @@ export function AdminSeitenleiste({ nav }: { nav: AdminNavigation }) {
   const pathname = usePathname();
   return (
     <aside className="hidden w-60 shrink-0 border-r bg-card md:block">
-      <nav aria-label="Hauptnavigation" className="sticky top-0 flex max-h-screen flex-col gap-0.5 overflow-y-auto p-3.5">
+      <nav aria-label="Hauptnavigation" className="sticky top-[78px] flex max-h-[calc(100vh-78px)] flex-col gap-0.5 overflow-y-auto p-3.5">
         {nav.direkt.map((item) => (
           <Eintrag key={item.href} item={item} pathname={pathname} label={item.href === "/admin" ? "Start" : undefined} />
         ))}

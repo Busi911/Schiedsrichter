@@ -88,7 +88,8 @@ export default async function AdminLayout({
           </div>
         </div>
       )}
-      <header className="border-b bg-background">
+      {/* Neues Design: Kopfzeile bleibt oben stehen (ab md), die Seitenleiste klebt direkt darunter — sonst springt die Leiste, sobald die Kopfzeile aus dem Bild scrollt. */}
+      <header className={designNeu ? "border-b bg-background md:sticky md:top-0 md:z-30" : "border-b bg-background"}>
         <div className="mx-auto flex max-w-screen-2xl flex-col gap-3 px-6 py-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
           {/* Oben: Vereinsname + Logout auf gleicher Höhe, wie bei jedem
               anderen Header oben rechts erwartet — auf Mobile sonst würde
