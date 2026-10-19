@@ -1,6 +1,6 @@
 "use server";
 
-import { betaVorbei } from "@/lib/abrechnung";
+import { betaVorbei, normalisiereHerkunft } from "@/lib/abrechnung";
 import { holeBetaStand } from "@/lib/system-einstellungen";
 import { legeVereinMitAdminAn } from "@/lib/verein-anlegen";
 import { sendMail } from "@/lib/mailer";
@@ -11,7 +11,6 @@ import {
   benachrichtigeSystemAdminsUeberUebernahmeAnfrage,
 } from "@/lib/system-admin-benachrichtigung";
 import { findeAehnlicheVereine } from "@/lib/verein-duplikat-daten";
-import { PODCAST_HERKUNFT } from "@/lib/beta-konditionen";
 
 // Eingaben des Formulars, die bei der Rückfrage "Ist das euer Verein?" unverändert zurückgegeben werden (React leert das Formular nach
 // einer Server Action; die Rückfrage schickt die Werte als versteckte Felder wieder mit).
@@ -50,8 +49,7 @@ export async function vereinRegistrieren(
   const plz = formData.get("plz");
   const ort = formData.get("ort");
   const rechnungEmailRoh = formData.get("rechnungEmail");
-  const herkunftRoh = formData.get("herkunft");
-  const herkunft = typeof herkunftRoh === "string" && herkunftRoh.trim() ? herkunftRoh.trim() : null;
+  const herkunft = normalisiereHerkunft(formData.get("herkunft"));
   // Nach dem Beta-Ende oder wenn alle Beta-Plätze vergeben sind, ist die Registrierung kostenpflichtig: dann ist die Rechnungs-E-Mail des Verantwortlichen Pflicht.
   const beta = await holeBetaStand();
   const kostenpflichtig = betaVorbei(new Date()) || beta.voll;

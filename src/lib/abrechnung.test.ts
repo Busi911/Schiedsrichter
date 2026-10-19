@@ -4,6 +4,7 @@ import {
   sollBetaEndeMailSenden,
   BETA_ERSTE_FRIST,
   betragNetto,
+  normalisiereHerkunft,
   rabattFuerHerkunft,
   sollMailSenden,
   stufeFuer,
@@ -53,6 +54,15 @@ describe("Beträge (netto)", () => {
     expect(rabattFuerHerkunft(null)).toBe(0);
     expect(rabattFuerHerkunft(undefined)).toBe(0);
     expect(rabattFuerHerkunft("andere-quelle")).toBe(0);
+  });
+});
+
+describe("normalisiereHerkunft", () => {
+  it("behält nur bekannte Quellen, verwirft den Rest", () => {
+    expect(normalisiereHerkunft(PODCAST_HERKUNFT)).toBe(PODCAST_HERKUNFT);
+    expect(normalisiereHerkunft("irgendwas")).toBeNull();
+    expect(normalisiereHerkunft("x".repeat(10000))).toBeNull();
+    expect(normalisiereHerkunft(null)).toBeNull();
   });
 });
 
