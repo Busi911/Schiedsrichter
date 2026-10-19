@@ -71,6 +71,8 @@ export default auth((req) => {
     // public/-Assets), und die Bilder blieben für nicht eingeloggte
     // Besucher:innen unsichtbar.
     pathname.startsWith("/produkttour/") ||
+    // Statische Bilder der öffentlichen Podcast-Seite (public/podcast), sonst Weiterleitung auf /login für anonyme Besucher.
+    pathname.startsWith("/podcast/") ||
     // Marken-Logos und App-Icons/Manifeste (Startseite, Login, Favicon,
     // "Zum Home-Bildschirm") müssen auch ohne Login ladbar sein.
     pathname.startsWith("/brand/") ||
