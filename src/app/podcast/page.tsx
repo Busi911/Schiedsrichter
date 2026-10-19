@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   CalendarClockIcon,
   CheckIcon,
   ClipboardCheckIcon,
   ExternalLinkIcon,
-  HeadphonesIcon,
   RefreshCwIcon,
   ShieldCheckIcon,
   SmartphoneIcon,
@@ -59,12 +59,17 @@ export default async function PodcastSeite() {
         <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 size-[32rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
         <div className="relative mx-auto flex w-full max-w-2xl flex-col items-center gap-6 text-center">
           <div className="flex items-center gap-4">
-            <span className="flex size-16 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border">
-              <HeadphonesIcon className="size-8 text-primary" />
-            </span>
+            <Image
+              src="/podcast/handballkaes-logo.jpg"
+              alt="Logo des Podcasts Handballkäs"
+              width={512}
+              height={504}
+              priority
+              className="size-20 rounded-2xl shadow-sm ring-1 ring-border sm:size-24"
+            />
             <span className="text-2xl font-light text-muted-foreground">×</span>
-            <span className="flex size-16 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border">
-              <Logo className="size-9 text-primary" />
+            <span className="flex size-20 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border sm:size-24">
+              <Logo className="size-11 text-primary" />
             </span>
           </div>
           <Badge variant="outline" className="bg-background/70">Für Hörerinnen und Hörer von Handballkäs</Badge>
@@ -87,8 +92,13 @@ export default async function PodcastSeite() {
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-14 px-4 py-12 md:py-16">
         {/* Podcast */}
         <section className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm md:p-8">
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Der Podcast</p>
-          <h2 className="text-2xl font-bold">Handballkäs</h2>
+          <div className="flex items-center gap-4">
+            <Image src="/podcast/handballkaes-logo.jpg" alt="" width={512} height={504} className="size-16 rounded-xl ring-1 ring-border" />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Der Podcast</p>
+              <h2 className="text-2xl font-bold">Handballkäs</h2>
+            </div>
+          </div>
           <p className="text-muted-foreground">
             Der Handball-Podcast aus und für Mittelhessen. Danny Pieth gibt dem Handball der Region eine Stimme, von den Profis bis in die unteren Spielklassen: Geschichten aus Kabine, Halle und Tribüne.
           </p>
