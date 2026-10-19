@@ -21,6 +21,7 @@ import { Logo } from "@/components/logo";
 export const metadata: Metadata = {
   title: "Handballkäs × HandballerPate – 100 € Rabatt für Mittelhessens Vereine",
   description: `Der Handball-Podcast aus Mittelhessen trifft auf HandballerPate. Vereine, die über diese Seite registrieren, bekommen ${PREIS_RABATT_PODCAST} € Rabatt — kostenlos bis ${BETA_ENDE}, danach ${PREIS_BETA} € statt ${PREIS_REGULAER} €.`,
+  robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
