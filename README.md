@@ -771,4 +771,4 @@ hier abhaken bzw. entfernen.
 
 ## Neues App-Design (opt-in)
 
-Pro Person unter `/profil/darstellung` einschaltbar (`users.design_neu`): Dashboard-Startseite mit „Heute“-Karte, „Braucht dich“ und Kacheln, Seitenleiste auf dem Rechner, Bereichsseiten `/admin/bereich/[gruppe]`. Standard bleibt die bisherige Ansicht. Details siehe CLAUDE.md.
+Pro Person unter `/profil/darstellung` einschaltbar (`users.design_neu`): Dashboard-Startseite mit „Heute“-Karte, „Braucht dich“ und Kacheln, Seitenleiste auf dem Rechner, Bereichsseiten `/admin/bereich/[gruppe]`. Demo und neue Vereine (ab 19.10.2026) starten damit, Bestandsvereine behalten die bisherige Ansicht (`lib/design-regel.ts`). Details siehe CLAUDE.md.

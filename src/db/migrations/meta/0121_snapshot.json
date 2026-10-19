@@ -4556,8 +4556,7 @@
           "name": "design_neu",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": true,
-          "default": false
+          "notNull": false
         },
         "letzter_login_am": {
           "name": "letzter_login_am",

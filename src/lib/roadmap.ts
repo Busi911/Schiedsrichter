@@ -78,7 +78,7 @@ export const ROADMAP: RoadmapPhase[] = [
       {
         titel: "Neues App-Design (zum Ausprobieren)",
         status: "in_arbeit",
-        text: "Wer möchte, schaltet im Profil unter „Darstellung“ ein neues, app-artiges Design ein: Startseite als Dashboard mit „Heute“-Karte, „Braucht dich“ und großen Kacheln, auf dem Rechner mit Seitenleiste. Standard bleibt die bisherige Ansicht.",
+        text: "Wer möchte, schaltet im Profil unter „Darstellung“ ein neues, app-artiges Design ein: Startseite als Dashboard mit „Heute“-Karte, „Braucht dich“ und großen Kacheln, auf dem Rechner mit Seitenleiste. Neue Vereine und die Demo starten gleich damit, bestehende Vereine behalten zunächst die bisherige Ansicht.",
       },
       {
         titel: "Einstieg für neue Vereine",

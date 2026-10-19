@@ -518,8 +518,8 @@ export default async function HilfePage() {
       <section id="darstellung" className="flex flex-col gap-2 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">Neues App-Design (Darstellung)</h2>
         <p className="text-sm text-muted-foreground">
-          Unter <strong>Profil → Einstellungen → Darstellung</strong> schaltest du für dich das neue Design ein oder wieder aus. Es gilt nur für dein Konto,
-          die anderen sehen weiter ihre gewohnte Ansicht. Die Startseite wird zum Dashboard: oben die Karte <strong>„Heute“</strong> (Admins: das nächste
+          Unter <strong>Profil → Einstellungen → Darstellung</strong> schaltest du für dich das neue Design ein oder wieder aus. Es gilt nur für dein Konto.
+          Der Demo-Verein und Vereine, die ab dem 19.10.2026 registriert wurden, starten gleich mit dem neuen Design; bestehende Vereine behalten zunächst die gewohnte Ansicht. Die Startseite wird zum Dashboard: oben die Karte <strong>„Heute“</strong> (Admins: das nächste
           Spiel mit Besetzung; sonst dein nächster Einsatz), darunter <strong>„Braucht dich“</strong> mit offenen Aufgaben und große <strong>Kacheln</strong> für
           die Bereiche. Admins finden die Bereiche (Spielbetrieb, Dienste, Verein, Auswertung) als Übersichtsseiten mit großen Tasten; auf dem Rechner
           steht links eine Seitenleiste. Alle bisherigen Karten und Seiten bleiben unverändert darunter bzw. erreichbar.

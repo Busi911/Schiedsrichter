@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { designSetzen } from "./actions";
 
 // Profil → Darstellung: freiwilliger Umschalter zwischen der klassischen Oberfläche und dem neuen App-Design (Dashboard mit Kacheln und großen Tasten).
-// Standard ist klassisch; wer wechselt, kann hier jederzeit zurück.
+// Standard: Demo und neue Vereine neu, Bestand klassisch (lib/design-regel.ts); wer wechselt, kann hier jederzeit zurück.
 function Karte({
   wert,
   aktiv,
