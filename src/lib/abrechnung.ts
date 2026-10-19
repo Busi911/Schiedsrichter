@@ -30,6 +30,11 @@ export function betragNetto(tarif: Tarif, sponsor: boolean, vereinsverwaltungAkt
 // Rabatt für eine Registrierungsquelle (herkunft). Podcast-Registrierungen (PODCAST_HERKUNFT) bekommen
 // PREIS_RABATT_PODCAST (100 €) im ersten Jahr. Nach dem ersten Abrechnungsjahr fällt der Rabatt weg
 // (regulärer Tarif-Preis); der Systemadmin stellt die Folge-Rechnung ohne Rabatt. null/undefined = kein Rabatt.
+// Herkunft aus dem Formular (frei änderbares Feld): nur bekannte Quellen werden gespeichert, alles andere wird verworfen.
+export function normalisiereHerkunft(roh: unknown): string | null {
+  return roh === PODCAST_HERKUNFT ? PODCAST_HERKUNFT : null;
+}
+
 export function rabattFuerHerkunft(herkunft: string | null | undefined): number {
   return herkunft === PODCAST_HERKUNFT ? PREIS_RABATT_PODCAST : 0;
 }
