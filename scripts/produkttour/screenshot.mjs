@@ -27,7 +27,7 @@ const context = await browser.newContext({ viewport: { width: 1440, height: 900 
 const page = await context.newPage();
 
 await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
-await page.fill("#password-email", ADMIN_EMAIL);
+await page.fill("#email", ADMIN_EMAIL);
 await page.fill("#password", ADMIN_PASSWORT);
 await page.getByRole("button", { name: "Einloggen" }).click();
 await page.waitForURL("**/admin", { timeout: 15000 });
