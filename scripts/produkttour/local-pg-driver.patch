@@ -1,5 +1,5 @@
 diff --git a/src/db/admin.ts b/src/db/admin.ts
-index 2119b14..714fa38 100644
+index 1492fd6..48cbd2f 100644
 --- a/src/db/admin.ts
 +++ b/src/db/admin.ts
 @@ -1,6 +1,6 @@
@@ -9,8 +9,8 @@ index 2119b14..714fa38 100644
 +import { Pool } from "pg";
 +import { drizzle } from "drizzle-orm/node-postgres";
  import * as schema from "./schema";
+ import { mitColdStartSchutz } from "./schutz";
  
- if (!process.env.DATABASE_ADMIN_URL) {
 diff --git a/src/db/index.ts b/src/db/index.ts
 index a96eb55..5093421 100644
 --- a/src/db/index.ts
