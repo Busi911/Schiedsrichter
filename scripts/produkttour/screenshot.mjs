@@ -5,6 +5,7 @@
 import { chromium } from "playwright";
 import sharp from "sharp";
 import path from "node:path";
+import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { unlink } from "node:fs/promises";
 
@@ -24,17 +25,27 @@ const browser = await chromium.launch({
   args: ["--no-sandbox"],
 });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+// Der Demo-Verein hat keinen angebundenen Spielplan: ohne dieses Cookie leitet /admin in den Einrichtungs-Assistenten statt auf das Dashboard.
+await context.addCookies([{ name: "hp_einrichtung_uebersprungen", value: "1", url: BASE }]);
 const page = await context.newPage();
+// Entwicklungs-Plakette von Next.js (unten links) gehört nicht ins Bild.
+await page.addInitScript(() => {
+  document.addEventListener("DOMContentLoaded", () => {
+    const style = document.createElement("style");
+    style.textContent = "nextjs-portal { display: none !important; }";
+    document.head.appendChild(style);
+  });
+});
 
 await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
-await page.fill("#password-email", ADMIN_EMAIL);
+await page.fill("#email", ADMIN_EMAIL);
 await page.fill("#password", ADMIN_PASSWORT);
 await page.getByRole("button", { name: "Einloggen" }).click();
 await page.waitForURL("**/admin", { timeout: 15000 });
 await page.waitForLoadState("networkidle");
 
 async function fullShot(fileName) {
-  await page.screenshot({ path: path.join(OUT_DIR, fileName) });
+  await page.screenshot({ path: path.join(OUT_DIR, fileName), fullPage: true });
 }
 
 // 1. Übersicht
@@ -58,8 +69,6 @@ await fullShot("_kalender-full.png");
 // im sichtbaren Bereich liegen (Grid startet oberhalb des Folds).
 await page.goto(`${BASE}/admin/trainingsplan`, { waitUntil: "networkidle" });
 await page.waitForTimeout(400);
-await page.mouse.wheel(0, 680);
-await page.waitForTimeout(300);
 await fullShot("_trainingsplan-full.png");
 
 // 5. Offene Dienste
@@ -69,22 +78,15 @@ await fullShot("_dienste-full.png");
 
 await browser.close();
 
-// Zuschneiden auf den relevanten Ausschnitt (kein leerer Seitenraum unten/
-// rechts) — Werte an die tatsächliche Kartenhöhe der Demo-Daten angepasst,
-// bei neuen Screenshots ggf. nachjustieren.
-const CROPS = [
-  { in: "_uebersicht-full.png", out: "uebersicht.png", crop: { left: 0, top: 0, width: 1440, height: 530 } },
-  { in: "_funktionstraeger-full.png", out: "funktionstraeger.png", crop: { left: 0, top: 0, width: 1440, height: 830 } },
-  { in: "_kalender-full.png", out: "kalender.png", crop: { left: 0, top: 0, width: 1440, height: 600 } },
-  { in: "_trainingsplan-full.png", out: "trainingsplan.png", crop: { left: 0, top: 0, width: 1040, height: 800 } },
-  { in: "_dienste-full.png", out: "dienste.png", crop: { left: 0, top: 0, width: 1440, height: 860 } },
-];
-
-for (const c of CROPS) {
-  await sharp(path.join(OUT_DIR, c.in))
-    .extract(c.crop)
-    .png({ quality: 90 })
-    .toFile(path.join(OUT_DIR, c.out));
-  console.log("cropped", c.out);
-  await unlink(path.join(OUT_DIR, c.in));
+// Ganze Seite, kein Zuschnitt: Dateien umbenennen und die Bildmaße für die Startseite ablegen (public/produkttour/masse.json, von src/app/page.tsx gelesen).
+const NAMEN = ["uebersicht", "funktionstraeger", "kalender", "trainingsplan", "dienste"];
+const masse = {};
+for (const name of NAMEN) {
+  const ziel = path.join(OUT_DIR, `${name}.png`);
+  await sharp(path.join(OUT_DIR, `_${name}-full.png`)).png({ quality: 90 }).toFile(ziel);
+  const meta = await sharp(ziel).metadata();
+  masse[name] = { breite: meta.width, hoehe: meta.height };
+  await unlink(path.join(OUT_DIR, `_${name}-full.png`));
+  console.log("saved", name, masse[name]);
 }
+await writeFile(path.join(OUT_DIR, "masse.json"), JSON.stringify(masse, null, 2) + "\n");

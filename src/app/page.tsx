@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { ProdukttourBild } from "@/components/produkttour-bild";
 import { Einblenden } from "@/components/einblenden";
+import masse from "../../public/produkttour/masse.json";
 
 // Große, gut tippbare Buttons auf der Startseite (mobil zuerst): 56 px hoch, mit leichtem Druck-Effekt.
 const GROSSER_BUTTON = "h-14 px-8 text-lg transition-transform hover:-translate-y-0.5 active:scale-[0.97]";
@@ -82,22 +83,22 @@ const FEATURES = [
 const PRODUKTTOUR = [
   {
     bild: "/produkttour/uebersicht.png",
-    breite: 1440,
-    hoehe: 530,
+    breite: masse.uebersicht.breite,
+    hoehe: masse.uebersicht.hoehe,
     titel: "Alles auf einen Blick",
     text: "Die Admin-Übersicht zeigt sofort, welche Termine noch Schiedsrichter oder Zeitnehmer brauchen — und die letzten Ergebnisse aus dem Hallenspielplan.",
   },
   {
     bild: "/produkttour/kalender.png",
-    breite: 1440,
-    hoehe: 600,
+    breite: masse.kalender.breite,
+    hoehe: masse.kalender.hoehe,
     titel: "Kalender mit Besetzungsstatus",
     text: "Auf den ersten Blick: welche Spiele vollständig besetzt sind und wo noch Personal fehlt — mit Farbe je Mannschaft und Tagesdetails neben dem Monatsgitter.",
   },
   {
     bild: "/produkttour/dienste.png",
-    breite: 1440,
-    hoehe: 860,
+    breite: masse.dienste.breite,
+    hoehe: masse.dienste.hoehe,
     titel: "Offene Dienste fair verteilen",
     text: "Wer hat schon wie oft gepfiffen oder Kiosk/Ordnerdienst übernommen? Die Statistik zeigt die Verteilung, offene Termine sind sofort sichtbar.",
   },

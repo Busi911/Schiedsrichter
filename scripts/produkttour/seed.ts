@@ -68,6 +68,8 @@ async function main() {
         name: "Anna Admin",
         vereinId,
         istAdmin: true,
+        // Die Produkttour zeigt das neue App-Design (Dashboard, Seitenleiste); ausdrücklich gesetzt, damit es nicht vom Anlagedatum des Vereins abhängt.
+        designNeu: true,
         passwordHash: adminPw,
         letzterLoginAm: heute,
       })
