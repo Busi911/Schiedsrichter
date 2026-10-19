@@ -72,6 +72,7 @@ const GRUPPEN: AdminNavGruppe[] = [
 const KONTO: AdminNavEintrag[] = [
   { href: "/admin/einstellungen", label: "Einstellungen", icon: "einstellungen" },
   { href: "/profil", label: "Mein Profil", icon: "profil" },
+  { href: "/profil/darstellung", label: "Darstellung", icon: "profil" },
   { href: "/hilfe", label: "Hilfe", icon: "hilfe" },
 ];
 

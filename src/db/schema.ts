@@ -738,6 +738,9 @@ export const users = pgTable("user", {
   // in den nächsten Tagen und Lizenz-Erinnerungen. Default true: alle Admins bekommen sie, wer sie nicht will, schaltet sie im Profil (oder per
   // Abmelde-Link) ab. Der Vereins-Schalter für Spielplan-Änderungen bleibt davon unberührt. Zahlungsmails sind bewusst NICHT betroffen.
   adminHinweiseAktiviert: boolean("admin_hinweise_aktiviert").notNull().default(true),
+  // Persönliche Wahl der Darstellung: false = klassisch, true = neues App-Design (Dashboard mit Kacheln, Seitenleiste am Desktop). Freiwillig, Standard klassisch.
+  // null = Standard des Vereins (lib/design.ts: Demo und Vereine ab 19.10.2026 neu, Bestand klassisch); true/false = eigene Wahl.
+  designNeu: boolean("design_neu"),
   // Zeitpunkt des letzten erfolgreichen Logins (Magic-Link oder Passwort) —
   // gesetzt im jwt-Callback in auth.ts, NUR bei frischem Login (nicht bei
   // jedem Request, siehe Kommentar dort). null = noch nie eingeloggt (z.B.

@@ -60,6 +60,11 @@ import { kalenderArtenZusatz, parseKalenderArten } from "@/lib/kalender-arten";
 import { holeKalenderErgaenzung } from "@/lib/kalender-ergaenzung";
 import { KalenderFilter } from "@/components/kalender-filter";
 import { adminHinweiseAbschaltbar } from "@/lib/abmelden";
+import { holeDesignNeu } from "@/lib/design";
+import { baueProfilHero, begruessung, type Aufgabe, type ProfilEinsatz } from "@/lib/neues-dashboard";
+import { NeuesProfilStart, type Kachel } from "@/components/neues-dashboard";
+import { darfTrainingSehen } from "@/lib/training-ausfall";
+import { ClipboardListIcon, DumbbellIcon, FlagIcon, HandHelpingIcon, TruckIcon, WhistleIcon } from "lucide-react";
 
 const TYP_LABEL: Record<string, string> = {
   schiedsrichter: "Schiedsrichter",
@@ -92,6 +97,7 @@ export default async function ProfilPage({
     { eigeneStammdaten, rollen, profil, eigeneTermine, verein, meineTurniere, meineHelferdienste },
     eintraegeEigene,
     vereinsLogo,
+    designNeu,
   ] = await Promise.all([
     withTenant(vereinId, async (tx) => {
       const verein = await tx.query.vereine.findFirst({
@@ -228,6 +234,7 @@ export default async function ProfilPage({
     }),
     holeEigeneKalenderEintraege(vereinId, userId, von, bis),
     holeVereinsLogoInfo(vereinId),
+    holeDesignNeu(vereinId, userId),
   ]);
 
   // Gesamtkalender: eigene Einsätze, dazu (je nach Filter und Berechtigung) Trainings und Vereinstermine.
@@ -278,6 +285,60 @@ export default async function ProfilPage({
   const eigeneOffeneDienste = eigeneTypen.length
     ? await holeEigeneOffenenDienste(vereinId, userId, eigeneTypen)
     : [];
+
+  // Neues App-Design (opt-in, /profil/darstellung): persönlicher Start mit "Dein nächster Einsatz", Aufgaben und Kacheln.
+  let neuerStart: React.ReactNode = null;
+  if (designNeu) {
+    const jetztNeu = new Date();
+    const einsaetze: ProfilEinsatz[] = eigeneTermine
+      .filter((t) => t.meineRollen.length > 0)
+      .map((t) => ({
+        id: t.id,
+        start: t.start,
+        titel: t.beschreibung?.split(" · ")[0]?.trim() || null,
+        ort: t.ort,
+        rollen: t.meineRollen.map((r) => TYP_LABEL[r] ?? r),
+      }));
+    const aufgabenNeu: Aufgabe[] = [];
+    if (eigeneOffeneDienste.length > 0) {
+      aufgabenNeu.push({
+        schluessel: "offene-dienste",
+        anzahl: eigeneOffeneDienste.length,
+        titel: eigeneOffeneDienste.length === 1 ? "Offener Dienst für dich" : "Offene Dienste für dich",
+        hinweis: "du kannst dich eintragen",
+        href: "#offene-dienste",
+        aktion: "Ansehen",
+        ton: "info",
+      });
+    }
+    const kachelnNeu: Kachel[] = [{ href: "#kalender", label: "Kalender", hinweis: "Meine Einsätze und Termine", icon: CalendarIcon }];
+    if (
+      darfTrainingSehen({
+        istAdmin: !!session.user.istAdmin,
+        istAdminLesend: !!session.user.istAdminLesend,
+        istTrainer,
+        fuerAlleSichtbar: !!verein?.trainingFuerAlleSichtbar,
+      })
+    ) {
+      kachelnNeu.push({ href: "/profil/training", label: "Training", hinweis: "Ausfälle und freie Zeiten", icon: DumbbellIcon });
+    }
+    if (verein?.vereinstermineAktiv) kachelnNeu.push({ href: "/profil/vereinstermine", label: "Vereinstermine", hinweis: "Zu- und Absagen", icon: FlagIcon });
+    if (istSchiedsrichterwart) kachelnNeu.push({ href: "/profil/schiedsrichterwart", label: "Schiedsrichterwart", hinweis: "Schiris einteilen", icon: WhistleIcon });
+    if (istZeitnehmerwart) kachelnNeu.push({ href: "/profil/zeitnehmerwart", label: "Zeitnehmerwart", hinweis: "Zeitnehmer einteilen", icon: ClipboardListIcon });
+    if (istOrdnerwart) kachelnNeu.push({ href: "/profil/ordnerwart", label: "Ordnerwart", hinweis: "Helfer einteilen", icon: HandHelpingIcon });
+    if (istDienstwart) kachelnNeu.push({ href: "/profil/dienstwart", label: "Dienstwart", hinweis: "Eigene Dienste", icon: TruckIcon });
+    const rollenText = [...new Set(rollen.filter((r) => r.aktiv).map((r) => TYP_LABEL[r.typ] ?? r.typ))].join(", ");
+    neuerStart = (
+      <NeuesProfilStart
+        gruss={begruessung(jetztNeu, eigeneStammdaten?.name ?? session.user.name)}
+        vereinName={verein?.name ?? "Verein"}
+        rolleText={rollenText || "Mitglied"}
+        hero={baueProfilHero(einsaetze, jetztNeu)}
+        aufgaben={aufgabenNeu}
+        kacheln={kachelnNeu}
+      />
+    );
+  }
 
   const kalenderAboLink = eigeneStammdaten?.kalenderToken
     ? `${appUrl()}/kalender/${eigeneStammdaten.kalenderToken}`
@@ -441,10 +502,11 @@ export default async function ProfilPage({
       </header>
 
       <main className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6 p-6 pb-24 md:pb-6">
+        {neuerStart}
         {verein?.vereinstermineAktiv && (
           <VereinsterminOffenKarte vereinId={vereinId} userId={userId} istAdmin={session.user.istAdmin || !!session.user.istAdminLesend} />
         )}
-        <Card>
+        <Card id="kalender" className="scroll-mt-4">
           <CardHeader>
             <CardTitle>Mein Kalender</CardTitle>
             <CardDescription>
@@ -548,7 +610,7 @@ export default async function ProfilPage({
         )}
 
         {eigeneTypen.length > 0 && (
-          <Card>
+          <Card id="offene-dienste" className="scroll-mt-4">
             <CardHeader>
               <CardTitle>Offene Dienste</CardTitle>
               <CardDescription>
@@ -607,7 +669,7 @@ export default async function ProfilPage({
           </Card>
         )}
 
-        <Card>
+        <Card id="meine-termine" className="scroll-mt-4">
           <CardHeader>
             <CardTitle>Meine Termine</CardTitle>
             <CardDescription>

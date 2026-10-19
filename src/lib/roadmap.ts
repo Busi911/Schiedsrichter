@@ -3,7 +3,7 @@
 // Nur Wahres als "fertig" eintragen (was im Produkt läuft); alles andere ehrlich als geplant oder Idee. Keine Zusagen für Termine,
 // die nicht gehalten werden können: Ideen haben bewusst KEIN Datum.
 
-export const ROADMAP_STAND = "2026-10-18";
+export const ROADMAP_STAND = "2026-10-19";
 
 export type RoadmapStatus = "fertig" | "in_arbeit" | "geplant" | "idee";
 
@@ -74,6 +74,11 @@ export const ROADMAP: RoadmapPhase[] = [
         titel: "Training und Kalender",
         status: "fertig",
         text: "Trainingsplan mit Ausfällen und freien Hallenzeiten (wer zuerst bucht), Plätze mit Saison für Beachhandball, ein Gesamtkalender für Spiele, Training und Vereinstermine, persönliches Kalender-Abo und eine Wochenübersicht per Mail.",
+      },
+      {
+        titel: "Neues App-Design (zum Ausprobieren)",
+        status: "in_arbeit",
+        text: "Wer möchte, schaltet im Profil unter „Darstellung“ ein neues, app-artiges Design ein: Startseite als Dashboard mit „Heute“-Karte, „Braucht dich“ und großen Kacheln, auf dem Rechner mit Seitenleiste. Neue Vereine und die Demo starten gleich damit, bestehende Vereine behalten zunächst die bisherige Ansicht.",
       },
       {
         titel: "Einstieg für neue Vereine",

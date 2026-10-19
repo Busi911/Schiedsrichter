@@ -6,6 +6,10 @@ import { redirect } from "next/navigation";
 import { EINRICHTUNG_UEBERSPRUNGEN_COOKIE, sollEinrichtungsAssistentZeigen } from "@/lib/selbst-einrichtung";
 import { requireAdmin } from "@/lib/session";
 import { holeLigaErgebnisse } from "@/lib/liga-dashboard";
+import { holeDesignNeu } from "@/lib/design";
+import { NeuesDashboard } from "@/components/neues-dashboard";
+import { begruessung } from "@/lib/neues-dashboard";
+import { holeNeuesDashboardDaten } from "@/lib/neues-dashboard-daten";
 import { formatTagKopf, SpielKarte } from "@/components/liga/liga-ui";
 import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
@@ -102,6 +106,8 @@ export default async function AdminDashboardPage() {
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
   );
 
+  const designNeu = await holeDesignNeu(vereinId, session.user.id);
+
   const [unbesetzteTermine, letzteErgebnisse, ligaErgebnisse, offeneSelbsteintragungen, offeneAbmeldeanfragen, ersteSchritteStand] =
     await Promise.all([
       // Wie "Letzte Ergebnisse" auf 10 begrenzt — für die volle Liste gibt es
@@ -163,17 +169,42 @@ export default async function AdminDashboardPage() {
     return null;
   })();
 
+  // Neues App-Design (freiwillig, Profil → Darstellung): Dashboard oben, die bisherigen Karten bleiben darunter und sind über die Aufgaben erreichbar.
+  const neuDaten = designNeu
+    ? await holeNeuesDashboardDaten({
+        vereinId,
+        vereinsverwaltung: verein?.vereinsverwaltungAktiv ?? false,
+        kannBearbeiten: !!session.user.istAdmin,
+        abmeldeanfragen: offeneAbmeldeanfragen.length,
+        selbsteintragungen: offeneSelbsteintragungen.length,
+        ersteSchritte: zeigeErsteSchritte ? { erledigt: schritte.filter((x) => x.erledigt).length, gesamt: schritte.length } : null,
+        rechnungsdatenFehlen: !!rechnungsHinweis,
+      })
+    : null;
+
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold">Übersicht</h1>
-        <p className="text-sm text-muted-foreground">
-          {verein?.name ?? "Verein"}
-        </p>
-      </div>
+      {neuDaten ? (
+        <NeuesDashboard
+          daten={neuDaten}
+          gruss={begruessung(new Date(), session.user.name)}
+          vereinName={verein?.name ?? "Verein"}
+          rolle={session.user.istAdmin ? "Vereinsadmin" : "Vereinsadmin (nur lesend)"}
+          vereinsverwaltung={verein?.vereinsverwaltungAktiv ?? false}
+          vereinstermine={verein?.vereinstermineAktiv ?? false}
+        />
+      ) : (
+        <div>
+          <h1 className="font-heading text-2xl font-semibold">Übersicht</h1>
+          <p className="text-sm text-muted-foreground">
+            {verein?.name ?? "Verein"}
+          </p>
+        </div>
+      )}
+      {neuDaten && <h2 className="font-heading text-lg font-bold">Details</h2>}
 
       {rechnungsHinweis && (
-        <Card className="border-amber-600/40">
+        <Card id="rechnungsdaten" className="scroll-mt-20 border-amber-600/40">
           <CardContent className="flex flex-col gap-2 pt-4">
             <p className="text-sm font-medium">Rechnungsdaten fehlen</p>
             <p className="text-sm text-muted-foreground">{rechnungsHinweis}</p>
@@ -185,7 +216,7 @@ export default async function AdminDashboardPage() {
       )}
 
       {zeigeErsteSchritte && (
-        <Card>
+        <Card id="erste-schritte" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">
               Erste Schritte ({schritte.filter((x) => x.erledigt).length} von {schritte.length} erledigt)
@@ -230,7 +261,7 @@ export default async function AdminDashboardPage() {
       )}
 
       {offeneSelbsteintragungen.length > 0 && (
-        <Card>
+        <Card id="selbsteintragungen" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">
               Selbsteintragungen zum Bestätigen (
@@ -353,7 +384,7 @@ export default async function AdminDashboardPage() {
       )}
 
       {offeneAbmeldeanfragen.length > 0 && (
-        <Card>
+        <Card id="abmeldeanfragen" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">
               Abmeldeanfragen ({offeneAbmeldeanfragen.length})
