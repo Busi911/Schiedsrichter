@@ -24,7 +24,8 @@ export const dynamic = "force-dynamic";
 // Rein informativ ("noch X Plätze frei") — ob Beta oder kostenpflichtig,
 // entscheidet die Action nochmal selbst (siehe Kommentar dort), nicht diese
 // beim Rendern berechnete Zahl.
-export default async function RegistrierenPage() {
+export default async function RegistrierenPage({ searchParams }: { searchParams: Promise<{ herkunft?: string }> }) {
+  const { herkunft: herkunftParam } = await searchParams;
   const beta = await holeBetaStand();
   // Nach dem Beta-Ende oder wenn alle Beta-Plätze vergeben sind, ist die Registrierung kostenpflichtig (Preis, Rechnung, Rechnungs-E-Mail Pflicht).
   const betaEnde = betaVorbei(new Date());
@@ -44,7 +45,7 @@ export default async function RegistrierenPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RegistrierenFormular kostenpflichtig={kostenpflichtig} />
+          <RegistrierenFormular kostenpflichtig={kostenpflichtig} herkunft={herkunftParam} />
         </CardContent>
       </Card>
       <Link

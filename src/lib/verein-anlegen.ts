@@ -25,7 +25,9 @@ export async function legeVereinMitAdminAn(
   // E-Mail des Verantwortlichen für die Rechnung (nach dem Beta-Ende Pflicht bei der Selbstregistrierung); ohne Angabe wird die Admin-E-Mail genutzt.
   rechnung?: { email: string; ansprechpartner?: string },
   // Alle Beta-Plätze vergeben (Selbstregistrierung, lib/beta-plaetze.ts): dann direkt regulär mit Zahlungsfrist.
-  opt: { betaVoll?: boolean } = {}
+  opt: { betaVoll?: boolean } = {},
+  // Registrierungsquelle (z. B. "podcast-handballkaes" für 100 € Rabatt im ersten Jahr, siehe lib/beta-konditionen.ts).
+  herkunft?: string | null,
 ): Promise<string> {
   const neueEmail = adminEmail.trim().toLowerCase();
   const vereinId = crypto.randomUUID();
@@ -43,6 +45,7 @@ export async function legeVereinMitAdminAn(
       testphaseBis: konditionen.testphaseBis,
       rechnungEmail: (rechnung?.email ?? adminEmail).trim().toLowerCase(),
       rechnungAnsprechpartner: (rechnung?.ansprechpartner ?? adminName).trim(),
+      herkunft: herkunft ?? null,
       ...(adresse
         ? {
             strasse: adresse.strasse.trim(),

@@ -1,0 +1,1 @@
+ALTER TABLE "verein" ADD COLUMN "herkunft" text;

@@ -15,6 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${basis}/app-hilfe`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${basis}/roadmap`, changeFrequency: "weekly", priority: 0.4 },
     { url: `${basis}/registrieren`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${basis}/podcast`, changeFrequency: "monthly", priority: 0.6 },
   ];
   const mitTraining = await holeVereineMitOeffentlichemTraining();
   for (const v of await holeAlleVereineFuerSitemap()) {
