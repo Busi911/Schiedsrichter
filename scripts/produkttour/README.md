@@ -48,3 +48,5 @@ Funktionsträgern, Mannschaften, Hallen, Trainingszeiten und Terminen an
 `screenshot.mjs` loggt sich damit ein, fährt fünf Admin-Seiten an und
 schneidet die Screenshots auf den relevanten Ausschnitt zu (Crop-Werte in
 `screenshot.mjs` ggf. nachjustieren, falls sich die Kartenhöhen ändern).
+
+Die Bilder zeigen das neue App-Design (Seitenleiste, Dashboard): der Seed setzt `users.design_neu` für den Demo-Admin. Zuschnitte (`CROPS`) sind darauf abgestimmt (Übersicht ganzer Bildschirm).
