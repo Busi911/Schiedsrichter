@@ -69,7 +69,7 @@ export default async function PodcastSeite() {
             />
             <span className="text-2xl font-light text-muted-foreground">×</span>
             <span className="flex size-20 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border sm:size-24">
-              <Logo className="size-11 text-primary" />
+              <Logo className="size-[88%]" />
             </span>
           </div>
           <Badge variant="outline" className="bg-background/70">Für Hörerinnen und Hörer von Handballkäs</Badge>
