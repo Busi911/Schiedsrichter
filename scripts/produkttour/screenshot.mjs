@@ -24,7 +24,17 @@ const browser = await chromium.launch({
   args: ["--no-sandbox"],
 });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+// Der Demo-Verein hat keinen angebundenen Spielplan: ohne dieses Cookie leitet /admin in den Einrichtungs-Assistenten statt auf das Dashboard.
+await context.addCookies([{ name: "hp_einrichtung_uebersprungen", value: "1", url: BASE }]);
 const page = await context.newPage();
+// Entwicklungs-Plakette von Next.js (unten links) gehört nicht ins Bild.
+await page.addInitScript(() => {
+  document.addEventListener("DOMContentLoaded", () => {
+    const style = document.createElement("style");
+    style.textContent = "nextjs-portal { display: none !important; }";
+    document.head.appendChild(style);
+  });
+});
 
 await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
 await page.fill("#email", ADMIN_EMAIL);
