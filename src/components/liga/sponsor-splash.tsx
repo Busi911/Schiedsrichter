@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 //
 // Barrierefreiheit: Der Dialog hat role="dialog" + aria-modal="true", der Schließen-Button bekommt beim
 // Öffnen den Fokus, beim Schließen wird der Fokus auf das zuvor aktive Element zurückgeführt. Der
-// Schließen-Button hat eine Tippfläche von ≥ 44 px (min-h-11 min-w-11) und ein beschreibendes aria-label.
+// Schließen-Button hat eine Tippfläche von ≥ 44 px (min-h-11 min-w-11); sein Name ist der sichtbare Text "Weiter" (kein abweichendes aria-label, WCAG 2.5.3).
 // Während der Dialog sichtbar ist, werden alle Geschwister-Elemente inert (nicht bedienbar) und eine
 // Tab-Falle hält die Tastatur-Navigation innerhalb des Dialogs.
 export function SponsorSplash({
@@ -152,7 +152,6 @@ export function SponsorSplash({
       <button
         ref={schliessenRef}
         type="button"
-        aria-label="Sponsor-Anzeige schließen"
         onClick={(e) => {
           e.stopPropagation();
           setSichtbar(false);

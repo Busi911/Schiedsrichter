@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { bewerteSpieltagsNaehe } from "./sync-cron";
+import { bewerteSpieltagsNaehe, rangMitVeraltung } from "./sync-cron";
 import { FRIST_NACHLAUF_MS, mitHarterFrist, sortiereNachDringlichkeit } from "./sync-hilfen";
 
 describe("mitHarterFrist", () => {
@@ -69,5 +69,18 @@ describe("bewerteSpieltagsNaehe", () => {
   });
   it("keine Spiele im Fenster = 0", () => {
     expect(bewerteSpieltagsNaehe([], heute)).toBe(0);
+  });
+});
+
+describe("rangMitVeraltung", () => {
+  const jetzt = new Date("2026-10-19T10:00:00Z");
+  it("hebt veraltete Vereine ohne Spieltagsnähe auf Rang 1", () => {
+    expect(rangMitVeraltung(0, null, jetzt)).toBe(1);
+    expect(rangMitVeraltung(0, new Date("2026-10-18T09:00:00Z"), jetzt)).toBe(1);
+  });
+  it("lässt frische Vereine und höhere Nähe unverändert", () => {
+    expect(rangMitVeraltung(0, new Date("2026-10-19T04:00:00Z"), jetzt)).toBe(0);
+    expect(rangMitVeraltung(3, null, jetzt)).toBe(3);
+    expect(rangMitVeraltung(2, null, jetzt)).toBe(2);
   });
 });

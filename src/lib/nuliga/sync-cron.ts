@@ -27,6 +27,15 @@ function faellig(letzter: Date | null, intervallMinuten: number, jetzt: Date): b
 // (spieltagsnah, häufiger synchronisieren), 0 = sonst (selten).
 export const OFFENE_ERGEBNISSE_TAGE = 3;
 
+// Nach so langer Zeit ohne vollständigen Spiele-Abruf gilt ein Verein als veraltet.
+export const VERALTET_NACH_MS = 24 * 60 * MINUTE_MS;
+
+// Rang für die Reihenfolge: veraltete Vereine (kein vollständiger Abruf seit 24 h oder nie) mindestens 1.
+export function rangMitVeraltung(naehe: 0 | 1 | 2 | 3, zuletztVollstaendig: Date | null, jetzt: Date): 0 | 1 | 2 | 3 {
+  if (naehe > 0) return naehe;
+  return !zuletztVollstaendig || jetzt.getTime() - zuletztVollstaendig.getTime() > VERALTET_NACH_MS ? 1 : 0;
+}
+
 async function spieltagsNaehe(
   db: SyncOptionen["db"],
   ligaVereinId: string,
@@ -164,19 +173,17 @@ export async function synchronisiereFaellige(
   }
   // Vereine mit Spielen heute zuerst, dann der am längsten nicht geladene: bei knapper Zeit
   // sind die aktuellen Ergebnisse sicher dran, der Rest folgt beim nächsten Lauf.
-  // Ein Verein mit STALEN Daten (spieleSynchronisiertAm > 24h oder null) bekommt mindestens
-  // Priorität 1 — sonst steht seine Spieltagsnähe auf 0 (keine heutigen Spiele in der DB,
-  // weil die Daten alt sind) und er kommt bei knapper Zeit nie dran (Teufelskreis).
-  const STALE_MS = 24 * 60 * 60 * 1000;
+  // Ein Verein mit veralteten Daten bekommt für die REIHENFOLGE mindestens Rang 1 (`rangMitVeraltung`),
+  // sonst stünde seine Spieltagsnähe auf 0 (keine heutigen Spiele in der DB, weil die Daten alt sind)
+  // und er käme bei knapper Zeit nie dran (Teufelskreis). Das Intervall richtet sich weiter nach der
+  // echten Nähe (`naehe`): ein Verein, dessen Lauf nie fertig wird, wird nicht alle 45 Min. versucht.
   const naehe = new Map<string, 0 | 1 | 2 | 3>();
+  const rang = new Map<string, 0 | 1 | 2 | 3>();
   schritt("Spieltagsnähe berechnen");
   for (const v of syncVereine) {
     const n = await spieltagsNaehe(db, v.id, jetzt);
-    if (n === 0 && (!v.spieleSynchronisiertAm || jetzt.getTime() - v.spieleSynchronisiertAm.getTime() > STALE_MS)) {
-      naehe.set(v.id, 1); // stale — boosten, damit der Verein erneut synced wird
-    } else {
-      naehe.set(v.id, n);
-    }
+    naehe.set(v.id, n);
+    rang.set(v.id, rangMitVeraltung(n, v.spieleSynchronisiertAm, jetzt));
   }
   // Innerhalb gleicher Dringlichkeit reihum nach dem letzten VERSUCH: ein Verein, dessen Lauf wegen des
   // Zeitlimits nie ganz fertig wird, behält seinen Zeitstempel "zuletzt vollständig" und stünde sonst
@@ -198,11 +205,15 @@ export async function synchronisiereFaellige(
   for (const r of versuche) {
     const d = r.zuletzt ? new Date(r.zuletzt) : null;
     if (r.art === "struktur") letzterStrukturVersuch.set(r.id, d);
-    else letzterVersuch.set(r.id, d);
+    else {
+      // "spiele" und "handball_net" teilen sich eine Map: der jüngere Versuch zählt.
+      const bisher = letzterVersuch.get(r.id);
+      if (!bisher || (d && d > bisher)) letzterVersuch.set(r.id, d);
+    }
   }
   const sortierteVereine = sortiereNachDringlichkeit(
     syncVereine,
-    (v) => naehe.get(v.id) ?? 0,
+    (v) => rang.get(v.id) ?? 0,
     (v) =>
       letzterVersuch.get(v.id) ?? (quelle === "handball_net" ? v.handballNetSynchronisiertAm : v.spieleSynchronisiertAm)
   );
