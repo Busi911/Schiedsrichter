@@ -20,6 +20,7 @@ import {
   funktionstraegerRollen,
 } from "../../src/db/schema";
 import { hashePasswort } from "../../src/lib/passwort";
+import { Client } from "pg";
 
 function tageAb(heute: Date, tage: number, stunde: number, minute = 0) {
   const d = new Date(heute);
@@ -45,6 +46,8 @@ async function main() {
         avvAkzeptiertVersion: "1.0",
         avvAkzeptiertVonName: "Anna Admin",
         avvAkzeptiertVonEmail: "admin@demo.handballerpate.de",
+        // Eure Spielhallen eingetragen: die Checkliste "Erste Schritte" soll auf den Screenshots nicht mehr erscheinen.
+        eigeneHallenNamen: "Sporthalle Musterstadt\nTurnhalle Schulzentrum",
         testspielOrdnerBedarf: 2,
         testspielKioskdienstBedarf: 1,
         turnierOrdnerBedarf: 3,
@@ -449,6 +452,19 @@ async function main() {
     console.log("Demo-Verein-ID:", vereinId);
     console.log("Admin-Login: admin@demo.handballerpate.de / Demo-Passwort-1!");
   });
+
+  // Spielplan angebunden (liga_verein mit Vereins-ID): zweiter Punkt der Checkliste "Erste Schritte". Die liga_*-Tabellen schreibt nur die
+  // privilegierte Verbindung (app_user darf nicht), daher direkt über DATABASE_ADMIN_URL; der Import selbst läuft hier nie.
+  const admin = new Client({ connectionString: process.env.DATABASE_ADMIN_URL });
+  await admin.connect();
+  try {
+    await admin.query(
+      `INSERT INTO liga_verein (verein_id, slug, name, verband, nuliga_club_id) VALUES ($1, 'tsv-musterstadt-handball', 'TSV Musterstadt Handball', 'HHV', '99999')`,
+      [vereinId]
+    );
+  } finally {
+    await admin.end();
+  }
 }
 
 main()
