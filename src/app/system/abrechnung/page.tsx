@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { betragNetto, KARENZ_TAGE, TARIF_NAMEN, vorschlagBezahltBis, zahlungsStand, ZAHLUNGS_RANG, ZAHLUNGS_TEXT, type ZahlungsArt } from "@/lib/abrechnung";
+import { betragNetto, KARENZ_TAGE, rabattFuerHerkunft, TARIF_NAMEN, vorschlagBezahltBis, zahlungsStand, ZAHLUNGS_RANG, ZAHLUNGS_TEXT, type ZahlungsArt } from "@/lib/abrechnung";
 import { NETTO } from "@/lib/beta-konditionen";
 import { formatDatum } from "@/lib/format";
 import { tagKey } from "@/lib/kalender";
@@ -39,7 +39,11 @@ export default async function AbrechnungSeite({ searchParams }: { searchParams: 
     .map((v) => ({ v, stand: zahlungsStand(v, jetzt) }))
     .sort((a, b) => ZAHLUNGS_RANG[a.stand.art] - ZAHLUNGS_RANG[b.stand.art] || (a.stand.faelligAm?.getTime() ?? Infinity) - (b.stand.faelligAm?.getTime() ?? Infinity) || a.v.name.localeCompare(b.v.name));
   const zaehle = (...arten: ZahlungsArt[]) => zeilen.filter((z) => arten.includes(z.stand.art)).length;
-  const summe = zeilen.reduce((s, z) => s + (z.stand.art === "befreit" ? 0 : betragNetto(z.v.tarif, z.v.sponsorUebernimmt, z.v.vereinsverwaltungAktiv)), 0);
+  const summe = zeilen.reduce((s, z) => {
+    if (z.stand.art === "befreit") return s;
+    const rabatt = rabattFuerHerkunft(z.v.herkunft);
+    return s + betragNetto(z.v.tarif, z.v.sponsorUebernimmt, z.v.vereinsverwaltungAktiv, rabatt);
+  }, 0);
 
   return (
     <div className="flex max-w-3xl flex-col gap-5">
@@ -71,7 +75,10 @@ export default async function AbrechnungSeite({ searchParams }: { searchParams: 
       {zeilen.map(({ v, stand }) => {
         const adresse = [v.strasse, [v.plz, v.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
         const vorschlag = tagKey(vorschlagBezahltBis(v, jetzt));
-        const betrag = betragNetto(v.tarif, v.sponsorUebernimmt, v.vereinsverwaltungAktiv);
+        const rabatt = rabattFuerHerkunft(v.herkunft);
+        const betrag = betragNetto(v.tarif, v.sponsorUebernimmt, v.vereinsverwaltungAktiv, rabatt);
+        const betragOhneRabatt = betragNetto(v.tarif, v.sponsorUebernimmt, v.vereinsverwaltungAktiv);
+        const hatRabatt = rabatt > 0;
         return (
           <Card key={v.id}>
             <CardContent className="flex flex-col gap-3">
@@ -80,7 +87,18 @@ export default async function AbrechnungSeite({ searchParams }: { searchParams: 
                   <h2 className="font-heading text-base leading-snug font-semibold [overflow-wrap:anywhere]">{v.name}</h2>
                   <p className="text-xs text-muted-foreground">
                     {TARIF_NAMEN[v.tarif]}
-                    {v.sponsorUebernimmt ? " · Sponsor übernimmt alles" : ""}{v.vereinsverwaltungAktiv ? " · inkl. Vereinsverwaltung" : ""} · {betrag.toLocaleString("de-DE")} € netto im Jahr
+                    {v.sponsorUebernimmt ? " · Sponsor übernimmt alles" : ""}{v.vereinsverwaltungAktiv ? " · inkl. Vereinsverwaltung" : ""}
+                    {" · "}
+                    {hatRabatt ? (
+                      <>
+                        <span className="line-through text-muted-foreground/60">{betragOhneRabatt.toLocaleString("de-DE")} €</span>{" "}
+                        <span className="font-medium text-primary">{betrag.toLocaleString("de-DE")} € netto/Jahr</span>
+                        {" "}
+                        <Badge variant="outline" className="text-[0.6rem]">Podcast {rabatt} € Rabatt</Badge>
+                      </>
+                    ) : (
+                      <>{betrag.toLocaleString("de-DE")} € netto im Jahr</>
+                    )}
                   </p>
                 </div>
                 <Badge className={`shrink-0 ${FARBE[stand.art]}`}>{ZAHLUNGS_TEXT[stand.art]}</Badge>
@@ -111,6 +129,11 @@ export default async function AbrechnungSeite({ searchParams }: { searchParams: 
                   )}
                 </p>
                 {v.sponsorUebernimmt && <p className="mt-1 text-xs text-muted-foreground">Rechnungsempfänger ist der Sponsor — Anschrift des Sponsors von Hand ergänzen.</p>}
+                {hatRabatt && (
+                  <p className="mt-1 text-xs text-primary">
+                    Podcast-Rabatt: {rabatt} € im ersten Abrechnungsjahr. Folge-Rechnung ohne Rabatt ({betragOhneRabatt.toLocaleString("de-DE")} €).
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-2 border-t pt-3">

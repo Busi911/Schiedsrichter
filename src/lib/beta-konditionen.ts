@@ -27,6 +27,12 @@ export const SPONSOR_KURZ = `Optional: Ein Sponsor kann beim Öffnen der Vereins
 
 export const KONTAKT_EMAIL = "info@deweconsulting.de";
 
+// Podcast-Partner "Handballkäs" (Danny Pieth, Mittelhessen): Registrierungen über die
+// Podcast-Seite (/podcast) bekommen 100 € Rabatt. Beta-Tester: 100 € statt 200 € im ersten Jahr;
+// nach Beta-Ende: 200 € statt 300 €. Der Rabatt gilt für das erste Abrechnungsjahr (danach regulär).
+export const PODCAST_HERKUNFT = "podcast-handballkaes";
+export const PREIS_RABATT_PODCAST = 100; // € Rabatt im ersten Jahr für Podcast-Registrierungen
+
 // Ablauf nach dem Ende der Beta, kurz für Demo-Seite und Einstellungen (Details: abrechnung.ts, zahlung-erinnerung.ts).
 export const ABLAUF_NACH_BETA = [
   `Bis ${BETA_ENDE}: alles kostenlos und voll nutzbar.`,

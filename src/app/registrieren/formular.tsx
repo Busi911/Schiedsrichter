@@ -13,7 +13,7 @@ import { vereinRegistrieren } from "./actions";
 // Ausgänge hat (registriert, Rückfrage bei ähnlichem Verein, Fehler), die auf DERSELBEN Seite angezeigt
 // werden müssen, statt nur bei einem Fehler in ein generisches
 // Error-Overlay zu laufen.
-export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflichtig?: boolean }) {
+export function RegistrierenFormular({ kostenpflichtig = false, herkunft }: { kostenpflichtig?: boolean; herkunft?: string }) {
   const [ergebnis, formAction] = useActionState(
     async (_zustand: unknown, formData: FormData) => vereinRegistrieren(formData),
     null
@@ -58,6 +58,7 @@ export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflich
     const werte = ergebnis.werte;
     return (
       <form action={formAction} className="flex flex-col gap-4">
+        {herkunft && <input type="hidden" name="herkunft" value={herkunft} />}
         {Object.entries(werte).map(([name, wert]) => (
           <input key={name} type="hidden" name={name} value={wert} />
         ))}
@@ -92,6 +93,7 @@ export function RegistrierenFormular({ kostenpflichtig = false }: { kostenpflich
 
   return (
     <form key={vorbefuellt ? "bearbeiten" : "neu"} action={formAction} className="flex flex-col gap-4">
+      {herkunft && <input type="hidden" name="herkunft" value={herkunft} />}
       <div className="flex flex-col gap-2">
         <Label htmlFor="vereinsname">Vereinsname</Label>
         <Input id="vereinsname" name="vereinsname" defaultValue={vorbefuellt?.vereinsname} required />

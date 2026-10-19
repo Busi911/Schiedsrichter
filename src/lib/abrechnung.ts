@@ -1,4 +1,4 @@
-import { PREIS_BETA, PREIS_REGULAER, PREIS_SPONSOR, PREIS_VEREINSVERWALTUNG, PREIS_VEREINSVERWALTUNG_BETA } from "./beta-konditionen";
+import { PREIS_BETA, PREIS_REGULAER, PREIS_SPONSOR, PREIS_VEREINSVERWALTUNG, PREIS_VEREINSVERWALTUNG_BETA, PODCAST_HERKUNFT, PREIS_RABATT_PODCAST } from "./beta-konditionen";
 
 // Abrechnung (Live-Gang Ende 11.2026). Reine Logik, ohne Datenbank: Tarif -> Betrag, Zahlungsstatus, Vorschlag für "bezahlt bis".
 // Die Rechnung stellt der Systemadmin von Hand (/system/abrechnung); die App rechnet nichts ab und zieht nichts ein.
@@ -20,11 +20,18 @@ const TAG = 24 * 3600 * 1000;
 export const betaVorbei = (jetzt: Date) => jetzt.getTime() >= BETA_ENDE_ZEITPUNKT.getTime();
 
 // Netto-Jahresbetrag, den der Rechnungsempfänger zahlt. Sponsor übernimmt ALLES: Vereinspreis (Basis, bei aktiver Vereinsverwaltung plus Add-on) + Werbeplatz.
-// Das Add-on Vereinsverwaltung kostet beim Tarif "befreit" nichts.
-export function betragNetto(tarif: Tarif, sponsor: boolean, vereinsverwaltungAktiv = false): number {
+// Das Add-on Vereinsverwaltung kostet beim Tarif "befreit" nichts. `rabatt` zieht einen Betrag ab (z. B. 100 € für Podcast-Registrierungen, erstes Jahr).
+export function betragNetto(tarif: Tarif, sponsor: boolean, vereinsverwaltungAktiv = false, rabatt = 0): number {
   const basis = tarif === "befreit" ? 0 : tarif === "beta" ? PREIS_BETA : PREIS_REGULAER;
   const addOn = !vereinsverwaltungAktiv || tarif === "befreit" ? 0 : tarif === "beta" ? PREIS_VEREINSVERWALTUNG_BETA : PREIS_VEREINSVERWALTUNG;
-  return basis + addOn + (sponsor ? PREIS_SPONSOR : 0);
+  return Math.max(0, basis + addOn + (sponsor ? PREIS_SPONSOR : 0) - rabatt);
+}
+
+// Rabatt für eine Registrierungsquelle (herkunft). Podcast-Registrierungen (PODCAST_HERKUNFT) bekommen
+// PREIS_RABATT_PODCAST (100 €) im ersten Jahr. Nach dem ersten Abrechnungsjahr fällt der Rabatt weg
+// (regulärer Tarif-Preis); der Systemadmin stellt die Folge-Rechnung ohne Rabatt. null/undefined = kein Rabatt.
+export function rabattFuerHerkunft(herkunft: string | null | undefined): number {
+  return herkunft === PODCAST_HERKUNFT ? PREIS_RABATT_PODCAST : 0;
 }
 
 // Tarif und erste Frist für einen NEUEN Verein: vor dem Beta-Ende Beta-Tester (erste Rechnung ab 1.12.), danach regulär.

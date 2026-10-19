@@ -4,6 +4,7 @@ import {
   sollBetaEndeMailSenden,
   BETA_ERSTE_FRIST,
   betragNetto,
+  rabattFuerHerkunft,
   sollMailSenden,
   stufeFuer,
   startKonditionen,
@@ -12,6 +13,7 @@ import {
   zahlungsStand,
   type ZahlungsEingabe,
 } from "./abrechnung";
+import { PODCAST_HERKUNFT, PREIS_RABATT_PODCAST } from "./beta-konditionen";
 
 const tag = (s: string) => new Date(`${s}T12:00:00+01:00`);
 const basis: ZahlungsEingabe = { status: "aktiv", tarif: "beta", zahlungBis: null, zahlungFaelligAm: null, zahlungSperreAus: false };
@@ -31,6 +33,26 @@ describe("Beträge (netto)", () => {
     expect(betragNetto("regulaer", true, true)).toBe(700);
     expect(betragNetto("befreit", false, true)).toBe(0);
     expect(betragNetto("befreit", true, true)).toBe(200);
+  });
+
+  it("Rabatt: 100 € für Podcast-Registrierungen, zieht vom Gesamtbetrag ab (nicht vom Sponsor-Zuschlag)", () => {
+    // Beta-Tester mit Podcast-Rabatt: 200 - 100 = 100
+    expect(betragNetto("beta", false, false, PREIS_RABATT_PODCAST)).toBe(100);
+    // Regulär mit Podcast-Rabatt: 300 - 100 = 200
+    expect(betragNetto("regulaer", false, false, PREIS_RABATT_PODCAST)).toBe(200);
+    // Befreit mit Rabatt: bleibt 0 (Math.max)
+    expect(betragNetto("befreit", false, false, PREIS_RABATT_PODCAST)).toBe(0);
+    // Mit Sponsor: 200 + 200 - 100 = 300 (Rabatt zieht vom Gesamtbetrag ab)
+    expect(betragNetto("beta", true, false, PREIS_RABATT_PODCAST)).toBe(300);
+    // Mit Vereinsverwaltung: 200 + 200 - 100 = 300
+    expect(betragNetto("beta", false, true, PREIS_RABATT_PODCAST)).toBe(300);
+  });
+
+  it("rabattFuerHerkunft: 100 € für Podcast, 0 für null/andere Quellen", () => {
+    expect(rabattFuerHerkunft(PODCAST_HERKUNFT)).toBe(PREIS_RABATT_PODCAST);
+    expect(rabattFuerHerkunft(null)).toBe(0);
+    expect(rabattFuerHerkunft(undefined)).toBe(0);
+    expect(rabattFuerHerkunft("andere-quelle")).toBe(0);
   });
 });
 

@@ -8,6 +8,7 @@ const publicRoutes = [
   "/datenschutz",
   "/impressum",
   "/registrieren",
+  "/podcast",
   "/verein",
   "/meine",
   "/app-hilfe",
