@@ -3,32 +3,10 @@
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  CalendarDaysIcon,
-  CircleHelpIcon,
-  ClipboardListIcon,
-  DumbbellIcon,
-  HomeIcon,
-  LogOutIcon,
-  MoreHorizontalIcon,
-  SettingsIcon,
-  UserIcon,
-  UsersIcon,
-  UsersRoundIcon,
-  BarChart3Icon,
-  TrendingUpIcon,
-  Building2Icon,
-  ClipboardCheckIcon,
-  ListOrderedIcon,
-  MessageSquareIcon,
-  HandHelpingIcon,
-  KeyRoundIcon,
-  ShieldIcon,
-  WalletIcon,
-  DatabaseIcon,
-  WrenchIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { LogOutIcon, MoreHorizontalIcon } from "lucide-react";
+import { ICONS, type BottomNavIcon } from "@/components/nav-icons";
+
+export type { BottomNavIcon };
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { SubmitButton } from "@/components/submit-button";
@@ -40,31 +18,7 @@ import { LinkSymbol } from "@/components/link-spinner";
 // "Mehr"-Sheet. Vom Server als Daten konfiguriert (Icons über Namen, da
 // Komponenten nicht über die Server/Client-Grenze gereicht werden können) —
 // genutzt im Admin-Bereich und auf /profil.
-const ICONS = {
-  home: HomeIcon,
-  kalender: CalendarDaysIcon,
-  termine: ClipboardListIcon,
-  training: DumbbellIcon,
-  dienste: HandHelpingIcon,
-  mannschaften: UsersRoundIcon,
-  funktionstraeger: UsersIcon,
-  auswertung: BarChart3Icon,
-  statistik: TrendingUpIcon,
-  einstellungen: SettingsIcon,
-  profil: UserIcon,
-  hilfe: CircleHelpIcon,
-  admin: ShieldIcon,
-  wart: ClipboardCheckIcon,
-  passwort: KeyRoundIcon,
-  vereine: Building2Icon,
-  warteliste: ListOrderedIcon,
-  feedback: MessageSquareIcon,
-  abrechnung: WalletIcon,
-  spieldaten: DatabaseIcon,
-  betrieb: WrenchIcon,
-} satisfies Record<string, LucideIcon>;
 
-export type BottomNavIcon = keyof typeof ICONS;
 
 export type BottomNavItem = {
   href: string;

@@ -29,7 +29,7 @@ describe("baueAdminNavigation", () => {
   it("jedes Ziel kommt genau einmal vor, Konto enthält Einstellungen, Profil, Hilfe", () => {
     const h = hrefs(baueAdminNavigation(alle));
     expect(new Set(h).size).toBe(h.length);
-    expect(baueAdminNavigation(alle).konto.map((e) => e.href)).toEqual(["/admin/einstellungen", "/profil", "/hilfe"]);
+    expect(baueAdminNavigation(alle).konto.map((e) => e.href)).toEqual(["/admin/einstellungen", "/profil", "/profil/darstellung", "/hilfe"]);
   });
   it("Badge der offenen Dienste hängt am Eintrag 'Offene Dienste'", () => {
     const e = baueAdminNavigation(alle).gruppen.flatMap((g) => g.eintraege).find((x) => x.href === "/admin/dienste");

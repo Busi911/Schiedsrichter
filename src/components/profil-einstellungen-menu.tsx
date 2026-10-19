@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLinkItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -141,6 +142,10 @@ export function ProfilEinstellungenMenu({
               <ChevronRightIcon className="size-4 text-muted-foreground" />
             </button>
           ))}
+          <Link href="/profil/darstellung" className="flex min-h-11 w-full items-center justify-between rounded-lg px-3 text-left text-sm hover:bg-muted">
+            Darstellung (klassisch oder neu)
+            <ChevronRightIcon className="size-4 text-muted-foreground" />
+          </Link>
         </section>
       ) : (
       <DropdownMenu>
@@ -160,6 +165,7 @@ export function ProfilEinstellungenMenu({
             <DropdownMenuItem onClick={() => setOffen("benachrichtigungen")}>
               Benachrichtigungen
             </DropdownMenuItem>
+            <DropdownMenuLinkItem render={<Link href="/profil/darstellung" />}>Darstellung</DropdownMenuLinkItem>
             {istSchiedsrichter && (
               <DropdownMenuItem onClick={() => setOffen("ics")}>
                 HHV Funktionsträger ICS-Feed

@@ -768,3 +768,7 @@ hier abhaken bzw. entfernen.
   verdrahtet (siehe `src/lib/nuliga-scraper.ts`) — weitere Verbände
   bräuchten eine zusätzliche Domain-Konstante bzw. ein Verein-Einstellungsfeld
   dafür.
+
+## Neues App-Design (opt-in)
+
+Pro Person unter `/profil/darstellung` einschaltbar (`users.design_neu`): Dashboard-Startseite mit „Heute“-Karte, „Braucht dich“ und Kacheln, Seitenleiste auf dem Rechner, Bereichsseiten `/admin/bereich/[gruppe]`. Standard bleibt die bisherige Ansicht. Details siehe CLAUDE.md.

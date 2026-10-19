@@ -13,6 +13,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SubmitButton } from "@/components/submit-button";
 import { AdminNav } from "@/components/admin-nav";
+import { AdminSeitenleiste } from "@/components/admin-seitenleiste";
+import { holeDesignNeu } from "@/lib/design";
 import { WART_ITEMS } from "@/lib/wart-navigation";
 import { baueAdminNavigation, mobileNavigation } from "@/lib/admin-navigation";
 import { BottomNav } from "@/components/bottom-nav";
@@ -41,9 +43,10 @@ export default async function AdminLayout({
 }) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
-  const [verein, vereinsLogo] = await Promise.all([
+  const [verein, vereinsLogo, designNeu] = await Promise.all([
     withTenant(vereinId, (tx) => tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })),
     holeVereinsLogoInfo(vereinId),
+    holeDesignNeu(vereinId, session.user.id),
   ]);
   // Auf jeder Admin-Seite sichtbar (nicht nur auf der Übersicht) — der Admin
   // soll die Besetzung nur noch überwachen, die eigentliche Zuordnung
@@ -61,6 +64,8 @@ export default async function AdminLayout({
     offeneDienste: offeneDiensteAnzahl,
   });
   const mobil = mobileNavigation(nav);
+  // Neues App-Design (freiwillig, Profil → Darstellung): erster Tab heißt "Start", am Desktop steht eine Seitenleiste statt der Auswahlmenüs.
+  const tabs = designNeu ? mobil.tabs.map((t) => (t.href === "/admin" ? { ...t, label: "Start" } : t)) : mobil.tabs;
 
   return (
     <div className="min-h-screen">
@@ -127,7 +132,7 @@ export default async function AdminLayout({
               </form>
             </div>
           </div>
-          <AdminNav nav={nav} />
+          {!designNeu && <AdminNav nav={nav} />}
           {/* Auf Mobile eine eigene, sonst leer wirkende Zeile (Nav ist dort
               hinter dem Hamburger versteckt) — dort zentriert statt wie auf
               Desktop (wo sie neben der Nav steht) am linken Rand mit viel
@@ -199,9 +204,16 @@ export default async function AdminLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-screen-2xl p-6 pb-24 md:pb-6">{children}</main>
+      {designNeu ? (
+        <div className="mx-auto flex max-w-screen-2xl items-stretch">
+          <AdminSeitenleiste nav={nav} />
+          <main className="min-w-0 flex-1 p-6 pb-24 md:pb-6">{children}</main>
+        </div>
+      ) : (
+        <main className="mx-auto max-w-screen-2xl p-6 pb-24 md:pb-6">{children}</main>
+      )}
       <BottomNav
-        tabs={mobil.tabs}
+        tabs={tabs}
         mehrItems={mobil.mehr}
         logoutAction={async () => {
           "use server";

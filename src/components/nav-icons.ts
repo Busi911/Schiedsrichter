@@ -1,0 +1,52 @@
+// Symbole der Navigation (Name -> Lucide-Symbol), gemeinsam für die Tab-Leiste (bottom-nav.tsx) und Server-Seiten (z.B. Bereichsseiten).
+// Als Namen statt Komponenten, weil Komponenten nicht über die Server/Client-Grenze gereicht werden können.
+import {
+  CalendarDaysIcon,
+  CircleHelpIcon,
+  ClipboardListIcon,
+  DumbbellIcon,
+  HomeIcon,
+  SettingsIcon,
+  UserIcon,
+  UsersIcon,
+  UsersRoundIcon,
+  BarChart3Icon,
+  TrendingUpIcon,
+  Building2Icon,
+  ClipboardCheckIcon,
+  ListOrderedIcon,
+  MessageSquareIcon,
+  HandHelpingIcon,
+  KeyRoundIcon,
+  ShieldIcon,
+  WalletIcon,
+  DatabaseIcon,
+  WrenchIcon,
+  type LucideIcon,
+} from "lucide-react";
+
+export const ICONS = {
+  home: HomeIcon,
+  kalender: CalendarDaysIcon,
+  termine: ClipboardListIcon,
+  training: DumbbellIcon,
+  dienste: HandHelpingIcon,
+  mannschaften: UsersRoundIcon,
+  funktionstraeger: UsersIcon,
+  auswertung: BarChart3Icon,
+  statistik: TrendingUpIcon,
+  einstellungen: SettingsIcon,
+  profil: UserIcon,
+  hilfe: CircleHelpIcon,
+  admin: ShieldIcon,
+  wart: ClipboardCheckIcon,
+  passwort: KeyRoundIcon,
+  vereine: Building2Icon,
+  warteliste: ListOrderedIcon,
+  feedback: MessageSquareIcon,
+  abrechnung: WalletIcon,
+  spieldaten: DatabaseIcon,
+  betrieb: WrenchIcon,
+} satisfies Record<string, LucideIcon>;
+
+export type BottomNavIcon = keyof typeof ICONS;
