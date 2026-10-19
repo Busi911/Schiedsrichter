@@ -112,12 +112,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: produkttour-screenshots
-          path: public/produkttour/*.png
+          path: |
+            public/produkttour/*.png
+            public/produkttour/masse.json
           retention-days: 14
 
       - name: Neue Screenshots einchecken
         run: |
-          git add public/produkttour/*.png
+          git add public/produkttour/*.png public/produkttour/masse.json
           if git diff --cached --quiet; then
             echo "Keine Änderungen an den Screenshots."
             exit 0

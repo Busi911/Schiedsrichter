@@ -1,22 +1,22 @@
 {
   "uebersicht": {
     "breite": 1440,
-    "hoehe": 900
+    "hoehe": 2028
   },
   "funktionstraeger": {
     "breite": 1440,
-    "hoehe": 830
+    "hoehe": 2303
   },
   "kalender": {
     "breite": 1440,
-    "hoehe": 600
+    "hoehe": 1221
   },
   "trainingsplan": {
     "breite": 1440,
-    "hoehe": 800
+    "hoehe": 1420
   },
   "dienste": {
     "breite": 1440,
-    "hoehe": 860
+    "hoehe": 1031
   }
 }
