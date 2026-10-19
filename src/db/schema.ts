@@ -348,6 +348,11 @@ export const vereine = pgTable("verein", {
   // nur mit Link gibt es im Formular die Pflicht-Einwilligung "Satzung gelesen".
   beitrittAktiv: boolean("beitritt_aktiv").notNull().default(false),
   satzungUrl: text("satzung_url"),
+  // Registrierungsquelle (z. B. "podcast-handballkaes" für Registrierungen über die Podcast-Seite
+  // mit 100 € Rabatt). null = normale Selbstregistrierung. Siehe lib/beta-konditionen.ts (PODCAST_HERKUNFT)
+  // und lib/abrechnung.ts (rabattFuerHerkunft). Podcast-Beta-Tester: 100 € statt 200 € im ersten Jahr;
+  // nach Beta-Ende über die Podcast-Seite: 200 € statt 300 €. Der Rabatt gilt für das erste Abrechnungsjahr.
+  herkunft: text("herkunft"),
 });
 
 export const mannschaften = pgTable("mannschaft", {
