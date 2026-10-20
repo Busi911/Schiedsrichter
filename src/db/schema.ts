@@ -495,6 +495,26 @@ export const trainingAusfaelle = pgTable(
   (t) => [uniqueIndex("training_ausfall_zeit_datum_idx").on(t.trainingszeitId, t.datum)]
 );
 
+// "Mögliche Duplikate" auf /admin/funktionstraeger: ein Paar, das der Admin als zwei verschiedene Personen bestätigt hat (z.B. Vater und Sohn
+// mit gleichem Namen), wird nicht mehr vorgeschlagen. user_id_a < user_id_b (Paar ungeordnet, eine Zeile); mit einer der Personen weg (Cascade) ist auch das Paar weg.
+export const funktionstraegerKeinDuplikat = pgTable(
+  "funktionstraeger_kein_duplikat",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references(() => vereine.id, { onDelete: "cascade" }),
+    userIdA: text("user_id_a")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    userIdB: text("user_id_b")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    erstelltAm: timestamp("erstellt_am").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("funktionstraeger_kein_duplikat_paar_idx").on(t.vereinId, t.userIdA, t.userIdB)]
+);
+
 // Vereinstermine: Sitzungen, Versammlungen, Arbeitseinsätze o.ä. — Termine des Vereins, die keine Spiele sind (kein Bedarf, keine Dienste, nie auf der
 // öffentlichen Seite). Angelegt nur vom Admin (/admin/vereinstermine). sichtbarkeit: "alle" (jede Person mit Login), "admins" (nur Vereinsadmins) oder
 // "auswahl" (Rollen und/oder einzelne Personen aus vereinstermin_sichtbar); Admins sehen jeden Vereinstermin. antwort_abfrage = Zu-/Absage möglich.

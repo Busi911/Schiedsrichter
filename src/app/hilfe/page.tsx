@@ -223,6 +223,11 @@ export default async function HilfePage() {
           Trainern, was sie im Profil sehen und dass sie bei Verlegungen eine Info-Mail bekommen.
         </p>
         <p className="text-sm text-muted-foreground">
+          Unter „Mögliche Duplikate“ schlägt die App Personen mit sehr ähnlichem Namen vor. Ist es derselbe Mensch, führt{" "}
+          <strong>Verknüpfen</strong> beide Zugänge zusammen. Sind es zwei verschiedene Personen (z.B. Vater und Sohn mit gleichem
+          Namen), bestätigt <strong>Zwei verschiedene Personen</strong> das: das Paar wird dann nicht mehr vorgeschlagen.
+        </p>
+        <p className="text-sm text-muted-foreground">
           <strong>Viele Personen auf einmal:</strong> „Aus Excel importieren“ mit einer Kopfzeile mit den Spalten{" "}
           <strong>Name</strong>, <strong>E-Mail</strong>, <strong>Rolle</strong> (Schiedsrichter, Zeitnehmer/Sekretär,
           Trainer, Ordner, Kioskdienst oder Kassierer), optional <strong>Mannschaft</strong> (nur bei Trainern, muss es als

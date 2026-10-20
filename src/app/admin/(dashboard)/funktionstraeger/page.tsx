@@ -1,9 +1,10 @@
 import { and, eq, or } from "drizzle-orm";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
-import { funktionstraegerRollen, mannschaften, users } from "@/db/schema";
+import { funktionstraegerKeinDuplikat, funktionstraegerRollen, mannschaften, users } from "@/db/schema";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
-import { findeFunktionstraegerDuplikate } from "@/lib/funktionstraeger-duplikate";
+import { findeFunktionstraegerDuplikate, ohneBestaetigteVerschiedene } from "@/lib/funktionstraeger-duplikate";
+import { personenAlsVerschiedenBestaetigen } from "./kein-duplikat-actions";
 import {
   funktionstraegerImportieren,
   funktionstraegerZusammenfuehren,
@@ -156,7 +157,10 @@ export default async function FunktionstraegerPage({
   }
 
   const personen = Array.from(personenMap.values());
-  const duplikate = findeFunktionstraegerDuplikate(personen);
+  const bestaetigtVerschieden = await withTenant(vereinId, (tx) =>
+    tx.select().from(funktionstraegerKeinDuplikat).where(eq(funktionstraegerKeinDuplikat.vereinId, vereinId))
+  );
+  const duplikate = ohneBestaetigteVerschiedene(findeFunktionstraegerDuplikate(personen), bestaetigtVerschieden);
 
   return (
     <div className="flex flex-col gap-6">
@@ -282,6 +286,14 @@ export default async function FunktionstraegerPage({
                   >
                     Verknüpfen
                   </ConfirmSubmitButton>
+                </form>
+                <form action={personenAlsVerschiedenBestaetigen} className="flex flex-wrap items-center gap-2">
+                  <input type="hidden" name="userIdA" value={a.userId} />
+                  <input type="hidden" name="userIdB" value={b.userId} />
+                  <SubmitButton variant="outline" size="sm" pendingText="Speichert…">
+                    Zwei verschiedene Personen
+                  </SubmitButton>
+                  <span className="text-xs text-muted-foreground">Das Paar wird dann nicht mehr vorgeschlagen.</span>
                 </form>
               </div>
             ))}
