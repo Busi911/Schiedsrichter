@@ -322,6 +322,11 @@ export default async function HilfePage() {
           passiert ist, zeigen wir den Stand mit „vorläufig“. Am Spieltag wird rund um den Anwurf häufiger abgerufen, sonst stündlich; den aktuellen Spielstand liefert der Live-Ticker.
         </p>
 
+        <h3 className="text-sm font-medium">Spiel teilen</h3>
+        <p className="text-sm text-muted-foreground">
+          Auf jeder Spielkarte gibt es einen <strong>Teilen</strong>-Button: Tippt darauf, um den Link zur Seite über das Share-Menü des Handys zu verschicken (WhatsApp, Mail, …). Auf Geräten ohne Share-Menü wird der Link stattdessen in die Zwischenablage kopiert.
+        </p>
+
         <h3 className="text-sm font-medium">Eine Mannschaft fehlt oder ist leer?</h3>
         <p className="text-sm text-muted-foreground">
           Nach dem Aktualisieren erscheinen unter dem Ergebnis Hinweise. Die
