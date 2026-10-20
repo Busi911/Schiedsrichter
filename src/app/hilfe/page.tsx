@@ -898,7 +898,8 @@ export default async function HilfePage() {
           Unter <strong>Dienste → Offene Dienste</strong> steht, was noch zu besetzen ist (ein Spiel mit mehreren offenen Rollen
           zählt einmal). Unter <strong>Auswertung → Statistik</strong> seht ihr die Bilanz aller Mannschaften über alle Spiele (Heim
           und Auswärts; laufende Spiele zählen erst mit dem endgültigen Ergebnis), darunter je Mannschaft eine Karte mit Form, Tore pro Spiel, Heim/Auswärts,
-          höchstem Sieg und Halbzeit-Auswertung, und die Top-Dienstleistenden. Dieselbe Mannschaftsstatistik sehen Spieler und Eltern
+          höchstem Sieg und Halbzeit-Auswertung, die Top-Funktionsträger und die Tabelle „Dienste je Funktionsträger“: je Person die geleisteten Dienste (Termin vorbei)
+          und die noch eingetragenen (Termin liegt vor uns), aufgeteilt nach Rolle und filterbar nach Saison. Dieselbe Mannschaftsstatistik sehen Spieler und Eltern
           in der öffentlichen App im Reiter „Statistik“.
         </p>
       </section>
