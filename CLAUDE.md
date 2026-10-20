@@ -459,7 +459,7 @@ Cron `/api/cron/sync-ueberwachung` (`vercel.json`, 07:50/10:50/13:50/16:50/19:50
 über ALLE Spiele (Heim + Auswärts + Freundschaft) aus den öffentlichen Liga-Daten (`lib/spiel-statistik.ts`,
 `holeMannschaftsBilanzenAlleSpiele`); ohne Liga-Daten Rückfall auf die alte Heimspiel-Bilanz aus dem Hallenplan.
 Zwischenstände laufender Spiele (`istZwischenstand`) und Nichtantritte zählen nicht.
-„Top Funktionsträger“ + Tabelle „Dienste je Funktionsträger“ (`#funktionstraeger`, 20.10.2026): je Person geleistete (Termin vorbei) und eingetragene (künftige) Dienste, aufgeteilt nach Rolle, Filter `?saison=2026/27` (GET-Formular; Saison nach `saisonLabel`, unbekannte Saison = alle). Rechnung rein in `lib/funktionstraeger-dienste.ts` (getestet), Laden in `holeFunktionstraegerDienste` (`dienste-statistik.ts`; `users` ohne RLS: immer mit Vereinsfilter). Enthält alle Personen mit aktiver Rolle (auch 0/0).
+„Top Funktionsträger“ + Tabelle „Dienste je Funktionsträger“ (`#funktionstraeger`, 20.10.2026): je Person geleistete (Termin vorbei) und eingetragene (künftige) Dienste, aufgeteilt nach Rolle, Filter `?saison=2026/27` (GET-Formular; Saison nach `saisonLabel`, unbekannte Saison = alle). Rechnung rein in `lib/funktionstraeger-dienste.ts` (getestet), Laden in `holeFunktionstraegerDienste` (`dienste-statistik.ts`; `users` ohne RLS: immer mit Vereinsfilter). Enthält alle Personen mit aktiver Rolle (auch 0/0). Excel-Export `/admin/statistik/export?saison=` (Route, auch lesende Admins; `funktionstraeger-dienste-excel.ts`, Summen + je Rolle zwei Spalten).
 
 ## Besetzung "Vollständig" und definierte Dienste
 

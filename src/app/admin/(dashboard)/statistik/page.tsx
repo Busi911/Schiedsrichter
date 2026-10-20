@@ -7,7 +7,7 @@ import {
   holeFunktionstraegerDienste,
 } from "@/lib/dienste-statistik";
 import { DIENST_ROLLEN, DIENST_ROLLE_LABEL } from "@/lib/funktionstraeger-dienste";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErfolgreichsteMannschaftenChart } from "@/components/erfolgreichste-mannschaften-chart";
@@ -139,6 +139,12 @@ export default async function StatistikPage({
           <Button type="submit" variant="outline" size="sm">
             Anzeigen
           </Button>
+          <a
+            href={`/admin/statistik/export${saison ? `?saison=${encodeURIComponent(saison)}` : ""}`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Excel-Export
+          </a>
         </form>
         {funktionstraeger.length === 0 ? (
           <p className="text-sm text-muted-foreground">Noch keine Funktionsträger.</p>
