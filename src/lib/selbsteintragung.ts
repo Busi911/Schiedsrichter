@@ -162,7 +162,7 @@ export async function selbstEintragenMehrfachOeffentlich(
       };
       await sendeMailAnAlle(
         warte,
-        "Neue Selbstregistrierung wartet auf Freischaltung",
+        "Neue Selbstregistrierung (Rolle aktiviert)",
         inhalt,
         `Registrierungs-Mail an ${b.wartLabel} konnte nicht gesendet werden`
       );
@@ -222,15 +222,19 @@ export async function selbstEintragenMehrfachEingeloggt(
   const verein = await adminDb.query.vereine.findFirst({ where: eq(b.tokenSpalte, token) });
   if (!verein || verein.id !== vereinId) return ergebnisFehler(terminIds.length, "Ungültiger Link oder falscher Verein.");
 
-  await withTenant(vereinId, async (tx) => {
+  const rolleNeuAktiviert = await withTenant(vereinId, async (tx) => {
     const vorhandeneRolle = await tx.query.funktionstraegerRollen.findFirst({
       where: and(eq(funktionstraegerRollen.userId, userId), eq(funktionstraegerRollen.typ, rolle)),
     });
     if (!vorhandeneRolle) {
       await tx.insert(funktionstraegerRollen).values({ userId, typ: rolle, aktiv: true });
-    } else if (!vorhandeneRolle.aktiv) {
-      await tx.update(funktionstraegerRollen).set({ aktiv: true }).where(eq(funktionstraegerRollen.id, vorhandeneRolle.id));
+      return true;
     }
+    if (!vorhandeneRolle.aktiv) {
+      await tx.update(funktionstraegerRollen).set({ aktiv: true }).where(eq(funktionstraegerRollen.id, vorhandeneRolle.id));
+      return true;
+    }
+    return false;
   });
 
   let eingetragen = 0;
@@ -261,6 +265,22 @@ export async function selbstEintragenMehrfachEingeloggt(
       eingetragen++;
     } catch (err) {
       fehler.push(err instanceof Error ? err.message : "Unbekannter Fehler.");
+    }
+  }
+
+  // Rolle neu angelegt oder aktiviert: der Wart wird informiert (wie bei der anonymen Eintragung mit E-Mail), eine schon aktive Rolle löst nichts aus.
+  if (rolleNeuAktiviert && eingetragen > 0) {
+    const warte = await b.holeWarteEmails(vereinId);
+    if (warte.length > 0) {
+      const email = session.user.email ?? "";
+      const inhalt = {
+        vereinName: verein.name,
+        ...neueSelbstregistrierungInhalt(session.user.name ?? email, email, rolle, {
+          text: "Zur Funktionsträger-Verwaltung",
+          url: `${appUrl()}/admin/funktionstraeger${email ? `?suche=${encodeURIComponent(email)}` : ""}`,
+        }),
+      };
+      await sendeMailAnAlle(warte, "Neue Selbstregistrierung (Rolle aktiviert)", inhalt, `Registrierungs-Mail an ${b.wartLabel} konnte nicht gesendet werden`);
     }
   }
 

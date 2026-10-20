@@ -78,7 +78,7 @@ export function TerminMehrfachAuswahl({
   // Gesetzt, wenn die Seite eine passende, eingeloggte Session erkannt hat — blendet Name/E-Mail komplett aus.
   eingeloggtAls?: string;
   // Zusätzliches, OPTIONALES E-Mail-Feld im anonymen Formular — wird eine E-Mail angegeben, legt die Aktion dafür direkt ein Konto
-  // (+ zunächst inaktive Rolle, bis ein Wart sie freischaltet) an. Nur relevant, wenn eingeloggtAls NICHT gesetzt ist.
+  // (+ sofort aktive Rolle, der Wart wird per Mail informiert) an. Nur relevant, wenn eingeloggtAls NICHT gesetzt ist.
   zeigeEmailFeld?: boolean;
 }) {
   // Nur Gruppen anbieten, für die es überhaupt einen anstehenden Termin mit Bedarf gibt (z.B. kein "Ordner", wenn nirgends Ordner gebraucht

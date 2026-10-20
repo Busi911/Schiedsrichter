@@ -8,7 +8,7 @@ import { emailAlsHtml, emailAlsText, type EmailInhalt } from "@/lib/email-layout
 import { sendMail } from "@/lib/mailer";
 
 // Öffentliche Selbsteintragung der Trainer einer Mannschaft über deren Link (mannschaften.trainerEinladungToken, siehe
-// /trainer-eintragen/[token]). Wie bei der Eintragung für Dienste (lib/zuordnung.ts, loeseIdentitaetPerEmailAuf) legt der Link nur eine INAKTIVE
+// /trainer-eintragen/[token]). Anders als bei der Eintragung für Dienste (lib/zuordnung.ts, loeseIdentitaetPerEmailAuf: sofort aktiv, Wart wird nur informiert) legt der Link nur eine INAKTIVE
 // Rolle an — ein Admin schaltet die Person unter /admin/funktionstraeger frei (erst dann geht die Willkommens-Mail raus).
 
 export type TrainerEintragErgebnis = { ok: true; mannschaftName: string } | { ok: false; fehler: string };
