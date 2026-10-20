@@ -197,10 +197,22 @@ describe("selbstEintragenMehrfachEingeloggt", () => {
     expect(mailSpy).not.toHaveBeenCalled();
   });
 
-  it("legt die Rolle nicht doppelt an, wenn sie schon aktiv vorhanden ist", async () => {
+  it("legt die Rolle nicht doppelt an, wenn sie schon aktiv vorhanden ist (keine Wart-Mail)", async () => {
     vorhandeneRolle = { id: "r1", aktiv: true };
     await selbstEintragenMehrfachEingeloggt(bereich(), formular(basis));
     expect(rollenInserts).toHaveLength(0);
     expect(inserts).toHaveLength(1);
+    expect(alleSpy).not.toHaveBeenCalled();
+  });
+
+  it("informiert den Wart, wenn die Rolle neu angelegt oder von inaktiv aktiviert wurde", async () => {
+    await selbstEintragenMehrfachEingeloggt(bereich(), formular(basis));
+    expect(alleSpy).toHaveBeenCalledTimes(1);
+    expect(alleSpy.mock.calls[0][1]).toBe("Neue Selbstregistrierung (Rolle aktiviert)");
+    alleSpy.mockReset();
+    currentTerminIndex = 0;
+    vorhandeneRolle = { id: "r1", aktiv: false };
+    await selbstEintragenMehrfachEingeloggt(bereich(), formular(basis));
+    expect(alleSpy).toHaveBeenCalledTimes(1);
   });
 });

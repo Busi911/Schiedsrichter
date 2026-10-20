@@ -842,6 +842,11 @@ export default async function HilfePage() {
             den Teil für Zeitnehmer/Sekretär frei, der Ordnerwart den Teil für Ordner, Kioskdienst und Kassierer.
           </li>
           <li>
+            <strong>Neue Personen werden sofort aktiv:</strong> Trägt sich jemand mit E-Mail-Adresse ein, wird die Rolle gleich
+            aktiviert (auch bei einer weiteren Rolle einer bekannten Person). Der zuständige Wart bekommt dazu eine Info-Mail mit Link
+            in die Funktionsträger-Liste. Hat jemand eine fremde Adresse benutzt, sprecht die Person an oder löscht sie dort einfach.
+          </li>
+          <li>
             <strong>Eine Seite für alles:</strong> Beide Links führen auf dieselbe Eintragungsseite (<code>/eintragen/…</code>).
             Angeboten wird, was gerade freigeschaltet ist und wofür es einen anstehenden Termin mit Bedarf gibt. Ist z.B. nur
             der Ordner-Teil aktiv, sieht man nur Ordner, Kioskdienst und Kassierer. Ältere Links (

@@ -409,6 +409,8 @@ in `src/app/admin/actions.ts`). Das Aktiv-Flag lebt pro Rolle
 (`funktionstraeger_rolle.aktiv`), nicht pro Person — inaktive Rollen tauchen
 nicht mehr in Zuordnung oder Selbst-Anmeldung auf, bleiben aber in der
 Zuordnungs-/Zuschuss-Historie erhalten (bewusst kein Löschen).
+Ausnahme: Wer sich über die öffentliche Selbsteintragung (`/eintragen/…`) mit E-Mail einträgt, bekommt die Rolle sofort aktiv; der
+zuständige Wart wird nur per Mail informiert und kann die Person bei einer Fremdeintragung ansprechen oder löschen.
 
 Wird jemand einem Termin als Schiedsrichter/Zeitnehmer/Sekretär zugeordnet
 (`/admin/zuordnung`), geht ebenfalls automatisch eine Mail raus

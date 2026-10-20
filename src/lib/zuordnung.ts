@@ -224,14 +224,9 @@ export function zuordnungFehlgeschlagenInhalt(
   };
 }
 
-// Benachrichtigt den Wart, wenn sich über die öffentliche Selbsteintragung
-// (Ordner-/Kioskdienst-/Kassierer- bzw. Zeitnehmer-/Sekretär-Link) jemand
-// mit E-Mail-Adresse registriert, den es im System noch nicht als
-// Funktionsträger dieser Rolle gibt — die Rolle wird dabei bewusst INAKTIV
-// angelegt (siehe ordnerSelbstEintragenMehrfachOeffentlich/
-// zeitnehmerSelbstEintragenMehrfachOeffentlich), damit ein Wart die Person
-// erst bestätigt/freischaltet, statt dass sich jeder mit einer beliebigen
-// E-Mail-Adresse ungeprüft selbst zum Funktionsträger macht.
+// Benachrichtigt den Wart, wenn sich über die Selbsteintragung (Ordner-/Kioskdienst-/Kassierer- bzw. Zeitnehmer-/Sekretär-Link, auch eingeloggt)
+// jemand für eine Rolle einträgt, die es für die Person noch nicht aktiv gab — die Rolle wird dabei SOFORT aktiviert (Entscheidung Betreiber
+// 20.10.2026), der Wart wird nur informiert und kann sich bei einer Fremdeintragung an die Person wenden oder sie in der Funktionsträger-Liste löschen.
 export function neueSelbstregistrierungInhalt(
   name: string,
   email: string,
@@ -240,8 +235,11 @@ export function neueSelbstregistrierungInhalt(
 ): EmailInhalt {
   const rolleLabel = ZUORDNUNGS_ROLLE_LABEL[rolle] ?? rolle;
   return {
-    ueberschrift: `${name} hat sich über den öffentlichen Link als ${rolleLabel} registriert und wartet auf Freischaltung.`,
-    zeilen: [`E-Mail: ${email}`],
+    ueberschrift: `${name} hat sich über den öffentlichen Link als ${rolleLabel} eingetragen. Die Rolle wurde automatisch aktiviert.`,
+    zeilen: [
+      `E-Mail: ${email}`,
+      "Stimmt die Eintragung nicht (z.B. hat jemand eine fremde Adresse benutzt)? Dann sprich die Person an oder lösche sie in der Funktionsträger-Liste.",
+    ],
     cta,
   };
 }
@@ -281,14 +279,12 @@ export type SelbstEintragenIdentitaet =
 
 // Löst die E-Mail-Variante der Identität bei einer öffentlichen
 // Selbsteintragung auf: bestehendes Konto (im eigenen Verein) wiederverwenden
-// oder neu anlegen, dann die Rolle anlegen — bewusst INAKTIV (siehe
-// funktionstraegerRollen.aktiv in db/schema.ts), damit sich nicht jeder mit
-// einer beliebigen E-Mail-Adresse ungeprüft selbst zum aktiven
-// Funktionsträger macht. Ein Wart muss die Person erst freischalten (siehe
-// /admin/funktionstraeger), genau wie beim manuellen Anlegen ohne "sofort
-// aktivieren" (createFunktionstraeger in admin/actions.ts).
-// warNeuRegistriert = true nur, wenn die Rolle dabei neu angelegt wurde
-// (nicht bei einer bereits bekannten, ggf. schon aktiven Person) — steuert
+// oder neu anlegen, dann die Rolle anlegen bzw. aktivieren — SOFORT aktiv
+// (Entscheidung Betreiber 20.10.2026, wie bei der eingeloggten Eintragung);
+// der Wart bekommt eine Info-Mail und kann bei einer Fremdeintragung die
+// Person ansprechen oder in /admin/funktionstraeger löschen.
+// warNeuRegistriert = true, wenn die Rolle dabei neu angelegt oder von inaktiv
+// auf aktiv gesetzt wurde (nicht bei einer schon aktiven Rolle) — steuert
 // die Benachrichtigung an den zuständigen Wart.
 export async function loeseIdentitaetPerEmailAuf(
   vereinId: string,
@@ -320,7 +316,13 @@ export async function loeseIdentitaetPerEmailAuf(
     if (!vorhandeneRolle) {
       await tx
         .insert(funktionstraegerRollen)
-        .values({ userId: user.id, typ: rolle, aktiv: false });
+        .values({ userId: user.id, typ: rolle, aktiv: true });
+      warNeuRegistriert = true;
+    } else if (!vorhandeneRolle.aktiv) {
+      await tx
+        .update(funktionstraegerRollen)
+        .set({ aktiv: true })
+        .where(eq(funktionstraegerRollen.id, vorhandeneRolle.id));
       warNeuRegistriert = true;
     }
 
