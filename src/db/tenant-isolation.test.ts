@@ -313,6 +313,25 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Mandantentrennung (RLS)", () => {
       )
     ).rejects.toThrow(/duplicate|unique/i);
   });
+  it("Bestätigte Nicht-Duplikate (funktionstraeger_kein_duplikat) sind je Verein getrennt", async () => {
+    const { rows: u } = await adminPool.query(
+      `insert into "user" (id, email, name, verein_id) values (gen_random_uuid()::text, 'kd1@b.test', 'Dennis Weber', $1), (gen_random_uuid()::text, 'kd2@b.test', 'Dennis Weber', $1) returning id`,
+      [vereinB]
+    );
+    const [x, y] = u[0].id < u[1].id ? [u[0].id, u[1].id] : [u[1].id, u[0].id];
+    await adminPool.query(`insert into funktionstraeger_kein_duplikat (verein_id, user_id_a, user_id_b) values ($1, $2, $3)`, [vereinB, x, y]);
+
+    const ausSichtA = await withTenant(vereinA, (client) => client.query("select id from funktionstraeger_kein_duplikat").then((r) => r.rows));
+    expect(ausSichtA).toHaveLength(0);
+    const ausSichtB = await withTenant(vereinB, (client) => client.query("select id from funktionstraeger_kein_duplikat").then((r) => r.rows));
+    expect(ausSichtB).toHaveLength(1);
+
+    await expect(
+      withTenant(vereinA, (client) =>
+        client.query("insert into funktionstraeger_kein_duplikat (verein_id, user_id_a, user_id_b) values ($1, $2, $3)", [vereinB, x, y])
+      )
+    ).rejects.toThrow(/row-level security/i);
+  });
   it("Vereinstermine (vereinstermin, -sichtbar, -antwort) sind je Verein getrennt", async () => {
     const { rows: t } = await adminPool.query(
       `insert into vereinstermin (verein_id, titel, start, sichtbarkeit, serie_id, wiederholung) values ($1, 'Sitzung B', '2030-01-02T18:00:00Z', 'auswahl', gen_random_uuid(), 'monatlich') returning id`,

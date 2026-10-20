@@ -51,3 +51,17 @@ export function findeFunktionstraegerDuplikate<
   }
   return treffer;
 }
+
+// Ein Paar ist ungeordnet: Schlüssel und gespeicherte Zeile immer mit der kleineren ID zuerst.
+export function ordnePaar(a: string, b: string): [string, string] {
+  return a < b ? [a, b] : [b, a];
+}
+
+// Paare, die der Admin als "zwei verschiedene Personen" bestätigt hat, werden nicht mehr vorgeschlagen.
+export function ohneBestaetigteVerschiedene<T extends FunktionstraegerDuplikatKandidat>(
+  paare: [T, T][],
+  bestaetigt: { userIdA: string; userIdB: string }[]
+): [T, T][] {
+  const bekannt = new Set(bestaetigt.map((p) => `${p.userIdA}|${p.userIdB}`));
+  return paare.filter(([a, b]) => !bekannt.has(ordnePaar(a.userId, b.userId).join("|")));
+}

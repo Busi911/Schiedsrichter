@@ -500,6 +500,10 @@ Termine, öffentliche Seite). Nur Kennzahlen/Zeitstempel (`lib/verein-gesundheit
 Aktivität schreibt `requireSession` über `markiereAktivitaet` (`lib/aktivitaet.ts`): eine bedingte Anweisung, höchstens alle 5 Minuten, nach der Antwort
 (`after`); Systemadmins im Treuhand-/Support-Kontext zählen nicht als Aktivität des Vereins. Migration 0078.
 
+## Mögliche Duplikate bei Funktionsträgern
+
+`/admin/funktionstraeger` schlägt Personen mit sehr ähnlichem Namen als Duplikat vor (`lib/funktionstraeger-duplikate.ts`). „Zwei verschiedene Personen“ (`personenAlsVerschiedenBestaetigen`, `kein-duplikat-actions.ts`) speichert das Paar in `funktionstraeger_kein_duplikat` (Migration 0123, `verein_id` + RLS, Paar ungeordnet mit `ordnePaar`, im Mandantentrennungs-Test); es wird danach nicht mehr vorgeschlagen (`ohneBestaetigteVerschiedene`). Die Action prüft, dass beide Personen zum eigenen Verein gehören (`users` hat keine RLS).
+
 ## Zeitnehmer/Sekretär = EINE Funktion
 
 In der Oberfläche gibt es nur "Zeitnehmer/Sekretär" (Anlegen, Rolle hinzufügen, Filter, Excel-Import, Anzeige als eine Rolle, Deaktivieren/Aktivieren gemeinsam);

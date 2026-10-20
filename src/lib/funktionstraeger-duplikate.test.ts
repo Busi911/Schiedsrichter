@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findeFunktionstraegerDuplikate } from "./funktionstraeger-duplikate";
+import { findeFunktionstraegerDuplikate, ohneBestaetigteVerschiedene } from "./funktionstraeger-duplikate";
 
 describe("findeFunktionstraegerDuplikate", () => {
   it("findet ein Paar mit exakt gleichem Namen (andere Groß-/Kleinschreibung)", () => {
@@ -57,5 +57,20 @@ describe("findeFunktionstraegerDuplikate", () => {
 
     expect(treffer).toHaveLength(1);
     expect(treffer[0].map((p) => p.userId)).toEqual(["a", "c"]);
+  });
+});
+
+describe("ohneBestaetigteVerschiedene", () => {
+  const a = { userId: "a", name: "Dennis Weber" };
+  const b = { userId: "b", name: "Dennis Weber" };
+  const c = { userId: "c", name: "Dennis Weber" };
+
+  it("blendet ein bestätigtes Paar aus, egal in welcher Reihenfolge", () => {
+    expect(ohneBestaetigteVerschiedene([[b, a]], [{ userIdA: "a", userIdB: "b" }])).toEqual([]);
+  });
+
+  it("lässt andere Paare stehen", () => {
+    const rest = ohneBestaetigteVerschiedene([[a, b], [a, c]], [{ userIdA: "a", userIdB: "b" }]);
+    expect(rest).toEqual([[a, c]]);
   });
 });
