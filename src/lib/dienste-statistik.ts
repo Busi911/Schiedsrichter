@@ -11,7 +11,8 @@ import {
 } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { adminDb } from "@/db/admin";
-import { ligaVereine, mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
+import { funktionstraegerRollen, ligaVereine, mannschaften, termine, terminZuordnungen, users } from "@/db/schema";
+import { fasseDiensteZusammen, saisonsAusZeilen, type FunktionstraegerDienste } from "@/lib/funktionstraeger-dienste";
 import { holeMannschaften, mannschaftsReihenfolge } from "@/lib/liga-oeffentlich";
 import { berechneBilanzAusLigaSpielen, berechneMannschaftsKennzahlen, type MannschaftsKennzahlen } from "@/lib/spiel-statistik";
 import { normalisiereMannschaftsname } from "@/lib/rundenspiel-import";
@@ -247,6 +248,56 @@ export async function holeTopDienstmenschen(
       email: z.email,
       anzahlEinsaetze: Number(z.anzahlEinsaetze),
     }));
+  });
+}
+
+// Alle Funktionsträger des Vereins (aktive Rolle ODER mindestens ein Dienst) mit geleisteten und eingetragenen
+// Diensten je Rolle, optional für eine Saison ("2026/27"). Die Saisonliste kommt aus den vorhandenen Diensten.
+export async function holeFunktionstraegerDienste(
+  vereinId: string,
+  saison: string | null
+): Promise<{ saison: string | null; saisons: string[]; personen: FunktionstraegerDienste[] }> {
+  const jetzt = new Date();
+  return withTenant(vereinId, async (tx) => {
+    const zeilen = await tx
+      .select({
+        userId: terminZuordnungen.userId,
+        typ: terminZuordnungen.funktionstraegerTyp,
+        start: termine.start,
+        name: users.name,
+        email: users.email,
+      })
+      .from(terminZuordnungen)
+      .innerJoin(termine, eq(terminZuordnungen.terminId, termine.id))
+      .innerJoin(users, eq(terminZuordnungen.userId, users.id))
+      .where(
+        and(
+          eq(termine.vereinId, vereinId),
+          eq(users.vereinId, vereinId),
+          isNotNull(terminZuordnungen.userId),
+          inArray(terminZuordnungen.funktionstraegerTyp, DIENST_RELEVANTE_ROLLEN)
+        )
+      );
+    // users hat keine RLS: immer mit Vereinsfilter.
+    const mitRolle = await tx
+      .selectDistinct({ userId: users.id, name: users.name, email: users.email })
+      .from(funktionstraegerRollen)
+      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+      .where(and(eq(users.vereinId, vereinId), eq(funktionstraegerRollen.aktiv, true)));
+
+    const personen = new Map<string, { userId: string; name: string | null; email: string }>();
+    for (const p of mitRolle) personen.set(p.userId, p);
+    for (const z of zeilen) personen.set(z.userId!, { userId: z.userId!, name: z.name, email: z.email });
+
+    const dienstZeilen = zeilen.map((z) => ({ userId: z.userId!, typ: z.typ as string, start: z.start }));
+    const saisons = saisonsAusZeilen(dienstZeilen, jetzt);
+    // Nur eine bekannte Saison filtert; alles andere zeigt alle Saisons.
+    const aktiv = saison && saisons.includes(saison) ? saison : null;
+    return {
+      saison: aktiv,
+      saisons,
+      personen: fasseDiensteZusammen([...personen.values()], dienstZeilen, aktiv, jetzt),
+    };
   });
 }
 
