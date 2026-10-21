@@ -45,12 +45,12 @@ export async function GET(request: Request) {
     timer = setTimeout(() => resolve("haengt"), WATCHDOG_MS);
   });
   try {
-    const ergebnisse = await Promise.race([lauf, watchdog]);
-    if (ergebnisse === "haengt") {
+    const lauferg = await Promise.race([lauf, watchdog]);
+    if (lauferg === "haengt") {
       console.error(`[handball-net-sync] Watchdog nach ${WATCHDOG_MS / 1000} s – letzter Schritt: ${schritt}`);
       return Response.json({ abgebrochen: true, letzterSchritt: schritt });
     }
-    return Response.json({ synchronisiert: ergebnisse.length, ergebnisse });
+    return Response.json({ synchronisiert: lauferg.ergebnisse.length, vollstaendig: lauferg.vollstaendig, ergebnisse: lauferg.ergebnisse });
   } catch (err) {
     console.error(`[handball-net-sync] Fehler (Schritt: ${schritt}):`, err);
     return Response.json({ fehler: err instanceof Error ? err.message : String(err), letzterSchritt: schritt }, { status: 500 });

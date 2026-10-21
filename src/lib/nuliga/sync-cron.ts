@@ -95,6 +95,13 @@ export type FaelligeErgebnis = {
   handballNetMeldungen?: string[];
 }[];
 
+export type FaelligeLauf = {
+  ergebnisse: FaelligeErgebnis;
+  // true = jeder für diesen Lauf ausgewählte Verein wurde erreicht (das Budget hat gereicht); false = das Budget
+  // ist ausgegangen, bevor alle dran waren — ein weiterer Lauf (Cron oder von Hand) setzt beim nächsten fort.
+  vollstaendig: boolean;
+};
+
 // Vom Cron aufgerufen (beliebig oft): entscheidet pro Verein, was fällig ist
 // — Struktur ca. 1x täglich, Spiele spieltagsnah alle ~45 Min, sonst alle
 // ~6 Std. `budgetMs` begrenzt die Laufzeit (Serverless-Timeout): bleibt
@@ -112,7 +119,7 @@ export async function synchronisiereFaellige(
     // Meldet den aktuellen Schritt (für den Watchdog der Cron-Route: wo hängt ein Lauf?)
     beiSchritt?: (text: string) => void;
   }
-): Promise<FaelligeErgebnis> {
+): Promise<FaelligeLauf> {
   const { db, jetzt = new Date(), budgetMs = 45_000, erzwingen = false, quelle = "alle" } = opt;
   const start = Date.now();
   const schritt = opt.beiSchritt ?? (() => {});
@@ -274,5 +281,5 @@ export async function synchronisiereFaellige(
     ergebnis.push(eintrag);
   }
   schritt("fertig");
-  return ergebnis;
+  return { ergebnisse: ergebnis, vollstaendig: ergebnis.length === sortierteVereine.length };
 }
