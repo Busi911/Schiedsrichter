@@ -1,13 +1,10 @@
 import { requireSystemAdmin } from "@/lib/session";
-import { SubmitButton } from "@/components/submit-button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { berechneBefunde } from "@/lib/sync-ueberwachung-daten";
 import { SCHWELLEN } from "@/lib/sync-ueberwachung";
 import { formatDatumZeit } from "@/lib/format";
-import { ligaSyncJetztAusfuehren } from "./actions";
+import { SyncFormular } from "./sync-formular";
 
 // Der Sync fragt nuLiga bewusst langsam ab (Mindestabstand) — braucht Zeit, wie der Cron.
 // Dasselbe Budget wie die Crons (liga-sync/handball-net-sync route.ts): 40 s reichten bei
@@ -63,30 +60,14 @@ export default async function SyncPage({
         <CardHeader>
           <CardTitle className="text-base">Jetzt ausführen</CardTitle>
           <CardDescription>
-            Dauert bis zu ca. 4,5 Minuten (bei „alle Vereine&rdquo;), bei einem einzelnen Verein meist viel schneller.
-            Nicht doppelt klicken.
+            Ein Durchlauf dauert bis zu ca. 4,5 Minuten (bei „alle Vereine&rdquo;), bei einem einzelnen Verein meist
+            viel schneller. Reicht das Budget bei vielen fälligen Vereinen nicht (v. a. bei „Alles neu laden” ohne
+            einzelnen Verein), wiederholt „Automatisch bis alle Vereine durch sind” den Lauf selbst, bis nichts mehr
+            offen ist — ohne mehrfaches Klicken. Einzelnen Lauf nicht doppelt klicken.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={ligaSyncJetztAusfuehren} className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="slug">Nur dieser Verein (Slug, leer = alle)</Label>
-              <Input id="slug" name="slug" placeholder="z. B. hsg-linden" />
-            </div>
-            <label className="flex items-start gap-2 text-sm">
-              <input type="checkbox" name="erzwingen" className="mt-1 size-4" />
-              <span>
-                Alles neu laden (auch wenn nicht fällig)
-                <span className="block text-xs text-muted-foreground">
-                  Übergeht Intervall und 30-Minuten-Sperre, z. B. um einen eben erschienenen Spielbericht-Link sofort zu
-                  holen. Am besten mit einem Verein, das dauert sonst länger.
-                </span>
-              </span>
-            </label>
-            <SubmitButton pendingText="Sync läuft …" className="self-start">
-              Liga-Sync jetzt ausführen
-            </SubmitButton>
-          </form>
+          <SyncFormular />
         </CardContent>
       </Card>
       {ok && <p className="rounded-md border bg-muted p-3 text-sm break-words">{ok}</p>}
