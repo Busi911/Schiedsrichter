@@ -10,7 +10,9 @@ import { formatDatumZeit } from "@/lib/format";
 import { ligaSyncJetztAusfuehren } from "./actions";
 
 // Der Sync fragt nuLiga bewusst langsam ab (Mindestabstand) — braucht Zeit, wie der Cron.
-export const maxDuration = 60;
+// Dasselbe Budget wie die Crons (liga-sync/handball-net-sync route.ts): 40 s reichten bei
+// gewachsener Vereinszahl nicht mehr aus, auch nicht für einen einzelnen Verein (siehe CLAUDE.md).
+export const maxDuration = 280;
 
 export default async function SyncPage({
   searchParams,
@@ -60,7 +62,10 @@ export default async function SyncPage({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Jetzt ausführen</CardTitle>
-          <CardDescription>Dauert bis zu ca. 50 Sekunden. Nicht doppelt klicken.</CardDescription>
+          <CardDescription>
+            Dauert bis zu ca. 4,5 Minuten (bei „alle Vereine&rdquo;), bei einem einzelnen Verein meist viel schneller.
+            Nicht doppelt klicken.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={ligaSyncJetztAusfuehren} className="flex flex-col gap-3">
