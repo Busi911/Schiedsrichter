@@ -178,6 +178,22 @@ export async function synchronisiereFaellige(
     if (opt.holeJson) for (const v of syncVereine) if (await hatHandballNetQuelle(db, v)) mitQuelle.push(v);
     syncVereine = mitQuelle;
   }
+  // "alle" deckt beide Quellen ab: ein Verein OHNE jede Quelle (weder nuLiga noch handball.net) hat nie
+  // etwas zu tun — sein `spieleSynchronisiertAm` bleibt für immer null und er stünde deshalb wegen des
+  // Zeitstempel-Fallbacks (0 = ältester möglicher Wert) bei JEDEM Durchlauf ganz vorn: "nichts fällig" in
+  // Dauerschleife, noch vor den Vereinen mit echtem Bedarf. Ein von Hand ausgewähltes Einzelverein
+  // (`nurVereinId`) läuft trotzdem durch — dort soll "nichts fällig" sichtbar bleiben.
+  if (quelle === "alle" && !opt.nurVereinId) {
+    const mitQuelle: typeof syncVereine = [];
+    for (const v of syncVereine) {
+      if (v.nuligaClubId) {
+        mitQuelle.push(v);
+        continue;
+      }
+      if (opt.holeJson && (await hatHandballNetQuelle(db, v))) mitQuelle.push(v);
+    }
+    syncVereine = mitQuelle;
+  }
   // Vereine mit Spielen heute zuerst, dann der am längsten nicht geladene: bei knapper Zeit
   // sind die aktuellen Ergebnisse sicher dran, der Rest folgt beim nächsten Lauf.
   // Ein Verein mit veralteten Daten bekommt für die REIHENFOLGE mindestens Rang 1 (`rangMitVeraltung`),
