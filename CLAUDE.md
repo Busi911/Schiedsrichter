@@ -97,7 +97,8 @@ nur an Admins), bekommen zwei Schalter: ein Verein-weiter Ein/Aus-Schalter
 Override pro Person (`/profil`-Benachrichtigungen, Default an, greift nur
 wenn der Verein-Schalter an ist). Referenzimplementierung:
 `vereine.offeneDiensteBroadcastAktiviert` +
-`users.offeneDiensteBroadcastAktiviert` in `lib/dienste-broadcast.ts`.
+`users.offeneDiensteBroadcastAktiviert` in `lib/dienste-broadcast.ts`. Die Mail trägt als Button den öffentlichen Eintragungslink
+`/eintragen/<Token>` (`eintragungsTokenFuerRolle`: Token der Rolle, sonst irgendein aktiver; ohne aktiven Link Button „Zur Dienste-Übersicht“ → `/profil`), das Profil steht dann als Textzeile darunter.
 Bestehende ältere Erinnerungs-Flags (`wochenDigestAktiviert` etc.) haben
 dieses zweistufige Muster NICHT — nicht rückwirkend umbauen, ohne
 explizit danach gefragt zu werden.

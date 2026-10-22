@@ -40,16 +40,33 @@ export function offenerPostenBroadcastZeile(p: OffenePosten): string {
   return `${formatDatumZeitLang(p.start)}${zusatz ? ` · ${zusatz}` : ""}`;
 }
 
+// Öffentlicher Eintragungslink (/eintragen/[token], ohne Login): bevorzugt der Link der Rolle (Zeitnehmer/Sekretär bzw. Ordner/Kiosk/Kassierer),
+// sonst irgendein aktiver — die Seite bietet alle Gruppen mit aktivem Token an. null, wenn der Verein keinen Link aktiviert hat.
+export function eintragungsTokenFuerRolle(
+  rolle: Rolle,
+  tokens: { zeitnehmer: string | null; ordner: string | null; dienste: string | null }
+): string | null {
+  const reihenfolge = rolle === "zeitnehmer" ? [tokens.zeitnehmer, tokens.ordner] : [tokens.ordner, tokens.zeitnehmer];
+  return reihenfolge.find((t): t is string => !!t) ?? tokens.dienste ?? null;
+}
+
 export function offeneDiensteBroadcastInhalt(
   vereinName: string,
   rolleLabel: string,
-  termine: OffenePosten[]
+  termine: OffenePosten[],
+  eintragungToken?: string | null
 ): EmailInhalt {
+  const profilUrl = `${appUrl()}/profil`;
   return {
     vereinName,
     ueberschrift: `Als ${rolleLabel} noch gesucht: ${termine.length} Termin${termine.length === 1 ? "" : "e"} in den nächsten ${FENSTER_TAGE} Tagen.`,
-    zeilen: termine.map(offenerPostenBroadcastZeile),
-    cta: { text: "Zur Dienste-Übersicht", url: `${appUrl()}/profil` },
+    zeilen: [
+      ...termine.map(offenerPostenBroadcastZeile),
+      ...(eintragungToken ? [{ text: `Oder im Profil: ${profilUrl}`, neueGruppe: true }] : []),
+    ],
+    cta: eintragungToken
+      ? { text: "Direkt eintragen", url: `${appUrl()}/eintragen/${encodeURIComponent(eintragungToken)}` }
+      : { text: "Zur Dienste-Übersicht", url: profilUrl },
     kleingedrucktes:
       "Du bekommst diese Mail, weil du diese Rolle im Verein innehast. Abschaltbar in deinen Benachrichtigungs-Einstellungen.",
   };
@@ -105,7 +122,12 @@ export async function sendeOffeneDiensteBroadcast() {
           );
         if (rolleninhaber.length === 0) continue;
 
-        const inhalt = offeneDiensteBroadcastInhalt(verein.name, ROLLE_LABEL[rolle], termine);
+        const eintragungToken = eintragungsTokenFuerRolle(rolle, {
+          zeitnehmer: verein.zeitnehmerSelbstanmeldungToken,
+          ordner: verein.ordnerSelbstanmeldungToken,
+          dienste: verein.diensteSelbstanmeldungToken,
+        });
+        const inhalt = offeneDiensteBroadcastInhalt(verein.name, ROLLE_LABEL[rolle], termine, eintragungToken);
         const betreff = `${ROLLE_LABEL[rolle]} gesucht: ${termine.length} unbesetzter Termin${termine.length === 1 ? "" : "e"}`;
         for (const person of rolleninhaber) {
           const mitAbmeldung = { ...inhalt, abmelden: abmeldeInfo(person.id, "broadcast") };
