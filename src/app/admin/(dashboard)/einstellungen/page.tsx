@@ -718,7 +718,10 @@ export default async function EinstellungenPage({
                       Zeitnehmer/Sekretär), nicht nur an bereits
                       Zugeordnete. Einzelne Personen können das für sich
                       selbst in ihren eigenen Benachrichtigungs-
-                      Einstellungen wieder abschalten.
+                      Einstellungen wieder abschalten. Die Mail enthält den
+                      öffentlichen Eintragungslink (ohne Login), sofern ihr
+                      ihn bei den Warten aktiviert habt, sonst den Weg über
+                      das Profil.
                     </p>
                   </div>
                   <Switch
