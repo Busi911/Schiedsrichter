@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, isNotNull } from "drizzle-orm";
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaQuellenAbrufe, ligaVereine, vereine } from "@/db/schema";
 import { holeHandballNetApi } from "@/lib/handball-net/client";
@@ -27,7 +27,7 @@ async function waehleTestIds(): Promise<{ handballNetClubId: string | null; nuli
     .from(ligaVereine)
     .innerJoin(vereine, eq(vereine.id, ligaVereine.vereinId))
     .where(and(eq(vereine.status, "aktiv"), eq(vereine.istDemo, false), isNotNull(ligaVereine.handballNetClubId)))
-    .orderBy(desc(ligaVereine.handballNetSynchronisiertAm))
+    .orderBy(sql`${ligaVereine.handballNetSynchronisiertAm} desc nulls last`)
     .limit(1);
   const [nu] = await adminDb
     .select({ id: ligaVereine.nuligaClubId })
@@ -45,6 +45,9 @@ export async function fuehreQuellenTestAus(opt: { jetzt?: Date; nurAnzeigen?: bo
   const ids = await waehleTestIds();
   const ergebnis = await pruefeAlleQuellen({ jetzt, holeJson: holeHandballNetApi, holeHtml: holeNuligaHtml, holeNdr: holeNdrSeite, ...ids });
   if (opt.nurAnzeigen) return ergebnis;
+  const fehler = ergebnis.filter((p) => !p.ok && !p.uebersprungen && !p.optional);
+  if (fehler.length) console.warn("[quellen-test] Pflichtprüfungen fehlgeschlagen", fehler.map((p) => ({ pruefung: p.schluessel, detail: p.detail })));
+
   const alt = new Map((await ladeTestStaende()).map((s) => [s.schluessel, s]));
   for (const p of ergebnis) {
     const neu = schreibeStandFort(alt.get(p.schluessel), p, jetzt);
