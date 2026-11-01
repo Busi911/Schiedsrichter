@@ -74,6 +74,7 @@ export async function holeAlleSeiten(holeJson: HoleJson, pfad: string): Promise<
     }
     alle.push(...antwort.data);
     const l = Number(alsObj(antwort.pagination)?.last_page);
+    if (Number.isInteger(l) && l > MAX_SEITEN) throw new Error("handball.net: Seitenlimit überschritten (Abruf unvollständig)");
     if (Number.isInteger(l) && l > letzte) letzte = l;
   }
   return alle;
@@ -85,37 +86,22 @@ function datenArray(antwort: unknown): unknown[] {
   return Array.isArray(d) ? d : [];
 }
 
-// Teams eines Vereins über die Vereins-ID. Der Endpunkt der Teamliste ist
-// nicht dokumentiert, deshalb werden mehrere plausible Pfade nacheinander
-// probiert (der erste mit Treffern gewinnt); die Meldung nennt, welcher
-// funktioniert hat bzw. woran es scheiterte. Manuell hinterlegte Team-IDs
-// gelten immer zusätzlich.
-// Teamliste eines Vereins (Kandidatenpfade siehe oben): null + Fehlertexte,
-// wenn kein Pfad Treffer lieferte.
+// Nur der auf der Website belegte Listen-Endpunkt; keine geratenen Fallbacks.
 export async function holeTeamsDesVereins(
   holeJson: HoleJson,
   clubId: string,
   saisonId: string | null
 ): Promise<{ teams: HnetTeam[] | null; fehler: string[] }> {
   const season = saisonId ? `season_id=${encodeURIComponent(saisonId)}` : "";
-  const kandidaten = [
-    `/api/new/teams?club_id=${encodeURIComponent(clubId)}${season ? `&${season}` : ""}`,
-    `/api/new/teams/clubs/${encodeURIComponent(clubId)}/teams${season ? `?${season}` : ""}`,
-    `/api/new/clubs/${encodeURIComponent(clubId)}/teams${season ? `?${season}` : ""}`,
-  ];
+  const pfad = `/api/new/teams?club_id=${encodeURIComponent(clubId)}${season ? `&${season}` : ""}`;
   const fehler: string[] = [];
-  for (const pfad of kandidaten) {
-    try {
-      // seitenweise (die API liefert standardmäßig nur 25 Teams)
-      const liste = await holeAlleSeiten(holeJson, pfad);
-      const treffer = liste
-        .map(parseTeam)
-        .filter((t): t is HnetTeam => t !== null && (t.clubId === null || t.clubId === clubId));
-      if (treffer.length > 0) return { teams: treffer, fehler };
-      fehler.push(`${pfad.split("?")[0]}: leer`);
-    } catch (err) {
-      fehler.push(`${pfad.split("?")[0]}: ${err instanceof Error ? err.message : String(err)}`);
-    }
+  try {
+    const liste = await holeAlleSeiten(holeJson, pfad);
+    const treffer = liste.map(parseTeam).filter((t): t is HnetTeam => t !== null && (t.clubId === null || t.clubId === clubId));
+    if (treffer.length > 0) return { teams: treffer, fehler };
+    fehler.push(`${pfad.split("?")[0]}: keine lesbaren Teams`);
+  } catch (err) {
+    fehler.push(`${pfad.split("?")[0]}: ${err instanceof Error ? err.message : String(err)}`);
   }
   return { teams: null, fehler };
 }

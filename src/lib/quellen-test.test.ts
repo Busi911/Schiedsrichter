@@ -15,6 +15,7 @@ describe("pruefeHandballNet", () => {
     const r = await pruefeHandballNet(basis);
     const saisons = r.find((p) => p.schluessel === "handball_net:saisons")!;
     expect(saisons.ok).toBe(false);
+    expect(saisons.optional).toBe(true);
     expect(saisons.detail).toContain("HTTP 403");
   });
 
@@ -35,6 +36,18 @@ describe("pruefeHandballNet", () => {
     expect(teams.ok).toBe(false);
     expect(teams.detail).toContain("HTTP 404");
   });
+  it("testet nach Saisonfehler weiterhin die Teamliste und benutzt nur den belegten Pfad", async () => {
+    const aufrufe: string[] = [];
+    await pruefeHandballNet({ ...basis, handballNetClubId: "club.1", holeJson: async (pfad) => {
+      aufrufe.push(pfad);
+      if (pfad.includes("/seasons")) throw new Error("HTTP 403");
+      return { data: [] };
+    } });
+    expect(aufrufe).toHaveLength(2);
+    expect(aufrufe[1]).toContain("/api/new/teams?club_id=club.1");
+    expect(aufrufe.some((p) => p.includes("/teams/clubs/") || p.includes("/clubs/"))).toBe(false);
+  });
+
 });
 
 describe("pruefeAlleQuellen", () => {
@@ -65,6 +78,11 @@ describe("schreibeStandFort / Überwachung", () => {
 
   const snap = (t: TestStand[]): Snapshot => ({ jetzt: JETZT, quellentests: t, vereine: [], ndrSeiten: [], ansetzung: { gruppen: 0, neuesteAm: null } });
   const stand = (schluessel: string, n: number): TestStand => ({ schluessel, letzterVersuchAm: JETZT, letzterErfolgAm: null, fehlerInFolge: n, letzterFehler: "HTTP 403" });
+
+  it("alarmiert nicht wegen einer optionalen Saisonliste, aber weiter wegen einer kaputten Teamliste", () => {
+    expect(pruefeSync(snap([stand("handball_net:saisons", 9)]))).toEqual([]);
+    expect(pruefeSync(snap([stand("handball_net:saisons", 9), stand("handball_net:teams", 2)]))[0].betroffen).toEqual(["handball_net:teams"]);
+  });
 
   it("meldet erst ab zwei Fehlschlägen in Folge, je Quelle getrennt", () => {
     expect(pruefeSync(snap([stand("handball_net:teams", SCHWELLEN.quellentestFehlerInFolge - 1)]))).toEqual([]);

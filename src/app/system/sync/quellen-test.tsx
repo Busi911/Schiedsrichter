@@ -40,9 +40,9 @@ export function QuellenTest() {
           <ul className="mt-1 flex flex-col gap-1 text-sm">
             {ergebnis!.filter((e) => e.quelle === q).map((e) => (
               <li key={e.schluessel} className="flex items-start gap-2">
-                {e.uebersprungen ? <CircleSlash className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> : e.ok ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-600" /> : <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />}
+                {(e.uebersprungen || (e.optional && !e.ok)) ? <CircleSlash className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> : e.ok ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-600" /> : <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />}
                 <span className="min-w-0 break-words">
-                  {e.name}: <span className={e.ok ? "text-muted-foreground" : "text-destructive"}>{e.detail}</span> <span className="text-muted-foreground">({e.dauerMs} ms)</span>
+                  {e.name}{e.optional ? " (optional)" : ""}: <span className={(e.ok || e.optional) ? "text-muted-foreground" : "text-destructive"}>{e.detail}</span> <span className="text-muted-foreground">({e.dauerMs} ms)</span>
                 </span>
               </li>
             ))}
