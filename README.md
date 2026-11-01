@@ -598,9 +598,11 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
   **Offen:** juristische Prüfung der Texte; Impressum nennt
   DeWe Consulting UG als Betreiber — zu klären, ob für den öffentlichen
   Bereich (und die dort angezeigten Verbandsdaten) etwas ergänzt werden
-  muss. Zu den Abrufen: Laut Kommentar im Code haben HHV (nuLiga) und DHB
-  (handball.net) dem automatischen Abruf zugestimmt — die Zustimmung ggf.
-  schriftlich ablegen; für weitere Verbände jeweils neu klären.
+  muss. Zu den Abrufen: Der HHV (nuLiga) hat dem automatischen Abruf laut
+  Betreiber zugestimmt (Zusage schriftlich ablegen). Beim DHB (handball.net)
+  liegt KEINE ausdrückliche Zustimmung vor; es wurde nur nichts gefunden, was
+  den Abruf verbietet (Nutzungsbedingungen/robots.txt prüfen, ggf. beim DHB
+  nachfragen). Für weitere Verbände jeweils neu klären.
 
 **Grober Ablauf**
 
@@ -666,7 +668,7 @@ erst nach Zustimmung des HHV und nach Sichtung der Daten.
    Polling/WebSocket/SSE); (c) den PDF-Spielbericht (`handball360.isquad.de/dhb_acta_completa_pdf.php?id_partido=<ID>`) prüfen: gibt es ihn für jedes
    Spiel, ist die Adresse dauerhaft, was enthält er. Verifiziert sind bisher nur die Spielseiten 392196 (live, 42 Ereignisse bei Halbzeit) und
    392192 (beendet, 89 Ereignisse, Spielende 60:00), nicht die zugrunde liegende API.
-2. **Entscheidungen des Betreibers:** (a) Freigabe/Nutzungsbedingungen des DHB für den Ticker-Endpunkt (die Zusage gilt Spielplänen/Ergebnissen);
+2. **Entscheidungen des Betreibers:** (a) Freigabe/Nutzungsbedingungen des DHB für den Ticker-Endpunkt (eine ausdrückliche Zustimmung des DHB liegt auch für Spielpläne/Ergebnisse nicht vor, es ist nur kein Verbot gefunden);
    (b) Datenschutz: Torschützen, Strafen und Aufstellungen sind Personendaten (Jugendbundesliga: Minderjährige). Optionen: nur Spielstand/Ereignistyp
    ohne Namen anzeigen, oder nur auf das Original verlinken. Die Repository-Regel "Personendaten nie persistieren" gilt, bis das entschieden ist.
 3. **Dann bauen:** gemeinsames Ereignis-Modell (Quelle, externe Spiel-ID, Ereignis-ID/Typ/Mannschaft/Spielzeit/Spielstand), serverseitiger Cache
