@@ -1,7 +1,7 @@
 import { pruefeCronSecret } from "@/lib/cron-auth";
 import { fuehreQuellenTestAus } from "@/lib/quellen-test-daten";
 
-export const maxDuration = 60;
+export const maxDuration = 280;
 
 // Aktiver Selbsttest der Datenquellen (handball.net, nuLiga/HHV, NDR): ruft je Quelle wenige echte Seiten ab und prüft, ob unsere Parser
 // sie noch lesen können (siehe lib/quellen-test.ts). Speichert den Stand; die Überwachung (sync-ueberwachung) meldet anhaltende Fehlschläge.
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const nurAnzeigen = new URL(request.url).searchParams.get("nurAnzeigen") === "1";
   try {
     const ergebnisse = await fuehreQuellenTestAus({ nurAnzeigen });
-    return Response.json({ ok: ergebnisse.every((e) => e.ok), ergebnisse });
+    return Response.json({ ok: ergebnisse.every((e) => e.ok || e.optional), ergebnisse });
   } catch (err) {
     console.error("[quellen-test] Fehler:", err);
     return Response.json({ ok: false, fehler: err instanceof Error ? err.message : String(err) }, { status: 500 });
