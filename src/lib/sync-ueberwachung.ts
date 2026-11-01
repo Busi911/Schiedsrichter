@@ -5,6 +5,8 @@ export const SCHWELLEN = {
   // Ein Verein wird mindestens alle 6 Stunden geladen (tagsüber, 5–21 Uhr UTC); 24 Stunden ohne Erfolg schließen die Nachtpause sicher ein.
   vereinOhneErfolgStunden: 24,
   fehlerInFolge: 3,
+  // Der Quellen-Test läuft stündlich tagsüber: zwei Fehlschläge in Folge sind kein Ausreißer mehr.
+  quellentestFehlerInFolge: 2,
   ndrSeiteOhneErfolgStunden: 6,
   uebernahmeStunden: 24,
   ansetzungStunden: 24,
@@ -30,8 +32,13 @@ export type VereinSync = {
   laeufe: LaufZeile[];
 };
 export type NdrSeite = { schluessel: string; letzterVersuchAm: Date | null; letzterErfolgAm: Date | null; letzterFehler: string | null };
+export type QuellenArt = "handball_net" | "nuliga" | "ndr";
+export const QUELLEN_NAMEN: Record<QuellenArt, string> = { handball_net: "handball.net (DHB)", nuliga: "nuLiga (HHV)", ndr: "NDR (1./2. HBL)" };
+/** Stand einer aktiven Quellen-Prüfung (quellen-test.ts): wann zuletzt versucht/gelungen und wie oft in Folge fehlgeschlagen. */
+export type TestStand = { schluessel: string; letzterVersuchAm: Date | null; letzterErfolgAm: Date | null; fehlerInFolge: number; letzterFehler: string | null };
 export type Snapshot = {
   jetzt: Date;
+  quellentests: TestStand[];
   vereine: VereinSync[];
   ndrSeiten: NdrSeite[];
   ansetzung: { gruppen: number; neuesteAm: Date | null };
@@ -118,6 +125,19 @@ export function pruefeSync(s: Snapshot): Befund[] {
       titel: `NDR ${liga.toUpperCase()}: ${seiten.length} Seite${seiten.length === 1 ? "" : "n"} seit über ${SCHWELLEN.ndrSeiteOhneErfolgStunden} Stunden nicht ladbar`,
       zeilen: namenListe(seiten.map((p) => `${p.schluessel.split(":").slice(2).join(":")}: ${(p.letzterFehler ?? "").slice(0, 120)}`)),
       betroffen: seiten.map((p) => p.schluessel),
+    });
+  }
+
+  // Aktiver Quellen-Test: die Quelle antwortet nicht oder ihr Format passt nicht mehr zu unseren Parsern (die Zeitstempel-Prüfungen oben
+  // sehen das erst nach Stunden und können es nicht von "Cron lief nicht" unterscheiden).
+  for (const art of Object.keys(QUELLEN_NAMEN) as QuellenArt[]) {
+    const kaputt = s.quellentests.filter((t) => t.schluessel.startsWith(`${art}:`) && t.fehlerInFolge >= SCHWELLEN.quellentestFehlerInFolge);
+    if (kaputt.length === 0) continue;
+    befunde.push({
+      gruppe: `quellentest-${art}`,
+      titel: `${QUELLEN_NAMEN[art]}: Abruf-Test schlägt fehl (${kaputt.length} Prüfung${kaputt.length === 1 ? "" : "en"})`,
+      zeilen: namenListe(kaputt.map((t) => `${t.schluessel.split(":").slice(1).join(":")}: ${(t.letzterFehler ?? "").slice(0, 160)} (zuletzt erfolgreich ${vorStunden(t.letzterErfolgAm, jetzt)})`)),
+      betroffen: kaputt.map((t) => t.schluessel),
     });
   }
 

@@ -108,3 +108,11 @@ export async function ligaSyncSchritt(input: { slug: string; erzwingen: boolean 
     haengt: false,
   };
 }
+
+// Quellen-Test von Hand (lib/quellen-test.ts): ruft handball.net, nuLiga/HHV und NDR wirklich ab und zeigt je Prüfung Ergebnis und Grund.
+// Speichert nichts (der Cron /api/cron/quellen-test führt den Stand für die Überwachung) und braucht kein Budget wie der Sync.
+export async function quellenTestAusfuehren() {
+  await requireSystemAdmin();
+  const { fuehreQuellenTestAus } = await import("@/lib/quellen-test-daten");
+  return fuehreQuellenTestAus({ nurAnzeigen: true });
+}

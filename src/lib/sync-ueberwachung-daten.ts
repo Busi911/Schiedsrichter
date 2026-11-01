@@ -5,6 +5,7 @@ import { ligaGruppen, ligaQuellenAbrufe, ligaSyncLaeufe, ligaVereine, ligaVerein
 import { appUrl } from "@/lib/app-url";
 import type { EmailInhalt } from "@/lib/email-layout";
 import { entscheideMeldung, pruefeSync, type Befund, type Entscheidung, type NdrSeite, type Snapshot, type VereinSync, type Zustand } from "@/lib/sync-ueberwachung";
+import { ladeTestStaende } from "@/lib/quellen-test-daten";
 import { mailAnSystemAdmins } from "@/lib/system-admin-benachrichtigung";
 
 // Ablage des Meldezustands ohne eigene Tabelle: eine Zeile in liga_quelle_abruf (nur adminDb), wie die Abruf-Status der Spieltagsquellen.
@@ -15,7 +16,7 @@ const LAEUFE_JE_VEREIN = 5;
 
 /** Liest den aktuellen Stand der Abgleiche aus der Datenbank (nur aktive Vereine, ohne Demo). */
 export async function ladeSnapshot(jetzt: Date = new Date()): Promise<Snapshot> {
-  const [zeilen, zusatz, laeufeRoh, ndr, ansetzung] = await Promise.all([
+  const [zeilen, zusatz, laeufeRoh, ndr, ansetzung, quellentests] = await Promise.all([
     adminDb
       .select({
         id: ligaVereine.id,
@@ -46,6 +47,7 @@ export async function ladeSnapshot(jetzt: Date = new Date()): Promise<Snapshot> 
       .select({ gruppen: sql<number>`count(*)::int`, neuesteAm: sql<Date | null>`max(${ligaGruppen.ansetzungGeprueftAm})` })
       .from(ligaGruppen)
       .where(isNotNull(ligaGruppen.ansetzungGeprueftAm)),
+    ladeTestStaende(),
   ]);
 
   const hatZusatz = new Set(zusatz.map((z) => z.id));
@@ -57,6 +59,7 @@ export async function ladeSnapshot(jetzt: Date = new Date()): Promise<Snapshot> 
   }
   return {
     jetzt,
+    quellentests,
     vereine: zeilen.map((z) => ({
       id: z.id,
       name: z.name,
@@ -105,12 +108,13 @@ const GRUPPEN_NAMEN: Record<string, string> = {
   "uebernahme-veraltet": "Übernahme veraltet",
   "ansetzung-veraltet": "Ansetzung veraltet",
 };
+const gruppenName = (g: string) => GRUPPEN_NAMEN[g] ?? (g.startsWith("ndr-") ? `NDR ${g.slice(4).toUpperCase()}: Seiten nicht ladbar` : g.startsWith("quellentest-") ? `Abruf-Test ${g.slice(12)}` : g);
 
 export function ueberwachungsMailInhalt(entscheidung: Pick<Entscheidung, "senden" | "behoben">): EmailInhalt {
   const zeilen: string[] = [];
   for (const b of entscheidung.senden) zeilen.push(b.titel, ...b.zeilen.map((z) => `• ${z}`));
   if (entscheidung.behoben.length > 0) {
-    zeilen.push(`Wieder in Ordnung: ${entscheidung.behoben.map((g) => GRUPPEN_NAMEN[g] ?? (g.startsWith("ndr-") ? `NDR ${g.slice(4).toUpperCase()}: Seiten nicht ladbar` : g)).join(", ")}.`);
+    zeilen.push(`Wieder in Ordnung: ${entscheidung.behoben.map(gruppenName).join(", ")}.`);
   }
   return {
     ueberschrift: entscheidung.senden.length > 0 ? "Überwachung: Auffälligkeiten bei den Abgleichen" : "Überwachung: wieder alles in Ordnung",

@@ -92,7 +92,7 @@ function datenArray(antwort: unknown): unknown[] {
 // gelten immer zusätzlich.
 // Teamliste eines Vereins (Kandidatenpfade siehe oben): null + Fehlertexte,
 // wenn kein Pfad Treffer lieferte.
-async function holeTeamsDesVereins(
+export async function holeTeamsDesVereins(
   holeJson: HoleJson,
   clubId: string,
   saisonId: string | null
@@ -142,7 +142,7 @@ async function ermittleTeamIds(
   return [...ids];
 }
 
-function waehleSaison(saisons: HnetSaison[], jetzt: Date): HnetSaison | null {
+export function waehleSaison(saisons: HnetSaison[], jetzt: Date): HnetSaison | null {
   if (saisons.length === 0) return null;
   const heute = tagKey(jetzt);
   return (
