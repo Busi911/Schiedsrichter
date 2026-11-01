@@ -91,4 +91,9 @@ describe("schreibeStandFort / Überwachung", () => {
     expect(befunde[0].betroffen).toEqual(["handball_net:teams", "handball_net:spiele"]);
     expect(befunde[0].titel).toContain("handball.net");
   });
+
+  it("die Saisonliste allein löst keinen Alarm aus (der Sync kommt ohne sie aus), sie wird nur angezeigt", () => {
+    expect(pruefeSync(snap([stand("handball_net:saisons", 5)]))).toEqual([]);
+    expect(pruefeSync(snap([stand("handball_net:saisons", 5), stand("handball_net:teams", 2)])).map((b) => b.betroffen)).toEqual([["handball_net:teams"]]);
+  });
 });

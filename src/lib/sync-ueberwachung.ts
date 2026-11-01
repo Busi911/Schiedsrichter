@@ -36,6 +36,8 @@ export type QuellenArt = "handball_net" | "nuliga" | "ndr";
 export const QUELLEN_NAMEN: Record<QuellenArt, string> = { handball_net: "handball.net (DHB)", nuliga: "nuLiga (HHV)", ndr: "NDR (1./2. HBL)" };
 /** Stand einer aktiven Quellen-Prüfung (quellen-test.ts): wann zuletzt versucht/gelungen und wie oft in Folge fehlgeschlagen. */
 export type TestStand = { schluessel: string; letzterVersuchAm: Date | null; letzterErfolgAm: Date | null; fehlerInFolge: number; letzterFehler: string | null };
+/** Prüfungen, die nur angezeigt werden, aber nie allein alarmieren: der Sync kommt ohne sie aus (Saisonliste: Ersatz-Saisonfenster). */
+export const NUR_ANZEIGE: ReadonlySet<string> = new Set(["handball_net:saisons"]);
 export type Snapshot = {
   jetzt: Date;
   quellentests: TestStand[];
@@ -131,7 +133,7 @@ export function pruefeSync(s: Snapshot): Befund[] {
   // Aktiver Quellen-Test: die Quelle antwortet nicht oder ihr Format passt nicht mehr zu unseren Parsern (die Zeitstempel-Prüfungen oben
   // sehen das erst nach Stunden und können es nicht von "Cron lief nicht" unterscheiden).
   for (const art of Object.keys(QUELLEN_NAMEN) as QuellenArt[]) {
-    const kaputt = s.quellentests.filter((t) => t.schluessel !== "handball_net:saisons" && t.schluessel.startsWith(`${art}:`) && t.fehlerInFolge >= SCHWELLEN.quellentestFehlerInFolge);
+    const kaputt = s.quellentests.filter((t) => t.schluessel.startsWith(`${art}:`) && !NUR_ANZEIGE.has(t.schluessel) && t.fehlerInFolge >= SCHWELLEN.quellentestFehlerInFolge);
     if (kaputt.length === 0) continue;
     befunde.push({
       gruppe: `quellentest-${art}`,
