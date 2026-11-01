@@ -64,8 +64,8 @@ export default async function SyncPage({
           <CardTitle className="text-base">Quellen-Test (handball.net, nuLiga, NDR)</CardTitle>
           <CardDescription>
             Die Überwachung oben sieht nur veraltete Daten. Dieser Test ruft die Quellen selbst ab (handball.net: Saisons, Teams, Wettbewerbe, Spiele eines echten Vereins; nuLiga/HHV: Mannschaften und
-            Vereinsseite; NDR: Spieltag 1 beider Bundesligen) und zeigt, ob die Antwort noch zu unseren Parsern passt. Ein Cron macht das stündlich (5–21 Uhr UTC) und meldet zwei Fehlschläge in Folge.
-            {letzterTest ? ` Letzter Cron-Test: ${formatDatumZeit(letzterTest)}, ${staende.filter((s) => s.fehlerInFolge > 0).length} fehlerhafte Prüfung(en).` : " Der Cron hat noch nicht gelaufen."}
+            Vereinsseite; NDR: Spieltag 1 beider Bundesligen) und zeigt, ob die Antwort noch zu unseren Parsern passt. Ein Cron macht das stündlich (5–21 Uhr UTC) und meldet zwei Fehlschläge in Folge bei benötigten Prüfungen. Die Saisonliste ist optional.
+            {letzterTest ? ` Letzter Cron-Test: ${formatDatumZeit(letzterTest)}, ${staende.filter((s) => s.schluessel !== "handball_net:saisons" && s.fehlerInFolge > 0).length} fehlerhafte Prüfung(en).` : " Der Cron hat noch nicht gelaufen."}
           </CardDescription>
         </CardHeader>
         <CardContent>

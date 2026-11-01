@@ -24,6 +24,7 @@ export type QuellenPruefung = {
   quelle: QuellenArt;
   name: string;
   ok: boolean;
+  optional?: boolean;
   /** true = nicht prüfbar, weil Testdaten fehlen (kein Verein mit dieser Quelle); zählt weder als Erfolg noch als Fehler. */
   uebersprungen?: boolean;
   dauerMs: number;
@@ -62,8 +63,9 @@ export async function pruefeHandballNet(e: TestEingabe): Promise<QuellenPruefung
   const jetzt = e.jetzt ?? new Date();
   const ergebnis: QuellenPruefung[] = [];
   let saisonId: string | null = null;
-  let von = "";
-  let bis = "";
+  const jahr = jetzt.getMonth() >= 6 ? jetzt.getFullYear() : jetzt.getFullYear() - 1;
+  let von = `${jahr}-07-01`;
+  let bis = `${jahr + 1}-06-30`;
 
   ergebnis.push(
     await messe("handball_net", "saisons", "Saisonliste", async () => {
@@ -76,6 +78,8 @@ export async function pruefeHandballNet(e: TestEingabe): Promise<QuellenPruefung
       return { ok: true, detail: `${saisons.length} Saisons, aktuell ${s?.label ?? "unbekannt"}` };
     })
   );
+
+  ergebnis[0].optional = true;
 
   let teamId: string | null = null;
   ergebnis.push(
@@ -97,7 +101,9 @@ export async function pruefeHandballNet(e: TestEingabe): Promise<QuellenPruefung
       const antwort = alsObj(
         await e.holeJson(`/api/new/teams/${encodeURIComponent(teamId)}/competitions${saisonId ? `?season_id=${encodeURIComponent(saisonId)}` : ""}`)
       );
-      const phasen = parsePhasen(Array.isArray(antwort?.data) ? (antwort.data as unknown[]) : []);
+      if (!Array.isArray(antwort?.data)) return { ok: false, detail: "Wettbewerbe ohne data-Array (Format geändert?)" };
+      const phasen = parsePhasen(antwort.data);
+      if (antwort.data.length > 0 && phasen.length === 0) return { ok: false, detail: "Wettbewerbe nicht lesbar (Format geändert?)" };
       if (phasen.length === 0) return { ok: true, uebersprungen: true, detail: `Team ${team.name}: keine Wettbewerbe in dieser Saison (nicht prüfbar)` };
       phaseId = phasen[0].id;
       return { ok: true, detail: `Team ${team.name}: ${phasen.length} Wettbewerb(e)` };

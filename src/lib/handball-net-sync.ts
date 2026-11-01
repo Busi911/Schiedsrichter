@@ -92,7 +92,9 @@ export async function synchronisiereHandballNetMannschaften(
     await importiereRundenspielEreignisse(vereinId, ereignisse, mannschaftIdErmitteln);
   const entfernt = await entferneVerwaisteRundenspiele(
     vereinId,
-    teamIds,
+    // Nur vollständig und erfolgreich geladene Teams dürfen Löschungen auslösen.
+    // Bei nachgelagerten Parsefehlern ist die Vollständigkeit nicht belegbar.
+    parseFehler.length === 0 ? diagnose.map((d) => d.teamId).filter((id) => !abrufFehler.some((f) => f.teamId === id)) : [],
     new Set(ereignisse.map((e) => e.uid))
   );
 

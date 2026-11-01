@@ -131,7 +131,7 @@ export function pruefeSync(s: Snapshot): Befund[] {
   // Aktiver Quellen-Test: die Quelle antwortet nicht oder ihr Format passt nicht mehr zu unseren Parsern (die Zeitstempel-Prüfungen oben
   // sehen das erst nach Stunden und können es nicht von "Cron lief nicht" unterscheiden).
   for (const art of Object.keys(QUELLEN_NAMEN) as QuellenArt[]) {
-    const kaputt = s.quellentests.filter((t) => t.schluessel.startsWith(`${art}:`) && t.fehlerInFolge >= SCHWELLEN.quellentestFehlerInFolge);
+    const kaputt = s.quellentests.filter((t) => t.schluessel !== "handball_net:saisons" && t.schluessel.startsWith(`${art}:`) && t.fehlerInFolge >= SCHWELLEN.quellentestFehlerInFolge);
     if (kaputt.length === 0) continue;
     befunde.push({
       gruppe: `quellentest-${art}`,

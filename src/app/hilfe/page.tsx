@@ -322,6 +322,12 @@ export default async function HilfePage() {
           passiert ist, zeigen wir den Stand mit „vorläufig“. Am Spieltag wird rund um den Anwurf häufiger abgerufen, sonst stündlich; den aktuellen Spielstand liefert der Live-Ticker.
         </p>
 
+        <p className="text-sm text-muted-foreground">
+          Ist handball.net vorübergehend nicht erreichbar, bleiben vorhandene Daten erhalten.
+          Ein fehlgeschlagener Mannschaftsabruf löst im Teamimport keine Löschung bestehender Termine aus.
+          Die Systemverwaltung kann unter „Synchronisation“ die Quellen prüfen. Die Saisonliste ist
+          dabei eine optionale Diagnose: Ihr Ausfall allein bedeutet keinen Ausfall des Spielabrufs.
+        </p>
         <h3 className="text-sm font-medium">Eine Mannschaft fehlt oder ist leer?</h3>
         <p className="text-sm text-muted-foreground">
           Nach dem Aktualisieren erscheinen unter dem Ergebnis Hinweise. Die
