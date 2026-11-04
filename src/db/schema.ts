@@ -1549,6 +1549,32 @@ export const vereinSponsoren = pgTable("verein_sponsor", {
 });
 
 
+// Sponsor EINER Mannschaft, vom Verein selbst gepflegt (Admin → Mannschaften → Sponsoren der Mannschaften).
+// Unabhängig vom Vereinssponsor (verein_sponsor, nur Systemadmin): keine Wirkung auf Abrechnung oder
+// Sponsorenbild beim Öffnen. Angezeigt als kleine Zeile auf der öffentlichen Mannschaftsseite. Hängt an der
+// saisonübergreifenden liga_mannschaft (ohne RLS, deshalb prüft die Action, dass sie zum eigenen Verein gehört).
+// Wirksam nur bei aktiv UND Bild UND Zeitraum nicht abgelaufen (sponsorWirksam, lib/sponsor.ts).
+export const mannschaftSponsoren = pgTable(
+  "mannschaft_sponsor",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references((): AnyPgColumn => vereine.id, { onDelete: "cascade" }),
+    ligaMannschaftId: uuid("liga_mannschaft_id")
+      .notNull()
+      .references(() => ligaMannschaften.id, { onDelete: "cascade" }),
+    aktiv: boolean("aktiv").notNull().default(false),
+    name: text("name"),
+    link: text("link"),
+    gueltigBis: date("gueltig_bis", { mode: "string" }),
+    bild: bytea("bild"),
+    aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("mannschaft_sponsor_mannschaft_idx").on(t.ligaMannschaftId)]
+);
+
+
 // Index ALLER Vereine eines nuLiga-Landesverbands (Vereinssuche clubSearch), nur zum Finden und Einrichten.
 // Kein Mandantenbezug, bewusst ohne RLS (öffentliche Vereinsdaten, Schreiben/Lesen nur über adminDb).
 // clubId ist die INTERNE nuLiga-ID (aus dem Link), nummer die sichtbare Vereinsnummer — nie verwechseln.

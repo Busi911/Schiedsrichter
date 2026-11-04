@@ -27,6 +27,11 @@ import { SubmitButton } from "@/components/submit-button";
 import { formatDatum } from "@/lib/format";
 import { rundenspielTypLabel } from "@/lib/termin-label";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
+import { MannschaftSponsoren } from "@/components/mannschaft-sponsoren";
+import { ladeSponsorenDesVereins } from "@/lib/mannschaft-sponsor";
+import { ladeVereinsMannschaften } from "@/lib/mitglied-mannschaften-daten";
+import { adminDb } from "@/db/admin";
+import { ligaVereine } from "@/db/schema";
 
 export default async function MannschaftenPage({
   searchParams,
@@ -37,13 +42,16 @@ export default async function MannschaftenPage({
     hnEntfernt?: string;
     hnFehler?: string;
     hnDiagnose?: string;
+    ok?: string;
+    fehler?: string;
+    sponsor?: string;
   }>;
 }) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
   const hnErgebnis = await searchParams;
 
-  const [rohListe, verein, { unbekannteMannschaften, ignoriert }] = await Promise.all([
+  const [rohListe, verein, { unbekannteMannschaften, ignoriert }, ligaMannschaften, sponsoren, ligaVerein] = await Promise.all([
     withTenant(vereinId, (tx) =>
       tx.query.mannschaften.findMany({
         where: eq(mannschaften.vereinId, vereinId),
@@ -54,6 +62,9 @@ export default async function MannschaftenPage({
       tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { hallenplanImportAus: true } })
     ),
     holeUnbekannteMannschaften(vereinId),
+    ladeVereinsMannschaften(vereinId),
+    ladeSponsorenDesVereins(vereinId),
+    adminDb.select({ slug: ligaVereine.slug }).from(ligaVereine).where(eq(ligaVereine.vereinId, vereinId)),
   ]);
   // Alphabetisch (DB-orderBy oben) würde z.B. "A-Jugend" vor "Herren 1"
   // einsortieren — die Vereins-übliche Reihenfolge (Männer, Frauen, Jugend
@@ -271,6 +282,16 @@ export default async function MannschaftenPage({
           .
         </p>
       )}
+
+      <MannschaftSponsoren
+        mannschaften={ligaMannschaften}
+        sponsoren={sponsoren}
+        vereinsSlug={ligaVerein[0]?.slug ?? null}
+        schreibend={session.user.istAdmin}
+        aktuell={hnErgebnis.sponsor}
+        ok={hnErgebnis.ok}
+        fehler={hnErgebnis.fehler}
+      />
 
       {session.user.istAdmin && zeigeTeamId && (
         <Card className="max-w-2xl">

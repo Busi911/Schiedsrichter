@@ -175,6 +175,11 @@ export default function DatenschutzPage() {
           Bild heute schon gezeigt wurde. Tippst du auf das Bild, öffnet sich die Webseite des Sponsors, für
           die dessen Datenschutzhinweise gelten.
         </p>
+        <p className="text-sm text-muted-foreground">
+          Dasselbe gilt für Sponsoren einzelner Mannschaften: ein Verein kann auf der Seite einer Mannschaft eine
+          kleine Zeile „Unterstützt von …“ mit dem Bild eines Sponsors zeigen. Das Bild kommt von unserem Server, es
+          werden keine Daten über dich an den Sponsor übermittelt, bevor du den Link antippst.
+        </p>
       </section>
 
       <section className="flex flex-col gap-2">

@@ -158,8 +158,8 @@ export const ROADMAP: RoadmapPhase[] = [
       },
       {
         titel: "Sponsor je Mannschaft",
-        status: "idee",
-        text: "Zusätzlich zum Vereinssponsor ein Sponsor für einzelne Mannschaften, eingeblendet auf deren Seite und vom Verein selbst pflegbar.",
+        status: "fertig",
+        text: "Der Verein pflegt selbst einen Sponsor je Mannschaft (Bild, Name, Link, Zeitraum). Sein Bild erscheint als kleine Zeile „Unterstützt von …“ auf der öffentlichen Mannschaftsseite, unabhängig vom Vereinssponsor.",
       },
       {
         titel: "Mitteilungen an Mannschaften und Eltern",

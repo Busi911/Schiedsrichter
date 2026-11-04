@@ -6,6 +6,8 @@ import { TeamWechsler } from "@/components/liga/team-wechsler";
 import { ZurueckButton } from "@/components/zurueck-button";
 import { Brotkrumen } from "@/components/liga/brotkrumen";
 import { Badge } from "@/components/ui/badge";
+import { MannschaftSponsorZeile } from "@/components/liga/mannschaft-sponsor";
+import { holeMannschaftSponsor } from "@/lib/mannschaft-sponsor";
 import { ladeTeam } from "./laden";
 
 export default async function MannschaftsLayout({
@@ -18,6 +20,7 @@ export default async function MannschaftsLayout({
   const { slug, team } = await params;
   const { verein, m, mannschaften } = await ladeTeam(slug, team);
   const basis = `/verein/${verein.slug}`;
+  const sponsor = await holeMannschaftSponsor(verein.vereinId, m.id);
 
   return (
     <>
@@ -69,6 +72,7 @@ export default async function MannschaftsLayout({
           teams={mannschaften.map((t) => ({ id: t.id, slug: t.slug, name: t.name }))}
         />
       </div>
+      {sponsor && <MannschaftSponsorZeile basis={`${basis}/${m.slug}`} sponsor={sponsor} />}
       <TeamTabs basis={`${basis}/${m.slug}`} />
       {children}
     </>

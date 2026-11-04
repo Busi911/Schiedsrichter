@@ -202,6 +202,15 @@ export default async function HilfePage() {
           könnt ihr Mannschaften umbenennen, ergänzen oder löschen. Gebraucht werden sie für die Zuordnung der Spiele, die
           Trainer und den Dienste-Bedarf je Mannschaft.
         </p>
+        <p id="mannschafts-sponsor" className="scroll-mt-6 text-sm text-muted-foreground">
+          <strong>Sponsor einer Mannschaft:</strong> Unter Mannschaften → „Sponsoren der Mannschaften“ könnt ihr für jede
+          Mannschaft einen Sponsor mit Bild, Name und Link eintragen. Sein Bild erscheint als kleine Zeile „Unterstützt
+          von …“ oben auf der öffentlichen Mannschaftsseite, sobald ihr ihn einschaltet, ein Bild hochgeladen habt und
+          das „gültig bis“-Datum nicht abgelaufen ist. Das ist unabhängig vom Vereinssponsor („Präsentiert von …“ beim
+          Öffnen der Vereinsseite), den das HandballerPate-Team einrichtet. Voraussetzung ist die öffentliche
+          Vereinsseite mit Mannschaften. Das Bild muss als PNG, JPEG oder WebP vorliegen (kein SVG), der Link mit
+          https:// beginnen.
+        </p>
         <p className="text-sm text-muted-foreground">
           Der Name auf der <strong>öffentlichen Vereinsseite</strong> ist davon getrennt und wird unter Einstellungen →
           Öffentliche Vereinsseite → „Namen der Mannschaften“ geändert (siehe unten).
