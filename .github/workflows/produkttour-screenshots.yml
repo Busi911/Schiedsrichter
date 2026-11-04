@@ -109,7 +109,7 @@ jobs:
         if: always()
         run: git checkout -- src/db/index.ts src/db/admin.ts
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: produkttour-screenshots
           path: |
