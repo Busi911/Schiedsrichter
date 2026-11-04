@@ -35,6 +35,7 @@ export default async function HilfePage() {
             ["anmelden", "Anmelden, Passwort, E-Mail ändern"],
             ["rollen", "Wer darf was? Rollen"],
             ["mannschaften", "Mannschaften"],
+            ["neuigkeiten", "Neuigkeiten & Feed für die Homepage"],
             ["funktionstraeger", "Funktionsträger anlegen & Excel-Import"],
             ["oeffentliche-seite", "Öffentliche Vereinsseite & App"],
             ["spielhallen", "Eure Spielhallen (Heimspiele)"],
@@ -958,6 +959,26 @@ export default async function HilfePage() {
           Ort lässt sich eine <strong>Saison</strong> einstellen (z.B. Mai bis September, auch über den Jahreswechsel möglich): Trainings dort gibt es nur in diesen
           Monaten, der Wochenplan bleibt unverändert. Im Kalender, unter „Training“ und bei Ausfällen erscheinen sie nur in der Saison, ein Ausfall sagt dann
           „Platz frei“. Ohne Saison gilt der Ort ganzjährig.
+        </p>
+      </section>
+
+      <section id="neuigkeiten" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Neuigkeiten &amp; Feed für die Homepage</h2>
+        <p className="text-sm text-muted-foreground">
+          Euer Verein kann Berichte und Meldungen schreiben, die in der öffentlichen App erscheinen. Einschalten könnt ihr das unter Einstellungen →
+          Neuigkeiten (Standard: aus). Danach schreibt ihr unter{" "}
+          <Link href="/admin/neuigkeiten" className="font-medium underline">
+            Verein → Neuigkeiten
+          </Link>{" "}
+          einen <strong>Titel</strong> und einen <strong>Text</strong> (reiner Text, Leerzeile = neuer Absatz; keine Bilder, kein HTML) und
+          ordnet die Meldung auf Wunsch einer Mannschaft zu. Mit „Veröffentlichen“ ist sie sofort öffentlich; „Als Entwurf speichern“ sieht nur
+          ihr, „Zurückziehen“ macht eine Meldung wieder zum Entwurf. Nur Admins mit Schreibrecht schreiben, lesende Admins sehen die Liste.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Feed für die Homepage:</strong> Die Meldungen gibt es auch als RSS-Feed unter <code>/verein/&lt;euer-Verein&gt;/feed.xml</code> (die Adresse
+          steht auch am Ende der Seite „Neuigkeiten“ in der App). Eure Homepage kann ihn einbinden (viele Homepage-Baukästen haben dafür ein
+          „RSS-Element“). Im Feed stehen nur Titel, Anfang des Textes, Datum und Link, keine Entwürfe. Bitte nennt keine Minderjährigen mit Namen,
+          wenn keine Einwilligung vorliegt. In der App erscheint der Bereich als Reiter (bei mehreren Zusatzbereichen unter „Mehr“).
         </p>
       </section>
 

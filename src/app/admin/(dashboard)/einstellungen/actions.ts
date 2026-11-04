@@ -86,6 +86,19 @@ export async function trainingSichtbarkeitSpeichern(formData: FormData) {
   revalidatePath("/verein", "layout");
 }
 
+// Neuigkeiten (Berichte mit öffentlicher Seite und RSS-Feed) einschalten: aus = keine Seiten, kein Reiter, kein Feed; angelegte Einträge bleiben.
+export async function neuigkeitenSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+  const neuigkeitenAktiv = formData.get("neuigkeitenAktiv") === "on";
+  await withTenant(vereinId, (tx) =>
+    tx.update(vereine).set({ neuigkeitenAktiv }).where(eq(vereine.id, vereinId))
+  );
+  revalidatePath("/admin/einstellungen");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/verein", "layout");
+}
+
 // Vereinstermine (Sitzungen u.ä.) einschalten: aus = keine Menüpunkte, Seiten und Mails dazu; bestehende Termine bleiben erhalten.
 export async function vereinstermineSpeichern(formData: FormData) {
   const session = await requireAdminSchreibzugriff();

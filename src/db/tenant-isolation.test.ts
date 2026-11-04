@@ -332,6 +332,16 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Mandantentrennung (RLS)", () => {
       )
     ).rejects.toThrow(/row-level security/i);
   });
+  it("Neuigkeiten (neuigkeit) sind je Verein getrennt", async () => {
+    await adminPool.query(`insert into neuigkeit (verein_id, titel, text) values ($1, 'Bericht B', 'Text')`, [vereinB]);
+    const ausSichtA = await withTenant(vereinA, (client) => client.query("select id from neuigkeit").then((r) => r.rows));
+    expect(ausSichtA).toHaveLength(0);
+    const ausSichtB = await withTenant(vereinB, (client) => client.query("select id from neuigkeit").then((r) => r.rows));
+    expect(ausSichtB).toHaveLength(1);
+    await expect(
+      withTenant(vereinA, (client) => client.query("insert into neuigkeit (verein_id, titel, text) values ($1, 'x', 'y')", [vereinB]))
+    ).rejects.toThrow(/row-level security/i);
+  });
   it("Mannschaftssponsoren (mannschaft_sponsor) sind je Verein getrennt", async () => {
     const slug = `ms-${Math.random().toString(36).slice(2, 8)}`;
     const { rows: lv } = await adminPool.query(`insert into liga_verein (verein_id, slug, name) values ($1, $2, 'Sponsor Test') returning id`, [vereinB, slug]);

@@ -10,6 +10,7 @@ import { vereinsFarbton, vereinsInitialen } from "@/lib/liga-pwa";
 import { formatDatum } from "@/lib/format";
 import { saisonLabel } from "@/lib/saison";
 import { trainingOeffentlichAktiv } from "@/lib/training-oeffentlich-daten";
+import { neuigkeitenOeffentlichAktiv } from "@/lib/neuigkeiten-daten";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -60,7 +61,7 @@ export default async function VereinsHuelle({
   const vorschau = await holeVorschau(verein.vereinId);
   const sponsor = await holeSponsor(verein.vereinId);
   // Reiter "Training" nur, wenn der Verein ihn eingeschaltet hat (Einstellungen → Training).
-  const mitTraining = await trainingOeffentlichAktiv(verein.vereinId);
+  const [mitTraining, mitNeuigkeiten] = await Promise.all([trainingOeffentlichAktiv(verein.vereinId), neuigkeitenOeffentlichAktiv(verein.vereinId)]);
 
   return (
     <>
@@ -89,7 +90,7 @@ export default async function VereinsHuelle({
         initialen={vereinsInitialen(verein.name)}
         logoUrl={logoVersion ? `/verein/${verein.slug}/logo?v=${logoVersion}` : undefined}
       />
-      <VereinsNav basis={`/verein/${verein.slug}`} mitTraining={mitTraining} />
+      <VereinsNav basis={`/verein/${verein.slug}`} mitTraining={mitTraining} mitNeuigkeiten={mitNeuigkeiten} />
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">{children}</main>
     </>
   );

@@ -13,7 +13,7 @@ export type AdminNavEintrag = {
   // Auf dem Handy als eigener Tab statt im "Mehr"-Sheet (häufigste Einstiege).
   mobilTab?: boolean;
   // Nur mit eingeschaltetem Add-on bzw. Schalter sichtbar.
-  nur?: "vereinstermine" | "vereinsverwaltung";
+  nur?: "vereinstermine" | "vereinsverwaltung" | "neuigkeiten";
   // Zwischenüberschrift innerhalb einer Gruppe (Dropdown und Sheet).
   abschnitt?: string;
   badge?: number;
@@ -56,6 +56,7 @@ const GRUPPEN: AdminNavGruppe[] = [
     titel: "Verein",
     eintraege: [
       { href: "/admin/vereinstermine", label: "Vereinstermine", icon: "termine", nur: "vereinstermine" },
+      { href: "/admin/neuigkeiten", label: "Neuigkeiten", icon: "termine", nur: "neuigkeiten" },
       { href: "/admin/mitglieder", label: "Mitglieder", icon: "funktionstraeger", nur: "vereinsverwaltung" },
     ],
   },
@@ -82,8 +83,8 @@ export const KONTO_TITEL = "Einstellungen & Konto";
  * Baut die Navigation für diesen Verein und diese Person. Einträge mit Add-on/Schalter erscheinen nur, wenn er an ist; die Wart-Seiten (Dienste einteilen)
  * nur für volle Admins (`warte`, siehe lib/wart-navigation.ts); eine Gruppe ohne sichtbare Einträge entfällt.
  */
-export function baueAdminNavigation(opt: { vereinstermine: boolean; vereinsverwaltung: boolean; warte: WartItem[]; offeneDienste?: number }): AdminNavigation {
-  const sichtbar = (e: AdminNavEintrag) => !e.nur || opt[e.nur];
+export function baueAdminNavigation(opt: { vereinstermine: boolean; vereinsverwaltung: boolean; neuigkeiten?: boolean; warte: WartItem[]; offeneDienste?: number }): AdminNavigation {
+  const sichtbar = (e: AdminNavEintrag) => !e.nur || !!opt[e.nur];
   const gruppen = GRUPPEN.map((g) => {
     const eintraege: AdminNavEintrag[] = g.eintraege.filter(sichtbar).map((e) => (e.href === "/admin/dienste" && opt.offeneDienste ? { ...e, badge: opt.offeneDienste } : e));
     if (g.id === "dienste") {

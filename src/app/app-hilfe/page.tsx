@@ -28,6 +28,7 @@ export default function AppHilfePage() {
             ["favoriten", "Favoriten merken"],
             ["statistik", "Statistik"],
             ["training", "Training"],
+            ["neuigkeiten", "Neuigkeiten"],
             ["spiele", "Live, Ergebnis folgt, vorläufig"],
             ["daten", "Woher kommen die Daten?"],
             ["problem", "Etwas fehlt oder stimmt nicht"],
@@ -103,6 +104,15 @@ export default function AppHilfePage() {
           Mannschaft, Uhrzeit und Ort, nach Tagen geordnet. Mit den Filtern oben (und euren Favoriten) seht ihr nur eure Mannschaft.
           Ein Training, das ausfällt, ist <strong>durchgestrichen</strong> und mit „Fällt aus“ markiert. Die Zeiten pflegt der
           Verein selbst; der Reiter fehlt, wenn der Verein ihn nicht eingeschaltet hat.
+        </p>
+      </section>
+
+      <section id="neuigkeiten" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Neuigkeiten</h2>
+        <p className="text-sm text-muted-foreground">
+          Manche Vereine zeigen den Bereich <strong>Neuigkeiten</strong> (in der Leiste unten als „News“, bei vielen Bereichen unter „Mehr“): Berichte
+          und Meldungen, die der Verein selbst schreibt, neueste zuerst, teils einer Mannschaft zugeordnet. Der Bereich fehlt, wenn der Verein ihn
+          nicht eingeschaltet hat.
         </p>
       </section>
 

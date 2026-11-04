@@ -10,6 +10,7 @@ import {
   trainingSichtbarkeitSpeichern,
   beitrittEinstellungenSpeichern,
   vereinstermineSpeichern,
+  neuigkeitenSpeichern,
   logoEntfernen,
   mannschaftsnamenSpeichern,
   supportZugriffSetzen,
@@ -821,6 +822,42 @@ export default async function EinstellungenPage({
                 id="vereinstermineAktiv"
                 name="vereinstermineAktiv"
                 defaultChecked={verein?.vereinstermineAktiv ?? false}
+              />
+            </div>
+          </fieldset>
+          {session.user.istAdmin && (
+            <SubmitButton variant="outline" size="sm" className="self-start">
+              Speichern
+            </SubmitButton>
+          )}
+        </form>
+      </EinstellungsBereich>
+
+      <EinstellungsBereich
+        id="neuigkeiten"
+        titel="Neuigkeiten"
+        kurz="Berichte und Meldungen mit Seite in der App und Feed für die Homepage"
+        beschreibung={<>Schreibt Berichte und Meldungen (reiner Text, optional einer Mannschaft zugeordnet). Veröffentlichte erscheinen als Bereich in der öffentlichen App eures Vereins
+          und als RSS-Feed, den ihr in eure Homepage einbinden könnt. Geschrieben werden sie unter{" "}
+          <a href="/admin/neuigkeiten" className="underline">Neuigkeiten</a>. Voraussetzung ist die öffentliche Vereinsseite.</>}
+      >
+        <HilfeHinweis anker="neuigkeiten" />
+        <form action={neuigkeitenSpeichern} className="mt-2 flex flex-col gap-3">
+          <fieldset disabled={!session.user.istAdmin} className="contents">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Label htmlFor="neuigkeitenAktiv" className="font-normal">
+                  Neuigkeiten verwenden
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Aus (Standard): kein Bereich in der App, kein Menüpunkt, kein Feed. Bereits geschriebene Einträge bleiben beim Ausschalten erhalten.
+                </p>
+              </div>
+              <Switch
+                key={String(verein?.neuigkeitenAktiv ?? false)}
+                id="neuigkeitenAktiv"
+                name="neuigkeitenAktiv"
+                defaultChecked={verein?.neuigkeitenAktiv ?? false}
               />
             </div>
           </fieldset>

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { baueAdminNavigation, mobileNavigation } from "./admin-navigation";
 import { WART_ITEMS } from "./wart-navigation";
 
-const alle = { vereinstermine: true, vereinsverwaltung: true, warte: WART_ITEMS, offeneDienste: 19 };
+const alle = { vereinstermine: true, vereinsverwaltung: true, neuigkeiten: true, warte: WART_ITEMS, offeneDienste: 19 };
 const hrefs = (nav: ReturnType<typeof baueAdminNavigation>) => [...nav.direkt, ...nav.gruppen.flatMap((g) => g.eintraege), ...nav.konto].map((e) => e.href);
 
 describe("baueAdminNavigation", () => {
@@ -18,6 +18,10 @@ describe("baueAdminNavigation", () => {
     const nurTermine = baueAdminNavigation({ vereinstermine: true, vereinsverwaltung: false, warte: [] });
     expect(nurTermine.gruppen.find((g) => g.id === "verein")?.eintraege.map((e) => e.href)).toEqual(["/admin/vereinstermine"]);
     expect(hrefs(baueAdminNavigation(alle))).toContain("/admin/mitglieder");
+    // Neuigkeiten nur mit eigenem Schalter, unabhängig von den anderen.
+    expect(hrefs(ohne)).not.toContain("/admin/neuigkeiten");
+    const nurNews = baueAdminNavigation({ vereinstermine: false, vereinsverwaltung: false, neuigkeiten: true, warte: [] });
+    expect(nurNews.gruppen.find((g) => g.id === "verein")?.eintraege.map((e) => e.href)).toEqual(["/admin/neuigkeiten"]);
   });
   it("Wart-Seiten nur für volle Admins (warte gesetzt), unter 'Dienste einteilen'", () => {
     const dienste = (n: ReturnType<typeof baueAdminNavigation>) => n.gruppen.find((g) => g.id === "dienste")!.eintraege;

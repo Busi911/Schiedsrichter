@@ -342,6 +342,9 @@ export const vereine = pgTable("verein", {
   trainingOeffentlich: boolean("training_oeffentlich").notNull().default(false),
   // Vereinstermine (Sitzungen u.ä., siehe vereinstermin unten) eingeschaltet? Default aus: dann keine Menüpunkte, Seiten und Mails (lib/vereinstermine.ts).
   vereinstermineAktiv: boolean("vereinstermine_aktiv").notNull().default(false),
+  // Neuigkeiten/Berichte mit öffentlicher Seite und RSS-Feed (Einstellungen → Neuigkeiten, Default aus): aus = keine Seiten,
+  // kein Reiter, kein Feed; angelegte Neuigkeiten bleiben erhalten.
+  neuigkeitenAktiv: boolean("neuigkeiten_aktiv").notNull().default(false),
   // Vereinsverwaltung (Mitglieder, Beitrittsanträge, Beitragsklassen, siehe mitglied unten) eingeschaltet? Default aus; kostenpflichtiges Add-on (lib/abrechnung.ts, betragNetto).
   vereinsverwaltungAktiv: boolean("vereinsverwaltung_aktiv").notNull().default(false),
   // Online-Beitritt (öffentliches Formular /verein/[slug]/beitritt, nur mit Add-on): vom Vereinsadmin eingeschaltet, Default aus. Link zur Satzung (https, optional):
@@ -1572,6 +1575,27 @@ export const mannschaftSponsoren = pgTable(
     aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("mannschaft_sponsor_mannschaft_idx").on(t.ligaMannschaftId)]
+);
+
+
+// Neuigkeiten/Berichte eines Vereins (reiner Text, siehe lib/neuigkeiten.ts). Öffentlich nur, wenn der Verein den Schalter
+// vereine.neuigkeiten_aktiv eingeschaltet hat UND die Neuigkeit veröffentlicht ist (veroeffentlicht_am gesetzt und erreicht,
+// null = Entwurf). Optional einer Mannschaft zugeordnet (liga_mannschaft ohne RLS: Actions prüfen die Zugehörigkeit).
+export const neuigkeiten = pgTable(
+  "neuigkeit",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references((): AnyPgColumn => vereine.id, { onDelete: "cascade" }),
+    ligaMannschaftId: uuid("liga_mannschaft_id").references(() => ligaMannschaften.id, { onDelete: "set null" }),
+    titel: text("titel").notNull(),
+    text: text("text").notNull(),
+    veroeffentlichtAm: timestamp("veroeffentlicht_am", { mode: "date" }),
+    erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
+    aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [index("neuigkeit_verein_veroeffentlicht_idx").on(t.vereinId, t.veroeffentlichtAm)]
 );
 
 
