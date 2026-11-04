@@ -333,13 +333,13 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Mandantentrennung (RLS)", () => {
     ).rejects.toThrow(/row-level security/i);
   });
   it("Neuigkeiten (neuigkeit) sind je Verein getrennt", async () => {
-    await adminPool.query(`insert into neuigkeit (verein_id, titel, text) values ($1, 'Bericht B', 'Text')`, [vereinB]);
+    await adminPool.query(`insert into neuigkeit (verein_id, guid, titel, link, veroeffentlicht_am) values ($1, 'g1', 'Bericht B', 'https://b.test/1', now())`, [vereinB]);
     const ausSichtA = await withTenant(vereinA, (client) => client.query("select id from neuigkeit").then((r) => r.rows));
     expect(ausSichtA).toHaveLength(0);
     const ausSichtB = await withTenant(vereinB, (client) => client.query("select id from neuigkeit").then((r) => r.rows));
     expect(ausSichtB).toHaveLength(1);
     await expect(
-      withTenant(vereinA, (client) => client.query("insert into neuigkeit (verein_id, titel, text) values ($1, 'x', 'y')", [vereinB]))
+      withTenant(vereinA, (client) => client.query("insert into neuigkeit (verein_id, guid, titel, link, veroeffentlicht_am) values ($1, 'g2', 'x', 'https://b.test/2', now())", [vereinB]))
     ).rejects.toThrow(/row-level security/i);
   });
   it("Mannschaftssponsoren (mannschaft_sponsor) sind je Verein getrennt", async () => {

@@ -11,6 +11,7 @@ import {
   beitrittEinstellungenSpeichern,
   vereinstermineSpeichern,
   neuigkeitenSpeichern,
+  neuigkeitenJetztAbrufen,
   logoEntfernen,
   mannschaftsnamenSpeichern,
   supportZugriffSetzen,
@@ -34,6 +35,8 @@ import { istStammdatenGesperrt } from "@/lib/stammdaten-sperre";
 import { parseHallenNamen } from "@/lib/hallenplan-abgleich";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
+import { formatDatum } from "@/lib/format";
+import { neuigkeitenZaehlen } from "@/lib/neuigkeiten-daten";
 import { Label } from "@/components/ui/label";
 import { HilfeHinweis } from "@/components/hilfe-hinweis";
 import { Switch } from "@/components/ui/switch";
@@ -84,6 +87,9 @@ export default async function EinstellungenPage({
     ligaWeiter?: string;
     ligaRunde?: string;
     antrag?: string;
+    neuigkeitenFehler?: string;
+    neuigkeitenOk?: string;
+    neuigkeitenGespeichert?: string;
   }>;
 }) {
   const session = await requireAdmin();
@@ -93,6 +99,8 @@ export default async function EinstellungenPage({
   const verein = await withTenant(vereinId, (tx) =>
     tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) })
   );
+
+  const anzahlNeuigkeiten = verein?.neuigkeitenFeedUrl ? await neuigkeitenZaehlen(vereinId) : 0;
 
   const ligaVerein = await adminDb.query.ligaVereine.findFirst({
     where: eq(ligaVereine.vereinId, vereinId),
@@ -836,22 +844,27 @@ export default async function EinstellungenPage({
       <EinstellungsBereich
         id="neuigkeiten"
         titel="Neuigkeiten"
-        kurz="Berichte und Meldungen mit Seite in der App und Feed für die Homepage"
-        beschreibung={<>Schreibt Berichte und Meldungen (reiner Text, optional einer Mannschaft zugeordnet). Veröffentlichte erscheinen als Bereich in der öffentlichen App eures Vereins
-          und als RSS-Feed, den ihr in eure Homepage einbinden könnt. Geschrieben werden sie unter{" "}
-          <a href="/admin/neuigkeiten" className="underline">Neuigkeiten</a>. Voraussetzung ist die öffentliche Vereinsseite.</>}
+        kurz="Berichte von eurer Homepage in der App anzeigen (Feed abonnieren)"
+        beschreibung={<>Habt ihr auf eurer Homepage einen Bereich mit Berichten (fast jede Homepage hat einen RSS-Feed), abonniert die App ihn: Titel, ein kurzer Auszug und der Link
+          zum Bericht erscheinen als Bereich „Neuigkeiten“ in eurer öffentlichen App. Gelesen wird der Bericht auf eurer Homepage; ihr schreibt nichts doppelt.</>}
       >
         <HilfeHinweis anker="neuigkeiten" />
+        {nuligaErgebnis.neuigkeitenFehler && (
+          <p className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm">{nuligaErgebnis.neuigkeitenFehler}</p>
+        )}
+        {nuligaErgebnis.neuigkeitenOk !== undefined && (
+          <p className="mt-2 rounded-md border border-green-600/40 bg-green-600/10 p-2 text-sm">
+            Feed gelesen: {nuligaErgebnis.neuigkeitenOk} {nuligaErgebnis.neuigkeitenOk === "1" ? "Beitrag" : "Beiträge"}.
+          </p>
+        )}
         <form action={neuigkeitenSpeichern} className="mt-2 flex flex-col gap-3">
-          <fieldset disabled={!session.user.istAdmin} className="contents">
+          <fieldset disabled={!session.user.istAdmin || demo} className="contents">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <Label htmlFor="neuigkeitenAktiv" className="font-normal">
-                  Neuigkeiten verwenden
+                  Neuigkeiten anzeigen
                 </Label>
-                <p className="text-xs text-muted-foreground">
-                  Aus (Standard): kein Bereich in der App, kein Menüpunkt, kein Feed. Bereits geschriebene Einträge bleiben beim Ausschalten erhalten.
-                </p>
+                <p className="text-xs text-muted-foreground">Aus (Standard): kein Bereich in der App, kein Abruf. Bereits geladene Beiträge bleiben beim Ausschalten erhalten.</p>
               </div>
               <Switch
                 key={String(verein?.neuigkeitenAktiv ?? false)}
@@ -860,13 +873,47 @@ export default async function EinstellungenPage({
                 defaultChecked={verein?.neuigkeitenAktiv ?? false}
               />
             </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="neuigkeitenFeedUrl">Adresse des Feeds (https)</Label>
+              <Input
+                id="neuigkeitenFeedUrl"
+                name="neuigkeitenFeedUrl"
+                type="url"
+                inputMode="url"
+                placeholder="https://www.euer-verein.de/feed"
+                defaultValue={verein?.neuigkeitenFeedUrl ?? ""}
+              />
+              <p className="text-xs text-muted-foreground">
+                Meist <code>/feed</code> oder <code>/rss</code> hinter der Adresse der Homepage (bei WordPress z.B. <code>https://www.euer-verein.de/feed</code>). Wird die Adresse
+                geändert, ersetzen die neuen Beiträge die alten.
+              </p>
+            </div>
           </fieldset>
-          {session.user.istAdmin && (
-            <SubmitButton variant="outline" size="sm" className="self-start">
-              Speichern
+          {session.user.istAdmin && !demo && (
+            <SubmitButton variant="outline" size="sm" className="self-start" pendingText="Speichert und liest den Feed…">
+              Speichern und abrufen
             </SubmitButton>
           )}
         </form>
+        {verein?.neuigkeitenFeedUrl && (
+          <div className="mt-3 flex flex-col gap-2 border-t pt-3 text-xs text-muted-foreground">
+            {verein.neuigkeitenFehler ? (
+              <p className="text-destructive">Letzter Abruf fehlgeschlagen: {verein.neuigkeitenFehler}</p>
+            ) : verein.neuigkeitenAbgerufenAm ? (
+              <p>Zuletzt gelesen am {formatDatum(verein.neuigkeitenAbgerufenAm)}, {anzahlNeuigkeiten} {anzahlNeuigkeiten === 1 ? "Beitrag" : "Beiträge"} gespeichert.</p>
+            ) : (
+              <p>Noch nicht gelesen.</p>
+            )}
+            <p>Die App liest den Feed stündlich.</p>
+            {session.user.istAdmin && !demo && verein.neuigkeitenAktiv && (
+              <form action={neuigkeitenJetztAbrufen}>
+                <SubmitButton variant="ghost" size="sm" pendingText="Liest…">
+                  Jetzt abrufen
+                </SubmitButton>
+              </form>
+            )}
+          </div>
+        )}
       </EinstellungsBereich>
 
       {verein?.vereinsverwaltungAktiv && (

@@ -342,9 +342,13 @@ export const vereine = pgTable("verein", {
   trainingOeffentlich: boolean("training_oeffentlich").notNull().default(false),
   // Vereinstermine (Sitzungen u.ä., siehe vereinstermin unten) eingeschaltet? Default aus: dann keine Menüpunkte, Seiten und Mails (lib/vereinstermine.ts).
   vereinstermineAktiv: boolean("vereinstermine_aktiv").notNull().default(false),
-  // Neuigkeiten/Berichte mit öffentlicher Seite und RSS-Feed (Einstellungen → Neuigkeiten, Default aus): aus = keine Seiten,
-  // kein Reiter, kein Feed; angelegte Neuigkeiten bleiben erhalten.
+  // Neuigkeiten aus dem abonnierten Feed der Homepage (Einstellungen → Neuigkeiten, Default aus): aus = keine Seite, kein Reiter,
+  // kein Abruf; gespeicherte Einträge bleiben erhalten.
   neuigkeitenAktiv: boolean("neuigkeiten_aktiv").notNull().default(false),
+  // Adresse des Feeds (RSS/Atom, https) der Vereinshomepage, aus dem die Neuigkeiten abonniert werden; Stand des letzten Abrufs.
+  neuigkeitenFeedUrl: text("neuigkeiten_feed_url"),
+  neuigkeitenAbgerufenAm: timestamp("neuigkeiten_abgerufen_am", { mode: "date" }),
+  neuigkeitenFehler: text("neuigkeiten_fehler"),
   // Vereinsverwaltung (Mitglieder, Beitrittsanträge, Beitragsklassen, siehe mitglied unten) eingeschaltet? Default aus; kostenpflichtiges Add-on (lib/abrechnung.ts, betragNetto).
   vereinsverwaltungAktiv: boolean("vereinsverwaltung_aktiv").notNull().default(false),
   // Online-Beitritt (öffentliches Formular /verein/[slug]/beitritt, nur mit Add-on): vom Vereinsadmin eingeschaltet, Default aus. Link zur Satzung (https, optional):
@@ -1578,9 +1582,9 @@ export const mannschaftSponsoren = pgTable(
 );
 
 
-// Neuigkeiten/Berichte eines Vereins (reiner Text, siehe lib/neuigkeiten.ts). Öffentlich nur, wenn der Verein den Schalter
-// vereine.neuigkeiten_aktiv eingeschaltet hat UND die Neuigkeit veröffentlicht ist (veroeffentlicht_am gesetzt und erreicht,
-// null = Entwurf). Optional einer Mannschaft zugeordnet (liga_mannschaft ohne RLS: Actions prüfen die Zugehörigkeit).
+// Neuigkeiten eines Vereins, ABONNIERT aus dem Feed (RSS/Atom) seiner Homepage (vereine.neuigkeiten_feed_url): wir speichern nur Titel,
+// einen kurzen Auszug als reinen Text, den Link zum Original und das Datum — keine Bilder, kein HTML, kein Volltext. Öffentlich nur,
+// wenn der Verein vereine.neuigkeiten_aktiv eingeschaltet hat. Geschrieben wird per Abruf (lib/neuigkeiten-feed-daten.ts, adminDb).
 export const neuigkeiten = pgTable(
   "neuigkeit",
   {
@@ -1588,14 +1592,15 @@ export const neuigkeiten = pgTable(
     vereinId: uuid("verein_id")
       .notNull()
       .references((): AnyPgColumn => vereine.id, { onDelete: "cascade" }),
-    ligaMannschaftId: uuid("liga_mannschaft_id").references(() => ligaMannschaften.id, { onDelete: "set null" }),
+    // Kennung des Eintrags im Feed (guid/id, sonst der Link): macht den Abruf wiederholbar.
+    guid: text("guid").notNull(),
     titel: text("titel").notNull(),
-    text: text("text").notNull(),
-    veroeffentlichtAm: timestamp("veroeffentlicht_am", { mode: "date" }),
-    erstelltAm: timestamp("erstellt_am", { mode: "date" }).notNull().defaultNow(),
-    aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
+    auszug: text("auszug"),
+    link: text("link").notNull(),
+    veroeffentlichtAm: timestamp("veroeffentlicht_am", { mode: "date" }).notNull(),
+    abgerufenAm: timestamp("abgerufen_am", { mode: "date" }).notNull().defaultNow(),
   },
-  (t) => [index("neuigkeit_verein_veroeffentlicht_idx").on(t.vereinId, t.veroeffentlichtAm)]
+  (t) => [uniqueIndex("neuigkeit_verein_guid_idx").on(t.vereinId, t.guid), index("neuigkeit_verein_datum_idx").on(t.vereinId, t.veroeffentlichtAm)]
 );
 
 

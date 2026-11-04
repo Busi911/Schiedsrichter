@@ -10,6 +10,10 @@
       "schedule": "45 5-21 * * *"
     },
     {
+      "path": "/api/cron/neuigkeiten-feed",
+      "schedule": "10 5-21 * * *"
+    },
+    {
       "path": "/api/cron/liga-uebernahme",
       "schedule": "30 5-21 * * *"
     },

@@ -111,7 +111,7 @@ export default function AppHilfePage() {
         <h2 className="font-heading text-lg font-medium">Neuigkeiten</h2>
         <p className="text-sm text-muted-foreground">
           Manche Vereine zeigen den Bereich <strong>Neuigkeiten</strong> (in der Leiste unten als „News“, bei vielen Bereichen unter „Mehr“): Berichte
-          und Meldungen, die der Verein selbst schreibt, neueste zuerst, teils einer Mannschaft zugeordnet. Der Bereich fehlt, wenn der Verein ihn
+          von der Homepage des Vereins, neueste zuerst, jeweils mit kurzem Auszug; „Weiterlesen“ öffnet den Bericht auf der Homepage des Vereins. Der Bereich fehlt, wenn der Verein ihn
           nicht eingeschaltet hat.
         </p>
       </section>

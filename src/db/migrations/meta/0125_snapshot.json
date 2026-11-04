@@ -1,5 +1,5 @@
 {
-  "id": "696abfc6-4c50-448a-8164-e8cbd3cb51d8",
+  "id": "b1a001ff-678b-44b2-a3d7-5d19f50f08b5",
   "prevId": "f33187b8-643c-4782-8b15-e225ac31bb34",
   "version": "7",
   "dialect": "postgresql",
@@ -3234,11 +3234,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "liga_mannschaft_id": {
-          "name": "liga_mannschaft_id",
-          "type": "uuid",
+        "guid": {
+          "name": "guid",
+          "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "titel": {
           "name": "titel",
@@ -3246,8 +3246,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "text": {
-          "name": "text",
+        "auszug": {
+          "name": "auszug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "link": {
+          "name": "link",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -3256,17 +3262,10 @@
           "name": "veroeffentlicht_am",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "erstellt_am": {
-          "name": "erstellt_am",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "aktualisiert_am": {
-          "name": "aktualisiert_am",
+        "abgerufen_am": {
+          "name": "abgerufen_am",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
@@ -3274,8 +3273,29 @@
         }
       },
       "indexes": {
-        "neuigkeit_verein_veroeffentlicht_idx": {
-          "name": "neuigkeit_verein_veroeffentlicht_idx",
+        "neuigkeit_verein_guid_idx": {
+          "name": "neuigkeit_verein_guid_idx",
+          "columns": [
+            {
+              "expression": "verein_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "guid",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "neuigkeit_verein_datum_idx": {
+          "name": "neuigkeit_verein_datum_idx",
           "columns": [
             {
               "expression": "verein_id",
@@ -3308,19 +3328,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "neuigkeit_liga_mannschaft_id_liga_mannschaft_id_fk": {
-          "name": "neuigkeit_liga_mannschaft_id_liga_mannschaft_id_fk",
-          "tableFrom": "neuigkeit",
-          "tableTo": "liga_mannschaft",
-          "columnsFrom": [
-            "liga_mannschaft_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -5633,6 +5640,24 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "neuigkeiten_feed_url": {
+          "name": "neuigkeiten_feed_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "neuigkeiten_abgerufen_am": {
+          "name": "neuigkeiten_abgerufen_am",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "neuigkeiten_fehler": {
+          "name": "neuigkeiten_fehler",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "vereinsverwaltung_aktiv": {
           "name": "vereinsverwaltung_aktiv",

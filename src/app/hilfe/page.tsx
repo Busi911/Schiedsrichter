@@ -35,7 +35,7 @@ export default async function HilfePage() {
             ["anmelden", "Anmelden, Passwort, E-Mail ändern"],
             ["rollen", "Wer darf was? Rollen"],
             ["mannschaften", "Mannschaften"],
-            ["neuigkeiten", "Neuigkeiten & Feed für die Homepage"],
+            ["neuigkeiten", "Neuigkeiten aus eurer Homepage"],
             ["funktionstraeger", "Funktionsträger anlegen & Excel-Import"],
             ["oeffentliche-seite", "Öffentliche Vereinsseite & App"],
             ["spielhallen", "Eure Spielhallen (Heimspiele)"],
@@ -963,22 +963,18 @@ export default async function HilfePage() {
       </section>
 
       <section id="neuigkeiten" className="flex flex-col gap-2 scroll-mt-6">
-        <h2 className="font-heading text-lg font-medium">Neuigkeiten &amp; Feed für die Homepage</h2>
+        <h2 className="font-heading text-lg font-medium">Neuigkeiten aus eurer Homepage</h2>
         <p className="text-sm text-muted-foreground">
-          Euer Verein kann Berichte und Meldungen schreiben, die in der öffentlichen App erscheinen. Einschalten könnt ihr das unter Einstellungen →
-          Neuigkeiten (Standard: aus). Danach schreibt ihr unter{" "}
-          <Link href="/admin/neuigkeiten" className="font-medium underline">
-            Verein → Neuigkeiten
-          </Link>{" "}
-          einen <strong>Titel</strong> und einen <strong>Text</strong> (reiner Text, Leerzeile = neuer Absatz; keine Bilder, kein HTML) und
-          ordnet die Meldung auf Wunsch einer Mannschaft zu. Mit „Veröffentlichen“ ist sie sofort öffentlich; „Als Entwurf speichern“ sieht nur
-          ihr, „Zurückziehen“ macht eine Meldung wieder zum Entwurf. Nur Admins mit Schreibrecht schreiben, lesende Admins sehen die Liste.
+          Berichtet ihr auf eurer Homepage über Spiele und Aktionen, könnt ihr diese Beiträge in der öffentlichen App zeigen, ohne etwas doppelt zu schreiben.
+          Fast jede Homepage bietet einen <strong>RSS-Feed</strong> (bei WordPress zum Beispiel <code>https://www.euer-verein.de/feed</code>). Tragt die Adresse unter Einstellungen →
+          Neuigkeiten ein und schaltet „Neuigkeiten anzeigen“ ein (Standard: aus). Mit „Speichern und abrufen“ wird der Feed sofort gelesen, danach stündlich.
         </p>
         <p className="text-sm text-muted-foreground">
-          <strong>Feed für die Homepage:</strong> Die Meldungen gibt es auch als RSS-Feed unter <code>/verein/&lt;euer-Verein&gt;/feed.xml</code> (die Adresse
-          steht auch am Ende der Seite „Neuigkeiten“ in der App). Eure Homepage kann ihn einbinden (viele Homepage-Baukästen haben dafür ein
-          „RSS-Element“). Im Feed stehen nur Titel, Anfang des Textes, Datum und Link, keine Entwürfe. Bitte nennt keine Minderjährigen mit Namen,
-          wenn keine Einwilligung vorliegt. In der App erscheint der Bereich als Reiter (bei mehreren Zusatzbereichen unter „Mehr“).
+          In der App erscheint der Bereich <strong>Neuigkeiten</strong> (in der Leiste unten als „News“, bei mehreren Zusatzbereichen unter „Mehr“) mit Datum, Titel, einem kurzen Auszug und dem
+          Link „Weiterlesen“, der auf <strong>eure Homepage</strong> führt. Übernommen werden nur Titel, Auszug (reiner Text), Link und Datum, <strong>keine Bilder und kein Volltext</strong>; die
+          Beiträge bleiben bei euch. Löscht oder ändert ihr einen Beitrag auf der Homepage, folgt die App beim nächsten Abruf. Die Adresse muss mit https:// beginnen und öffentlich erreichbar sein.
+          Klappt der Abruf nicht, steht der Grund unter dem Feld (zum Beispiel „kein RSS- oder Atom-Feed“); bis dahin zeigt die App die zuletzt geladenen Beiträge. Wer den Feed ändert, ersetzt die
+          bisherigen Beiträge.
         </p>
       </section>
 

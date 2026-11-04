@@ -60,7 +60,6 @@ export default async function AdminLayout({
   const nav = baueAdminNavigation({
     vereinstermine: verein?.vereinstermineAktiv ?? false,
     vereinsverwaltung: verein?.vereinsverwaltungAktiv ?? false,
-    neuigkeiten: verein?.neuigkeitenAktiv ?? false,
     warte,
     offeneDienste: offeneDiensteAnzahl,
   });

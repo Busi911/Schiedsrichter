@@ -33,7 +33,6 @@ export default async function BereichPage({ params }: { params: Promise<{ gruppe
   const nav = baueAdminNavigation({
     vereinstermine: verein?.vereinstermineAktiv ?? false,
     vereinsverwaltung: verein?.vereinsverwaltungAktiv ?? false,
-    neuigkeiten: verein?.neuigkeitenAktiv ?? false,
     warte: session.user.istAdmin ? WART_ITEMS : [],
   });
   const gruppe = nav.gruppen.find((g) => g.id === gruppenId);

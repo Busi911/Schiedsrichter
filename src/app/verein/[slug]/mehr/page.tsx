@@ -18,7 +18,7 @@ export default async function MehrSeite({ params }: { params: Promise<{ slug: st
   const basis = `/verein/${verein.slug}`;
   const eintraege = [
     ...(training ? [{ href: `${basis}/training`, label: "Training", hinweis: "Zeiten und Ausfälle", Icon: DumbbellIcon }] : []),
-    ...(neuigkeiten ? [{ href: `${basis}/neuigkeiten`, label: "Neuigkeiten", hinweis: "Berichte und Meldungen des Vereins", Icon: NewspaperIcon }] : []),
+    ...(neuigkeiten ? [{ href: `${basis}/neuigkeiten`, label: "Neuigkeiten", hinweis: "Berichte von der Vereinshomepage", Icon: NewspaperIcon }] : []),
   ];
   if (eintraege.length === 0) notFound();
 
