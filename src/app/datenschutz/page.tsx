@@ -183,6 +183,15 @@ export default function DatenschutzPage() {
       </section>
 
       <section className="flex flex-col gap-2">
+        <h2 className="font-heading text-lg font-medium">Neuigkeiten von der Vereinshomepage</h2>
+        <p className="text-sm text-muted-foreground">
+          Ein Verein kann in der App Beiträge seiner eigenen Homepage anzeigen. Dafür ruft unser Server den öffentlichen Feed der Homepage ab und
+          speichert nur Titel, einen kurzen Textauszug, den Link und das Datum der Beiträge; dabei werden keine Daten über dich erhoben. Tippst du
+          auf „Weiterlesen“, öffnet sich die Homepage des Vereins, für die deren Datenschutzhinweise gelten.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
         <h2 className="font-heading text-lg font-medium">Online-Beitritt (Mitglied werden)</h2>
         <p className="text-sm text-muted-foreground">
           Wenn ein Verein den Online-Beitritt einschaltet, kannst du über ein Formular auf seiner Vereinsseite die Mitgliedschaft beantragen. Dafür

@@ -148,8 +148,8 @@ export const ROADMAP: RoadmapPhase[] = [
       },
       {
         titel: "Neuigkeiten und Spielberichte mit Feed",
-        status: "idee",
-        text: "Berichte und Neuigkeiten je Mannschaft oder Verein in der App, dazu ein Feed (RSS), den der Verein in die eigene Homepage einbinden kann.",
+        status: "in_arbeit",
+        text: "Das Gerüst steht: Der Verein trägt den Feed (RSS) seiner Homepage ein und schaltet Neuigkeiten selbst ein; die Berichte erscheinen dann mit Titel, Auszug und Link zur Homepage als Bereich in der App. Bilder, Spielberichte aus Spieldaten und eigene Meldungen ohne Homepage kommen später.",
       },
       {
         titel: "Push-Nachrichten statt E-Mail",

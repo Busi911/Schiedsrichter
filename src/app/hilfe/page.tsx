@@ -35,6 +35,7 @@ export default async function HilfePage() {
             ["anmelden", "Anmelden, Passwort, E-Mail ändern"],
             ["rollen", "Wer darf was? Rollen"],
             ["mannschaften", "Mannschaften"],
+            ["neuigkeiten", "Neuigkeiten aus eurer Homepage"],
             ["funktionstraeger", "Funktionsträger anlegen & Excel-Import"],
             ["oeffentliche-seite", "Öffentliche Vereinsseite & App"],
             ["spielhallen", "Eure Spielhallen (Heimspiele)"],
@@ -958,6 +959,22 @@ export default async function HilfePage() {
           Ort lässt sich eine <strong>Saison</strong> einstellen (z.B. Mai bis September, auch über den Jahreswechsel möglich): Trainings dort gibt es nur in diesen
           Monaten, der Wochenplan bleibt unverändert. Im Kalender, unter „Training“ und bei Ausfällen erscheinen sie nur in der Saison, ein Ausfall sagt dann
           „Platz frei“. Ohne Saison gilt der Ort ganzjährig.
+        </p>
+      </section>
+
+      <section id="neuigkeiten" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Neuigkeiten aus eurer Homepage</h2>
+        <p className="text-sm text-muted-foreground">
+          Berichtet ihr auf eurer Homepage über Spiele und Aktionen, könnt ihr diese Beiträge in der öffentlichen App zeigen, ohne etwas doppelt zu schreiben.
+          Fast jede Homepage bietet einen <strong>RSS-Feed</strong> (bei WordPress zum Beispiel <code>https://www.euer-verein.de/feed</code>). Tragt die Adresse unter Einstellungen →
+          Neuigkeiten ein und schaltet „Neuigkeiten anzeigen“ ein (Standard: aus). Mit „Speichern und abrufen“ wird der Feed sofort gelesen, danach stündlich.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          In der App erscheint der Bereich <strong>Neuigkeiten</strong> (in der Leiste unten als „News“, bei mehreren Zusatzbereichen unter „Mehr“) mit Datum, Titel, einem kurzen Auszug und dem
+          Link „Weiterlesen“, der auf <strong>eure Homepage</strong> führt. Übernommen werden nur Titel, Auszug (reiner Text), Link und Datum, <strong>keine Bilder und kein Volltext</strong>; die
+          Beiträge bleiben bei euch. Löscht oder ändert ihr einen Beitrag auf der Homepage, folgt die App beim nächsten Abruf. Die Adresse muss mit https:// beginnen und öffentlich erreichbar sein.
+          Klappt der Abruf nicht, steht der Grund unter dem Feld (zum Beispiel „kein RSS- oder Atom-Feed“); bis dahin zeigt die App die zuletzt geladenen Beiträge. Wer den Feed ändert, ersetzt die
+          bisherigen Beiträge.
         </p>
       </section>
 

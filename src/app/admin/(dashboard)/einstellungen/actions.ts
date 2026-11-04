@@ -19,6 +19,8 @@ import { uebernehmeLigaSpiele } from "@/lib/liga-uebernahme";
 import { signOut } from "@/auth";
 import { verbieteImDemo } from "@/lib/demo-verein";
 import { pruefeHttpsUrl } from "@/lib/beitritt";
+import { FeedFehler, pruefeFeedUrl } from "@/lib/neuigkeiten";
+import { aktualisiereNeuigkeiten, loescheNeuigkeiten } from "@/lib/neuigkeiten-daten";
 import { geaenderteStammdaten, GESPERRTE_FELDER, istStammdatenFeld, pruefeStammdatenWert, STAMMDATEN_FELDER } from "@/lib/stammdaten-felder";
 import { verbieteGesperrteAenderung } from "@/lib/stammdaten-sperre";
 import { benachrichtigeSystemAdminsUeberStammdatenAntrag } from "@/lib/system-admin-benachrichtigung";
@@ -84,6 +86,53 @@ export async function trainingSichtbarkeitSpeichern(formData: FormData) {
   revalidatePath("/admin/einstellungen");
   revalidatePath("/profil/training");
   revalidatePath("/verein", "layout");
+}
+
+// Neuigkeiten aus dem Feed (RSS/Atom) der Vereinshomepage abonnieren: Schalter + Feed-Adresse. Aus = keine Seite, kein Reiter, kein Abruf;
+// gespeicherte Einträge bleiben. Eine NEUE Adresse ersetzt die alten Einträge. Beim Speichern wird einmal sofort abgerufen, damit man
+// das Ergebnis (oder den Fehler) gleich sieht; danach holt der Cron stündlich nach.
+export async function neuigkeitenSpeichern(formData: FormData) {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+  await verbieteImDemo(vereinId); // ruft eine fremde Adresse ab
+  const aktiv = formData.get("neuigkeitenAktiv") === "on";
+  const rohUrl = String(formData.get("neuigkeitenFeedUrl") ?? "").trim();
+  let url: string | null = null;
+  if (rohUrl || aktiv) {
+    try {
+      url = pruefeFeedUrl(rohUrl);
+    } catch (err) {
+      if (err instanceof FeedFehler) redirect(`/admin/einstellungen?neuigkeitenFehler=${encodeURIComponent(err.message)}#neuigkeiten`);
+      throw err;
+    }
+  }
+  const alt = await withTenant(vereinId, (tx) => tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { neuigkeitenFeedUrl: true } }));
+  const geaendert = (alt?.neuigkeitenFeedUrl ?? null) !== url;
+  await withTenant(vereinId, (tx) =>
+    tx
+      .update(vereine)
+      .set({ neuigkeitenAktiv: aktiv, neuigkeitenFeedUrl: url, ...(geaendert && { neuigkeitenAbgerufenAm: null, neuigkeitenFehler: null }) })
+      .where(eq(vereine.id, vereinId))
+  );
+  if (geaendert) await loescheNeuigkeiten(vereinId);
+  await schreibeProtokoll(vereinId, "neuigkeiten_gespeichert", session.user.email ?? session.user.id, `${aktiv ? "an" : "aus"}${url ? `, ${new URL(url).hostname}` : ""}`);
+  const r = aktiv && url ? await aktualisiereNeuigkeiten(vereinId) : null;
+  revalidatePath("/admin/einstellungen");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/verein", "layout");
+  const meldung = !r ? "" : r.ok ? `&neuigkeitenOk=${r.anzahl}` : `&neuigkeitenFehler=${encodeURIComponent(r.fehler)}`;
+  redirect(`/admin/einstellungen?neuigkeitenGespeichert=1${meldung}#neuigkeiten`);
+}
+
+// Feed sofort neu abrufen (statt auf den stündlichen Abruf zu warten).
+export async function neuigkeitenJetztAbrufen() {
+  const session = await requireAdminSchreibzugriff();
+  const vereinId = session.user.vereinId!;
+  await verbieteImDemo(vereinId);
+  const r = await aktualisiereNeuigkeiten(vereinId);
+  revalidatePath("/admin/einstellungen");
+  revalidatePath("/verein", "layout");
+  redirect(`/admin/einstellungen?${r.ok ? `neuigkeitenOk=${r.anzahl}` : `neuigkeitenFehler=${encodeURIComponent(r.fehler)}`}#neuigkeiten`);
 }
 
 // Vereinstermine (Sitzungen u.ä.) einschalten: aus = keine Menüpunkte, Seiten und Mails dazu; bestehende Termine bleiben erhalten.

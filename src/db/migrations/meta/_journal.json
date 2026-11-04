@@ -876,6 +876,13 @@
       "when": 1793796333349,
       "tag": "0124_mannschaft_sponsor",
       "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1793798129208,
+      "tag": "0125_neuigkeiten_feed",
+      "breakpoints": true
     }
   ]
 }
