@@ -3,6 +3,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { CheckIcon, Share2Icon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { teilenAdresse } from "@/lib/teilen";
 
 // Teilen-Button für mobile Endgeräte: nutzt die Web Share API
 // (navigator.share), wenn verfügbar — sonst Fallback in die
@@ -13,8 +14,8 @@ export function TeilenButton({
   titel,
   className,
 }: {
-  // URL zum Teilen (nackt, ohne Tracking-Parameter). Wenn nicht
-  // angegeben, wird die aktuelle Seiten-URL verwendet.
+  // Pfad (z.B. "/verein/hsg/herren-1") oder vollständige URL zum Teilen; Abfrage-Parameter und Anker werden entfernt
+  // (kein Tracking). Wenn nicht angegeben, wird die aktuelle Seiten-URL verwendet.
   url?: string;
   // Titel für den Share-Dialog (optional).
   titel?: string;
@@ -31,7 +32,7 @@ export function TeilenButton({
   );
 
   async function teilen() {
-    const zielUrl = url ?? window.location.href;
+    const zielUrl = teilenAdresse(url ?? window.location.href, window.location.origin);
     if (kannTeilen) {
       try {
         await navigator.share({

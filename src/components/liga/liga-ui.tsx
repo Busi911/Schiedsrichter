@@ -58,6 +58,7 @@ export function SpielKarte({
   teamLabel,
   nurUhrzeit,
   mitAusgang,
+  teilenPfad,
 }: {
   spiel: SpielAnsicht;
   eigenTeamtable?: string | null;
@@ -66,6 +67,9 @@ export function SpielKarte({
   nurUhrzeit?: boolean;
   // Farbstreifen links: Sieg/Unentschieden/Niederlage aus Sicht der eigenen Mannschaft.
   mitAusgang?: boolean;
+  // Pfad der Seite, die der Teilen-Button weitergibt (die Mannschaftsseite zu diesem Spiel). Ohne Pfad gibt es keinen Button
+  // (z.B. im Admin-Bereich, wo die Karte keine öffentliche Adresse hat).
+  teilenPfad?: string;
 }) {
   const jetztSpiel = new Date();
 
@@ -195,7 +199,7 @@ export function SpielKarte({
               )}
             </>
           )}
-          <TeilenButton titel={`${spiel.heimName} vs ${spiel.gastName}`} />
+          {teilenPfad && <TeilenButton url={teilenPfad} titel={`${spiel.heimName} vs ${spiel.gastName}`} />}
         </span>
       </div>
     </Card>
