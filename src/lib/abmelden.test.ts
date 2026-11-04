@@ -39,7 +39,9 @@ describe("Abmelde-Token", () => {
     // andere Person/Art mit der Signatur eines anderen Tokens
     const fremd = a.abmeldeToken(randomUUID(), "digest").split(".")[0];
     expect(a.pruefeAbmeldeToken(`${fremd}.${sig}`)).toBeNull();
-    expect(a.pruefeAbmeldeToken(`${payload}.${sig.slice(0, -1)}x`)).toBeNull();
+    // Letztes Zeichen der Signatur gezielt ÄNDERN: ein festes "x" wäre bei jeder 64. Signatur (endet schon auf "x") gar keine Manipulation.
+    const anderes = sig.endsWith("x") ? "y" : "x";
+    expect(a.pruefeAbmeldeToken(`${payload}.${sig.slice(0, -1)}${anderes}`)).toBeNull();
     expect(a.pruefeAbmeldeToken(payload)).toBeNull();
     expect(a.pruefeAbmeldeToken("")).toBeNull();
     expect(a.pruefeAbmeldeToken(`${token}.extra`)).toBeNull();
