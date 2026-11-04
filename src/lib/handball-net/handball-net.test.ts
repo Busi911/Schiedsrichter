@@ -12,7 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
 import { legeLigaVereinAn } from "@/lib/nuliga/sync";
 import { synchronisiereAlleQuellen } from "@/lib/liga-sync-quellen";
-import { synchronisiereHandballNet } from "./sync";
+import { synchronisiereHandballNet, holeAlleSeiten } from "./sync";
 import {
   berechneTabelle,
   parseOffizielleTabelle,
@@ -203,6 +203,12 @@ describe("handball.net-Modell", () => {
     expect(parseOffizielleTabelle({ data: [zeile(1, 5, 5, 1, 0, 10)] })).toBeNull();
     expect(parseOffizielleTabelle({ data: [] })).toBeNull();
     expect(parseOffizielleTabelle(null)).toBeNull();
+    const erste = { ...zeile(1, 1, 1, 0, 0, 2), round: 1 };
+    const letzte = { ...zeile(1, 5, 5, 0, 0, 10), round: 5 };
+    expect(parseOffizielleTabelle({ data: [erste, letzte] })?.map((z) => z.punktePlus)).toEqual([10]);
+    expect(parseOffizielleTabelle({ data: [letzte, letzte] })).toBeNull();
+    expect(parseOffizielleTabelle({ data: [erste, zeile(2, 5, 2, 0, 3, 4)] })).toBeNull();
+
   });
 });
 
@@ -489,5 +495,11 @@ describe.skipIf(!ADMIN_URL)("handball.net: Zusatzquelle (Postgres)", () => {
     expect(aufruf).toContain("/api/new/teams/77001");
     expect(aufruf.some((p) => p.includes("/api/new/teams/77002"))).toBe(false);
     expect(r.meldungen.some((m) => m.includes("gehört zu Verein"))).toBe(false);
+  });
+});
+
+describe("vollständiger Seitenabruf", () => {
+  it("bricht bei zu vielen Seiten ab, statt einen unvollständigen Bestand zurückzugeben", async () => {
+    await expect(holeAlleSeiten(async () => ({ data: [{ id: 1 }], pagination: { last_page: 16 } }), "/api/new/matches?team_id=1")).rejects.toThrow("unvollständig");
   });
 });

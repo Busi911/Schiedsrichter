@@ -13,7 +13,7 @@ export const maxDuration = 60;
 // Diagnose der handball.net-API (nur Systemadmin, nur lesend, nur auf Knopfdruck, schreibt nichts): zeigt für ein Spiel die ROHE,
 // maskierte Antwort der Spielliste (welche Status-/Spielstand-Felder gibt es?) und kann EINEN weiteren /api/-Pfad abrufen, den der
 // Browser auf der Spielseite (Tab LIVETICKER, Netzwerk-Tab) nachweislich benutzt. Es wird kein Endpunkt geraten oder durchprobiert.
-// Hinweis: Die Zustimmung des DHB gilt dem Abruf von Spielplänen/Ergebnissen. Diese Seite ruft nur von Hand einzelne Antworten ab.
+// Hinweis: Eine ausdrückliche Zustimmung des DHB zum Abruf liegt NICHT vor (es wurde aber auch kein Verbot gefunden). Diese Seite ruft nur von Hand einzelne Antworten ab.
 type Params = { team?: string; spiel?: string; pfad?: string };
 
 const Block = ({ titel, children }: { titel: string; children: React.ReactNode }) => (

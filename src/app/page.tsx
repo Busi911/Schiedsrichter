@@ -261,6 +261,9 @@ export default async function Home() {
             <Link href="/meine" className="hidden min-h-11 items-center px-2 text-sm font-medium hover:underline sm:inline-flex">
               Meine Mannschaften
             </Link>
+            <Link href="/registrieren" className="inline-flex min-h-11 items-center px-2 text-sm font-medium hover:underline">
+              Registrieren
+            </Link>
             <Button variant="outline" className="h-11 px-5 text-base transition-transform active:scale-[0.97]" render={<Link href="/login" />} nativeButton={false}>
               Login
             </Button>

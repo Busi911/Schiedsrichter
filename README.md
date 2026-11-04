@@ -531,15 +531,25 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
     Die Spalte "Mannschaftsverantwortlicher" wird bewusst nie gelesen
     (Datenschutz). Zurückgezogene Mannschaften werden erkannt und
     ausgeblendet (#178, #181).
+  - **handball.net-Zugang (01.11.2026):** Der gemeinsame Client lädt eine frische öffentliche Startseite
+    (`no-store`, `Cache-Control: no-cache`) und verwendet den dort ausgegebenen `x-client-token`
+    mit Sitzungscookies und ehrlichem User-Agent. Token/Cookies bleiben nur kurz im Arbeitsspeicher;
+    keine Server-Signaturen, keine Browser-Tarnung. Requests laufen pro Instanz seriell (kein verteiltes Limit).
+    Nur `CLIENT_TOKEN_EXPIRED` erneuert die Sitzung einmal; allgemeine 403 werden nicht wiederholt.
+    Fehler enthalten Status/Request-ID, keine Rohantworten oder Zugangsdaten. Langes `Retry-After` wird
+    nicht durch einen früheren Retry unterschritten. Teamlisten nutzen nur `/api/new/teams?club_id=…`.
+    Der Quellen-Test zeigt Saisonfehler als optionale Diagnose; nur benötigte Prüfungen alarmieren.
+    Hallenplan-/Teamimport: Löschabgleich nur für vollständig geladene Teams, nie bei Parsefehlern;
+    auch dieser Import verwendet denselben Client und lädt alle Spielseiten. Mehr als 15 Seiten
+    brechen mit Fehler ab, statt einen abgeschnittenen Bestand als vollständig zu übernehmen.
   - **handball.net (ab der 3. Liga):** Zweite Quelle über die JSON-API
     (`src/lib/handball-net/`), Einstieg über die handball.net-Vereins-ID,
     optional manuell ergänzte Team-IDs; die Tabelle kommt von
     `/api/new/standings?phase_id=…` (`parseOffizielleTabelle`, nur Zahlen und
     Teamname — die Antwort enthält Vereinskontakte); nur als Rückfall wird sie
     aus den Spielen berechnet (`berechneTabelle`, ohne direkten Vergleich).
-    Offen: der Parameter `round` des Endpunkts wird bisher nicht gesetzt —
-    nach dem ersten Sync prüfen, ob die Tabelle dem Stand auf handball.net
-    entspricht. Unabhängig von nuLiga (ein
+    Der Endpunkt liefert mehrere Spieltagsstände: der Parser wählt die höchste gelieferte
+    Runde und verwirft doppelte Mannschaften innerhalb dieses Stands. Unabhängig von nuLiga (ein
     Ausfall betrifft die andere Quelle nicht).
   - **Noch offen:** weitere Landesverbände (nuLiga-Domain je Verband); ob
     handball.net- und nuLiga-Daten für denselben Verein sauber
@@ -588,9 +598,11 @@ Vorschlag (z.B. handball.net ab der 3. Liga, Besucher-Konten).
   **Offen:** juristische Prüfung der Texte; Impressum nennt
   DeWe Consulting UG als Betreiber — zu klären, ob für den öffentlichen
   Bereich (und die dort angezeigten Verbandsdaten) etwas ergänzt werden
-  muss. Zu den Abrufen: Laut Kommentar im Code haben HHV (nuLiga) und DHB
-  (handball.net) dem automatischen Abruf zugestimmt — die Zustimmung ggf.
-  schriftlich ablegen; für weitere Verbände jeweils neu klären.
+  muss. Zu den Abrufen: Der HHV (nuLiga) hat dem automatischen Abruf laut
+  Betreiber zugestimmt (Zusage schriftlich ablegen). Beim DHB (handball.net)
+  liegt KEINE ausdrückliche Zustimmung vor; es wurde nur nichts gefunden, was
+  den Abruf verbietet (Nutzungsbedingungen/robots.txt prüfen, ggf. beim DHB
+  nachfragen). Für weitere Verbände jeweils neu klären.
 
 **Grober Ablauf**
 
@@ -650,13 +662,13 @@ erst nach Zustimmung des HHV und nach Sichtung der Daten.
   Feedback als erledigt markieren/direkt beantworten, `/system/handball-net-diagnose` (rohe Spielantwort + ein `/api/`-Pfad aus dem Browser).
 
 **Offen (in dieser Reihenfolge):**
-1. **Belegen, woher handball.net die Ticker-Ereignisse holt** (von der Entwicklungsumgebung aus ist handball.net nicht erreichbar, Proxy-403). Dafür:
+1. **Belegen, woher handball.net die Ticker-Ereignisse holt** (Spiel-API inzwischen mit Website-Sitzung erreichbar; Ticker-Endpunkt weiterhin nicht belegt). Dafür:
    (a) `/system/handball-net-diagnose` mit Team `86819` und Spiel `392192` (und `392196`) ausführen und die Ausgabe weitergeben;
    (b) im Browser auf der Spielseite den Tab LIVETICKER öffnen und im Netzwerk-Tab die `/api/…`-Requests sichern (Pfad, Parameter, Antwort gekürzt,
    Polling/WebSocket/SSE); (c) den PDF-Spielbericht (`handball360.isquad.de/dhb_acta_completa_pdf.php?id_partido=<ID>`) prüfen: gibt es ihn für jedes
    Spiel, ist die Adresse dauerhaft, was enthält er. Verifiziert sind bisher nur die Spielseiten 392196 (live, 42 Ereignisse bei Halbzeit) und
    392192 (beendet, 89 Ereignisse, Spielende 60:00), nicht die zugrunde liegende API.
-2. **Entscheidungen des Betreibers:** (a) Freigabe/Nutzungsbedingungen des DHB für den Ticker-Endpunkt (die Zusage gilt Spielplänen/Ergebnissen);
+2. **Entscheidungen des Betreibers:** (a) Freigabe/Nutzungsbedingungen des DHB für den Ticker-Endpunkt (eine ausdrückliche Zustimmung des DHB liegt auch für Spielpläne/Ergebnisse nicht vor, es ist nur kein Verbot gefunden);
    (b) Datenschutz: Torschützen, Strafen und Aufstellungen sind Personendaten (Jugendbundesliga: Minderjährige). Optionen: nur Spielstand/Ereignistyp
    ohne Namen anzeigen, oder nur auf das Original verlinken. Die Repository-Regel "Personendaten nie persistieren" gilt, bis das entschieden ist.
 3. **Dann bauen:** gemeinsames Ereignis-Modell (Quelle, externe Spiel-ID, Ereignis-ID/Typ/Mannschaft/Spielzeit/Spielstand), serverseitiger Cache

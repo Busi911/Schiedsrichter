@@ -332,6 +332,41 @@ describe.skipIf(!ADMIN_URL || !APP_URL)("Mandantentrennung (RLS)", () => {
       )
     ).rejects.toThrow(/row-level security/i);
   });
+  it("Neuigkeiten (neuigkeit) sind je Verein getrennt", async () => {
+    await adminPool.query(`insert into neuigkeit (verein_id, guid, titel, link, veroeffentlicht_am) values ($1, 'g1', 'Bericht B', 'https://b.test/1', now())`, [vereinB]);
+    const ausSichtA = await withTenant(vereinA, (client) => client.query("select id from neuigkeit").then((r) => r.rows));
+    expect(ausSichtA).toHaveLength(0);
+    const ausSichtB = await withTenant(vereinB, (client) => client.query("select id from neuigkeit").then((r) => r.rows));
+    expect(ausSichtB).toHaveLength(1);
+    await expect(
+      withTenant(vereinA, (client) => client.query("insert into neuigkeit (verein_id, guid, titel, link, veroeffentlicht_am) values ($1, 'g2', 'x', 'https://b.test/2', now())", [vereinB]))
+    ).rejects.toThrow(/row-level security/i);
+  });
+  it("Mannschaftssponsoren (mannschaft_sponsor) sind je Verein getrennt", async () => {
+    const slug = `ms-${Math.random().toString(36).slice(2, 8)}`;
+    const { rows: lv } = await adminPool.query(`insert into liga_verein (verein_id, slug, name) values ($1, $2, 'Sponsor Test') returning id`, [vereinB, slug]);
+    try {
+      const { rows: lm } = await adminPool.query(
+        `insert into liga_mannschaft (liga_verein_id, slug, schluessel, name, kategorie) values ($1, 'm1', 'm1', 'Team', (select enumlabel::liga_kategorie from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typname = 'liga_kategorie' order by e.enumsortorder limit 1)) returning id`,
+        [lv[0].id]
+      );
+      await adminPool.query(`insert into mannschaft_sponsor (verein_id, liga_mannschaft_id, aktiv, name) values ($1, $2, true, 'Muster GmbH')`, [vereinB, lm[0].id]);
+
+      const ausSichtA = await withTenant(vereinA, (client) => client.query("select id from mannschaft_sponsor").then((r) => r.rows));
+      expect(ausSichtA).toHaveLength(0);
+      const ausSichtB = await withTenant(vereinB, (client) => client.query("select id from mannschaft_sponsor").then((r) => r.rows));
+      expect(ausSichtB).toHaveLength(1);
+
+      // Verein A darf keinen Sponsor für Verein B anlegen.
+      await expect(
+        withTenant(vereinA, (client) =>
+          client.query("insert into mannschaft_sponsor (verein_id, liga_mannschaft_id) values ($1, $2)", [vereinB, lm[0].id])
+        )
+      ).rejects.toThrow(/row-level security/i);
+    } finally {
+      await adminPool.query(`delete from liga_verein where id = $1`, [lv[0].id]);
+    }
+  });
   it("Vereinstermine (vereinstermin, -sichtbar, -antwort) sind je Verein getrennt", async () => {
     const { rows: t } = await adminPool.query(
       `insert into vereinstermin (verein_id, titel, start, sichtbarkeit, serie_id, wiederholung) values ($1, 'Sitzung B', '2030-01-02T18:00:00Z', 'auswahl', gen_random_uuid(), 'monatlich') returning id`,

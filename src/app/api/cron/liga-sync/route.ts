@@ -4,12 +4,15 @@ import { holeNuligaHtml } from "@/lib/nuliga/client";
 import { synchronisiereFaellige } from "@/lib/nuliga/sync-cron";
 
 // Serverless-Laufzeit großzügig: nuLiga wird bewusst langsam (1 Request je
-// ~1,5 s) abgefragt, siehe lib/nuliga/client.ts.
-export const maxDuration = 60;
+// ~1,5 s) abgefragt, siehe lib/nuliga/client.ts. 280 s statt der früheren
+// 60 s (Vercel Pro erlaubt bis 300 s) — bei gewachsener Vereinszahl reichten
+// 40 s Budget/Lauf nicht mehr aus, um alle Vereine innerhalb von 24 h
+// mindestens einmal durchzubekommen (siehe sync-ueberwachung.ts).
+export const maxDuration = 280;
 
-// Spätestens nach dieser Zeit antwortet die Route selbst, bevor Vercel den Lauf nach 60 s hart
+// Spätestens nach dieser Zeit antwortet die Route selbst, bevor Vercel den Lauf nach maxDuration hart
 // abbricht (504, ohne jede Spur im Log). Der Rest folgt beim nächsten Aufruf.
-const WATCHDOG_MS = 52_000;
+const WATCHDOG_MS = 268_000;
 
 // Nur nuLiga. Entscheidet je Verein selbst, was fällig ist (Struktur ~täglich, Spiele
 // spieltagsnah ~45 Min, sonst ~6 Std., siehe sync-cron.ts) — der Cron kann
@@ -38,7 +41,7 @@ export async function GET(request: Request) {
     },
     // handball.net hat seit 18.10.2026 einen eigenen Cron (/api/cron/handball-net-sync) mit eigenem Zeitbudget.
     quelle: "nuliga",
-    budgetMs: 40_000,
+    budgetMs: 255_000,
     beiSchritt: melde,
   });
   // Ein Fehler nach dem Watchdog soll nicht als unbehandelte Ablehnung enden.
@@ -49,12 +52,12 @@ export async function GET(request: Request) {
     timer = setTimeout(() => resolve("haengt"), WATCHDOG_MS);
   });
   try {
-    const ergebnisse = await Promise.race([lauf, watchdog]);
-    if (ergebnisse === "haengt") {
+    const lauferg = await Promise.race([lauf, watchdog]);
+    if (lauferg === "haengt") {
       console.error(`[liga-sync] Watchdog nach ${WATCHDOG_MS / 1000} s – letzter Schritt: ${schritt}`);
       return Response.json({ abgebrochen: true, letzterSchritt: schritt });
     }
-    return Response.json({ synchronisiert: ergebnisse.length, ergebnisse });
+    return Response.json({ synchronisiert: lauferg.ergebnisse.length, vollstaendig: lauferg.vollstaendig, ergebnisse: lauferg.ergebnisse });
   } catch (err) {
     console.error(`[liga-sync] Fehler (Schritt: ${schritt}):`, err);
     // 500 statt 200: Vercel (und jede Überwachung) soll einen fehlgeschlagenen Lauf als solchen sehen.

@@ -342,6 +342,13 @@ export const vereine = pgTable("verein", {
   trainingOeffentlich: boolean("training_oeffentlich").notNull().default(false),
   // Vereinstermine (Sitzungen u.ä., siehe vereinstermin unten) eingeschaltet? Default aus: dann keine Menüpunkte, Seiten und Mails (lib/vereinstermine.ts).
   vereinstermineAktiv: boolean("vereinstermine_aktiv").notNull().default(false),
+  // Neuigkeiten aus dem abonnierten Feed der Homepage (Einstellungen → Neuigkeiten, Default aus): aus = keine Seite, kein Reiter,
+  // kein Abruf; gespeicherte Einträge bleiben erhalten.
+  neuigkeitenAktiv: boolean("neuigkeiten_aktiv").notNull().default(false),
+  // Adresse des Feeds (RSS/Atom, https) der Vereinshomepage, aus dem die Neuigkeiten abonniert werden; Stand des letzten Abrufs.
+  neuigkeitenFeedUrl: text("neuigkeiten_feed_url"),
+  neuigkeitenAbgerufenAm: timestamp("neuigkeiten_abgerufen_am", { mode: "date" }),
+  neuigkeitenFehler: text("neuigkeiten_fehler"),
   // Vereinsverwaltung (Mitglieder, Beitrittsanträge, Beitragsklassen, siehe mitglied unten) eingeschaltet? Default aus; kostenpflichtiges Add-on (lib/abrechnung.ts, betragNetto).
   vereinsverwaltungAktiv: boolean("vereinsverwaltung_aktiv").notNull().default(false),
   // Online-Beitritt (öffentliches Formular /verein/[slug]/beitritt, nur mit Add-on): vom Vereinsadmin eingeschaltet, Default aus. Link zur Satzung (https, optional):
@@ -1547,6 +1554,54 @@ export const vereinSponsoren = pgTable("verein_sponsor", {
   png: bytea("png"),
   aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
 });
+
+
+// Sponsor EINER Mannschaft, vom Verein selbst gepflegt (Admin → Mannschaften → Sponsoren der Mannschaften).
+// Unabhängig vom Vereinssponsor (verein_sponsor, nur Systemadmin): keine Wirkung auf Abrechnung oder
+// Sponsorenbild beim Öffnen. Angezeigt als kleine Zeile auf der öffentlichen Mannschaftsseite. Hängt an der
+// saisonübergreifenden liga_mannschaft (ohne RLS, deshalb prüft die Action, dass sie zum eigenen Verein gehört).
+// Wirksam nur bei aktiv UND Bild UND Zeitraum nicht abgelaufen (sponsorWirksam, lib/sponsor.ts).
+export const mannschaftSponsoren = pgTable(
+  "mannschaft_sponsor",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references((): AnyPgColumn => vereine.id, { onDelete: "cascade" }),
+    ligaMannschaftId: uuid("liga_mannschaft_id")
+      .notNull()
+      .references(() => ligaMannschaften.id, { onDelete: "cascade" }),
+    aktiv: boolean("aktiv").notNull().default(false),
+    name: text("name"),
+    link: text("link"),
+    gueltigBis: date("gueltig_bis", { mode: "string" }),
+    bild: bytea("bild"),
+    aktualisiertAm: timestamp("aktualisiert_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("mannschaft_sponsor_mannschaft_idx").on(t.ligaMannschaftId)]
+);
+
+
+// Neuigkeiten eines Vereins, ABONNIERT aus dem Feed (RSS/Atom) seiner Homepage (vereine.neuigkeiten_feed_url): wir speichern nur Titel,
+// einen kurzen Auszug als reinen Text, den Link zum Original und das Datum — keine Bilder, kein HTML, kein Volltext. Öffentlich nur,
+// wenn der Verein vereine.neuigkeiten_aktiv eingeschaltet hat. Geschrieben wird per Abruf (lib/neuigkeiten-feed-daten.ts, adminDb).
+export const neuigkeiten = pgTable(
+  "neuigkeit",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vereinId: uuid("verein_id")
+      .notNull()
+      .references((): AnyPgColumn => vereine.id, { onDelete: "cascade" }),
+    // Kennung des Eintrags im Feed (guid/id, sonst der Link): macht den Abruf wiederholbar.
+    guid: text("guid").notNull(),
+    titel: text("titel").notNull(),
+    auszug: text("auszug"),
+    link: text("link").notNull(),
+    veroeffentlichtAm: timestamp("veroeffentlicht_am", { mode: "date" }).notNull(),
+    abgerufenAm: timestamp("abgerufen_am", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("neuigkeit_verein_guid_idx").on(t.vereinId, t.guid), index("neuigkeit_verein_datum_idx").on(t.vereinId, t.veroeffentlichtAm)]
+);
 
 
 // Index ALLER Vereine eines nuLiga-Landesverbands (Vereinssuche clubSearch), nur zum Finden und Einrichten.

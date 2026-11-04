@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3Icon, CalendarDaysIcon, CircleCheckIcon, DumbbellIcon, UsersIcon } from "lucide-react";
+import { BarChart3Icon, CalendarDaysIcon, CircleCheckIcon, DumbbellIcon, EllipsisIcon, NewspaperIcon, UsersIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LinkSymbol } from "@/components/link-spinner";
 
@@ -13,21 +13,34 @@ const BEREICHE = [
   { pfad: "/statistik", label: "Statistik", kurz: "Statistik", Icon: BarChart3Icon },
   // Nur, wenn der Verein den Reiter eingeschaltet hat (Einstellungen → Training → öffentliche App, `mitTraining`).
   { pfad: "/training", label: "Training", kurz: "Training", Icon: DumbbellIcon },
+  // Nur, wenn der Verein die Neuigkeiten eingeschaltet hat (Einstellungen → Neuigkeiten, `mitNeuigkeiten`).
+  { pfad: "/neuigkeiten", label: "Neuigkeiten", kurz: "News", Icon: NewspaperIcon },
 ] as const;
 
-// Die vier (mit Training fünf) Bereiche der Vereinsseite: auf dem Handy als feste Bottom-Bar,
+// Auf dem Handy passen höchstens FÜNF Plätze in die Leiste. Sind es mehr Bereiche (Training UND Neuigkeiten), bleiben die vier
+// festen und ein Platz "Mehr" führt auf eine Übersicht mit den übrigen (`/mehr`); am Desktop stehen weiterhin alle als Tabs.
+const MEHR = { pfad: "/mehr", label: "Mehr", kurz: "Mehr", Icon: EllipsisIcon } as const;
+const MAX_MOBIL = 5;
+
+// Die vier (mit Training oder Neuigkeiten fünf, mit beiden vier plus „Mehr“) Bereiche der Vereinsseite: auf dem Handy als feste Bottom-Bar,
 // ab md als Tabs unter dem Kopf. Nur auf den vier Bereichsseiten sichtbar —
 // auf Mannschaftsseiten bleibt die Leiste mit "Teams" aktiv (neben den eigenen Tabs Übersicht, Spielplan, …), damit
 // man auch dort (und in der installierten App ohne Browser-Zurück) mit einem Tipp in jeden Bereich kommt.
-export function VereinsNav({ basis, mitTraining = false }: { basis: string; mitTraining?: boolean }) {
+export function VereinsNav({ basis, mitTraining = false, mitNeuigkeiten = false }: { basis: string; mitTraining?: boolean; mitNeuigkeiten?: boolean }) {
   const pfad = usePathname();
-  // Ohne eingeschaltetes Training bleibt es bei vier Bereichen (wie bisher), sonst fünf.
-  const bereiche = BEREICHE.filter((b) => mitTraining || b.pfad !== "/training");
-  const fuenf = bereiche.length > 4;
+  // Ohne eingeschaltete Zusatzbereiche bleibt es bei vier (wie bisher); jeder eingeschaltete kommt dazu.
+  const bereiche = BEREICHE.filter((b) => (b.pfad === "/training" ? mitTraining : b.pfad === "/neuigkeiten" ? mitNeuigkeiten : true));
+  // Handy: bis fünf alle, darüber vier feste + "Mehr" (die übrigen stehen auf der Seite /mehr).
+  const mobilBereiche = bereiche.length > MAX_MOBIL ? [...bereiche.slice(0, MAX_MOBIL - 1), MEHR] : bereiche;
+  const versteckt = bereiche.length > MAX_MOBIL ? bereiche.slice(MAX_MOBIL - 1) : [];
+  const fuenf = mobilBereiche.length > 4;
   const aktuell =
     bereiche.find((b) => pfad === `${basis}${b.pfad}`) ??
+    (pfad === `${basis}${MEHR.pfad}` ? MEHR : undefined) ??
     (pfad.startsWith(`${basis}/`) ? bereiche.find((b) => b.pfad === "/mannschaften") : undefined);
   if (!aktuell) return null;
+  // Auf dem Handy ist ein versteckter Bereich (oder die Mehr-Seite selbst) über "Mehr" aktiv.
+  const aktuellMobil = versteckt.some((b) => b === aktuell) || aktuell === MEHR ? MEHR : aktuell;
 
   return (
     <>
@@ -61,8 +74,8 @@ export function VereinsNav({ basis, mitTraining = false }: { basis: string; mitT
         className="fixed inset-x-0 bottom-0 z-40 border-t border-foreground/15 bg-card dark:border-foreground/25 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:hidden"
       >
         <ul className={cn("mx-auto grid max-w-3xl gap-1 px-2 pt-2 pb-2", fuenf ? "grid-cols-5" : "grid-cols-4")}>
-          {bereiche.map((b) => {
-            const aktiv = b === aktuell;
+          {mobilBereiche.map((b) => {
+            const aktiv = b === aktuellMobil;
             return (
               <li key={b.pfad}>
                 <Link

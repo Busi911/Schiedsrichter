@@ -242,7 +242,8 @@ describe.skipIf(!ADMIN_URL)("nuLiga-Sync (Postgres)", () => {
     anfragen.length = 0;
     // Struktur ist nach dem "fehler"-Lauf zuletzt jetzt aktualisiert worden
     const r = await synchronisiereFaellige({ db, holeHtml, nurVereinId: verein!.id });
-    expect(r[0].struktur).toBeUndefined();
+    expect(r.ergebnisse[0].struktur).toBeUndefined();
+    expect(r.vollstaendig).toBe(true);
   });
 });
 

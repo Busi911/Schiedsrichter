@@ -35,6 +35,7 @@ export default async function HilfePage() {
             ["anmelden", "Anmelden, Passwort, E-Mail ändern"],
             ["rollen", "Wer darf was? Rollen"],
             ["mannschaften", "Mannschaften"],
+            ["neuigkeiten", "Neuigkeiten aus eurer Homepage"],
             ["funktionstraeger", "Funktionsträger anlegen & Excel-Import"],
             ["oeffentliche-seite", "Öffentliche Vereinsseite & App"],
             ["spielhallen", "Eure Spielhallen (Heimspiele)"],
@@ -202,6 +203,15 @@ export default async function HilfePage() {
           könnt ihr Mannschaften umbenennen, ergänzen oder löschen. Gebraucht werden sie für die Zuordnung der Spiele, die
           Trainer und den Dienste-Bedarf je Mannschaft.
         </p>
+        <p id="mannschafts-sponsor" className="scroll-mt-6 text-sm text-muted-foreground">
+          <strong>Sponsor einer Mannschaft:</strong> Unter Mannschaften → „Sponsoren der Mannschaften“ könnt ihr für jede
+          Mannschaft einen Sponsor mit Bild, Name und Link eintragen. Sein Bild erscheint als kleine Zeile „Unterstützt
+          von …“ oben auf der öffentlichen Mannschaftsseite, sobald ihr ihn einschaltet, ein Bild hochgeladen habt und
+          das „gültig bis“-Datum nicht abgelaufen ist. Das ist unabhängig vom Vereinssponsor („Präsentiert von …“ beim
+          Öffnen der Vereinsseite), den das HandballerPate-Team einrichtet. Voraussetzung ist die öffentliche
+          Vereinsseite mit Mannschaften. Das Bild muss als PNG, JPEG oder WebP vorliegen (kein SVG), der Link mit
+          https:// beginnen.
+        </p>
         <p className="text-sm text-muted-foreground">
           Der Name auf der <strong>öffentlichen Vereinsseite</strong> ist davon getrennt und wird unter Einstellungen →
           Öffentliche Vereinsseite → „Namen der Mannschaften“ geändert (siehe unten).
@@ -322,11 +332,17 @@ export default async function HilfePage() {
           passiert ist, zeigen wir den Stand mit „vorläufig“. Am Spieltag wird rund um den Anwurf häufiger abgerufen, sonst stündlich; den aktuellen Spielstand liefert der Live-Ticker.
         </p>
 
+        <p className="text-sm text-muted-foreground">
+          Ist handball.net vorübergehend nicht erreichbar, bleiben vorhandene Daten erhalten.
+          Ein fehlgeschlagener Mannschaftsabruf löst im Teamimport keine Löschung bestehender Termine aus.
+          Die Systemverwaltung kann unter „Synchronisation“ die Quellen prüfen. Die Saisonliste ist
+          dabei eine optionale Diagnose: Ihr Ausfall allein bedeutet keinen Ausfall des Spielabrufs.
+        </p>
+
         <h3 className="text-sm font-medium">Spiel teilen</h3>
         <p className="text-sm text-muted-foreground">
           Auf jeder Spielkarte gibt es einen <strong>Teilen</strong>-Button: Tippt darauf, um den Link zur Seite über das Share-Menü des Handys zu verschicken (WhatsApp, Mail, …). Auf Geräten ohne Share-Menü wird der Link stattdessen in die Zwischenablage kopiert.
         </p>
-
         <h3 className="text-sm font-medium">Eine Mannschaft fehlt oder ist leer?</h3>
         <p className="text-sm text-muted-foreground">
           Nach dem Aktualisieren erscheinen unter dem Ergebnis Hinweise. Die
@@ -948,6 +964,22 @@ export default async function HilfePage() {
           Ort lässt sich eine <strong>Saison</strong> einstellen (z.B. Mai bis September, auch über den Jahreswechsel möglich): Trainings dort gibt es nur in diesen
           Monaten, der Wochenplan bleibt unverändert. Im Kalender, unter „Training“ und bei Ausfällen erscheinen sie nur in der Saison, ein Ausfall sagt dann
           „Platz frei“. Ohne Saison gilt der Ort ganzjährig.
+        </p>
+      </section>
+
+      <section id="neuigkeiten" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Neuigkeiten aus eurer Homepage</h2>
+        <p className="text-sm text-muted-foreground">
+          Berichtet ihr auf eurer Homepage über Spiele und Aktionen, könnt ihr diese Beiträge in der öffentlichen App zeigen, ohne etwas doppelt zu schreiben.
+          Fast jede Homepage bietet einen <strong>RSS-Feed</strong> (bei WordPress zum Beispiel <code>https://www.euer-verein.de/feed</code>). Tragt die Adresse unter Einstellungen →
+          Neuigkeiten ein und schaltet „Neuigkeiten anzeigen“ ein (Standard: aus). Mit „Speichern und abrufen“ wird der Feed sofort gelesen, danach stündlich.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          In der App erscheint der Bereich <strong>Neuigkeiten</strong> (in der Leiste unten als „News“, bei mehreren Zusatzbereichen unter „Mehr“) mit Datum, Titel, einem kurzen Auszug und dem
+          Link „Weiterlesen“, der auf <strong>eure Homepage</strong> führt. Übernommen werden nur Titel, Auszug (reiner Text), Link und Datum, <strong>keine Bilder und kein Volltext</strong>; die
+          Beiträge bleiben bei euch. Löscht oder ändert ihr einen Beitrag auf der Homepage, folgt die App beim nächsten Abruf. Die Adresse muss mit https:// beginnen und öffentlich erreichbar sein.
+          Klappt der Abruf nicht, steht der Grund unter dem Feld (zum Beispiel „kein RSS- oder Atom-Feed“); bis dahin zeigt die App die zuletzt geladenen Beiträge. Wer den Feed ändert, ersetzt die
+          bisherigen Beiträge.
         </p>
       </section>
 

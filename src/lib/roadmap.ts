@@ -3,7 +3,7 @@
 // Nur Wahres als "fertig" eintragen (was im Produkt läuft); alles andere ehrlich als geplant oder Idee. Keine Zusagen für Termine,
 // die nicht gehalten werden können: Ideen haben bewusst KEIN Datum.
 
-export const ROADMAP_STAND = "2026-10-19";
+export const ROADMAP_STAND = "2026-11-04";
 
 export type RoadmapStatus = "fertig" | "in_arbeit" | "geplant" | "idee";
 
@@ -140,6 +140,26 @@ export const ROADMAP: RoadmapPhase[] = [
         titel: "Kader und Saisonwechsel",
         status: "geplant",
         text: "Kader je Mannschaft und Saison mit Vorschlägen aus Alter und Mannschaft und einem geführten Wechsel zur neuen Saison, damit niemand alle Personen neu zuordnen muss. Spielberechtigungen und Pässe bleiben bei den Verbänden (Handball360) und sind kein Teil davon.",
+      },
+      {
+        titel: "Kadervorstellung mit Foto und Steckbrief",
+        status: "idee",
+        text: "Die Mannschaft mit Bild und kurzem Steckbrief auf der öffentlichen Seite. Öffentlich gezeigt wird nur, wer ausdrücklich eingewilligt hat (bei Minderjährigen die Erziehungsberechtigten); ohne Einwilligung bleibt die Person unsichtbar.",
+      },
+      {
+        titel: "Neuigkeiten und Spielberichte mit Feed",
+        status: "in_arbeit",
+        text: "Das Gerüst steht: Der Verein trägt den Feed (RSS) seiner Homepage ein und schaltet Neuigkeiten selbst ein; die Berichte erscheinen dann mit Titel, Auszug und Link zur Homepage als Bereich in der App. Bilder, Spielberichte aus Spieldaten und eigene Meldungen ohne Homepage kommen später.",
+      },
+      {
+        titel: "Push-Nachrichten statt E-Mail",
+        status: "idee",
+        text: "Hinweise (z. B. Verlegungen, offene Dienste, Mitteilungen) zusätzlich als Push auf das Handy, wahlweise statt der E-Mail. Funktioniert über die installierte Web-App; auf dem iPhone nur, wenn sie zum Home-Bildschirm hinzugefügt wurde. Eine App aus dem Store ist nicht geplant.",
+      },
+      {
+        titel: "Sponsor je Mannschaft",
+        status: "fertig",
+        text: "Der Verein pflegt selbst einen Sponsor je Mannschaft (Bild, Name, Link, Zeitraum). Sein Bild erscheint als kleine Zeile „Unterstützt von …“ auf der öffentlichen Mannschaftsseite, unabhängig vom Vereinssponsor.",
       },
       {
         titel: "Mitteilungen an Mannschaften und Eltern",

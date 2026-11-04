@@ -314,8 +314,16 @@ export function parseOffizielleTabelle(antwort: unknown): TabellenEintrag[] | nu
   const data = (antwort as { data?: unknown } | null)?.data;
   if (!Array.isArray(data) || data.length === 0) return null;
   const zahl = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  // Ohne round-Filter liefert die API alle Spieltagsstände zusammen.
+  // Nur der neueste vollständige Stand darf in denselben Upsert gelangen.
+  const runden = data.map((r) => obj(r)?.round);
+  const hatRunden = runden.some((r) => r !== undefined);
+  if (hatRunden && runden.some((r) => typeof r !== "number" || !Number.isInteger(r) || r < 0)) return null;
+  const letzteRunde = hatRunden ? Math.max(...(runden as number[])) : null;
+  const aktuell = letzteRunde === null ? data : data.filter((r) => obj(r)?.round === letzteRunde);
   const zeilen: TabellenEintrag[] = [];
-  for (const roh of data) {
+  const teamIds = new Set<string>();
+  for (const roh of aktuell) {
     const r = roh as Record<string, unknown>;
     const team = r?.team as { id?: unknown; name?: unknown; club?: { name?: unknown } | null } | undefined;
     const id = team?.id;
@@ -336,6 +344,8 @@ export function parseOffizielleTabelle(antwort: unknown): TabellenEintrag[] | nu
     ) {
       return null;
     }
+    if (teamIds.has(String(id))) return null;
+    teamIds.add(String(id));
     zeilen.push({
       teamId: String(id),
       name: schoenerTeamname(team.name, typeof team.club?.name === "string" ? team.club.name : null),

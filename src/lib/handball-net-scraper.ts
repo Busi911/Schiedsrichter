@@ -1,4 +1,6 @@
 import "server-only";
+import { holeHandballNetApi } from "./handball-net/client";
+import { holeAlleSeiten } from "./handball-net/sync";
 import { berlinOffset } from "./format";
 
 // Ab der 3. Liga führt der DHB den Spielbetrieb zentral über handball.net
@@ -9,24 +11,7 @@ import { berlinOffset } from "./format";
 // (team_id), da es keine öffentliche "alle Spiele an dieser Halle"-Abfrage
 // gibt. Ein Verein mit einer 3.-Liga-Mannschaft braucht daher eine
 // team_id statt einer Hallen-ID.
-const HANDBALL_NET_BASIS = "https://www.handball.net";
-
-// handball.net ist eine Angular-SPA mit serverseitig gerendertem HTML +
-// eingebettetem TransferState (siehe <script id="serverApp-state">), das
-// beim Rendern intern dieselbe JSON-API abfragt, die hier direkt
-// angesprochen wird. Die API liefert 403, wenn Origin/Referer fehlen (siehe
-// Testabruf) — vermutlich ein einfacher Anti-Hotlinking-Check, kein echter
-// Auth-Mechanismus (keine Cookies/Tokens nötig). Referer zeigt bewusst auf
-// die Team-Seite der jeweils abgefragten Mannschaft.
-function handballNetHeaders(teamId: string): Record<string, string> {
-  return {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    Accept: "application/json",
-    Referer: `${HANDBALL_NET_BASIS}/team/${teamId}`,
-    Origin: HANDBALL_NET_BASIS,
-  };
-}
+// Derselbe Sitzungs-Client wie der Liga-Sync; keine separate Browser-Tarnung.
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -258,37 +243,19 @@ export async function holeHandballNetJson(
 
   for (const teamId of teamIds) {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20_000);
-      let text: string;
-      let httpStatus: number;
-      try {
-        const response = await fetch(
-          `${HANDBALL_NET_BASIS}/api/new/matches?team_id=${encodeURIComponent(
-            teamId
-          )}&date_from=${von}&date_to=${bis}`,
-          { signal: controller.signal, headers: handballNetHeaders(teamId) }
-        );
-        httpStatus = response.status;
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        text = await response.text();
-      } finally {
-        clearTimeout(timeout);
-      }
+      const data = await holeAlleSeiten(holeHandballNetApi,
+        `/api/new/matches?team_id=${encodeURIComponent(teamId)}&date_from=${von}&date_to=${bis}`);
+      const httpStatus = 200;
 
-      const antwort = JSON.parse(text) as { success?: boolean; data?: unknown };
-      if (!antwort.success || !Array.isArray(antwort.data)) {
-        throw new Error("Unerwartetes Antwortformat (kein success/data-Array).");
-      }
-
-      const events = antwort.data
+      const events = data
         .map((spiel) => parseHandballNetMatch(spiel, teamId))
         .filter((e): e is HandballNetEvent => e !== null);
 
+      if (events.length !== data.length) throw new Error("Unvollständig lesbare Spiele; bestehende Termine bleiben erhalten");
       diagnose.push({ teamId, von, bis, httpStatus, spieleGefunden: events.length });
 
       const teamName =
-        antwort.data.map((spiel) => ermittleEigenenTeamNamen(spiel, teamId)).find(Boolean) ??
+        data.map((spiel) => ermittleEigenenTeamNamen(spiel, teamId)).find(Boolean) ??
         `handball.net Team ${teamId}`;
       blocks.push({ location: { id: teamId, name: teamName }, events });
     } catch (err) {

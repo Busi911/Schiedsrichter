@@ -8,7 +8,7 @@ const verein = (id: string, v: Partial<VereinSync> = {}): VereinSync => ({
   id, name: `Verein ${id}`, nuliga: true, handballNet: false, erstelltAm: vor(24 * 100),
   spieleAm: vor(2), handballNetAm: null, uebernahmeAktiv: true, uebernahmeGeprueftAm: vor(1), laeufe: [], ...v,
 });
-const snap = (vereine: VereinSync[], rest: Partial<Snapshot> = {}): Snapshot => ({ jetzt: JETZT, vereine, ndrSeiten: [], ansetzung: { gruppen: 0, neuesteAm: null }, ...rest });
+const snap = (vereine: VereinSync[], rest: Partial<Snapshot> = {}): Snapshot => ({ jetzt: JETZT, quellentests: [], vereine, ndrSeiten: [], ansetzung: { gruppen: 0, neuesteAm: null }, ...rest });
 
 describe("pruefeSync", () => {
   it("gesunde Lage: keine Befunde", () => {

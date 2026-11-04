@@ -869,6 +869,20 @@
       "when": 1792604777480,
       "tag": "0123_kein_duplikat",
       "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1793796333349,
+      "tag": "0124_mannschaft_sponsor",
+      "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1793798129208,
+      "tag": "0125_neuigkeiten_feed",
+      "breakpoints": true
     }
   ]
 }

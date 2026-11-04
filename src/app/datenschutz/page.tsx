@@ -175,6 +175,20 @@ export default function DatenschutzPage() {
           Bild heute schon gezeigt wurde. Tippst du auf das Bild, öffnet sich die Webseite des Sponsors, für
           die dessen Datenschutzhinweise gelten.
         </p>
+        <p className="text-sm text-muted-foreground">
+          Dasselbe gilt für Sponsoren einzelner Mannschaften: ein Verein kann auf der Seite einer Mannschaft eine
+          kleine Zeile „Unterstützt von …“ mit dem Bild eines Sponsors zeigen. Das Bild kommt von unserem Server, es
+          werden keine Daten über dich an den Sponsor übermittelt, bevor du den Link antippst.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="font-heading text-lg font-medium">Neuigkeiten von der Vereinshomepage</h2>
+        <p className="text-sm text-muted-foreground">
+          Ein Verein kann in der App Beiträge seiner eigenen Homepage anzeigen. Dafür ruft unser Server den öffentlichen Feed der Homepage ab und
+          speichert nur Titel, einen kurzen Textauszug, den Link und das Datum der Beiträge; dabei werden keine Daten über dich erhoben. Tippst du
+          auf „Weiterlesen“, öffnet sich die Homepage des Vereins, für die deren Datenschutzhinweise gelten.
+        </p>
       </section>
 
       <section className="flex flex-col gap-2">
