@@ -3,7 +3,7 @@
 // Nur Wahres als "fertig" eintragen (was im Produkt läuft); alles andere ehrlich als geplant oder Idee. Keine Zusagen für Termine,
 // die nicht gehalten werden können: Ideen haben bewusst KEIN Datum.
 
-export const ROADMAP_STAND = "2026-10-19";
+export const ROADMAP_STAND = "2026-11-04";
 
 export type RoadmapStatus = "fertig" | "in_arbeit" | "geplant" | "idee";
 
@@ -140,6 +140,26 @@ export const ROADMAP: RoadmapPhase[] = [
         titel: "Kader und Saisonwechsel",
         status: "geplant",
         text: "Kader je Mannschaft und Saison mit Vorschlägen aus Alter und Mannschaft und einem geführten Wechsel zur neuen Saison, damit niemand alle Personen neu zuordnen muss. Spielberechtigungen und Pässe bleiben bei den Verbänden (Handball360) und sind kein Teil davon.",
+      },
+      {
+        titel: "Kadervorstellung mit Foto und Steckbrief",
+        status: "idee",
+        text: "Die Mannschaft mit Bild und kurzem Steckbrief auf der öffentlichen Seite. Öffentlich gezeigt wird nur, wer ausdrücklich eingewilligt hat (bei Minderjährigen die Erziehungsberechtigten); ohne Einwilligung bleibt die Person unsichtbar.",
+      },
+      {
+        titel: "Neuigkeiten und Spielberichte mit Feed",
+        status: "idee",
+        text: "Berichte und Neuigkeiten je Mannschaft oder Verein in der App, dazu ein Feed (RSS), den der Verein in die eigene Homepage einbinden kann.",
+      },
+      {
+        titel: "Push-Nachrichten statt E-Mail",
+        status: "idee",
+        text: "Hinweise (z. B. Verlegungen, offene Dienste, Mitteilungen) zusätzlich als Push auf das Handy, wahlweise statt der E-Mail. Funktioniert über die installierte Web-App; auf dem iPhone nur, wenn sie zum Home-Bildschirm hinzugefügt wurde. Eine App aus dem Store ist nicht geplant.",
+      },
+      {
+        titel: "Sponsor je Mannschaft",
+        status: "idee",
+        text: "Zusätzlich zum Vereinssponsor ein Sponsor für einzelne Mannschaften, eingeblendet auf deren Seite und vom Verein selbst pflegbar.",
       },
       {
         titel: "Mitteilungen an Mannschaften und Eltern",
