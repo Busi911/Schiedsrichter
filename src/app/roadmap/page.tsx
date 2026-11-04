@@ -95,10 +95,26 @@ export default function RoadmapPage() {
           </div>
           <p className="text-sm text-muted-foreground">{abschnitt.ziel}</p>
           <ul className="flex flex-col gap-2">
-            {abschnitt.punkte.map((eintrag) => (
-              <Karte key={eintrag.titel} eintrag={eintrag} />
-            ))}
+            {abschnitt.punkte
+              .filter((p) => p.status !== "fertig")
+              .map((eintrag) => (
+                <Karte key={eintrag.titel} eintrag={eintrag} />
+              ))}
           </ul>
+          {abschnitt.punkte.some((p) => p.status === "fertig") && (
+            <details className="rounded-lg border bg-muted/30 p-3">
+              <summary className="text-sm font-medium">
+                {`Bereits fertig (${abschnitt.punkte.filter((p) => p.status === "fertig").length})`}
+              </summary>
+              <ul className="mt-3 flex flex-col gap-2">
+                {abschnitt.punkte
+                  .filter((p) => p.status === "fertig")
+                  .map((eintrag) => (
+                    <Karte key={eintrag.titel} eintrag={eintrag} />
+                  ))}
+              </ul>
+            </details>
+          )}
         </section>
       ))}
       <section className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
