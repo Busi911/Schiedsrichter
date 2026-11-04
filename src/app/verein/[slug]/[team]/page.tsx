@@ -50,7 +50,7 @@ export default async function Uebersicht({ params }: Props) {
       <section className="space-y-2">
         <h2 className="font-heading text-lg font-semibold">{laeuftGerade ? "Läuft gerade" : "Nächstes Spiel"}</h2>
         {m.naechstesSpiel ? (
-          <SpielKarte spiel={m.naechstesSpiel} eigenTeamtable={m.teamtableId} />
+          <SpielKarte spiel={m.naechstesSpiel} eigenTeamtable={m.teamtableId} teilenPfad={`/verein/${verein.slug}/${m.slug}`} />
         ) : (
           <p className="text-sm text-muted-foreground">Aktuell ist kein Spiel angesetzt.</p>
         )}
@@ -59,7 +59,7 @@ export default async function Uebersicht({ params }: Props) {
       <section className="space-y-2">
         <h2 className="font-heading text-lg font-semibold">Letztes Ergebnis</h2>
         {letztes ? (
-          <SpielKarte spiel={letztes} eigenTeamtable={m.teamtableId} />
+          <SpielKarte spiel={letztes} eigenTeamtable={m.teamtableId} teilenPfad={`/verein/${verein.slug}/${m.slug}`} />
         ) : (
           <p className="text-sm text-muted-foreground">Noch kein Spiel gespielt.</p>
         )}

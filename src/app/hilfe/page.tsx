@@ -338,6 +338,11 @@ export default async function HilfePage() {
           Die Systemverwaltung kann unter „Synchronisation“ die Quellen prüfen. Die Saisonliste ist
           dabei eine optionale Diagnose: Ihr Ausfall allein bedeutet keinen Ausfall des Spielabrufs.
         </p>
+
+        <h3 className="text-sm font-medium">Spiel teilen</h3>
+        <p className="text-sm text-muted-foreground">
+          Auf den Spielkarten der öffentlichen App gibt es einen <strong>Teilen</strong>-Button: Er verschickt den Link zur <strong>Mannschaftsseite</strong> des Spiels über das Share-Menü des Handys (WhatsApp, Mail, …); dort steht das Spiel als nächstes Spiel bzw. im Spielplan. Geteilt wird nur der Link, ohne Tracking. Auf Geräten ohne Share-Menü wird er stattdessen in die Zwischenablage kopiert. Im Admin-Bereich gibt es den Button nicht.
+        </p>
         <h3 className="text-sm font-medium">Eine Mannschaft fehlt oder ist leer?</h3>
         <p className="text-sm text-muted-foreground">
           Nach dem Aktualisieren erscheinen unter dem Ergebnis Hinweise. Die

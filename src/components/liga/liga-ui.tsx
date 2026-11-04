@@ -9,6 +9,7 @@ import { quelleFuer } from "@/lib/match-provider";
 import { ursprungsTermin } from "@/lib/liga-spiele-hilfen";
 import { ergebnisHinweis, hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "./favorit-stern";
+import { TeilenButton } from "./teilen-button";
 
 export function formatSpieltag(datum: string, uhrzeit: string | null): string {
   const text = new Intl.DateTimeFormat("de-DE", {
@@ -57,6 +58,7 @@ export function SpielKarte({
   teamLabel,
   nurUhrzeit,
   mitAusgang,
+  teilenPfad,
 }: {
   spiel: SpielAnsicht;
   eigenTeamtable?: string | null;
@@ -65,6 +67,9 @@ export function SpielKarte({
   nurUhrzeit?: boolean;
   // Farbstreifen links: Sieg/Unentschieden/Niederlage aus Sicht der eigenen Mannschaft.
   mitAusgang?: boolean;
+  // Pfad der Seite, die der Teilen-Button weitergibt (die Mannschaftsseite zu diesem Spiel). Ohne Pfad gibt es keinen Button
+  // (z.B. im Admin-Bereich, wo die Karte keine öffentliche Adresse hat).
+  teilenPfad?: string;
 }) {
   const jetztSpiel = new Date();
 
@@ -152,24 +157,24 @@ export function SpielKarte({
           </div>
         )}
       </div>
-      {(spiel.halleName || berichtUrl || liveUrl) && (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          {spiel.halleName ? (
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spiel.halleName)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="-my-3 inline-flex min-h-11 items-center gap-1.5 hover:underline"
-              aria-label={`${spiel.halleName} auf der Karte öffnen`}
-            >
-              <MapPinIcon className="size-3.5" />
-              {spiel.halleName}
-            </a>
-          ) : (
-            <span />
-          )}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        {spiel.halleName ? (
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spiel.halleName)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="-my-3 inline-flex min-h-11 items-center gap-1.5 hover:underline"
+            aria-label={`${spiel.halleName} auf der Karte öffnen`}
+          >
+            <MapPinIcon className="size-3.5" />
+            {spiel.halleName}
+          </a>
+        ) : (
+          <span />
+        )}
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {(berichtUrl || liveUrl) && (
-            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <>
               {liveUrl && (
                 <a
                   href={liveUrl}
@@ -192,10 +197,11 @@ export function SpielKarte({
                   <ExternalLinkIcon className="size-3" />
                 </a>
               )}
-            </span>
+            </>
           )}
-        </div>
-      )}
+          {teilenPfad && <TeilenButton url={teilenPfad} titel={`${spiel.heimName} vs ${spiel.gastName}`} />}
+        </span>
+      </div>
     </Card>
   );
 }

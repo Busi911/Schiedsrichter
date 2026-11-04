@@ -27,7 +27,7 @@ export default async function Ergebnisse({ params }: Props) {
       {spiele.length === 0 ? (
         <p className="text-sm text-muted-foreground">Noch keine Ergebnisse.</p>
       ) : (
-        spiele.map((s) => <SpielKarte key={s.id} spiel={s} eigenTeamtable={m.teamtableId} />)
+        spiele.map((s) => <SpielKarte key={s.id} spiel={s} eigenTeamtable={m.teamtableId} teilenPfad={`/verein/${verein.slug}/${m.slug}`} />)
       )}
       <StandHinweis stand={verein.spieleSynchronisiertAm} />
     </div>

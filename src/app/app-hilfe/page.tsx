@@ -28,6 +28,7 @@ export default function AppHilfePage() {
             ["favoriten", "Favoriten merken"],
             ["statistik", "Statistik"],
             ["training", "Training"],
+            ["teilen", "Ein Spiel teilen"],
             ["neuigkeiten", "Neuigkeiten"],
             ["spiele", "Live, Ergebnis folgt, vorläufig"],
             ["daten", "Woher kommen die Daten?"],
@@ -113,6 +114,15 @@ export default function AppHilfePage() {
           Manche Vereine zeigen den Bereich <strong>Neuigkeiten</strong> (in der Leiste unten als „News“, bei vielen Bereichen unter „Mehr“): Berichte
           von der Homepage des Vereins, neueste zuerst, jeweils mit kurzem Auszug; „Weiterlesen“ öffnet den Bericht auf der Homepage des Vereins. Der Bereich fehlt, wenn der Verein ihn
           nicht eingeschaltet hat.
+        </p>
+      </section>
+
+      <section id="teilen" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Ein Spiel teilen</h2>
+        <p className="text-sm text-muted-foreground">
+          Auf jeder Spielkarte findet ihr <strong>Teilen</strong>. Das öffnet das Share-Menü eures Handys (WhatsApp, Nachrichten, Mail …) mit dem Link zur Mannschaftsseite
+          des Spiels; wer ihn öffnet, sieht dort das Spiel und die Tabelle. Ohne Share-Menü (z.B. am Computer) wird der Link kopiert. Es wird nur der Link geteilt, nichts
+          anderes und ohne Tracking.
         </p>
       </section>
 
