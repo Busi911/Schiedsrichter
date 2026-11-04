@@ -52,6 +52,8 @@ Layout `verein/[slug]/layout.tsx`. Kein Tracking: "heute gezeigt" liegt nur in l
 `?sponsor=zeigen` erzwingt die Anzeige (Vorschau). Kein SVG-Upload (XSS), Links nur https.
 Datenschutzseite enthält dazu einen Abschnitt.
 
+**Sponsor je Mannschaft (04.11.2026):** unabhängig davon pflegt der VEREIN selbst (Admin mit Schreibrecht, `/admin/mannschaften` → „Sponsoren der Mannschaften“, `components/mannschaft-sponsoren.tsx`, Actions `mannschaften/sponsor-actions.ts`) je Mannschaft einen Sponsor (Tabelle `mannschaft_sponsor`, Migration 0124, `verein_id` + RLS, im Mandantentrennungs-Test; Name, https-Link, „gültig bis“, Bild als WebP, aktiv). Hängt an der saisonübergreifenden `liga_mannschaft` (OHNE RLS): jede Action MUSS `mannschaftGehoertZumVerein` prüfen. Bild und Wirksamkeit wie beim Vereinssponsor (`verarbeiteSponsorBild`, `pruefeSponsorLink`, `sponsorWirksam` aus `lib/sponsor.ts`; kein SVG), Laden/Prüfen in `lib/mannschaft-sponsor.ts`. Anzeige NUR als kleine Zeile „Unterstützt von …“ im Mannschafts-Layout (`components/liga/mannschaft-sponsor.tsx`, Bild über `/verein/[slug]/[team]/sponsor`, 404 solange nicht wirksam), nie als Vollbild, kein Tracking; hat keinen Einfluss auf Abrechnung oder `verein_sponsor`. Im Demo gesperrt (`verbieteImDemo`). Hilfe `/hilfe#mannschafts-sponsor`.
+
 ## Abbestellbare Mails (Abmelde-Link)
 
 Die optionalen Erinnerungs-/Übersichtsmails (Wochenübersicht, Terminerinnerung, offene
