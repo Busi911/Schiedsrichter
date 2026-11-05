@@ -656,7 +656,7 @@ erst nach Zustimmung des HHV und nach Sichtung der Daten.
   (Spielseite `/match/<Spiel-ID>?season_id=<Saison>` mit dem Tab "LIVETICKER"; vor/während des Spiels "Live-Ticker", nach dem Spiel
   "Spielseite bei handball.net"). Es gibt in der App WEITERHIN KEINE eigene Tickeransicht und keine gespeicherten Ereignisse, für keine Quelle.
 - Anzeige "Live" / "Läuft gerade" (nur Vermutung aus der Anstoßzeit), "Ergebnis folgt" (heute, Anwurf > 90 Min her), "Ergebnis ausstehend".
-- Live-Fenster-Cron `/api/cron/liga-live` (alle 5 Min, Freitag bis Sonntag, nur nuLiga): holt den Spielbericht-Link (= Ticker) rund um den Anwurf
+- Live-Fenster-Cron `/api/cron/liga-live` (alle 5 Min, täglich, nur nuLiga): holt den Spielbericht-Link (= Ticker) rund um den Anwurf
   statt erst im Stundentakt. Halbzeitstand unter dem Ergebnis, wo die Quelle ihn liefert (nuLiga, NDR; handball.net nicht belegt).
 - Systemadmin: Häkchen "Alles neu laden" unter `/system/sync`, Schalter für die automatische Ansprache unter `/system/ansprache`,
   Feedback als erledigt markieren/direkt beantworten, `/system/handball-net-diagnose` (rohe Spielantwort + ein `/api/`-Pfad aus dem Browser).
