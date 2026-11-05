@@ -40,7 +40,7 @@ describe.skipIf(!ADMIN_URL)("handball.net-Ansetzung aus den öffentlichen Daten 
   };
 
   beforeAll(async () => {
-    await testDb.insert(schema.vereine).values({ id: vereinId, name: "DHB Ansetzung", ligaUebernahmeAktiv: false });
+    await testDb.insert(schema.vereine).values({ id: vereinId, name: "DHB Ansetzung", status: "aktiv", ligaUebernahmeAktiv: false });
     const [g] = await testDb
       .insert(schema.ligaGruppen)
       .values({ verband: "DHB", quelle: "handball_net", nuligaGroupId: phaseId, championship: "2026/27", ligaName: "3. Liga" })

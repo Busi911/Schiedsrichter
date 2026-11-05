@@ -243,7 +243,7 @@ describe.skipIf(!ADMIN_URL)("handball.net-Sync (Postgres)", () => {
   };
   beforeAll(async () => {
     await raeumeAuf();
-    await db.insert(schema.vereine).values({ id: vereinId, name: "HSG Dutenhofen/Münchholzhausen" });
+    await db.insert(schema.vereine).values({ id: vereinId, name: "HSG Dutenhofen/Münchholzhausen", status: "aktiv" });
   });
   afterAll(async () => {
     await db.delete(schema.vereine).where(eq(schema.vereine.id, vereinId));
@@ -368,7 +368,7 @@ describe.skipIf(!ADMIN_URL)("nuLiga und handball.net gemeinsam (Postgres)", () =
   };
   beforeAll(async () => {
     await raeumeAuf();
-    await db.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim" });
+    await db.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim", status: "aktiv" });
   });
   afterAll(async () => {
     await db.delete(schema.vereine).where(eq(schema.vereine.id, vereinId));
@@ -472,7 +472,7 @@ describe.skipIf(!ADMIN_URL)("handball.net: Zusatzquelle (Postgres)", () => {
   beforeAll(async () => {
     await db.delete(schema.ligaVereine);
     await db.delete(schema.ligaGruppen);
-    await db.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim" });
+    await db.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim", status: "aktiv" });
   });
   afterAll(async () => {
     await db.delete(schema.vereine).where(eq(schema.vereine.id, vereinId));

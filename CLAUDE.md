@@ -244,7 +244,7 @@ umbrechenden Zeile).
   ablegen). Weitere Landesverbände: Eintrag in `nuliga/verbaende.ts`.
 - DB-Integrationstests (`nuliga/sync.test.ts`, `liga-oeffentlich.test.ts`)
   laufen nur mit `TEST_DATABASE_ADMIN_URL` (siehe `tenant-isolation.test.ts`);
-  `fileParallelism` ist deshalb ausgeschaltet.
+  `fileParallelism` ist deshalb ausgeschaltet. **Lokal komplett (05.11.2026, alle 1339 grün):** Postgres 16 starten, `npx drizzle-kit migrate` mit `DATABASE_ADMIN_URL`, `app_user` ein Passwort geben, dann `vitest run` mit `DATABASE_ADMIN_URL`, `DATABASE_URL` (app_user), `TEST_DATABASE_ADMIN_URL`, `TEST_DATABASE_URL`, `AUTH_SECRET` (Rezept wie `.github/workflows/produkttour-screenshots.yml`; ohne DB laufen 17 Dateien nicht). **Stolpersteine:** (1) Test-Vereine brauchen `status: "aktiv"` — der Standard beim Anlegen ist `vorbereitung` (öffentlich unsichtbar, keine Zahlungsmails, kein Sync); ohne den Status passieren die Tests „leer“. (2) Zeitstempel in Sync-Code immer mit dem übergebenen `jetzt` schreiben, nie mit `new Date()` (der Vergleich nutzt `jetzt`; sonst überspringt ein Test mit Datum in der Vergangenheit alles als „frisch“). Es gibt keine CI-Pipeline für Tests: vor dem Merge lokal laufen lassen.
 - **Zweite Quelle handball.net (DHB: 3. Liga, Jugendbundesliga, Quali):**
   `src/lib/handball-net/` (modell = reine Parser/Whitelist/Statusmapping/
   Normalisierung/Tabelle, client = HTTP, sync = Persistenz). Einstieg ist

@@ -26,9 +26,10 @@ describe.skipIf(!ADMIN_URL)("Zahlungs-Mails (Postgres)", () => {
 
   beforeAll(async () => {
     await testDb.insert(schema.vereine).values([
-      { id: ids.beta, name: "Beta-Verein", tarif: "beta", rechnungEmail: "rechnung@beta.test" },
-      { id: ids.befreit, name: "Befreiter Verein", tarif: "befreit" },
-      { id: ids.sponsor, name: "Sponsor-Verein", tarif: "beta", sponsorUebernimmt: true },
+      // status "aktiv": die Zahlungsprüfung betrachtet nur aktive Vereine (Standard beim Anlegen ist "vorbereitung").
+      { id: ids.beta, name: "Beta-Verein", tarif: "beta", status: "aktiv", rechnungEmail: "rechnung@beta.test" },
+      { id: ids.befreit, name: "Befreiter Verein", tarif: "befreit", status: "aktiv" },
+      { id: ids.sponsor, name: "Sponsor-Verein", tarif: "beta", status: "aktiv", sponsorUebernimmt: true },
     ]);
     await testDb.insert(schema.users).values([
       { id: systemAdminId, email: "sys@zahlung.test", name: "Sys", istSystemAdmin: true },
