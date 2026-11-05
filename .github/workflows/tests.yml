@@ -1,0 +1,75 @@
+name: Tests
+
+# Läuft bei jedem Pull Request und bei jedem Push auf main: Typen, Lint und die komplette Testsuite gegen ein echtes Postgres
+# (Mandantentrennung/RLS, Migrationen, Sync und Abrechnung brauchen eine Datenbank; ohne sie laufen rund 17 Testdateien gar nicht).
+# Dasselbe Rezept wie lokal (siehe CLAUDE.md, Abschnitt "Öffentliche Vereinsseiten", DB-Integrationstests).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: handballpate
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Migrationen und Tests mit der privilegierten Rolle; die RLS-Tests brauchen zusätzlich die eingeschränkte Rolle app_user
+      # (wird von den Migrationen angelegt, das Passwort setzt der Schritt "app_user vorbereiten").
+      DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/handballpate?sslmode=disable
+      DATABASE_URL: postgres://app_user:testpw@localhost:5432/handballpate?sslmode=disable
+      TEST_DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/handballpate?sslmode=disable
+      TEST_DATABASE_URL: postgres://app_user:testpw@localhost:5432/handballpate?sslmode=disable
+      AUTH_SECRET: ci-secret-nicht-fuer-produktion
+      CRON_SECRET: ci-secret-nicht-fuer-produktion
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Typen prüfen
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint src
+
+      - name: Schema migrieren (alle Migrationen, legt u.a. app_user an)
+        run: npx drizzle-kit migrate
+
+      - name: app_user vorbereiten, Singleton-Zeile seeden
+        run: |
+          command -v psql >/dev/null || (sudo apt-get update -y >/dev/null && sudo apt-get install -y postgresql-client >/dev/null)
+          psql "$DATABASE_ADMIN_URL" -c "ALTER ROLE app_user WITH PASSWORD 'testpw';"
+          psql "$DATABASE_ADMIN_URL" -c "INSERT INTO system_einstellungen (beta_verein_limit) SELECT 50 WHERE NOT EXISTS (SELECT 1 FROM system_einstellungen);"
+
+      - name: Tests
+        run: npx vitest run
