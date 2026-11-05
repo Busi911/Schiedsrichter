@@ -37,9 +37,10 @@ export function laeuftVermutlich(s: SpielAnsicht, jetzt: Date): boolean {
 }
 
 // Live-Ticker ist nur kurz vor, während und kurz nach dem Spiel interessant: ab 60 Min vor dem Anwurf bis 4 h danach,
-// solange das Ergebnis nicht genehmigt ist und das Spiel nicht abgesagt/verlegt ist.
+// solange das Ergebnis nicht genehmigt ist und das Spiel nicht abgesagt ist. "verlegt" sperrt NICHT: `beginn` ist dann schon der
+// neue Termin, nuLiga lässt das "v" auch nach der Verlegung stehen (Betreiber 05.11.2026: verlegtes Spiel lief, Ticker fehlte).
 export function liveTickerRelevant(s: SpielAnsicht, jetzt: Date): boolean {
-  if (!s.beginn || s.ergebnisBestaetigt || s.status === "abgesagt" || s.status === "verlegt") return false;
+  if (!s.beginn || s.ergebnisBestaetigt || s.status === "abgesagt") return false;
   const ab = jetzt.getTime() - s.beginn.getTime();
   return ab >= -60 * 60 * 1000 && ab <= 4 * 60 * 60 * 1000;
 }
