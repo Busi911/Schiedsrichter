@@ -196,7 +196,7 @@ export async function fuehreOutreachAus(
       // 3. E-Mail extrahieren: nuLiga-Kontakt → Impressum der Website →
       //    Impressum der E-Mail-Domain (siehe extrahiereOutreachEmail).
       const { email: kontaktEmail, warnung: emailWarnung } = await extrahiereOutreachEmail(seite.html);
-      let impressumFehler: string | null = null;
+      const impressumFehler: string | null = null;
 
       if (!kontaktEmail) {
         await inkrementiereOutreachVersuch(k.clubId, k.verband);
