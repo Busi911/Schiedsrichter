@@ -97,6 +97,8 @@ export type GruppenSeite = {
   gruppenId: string | null;
   liga: LigaInfo | null;
   tabelle: TabellenZeile[];
+  // Staffeln OHNE Tabelle (z.B. E-Jugend): nur die Teilnehmerliste (Raster | WR | Mannschaft) mit teamtable-IDs.
+  teilnehmer: { name: string; teamtableId: string }[];
   spiele: NuligaSpiel[];
 };
 

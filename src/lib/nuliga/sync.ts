@@ -297,12 +297,27 @@ async function aktualisiereGruppentabelle(
     const { daten, warnungen } = parseGroupPage(html);
     for (const w of warnungen) lauf.warn(`Gruppe ${gruppenId}: ${w}`);
     const zeilen = daten.tabelle.filter((z) => z.teamtableId);
+    if (zeilen.length === 0 && daten.teilnehmer.length > 0) {
+      // Staffel ohne Tabelle (E-Jugend): nichts speichern (es gibt keine Wertung), aber die Mannschaft über die
+      // Teilnehmerliste (Name -> teamtable-ID) zuordnen. rang 0 = "ohne Platz", passt nie auf Rang/Punkte der Vereinsliste.
+      return daten.teilnehmer.map((t) => ({
+        rang: 0,
+        mannschaft: t.name,
+        teamtableId: t.teamtableId,
+        spiele: null,
+        siege: null,
+        unentschieden: null,
+        niederlagen: null,
+        tore: null,
+        punkte: null,
+      }));
+    }
     if (zeilen.length === 0) {
       // Diagnose ohne Inhalte: Was steht auf der Seite? (Köpfe, Zeilen, Spielplan) — leere Tabelle oder nur nicht lesbar?
       const d = parseSpielTabellen(html).diagnose;
       lauf.fehler(
         `Gruppe ${gruppenId}: keine Tabelle lesbar, bestehender Stand bleibt ` +
-          `(${d.tabellen} Tabellen im HTML, Köpfe ${JSON.stringify(d.koepfe)}, ${daten.tabelle.length} Tabellenzeilen ohne teamtable-ID, ` +
+          `(${d.tabellen} Tabellen im HTML, Köpfe ${JSON.stringify(d.koepfe)}, ${daten.tabelle.length} Tabellenzeilen ohne teamtable-ID, ${daten.teilnehmer.length} Teilnehmer mit teamtable-ID, ` +
           `Spielplan: ${d.kandidaten} Zeilen, Spielnummer ${d.mitSpielnummer} ok)`
       );
       return null;
