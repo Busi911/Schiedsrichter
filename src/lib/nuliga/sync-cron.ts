@@ -90,6 +90,8 @@ export type FaelligeErgebnis = {
   slug: string;
   struktur?: string;
   spiele?: string;
+  // Meldungen des nuLiga-Spiele-Laufs (u.a. Spielplan-Diagnose je Mannschaft): zur Anzeige unter /system/sync.
+  spieleMeldungen?: string[];
   handballNet?: string;
   // Meldungen des handball.net-Laufs (z.B. "Zeitlimit erreicht", Fehler je Team): zur Diagnose unter /system/sync.
   handballNetMeldungen?: string[];
@@ -269,7 +271,9 @@ export async function synchronisiereFaellige(
           (eintrag.struktur !== undefined || erzwingen || faellig(v.spieleSynchronisiertAm, intervall, jetzt))
         ) {
           schritt(`${v.slug}: nuLiga-Spiele`);
-          eintrag.spiele = (await synchronisiereSpiele(v.id, { ...opt, jetzt, frist })).status;
+          const spieleErg = await synchronisiereSpiele(v.id, { ...opt, jetzt, frist });
+          eintrag.spiele = spieleErg.status;
+          eintrag.spieleMeldungen = spieleErg.meldungen;
         }
       } catch (err) {
         eintrag.struktur = `fehler: ${err instanceof Error ? err.message : String(err)}`;
