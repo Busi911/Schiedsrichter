@@ -279,6 +279,10 @@ export function MannschaftsKarte({ basis, m }: { basis: string; m: MannschaftAns
             {n.uhrzeit ? ` · ${n.uhrzeit}` : ""} · {n.heimTeamtableId === m.teamtableId ? "gegen" : "bei"}{" "}
             {gegner}
           </p>
+        ) : m.spiele.length === 0 && !m.istMeldeliste && m.punkte && m.punkte.plus + m.punkte.minus > 0 ? (
+          // Die Tabelle zeigt bereits Punkte, aber es ist kein einziges Spiel gespeichert: der Spielplan
+          // wurde nicht gelesen, "Kein Spiel angesetzt" wäre dann falsch.
+          <p className="text-xs text-muted-foreground">Spielplan derzeit nicht verfügbar</p>
         ) : (
           <p className="text-xs text-muted-foreground">Kein Spiel angesetzt</p>
         )}

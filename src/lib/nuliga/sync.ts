@@ -814,6 +814,16 @@ export async function synchronisiereSpiele(
       if (daten.clubId && daten.clubId !== verein.nuligaClubId && !zusatzClubIds.has(daten.clubId)) {
         lauf.warn(`${t.nuligaName}: Portrait gehört zu Verein ${daten.clubId} (Spielgemeinschaft?)`);
       }
+      const d = daten.diagnose;
+      if (d.kandidaten === 0 || d.kandidaten > d.mitSpielnummer) {
+        // Diagnose ohne Inhalte: Quelle, IDs, Spaltenköpfe und Zählwerte (keine Personendaten).
+        lauf.warn(
+          `${t.nuligaName} (championship ${g.championship}, group ${g.nuligaGroupId}, teamtable ${t.nuligaTeamtableId}): ` +
+            `${d.tabellen} Tabellen, ${d.erkannteTabellen} als Spielplan erkannt, Köpfe ${JSON.stringify(d.koepfe)}, ` +
+            `${d.kandidaten} Zeilen, Spielnummer: ${d.mitSpielnummer} ok / ${d.ohneSpielnummer} leer / ` +
+            `${d.ungueltigeSpielnummer} nicht numerisch, Meeting-ID: ${d.mitMeetingId}, verworfen: ${JSON.stringify(d.verworfen)}`
+        );
+      }
       const mitNummer = daten.spiele.filter((s) => s.spielnummer !== null);
       if (mitNummer.length < daten.spiele.length) {
         lauf.warn(`${t.nuligaName}: ${daten.spiele.length - mitNummer.length} Spiele ohne Spielnummer ignoriert`);

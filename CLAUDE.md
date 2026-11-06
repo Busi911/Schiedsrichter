@@ -217,6 +217,7 @@ umbrechenden Zeile).
   Test, dass die Platzhalter-Namen aus `__fixtures__/README.md` nicht
   auftauchen. Fixtures nie ungekürzt/mit echten Namen einchecken.
 - **Verlegt (18.10.2026):** `SpielKarte` zeigt bei verlegten nuLiga-Spielen unter dem Badge "Ursprünglich: Sa., 10.10., 16:00 Uhr" (`ursprungsTermin`, aus `liga_spiel.urspruenglicher_beginn`, vom Parser aus dem Hinweis der Zeitzelle gelesen; handball.net liefert ihn nicht).
+- **Diagnose Spielplan (06.11.2026):** `parseSpielTabellen` liefert zusätzlich `diagnose` (nur Zählwerte und normalisierte Spaltenköpfe: Tabellen, erkannte Spielplan-Tabellen, Zeilen, Spielnummer ok/leer/nicht numerisch, Meeting-IDs, Verwerfungsgründe). `synchronisiereSpiele` schreibt sie mit championship/group/teamtable als Warnung (sichtbar unter `/system/sync`), sobald nicht jede Zeile eine Spielnummer hat. Spielnummern werden nie aus fremdem Text geraten; Köpfe `Heim`/`Gast` gelten wie `Heimmannschaft`/`Gastmannschaft`, rowspan/colspan werden beachtet. Hat eine Mannschaft Punkte, aber gar keine gespeicherten Spiele, zeigt die Karte „Spielplan derzeit nicht verfügbar“ statt „Kein Spiel angesetzt“. Ursache der fehlenden E-Jugend-Spiele (HHV) war bei Redaktionsschluss NICHT nachgewiesen (kein echtes HTML erreichbar); Datenmodell (Meeting-ID statt Spielnummer) erst ändern, wenn die Diagnose es belegt.
 - **Teamidentität:** nie über den angezeigten Namen. Stabil sind
   `liga_mannschaft.schluessel` (Normalisierung, saisonübergreifend) und die
   nuLiga-IDs `group`/`teamtable` (je Saison). Ein Spiel ist eindeutig über
