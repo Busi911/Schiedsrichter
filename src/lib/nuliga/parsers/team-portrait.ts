@@ -41,7 +41,7 @@ export function parseTeamPortrait(html: string): ParseErgebnis<TeamPortraitSeite
     break;
   }
 
-  const { spiele, warnungen: spielWarnungen } = parseSpielTabellen(html);
+  const { spiele, warnungen: spielWarnungen, diagnose } = parseSpielTabellen(html);
   warnungen.push(...spielWarnungen);
 
   if (!params?.get("teamtable")) warnungen.push("Keine teamtable-ID in den Seiten-Metadaten");
@@ -49,6 +49,7 @@ export function parseTeamPortrait(html: string): ParseErgebnis<TeamPortraitSeite
 
   return {
     daten: {
+      diagnose,
       championship: params?.get("championship") ?? null,
       gruppenId: params?.get("group") ?? null,
       teamtableId: params?.get("teamtable") ?? null,

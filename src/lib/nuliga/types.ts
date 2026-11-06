@@ -101,6 +101,7 @@ export type GruppenSeite = {
 };
 
 export type TeamPortraitSeite = {
+  diagnose: import("./parsers/spielzeilen").SpielplanDiagnose;
   championship: string | null;
   gruppenId: string | null;
   teamtableId: string | null;
