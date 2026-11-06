@@ -14,7 +14,7 @@ const WATCHDOG_MS = 268_000;
 // Ergebnistext eines Laufs, gemeinsam für den Einzel-Lauf (Redirect) und den Schritt der Auto-Schleife (JSON).
 function ergebnisText(ergebnisse: Awaited<ReturnType<typeof synchronisiereFaellige>>["ergebnisse"]): string {
   return ergebnisse
-    .map((e) => `${e.slug}: ${[e.struktur && `Struktur ${e.struktur}`, e.spiele && `Spiele ${e.spiele}${e.spieleMeldungen?.length ? ` (${e.spieleMeldungen.slice(0, 6).join("; ")})` : ""}`, e.handballNet && `handball.net ${e.handballNet}${e.handballNetMeldungen?.length ? ` (${e.handballNetMeldungen.slice(0, 3).join("; ")})` : ""}`].filter(Boolean).join(", ") || "nichts fällig"}`)
+    .map((e) => `${e.slug}: ${[e.struktur && `Struktur ${e.struktur}${e.strukturMeldungen?.length ? ` (${e.strukturMeldungen.slice(0, 6).join("; ")})` : ""}`, e.spiele && `Spiele ${e.spiele}${e.spieleMeldungen?.length ? ` (${e.spieleMeldungen.slice(0, 6).join("; ")})` : ""}`, e.handballNet && `handball.net ${e.handballNet}${e.handballNetMeldungen?.length ? ` (${e.handballNetMeldungen.slice(0, 3).join("; ")})` : ""}`].filter(Boolean).join(", ") || "nichts fällig"}`)
     .join(" | ");
 }
 

@@ -92,6 +92,7 @@ export type FaelligeErgebnis = {
   spiele?: string;
   // Meldungen des nuLiga-Spiele-Laufs (u.a. Spielplan-Diagnose je Mannschaft): zur Anzeige unter /system/sync.
   spieleMeldungen?: string[];
+  strukturMeldungen?: string[];
   handballNet?: string;
   // Meldungen des handball.net-Laufs (z.B. "Zeitlimit erreicht", Fehler je Team): zur Diagnose unter /system/sync.
   handballNetMeldungen?: string[];
@@ -259,12 +260,16 @@ export async function synchronisiereFaellige(
     const intervall = spieleIntervallMinuten(spieltagsnah);
     if (v.nuligaClubId && quelle !== "handball_net") {
       const strukturZuletzt = letzterStrukturVersuch.get(v.id);
+      // Von Hand für EINEN Verein mit "Alles neu laden": Struktur trotz Sperre/Intervall neu laden.
+      const strukturErzwingen = erzwingen && !!opt.nurVereinId;
       const strukturUeberspringen =
-        !!strukturZuletzt && jetzt.getTime() - strukturZuletzt.getTime() < STRUKTUR_VERSUCH_MS;
+        !strukturErzwingen && !!strukturZuletzt && jetzt.getTime() - strukturZuletzt.getTime() < STRUKTUR_VERSUCH_MS;
       try {
-        if (!strukturUeberspringen && faellig(v.strukturSynchronisiertAm, STRUKTUR_INTERVALL_MINUTEN, jetzt)) {
+        if (!strukturUeberspringen && (strukturErzwingen || faellig(v.strukturSynchronisiertAm, STRUKTUR_INTERVALL_MINUTEN, jetzt))) {
           schritt(`${v.slug}: Struktur`);
-          eintrag.struktur = (await synchronisiereStruktur(v.id, { ...opt, jetzt, frist })).status;
+          const strukturErg = await synchronisiereStruktur(v.id, { ...opt, jetzt, frist, erzwingen: strukturErzwingen });
+          eintrag.struktur = strukturErg.status;
+          eintrag.strukturMeldungen = strukturErg.meldungen;
         }
         if (
           eintrag.struktur !== "fehler" &&
