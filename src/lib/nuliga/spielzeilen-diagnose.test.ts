@@ -69,3 +69,35 @@ describe("parseSpielTabellen: Diagnose", () => {
     expect(diagnose.verworfen["ohne Datum"]).toBe(1);
   });
 });
+
+// Staffel ohne Tabelle (E-Jugend, 06.11.2026 per Diagnose belegt): Tabellen "Raster | WR | Mannschaft" und Spielplan.
+describe("parseGroupPage: Staffel ohne Tabelle", () => {
+  const html = `<html><head><meta name="nuLigaStatsUrl" content="/x?championship=Hanau+26%2F27&amp;group=491869"></head><body>
+    <h1>Hanau 26/27<br/>männliche Jugend E Gr.1<br/>Spielplan</h1>
+    <table><tr><th>Raster</th><th>WR</th><th>Mannschaft</th><th></th></tr>
+      <tr><td>1</td><td></td><td><a href="/wa/teamPortrait?teamtable=111&amp;group=491869">HSG Datterode/Röhrda/Sontra</a></td><td></td></tr>
+      <tr><td>2</td><td></td><td><a href="/wa/teamPortrait?teamtable=222&amp;group=491869">TV Beispiel</a></td><td></td></tr></table>
+    ${tabelle(KOPF, [zeile("1")])}</body></html>`;
+
+  it("liefert die Teilnehmer mit teamtable-ID statt einer leeren Tabelle ohne Hinweis", async () => {
+    const { parseGroupPage } = await import("./parsers/group-page");
+    const { daten, warnungen } = parseGroupPage(html);
+    expect(daten.tabelle).toHaveLength(0);
+    expect(daten.teilnehmer).toEqual([
+      { name: "HSG Datterode/Röhrda/Sontra", teamtableId: "111" },
+      { name: "TV Beispiel", teamtableId: "222" },
+    ]);
+    expect(daten.spiele).toHaveLength(1);
+    expect(warnungen).toContain("Keine Tabelle, 2 Teilnehmer ohne Wertung");
+  });
+
+  it("ordnet die Mannschaft über den Namen zu (rang 0 passt nie auf den Stand)", async () => {
+    const { ermittleTeamtable } = await import("./sync-hilfen");
+    const zeilen = [
+      { rang: 0, mannschaft: "HSG Datterode/Röhrda/Sontra", teamtableId: "111" },
+      { rang: 0, mannschaft: "TV Beispiel", teamtableId: "222" },
+    ].map((z) => ({ ...z, spiele: null, siege: null, unentschieden: null, niederlagen: null, tore: null, punkte: null }));
+    expect(ermittleTeamtable({ rang: 7, punkte: { plus: 0, minus: 8 }, nummer: 1 }, zeilen, "HSG Datterode/Röhrda/Sontra")).toBe("111");
+    expect(ermittleTeamtable({ rang: null, punkte: null, nummer: 1 }, zeilen, "Fremder Verein")).toBeNull();
+  });
+});
