@@ -17,6 +17,7 @@ import { parseFreundschaftsGruppe } from "./parsers/freundschaft";
 import { beschreibeZusatzVerein, passtZumZusatzFilter } from "./zusatzquellen";
 import { parseGroupPage } from "./parsers/group-page";
 import { parseTeamPortrait } from "./parsers/team-portrait";
+import { parseSpielTabellen } from "./parsers/spielzeilen";
 import { normalisiereMannschaft, nummerZuRoemisch, parseLigaName, slugify } from "./normalisierung";
 import { baueNuligaUrl } from "./verbaende";
 import {
@@ -297,7 +298,13 @@ async function aktualisiereGruppentabelle(
     for (const w of warnungen) lauf.warn(`Gruppe ${gruppenId}: ${w}`);
     const zeilen = daten.tabelle.filter((z) => z.teamtableId);
     if (zeilen.length === 0) {
-      lauf.fehler(`Gruppe ${gruppenId}: keine Tabelle lesbar, bestehender Stand bleibt`);
+      // Diagnose ohne Inhalte: Was steht auf der Seite? (Köpfe, Zeilen, Spielplan) — leere Tabelle oder nur nicht lesbar?
+      const d = parseSpielTabellen(html).diagnose;
+      lauf.fehler(
+        `Gruppe ${gruppenId}: keine Tabelle lesbar, bestehender Stand bleibt ` +
+          `(${d.tabellen} Tabellen im HTML, Köpfe ${JSON.stringify(d.koepfe)}, ${daten.tabelle.length} Tabellenzeilen ohne teamtable-ID, ` +
+          `Spielplan: ${d.kandidaten} Zeilen, Spielnummer ${d.mitSpielnummer} ok)`
+      );
       return null;
     }
     await db
