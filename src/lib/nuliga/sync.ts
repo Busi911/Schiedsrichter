@@ -571,6 +571,9 @@ export async function synchronisiereStruktur(
       gruppe.tabelle,
       quellenName
     );
+    if (!teamtable && gruppe.tabelle.length === 0 && !parseLigaName(team.ligaName).istMeldeliste) {
+      lauf.warn(`"${team.mannschaftsname}" (Gruppe ${team.gruppenId}): Gruppentabelle leer oder nicht lesbar, keine Zuordnung möglich`);
+    }
     if (!teamtable && gruppe.tabelle.length > 0) {
       // Mit Kontext, damit die Ursache direkt aus der Meldung ersichtlich
       // ist (Stand laut Vereinsliste und die Namen der Gruppentabelle).
@@ -783,8 +786,16 @@ export async function synchronisiereSpiele(
     if (!t.nuligaTeamtableId) {
       // Ohne Tabellenzeile (z.B. Gruppentabelle noch leer oder Team dort
       // nicht auffindbar) gibt es keinen Spielplan-Abruf — nicht stillschweigend.
+      // Ursache sichtbar machen: leere Gruppentabelle (z.B. Spielfeste ohne Tabelle) oder nur ein Namens-/Stand-Mismatch.
+      const tab = await gespeicherteTabelle(db, g.id);
+      const mitId = tab.filter((z) => z.teamtableId).length;
+      const namen = tab
+        .slice(0, 8)
+        .map((z) => `${z.rang}. ${z.mannschaft}${z.teamtableId ? "" : " (ohne teamtable)"}`)
+        .join("; ");
       lauf.warn(
-        `${t.nuligaName} (Gruppe ${g.nuligaGroupId}): keine Tabellenzeile zugeordnet, Spielplan wird nicht geladen`
+        `${t.nuligaName} (Gruppe ${g.nuligaGroupId}): keine Tabellenzeile zugeordnet, Spielplan wird nicht geladen ` +
+          `(gespeicherte Gruppentabelle: ${tab.length} Zeilen, ${mitId} mit teamtable-ID${namen ? `; ${namen}` : ""})`
       );
       continue;
     }
