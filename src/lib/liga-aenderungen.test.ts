@@ -90,7 +90,7 @@ describe.skipIf(!ADMIN_URL)("Verlegungen und Ergebnisse aus den öffentlichen Da
   beforeEach(async () => {
     mailSpy.mockClear();
     // Grundzustand: Termin = öffentliches Spiel, ohne Ergebnis; drei Dienste
-    await testDb.update(schema.ligaSpiele).set({ beginn: startOriginal, halleName: spiel.halleName, status: "geplant", toreHeim: null, toreGast: null }).where(eq(schema.ligaSpiele.id, spiel.id));
+    await testDb.update(schema.ligaSpiele).set({ beginn: startOriginal, halleName: spiel.halleName, status: "geplant", toreHeim: null, toreGast: null, ergebnisBestaetigt: false }).where(eq(schema.ligaSpiele.id, spiel.id));
     await testDb.update(schema.termine).set({ start: startOriginal, ort: spiel.halleName, ergebnisHeim: null, ergebnisAuswaerts: null }).where(eq(schema.termine.id, terminId));
     await testDb.delete(schema.terminZuordnungen).where(eq(schema.terminZuordnungen.terminId, terminId));
     await testDb.insert(schema.terminZuordnungen).values([
@@ -150,9 +150,29 @@ describe.skipIf(!ADMIN_URL)("Verlegungen und Ergebnisse aus den öffentlichen Da
     expect((await termin()).start.getTime()).toBe(startOriginal.getTime());
   });
 
+  it("laufender Stand (nicht genehmigt) wird NICHT übernommen und nicht gemeldet; ein früher kopierter Zwischenstand wird zurückgenommen", async () => {
+    const { uebernehmeAenderungen } = await import("./liga-aenderungen");
+    // nuLiga zeigt während des Spiels 5:4 als nicht genehmigtes Ergebnis
+    await testDb.update(schema.ligaSpiele).set({ toreHeim: 5, toreGast: 4, status: "gespielt", ergebnisBestaetigt: false }).where(eq(schema.ligaSpiele.id, spiel.id));
+    const r = await uebernehmeAenderungen(vereinId, "test", JETZT);
+    expect(r.ergebnisse).toBe(0);
+    expect([(await termin()).ergebnisHeim, (await termin()).ergebnisAuswaerts]).toEqual([null, null]);
+    expect(mailSpy).not.toHaveBeenCalled();
+
+    // Ein früher (vor dieser Regel) übernommener Zwischenstand verschwindet wieder
+    await testDb.update(schema.termine).set({ ergebnisHeim: 5, ergebnisAuswaerts: 4 }).where(eq(schema.termine.id, terminId));
+    await uebernehmeAenderungen(vereinId, "test", JETZT);
+    expect([(await termin()).ergebnisHeim, (await termin()).ergebnisAuswaerts]).toEqual([null, null]);
+
+    // Genehmigtes Endergebnis kommt an
+    await testDb.update(schema.ligaSpiele).set({ toreHeim: 31, toreGast: 24, ergebnisBestaetigt: true }).where(eq(schema.ligaSpiele.id, spiel.id));
+    expect((await uebernehmeAenderungen(vereinId, "test", JETZT)).ergebnisse).toBe(1);
+    expect([(await termin()).ergebnisHeim, (await termin()).ergebnisAuswaerts]).toEqual([31, 24]);
+  });
+
   it("Ergebnis wird übernommen (Dienste unberührt, keine Mail); falsche Richtung nicht", async () => {
     const { uebernehmeAenderungen } = await import("./liga-aenderungen");
-    await testDb.update(schema.ligaSpiele).set({ toreHeim: 27, toreGast: 21 }).where(eq(schema.ligaSpiele.id, spiel.id));
+    await testDb.update(schema.ligaSpiele).set({ toreHeim: 27, toreGast: 21, ergebnisBestaetigt: true }).where(eq(schema.ligaSpiele.id, spiel.id));
     const r = await uebernehmeAenderungen(vereinId, "test", JETZT);
     expect(r).toMatchObject({ verlegt: 0, ergebnisse: 1 });
     const t = await termin();
@@ -161,14 +181,14 @@ describe.skipIf(!ADMIN_URL)("Verlegungen und Ergebnisse aus den öffentlichen Da
     expect(mailSpy).not.toHaveBeenCalled();
 
     // Korrektur (vorläufiges Ergebnis später berichtigt): Termin folgt, still, Dienste unberührt
-    await testDb.update(schema.ligaSpiele).set({ toreHeim: 27, toreGast: 22 }).where(eq(schema.ligaSpiele.id, spiel.id));
+    await testDb.update(schema.ligaSpiele).set({ toreHeim: 27, toreGast: 22, ergebnisBestaetigt: true }).where(eq(schema.ligaSpiele.id, spiel.id));
     expect((await uebernehmeAenderungen(vereinId, "test", JETZT)).ergebnisse).toBe(1);
     expect([(await termin()).ergebnisHeim, (await termin()).ergebnisAuswaerts]).toEqual([27, 22]);
     expect(await dienste()).toHaveLength(3);
     expect(mailSpy).not.toHaveBeenCalled();
     // unverändert → nichts mehr zu tun
     expect((await uebernehmeAenderungen(vereinId, "test", JETZT)).ergebnisse).toBe(0);
-    await testDb.update(schema.ligaSpiele).set({ toreHeim: 27, toreGast: 21 }).where(eq(schema.ligaSpiele.id, spiel.id));
+    await testDb.update(schema.ligaSpiele).set({ toreHeim: 27, toreGast: 21, ergebnisBestaetigt: true }).where(eq(schema.ligaSpiele.id, spiel.id));
     await uebernehmeAenderungen(vereinId, "test", JETZT);
 
     // Heim/Gast im Termin vertauscht → kein Ergebnis raten

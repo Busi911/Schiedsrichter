@@ -63,12 +63,25 @@ export async function uebernehmeAenderungen(
     // folgt dem öffentlichen Ergebnis. Ergebnisse verknüpfter Spiele kommen nur aus den Liga-Daten
     // (von Hand pflegbar sind nur Test- und Turnierspiele). Eine Korrektur löst keine Mail aus —
     // die Benachrichtigung gilt nur dem erstmals eingetragenen Ergebnis.
+    // NUR ein von nuLiga genehmigtes Ergebnis zählt (`ergebnisBestaetigt`, wie überall in der App, siehe
+    // istZwischenstand): während des Spiels zeigt nuLiga den laufenden Stand als nicht genehmigtes Ergebnis,
+    // der Live-Cron holt ihn alle 5 Minuten — ohne diese Prüfung stand "Ergebnis 5:4" im Termin und in der
+    // Admin-Mail, lange vor dem Spielende (Betreiber 07.11.2026).
     const ergebnisNeu =
+      s.ergebnisBestaetigt &&
       s.toreHeim !== null &&
       s.toreGast !== null &&
       gleicheRichtung &&
       (t.ergebnisHeim !== s.toreHeim || t.ergebnisAuswaerts !== s.toreGast);
-    if (!zeitGeaendert && !ergebnisNeu) continue;
+    // Ein früher übernommener Zwischenstand (gleicher Wert wie der noch nicht genehmigte Stand des Spiels)
+    // wird zurückgenommen, bis das echte Endergebnis genehmigt ist. Ohne Mail (ergebnisNeu = false).
+    const zwischenstandEntfernen =
+      !s.ergebnisBestaetigt &&
+      gleicheRichtung &&
+      t.ergebnisHeim !== null &&
+      t.ergebnisHeim === s.toreHeim &&
+      t.ergebnisAuswaerts === s.toreGast;
+    if (!zeitGeaendert && !ergebnisNeu && !zwischenstandEntfernen) continue;
     if (zeitGeaendert) verlegt++;
     if (ergebnisNeu) ergebnisse++;
 
@@ -84,8 +97,8 @@ export async function uebernehmeAenderungen(
       kategorie: t.kategorie,
       pflichtspiel: t.pflichtspiel ?? !s.istFreundschaft,
       freundschaftsTyp: t.freundschaftsTyp,
-      ergebnisHeim: ergebnisNeu ? s.toreHeim : t.ergebnisHeim,
-      ergebnisAuswaerts: ergebnisNeu ? s.toreGast : t.ergebnisAuswaerts,
+      ergebnisHeim: ergebnisNeu ? s.toreHeim : zwischenstandEntfernen ? null : t.ergebnisHeim,
+      ergebnisAuswaerts: ergebnisNeu ? s.toreGast : zwischenstandEntfernen ? null : t.ergebnisAuswaerts,
       schiedsrichterKuerzel: t.nuligaSchiedsrichterKuerzel,
       angesetzterSchiedsrichter: t.handballNetSchiedsrichter,
       angesetzterZeitnehmer: t.handballNetZeitnehmer,
