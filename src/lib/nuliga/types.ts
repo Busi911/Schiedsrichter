@@ -97,10 +97,13 @@ export type GruppenSeite = {
   gruppenId: string | null;
   liga: LigaInfo | null;
   tabelle: TabellenZeile[];
+  // Staffeln OHNE Tabelle (z.B. E-Jugend): nur die Teilnehmerliste (Raster | WR | Mannschaft) mit teamtable-IDs.
+  teilnehmer: { name: string; teamtableId: string }[];
   spiele: NuligaSpiel[];
 };
 
 export type TeamPortraitSeite = {
+  diagnose: import("./parsers/spielzeilen").SpielplanDiagnose;
   championship: string | null;
   gruppenId: string | null;
   teamtableId: string | null;

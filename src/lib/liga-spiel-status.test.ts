@@ -77,6 +77,8 @@ describe("liveTickerRelevant", () => {
     expect(liveTickerRelevant(s, t(250))).toBe(false);
     expect(liveTickerRelevant(mit({ beginn: anwurf, ergebnisBestaetigt: true }), t(30))).toBe(false);
     expect(liveTickerRelevant(mit({ beginn: anwurf, status: "abgesagt" }), t(30))).toBe(false);
+    // verlegt: beginn ist der neue Termin, der Ticker gehört dazu
+    expect(liveTickerRelevant(mit({ beginn: anwurf, status: "verlegt" }), t(10))).toBe(true);
   });
 });
 

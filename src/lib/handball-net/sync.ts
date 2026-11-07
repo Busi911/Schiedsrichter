@@ -230,7 +230,7 @@ export async function synchronisiereHandballNet(
     if (!unvollstaendig) {
       await db
         .update(ligaVereine)
-        .set({ handballNetSynchronisiertAm: new Date() })
+        .set({ handballNetSynchronisiertAm: jetzt })
         .where(eq(ligaVereine.id, ligaVereinId));
     }
     return { status, anfragen, neu, aktualisiert, meldungen, unvollstaendig };
@@ -649,7 +649,7 @@ async function verarbeitePhase(k: PhaseKontext): Promise<string | null> {
         notInArray(ligaTabellenzeilen.nuligaTeamtableId, tabelle.map((z) => z.teamId))
       )
     );
-    await db.update(ligaGruppen).set({ tabelleSynchronisiertAm: new Date() }).where(eq(ligaGruppen.id, gruppe.id));
+    await db.update(ligaGruppen).set({ tabelleSynchronisiertAm: jetzt }).where(eq(ligaGruppen.id, gruppe.id));
   }
   const eigeneZeile = tabelle?.find((z) => z.teamId === team.id);
 
@@ -665,7 +665,7 @@ async function verarbeitePhase(k: PhaseKontext): Promise<string | null> {
     punktePlus: eigeneZeile?.punktePlus ?? vorher?.punktePlus ?? null,
     punkteMinus: eigeneZeile?.punkteMinus ?? vorher?.punkteMinus ?? null,
     aktiv: true,
-    synchronisiertAm: new Date(),
+    synchronisiertAm: jetzt,
   };
   let teilnahmeId: string;
   if (vorher) {
@@ -713,7 +713,7 @@ async function verarbeitePhase(k: PhaseKontext): Promise<string | null> {
         target: [ligaSpiele.gruppeId, ligaSpiele.spielcode],
         set: {
           ...Object.fromEntries(spalten.map((c) => [c, excluded(ligaSpiele[c as keyof typeof ligaSpiele] as never)])),
-          synchronisiertAm: new Date(),
+          synchronisiertAm: jetzt,
         },
       });
   }
@@ -728,6 +728,6 @@ async function verarbeitePhase(k: PhaseKontext): Promise<string | null> {
       sql`(${ligaSpiele.heimTeamtableId} = ${team.id} or ${ligaSpiele.gastTeamtableId} = ${team.id})`
     )
   );
-  await db.update(ligaTeilnahmen).set({ spieleSynchronisiertAm: new Date() }).where(eq(ligaTeilnahmen.id, teilnahmeId));
+  await db.update(ligaTeilnahmen).set({ spieleSynchronisiertAm: jetzt }).where(eq(ligaTeilnahmen.id, teilnahmeId));
   return teilnahmeId;
 }

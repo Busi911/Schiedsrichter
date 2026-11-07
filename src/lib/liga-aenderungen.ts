@@ -1,4 +1,5 @@
 import "server-only";
+import { ZWISCHENSTAND_FENSTER_MS } from "./liga-spiel-status";
 import { and, eq, isNotNull } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaSpiele, termine, vereine } from "@/db/schema";
@@ -63,12 +64,31 @@ export async function uebernehmeAenderungen(
     // folgt dem öffentlichen Ergebnis. Ergebnisse verknüpfter Spiele kommen nur aus den Liga-Daten
     // (von Hand pflegbar sind nur Test- und Turnierspiele). Eine Korrektur löst keine Mail aus —
     // die Benachrichtigung gilt nur dem erstmals eingetragenen Ergebnis.
+    // NUR ein von nuLiga genehmigtes Ergebnis zählt (`ergebnisBestaetigt`, wie überall in der App, siehe
+    // istZwischenstand): während des Spiels zeigt nuLiga den laufenden Stand als nicht genehmigtes Ergebnis,
+    // der Live-Cron holt ihn alle 5 Minuten — ohne diese Prüfung stand "Ergebnis 5:4" im Termin und in der
+    // Admin-Mail, lange vor dem Spielende (Betreiber 07.11.2026).
+    // Wird ein Spiel nie (oder erst nach Tagen) genehmigt, gilt der letzte bekannte Stand nach Ablauf des
+    // Live-Fensters als vorläufiges Ergebnis — wie auf der öffentlichen Seite (`ZWISCHENSTAND_FENSTER_MS`,
+    // `istZwischenstand`: danach wird nicht mehr nachgeladen). Die Genehmigung korrigiert ihn später still.
+    const ergebnisGilt =
+      s.ergebnisBestaetigt ||
+      (!!spielStart && !Number.isNaN(spielStart.getTime()) && jetzt.getTime() - spielStart.getTime() > ZWISCHENSTAND_FENSTER_MS);
     const ergebnisNeu =
+      ergebnisGilt &&
       s.toreHeim !== null &&
       s.toreGast !== null &&
       gleicheRichtung &&
       (t.ergebnisHeim !== s.toreHeim || t.ergebnisAuswaerts !== s.toreGast);
-    if (!zeitGeaendert && !ergebnisNeu) continue;
+    // Ein früher übernommener Zwischenstand (gleicher Wert wie der noch nicht genehmigte Stand des Spiels)
+    // wird zurückgenommen, bis das echte Endergebnis genehmigt ist. Ohne Mail (ergebnisNeu = false).
+    const zwischenstandEntfernen =
+      !ergebnisGilt &&
+      gleicheRichtung &&
+      t.ergebnisHeim !== null &&
+      t.ergebnisHeim === s.toreHeim &&
+      t.ergebnisAuswaerts === s.toreGast;
+    if (!zeitGeaendert && !ergebnisNeu && !zwischenstandEntfernen) continue;
     if (zeitGeaendert) verlegt++;
     if (ergebnisNeu) ergebnisse++;
 
@@ -84,8 +104,8 @@ export async function uebernehmeAenderungen(
       kategorie: t.kategorie,
       pflichtspiel: t.pflichtspiel ?? !s.istFreundschaft,
       freundschaftsTyp: t.freundschaftsTyp,
-      ergebnisHeim: ergebnisNeu ? s.toreHeim : t.ergebnisHeim,
-      ergebnisAuswaerts: ergebnisNeu ? s.toreGast : t.ergebnisAuswaerts,
+      ergebnisHeim: ergebnisNeu ? s.toreHeim : zwischenstandEntfernen ? null : t.ergebnisHeim,
+      ergebnisAuswaerts: ergebnisNeu ? s.toreGast : zwischenstandEntfernen ? null : t.ergebnisAuswaerts,
       schiedsrichterKuerzel: t.nuligaSchiedsrichterKuerzel,
       angesetzterSchiedsrichter: t.handballNetSchiedsrichter,
       angesetzterZeitnehmer: t.handballNetZeitnehmer,

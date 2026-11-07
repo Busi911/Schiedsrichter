@@ -5,6 +5,7 @@ import {
   paramsAusUrl,
   parseDoppelwert,
   tabellen,
+  textVon,
   zeilen,
   zellen,
 } from "../html";
@@ -71,12 +72,28 @@ export function parseGroupPage(html: string): ParseErgebnis<GruppenSeite> {
     }
   }
 
+  // Staffeln ohne Tabelle (z.B. E-Jugend): Teilnehmerliste "Raster | WR | Mannschaft" mit Links auf teamPortrait.
+  const teilnehmer: GruppenSeite["teilnehmer"] = [];
+  if (tabelle.length === 0) {
+    for (const t of tabellen(html)) {
+      const kopfZeile = zeilen(t).find((z) => /<th\b/i.test(z));
+      if (!kopfZeile) continue;
+      const kopf = zellen(kopfZeile).map((c) => normalisiereSpaltenkopf(c.text));
+      if (!kopf.includes("mannschaft") || kopf.includes("rang") || kopf.includes("heimmannschaft")) continue;
+      for (const m of t.matchAll(/<a\b[^>]*href\s*=\s*"([^"]*teamPortrait[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi)) {
+        const id = paramsAusUrl(m[1]).get("teamtable");
+        const name = textVon(m[2]);
+        if (id && name && !teilnehmer.some((x) => x.teamtableId === id)) teilnehmer.push({ name, teamtableId: id });
+      }
+    }
+  }
+
   const { spiele, warnungen: spielWarnungen } = parseSpielTabellen(html);
   warnungen.push(...spielWarnungen);
 
   if (!params?.get("group")) warnungen.push("Keine Gruppen-ID in den Seiten-Metadaten");
   if (!liga) warnungen.push("Kein Liga-Name in der Überschrift gefunden");
-  if (tabelle.length === 0) warnungen.push("Keine Tabelle gefunden");
+  if (tabelle.length === 0) warnungen.push(teilnehmer.length > 0 ? `Keine Tabelle, ${teilnehmer.length} Teilnehmer ohne Wertung` : "Keine Tabelle gefunden");
 
   return {
     daten: {
@@ -84,6 +101,7 @@ export function parseGroupPage(html: string): ParseErgebnis<GruppenSeite> {
       gruppenId: params?.get("group") ?? null,
       liga,
       tabelle,
+      teilnehmer,
       spiele,
     },
     warnungen,

@@ -17,6 +17,7 @@ import { parseFreundschaftsGruppe } from "./parsers/freundschaft";
 import { beschreibeZusatzVerein, passtZumZusatzFilter } from "./zusatzquellen";
 import { parseGroupPage } from "./parsers/group-page";
 import { parseTeamPortrait } from "./parsers/team-portrait";
+import { parseSpielTabellen } from "./parsers/spielzeilen";
 import { normalisiereMannschaft, nummerZuRoemisch, parseLigaName, slugify } from "./normalisierung";
 import { baueNuligaUrl } from "./verbaende";
 import {
@@ -296,8 +297,29 @@ async function aktualisiereGruppentabelle(
     const { daten, warnungen } = parseGroupPage(html);
     for (const w of warnungen) lauf.warn(`Gruppe ${gruppenId}: ${w}`);
     const zeilen = daten.tabelle.filter((z) => z.teamtableId);
+    if (zeilen.length === 0 && daten.teilnehmer.length > 0) {
+      // Staffel ohne Tabelle (E-Jugend): nichts speichern (es gibt keine Wertung), aber die Mannschaft über die
+      // Teilnehmerliste (Name -> teamtable-ID) zuordnen. rang 0 = "ohne Platz", passt nie auf Rang/Punkte der Vereinsliste.
+      return daten.teilnehmer.map((t) => ({
+        rang: 0,
+        mannschaft: t.name,
+        teamtableId: t.teamtableId,
+        spiele: null,
+        siege: null,
+        unentschieden: null,
+        niederlagen: null,
+        tore: null,
+        punkte: null,
+      }));
+    }
     if (zeilen.length === 0) {
-      lauf.fehler(`Gruppe ${gruppenId}: keine Tabelle lesbar, bestehender Stand bleibt`);
+      // Diagnose ohne Inhalte: Was steht auf der Seite? (Köpfe, Zeilen, Spielplan) — leere Tabelle oder nur nicht lesbar?
+      const d = parseSpielTabellen(html).diagnose;
+      lauf.fehler(
+        `Gruppe ${gruppenId}: keine Tabelle lesbar, bestehender Stand bleibt ` +
+          `(${d.tabellen} Tabellen im HTML, Köpfe ${JSON.stringify(d.koepfe)}, ${daten.tabelle.length} Tabellenzeilen ohne teamtable-ID, ${daten.teilnehmer.length} Teilnehmer mit teamtable-ID, ` +
+          `Spielplan: ${d.kandidaten} Zeilen, Spielnummer ${d.mitSpielnummer} ok)`
+      );
       return null;
     }
     await db
@@ -571,6 +593,9 @@ export async function synchronisiereStruktur(
       gruppe.tabelle,
       quellenName
     );
+    if (!teamtable && gruppe.tabelle.length === 0 && !parseLigaName(team.ligaName).istMeldeliste) {
+      lauf.warn(`"${team.mannschaftsname}" (Gruppe ${team.gruppenId}): Gruppentabelle leer oder nicht lesbar, keine Zuordnung möglich`);
+    }
     if (!teamtable && gruppe.tabelle.length > 0) {
       // Mit Kontext, damit die Ursache direkt aus der Meldung ersichtlich
       // ist (Stand laut Vereinsliste und die Namen der Gruppentabelle).
@@ -783,8 +808,16 @@ export async function synchronisiereSpiele(
     if (!t.nuligaTeamtableId) {
       // Ohne Tabellenzeile (z.B. Gruppentabelle noch leer oder Team dort
       // nicht auffindbar) gibt es keinen Spielplan-Abruf — nicht stillschweigend.
+      // Ursache sichtbar machen: leere Gruppentabelle (z.B. Spielfeste ohne Tabelle) oder nur ein Namens-/Stand-Mismatch.
+      const tab = await gespeicherteTabelle(db, g.id);
+      const mitId = tab.filter((z) => z.teamtableId).length;
+      const namen = tab
+        .slice(0, 8)
+        .map((z) => `${z.rang}. ${z.mannschaft}${z.teamtableId ? "" : " (ohne teamtable)"}`)
+        .join("; ");
       lauf.warn(
-        `${t.nuligaName} (Gruppe ${g.nuligaGroupId}): keine Tabellenzeile zugeordnet, Spielplan wird nicht geladen`
+        `${t.nuligaName} (Gruppe ${g.nuligaGroupId}): keine Tabellenzeile zugeordnet, Spielplan wird nicht geladen ` +
+          `(gespeicherte Gruppentabelle: ${tab.length} Zeilen, ${mitId} mit teamtable-ID${namen ? `; ${namen}` : ""})`
       );
       continue;
     }
@@ -813,6 +846,16 @@ export async function synchronisiereSpiele(
       }
       if (daten.clubId && daten.clubId !== verein.nuligaClubId && !zusatzClubIds.has(daten.clubId)) {
         lauf.warn(`${t.nuligaName}: Portrait gehört zu Verein ${daten.clubId} (Spielgemeinschaft?)`);
+      }
+      const d = daten.diagnose;
+      if (d.kandidaten === 0 || d.kandidaten > d.mitSpielnummer) {
+        // Diagnose ohne Inhalte: Quelle, IDs, Spaltenköpfe und Zählwerte (keine Personendaten).
+        lauf.warn(
+          `${t.nuligaName} (championship ${g.championship}, group ${g.nuligaGroupId}, teamtable ${t.nuligaTeamtableId}): ` +
+            `${d.tabellen} Tabellen, ${d.erkannteTabellen} als Spielplan erkannt, Köpfe ${JSON.stringify(d.koepfe)}, ` +
+            `${d.kandidaten} Zeilen, Spielnummer: ${d.mitSpielnummer} ok / ${d.ohneSpielnummer} leer / ` +
+            `${d.ungueltigeSpielnummer} nicht numerisch, Meeting-ID: ${d.mitMeetingId}, verworfen: ${JSON.stringify(d.verworfen)}`
+        );
       }
       const mitNummer = daten.spiele.filter((s) => s.spielnummer !== null);
       if (mitNummer.length < daten.spiele.length) {

@@ -37,7 +37,8 @@ describe.skipIf(!ADMIN_URL)("öffentliche Abfragen (Postgres)", () => {
   beforeAll(async () => {
     await testDb.delete(schema.ligaVereine); // Reste früherer Läufe (gleiche Club-ID)
     await testDb.delete(schema.ligaGruppen);
-    await testDb.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim" });
+    // status "aktiv": Vereine in Vorbereitung sind öffentlich unsichtbar (holeVerein), Standard beim Anlegen ist "vorbereitung".
+    await testDb.insert(schema.vereine).values({ id: vereinId, name: "TSF Heuchelheim", status: "aktiv" });
     const { id } = await legeLigaVereinAn(testDb, { vereinId, nuligaClubId: "69723", name: "TSF Heuchelheim" });
     ligaVereinId = id;
     const jetzt = new Date("2026-10-01T10:00:00Z");
