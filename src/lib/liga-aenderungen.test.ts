@@ -164,6 +164,18 @@ describe.skipIf(!ADMIN_URL)("Verlegungen und Ergebnisse aus den öffentlichen Da
     await uebernehmeAenderungen(vereinId, "test", JETZT);
     expect([(await termin()).ergebnisHeim, (await termin()).ergebnisAuswaerts]).toEqual([null, null]);
 
+    // Nach Ablauf des Live-Fensters (3 h nach Anwurf) gilt der letzte Stand als vorläufiges Ergebnis,
+    // auch ohne Genehmigung (nuLiga genehmigt manche Spiele erst nach Tagen)
+    await testDb.update(schema.ligaSpiele).set({ toreHeim: 30, toreGast: 25, ergebnisBestaetigt: false }).where(eq(schema.ligaSpiele.id, spiel.id));
+    const spaeter = new Date(startOriginal.getTime() + 4 * 60 * 60 * 1000);
+    expect((await uebernehmeAenderungen(vereinId, "test", spaeter)).ergebnisse).toBe(1);
+    expect([(await termin()).ergebnisHeim, (await termin()).ergebnisAuswaerts]).toEqual([30, 25]);
+    // vor Ablauf dieser Zeit (90 Min nach Anwurf) nicht
+    await testDb.update(schema.termine).set({ ergebnisHeim: null, ergebnisAuswaerts: null }).where(eq(schema.termine.id, terminId));
+    const frueh = new Date(startOriginal.getTime() + 90 * 60 * 1000);
+    expect((await uebernehmeAenderungen(vereinId, "test", frueh)).ergebnisse).toBe(0);
+    expect([(await termin()).ergebnisHeim, (await termin()).ergebnisAuswaerts]).toEqual([null, null]);
+
     // Genehmigtes Endergebnis kommt an
     await testDb.update(schema.ligaSpiele).set({ toreHeim: 31, toreGast: 24, ergebnisBestaetigt: true }).where(eq(schema.ligaSpiele.id, spiel.id));
     expect((await uebernehmeAenderungen(vereinId, "test", JETZT)).ergebnisse).toBe(1);

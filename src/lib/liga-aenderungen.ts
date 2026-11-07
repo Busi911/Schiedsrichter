@@ -1,4 +1,5 @@
 import "server-only";
+import { ZWISCHENSTAND_FENSTER_MS } from "./liga-spiel-status";
 import { and, eq, isNotNull } from "drizzle-orm";
 import { adminDb } from "@/db/admin";
 import { ligaSpiele, termine, vereine } from "@/db/schema";
@@ -67,8 +68,14 @@ export async function uebernehmeAenderungen(
     // istZwischenstand): während des Spiels zeigt nuLiga den laufenden Stand als nicht genehmigtes Ergebnis,
     // der Live-Cron holt ihn alle 5 Minuten — ohne diese Prüfung stand "Ergebnis 5:4" im Termin und in der
     // Admin-Mail, lange vor dem Spielende (Betreiber 07.11.2026).
+    // Wird ein Spiel nie (oder erst nach Tagen) genehmigt, gilt der letzte bekannte Stand nach Ablauf des
+    // Live-Fensters als vorläufiges Ergebnis — wie auf der öffentlichen Seite (`ZWISCHENSTAND_FENSTER_MS`,
+    // `istZwischenstand`: danach wird nicht mehr nachgeladen). Die Genehmigung korrigiert ihn später still.
+    const ergebnisGilt =
+      s.ergebnisBestaetigt ||
+      (!!spielStart && !Number.isNaN(spielStart.getTime()) && jetzt.getTime() - spielStart.getTime() > ZWISCHENSTAND_FENSTER_MS);
     const ergebnisNeu =
-      s.ergebnisBestaetigt &&
+      ergebnisGilt &&
       s.toreHeim !== null &&
       s.toreGast !== null &&
       gleicheRichtung &&
@@ -76,7 +83,7 @@ export async function uebernehmeAenderungen(
     // Ein früher übernommener Zwischenstand (gleicher Wert wie der noch nicht genehmigte Stand des Spiels)
     // wird zurückgenommen, bis das echte Endergebnis genehmigt ist. Ohne Mail (ergebnisNeu = false).
     const zwischenstandEntfernen =
-      !s.ergebnisBestaetigt &&
+      !ergebnisGilt &&
       gleicheRichtung &&
       t.ergebnisHeim !== null &&
       t.ergebnisHeim === s.toreHeim &&
