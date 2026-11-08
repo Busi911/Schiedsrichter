@@ -960,7 +960,8 @@ export default async function HilfePage() {
             Spielbetrieb → Trainingsplan
           </Link>{" "}
           plant ihr die wöchentlich wiederkehrenden Trainingszeiten je Halle: am Computer per Ziehen (Mannschaft auf einen
-          Wochentag ziehen, Dauer an der unteren Kante anpassen), am Handy über „Bearbeiten“. Unterteilte Hallen haben eine
+          Wochentag ziehen, Dauer an der unteren Kante anpassen), am Handy über „Bearbeiten“. Ein Training ohne Ziehen legt ihr mit „+ Training hinzufügen“ an
+          (Mannschaft, Halle, Wochentag, Beginn und Ende); sehr kurze Blöcke werden mindestens so hoch gezeichnet, dass man sie gut trifft. Unterteilte Hallen haben eine
           Spalte je Abteil; Überschneidungen werden rot markiert. Der Plan gilt für jede Woche gleich und hat keinen Einfluss
           auf Spiele und Dienste.
         </p>
