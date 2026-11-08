@@ -19,10 +19,19 @@ const ROLLE_LABEL: Record<string, string> = {
   zeitnehmer: "Zeitnehmer/Sekretär",
 };
 
+// Wart-Seite, auf der die jeweilige Rolle eingeteilt wird.
+const WART_SEITE: Record<string, string> = {
+  ordner: "/profil/ordnerwart",
+  kioskdienst: "/profil/ordnerwart",
+  kassierer: "/profil/ordnerwart",
+  zeitnehmer: "/profil/zeitnehmerwart",
+  eigener_dienst: "/profil/dienstwart",
+};
+
 // Vormals eine Karte auf /admin — jetzt eigene Seite, weil der Admin diese
 // Übersicht nur noch bei Bedarf ansieht (Zähler-Badge im Header, siehe
 // AdminLayout), statt sie dauerhaft auf der Übersicht zu sehen. Die
-// eigentliche Besetzung übernehmen die jeweiligen Wart-Rollen.
+// eigentliche Besetzung übernehmen die jeweiligen Wart-Rollen; „Zur Einteilung“ springt direkt zum Termin auf deren Seite.
 export default async function DienstePage() {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
@@ -39,6 +48,8 @@ export default async function DienstePage() {
       rolle: l.label ?? ROLLE_LABEL[l.rolle],
       vorhanden: l.vorhanden,
       bedarf: l.bedarf,
+      // Direkt zur Einteilung des Termins; lesende Admins dürfen die Wart-Seiten nicht öffnen.
+      ziel: session.user.istAdmin ? `${WART_SEITE[l.rolle]}#termin-${p.terminId}` : undefined,
     })),
   }));
 

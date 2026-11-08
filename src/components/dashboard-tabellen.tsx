@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { formatWochentagDatum, formatZeit, gruppiereNachTag } from "@/lib/format";
 import {
@@ -80,7 +81,8 @@ export type OffenerPostenZeile = {
   zeit: string;
   typLabel: string;
   mannschaft: string | null;
-  luecken: { rolle: string; vorhanden: number; bedarf: number }[];
+  // `ziel`: Link zur Einteilung dieses Termins/dieser Rolle (nur für Admins mit Schreibrecht, sonst leer).
+  luecken: { rolle: string; vorhanden: number; bedarf: number; ziel?: string }[];
 };
 
 export function UnbesetzteDiensteTabelle({
@@ -123,6 +125,14 @@ export function UnbesetzteDiensteTabelle({
                     <span className="text-xs text-muted-foreground">
                       {l.vorhanden} von {l.bedarf} besetzt
                     </span>
+                    {l.ziel && (
+                      <Link
+                        href={l.ziel}
+                        className="text-xs font-medium underline underline-offset-2"
+                      >
+                        Zur Einteilung
+                      </Link>
+                    )}
                   </div>
                 ))}
               </div>
