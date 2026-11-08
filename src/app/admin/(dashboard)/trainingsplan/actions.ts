@@ -1,5 +1,6 @@
 "use server";
 
+import { pruefeEndeMinutenNachBeginn } from "@/lib/zeit-pruefung";
 import { revalidatePath } from "next/cache";
 import { and, eq, gt } from "drizzle-orm";
 import { requireAdminSchreibzugriff } from "@/lib/session";
@@ -128,7 +129,9 @@ export async function halleLoeschen(formData: FormData) {
 // per Pointer-Drag berechneten Pixel->Minuten-Umrechnung im Client und
 // werden hier sicherheitshalber erneut aufs Raster gerundet/begrenzt, statt
 // dem Client blind zu vertrauen.
-function parseZeitfenster(formData: FormData): {
+// `streng`: Eingaben aus Formularen (Anlegen/Bearbeiten) mit Ende vor oder gleich Beginn werden
+// zurückgewiesen statt still korrigiert. Verschieben/Größe ändern im Raster darf weiter begrenzen.
+function parseZeitfenster(formData: FormData, streng = false): {
   wochentag: number;
   startMinuten: number;
   endMinuten: number;
@@ -144,6 +147,10 @@ function parseZeitfenster(formData: FormData): {
     throw new Error("Ungültiges Zeitfenster.");
   }
 
+  if (streng) {
+    const fehler = pruefeEndeMinutenNachBeginn(startRoh, endRoh);
+    if (fehler) throw new Error(fehler);
+  }
   const startMinuten = begrenze(rundeAufRaster(startRoh), 0, 24 * 60 - 15);
   const endMinuten = begrenze(rundeAufRaster(endRoh), startMinuten + 15, 24 * 60);
 
@@ -192,7 +199,7 @@ export async function trainingszeitAnlegen(formData: FormData) {
     throw new Error("Mannschaft fehlt.");
   }
   const halleId = parseHalleId(formData);
-  const { wochentag, startMinuten, endMinuten } = parseZeitfenster(formData);
+  const { wochentag, startMinuten, endMinuten } = parseZeitfenster(formData, true);
   const abteilNummer = parseAbteilNummerRoh(formData);
   const farbe = formData.get("farbe");
   if (farbe !== null && (typeof farbe !== "string" || !/^#[0-9a-fA-F]{6}$/.test(farbe))) {
@@ -327,7 +334,7 @@ export async function trainingszeitAktualisieren(formData: FormData) {
     throw new Error("Mannschaft fehlt.");
   }
   const halleId = parseHalleId(formData);
-  const { wochentag, startMinuten, endMinuten } = parseZeitfenster(formData);
+  const { wochentag, startMinuten, endMinuten } = parseZeitfenster(formData, true);
   const abteilNummer = parseAbteilNummerRoh(formData);
   const farbe = formData.get("farbe");
   if (typeof farbe !== "string" || !/^#[0-9a-fA-F]{6}$/.test(farbe)) {

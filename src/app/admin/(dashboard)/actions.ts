@@ -1,5 +1,6 @@
 "use server";
 
+import { pruefeEndeNachBeginn } from "@/lib/zeit-pruefung";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { demoSichereEmail, istDemoVerein } from "@/lib/demo-verein";
@@ -1466,6 +1467,11 @@ export async function createTermin(formData: FormData) {
   if (typeof start !== "string" || !start) {
     throw new Error("Start ist erforderlich.");
   }
+  const endeFehler = pruefeEndeNachBeginn(
+    parseBerlinDatumZeit(start),
+    typeof ende === "string" && ende ? parseBerlinDatumZeit(ende) : null
+  );
+  if (endeFehler) throw new Error(endeFehler);
 
   await withTenant(vereinId, async (tx) => {
     // Turniere bekommen sofort einen Freigabe-Token für die öffentliche,
@@ -1533,6 +1539,11 @@ async function aktualisiereTerminFelder(
   if (typeof start !== "string" || !start) {
     throw new Error("Start ist erforderlich.");
   }
+  const endeFehler = pruefeEndeNachBeginn(
+    parseBerlinDatumZeit(start),
+    typeof ende === "string" && ende ? parseBerlinDatumZeit(ende) : null
+  );
+  if (endeFehler) throw new Error(endeFehler);
 
   const verlegung = await withTenant(vereinId, async (tx) => {
     const bestehend = await tx.query.termine.findFirst({
