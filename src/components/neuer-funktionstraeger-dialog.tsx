@@ -83,9 +83,15 @@ export function NeuerFunktionstraegerDialog({
       </Label>
     </div>
     <p className="text-xs text-muted-foreground">
-      Ohne Haken wird die Person ohne Login angelegt — die Mail geht
-      erst raus, wenn sie später über &bdquo;Aktivieren&ldquo;
-      freigeschaltet wird.
+      <strong>Mit Haken:</strong> Die Rollen sind sofort aktiv, die Person
+      bekommt die Willkommens-Mail mit Login-Link und kann gleich eingeteilt
+      werden.
+      <br />
+      <strong>Ohne Haken:</strong> Die Person wird nur vorgemerkt &ndash; ohne
+      Login und ohne Mail, ihre Rollen bleiben <em>inaktiv</em>. Sie kann dann
+      noch nicht eingeteilt werden. N&auml;chster Schritt: in der Liste bei der
+      Person auf &bdquo;Aktivieren&ldquo; klicken, erst dann geht die Mail raus
+      und die Rollen gelten.
     </p>
     </AnlegenDialog>
   );
