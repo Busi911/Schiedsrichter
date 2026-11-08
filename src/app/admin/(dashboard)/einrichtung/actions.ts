@@ -90,3 +90,16 @@ export async function einrichtungUeberspringen() {
   });
   redirect("/admin");
 }
+
+// "Ohne Vereins-ID von Hand starten": wie "Später" (Assistent wird nicht mehr automatisch angezeigt), führt aber gleich zum
+// ersten Handgriff, den Mannschaften. Alles Weitere (Funktionsträger, Freundschaftsspiele/Termine, Dienste) geht ohne Spielplan-Anbindung.
+export async function einrichtungVonHandStarten() {
+  await requireAdminSchreibzugriff();
+  (await cookies()).set(EINRICHTUNG_UEBERSPRUNGEN_COOKIE, "1", {
+    path: "/admin",
+    maxAge: 60 * 60 * 24 * 365,
+    httpOnly: true,
+    sameSite: "lax",
+  });
+  redirect("/admin/mannschaften");
+}

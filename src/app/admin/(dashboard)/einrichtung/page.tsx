@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { einrichtungUeberspringen, selbstEinrichten } from "./actions";
+import { einrichtungUeberspringen, einrichtungVonHandStarten, selbstEinrichten } from "./actions";
 
 // Laden von Verein, Mannschaften und Spielen dauert bis zu einer Minute.
 export const maxDuration = 60;
@@ -80,6 +80,21 @@ export default async function EinrichtungPage({
       </div>
 
       {fehler && <p className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{fehler}</p>}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Keine Vereins-ID oder kein Spielplan zur Hand?</CardTitle>
+          <CardDescription>
+            Ihr könnt auch komplett von Hand starten: Mannschaften, Funktionsträger und Termine (Freundschaftsspiele, Turniere) legt ihr selbst an, Dienste
+            teilt ihr wie gewohnt ein. Die Anbindung an nuLiga oder handball.net lässt sich jederzeit nachholen (Einstellungen → Öffentliche Vereinsseite).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={einrichtungVonHandStarten}>
+            <SubmitButton variant="outline">Ohne Vereins-ID von Hand starten</SubmitButton>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="pt-4">

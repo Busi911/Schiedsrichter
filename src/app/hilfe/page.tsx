@@ -94,7 +94,7 @@ export default async function HilfePage() {
             <Link href="/admin/einstellungen#oeffentliche-seite" className="font-medium underline">
               Einstellungen → Öffentliche Vereinsseite
             </Link>{" "}
-            ein. Danach kommen Spiele, Verlegungen, Ergebnisse und die Schiedsrichter-Ansetzung automatisch, tagsüber stündlich.
+            ein. Habt ihr keine Vereins-ID oder wollt ohne Spielplan-Anbindung loslegen, wählt ihr im Assistenten <strong>„Ohne Vereins-ID von Hand starten“</strong>: das führt direkt zu den Mannschaften, Funktionsträger, Freundschaftsspiele und Turniere legt ihr selbst an, Dienste teilt ihr wie gewohnt ein. Danach kommen Spiele, Verlegungen, Ergebnisse und die Schiedsrichter-Ansetzung automatisch, tagsüber stündlich.
           </li>
           <li>
             <strong>Eure Spielhallen eintragen:</strong> direkt darunter unter{" "}
