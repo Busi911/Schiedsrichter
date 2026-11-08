@@ -22,6 +22,10 @@ import {
 import type { TrainingszeitEintrag } from "@/components/trainingszeit-dialog";
 
 const PX_PRO_MINUTE = 1.1;
+// Kurze Blöcke (z.B. 15 Minuten = 16,5 px) waren kaum zu treffen: sie werden mindestens so hoch gezeichnet.
+const MIN_BLOCK_PX = 30;
+// Unter dieser Höhe bekommt der Ziehgriff zum Verlängern weniger Platz, damit der Rest des Blocks klickbar (= bearbeiten) bleibt.
+const NIEDRIG_PX = 44;
 
 type Mannschaft = { id: string; label: string };
 
@@ -399,6 +403,7 @@ export function TrainingsplanWoche({
                           bewegt: false,
                         });
                       }}
+                      title="Klicken zum Bearbeiten, ziehen zum Verschieben, unten ziehen zum Verlängern"
                       className={`absolute flex touch-none cursor-grab flex-col overflow-hidden rounded-md px-1.5 py-1 text-[11px] leading-tight text-white shadow-sm active:cursor-grabbing ${
                         konflikte.get(block.id) === "ohne_abteil"
                           ? "ring-2 ring-amber-400 ring-offset-1"
@@ -408,8 +413,10 @@ export function TrainingsplanWoche({
                       }`}
                       style={{
                         top: (block.startMinuten - GRID_START_MINUTEN) * PX_PRO_MINUTE,
-                        height:
+                        height: Math.max(
                           (block.endMinuten - block.startMinuten) * PX_PRO_MINUTE,
+                          MIN_BLOCK_PX
+                        ),
                         left: `${block.links * 100}%`,
                         width: `${block.breite * 100}%`,
                         backgroundColor: block.farbe,
@@ -439,7 +446,10 @@ export function TrainingsplanWoche({
                           );
                           setDragZustand({ modus: "resize", block });
                         }}
-                        className="absolute inset-x-0 bottom-0 flex h-3 touch-none cursor-ns-resize items-center justify-center"
+                        className={`absolute inset-x-0 bottom-0 flex touch-none cursor-ns-resize items-center justify-center ${
+                          (block.endMinuten - block.startMinuten) * PX_PRO_MINUTE < NIEDRIG_PX ? "h-2" : "h-3"
+                        }`}
+                        title="Ziehen, um die Dauer zu ändern"
                       >
                         <GripHorizontalIcon className="size-3 opacity-70" />
                       </div>

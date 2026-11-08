@@ -437,6 +437,28 @@ export function TrainingsplanGrid({
             </p>
           ) : (
             <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="hidden text-xs text-muted-foreground md:block">
+                  Trainings legt ihr an, indem ihr eine Mannschaft in den Plan zieht oder auf einen freien Platz klickt &ndash; oder über den Button rechts.
+                </p>
+                <Button
+                  variant="outline"
+                  className="h-11 w-full text-base md:ml-auto md:h-9 md:w-auto md:text-sm"
+                  onClick={() =>
+                    setDialog({
+                      modus: "neu",
+                      vorgabe: {
+                        halleId: halleAktiv.id,
+                        wochentag: 0,
+                        startMinuten: 17 * 60,
+                        endMinuten: 18 * 60,
+                      },
+                    })
+                  }
+                >
+                  + Training hinzufügen
+                </Button>
+              </div>
               <div className="hidden md:block">
                 <TrainingsplanWoche
                   halleId={halleAktiv.id}
@@ -458,23 +480,6 @@ export function TrainingsplanGrid({
                   onBearbeiten={(eintrag) => setDialog({ modus: "bearbeiten", eintrag })}
                   konflikte={konfliktArtJeId}
                 />
-                <Button
-                  variant="outline"
-                  className="h-12 text-base"
-                  onClick={() =>
-                    setDialog({
-                      modus: "neu",
-                      vorgabe: {
-                        halleId: halleAktiv.id,
-                        wochentag: 0,
-                        startMinuten: 17 * 60,
-                        endMinuten: 18 * 60,
-                      },
-                    })
-                  }
-                >
-                  + Training hinzufügen
-                </Button>
               </div>
             </>
           )}
