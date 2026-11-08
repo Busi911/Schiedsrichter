@@ -15,7 +15,7 @@ import { withTenant } from "@/db";
 import { vereine } from "@/db/schema";
 import { betaVorbei } from "@/lib/abrechnung";
 import { CheckCircle2Icon, CircleIcon } from "lucide-react";
-import { ersteSchritte, ersteSchritteOffen } from "@/lib/erste-schritte";
+import { ersteSchritte, ersteSchritteOffen, ersteSchritteZaehlung } from "@/lib/erste-schritte";
 import { holeErsteSchritteStand } from "@/lib/erste-schritte-daten";
 import {
   formatMannschaft,
@@ -143,6 +143,7 @@ export default async function AdminDashboardPage() {
   }
   const schritte = ersteSchritteStand ? ersteSchritte(ersteSchritteStand) : [];
   const zeigeErsteSchritte = ersteSchritteOffen(schritte);
+  const zaehlung = ersteSchritteZaehlung(schritte);
 
   const unbesetzteTermineZeilen = unbesetzteTermine.map((t) => ({
     terminId: t.terminId,
@@ -177,7 +178,7 @@ export default async function AdminDashboardPage() {
         kannBearbeiten: !!session.user.istAdmin,
         abmeldeanfragen: offeneAbmeldeanfragen.length,
         selbsteintragungen: offeneSelbsteintragungen.length,
-        ersteSchritte: zeigeErsteSchritte ? { erledigt: schritte.filter((x) => x.erledigt).length, gesamt: schritte.length } : null,
+        ersteSchritte: zeigeErsteSchritte ? zaehlung : null,
         rechnungsdatenFehlen: !!rechnungsHinweis,
       })
     : null;
@@ -219,10 +220,10 @@ export default async function AdminDashboardPage() {
         <Card id="erste-schritte" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">
-              Erste Schritte ({schritte.filter((x) => x.erledigt).length} von {schritte.length} erledigt)
+              Erste Schritte ({zaehlung.erledigt} von {zaehlung.gesamt} erledigt)
             </CardTitle>
             <CardDescription>
-              So ist euer Verein startklar. Die Liste verschwindet, sobald alles eingerichtet ist.{" "}
+              So ist euer Verein startklar. Die Liste verschwindet, sobald alles Nötige eingerichtet ist; mit „optional“ markierte Schritte brauchen nur manche Wege.{" "}
               <Link href="/hilfe#erste-schritte" className="font-medium underline">
                 Ganze Anleitung lesen
               </Link>
@@ -238,7 +239,10 @@ export default async function AdminDashboardPage() {
                     <CircleIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-label="offen" />
                   )}
                   <div className="flex min-w-0 flex-col gap-1 text-sm">
-                    <span className={x.erledigt ? "text-muted-foreground line-through" : "font-medium"}>{x.titel}</span>
+                    <span className={x.erledigt ? "text-muted-foreground line-through" : "font-medium"}>
+                      {x.titel}
+                      {x.optional && !x.erledigt && <span className="ml-2 text-xs font-normal text-muted-foreground">(optional)</span>}
+                    </span>
                     {!x.erledigt && (
                       <>
                         <span className="text-muted-foreground">{x.text}</span>
