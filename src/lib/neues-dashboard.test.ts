@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { baueAufgaben, baueHero, baueProfilHero, begruessung, besetzungsChips, spielTitel, tagesGrenzen, type ProfilEinsatz, type SpielHeute } from "./neues-dashboard";
+import { dienstHinweis, baueAufgaben, baueHero, baueProfilHero, begruessung, besetzungsChips, spielTitel, tagesGrenzen, type ProfilEinsatz, type SpielHeute } from "./neues-dashboard";
 
 describe("begruessung", () => {
   it("richtet sich nach deutscher Uhrzeit, nicht nach UTC", () => {
@@ -42,6 +42,14 @@ describe("spielTitel", () => {
 const spiel = (id: string, start: string): SpielHeute => ({ id, start: new Date(start), titel: id, mannschaft: null, ort: null });
 
 describe("besetzungsChips", () => {
+  it("unterscheidet „nicht benötigt“ von besetzt", () => {
+    const chips = besetzungsChips({ schiriOffen: false, zeitnehmerOffen: false, helferdienstOffen: true, schiriNoetig: false, zeitnehmerNoetig: false });
+    expect(chips).toEqual([
+      { text: "Schiedsrichter: stellt der Verband", offen: false },
+      { text: "Zeitnehmer nicht benötigt", offen: false },
+      { text: "Helferdienst fehlt", offen: true },
+    ]);
+  });
   it("ohne Eintrag in der Besetzungs-Rechnung ist alles besetzt", () => {
     expect(besetzungsChips(undefined)).toEqual([{ text: "Alles besetzt", offen: false }]);
   });
@@ -122,5 +130,13 @@ describe("baueProfilHero", () => {
   it("ohne Einsatz", () => {
     expect(baueProfilHero([], jetzt)).toEqual({ art: "keins", einsatz: null, anzahl7Tage: 0, heute: false });
     expect(baueProfilHero([einsatz("vorbei", "2026-10-18T08:00:00Z")], jetzt).art).toBe("keins");
+  });
+});
+
+describe("dienstHinweis", () => {
+  it("nennt die Zeiträume", () => {
+    expect(dienstHinweis(0, 0)).toBe("alles besetzt");
+    expect(dienstHinweis(0, 2)).toBe("nächste 7 Tage: keine · insgesamt 2 offen");
+    expect(dienstHinweis(1, 3)).toBe("nächste 7 Tage: 1 · insgesamt 3 offen");
   });
 });

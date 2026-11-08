@@ -28,7 +28,10 @@ export type NeuesDashboardDaten = {
   mannschaftenAnzahl: number;
   /** Nur mit Add-on Vereinsverwaltung (sonst null). */
   mitgliederAnzahl: number | null;
+  /** Termine mit offenen Diensten in den nächsten 7 Tagen. */
   offeneDienste: number;
+  /** Alle künftigen Termine mit offenen Diensten (dieselbe Zahl wie das Badge im Kopf und „Offene Dienste“). */
+  offeneDiensteGesamt: number;
   aufgaben: Aufgabe[];
 };
 
@@ -122,7 +125,7 @@ export async function holeNeuesDashboardDaten(p: {
   ]);
 
   const staende = new Map<string, Besetzungsstand>(
-    unbesetzte.map((t) => [t.terminId, { schiriOffen: t.schiriOffen, zeitnehmerOffen: t.zeitnehmerOffen, helferdienstOffen: t.helferdienstOffen }])
+    unbesetzte.map((t) => [t.terminId, { schiriOffen: t.schiriOffen, zeitnehmerOffen: t.zeitnehmerOffen, helferdienstOffen: t.helferdienstOffen, schiriNoetig: t.schiriNoetig, zeitnehmerNoetig: t.zeitnehmerNoetig }])
   );
   const unbesetzt7Tage = unbesetzte.filter((t) => t.start.getTime() <= jetzt.getTime() + SIEBEN_TAGE_MS).length;
   const kommende = [...daten.heute.filter((s) => s.start.getTime() >= jetzt.getTime()), ...daten.kommend];
@@ -134,6 +137,7 @@ export async function holeNeuesDashboardDaten(p: {
     mannschaftenAnzahl: daten.mannschaften,
     mitgliederAnzahl: daten.mitglieder,
     offeneDienste: unbesetzt7Tage,
+    offeneDiensteGesamt: unbesetzte.length,
     aufgaben: baueAufgaben({
       unbesetzt7Tage,
       abmeldeanfragen: p.abmeldeanfragen,

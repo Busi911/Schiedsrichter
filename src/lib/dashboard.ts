@@ -202,6 +202,9 @@ export type UnbesetzterTermin = {
   schiriOffen: boolean;
   zeitnehmerOffen: boolean;
   helferdienstOffen: boolean;
+  // Wird die Rolle bei diesem Termin überhaupt gebraucht? Sonst darf die Anzeige kein "besetzt ✓" behaupten.
+  schiriNoetig: boolean;
+  zeitnehmerNoetig: boolean;
 };
 
 // spiel_ics bewusst ausgenommen — rein persönlicher ICS-Feed-Einsatz eines
@@ -234,18 +237,19 @@ export function berechneUnbesetzteTermine(
     const eigeneZuordnungen = zuordnungen.filter((z) => z.terminId === termin.id);
     const { externeSchiriAnzahl, externeZeitnehmerSekretaerAnzahl } =
       externeAnsetzungsAnzahlen(termin, eigeneZuordnungen);
+    const zeitnehmerBedarf = bedarfFuer(
+      verein,
+      termin.typ,
+      "zeitnehmer",
+      termin.pflichtspiel,
+      termin.freundschaftsTyp,
+      bedarfOverrideFuer(termin, "zeitnehmer"),
+      termin.mannschaftZeitnehmerBedarfDeaktiviert
+    );
     const status = berechneBesetzung(
       eigeneZuordnungen,
       false,
-      bedarfFuer(
-        verein,
-        termin.typ,
-        "zeitnehmer",
-        termin.pflichtspiel,
-        termin.freundschaftsTyp,
-        bedarfOverrideFuer(termin, "zeitnehmer"),
-        termin.mannschaftZeitnehmerBedarfDeaktiviert
-      ),
+      zeitnehmerBedarf,
       externeSchiriAnzahl,
       externeZeitnehmerSekretaerAnzahl
     );
@@ -285,6 +289,8 @@ export function berechneUnbesetzteTermine(
         && !status.schiriErfuellt,
       zeitnehmerOffen: !status.zeitnehmerSekretaerErfuellt,
       helferdienstOffen: helferOffen,
+      schiriNoetig: !(termin.typ === "rundenspiel" && termin.pflichtspiel === true),
+      zeitnehmerNoetig: zeitnehmerBedarf > 0,
     });
   }
 

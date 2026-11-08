@@ -41,7 +41,14 @@ export type SpielHeute = {
   ort: string | null;
 };
 
-export type Besetzungsstand = { schiriOffen: boolean; zeitnehmerOffen: boolean; helferdienstOffen: boolean };
+export type Besetzungsstand = {
+  schiriOffen: boolean;
+  zeitnehmerOffen: boolean;
+  helferdienstOffen: boolean;
+  /** false = die Rolle wird bei diesem Spiel nicht gebraucht (Schiedsrichter stellt der Verband, Zeitnehmer-Bedarf 0): dann steht "nicht benötigt" statt "✓". */
+  schiriNoetig?: boolean;
+  zeitnehmerNoetig?: boolean;
+};
 
 export type HeroChip = { text: string; offen: boolean };
 
@@ -67,8 +74,10 @@ export function spielTitel(beschreibung: string | null | undefined): string | nu
 export function besetzungsChips(stand: Besetzungsstand | undefined): HeroChip[] {
   if (!stand) return [{ text: "Alles besetzt", offen: false }];
   const chips: HeroChip[] = [];
-  chips.push({ text: stand.schiriOffen ? "Schiedsrichter fehlt" : "Schiedsrichter ✓", offen: stand.schiriOffen });
-  chips.push({ text: stand.zeitnehmerOffen ? "Zeitnehmer fehlt" : "Zeitnehmer ✓", offen: stand.zeitnehmerOffen });
+  if (stand.schiriNoetig === false) chips.push({ text: "Schiedsrichter: stellt der Verband", offen: false });
+  else chips.push({ text: stand.schiriOffen ? "Schiedsrichter fehlt" : "Schiedsrichter ✓", offen: stand.schiriOffen });
+  if (stand.zeitnehmerNoetig === false) chips.push({ text: "Zeitnehmer nicht benötigt", offen: false });
+  else chips.push({ text: stand.zeitnehmerOffen ? "Zeitnehmer fehlt" : "Zeitnehmer ✓", offen: stand.zeitnehmerOffen });
   if (stand.helferdienstOffen) chips.push({ text: "Helferdienst fehlt", offen: true });
   return chips;
 }
@@ -203,4 +212,11 @@ export function baueProfilHero(einsaetze: ProfilEinsatz[], jetzt: Date): ProfilH
     anzahl7Tage: anstehend.filter((e) => e.start.getTime() <= jetzt.getTime() + 7 * 24 * 60 * 60 * 1000).length,
     heute: erster.start.getTime() >= tagVon.getTime() && erster.start.getTime() < tagBis.getTime(),
   };
+}
+
+/** Zeiträume ausdrücklich nennen: „nächste 7 Tage“ und „insgesamt“ zählen verschieden und widersprachen sich sonst. */
+export function dienstHinweis(sieben: number, gesamt: number): string {
+  if (gesamt === 0) return "alles besetzt";
+  const insgesamt = `insgesamt ${gesamt} offen`;
+  return sieben === 0 ? `nächste 7 Tage: keine · ${insgesamt}` : `nächste 7 Tage: ${sieben} · ${insgesamt}`;
 }

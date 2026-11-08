@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ZEITZONE, formatZeit } from "@/lib/format";
 import type { NeuesDashboardDaten } from "@/lib/neues-dashboard-daten";
-import type { Aufgabe, ProfilHero } from "@/lib/neues-dashboard";
+import { dienstHinweis, type Aufgabe, type ProfilHero } from "@/lib/neues-dashboard";
 
 // Start-Bildschirm im neuen App-Design (Mockup 18.10.2026): Begrüßung, "Heute"-Karte, "Braucht dich" und große Kacheln für die Bereiche.
 // Reine Darstellung (Server-Komponente); Daten kommen aus lib/neues-dashboard-daten.ts. Nur Design-Tokens, damit Hell/Dunkel stimmt.
@@ -54,9 +54,9 @@ function baueKacheln(d: NeuesDashboardDaten, opt: { vereinsverwaltung: boolean; 
     {
       href: "/admin/bereich/dienste",
       label: "Dienste",
-      hinweis: d.offeneDienste === 0 ? "alles besetzt" : `${d.offeneDienste} offen`,
+      hinweis: dienstHinweis(d.offeneDienste, d.offeneDiensteGesamt),
       icon: ClipboardCheckIcon,
-      badge: d.offeneDienste,
+      badge: d.offeneDiensteGesamt,
     },
     { href: "/admin/trainingsplan", label: "Training", hinweis: "Plan und Ausfälle", icon: DumbbellIcon },
   ];
