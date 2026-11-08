@@ -75,7 +75,8 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           In dieser Reihenfolge ist euer Verein in wenigen Minuten startklar. Auf der <strong>Übersicht</strong> im
           Admin-Bereich zeigt euch die Liste „Erste Schritte“, was noch offen ist (sie verschwindet, sobald alles
-          eingerichtet ist).
+          Nötige eingerichtet ist). Schritte, die nur zum automatischen Abgleich mit nuLiga/handball.net gehören (Spielplan anbinden,
+          Spielhallen), sind als „optional“ markiert und zählen nicht mit, wenn ihr alles von Hand anlegt.
         </p>
         <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-muted-foreground">
           <li>

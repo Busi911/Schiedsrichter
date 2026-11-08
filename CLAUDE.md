@@ -796,7 +796,7 @@ Warteliste (`adminWillkommensInhalt`, Funktionsträger bekommen weiter `willkomm
 Outreach-Übernahme (beide `uebergabeInhalt`; die Outreach-Übernahme schickt sie zusätzlich zum Login-Link). Die Admin-Übersicht `/admin` zeigt Vereinsadmins
 die Karte „Erste Schritte“ (`lib/erste-schritte.ts` rein/getestet, Zähler in `erste-schritte-daten.ts`: Spielplan angebunden, Eure Spielhallen (Namen oder alte
 Hallen-ID, ohne sie wird kein Heimspiel angelegt), Mannschaften, Funktionsträger mit Rolle, ein Dienst eingetragen — dieselbe Definition wie die Stammdaten-Sperre), je Schritt mit Link zur Einstellung und zum Hilfe-Abschnitt; sie verschwindet,
-sobald alles erledigt ist. Einstellungsbereiche haben Anker (`EinstellungsBereich id=…`: `oeffentliche-seite`, `dienste-bedarf`, `vereinsdaten`; dazu `#spielhallen`).
+sobald alles Nötige erledigt ist (`optional`-Schritte zählen nicht: Spielplan anbinden immer, Spielhallen nur ohne Anbindung; `ersteSchritteZaehlung` liefert „X von Y“, damit ein Verein, der alles von Hand anlegt, nicht bei „1 von 5“ hängt; der Assistent bietet dafür „Ohne Vereins-ID von Hand starten“ = `einrichtungVonHandStarten`). Einstellungsbereiche haben Anker (`EinstellungsBereich id=…`: `oeffentliche-seite`, `dienste-bedarf`, `vereinsdaten`; dazu `#spielhallen`).
 Die Mannschaften-Seite blendet die alte handball.net-Team-ID je Mannschaft und die Karte „handball.net-Sync“ aus, wenn `hallenplan_import_aus` gesetzt ist (der
 Teamimport überspringt solche Vereine, DHB-Spiele kommen über die Vereins-ID); der Wert wird beim Speichern als verstecktes Feld mitgeschickt (sonst geleert).
 `/hilfe` hat seit 14.10.2026 zusätzlich: mannschaften, funktionstraeger (Excel-Import), spielhallen, spielgemeinschaft, gesperrte-ids, eigene-termine, abmeldungen,
