@@ -472,7 +472,7 @@ export default async function HilfePage() {
           <Link href="/admin/termine?tab=testspiele" className="font-medium underline">
             Spiele &amp; Turniere → Freundschaftsspiele &amp; Turniere
           </Link>{" "}
-          über <strong>„Neuer Termin“</strong> mit Typ, Start, Ort, Gegner und optional der Mannschaft (das Ende muss nach dem Start liegen; nach dem Anlegen schließt der Dialog und bestätigt kurz, mit „Und weiteren anlegen“ bleibt er für den nächsten Eintrag offen). Danach werden sie wie
+          über <strong>„Neuer Termin“</strong> mit Typ, Start, Ort, Gegner und optional der Mannschaft (das Ende muss nach dem Start liegen; nach dem Anlegen schließt der Dialog und bestätigt kurz, mit „Und weiteren anlegen“ bleibt er für den nächsten Eintrag offen; schließt ihr einen ausgefüllten Dialog ohne Speichern, fragt die App vorher nach). Danach werden sie wie
           Ligaspiele besetzt; der Bedarf richtet sich nach der Veranstaltungsart (<a href="#bedarf" className="font-medium underline">Dienste-Bedarf</a>),
           einen Schiedsrichter stellt ihr hier selbst.
         </p>

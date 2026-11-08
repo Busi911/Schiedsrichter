@@ -13,6 +13,7 @@ import { LabeledSelect } from "@/components/labeled-select";
 import { PersonSelect } from "@/components/person-select";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
+import { useUngespeichertWarnung } from "@/components/ungespeichert-warnung";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { cn } from "@/lib/utils";
 import {
@@ -101,6 +102,7 @@ export function TrainingszeitDialog({
   alleEintraege?: TrainingszeitEintrag[];
 }) {
   const bearbeiten = !!eintrag;
+  const warnung = useUngespeichertWarnung();
   const [farbe, setFarbe] = useState(eintrag?.farbe ?? TRAININGSFARBEN[0]);
   const [halleIdAuswahl, setHalleIdAuswahl] = useState(
     eintrag?.halleId ?? vorgabe?.halleId ?? hallen[0]?.id ?? ""
@@ -115,8 +117,16 @@ export function TrainingszeitDialog({
   const endMinuten = eintrag?.endMinuten ?? vorgabe?.endMinuten ?? 18 * 60;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        // Schließen mit geänderten Feldern: erst nachfragen. Nach dem Speichern ruft SchliesseNachSpeichern onOpenChange direkt auf (ohne Rückfrage).
+        if (!o && !warnung.darfSchliessen()) return;
+        onOpenChange(o);
+      }}
+    >
       <DialogContent
+        onInput={warnung.markiereGeaendert}
         onSubmit={(e) => {
           const form = e.target as HTMLFormElement;
           // Zusätzliche Formulare im Dialog (Teilen/Tauschen) haben keine Zeitfelder des Hauptformulars.
