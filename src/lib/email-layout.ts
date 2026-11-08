@@ -56,6 +56,9 @@ export function emailAlsText(inhalt: EmailInhalt): string {
   return teile.join("\n");
 }
 
+// Das Logo hat bewusst einen leeren Alt-Text: Outlook & Co. blockieren Bilder
+// standardmäßig, ein gefüllter Alt-Text erschien dann gequetscht neben dem
+// kaputten Bild (der Name steht ohnehin als Überschrift darunter).
 // Bewusst reine Inline-Styles + Tabellen-Layout statt Tailwind-Klassen — die
 // meisten E-Mail-Clients (allen voran Outlook Desktop) ignorieren <style>-
 // Blöcke und Flexbox/Grid, nur Inline-CSS auf Tabellen ist zuverlässig.
@@ -71,7 +74,7 @@ export function emailAlsHtml(inhalt: EmailInhalt): string {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:420px;background:#ffffff;border-radius:16px;border:1px solid #e4e4e7;">
             <tr>
               <td style="padding:32px 32px 8px;text-align:center;">
-                <img src="${appUrl()}/brand/logo-rund.png" width="56" height="53" alt="HandballerPate" style="display:block;width:56px;height:auto;margin:0 auto 16px;border:0;outline:none;" />
+                <img src="${appUrl()}/brand/logo-rund.png" width="56" height="53" alt="" style="display:block;width:56px;height:auto;margin:0 auto 16px;border:0;outline:none;" />
                 ${
                   inhalt.vereinName
                     ? `<p style="margin:0 0 4px;font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#a1a1aa;">${escapeHtml(inhalt.vereinName)}</p>`

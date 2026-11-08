@@ -248,7 +248,7 @@ function TerminKarte({
 }) {
   const typLabel = t.typ === "rundenspiel" ? rundenspielTypLabel(t.pflichtspiel, t.freundschaftsTyp) : (TYP_LABEL[t.typ] ?? t.typ);
   return (
-    <div className="rounded-lg border p-3 text-sm">
+    <div id={`termin-${t.id}`} className="scroll-mt-24 rounded-lg border p-3 text-sm">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">{formatDateTime(t.start)}</span>
         <Badge variant="outline">{typLabel}</Badge>
