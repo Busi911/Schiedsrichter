@@ -186,7 +186,7 @@ export default async function NuligaDiagnosePage({ searchParams }: { searchParam
             </details>
             <details className="rounded-lg border px-3 py-2">
               <summary className="cursor-pointer text-sm">Seitenquelltext (erste 20.000 Zeichen, zum Kopieren)</summary>
-              <textarea readOnly rows={20} className="mt-2 w-full rounded-md border bg-background p-2 font-mono text-xs" value={maskierePersonendaten(sichereHtml).slice(0, 20000)} />
+              <textarea readOnly aria-label="Seitenquelltext zum Kopieren" rows={20} className="mt-2 w-full rounded-md border bg-background p-2 font-mono text-xs" value={maskierePersonendaten(sichereHtml).slice(0, 20000)} />
             </details>
           </section>
         </>

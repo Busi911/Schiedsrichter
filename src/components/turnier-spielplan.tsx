@@ -222,6 +222,7 @@ export function TurnierSpielplan({
                                   />
                                   <Input
                                     name="start"
+                                    aria-label="Beginn"
                                     type="datetime-local"
                                     defaultValue={toDatetimeLocalWert(s.start)}
                                     required

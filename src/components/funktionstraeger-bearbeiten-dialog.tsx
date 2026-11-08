@@ -94,12 +94,14 @@ export function FunktionstraegerBearbeitenDialog({
               <input type="hidden" name="userId" value={p.userId} />
               <Input
                 name="name"
+                aria-label="Name"
                 defaultValue={p.name ?? ""}
                 required
                 className="h-8 w-full sm:w-36"
               />
               <Input
                 name="email"
+                aria-label="E-Mail"
                 type="email"
                 defaultValue={p.email}
                 required

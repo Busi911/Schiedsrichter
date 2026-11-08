@@ -3,7 +3,12 @@ import { Input as InputPrimitive } from "@base-ui/react/input"
 
 import { cn } from "@/lib/utils"
 
+// Ohne eigene Beschriftung (Label über id, aria-label) dient ein aussagekräftiger Platzhalter als Name für Screenreader.
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+  const ohneName = !props.id && !props["aria-label"] && !props["aria-labelledby"]
+  if (ohneName && typeof props.placeholder === "string" && props.placeholder.length > 2) {
+    props = { ...props, "aria-label": props.placeholder }
+  }
   return (
     <InputPrimitive
       type={type}

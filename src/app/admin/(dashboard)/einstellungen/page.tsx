@@ -576,7 +576,7 @@ export default async function EinstellungenPage({
               {session.user.istAdmin && (
                 <>
                   <form action={logoHochladen} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Input name="logo" type="file" accept="image/png,image/jpeg,image/webp" required />
+                    <Input name="logo" aria-label="Logo-Datei auswählen" type="file" accept="image/png,image/jpeg,image/webp" required />
                     <SubmitButton size="sm" pendingText="Lädt hoch…" className="self-start">
                       {logo ? "Logo ersetzen" : "Logo hochladen"}
                     </SubmitButton>

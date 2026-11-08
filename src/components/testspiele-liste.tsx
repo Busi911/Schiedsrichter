@@ -142,6 +142,7 @@ export function TestspieleListe({
                           <input type="hidden" name="terminId" value={t.id} />
                           <Input
                             name="ergebnisHeim"
+                            aria-label="Tore Heim"
                             type="number"
                             min={0}
                             defaultValue={t.ergebnisHeim ?? ""}
@@ -151,6 +152,7 @@ export function TestspieleListe({
                           <span className="text-muted-foreground">:</span>
                           <Input
                             name="ergebnisAuswaerts"
+                            aria-label="Tore Gast"
                             type="number"
                             min={0}
                             defaultValue={t.ergebnisAuswaerts ?? ""}
@@ -222,6 +224,7 @@ export function TestspieleListe({
                           <input type="hidden" name="terminId" value={t.id} />
                           <Input
                             name="ergebnisHeim"
+                            aria-label="Tore Heim"
                             type="number"
                             min={0}
                             defaultValue={t.ergebnisHeim ?? ""}
@@ -231,6 +234,7 @@ export function TestspieleListe({
                           <span className="text-muted-foreground">:</span>
                           <Input
                             name="ergebnisAuswaerts"
+                            aria-label="Tore Gast"
                             type="number"
                             min={0}
                             defaultValue={t.ergebnisAuswaerts ?? ""}

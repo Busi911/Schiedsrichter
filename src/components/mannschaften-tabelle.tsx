@@ -170,6 +170,7 @@ export function MannschaftenTabelle({
                         <input type="hidden" name="mannschaftId" value={m.id} />
                         <Input
                           name="name"
+                          aria-label="Name der Mannschaft"
                           defaultValue={m.name}
                           required
                           className="h-8 w-40"
