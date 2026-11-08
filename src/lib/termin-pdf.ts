@@ -66,7 +66,7 @@ export function terminAlsPdf(
 
   const basisSpalten = [
     { label: "Zeit", width: 35 },
-    { label: "Typ", width: 70 },
+    { label: "Typ", width: 90 },
     { label: "Ort", width: 85 },
     { label: "Mannschaft", width: 145 },
     ...ausgewaehlteRollen.map((r) => ({
@@ -90,44 +90,49 @@ export function terminAlsPdf(
     const inhaltsBreite =
       doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const rowHeight = 18;
+    // Zellen brechen um statt mit "…" abgeschnitten zu werden (lange Namen, "Freundschaftsspiel"): die Zeile
+    // wird so hoch wie ihre höchste Zelle. Höchstens MAX_ZEILEN Zeilen je Zelle, danach wird gekürzt.
+    const MAX_ZEILEN = 4;
+    const ZELLEN_RAND = 4;
     let y = doc.page.margins.top;
 
-    // Bei einer Rollen-Auswahl (siehe admin/auswertung/page.tsx) bleibt
-    // sonst ein Teil der Seite ungenutzt leer — die festen Spaltenbreiten
-    // oben sind auf ALLE Rollen ausgelegt. Bleibt Platz übrig, wird
-    // proportional auf die volle Seitenbreite hochskaliert statt ihn
-    // brachliegen zu lassen; passen alle Spalten (Standardfall, alle
-    // Rollen gewählt) schon von sich aus, bleibt die Breite unverändert.
+    // Die Spaltenbreiten oben sind Richtwerte: bleibt Platz übrig (Rollen-Auswahl, siehe admin/auswertung/page.tsx),
+    // wird proportional auf die volle Seitenbreite hochskaliert; sind alle Rollen gewählt und die Summe breiter als
+    // die Seite, wird auf die Seitenbreite VERKLEINERT (vorher ragte die Tabelle über den Rand). Die Zellen brechen um.
     const basisBreite = basisSpalten.reduce((summe, s) => summe + s.width, 0);
-    const skalierung = Math.max(1, inhaltsBreite / basisBreite);
+    const skalierung = inhaltsBreite / basisBreite;
+    const schriftgroesse = skalierung < 0.9 ? 8 : 9;
     const SPALTEN = basisSpalten.map((s) => ({
       ...s,
       width: s.width * skalierung,
     }));
 
-    function zeichneZeile(werte: string[], fett: boolean) {
+    function zeilenHoehe(werte: string[], fett: boolean): number {
+      doc.font(fett ? "Helvetica-Bold" : "Helvetica").fontSize(schriftgroesse);
+      const hoehen = werte.map((wert, i) =>
+        wert ? doc.heightOfString(wert, { width: SPALTEN[i].width - ZELLEN_RAND }) : 0
+      );
+      return Math.min(Math.max(rowHeight, Math.max(...hoehen) + 6), doc.currentLineHeight() * MAX_ZEILEN + 6);
+    }
+
+    function zeichneZeile(werte: string[], fett: boolean, hoehe: number) {
       let x = startX;
-      doc.font(fett ? "Helvetica-Bold" : "Helvetica").fontSize(9);
+      doc.font(fett ? "Helvetica-Bold" : "Helvetica").fontSize(schriftgroesse);
       werte.forEach((wert, i) => {
-        // height muss mitgegeben werden, sonst wirkt ellipsis nicht (pdfkit
-        // kürzt nur, wenn der Text die angegebene Höhe überschreiten würde) —
-        // ohne height läuft ein zu langer Wert stattdessen mehrzeilig um und
-        // überlappt die nächste Zeile.
+        // height begrenzt auf MAX_ZEILEN Zeilen: erst darüber wird mit "…" gekürzt, nie in die nächste Zeile hinein geschrieben.
         doc.text(wert, x, y, {
-          width: SPALTEN[i].width,
-          height: rowHeight,
+          width: SPALTEN[i].width - ZELLEN_RAND,
+          height: hoehe - 2,
           ellipsis: true,
         });
         x += SPALTEN[i].width;
       });
-      y += rowHeight;
+      y += hoehe;
     }
 
     function kopfzeile() {
-      zeichneZeile(
-        SPALTEN.map((s) => s.label),
-        true
-      );
+      const kopf = SPALTEN.map((s) => s.label);
+      zeichneZeile(kopf, true, zeilenHoehe(kopf, true));
     }
 
     if (vereinName) {
@@ -160,21 +165,20 @@ export function terminAlsPdf(
       y += rowHeight;
 
       for (const z of items) {
-        if (y > doc.page.height - doc.page.margins.bottom - rowHeight) {
+        const werte = [
+          formatZeitKurz(z.start),
+          TYP_LABEL[z.typ] ?? z.typ,
+          z.ort ?? "",
+          z.mannschaftName ?? "",
+          ...ausgewaehlteRollen.map((r) => ROLLEN_WERT[r](z)),
+        ];
+        const hoehe = zeilenHoehe(werte, false);
+        if (y + hoehe > doc.page.height - doc.page.margins.bottom) {
           doc.addPage();
           y = doc.page.margins.top;
           kopfzeile();
         }
-        zeichneZeile(
-          [
-            formatZeitKurz(z.start),
-            TYP_LABEL[z.typ] ?? z.typ,
-            z.ort ?? "",
-            z.mannschaftName ?? "",
-            ...ausgewaehlteRollen.map((r) => ROLLEN_WERT[r](z)),
-          ],
-          false
-        );
+        zeichneZeile(werte, false, hoehe);
       }
     }
 
