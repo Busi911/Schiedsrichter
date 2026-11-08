@@ -48,6 +48,7 @@ export function VorschauLinks({
         <div key={l.id} className="flex flex-wrap items-center gap-2">
           <input
             readOnly
+            aria-label="Vorschau-Link zum Kopieren"
             value={`${basisUrl}/verein/${slug}/vorschau/${l.token}`}
             className="h-8 w-full min-w-0 rounded-md border bg-background px-2 font-mono sm:w-72"
           />

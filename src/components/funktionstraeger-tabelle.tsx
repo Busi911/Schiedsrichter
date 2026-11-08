@@ -147,6 +147,7 @@ export function FunktionstraegerTabelle({
         />
         <select
           value={rolleFilter}
+          aria-label="Nach Funktion filtern"
           onChange={(e) => setRolleFilter(e.target.value)}
           className={SELECT_KLASSE}
         >
@@ -159,6 +160,7 @@ export function FunktionstraegerTabelle({
         </select>
         <select
           value={statusFilter}
+          aria-label="Nach Status filtern"
           onChange={(e) =>
             setStatusFilter(e.target.value as "alle" | "aktiv" | "inaktiv")
           }
