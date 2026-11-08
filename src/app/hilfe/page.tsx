@@ -233,6 +233,11 @@ export default async function HilfePage() {
           Trainern, was sie im Profil sehen und dass sie bei Verlegungen eine Info-Mail bekommen.
         </p>
         <p className="text-sm text-muted-foreground">
+          Beim Anlegen entscheidet der Schalter <strong>„Sofort aktivieren“</strong>: mit ihm sind die Rollen gleich aktiv und die
+          Willkommensmail geht raus. Ohne ihn wird die Person nur vorgemerkt (kein Login, keine Mail, Rollen <em>inaktiv</em>) und
+          kann noch nicht eingeteilt werden; mit „Aktivieren“ in der Liste startet sie später.
+        </p>
+        <p className="text-sm text-muted-foreground">
           Unter „Mögliche Duplikate“ schlägt die App Personen mit sehr ähnlichem Namen vor. Ist es derselbe Mensch, führt{" "}
           <strong>Verknüpfen</strong> beide Zugänge zusammen. Sind es zwei verschiedene Personen (z.B. Vater und Sohn mit gleichem
           Namen), bestätigt <strong>Zwei verschiedene Personen</strong> das: das Paar wird dann nicht mehr vorgeschlagen.
