@@ -13,6 +13,7 @@ const basis: NeuesDashboardDaten = {
   mannschaftenAnzahl: 12,
   mitgliederAnzahl: 214,
   offeneDienste: 3,
+  offeneDiensteGesamt: 3,
   aufgaben: [{ schluessel: "dienste", anzahl: 3, titel: "Termine mit offenen Diensten", hinweis: "nächste 7 Tage", href: "/admin/dienste", aktion: "Einteilen", ton: "warnung" }],
 };
 const rendere = (daten: NeuesDashboardDaten, opt: { vereinsverwaltung?: boolean; vereinstermine?: boolean } = {}) =>
@@ -49,8 +50,13 @@ describe("NeuesDashboard", () => {
     expect(mit).toContain("214 Mitglieder");
     expect(mit).toContain("Vereinstermine");
   });
+  it("Kachel Dienste nennt Zeiträume: nächste 7 Tage und insgesamt", () => {
+    const html = rendere({ ...basis, offeneDienste: 0, offeneDiensteGesamt: 1 });
+    expect(html).toContain("nächste 7 Tage: keine · insgesamt 1 offen");
+    expect(html).not.toContain("alles besetzt");
+  });
   it("ohne Spiele und Aufgaben: ruhige Zustände statt leerer Flächen", () => {
-    const html = rendere({ ...basis, hero: { art: "keins", anzahlHeute: 0, spiel: null, chips: [] }, naechster: null, aufgaben: [], offeneDienste: 0, spieleDieseWoche: 0 });
+    const html = rendere({ ...basis, hero: { art: "keins", anzahlHeute: 0, spiel: null, chips: [] }, naechster: null, aufgaben: [], offeneDienste: 0, offeneDiensteGesamt: 0, spieleDieseWoche: 0 });
     expect(html).toContain("Keine Spiele in Sicht");
     expect(html).toContain("Alles erledigt");
     expect(html).toContain("alles besetzt");
