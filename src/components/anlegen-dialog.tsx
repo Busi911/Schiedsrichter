@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { SubmitButton } from "@/components/submit-button";
+import { useUngespeichertWarnung } from "@/components/ungespeichert-warnung";
 
 // Gemeinsamer Rahmen für „Neu anlegen“-Dialoge (Mannschaft, Termin, Funktionsträger).
 // Nach dem Speichern schließt der Dialog und eine kurze Bestätigung steht neben dem Button
@@ -35,6 +36,7 @@ export function AnlegenDialog({
   const [offen, setOffen] = useState(false);
   const [meldung, setMeldung] = useState<string | null>(null);
   const [imDialog, setImDialog] = useState<string | null>(null);
+  const warnung = useUngespeichertWarnung();
 
   // Bestätigung neben dem Button verschwindet nach einigen Sekunden von selbst.
   useEffect(() => {
@@ -47,6 +49,7 @@ export function AnlegenDialog({
     const weiter = formData.get("weiter") === "1";
     const text = erfolgText(formData);
     await action(formData);
+    warnung.zuruecksetzen();
     if (weiter) {
       setImDialog(text);
     } else {
@@ -61,7 +64,10 @@ export function AnlegenDialog({
       <Dialog
         open={offen}
         onOpenChange={(o) => {
+          // Schließen mit ausgefüllten Feldern: erst nachfragen, damit nichts versehentlich verloren geht.
+          if (!o && !warnung.darfSchliessen()) return;
           setOffen(o);
+          if (!o) warnung.zuruecksetzen();
           if (o) {
             setMeldung(null);
             setImDialog(null);
@@ -69,7 +75,7 @@ export function AnlegenDialog({
         }}
       >
         <DialogTrigger render={<Button />}>{triggerLabel}</DialogTrigger>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" onInput={warnung.markiereGeaendert}>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
