@@ -17,6 +17,7 @@ import {
   abmeldungEntschiedenInhalt,
   pruefeBesetzungsgrenze,
   pruefeKeineDoppelrolle,
+  pruefeKeineZeitUeberschneidung,
   zuordnungEntferntInhalt,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
@@ -145,6 +146,7 @@ export async function zeitnehmerZuordnen(formData: FormData) {
     });
     if (vorhanden) return { neu: null, entfernt };
 
+    await pruefeKeineZeitUeberschneidung(tx, terminId, { userId });
     await pruefeBesetzungsgrenze(tx, vereinId, terminId, rolle);
     // Verhindert, dass derselbe Wart-Zuordnungsweg eine Person versehentlich
     // ALS Zeitnehmer UND Sekretär an einem Termin eintragen kann — dieselbe
@@ -230,6 +232,7 @@ export async function zeitnehmerOhneLoginZuordnen(formData: FormData) {
   await withTenant(vereinId, async (tx) => {
     await pruefeBesetzungsgrenze(tx, vereinId, terminId, rolle);
     await pruefeKeineDoppelrolle(tx, terminId, { externerName: name.trim() });
+    await pruefeKeineZeitUeberschneidung(tx, terminId, { externerName: name.trim() });
 
     await tx.insert(terminZuordnungen).values({
       terminId,

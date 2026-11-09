@@ -8,6 +8,7 @@ import {
   pruefeKeineOrdnerDoppelrolle,
   pruefeOrdnerBesetzungsgrenze,
 } from "@/lib/ordnerwart";
+import { pruefeKeineZeitUeberschneidung } from "@/lib/zuordnung";
 import {
   selbstEintragenMehrfachEingeloggt,
   selbstEintragenMehrfachOeffentlich,
@@ -30,7 +31,10 @@ const BEREICH: SelbsteintragungBereich = {
   holeWarteEmails: holeOrdnerwarteEmails,
   pruefeBesetzung: (tx, vereinId, terminId, termin, rolle) =>
     pruefeOrdnerBesetzungsgrenze(tx, vereinId, terminId, termin, rolle as OrdnerRolle),
-  pruefeDoppelrolle: (tx, terminId, person, rolle) => pruefeKeineOrdnerDoppelrolle(tx, terminId, person, rolle as OrdnerRolle),
+  pruefeDoppelrolle: async (tx, terminId, person, rolle) => {
+    await pruefeKeineZeitUeberschneidung(tx, terminId, person);
+    return pruefeKeineOrdnerDoppelrolle(tx, terminId, person, rolle as OrdnerRolle);
+  },
 };
 
 export async function ordnerSelbstEintragenMehrfachOeffentlich(formData: FormData): Promise<MehrfachEintragErgebnis> {

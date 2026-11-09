@@ -923,7 +923,15 @@ export default async function HilfePage() {
           sofortige Austragung: der zuständige Wart bekommt eine Mail, und die Anfrage steht auf seiner Wart-Seite und auf der
           Übersicht im Admin-Bereich. Dort wird sie <strong>genehmigt</strong> (der Platz wird wieder frei und taucht in den
           offenen Diensten auf) oder <strong>abgelehnt</strong>. Bis dahin bleibt die Person eingetragen und kann die Anfrage
-          selbst zurückziehen.
+          selbst zurückziehen. Die Schaltfläche „Abmeldung anfragen“ steht im Profil bei <strong>Meine Termine</strong> an jedem
+          künftigen Termin, für den man eingeteilt ist (auch bei importierten Spielen); bei Schiedsrichtern entscheidet der
+          Schiedsrichterwart (ohne Wart die Vereinsadmins) unter „Abmeldeanfragen“.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Keine Doppelbelegung:</strong> Dieselbe Person kann nicht zur selben Zeit an zwei Terminen eingeteilt werden, egal in
+          welcher Rolle und auf welchem Weg (Admin, Wart, Selbsteintragung). Gerechnet wird mit dem Ende des Termins, sonst mit 90
+          Minuten; direkt aufeinanderfolgende Spiele sind erlaubt. Die Meldung nennt den kollidierenden Termin. Beim Termin mit „Kein
+          Dienstbedarf“ können Admins trotzdem Personen einteilen (Ausnahme, im Termin erklärt).
         </p>
       </section>
       <section id="mails" className="flex flex-col gap-2 scroll-mt-6">

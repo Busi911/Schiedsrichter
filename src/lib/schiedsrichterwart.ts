@@ -84,3 +84,25 @@ export async function holeSchiedsrichterEinsatzZahlen(
     return summiereZweiZaehlungen(schiedsrichterListe, icsZaehlung, zuordnungZaehlung);
   });
 }
+
+// E-Mail-Adressen der aktiven Schiedsrichterwarte; gibt es keinen, die Vereinsadmins (eine Abmeldeanfrage darf nie unbemerkt bleiben).
+// "user" hat keine RLS, deshalb der ausdrückliche Vereinsfilter.
+export async function holeSchiedsrichterwarteOderAdminEmails(vereinId: string): Promise<{ email: string }[]> {
+  const warte = await withTenant(vereinId, (tx) =>
+    tx
+      .select({ email: users.email })
+      .from(funktionstraegerRollen)
+      .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
+      .where(
+        and(
+          eq(users.vereinId, vereinId),
+          eq(funktionstraegerRollen.typ, "schiedsrichterwart"),
+          eq(funktionstraegerRollen.aktiv, true)
+        )
+      )
+  );
+  if (warte.length > 0) return warte;
+  return withTenant(vereinId, (tx) =>
+    tx.select({ email: users.email }).from(users).where(and(eq(users.vereinId, vereinId), eq(users.istAdmin, true)))
+  );
+}

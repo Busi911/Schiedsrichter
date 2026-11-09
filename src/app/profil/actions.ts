@@ -27,10 +27,12 @@ import { holeOrdnerwarteEmails, ORDNER_ROLLEN } from "@/lib/ordnerwart";
 import { appUrl } from "@/lib/app-url";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 import { holeZeitnehmerwarteEmails, istZeitnehmerwart } from "@/lib/zeitnehmerwart";
+import { holeSchiedsrichterwarteOderAdminEmails } from "@/lib/schiedsrichterwart";
 import {
   abmeldungAngefragtInhalt,
   pruefeBesetzungsgrenze,
   pruefeKeineDoppelrolle,
+  pruefeKeineZeitUeberschneidung,
 } from "@/lib/zuordnung";
 import { verbieteImDemo } from "@/lib/demo-verein";
 
@@ -369,6 +371,8 @@ export async function selbstAnmelden(formData: FormData) {
         })
       : null;
 
+    await pruefeKeineZeitUeberschneidung(tx, terminId, { userId });
+
     // Zeitnehmer/Sekretär haben eine feste Obergrenze von je 1 (siehe
     // pruefeBesetzungsgrenze/pruefeKeineDoppelrolle in zuordnung.ts, dieselbe
     // Prüfung wie bei der öffentlichen Selbsteintragung) statt der
@@ -492,12 +496,16 @@ export async function selbstAbmelden(formData: FormData) {
     const istOrdnerFamilie = (ORDNER_ROLLEN as readonly string[]).includes(rolle);
     const istEigenerDienst = rolle === "eigener_dienst";
     // Eigene Dienste: an die Dienstwarte, gibt es keinen, an die Vereinsadmins (sonst bliebe die Anfrage unbemerkt).
+    // Schiedsrichter: an die Schiedsrichterwarte (ohne Wart an die Admins).
+    const istSchiri = rolle === "schiedsrichter";
     const warte = istEigenerDienst
       ? await holeDienstwarteOderAdminEmails(vereinId)
-      : istOrdnerFamilie
-        ? await holeOrdnerwarteEmails(vereinId)
-        : await holeZeitnehmerwarteEmails(vereinId);
-    const wartUrl = `${appUrl()}${istEigenerDienst ? "/profil/dienstwart" : istOrdnerFamilie ? "/profil/ordnerwart" : "/profil/zeitnehmerwart"}`;
+      : istSchiri
+        ? await holeSchiedsrichterwarteOderAdminEmails(vereinId)
+        : istOrdnerFamilie
+          ? await holeOrdnerwarteEmails(vereinId)
+          : await holeZeitnehmerwarteEmails(vereinId);
+    const wartUrl = `${appUrl()}${istEigenerDienst ? "/profil/dienstwart" : istSchiri ? "/profil/schiedsrichterwart" : istOrdnerFamilie ? "/profil/ordnerwart" : "/profil/zeitnehmerwart"}`;
     const inhalt = {
       vereinName: verein.name,
       ...abmeldungAngefragtInhalt(nutzer.name ?? nutzer.email, rollenName, termin, {

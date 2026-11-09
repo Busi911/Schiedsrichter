@@ -8,6 +8,7 @@ import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import {
   pruefeBesetzungsgrenze,
   pruefeKeineDoppelrolle,
+  pruefeKeineZeitUeberschneidung,
   ZUORDENBARE_TYPEN,
   zuordnungEntferntInhalt,
   zuordnungsMailInhalt,
@@ -71,6 +72,8 @@ export async function zuordnen(formData: FormData) {
       where: eq(termine.id, terminId),
     });
     if (!termin) throw new Error("Termin nicht gefunden.");
+
+    await pruefeKeineZeitUeberschneidung(tx, terminId, { userId });
 
     if ((ORDNER_ROLLEN as readonly string[]).includes(rolle)) {
       await pruefeOrdnerBesetzungsgrenze(
