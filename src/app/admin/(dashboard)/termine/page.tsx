@@ -2,9 +2,10 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
-import { mannschaften, termine } from "@/db/schema";
+import { mannschaften, termine, vereine } from "@/db/schema";
 import { spielDuplikatVerknuepfen } from "../actions";
 import { findeSpielDuplikate } from "@/lib/duplikat-erkennung";
+import { inEigenerHalle } from "@/lib/rundenspiel-filter";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { buttonVariants } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
@@ -158,7 +159,7 @@ async function RundenspieleTab({
   vereinId: string;
   istAdmin: boolean;
 }) {
-  const liste = await withTenant(vereinId, (tx) =>
+  const [rohListe, vereinZeile] = await Promise.all([withTenant(vereinId, (tx) =>
     tx
       .select({
         id: termine.id,
@@ -176,18 +177,21 @@ async function RundenspieleTab({
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
       .where(and(eq(termine.vereinId, vereinId), eq(termine.typ, "rundenspiel")))
       .orderBy(asc(termine.start))
-  );
+  ), withTenant(vereinId, (tx) => tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { eigeneHallenNamen: true } }))]);
+  // Heim (Ort passt zu einer eigenen Spielhalle) oder Auswärts (fremde Halle): so lassen sich Hallenbelegung und Auswärtsspiele trennen.
+  const liste = rohListe.map((t) => ({ ...t, eigeneHalle: inEigenerHalle(t.ort, vereinZeile?.eigeneHallenNamen) }));
 
   const { rundenspielDuplikate, icsDuplikate } = await findeSpielDuplikate(vereinId);
 
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted-foreground">
-        Alle Spiele an der eigenen Halle — Liga-Pflichtspiele ebenso wie
-        Freundschaftsspiele/Turniere, automatisch aus nuLiga synchronisiert
-        (siehe Einstellungen). Inklusive Spiele fremder Mannschaften an der
-        eigenen Halle (relevant für Ordner-/Kioskdienst). Noch nicht
-        verknüpfte bzw. abgelehnte Mannschaften daraus verwaltet ihr unter
+        Alle importierten Spiele des Vereins — Liga-Pflichtspiele ebenso wie
+        Freundschaftsspiele/Turniere, automatisch aus nuLiga bzw. handball.net synchronisiert
+        (siehe Einstellungen). Dazu gehören Heimspiele an den eigenen Hallen (relevant für Hallenbelegung und
+        Helferdienste, auch Spiele fremder Mannschaften dort) und Auswärtsspiele der eigenen Mannschaften. Mit den Schaltern{" "}
+        <strong>„Eigene Hallen (Heim)“</strong> und <strong>„Auswärts / fremde Halle“</strong> trennt ihr beides, dazu gibt es Filter nach Mannschaft und Halle.
+        Noch nicht verknüpfte bzw. abgelehnte Mannschaften daraus verwaltet ihr unter
         /admin/mannschaften.
       </p>
 

@@ -4,6 +4,8 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { hallen, mannschaften, trainingszeiten, vereine } from "@/db/schema";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
+import { findeGleichBezeichnete, unterscheidbarerName } from "@/lib/mannschaft-herkunft";
+import { ladeMannschaftsHerkunft } from "@/lib/mannschaft-herkunft-daten";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
@@ -49,9 +51,13 @@ export default async function TrainingsplanPage() {
   const startStunde = (verein?.trainingsplanStartMinuten ?? 7 * 60) / 60;
   const endStunde = (verein?.trainingsplanEndMinuten ?? 22 * 60) / 60;
 
-  const mannschaftenListe = sortiereMannschaften(mannschaftenRoh).map((m) => ({
+  // Gleich bezeichnete Mannschaften bekommen die Liga als Zusatz, damit der Plan sie unterscheiden kann (lib/mannschaft-herkunft.ts).
+  const sortierteMannschaften = sortiereMannschaften(mannschaftenRoh);
+  const herkunft = await ladeMannschaftsHerkunft(sortierteMannschaften);
+  const gleich = findeGleichBezeichnete(sortierteMannschaften);
+  const mannschaftenListe = sortierteMannschaften.map((m) => ({
     id: m.id,
-    label: m.altersklasse ? `${m.name} (${m.altersklasse})` : m.name,
+    label: unterscheidbarerName(m, gleich.has(m.id), herkunft.get(m.id)),
   }));
 
   return (

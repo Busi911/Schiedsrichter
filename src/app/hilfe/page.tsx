@@ -197,7 +197,9 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Ist der Spielplan angebunden, legt HandballerPate eure Mannschaften aus den Liga-Daten selbst an und ordnet neue
           Spiele automatisch der richtigen Mannschaft zu. Habt ihr schon eigene Mannschaften angelegt, legt es keine
-          zusätzlichen an (keine Doppelten), sondern ordnet Spiele über den Namen zu. Unter{" "}
+          zusätzlichen an (keine Doppelten), sondern ordnet Spiele über den Namen zu. In der Liste steht unter jedem Namen, woher die Mannschaft stammt (<strong>Liga, Saison und Quelle</strong>
+          bzw. „von Hand angelegt“). Haben zwei Mannschaften dieselbe Bezeichnung und Altersklasse, weist ein Hinweis darauf hin; im Trainingsplan steht dann die Liga dahinter.
+          Zusammengeführt wird nie automatisch: erst anhand von Liga und Saison prüfen, ob es zwei Wettbewerbe oder ein doppelter Eintrag sind. Unter{" "}
           <Link href="/admin/mannschaften" className="font-medium underline">
             Mannschaften
           </Link>{" "}
@@ -405,7 +407,7 @@ export default async function HilfePage() {
             Einstellungen → Öffentliche Vereinsseite → Eure Spielhallen
           </Link>{" "}
           eure Hallen ein: eine pro Zeile, ein eindeutiger Teil des Namens reicht (z.B. „Sporthalle Heuchelheim“),
-          Groß-/Kleinschreibung ist egal.
+          Groß-/Kleinschreibung ist egal. Dieselben Namen trennen auch die Liste unter <strong>Spiele &amp; Turniere → Hallenspielplan</strong>: mit „Eigene Hallen (Heim)“ und „Auswärts / fremde Halle“ seht ihr Hallenbelegung und Auswärtsspiele getrennt, dazu gibt es Filter nach Mannschaft und Halle.
         </p>
         <p className="text-sm text-muted-foreground">
           <strong>Ohne Eintrag wird kein Heimspiel angelegt</strong>, der Kalender bleibt leer. Nach dem Speichern werden
