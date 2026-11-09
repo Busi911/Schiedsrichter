@@ -407,7 +407,7 @@ export default async function HilfePage() {
             Einstellungen → Öffentliche Vereinsseite → Eure Spielhallen
           </Link>{" "}
           eure Hallen ein: eine pro Zeile, ein eindeutiger Teil des Namens reicht (z.B. „Sporthalle Heuchelheim“),
-          Groß-/Kleinschreibung ist egal. Dieselben Namen trennen auch die Liste unter <strong>Spiele &amp; Turniere → Hallenspielplan</strong>: mit „Eigene Hallen (Heim)“ und „Auswärts / fremde Halle“ seht ihr Hallenbelegung und Auswärtsspiele getrennt, dazu gibt es Filter nach Mannschaft und Halle.
+          Groß-/Kleinschreibung ist egal. Dieselben Namen trennen auch die Liste unter <strong>Spiele &amp; Turniere → Hallenspielplan</strong>: mit „Eigene Hallen (Heim)“ und „Auswärts / fremde Halle“ seht ihr Hallenbelegung und Auswärtsspiele getrennt, dazu gibt es Filter nach Mannschaft (jede Mannschaft einzeln, mit Altersklasse) und nach Halle (Schreibvarianten wie „SPORTHALLE …“ zählen als dieselbe Halle).
         </p>
         <p className="text-sm text-muted-foreground">
           <strong>Ohne Eintrag wird kein Heimspiel angelegt</strong>, der Kalender bleibt leer. Nach dem Speichern werden
@@ -956,7 +956,7 @@ export default async function HilfePage() {
           <Link href="/admin/auswertung" className="font-medium underline">
             Auswertung &amp; Export
           </Link>{" "}
-          steht der gesamte Dienstplan mit allen besetzten Rollen, filterbar nach Zeitraum (das „Bis“-Datum gilt einschließlich des ganzen Tages, in deutscher Zeit; „Von“ = „Bis“ zeigt also genau einen Tag). Einzelne Termine und Rollen lassen
+          steht der gesamte Dienstplan mit allen besetzten Rollen, filterbar nach Zeitraum (das „Bis“-Datum gilt einschließlich des ganzen Tages, in deutscher Zeit; „Von“ = „Bis“ zeigt also genau einen Tag; liegt „Bis“ vor „Von“, weist eine Meldung an den Datumsfeldern darauf hin). Bildschirm, Excel und PDF zeigen dieselben Angaben (z.B. Schiedsrichter der Verbände mit dem Zusatz „(Verband)“); das PDF enthält zusätzlich die Begegnung und bricht lange Namen um, statt sie zu kürzen und wiederholt bei einem Seitenumbruch den Tag. Einzelne Termine und Rollen lassen
           sich auswählen und als <strong>Excel</strong> oder <strong>PDF</strong> herunterladen, z.B. zum Aushang in der Halle.
         </p>
       </section>
@@ -969,7 +969,7 @@ export default async function HilfePage() {
             Spielbetrieb → Trainingsplan
           </Link>{" "}
           plant ihr die wöchentlich wiederkehrenden Trainingszeiten je Halle: am Computer per Ziehen (Mannschaft auf einen
-          Wochentag ziehen, Dauer an der unteren Kante anpassen), am Handy über „Bearbeiten“. Ein Training ohne Ziehen legt ihr mit „+ Training hinzufügen“ an
+          Wochentag ziehen, Dauer an der unteren Kante anpassen), am Handy über „Bearbeiten“. Mit dem Schalter <strong>„Liste“</strong> über dem Plan seht ihr die Trainings auch am Computer als Liste; Trainingsblöcke im Raster lassen sich mit Tab erreichen und mit Enter oder Leertaste zum Bearbeiten öffnen. Ein Training ohne Ziehen legt ihr mit „+ Training hinzufügen“ an
           (Mannschaft, Halle, Wochentag, Beginn und Ende); sehr kurze Blöcke werden mindestens so hoch gezeichnet, dass man sie gut trifft. Unterteilte Hallen haben eine
           Spalte je Abteil; Überschneidungen werden rot markiert. Der Plan gilt für jede Woche gleich und hat keinen Einfluss
           auf Spiele und Dienste.

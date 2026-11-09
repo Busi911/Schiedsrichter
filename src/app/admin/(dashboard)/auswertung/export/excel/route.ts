@@ -1,4 +1,6 @@
 import { holeKontextSession } from "@/lib/session";
+import { pruefeZeitraum } from "@/lib/auswertung-zeitraum";
+import { berlinJetzt } from "@/lib/training-ausfall";
 import {
   AUSWERTUNG_ROLLEN,
   holeTermineFuerAuswertung,
@@ -22,6 +24,8 @@ export async function GET(request: Request) {
     typ: url.searchParams.get("typ") ?? undefined,
     schiedsrichterId: url.searchParams.get("schiedsrichterId") ?? undefined,
   };
+  const zeitraumFehler = pruefeZeitraum(filter.von || berlinJetzt(new Date()).datum, filter.bis || undefined);
+  if (zeitraumFehler) return new Response(zeitraumFehler, { status: 400 });
 
   const termine = await holeTermineFuerAuswertung(session.user.vereinId, filter);
   // Angehakte Zeilen-Checkboxen auf der Auswertungsseite (siehe

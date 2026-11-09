@@ -5,7 +5,9 @@ import { withTenant } from "@/db";
 import { mannschaften, termine, vereine } from "@/db/schema";
 import { spielDuplikatVerknuepfen } from "../actions";
 import { findeSpielDuplikate } from "@/lib/duplikat-erkennung";
-import { inEigenerHalle } from "@/lib/rundenspiel-filter";
+import { inEigenerHalle, mannschaftsOptionen } from "@/lib/rundenspiel-filter";
+import { findeGleichBezeichnete, unterscheidbarerName } from "@/lib/mannschaft-herkunft";
+import { ladeMannschaftsHerkunft } from "@/lib/mannschaft-herkunft-daten";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
 import { buttonVariants } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
@@ -166,7 +168,10 @@ async function RundenspieleTab({
         start: termine.start,
         ort: termine.ort,
         beschreibung: termine.beschreibung,
+        mannschaftId: termine.mannschaftId,
         mannschaftName: mannschaften.name,
+        mannschaftAltersklasse: mannschaften.altersklasse,
+        ligaMannschaftId: mannschaften.ligaMannschaftId,
         heimMannschaftName: termine.heimMannschaftName,
         auswaertsMannschaftName: termine.auswaertsMannschaftName,
         kategorie: termine.kategorie,
@@ -180,6 +185,19 @@ async function RundenspieleTab({
   ), withTenant(vereinId, (tx) => tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId), columns: { eigeneHallenNamen: true } }))]);
   // Heim (Ort passt zu einer eigenen Spielhalle) oder Auswärts (fremde Halle): so lassen sich Hallenbelegung und Auswärtsspiele trennen.
   const liste = rohListe.map((t) => ({ ...t, eigeneHalle: inEigenerHalle(t.ort, vereinZeile?.eigeneHallenNamen) }));
+  // Mannschaftsfilter nach stabiler ID mit verständlicher Bezeichnung (Name, Altersklasse; bei Gleichheit mit Liga bzw. durchnummeriert).
+  const eigene = new Map<string, { id: string; name: string; altersklasse: string | null; ligaMannschaftId: string | null }>();
+  for (const t of rohListe) {
+    if (t.mannschaftId && t.mannschaftName && !eigene.has(t.mannschaftId)) {
+      eigene.set(t.mannschaftId, { id: t.mannschaftId, name: t.mannschaftName, altersklasse: t.mannschaftAltersklasse, ligaMannschaftId: t.ligaMannschaftId });
+    }
+  }
+  const eigeneListe = [...eigene.values()];
+  const herkunft = await ladeMannschaftsHerkunft(eigeneListe);
+  const gleich = findeGleichBezeichnete(eigeneListe);
+  const mannschaftsAuswahl = mannschaftsOptionen(
+    eigeneListe.map((m) => ({ id: m.id, label: unterscheidbarerName(m, gleich.has(m.id), herkunft.get(m.id)) }))
+  );
 
   const { rundenspielDuplikate, icsDuplikate } = await findeSpielDuplikate(vereinId);
 
@@ -299,7 +317,7 @@ async function RundenspieleTab({
           <CardTitle>Alle importierten Spiele</CardTitle>
         </CardHeader>
         <CardContent>
-          <RundenspieleListe liste={liste} />
+          <RundenspieleListe liste={liste} mannschaftsOptionen={mannschaftsAuswahl} />
         </CardContent>
       </Card>
     </div>

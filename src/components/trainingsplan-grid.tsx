@@ -321,6 +321,8 @@ export function TrainingsplanGrid({
     hallen[0]?.id ?? null
   );
   const [dialog, setDialog] = useState<DialogZustand | null>(null);
+  // Am Desktop zusätzlich zur grafischen Wochenansicht eine Liste (wie am Handy): gut per Tastatur und Screenreader bedienbar.
+  const [desktopAnsicht, setDesktopAnsicht] = useState<"raster" | "liste">("raster");
 
   // Fällt auf die erste verbleibende Halle zurück, wenn die zuletzt aktive
   // gerade gelöscht wurde (halleAktivId zeigt dann auf eine ID, die nach der
@@ -459,7 +461,25 @@ export function TrainingsplanGrid({
                   + Training hinzufügen
                 </Button>
               </div>
-              <div className="hidden md:block">
+              <div role="group" aria-label="Ansicht des Trainingsplans" className="hidden w-fit gap-1 rounded-lg border bg-muted p-1 text-xs md:flex">
+                {(
+                  [
+                    ["raster", "Wochenraster"],
+                    ["liste", "Liste"],
+                  ] as const
+                ).map(([wert, label]) => (
+                  <button
+                    key={wert}
+                    type="button"
+                    aria-pressed={desktopAnsicht === wert}
+                    onClick={() => setDesktopAnsicht(wert)}
+                    className={cn(buttonVariants({ variant: desktopAnsicht === wert ? "secondary" : "ghost", size: "xs" }), desktopAnsicht === wert && "shadow-sm")}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className={desktopAnsicht === "raster" ? "hidden md:block" : "hidden"}>
                 <TrainingsplanWoche
                   halleId={halleAktiv.id}
                   halle={halleAktiv}
@@ -472,7 +492,7 @@ export function TrainingsplanGrid({
                   konflikte={konfliktArtJeId}
                 />
               </div>
-              <div className="flex flex-col gap-3 md:hidden">
+              <div className={cn("flex flex-col gap-3", desktopAnsicht === "raster" && "md:hidden")}>
                 <MobileAgenda
                   trainingszeiten={zeitenAktiv}
                   mannschaftLabelZuId={mannschaftLabelZuId}

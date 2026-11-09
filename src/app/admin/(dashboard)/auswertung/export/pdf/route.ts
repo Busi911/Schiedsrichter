@@ -1,5 +1,7 @@
 import { eq } from "drizzle-orm";
 import { holeKontextSession } from "@/lib/session";
+import { pruefeZeitraum } from "@/lib/auswertung-zeitraum";
+import { berlinJetzt } from "@/lib/training-ausfall";
 import { adminDb } from "@/db/admin";
 import { vereine } from "@/db/schema";
 import {
@@ -25,6 +27,8 @@ export async function GET(request: Request) {
     typ: url.searchParams.get("typ") ?? undefined,
     schiedsrichterId: url.searchParams.get("schiedsrichterId") ?? undefined,
   };
+  const zeitraumFehler = pruefeZeitraum(filter.von || berlinJetzt(new Date()).datum, filter.bis || undefined);
+  if (zeitraumFehler) return new Response(zeitraumFehler, { status: 400 });
 
   const [termine, verein] = await Promise.all([
     holeTermineFuerAuswertung(session.user.vereinId, filter),

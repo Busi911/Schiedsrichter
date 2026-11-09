@@ -62,7 +62,7 @@ export function normalisiereName(name: string | null): string {
 
 // Hallennamen: Wortreihenfolge bleibt erhalten (Teilstring-Vergleich, z.B.
 // "Sporthalle Heuchelheim" in "Sporthalle Heuchelheim, Musterstr. 1").
-function normalisiereHalle(name: string | null): string {
+export function normalisiereHalle(name: string | null): string {
   return name ? slugify(name) : "";
 }
 

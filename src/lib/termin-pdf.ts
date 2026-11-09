@@ -13,7 +13,7 @@ import { gruppiereProTag } from "./kalender";
 type Zeile = Awaited<ReturnType<typeof holeTermineFuerAuswertung>>[number];
 
 const TYP_LABEL: Record<string, string> = {
-  testspiel: "Freundschaftsspiel",
+  testspiel: "Freundschaft", // kurz: „Freundschaftsspiel“ brach in der schmalen Spalte mitten im Wort
   turnier: "Turnier",
   turnier_spiel: "Turnierspiel",
   auswaertsspiel: "Auswärtsspiel",
@@ -24,13 +24,13 @@ const TYP_LABEL: Record<string, string> = {
 // auch mal ein Gespann ("Name1 / Name2") oder ein nuLiga-Kürzel steht (siehe
 // kombiniereSchiedsrichterZuordnungen in termin-auswertung.ts).
 const ROLLEN_BREITE: Record<AuswertungsRolle, number> = {
-  schiedsrichter: 120,
-  ordner: 60,
-  kioskdienst: 60,
-  kassierer: 55,
-  zeitnehmer: 60,
-  sekretaer: 60,
-  eigeneDienste: 110,
+  schiedsrichter: 110,
+  ordner: 58,
+  kioskdienst: 72, // „Kioskdienst“ (fett) brach in der Kopfzeile mitten im Wort
+  kassierer: 62,
+  zeitnehmer: 66,
+  sekretaer: 58,
+  eigeneDienste: 95,
 };
 
 // "offen" statt einer leeren Zelle, wenn tatsächlich noch jemand fehlt
@@ -56,6 +56,12 @@ const ROLLEN_WERT: Record<AuswertungsRolle, (z: Zeile) => string> = {
 // pro Termin reicht die Breite der A4-Querformat-Seite sonst nicht mehr für
 // eine lesbare Tabelle. Kein eigenes Datum je Zeile — das steht bereits in
 // der Tages-Trennzeile (siehe gruppiereProTag-Nutzung unten).
+// Importierte Spiele tragen „Heim – Gast · Kategorie · Spielart · Kürzel“ in der Beschreibung: für die Begegnung genügt der erste Teil
+// (Zusätze stehen schon in anderen Spalten). Manuelle Termine haben meist freien Text ohne „ · “.
+export function begegnung(beschreibung: string | null | undefined): string {
+  return beschreibung?.split(" · ")[0]?.trim() ?? "";
+}
+
 export function terminAlsPdf(
   zeilen: Zeile[],
   rollen?: AuswertungsRolle[],
@@ -65,10 +71,12 @@ export function terminAlsPdf(
   const ausgewaehlteRollen = rollen?.length ? rollen : standardRollen(zeilen);
 
   const basisSpalten = [
-    { label: "Zeit", width: 35 },
-    { label: "Typ", width: 90 },
-    { label: "Ort", width: 85 },
-    { label: "Mannschaft", width: 145 },
+    { label: "Zeit", width: 32 },
+    { label: "Typ", width: 70 },
+    // Begegnung (Gegner): bei ähnlich benannten Mannschaften nur so ist ein Spiel eindeutig zuzuordnen (Testbericht 09.11.2026).
+    { label: "Begegnung", width: 120 },
+    { label: "Mannschaft", width: 95 },
+    { label: "Ort", width: 90 },
     ...ausgewaehlteRollen.map((r) => ({
       label: AUSWERTUNG_ROLLE_LABEL[r],
       width: ROLLEN_BREITE[r],
@@ -90,9 +98,8 @@ export function terminAlsPdf(
     const inhaltsBreite =
       doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const rowHeight = 18;
-    // Zellen brechen um statt mit "…" abgeschnitten zu werden (lange Namen, "Freundschaftsspiel"): die Zeile
-    // wird so hoch wie ihre höchste Zelle. Höchstens MAX_ZEILEN Zeilen je Zelle, danach wird gekürzt.
-    const MAX_ZEILEN = 4;
+    // Zellen brechen um und werden NIE mit "…" gekürzt (lange Hallen-/Mannschaftsnamen): die Zeile wird so hoch wie ihre
+    // höchste Zelle.
     const ZELLEN_RAND = 4;
     let y = doc.page.margins.top;
 
@@ -112,19 +119,14 @@ export function terminAlsPdf(
       const hoehen = werte.map((wert, i) =>
         wert ? doc.heightOfString(wert, { width: SPALTEN[i].width - ZELLEN_RAND }) : 0
       );
-      return Math.min(Math.max(rowHeight, Math.max(...hoehen) + 6), doc.currentLineHeight() * MAX_ZEILEN + 6);
+      return Math.max(rowHeight, Math.max(...hoehen) + 6);
     }
 
     function zeichneZeile(werte: string[], fett: boolean, hoehe: number) {
       let x = startX;
       doc.font(fett ? "Helvetica-Bold" : "Helvetica").fontSize(schriftgroesse);
       werte.forEach((wert, i) => {
-        // height begrenzt auf MAX_ZEILEN Zeilen: erst darüber wird mit "…" gekürzt, nie in die nächste Zeile hinein geschrieben.
-        doc.text(wert, x, y, {
-          width: SPALTEN[i].width - ZELLEN_RAND,
-          height: hoehe - 2,
-          ellipsis: true,
-        });
+        doc.text(wert, x, y, { width: SPALTEN[i].width - ZELLEN_RAND });
         x += SPALTEN[i].width;
       });
       y += hoehe;
@@ -158,18 +160,23 @@ export function terminAlsPdf(
         y = doc.page.margins.top;
         kopfzeile();
       }
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(10)
-        .text(formatWochentagDatum(items[0].start), startX, y);
-      y += rowHeight;
+      const tagText = formatWochentagDatum(items[0].start);
+      const zeichneTag = (fortsetzung: boolean) => {
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(10)
+          .text(fortsetzung ? `${tagText} (Fortsetzung)` : tagText, startX, y);
+        y += rowHeight;
+      };
+      zeichneTag(false);
 
       for (const z of items) {
         const werte = [
           formatZeitKurz(z.start),
           TYP_LABEL[z.typ] ?? z.typ,
-          z.ort ?? "",
+          begegnung(z.beschreibung),
           z.mannschaftName ?? "",
+          z.ort ?? "",
           ...ausgewaehlteRollen.map((r) => ROLLEN_WERT[r](z)),
         ];
         const hoehe = zeilenHoehe(werte, false);
@@ -177,6 +184,8 @@ export function terminAlsPdf(
           doc.addPage();
           y = doc.page.margins.top;
           kopfzeile();
+          // Bei einem fortgesetzten Spieltag steht oben wieder dessen Datum, sonst fehlt die Zuordnung zum Tag.
+          zeichneTag(true);
         }
         zeichneZeile(werte, false, hoehe);
       }
