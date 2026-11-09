@@ -16,6 +16,8 @@ import {
   schiedsrichterKuerzelPasstZu,
 } from "@/lib/rundenspiel-import";
 import {
+  schiedsrichterAbmeldungAblehnen,
+  schiedsrichterAbmeldungGenehmigen,
   schiedsrichterOhneLoginZuordnen,
   schiedsrichterZuordnen,
   schiedsrichterZuordnungEntfernen,
@@ -88,6 +90,13 @@ export default async function SchiedsrichterwartPage({
   // naheliegendere Reihenfolge als alphabetisch nach Name.
   const schiedsrichterListe = [...schiedsrichterListeRoh].sort(
     (a, b) => a.anzahlEinsaetze - b.anzahlEinsaetze
+  );
+
+  // Abmeldeanfragen von Schiedsrichtern (Profil → „Abmeldung anfragen“); die Einteilung besteht bis zur Entscheidung.
+  const abmeldeanfragen = termineMitZuordnungen.flatMap((t) =>
+    t.zuordnungen
+      .filter((z) => z.funktionstraegerTyp === "schiedsrichter" && z.abmeldungAngefragtAm != null)
+      .map((z) => ({ ...z, termin: t }))
   );
 
   // Wer ist an einem bestimmten Zeitpunkt schon anderweitig als
@@ -209,6 +218,37 @@ export default async function SchiedsrichterwartPage({
           istAdmin: session.user.istAdmin,
         }}
       />
+
+      {abmeldeanfragen.length > 0 && (
+        <Card id="abmeldeanfragen" className="scroll-mt-6">
+          <CardHeader>
+            <CardTitle className="text-base">Abmeldeanfragen ({abmeldeanfragen.length})</CardTitle>
+            <CardDescription>
+              Diese Personen möchten sich wieder abmelden — die Einteilung bleibt bestehen, bis du zustimmst oder ablehnst.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {abmeldeanfragen.map((z) => (
+              <div key={z.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm">
+                <p>
+                  <span className="font-medium">{z.name ?? z.externerName}</span> · {formatDateTime(z.termin.start)}
+                  {z.termin.beschreibung ? ` · ${z.termin.beschreibung}` : ""}
+                </p>
+                <div className="flex gap-2">
+                  <form action={schiedsrichterAbmeldungGenehmigen}>
+                    <input type="hidden" name="zuordnungId" value={z.id} />
+                    <SubmitButton className="h-11 px-4 text-sm">Bestätigen</SubmitButton>
+                  </form>
+                  <form action={schiedsrichterAbmeldungAblehnen}>
+                    <input type="hidden" name="zuordnungId" value={z.id} />
+                    <SubmitButton className="h-11 px-4 text-sm" variant="outline">Ablehnen</SubmitButton>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

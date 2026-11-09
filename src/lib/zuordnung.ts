@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, gte, inArray, ne } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { withTenant } from "@/db";
 import {
   funktionstraegerRollen,
@@ -8,7 +8,8 @@ import {
   terminZuordnungen,
   users,
 } from "@/db/schema";
-import { formatDatumZeitLang } from "@/lib/format";
+import { formatDatumZeitLang, formatZeit } from "@/lib/format";
+import { findeUeberschneidungen } from "@/lib/einsatz-konflikt";
 import { SCHIRI_GESPANN_MAX, berechneBesetzung } from "@/lib/besetzung";
 import { emailAlsHtml, emailAlsText, type EmailInhalt, type EmailZeile } from "@/lib/email-layout";
 import { sendMail } from "@/lib/mailer";
@@ -406,6 +407,46 @@ export async function pruefeKeineDoppelrolle(
       "Diese Person ist für diesen Termin bereits als Zeitnehmer oder Sekretär eingetragen."
     );
   }
+}
+
+// Dieselbe Person darf nicht zur selben Zeit an zwei Terminen eingeteilt sein (rollenübergreifend;
+// Befund Einteilungstest 09.11.2026: zwei Spiele um 13:00, beide gespeichert). Dauer: Ende des
+// Termins, sonst 90 Minuten (`lib/einsatz-konflikt.ts`). Wirft mit Termin und Zeit des Konflikts.
+export async function pruefeKeineZeitUeberschneidung(
+  tx: Parameters<Parameters<typeof withTenant>[1]>[0],
+  terminId: string,
+  person: { userId: string } | { externerName: string }
+) {
+  const termin = await tx.query.termine.findFirst({ where: eq(termine.id, terminId) });
+  if (!termin || termin.typ === "turnier") return;
+  const personBedingung =
+    "userId" in person
+      ? eq(terminZuordnungen.userId, person.userId)
+      : and(
+          sql`${terminZuordnungen.userId} is null`,
+          sql`lower(trim(${terminZuordnungen.externerName})) = ${person.externerName.trim().toLowerCase()}`
+        );
+  const tag = 24 * 60 * 60_000;
+  const andere = await tx
+    .select({ id: termine.id, start: termine.start, ende: termine.ende, typ: termine.typ, beschreibung: termine.beschreibung })
+    .from(terminZuordnungen)
+    .innerJoin(termine, eq(termine.id, terminZuordnungen.terminId))
+    .where(
+      and(
+        personBedingung,
+        ne(terminZuordnungen.terminId, terminId),
+        ne(termine.typ, "turnier"),
+        gte(termine.start, new Date(termin.start.getTime() - tag)),
+        sql`${termine.start} <= ${new Date(termin.start.getTime() + tag)}`
+      )
+    );
+  const konflikte = findeUeberschneidungen(termin, andere);
+  if (konflikte.length === 0) return;
+  const k = konflikte[0];
+  const was = k.beschreibung?.trim() || "einem anderen Termin";
+  throw new Error(
+    `Diese Person ist zur selben Zeit schon eingeteilt: ${formatDatumZeitLang(k.start)} (bis ca. ${formatZeit(k.ende ?? new Date(k.start.getTime() + 90 * 60_000))}) bei ${was}.`
+  );
 }
 
 export async function holeTermineMitZuordnungen(vereinId: string) {

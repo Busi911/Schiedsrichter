@@ -181,7 +181,11 @@ export default async function ProfilPage({
         if (t.mannschaftId && mannschaftIds.includes(t.mannschaftId)) {
           meineRollen.add("trainer");
         }
-        return { ...t, meineRollen: [...meineRollen] };
+        // Eigene Einteilungen (auch aus Importen) mit Abmelde-Möglichkeit; nur bei Rollen mit Wart-Entscheidung.
+        const meineZuordnungen = eigeneZuordnungen
+          .filter((z) => z.terminId === t.id)
+          .map((z) => ({ id: z.id, rolle: rolleFuerAnzeige(z, dienstNamen), abmeldungAngefragt: z.abmeldungAngefragtAm != null }));
+        return { ...t, meineRollen: [...meineRollen], meineZuordnungen };
       });
 
       // Turniere, für die dieser Nutzer als Turnierverantwortlicher benannt
@@ -749,6 +753,20 @@ export default async function ProfilPage({
                                 </Badge>
                               ))}
                             </span>
+                          )}
+                          {t.start >= jetzt && t.meineZuordnungen.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {t.meineZuordnungen.map((z) => (
+                                <form key={z.id} action={selbstAbmelden}>
+                                  <input type="hidden" name="zuordnungId" value={z.id} />
+                                  <SubmitButton variant="outline" size="sm">
+                                    {z.abmeldungAngefragt
+                                      ? `${TYP_LABEL[z.rolle] ?? z.rolle}: Abmeldung angefragt — zurückziehen`
+                                      : `${TYP_LABEL[z.rolle] ?? z.rolle}: Abmeldung anfragen`}
+                                  </SubmitButton>
+                                </form>
+                              ))}
+                            </div>
                           )}
                         </div>
                       ))}

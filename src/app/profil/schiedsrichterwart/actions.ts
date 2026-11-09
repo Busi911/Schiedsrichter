@@ -7,12 +7,15 @@ import { withTenant } from "@/db";
 import { termine, terminZuordnungen, users, vereine } from "@/db/schema";
 import {
   pruefeBesetzungsgrenze,
+  abmeldungEntschiedenInhalt,
+  pruefeKeineZeitUeberschneidung,
   zuordnungEntferntInhalt,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
 import { istSchiedsrichterwart } from "@/lib/schiedsrichterwart";
 import { sendMail } from "@/lib/mailer";
 import { terminMailHtml, terminMailText } from "@/lib/termin-mail";
+import { emailAlsHtml, emailAlsText } from "@/lib/email-layout";
 
 // Eigene, bewusst eng begrenzte Actions statt Wiederverwendung von
 // /admin/zuordnung/actions.ts' zuordnen()/externeZuordnung() (die
@@ -115,6 +118,7 @@ export async function schiedsrichterZuordnen(formData: FormData) {
     });
     if (vorhanden) return { neu: null, entfernt };
 
+    await pruefeKeineZeitUeberschneidung(tx, terminId, { userId });
     await pruefeBesetzungsgrenze(tx, vereinId, terminId, "schiedsrichter");
 
     await tx.insert(terminZuordnungen).values({
@@ -187,6 +191,7 @@ export async function schiedsrichterOhneLoginZuordnen(formData: FormData) {
   }
 
   await withTenant(vereinId, async (tx) => {
+    await pruefeKeineZeitUeberschneidung(tx, terminId, { externerName: name.trim() });
     await pruefeBesetzungsgrenze(tx, vereinId, terminId, "schiedsrichter");
 
     await tx.insert(terminZuordnungen).values({
@@ -262,4 +267,59 @@ export async function schiedsrichterZuordnungEntfernen(formData: FormData) {
 
   revalidatePath("/profil/schiedsrichterwart");
   revalidatePath("/admin/kalender");
+}
+
+// Entscheidung über eine Abmeldeanfrage eines Schiedsrichters (gestellt im Profil, siehe selbstAbmelden):
+// bestätigen entfernt die Einteilung, ablehnen lässt sie bestehen; die Person bekommt eine Mail.
+async function entscheideAbmeldung(formData: FormData, genehmigt: boolean) {
+  const { vereinId } = await requireSchiedsrichterwartZugriff();
+  const zuordnungId = formData.get("zuordnungId");
+  if (typeof zuordnungId !== "string" || !zuordnungId) throw new Error("Zuordnung fehlt.");
+
+  const benachrichtigung = await withTenant(vereinId, async (tx) => {
+    const zuordnung = await tx.query.terminZuordnungen.findFirst({
+      where: eq(terminZuordnungen.id, zuordnungId),
+    });
+    if (!zuordnung || zuordnung.funktionstraegerTyp !== "schiedsrichter" || !zuordnung.abmeldungAngefragtAm) {
+      throw new Error("Keine offene Abmeldeanfrage für diese Zuordnung.");
+    }
+    if (genehmigt) {
+      await tx.delete(terminZuordnungen).where(eq(terminZuordnungen.id, zuordnungId));
+    } else {
+      await tx.update(terminZuordnungen).set({ abmeldungAngefragtAm: null }).where(eq(terminZuordnungen.id, zuordnungId));
+    }
+    if (!zuordnung.userId) return null;
+    const [person, termin] = await Promise.all([
+      tx.query.users.findFirst({ where: and(eq(users.id, zuordnung.userId), eq(users.vereinId, vereinId)) }),
+      tx.query.termine.findFirst({ where: eq(termine.id, zuordnung.terminId) }),
+    ]);
+    if (!person || !termin) return null;
+    return { termin, email: person.email };
+  });
+
+  if (benachrichtigung) {
+    const inhalt = abmeldungEntschiedenInhalt("schiedsrichter", benachrichtigung.termin, genehmigt);
+    try {
+      await sendMail(
+        benachrichtigung.email,
+        genehmigt ? "Abmeldung bestätigt" : "Abmeldung abgelehnt",
+        emailAlsText(inhalt),
+        emailAlsHtml(inhalt)
+      );
+    } catch (err) {
+      console.error("Abmeldungs-Mail konnte nicht gesendet werden:", err);
+    }
+  }
+
+  revalidatePath("/profil/schiedsrichterwart");
+  revalidatePath("/profil");
+  revalidatePath("/admin/kalender");
+}
+
+export async function schiedsrichterAbmeldungGenehmigen(formData: FormData) {
+  await entscheideAbmeldung(formData, true);
+}
+
+export async function schiedsrichterAbmeldungAblehnen(formData: FormData) {
+  await entscheideAbmeldung(formData, false);
 }

@@ -429,6 +429,12 @@ export function MonatsKalender({
               </div>
             )
           )}
+          {!e.ergebnis && e.besetzung === "keinBedarf" && (
+            <p className="text-xs text-muted-foreground">
+              Für diesen Termin sind laut Dienstbedarf keine Dienste vorgesehen. Als Admin kannst du trotzdem Personen
+              einteilen (Ausnahme); den Bedarf ändern Einstellungen → Dienste.
+            </p>
+          )}
           {e.besetzungsDetails && e.besetzungsDetails.length > 0 && (
             <ul className="flex flex-col gap-1">
               {e.besetzungsDetails.map((d) => (

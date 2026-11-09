@@ -15,6 +15,7 @@ import {
 } from "@/db/schema";
 import {
   abmeldungEntschiedenInhalt,
+  pruefeKeineZeitUeberschneidung,
   zuordnungEntferntInhalt,
   zuordnungsMailInhalt,
 } from "@/lib/zuordnung";
@@ -84,6 +85,7 @@ export async function ordnerOhneLoginZuordnen(formData: FormData) {
     if (!termin) throw new Error("Termin nicht gefunden.");
 
     await pruefeOrdnerBesetzungsgrenze(tx, vereinId, terminId, termin, rolle);
+    await pruefeKeineZeitUeberschneidung(tx, terminId, { externerName });
     await pruefeKeineOrdnerDoppelrolle(tx, terminId, { externerName }, rolle);
 
     await tx.insert(terminZuordnungen).values({
@@ -188,6 +190,8 @@ export async function ordnerZuordnen(formData: FormData) {
       ),
     });
     if (vorhanden) return { neu: null, entfernt };
+
+    await pruefeKeineZeitUeberschneidung(tx, terminId, { userId });
 
     const mannschaft = termin.mannschaftId
       ? await tx.query.mannschaften.findFirst({

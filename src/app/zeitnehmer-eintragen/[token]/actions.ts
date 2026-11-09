@@ -1,7 +1,7 @@
 "use server";
 
 import { vereine } from "@/db/schema";
-import { pruefeBesetzungsgrenze, pruefeKeineDoppelrolle } from "@/lib/zuordnung";
+import { pruefeBesetzungsgrenze, pruefeKeineDoppelrolle, pruefeKeineZeitUeberschneidung } from "@/lib/zuordnung";
 import { holeZeitnehmerEinsatzZahlen, holeZeitnehmerwarteEmails } from "@/lib/zeitnehmerwart";
 import {
   selbstEintragenMehrfachEingeloggt,
@@ -27,6 +27,7 @@ const BEREICH: SelbsteintragungBereich = {
     pruefeBesetzungsgrenze(tx, vereinId, terminId, rolle as (typeof ZEITNEHMER_ROLLEN)[number]),
   pruefeDoppelrolle: async (tx, terminId, person) => {
     await pruefeKeineDoppelrolle(tx, terminId, person);
+    await pruefeKeineZeitUeberschneidung(tx, terminId, person);
     return { warnung: null };
   },
 };
