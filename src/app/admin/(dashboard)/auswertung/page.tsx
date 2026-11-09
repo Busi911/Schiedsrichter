@@ -9,6 +9,7 @@ import {
   rollenZellenWert,
 } from "@/lib/termin-auswertung";
 import { berlinJetzt } from "@/lib/training-ausfall";
+import { pruefeZeitraum } from "@/lib/auswertung-zeitraum";
 import { AlleAuswaehlenCheckbox } from "@/components/alle-auswaehlen-checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,11 +61,13 @@ export default async function AuswertungPage({
   // serverseitig auch ohne explizites "von" in der URL) — hier nur, damit das
   // Datumsfeld den tatsächlich angewandten Wert zeigt statt leer zu wirken.
   const heute = berlinJetzt(new Date()).datum;
+  // Umgekehrter Zeitraum (Bis vor Von): verständliche Meldung an den Datumsfeldern statt „Keine Termine“ (Testbericht 09.11.2026).
+  const datumFehler = pruefeZeitraum(filter.von || heute, filter.bis);
 
   const [termineRoh, schiedsrichterListe] = await Promise.all([
     // +1 statt genau VORSCHAU_LIMIT, um zu erkennen, ob noch mehr Termine
     // existieren, ohne dafür eine zweite (COUNT-)Abfrage zu brauchen.
-    holeTermineFuerAuswertung(vereinId, filter, VORSCHAU_LIMIT + 1),
+    datumFehler ? Promise.resolve([]) : holeTermineFuerAuswertung(vereinId, filter, VORSCHAU_LIMIT + 1),
     withTenant(vereinId, (tx) =>
       tx
         .select({ id: users.id, name: users.name, email: users.email })
@@ -110,11 +113,20 @@ export default async function AuswertungPage({
                 name="von"
                 type="date"
                 defaultValue={filter.von || heute}
+                aria-invalid={datumFehler ? true : undefined}
+                aria-describedby={datumFehler ? "datum-fehler" : undefined}
               />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="bis">Bis</Label>
-              <Input id="bis" name="bis" type="date" defaultValue={filter.bis} />
+              <Input
+                id="bis"
+                name="bis"
+                type="date"
+                defaultValue={filter.bis}
+                aria-invalid={datumFehler ? true : undefined}
+                aria-describedby={datumFehler ? "datum-fehler" : undefined}
+              />
             </div>
             <div className="flex w-40 flex-col gap-1.5">
               <Label htmlFor="typ">Typ</Label>
@@ -156,6 +168,11 @@ export default async function AuswertungPage({
               Als PDF exportieren
             </Button>
           </div>
+          {datumFehler && (
+            <p id="datum-fehler" role="alert" className="mt-2 text-sm font-medium text-destructive">
+              {datumFehler}
+            </p>
+          )}
           <div className="mt-3 flex flex-col gap-1.5">
             <Label>Rollen für Excel/PDF</Label>
             <div className="flex flex-wrap gap-x-4 gap-y-1.5">
@@ -191,7 +208,7 @@ export default async function AuswertungPage({
         <CardContent>
           {termineListe.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Keine Termine für die gewählten Filter.
+              {datumFehler ? "Bitte den Zeitraum korrigieren (siehe Hinweis bei den Datumsfeldern)." : "Keine Termine für die gewählten Filter."}
             </p>
           ) : (
             <Table>

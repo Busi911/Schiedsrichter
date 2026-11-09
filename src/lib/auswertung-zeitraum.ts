@@ -26,3 +26,11 @@ export function auswertungsZeitraum(
     bisVor: istGueltigerTag(bis) ? berlinTagesbeginn(addiereTage(bis, 1)) : null,
   };
 }
+
+export const FEHLER_ENDE_VOR_START = "Das Enddatum muss am oder nach dem Startdatum liegen.";
+
+/** Fehlertext, wenn „Bis“ vor „Von“ liegt (beide gültig); sonst null. Ein leeres Feld ist kein Fehler (unbegrenzt bzw. ab heute). */
+export function pruefeZeitraum(von: string | undefined, bis: string | undefined): string | null {
+  if (istGueltigerTag(von) && istGueltigerTag(bis) && bis < von) return FEHLER_ENDE_VOR_START;
+  return null;
+}

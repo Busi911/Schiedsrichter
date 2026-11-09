@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auswertungsZeitraum, istGueltigerTag } from "./auswertung-zeitraum";
+import { auswertungsZeitraum, FEHLER_ENDE_VOR_START, istGueltigerTag, pruefeZeitraum } from "./auswertung-zeitraum";
 
 const jetzt = new Date("2026-11-09T10:00:00Z");
 
@@ -46,5 +46,20 @@ describe("istGueltigerTag", () => {
     expect(istGueltigerTag("2026-02-30")).toBe(false);
     expect(istGueltigerTag("14.11.2026")).toBe(false);
     expect(istGueltigerTag(undefined)).toBe(false);
+  });
+});
+
+describe("pruefeZeitraum", () => {
+  it("Bis vor Von: Fehlertext (Testbericht 09.11.2026: 20.11. bis 10.11.)", () => {
+    expect(pruefeZeitraum("2026-11-20", "2026-11-10")).toBe(FEHLER_ENDE_VOR_START);
+  });
+  it("gleicher Tag und spätere Tage sind gültig", () => {
+    expect(pruefeZeitraum("2026-11-14", "2026-11-14")).toBeNull();
+    expect(pruefeZeitraum("2026-11-14", "2026-11-20")).toBeNull();
+  });
+  it("leere oder ungültige Werte sind kein Bereichsfehler", () => {
+    expect(pruefeZeitraum(undefined, "2026-11-10")).toBeNull();
+    expect(pruefeZeitraum("2026-11-20", "")).toBeNull();
+    expect(pruefeZeitraum("quatsch", "2026-11-10")).toBeNull();
   });
 });

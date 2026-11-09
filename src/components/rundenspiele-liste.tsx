@@ -19,13 +19,14 @@ import {
   gruppiereNachTag,
 } from "@/lib/format";
 import { formatErgebnis } from "@/lib/termin-label";
-import { eindeutigeWerte, filtereNachAnsicht, type Ansicht } from "@/lib/rundenspiel-filter";
+import { filtereNachAnsicht, hallenOptionen, type Ansicht } from "@/lib/rundenspiel-filter";
 
 type Rundenspiel = {
   id: string;
   start: Date;
   ort: string | null;
   beschreibung: string | null;
+  mannschaftId: string | null;
   mannschaftName: string | null;
   heimMannschaftName: string | null;
   auswaertsMannschaftName: string | null;
@@ -56,22 +57,29 @@ const SELECT_KLASSE = "h-8 rounded-lg border border-input bg-transparent px-2 te
 // Sync (siehe rundenspiel-sync.ts) und sind hier bewusst nur angezeigt,
 // nicht editierbar — eine manuelle Eingabe würde beim nächsten Sync
 // ohnehin überschrieben.
-export function RundenspieleListe({ liste }: { liste: Rundenspiel[] }) {
+export function RundenspieleListe({
+  liste,
+  mannschaftsOptionen,
+}: {
+  liste: Rundenspiel[];
+  /** Eigene Mannschaften mit stabiler ID und verständlicher Bezeichnung (Name, Altersklasse), für den Filter. */
+  mannschaftsOptionen: { id: string; label: string }[];
+}) {
   const [suche, setSuche] = useState("");
   const [jetzt] = useState(() => new Date());
   const [zeitraum, setZeitraum] = useState<"anstehend" | "vergangen">(
     "anstehend",
   );
   const [ansicht, setAnsicht] = useState<Ansicht>("alle");
-  const [mannschaft, setMannschaft] = useState("");
+  const [mannschaftId, setMannschaftId] = useState("");
   const [halle, setHalle] = useState("");
   const kannTrennen = liste.some((t) => t.eigeneHalle !== null);
-  const mannschaftsOptionen = useMemo(() => eindeutigeWerte(liste.map((t) => t.mannschaftName)), [liste]);
-  const hallenOptionen = useMemo(() => eindeutigeWerte(liste.map((t) => t.ort)), [liste]);
+  // Hallen über eine gemeinsame Identität (Schreibvarianten wie „SPORTHALLE …“ zählen als dieselbe Halle).
+  const hallen = useMemo(() => hallenOptionen(liste.map((t) => t.ort)), [liste]);
 
   const gefiltert = useMemo(() => {
     const q = suche.trim().toLowerCase();
-    const nachZeitraum = filtereNachAnsicht(liste, { ansicht, mannschaft, halle }).filter((t) =>
+    const nachZeitraum = filtereNachAnsicht(liste, { ansicht, mannschaftId, halle }).filter((t) =>
       zeitraum === "anstehend" ? t.start >= jetzt : t.start < jetzt,
     );
     const nachSuche = q
@@ -91,7 +99,7 @@ export function RundenspieleListe({ liste }: { liste: Rundenspiel[] }) {
     return zeitraum === "anstehend"
       ? [...nachSuche].sort((a, b) => a.start.getTime() - b.start.getTime())
       : [...nachSuche].sort((a, b) => b.start.getTime() - a.start.getTime());
-  }, [liste, suche, zeitraum, jetzt, ansicht, mannschaft, halle]);
+  }, [liste, suche, zeitraum, jetzt, ansicht, mannschaftId, halle]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -157,19 +165,19 @@ export function RundenspieleListe({ liste }: { liste: Rundenspiel[] }) {
             Heim und Auswärts lassen sich trennen, sobald unter Einstellungen → Spielhallen eure Hallen eingetragen sind.
           </p>
         )}
-        <select aria-label="Nach Mannschaft filtern" value={mannschaft} onChange={(e) => setMannschaft(e.target.value)} className={SELECT_KLASSE}>
+        <select aria-label="Nach Mannschaft filtern" value={mannschaftId} onChange={(e) => setMannschaftId(e.target.value)} className={SELECT_KLASSE}>
           <option value="">Alle Mannschaften</option>
           {mannschaftsOptionen.map((m) => (
-            <option key={m} value={m}>
-              {m}
+            <option key={m.id} value={m.id}>
+              {m.label}
             </option>
           ))}
         </select>
         <select aria-label="Nach Halle filtern" value={halle} onChange={(e) => setHalle(e.target.value)} className={SELECT_KLASSE}>
           <option value="">Alle Hallen</option>
-          {hallenOptionen.map((h) => (
-            <option key={h} value={h}>
-              {h}
+          {hallen.map((h) => (
+            <option key={h.schluessel} value={h.schluessel}>
+              {h.label}
             </option>
           ))}
         </select>

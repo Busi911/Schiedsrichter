@@ -488,6 +488,10 @@ Nicht überwacht: ICS-Sync, Rundenspiel-Sync, Wochenübersicht, Zahlungs- und Ou
 Zwischenstände laufender Spiele (`istZwischenstand`) und Nichtantritte zählen nicht.
 „Top Funktionsträger“ + Tabelle „Dienste je Funktionsträger“ (`#funktionstraeger`, 20.10.2026): je Person geleistete (Termin vorbei) und eingetragene (künftige) Dienste, aufgeteilt nach Rolle, Filter `?saison=2026/27` (GET-Formular; Saison nach `saisonLabel`, unbekannte Saison = alle). Rechnung rein in `lib/funktionstraeger-dienste.ts` (getestet), Laden in `holeFunktionstraegerDienste` (`dienste-statistik.ts`; `users` ohne RLS: immer mit Vereinsfilter). Enthält alle Personen mit aktiver Rolle (auch 0/0). Excel-Export `/admin/statistik/export?saison=` (Route, auch lesende Admins; `funktionstraeger-dienste-excel.ts`, Summen + je Rolle zwei Spalten).
 
+## Auswertung & Export, Hallenspielplan (Stolpersteine, 09.11.2026)
+
+Bildschirm, Excel und PDF der Auswertung laufen über EINE Funktion (`holeTermineFuerAuswertung` → `schiedsrichterName` usw.): nie eine zweite Aufbereitung bauen. Zeitraum rein in `lib/auswertung-zeitraum.ts`: „Bis“ gilt einschließlich des ganzen Tages (bis Beginn des Folgetags exklusiv, `berlinTagesbeginn` aus `training-ausfall.ts`, exakt auch am Tag der Zeitumstellung; `parseBerlinDatumZeit` ist dort eine Stunde falsch), `pruefeZeitraum` meldet „Bis vor Von“ an den Datumsfeldern (Exporte 400). Schiedsrichter der Verbände (handball.net) erscheinen mit „(Verband)“. PDF (`termin-pdf.ts`): Zellen brechen um und werden nie mit „…“ gekürzt, Spalte „Begegnung“, nach einem Seitenumbruch wird der Tag wiederholt; nach jeder Änderung ein PDF erzeugen und ansehen. Hallenspielplan-Filter (`rundenspiel-filter.ts`): Mannschaft nach stabiler ID (nie nach dem Namen, viele heißen gleich), Halle über `hallenSchluessel` (Schreibvarianten = eine Halle), Heim/Auswärts aus den eingetragenen Spielhallen.
+
 ## Besetzung "Vollständig" und definierte Dienste
 
 Ein Termin gilt im Admin-Kalender (Badge "Vollständig"/"Offen") und in "Unbesetzte Termine" (Dashboard) nur als vollständig, wenn

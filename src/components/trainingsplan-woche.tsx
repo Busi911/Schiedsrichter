@@ -404,7 +404,19 @@ export function TrainingsplanWoche({
                         });
                       }}
                       title="Klicken zum Bearbeiten, ziehen zum Verschieben, unten ziehen zum Verlängern"
-                      className={`absolute flex touch-none cursor-grab flex-col overflow-hidden rounded-md px-1.5 py-1 text-[11px] leading-tight text-white shadow-sm active:cursor-grabbing ${
+                      // Per Tastatur erreichbar (Tab) und bedienbar (Enter/Leertaste öffnet das Bearbeiten-Formular); Verschieben/Größe ändern
+                      // geht dort über das Formular (Wochentag, Beginn, Ende), siehe auch die Listenansicht.
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${mannschaftLabelZuId.get(block.mannschaftId) ?? "Training"}, ${WOCHENTAGE_LABEL_KURZ[block.wochentag]} ${formatUhrzeit(block.startMinuten)} bis ${formatUhrzeit(block.endMinuten)} Uhr, bearbeiten`}
+                      onKeyDown={(e) => {
+                        if (e.target !== e.currentTarget) return;
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onBlockClick(block);
+                        }
+                      }}
+                      className={`absolute flex touch-none cursor-grab flex-col overflow-hidden rounded-md px-1.5 py-1 text-[11px] leading-tight text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 active:cursor-grabbing ${
                         konflikte.get(block.id) === "ohne_abteil"
                           ? "ring-2 ring-amber-400 ring-offset-1"
                           : konflikte.has(block.id)
