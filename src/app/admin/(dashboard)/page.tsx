@@ -497,12 +497,12 @@ export default async function AdminDashboardPage() {
                       ))}
                     </div>
                   ))}
-                <Link
+                <a
                   href={`/verein/${ligaErgebnisse.slug}`}
                   className="mt-1 text-xs text-muted-foreground underline"
                 >
                   Alle Ergebnisse (öffentliche Vereinsseite)
-                </Link>
+                </a>
               </>
             ) : letzteErgebnisse.length === 0 ? (
               <p className="text-sm text-muted-foreground">

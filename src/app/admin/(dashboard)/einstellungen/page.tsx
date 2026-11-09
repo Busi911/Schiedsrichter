@@ -291,9 +291,9 @@ export default async function EinstellungenPage({
           {ligaVerein && (
             <p className="text-sm">
               Eure Seite:{" "}
-              <Link href={`/verein/${ligaVerein.slug}`} className="underline">
+              <a href={`/verein/${ligaVerein.slug}`} className="underline">
                 /verein/{ligaVerein.slug}
-              </Link>
+              </a>
               {ligaVerein.spieleSynchronisiertAm && (
                 <span className="text-muted-foreground">
                   {" "}

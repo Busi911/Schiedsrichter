@@ -317,7 +317,7 @@ umbrechenden Zeile).
   Helfer in `lib/liga-pwa.ts`); `/meine` zeigt die Favoriten über
   `/api/liga/favoriten`. Herunterziehen zum Neuladen: `components/liga/pull-to-refresh.tsx` (nur im Standalone-Modus der installierten App, im Browser gibt es die Geste schon; lädt die Seite komplett neu; eingebunden in `verein/[slug]/layout.tsx` und `meine/layout.tsx`). `public/sw.js` cached NUR öffentliche Seitenaufrufe
   (`/verein/…`, `/meine`) und `/api/liga/…` (network first) — nie
-  Admin/Profil/Login. Die Farbüberschreibung gilt nur unter `.fan`.
+  Admin/Profil/Login. Die Farbüberschreibung gilt nur unter `.fan`. **Installieren (09.11.2026):** Links von außerhalb eines Vereins (Vereinssuche, „Meine“, Admin) in `/verein/…` sind bewusst normale `<a>` statt `<Link>` (voller Seitenaufruf): nach einer Client-Navigation las Safari beim „Zum Home-Bildschirm“ noch Name/Manifest der Startseite („HandballerPate“, Start-URL `/`) statt die des Vereins. Neue Links in einen Verein von einer anderen App-Seite aus genauso setzen.
 
 ## Treuhand: Verein einrichten, übergeben, Support-Zugriff
 

@@ -38,10 +38,11 @@ export function Vereinsuche({ vereine, maxAnzeige }: { vereine: VereinEintrag[];
               key={v.id}
               className="flex items-center justify-between gap-2 rounded-xl bg-background px-4 py-1 ring-1 ring-foreground/[0.06]"
             >
-              <Link href={`/verein/${v.slug}`} className="flex min-w-0 flex-1 items-center gap-3 py-3.5 text-base font-medium hover:underline">
+              {/* Bewusst <a> statt <Link>: voller Seitenaufruf, damit Safari das Manifest/den Namen des Vereins liest ("Zum Home-Bildschirm"). */}
+              <a href={`/verein/${v.slug}`} className="flex min-w-0 flex-1 items-center gap-3 py-3.5 text-base font-medium hover:underline">
                 <VereinsAvatar name={v.name} slug={v.slug} logoVersion={v.logoAktualisiertAm ? v.logoAktualisiertAm.getTime() : null} />
                 <span className="truncate">{v.name}</span>
-              </Link>
+              </a>
               <FavoritStern typ="verein" id={v.id} label={v.name} />
             </li>
           ))}
