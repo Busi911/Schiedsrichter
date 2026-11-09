@@ -102,7 +102,7 @@ function EintragKarte({ e, mitVerein, ergebnis }: { e: Eintrag; mitVerein: boole
   const aus = ergebnis ? ausgangText(s) : null;
   return (
     <Card size="sm" className="relative gap-1 px-4">
-      <Link href={e.href} className="absolute inset-0 z-0 rounded-xl" aria-label={`${e.team}: ${s.heim} – ${s.gast}`} />
+      <a href={e.href} className="absolute inset-0 z-0 rounded-xl" aria-label={`${e.team}: ${s.heim} – ${s.gast}`} />
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <CalendarIcon className="size-3.5" />
         <span className={cn("font-medium", rel === "heute" && "text-foreground")}>
@@ -299,12 +299,13 @@ export function MeineMannschaften() {
           </h2>
           {daten.vereine.map((v) => (
             <Card key={v.id} size="sm" className="flex-row items-center justify-between gap-2 px-4">
-              <Link
+              {/* <a> statt <Link>: voller Seitenaufruf, damit Safari das Manifest des Vereins liest. */}
+              <a
                 href={`/verein/${v.slug}`}
                 className="inline-flex min-h-11 min-w-0 flex-1 items-center font-heading font-semibold hover:underline"
               >
                 <span className="truncate">{v.name}</span>
-              </Link>
+              </a>
               <FavoritStern typ="verein" id={v.id} label={v.name} className="-mr-2 shrink-0" />
             </Card>
           ))}
@@ -316,7 +317,7 @@ export function MeineMannschaften() {
           <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Meine Mannschaften</h2>
           {daten.mannschaften.map((m) => (
             <Card key={m.id} size="sm" className="relative gap-2 px-4">
-              <Link
+              <a
                 href={`/verein/${m.verein.slug}/${m.slug}`}
                 className="absolute inset-0 z-0 rounded-xl"
                 aria-label={`${m.verein.name} ${m.name}`}
