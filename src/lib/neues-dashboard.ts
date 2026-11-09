@@ -61,6 +61,8 @@ export type Hero = {
   anzahlHeute: number;
   spiel: SpielHeute | null;
   chips: HeroChip[];
+  /** Der Verein hat noch keinerlei Dienstbedarf eingerichtet: die Karte bietet „Dienstbedarf einrichten“ an. */
+  bedarfFehlt?: boolean;
 };
 
 // Ein Spiel zählt noch als "läuft/folgt", bis es seit mehr als zwei Stunden angeworfen ist.
@@ -72,9 +74,14 @@ export function spielTitel(beschreibung: string | null | undefined): string | nu
   return erster ? erster : null;
 }
 
-/** Chips für die Besetzung eines Spiels: nur für Spiele, die in der Besetzungs-Rechnung vorkommen; fehlt der Stand, ist alles besetzt. */
-export function besetzungsChips(stand: Besetzungsstand | undefined): HeroChip[] {
-  if (!stand) return [{ text: "Alles besetzt", offen: false }];
+/**
+ * Chips für die Besetzung eines Spiels: nur für Spiele, die in der Besetzungs-Rechnung vorkommen; fehlt der Stand, ist nichts offen.
+ * Hat der Verein gar keinen Dienstbedarf eingerichtet, steht das da statt „Alles besetzt“ (das suggeriert Einteilungen).
+ */
+export function besetzungsChips(stand: Besetzungsstand | undefined, bedarfEingerichtet = true): HeroChip[] {
+  if (!stand) {
+    return [{ text: bedarfEingerichtet ? "Keine offenen Dienste" : "Kein Dienstbedarf eingerichtet", offen: false }];
+  }
   const chips: HeroChip[] = [];
   if (stand.schiriNoetig === false) chips.push({ text: "Schiedsrichter: stellt der Verband", offen: false });
   else chips.push({ text: stand.schiriOffen ? "Schiedsrichter fehlt" : "Schiedsrichter ✓", offen: stand.schiriOffen });
@@ -88,12 +95,12 @@ export function besetzungsChips(stand: Besetzungsstand | undefined): HeroChip[] 
  * "Heute"-Karte: das erste heutige Spiel, das noch nicht länger als zwei Stunden läuft; sonst das nächste künftige Spiel.
  * `heute` = alle Spiele des heutigen Tages (nach Beginn sortiert), `kommend` = die nächsten künftigen Spiele nach heute.
  */
-export function baueHero(heute: SpielHeute[], kommend: SpielHeute[], jetzt: Date, staende: Map<string, Besetzungsstand>): Hero {
+export function baueHero(heute: SpielHeute[], kommend: SpielHeute[], jetzt: Date, staende: Map<string, Besetzungsstand>, bedarfEingerichtet = true): Hero {
   const sortiert = [...heute].sort((a, b) => a.start.getTime() - b.start.getTime());
   const offen = sortiert.find((s) => s.start.getTime() + SPIEL_DAUER_MS > jetzt.getTime());
-  if (offen) return { art: "heute", anzahlHeute: sortiert.length, spiel: offen, chips: besetzungsChips(staende.get(offen.id)) };
+  if (offen) return { art: "heute", anzahlHeute: sortiert.length, spiel: offen, chips: besetzungsChips(staende.get(offen.id), bedarfEingerichtet), bedarfFehlt: !bedarfEingerichtet };
   const naechstes = [...kommend].sort((a, b) => a.start.getTime() - b.start.getTime())[0];
-  if (naechstes) return { art: "naechstes", anzahlHeute: sortiert.length, spiel: naechstes, chips: besetzungsChips(staende.get(naechstes.id)) };
+  if (naechstes) return { art: "naechstes", anzahlHeute: sortiert.length, spiel: naechstes, chips: besetzungsChips(staende.get(naechstes.id), bedarfEingerichtet), bedarfFehlt: !bedarfEingerichtet };
   return { art: "keins", anzahlHeute: sortiert.length, spiel: null, chips: [] };
 }
 
@@ -217,8 +224,8 @@ export function baueProfilHero(einsaetze: ProfilEinsatz[], jetzt: Date): ProfilH
 }
 
 /** Zeiträume ausdrücklich nennen: „nächste 7 Tage“ und „insgesamt“ zählen verschieden und widersprachen sich sonst. */
-export function dienstHinweis(sieben: number, gesamt: number): string {
-  if (gesamt === 0) return "alles besetzt";
+export function dienstHinweis(sieben: number, gesamt: number, bedarfEingerichtet = true): string {
+  if (gesamt === 0) return bedarfEingerichtet ? "keine offenen Dienste" : "noch kein Dienstbedarf eingerichtet";
   const insgesamt = `insgesamt ${gesamt} offen`;
   return sieben === 0 ? `nächste 7 Tage: keine · ${insgesamt}` : `nächste 7 Tage: ${sieben} · ${insgesamt}`;
 }

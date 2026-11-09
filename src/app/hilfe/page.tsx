@@ -455,7 +455,9 @@ export default async function HilfePage() {
           persönlich: eure Einsätze, dazu Trainings (als Trainer die eurer Mannschaften, bei eingeschalteter Option alle) und die Vereinstermine, die ihr sehen
           dürft. Ein Eintrag öffnet seine Details mit einem Link zur passenden Seite („Zum Training“, „Zu- oder absagen“, „Termin verwalten“). Ein Spiel zeigt <strong>„Vollständig“</strong> (grün,
           Häkchen), wenn Schiedsrichter (falls der Verein ihn stellen muss), Zeitnehmer/Sekretär und alle festgelegten
-          Helferdienste besetzt sind, sonst <strong>„Offen“</strong> (rot, Ausrufezeichen). Am Handy markiert ein kleines
+          Helferdienste besetzt sind, sonst <strong>„Offen“</strong> (rot, Ausrufezeichen). Braucht ein Spiel gar keine Dienste (alles „nirgends gebraucht“ oder Bedarf 0, niemand eingeteilt), steht
+          dort <strong>„Kein Dienstbedarf“</strong> (grau, Minuszeichen) statt „Vollständig“: das ist nicht dasselbe wie besetzt. Hat der Verein noch gar keinen Bedarf eingerichtet, weist die Startseite mit
+          „Dienstbedarf einrichten“ auf <a href="#bedarf" className="font-medium underline">Einstellungen → Dienste</a> hin. Am Handy markiert ein kleines
           Warnsymbol die Tage, an denen noch etwas offen ist. Tippt einen Termin an, um Details zu sehen und Personen
           zuzuordnen. Termine, die automatisch aus Liga-Daten kommen, sind nicht bearbeitbar; eine Verlegung übernimmt
           HandballerPate selbst.
@@ -859,6 +861,10 @@ export default async function HilfePage() {
           Öffentliche Selbsteintragung (Link für Eltern und Helfer)
         </h3>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
+          <li>
+            <strong>Leere Seite:</strong> Steht dort „Aktuell sind keine Dienste zur Eintragung freigegeben“, gibt es für die anstehenden Termine keinen Bedarf (oder gar keine Termine).
+            Angemeldete Admins sehen darunter den Grund und einen Link zu „Dienstbedarf einrichten“ bzw. zu den Terminen.
+          </li>
           <li>
             <strong>Mit oder ohne Zugang:</strong> Wer nicht angemeldet ist, wählt oben auf der Seite zwischen <strong>„Mit Zugang“</strong>{" "}
             (Login-Link per E-Mail, danach geht es ohne erneutes Tippen weiter) und <strong>„Ohne Zugang“</strong> (nur Namen angeben,

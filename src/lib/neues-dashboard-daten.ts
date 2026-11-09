@@ -1,7 +1,9 @@
 import "server-only";
 import { and, asc, count, eq, gte, inArray, lt, ne } from "drizzle-orm";
 import { withTenant } from "@/db";
-import { beitrittAntraege, mannschaften, mitglieder, termine } from "@/db/schema";
+import { beitrittAntraege, mannschaften, mitglieder, termine, vereine } from "@/db/schema";
+import { hatDienstbedarf } from "./dienstbedarf";
+import { ladeEigeneDiensteKontext } from "./eigene-dienste-daten";
 import { holeUnbesetzteTermine } from "./dashboard";
 import { formatMannschaft } from "./mannschaft-label";
 import {
@@ -32,6 +34,8 @@ export type NeuesDashboardDaten = {
   offeneDienste: number;
   /** Alle künftigen Termine mit offenen Diensten (dieselbe Zahl wie das Badge im Kopf und „Offene Dienste“). */
   offeneDiensteGesamt: number;
+  /** Der Verein hat mindestens einen Dienst mit Bedarf > 0 eingerichtet (sonst „Dienstbedarf einrichten“ statt „alles besetzt“). */
+  bedarfEingerichtet: boolean;
   aufgaben: Aufgabe[];
 };
 
@@ -92,7 +96,7 @@ export async function holeNeuesDashboardDaten(p: {
           .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
           .where(and(eq(termine.vereinId, vereinId), inArray(termine.typ, SPIEL_TYPEN), ...bedingungen))
           .orderBy(asc(termine.start));
-      const [heute, kommend, woche, mannschaftenZeile, mitgliederZeile, antraegeZeile] = await Promise.all([
+      const [heute, kommend, woche, mannschaftenZeile, mitgliederZeile, antraegeZeile, vereinZeile, eigeneKontext] = await Promise.all([
         basis(gte(termine.start, grenzen.tagVon), lt(termine.start, grenzen.tagBis)),
         basis(gte(termine.start, grenzen.tagBis)).limit(5),
         tx
@@ -113,8 +117,11 @@ export async function holeNeuesDashboardDaten(p: {
         p.vereinsverwaltung
           ? tx.select({ n: count() }).from(beitrittAntraege).where(and(eq(beitrittAntraege.vereinId, vereinId), eq(beitrittAntraege.status, "offen")))
           : Promise.resolve(null),
+        tx.query.vereine.findFirst({ where: eq(vereine.id, vereinId) }),
+        ladeEigeneDiensteKontext(tx, vereinId, []),
       ]);
       return {
+        bedarfEingerichtet: hatDienstbedarf(vereinZeile, eigeneKontext.arten),
         heute: heute.map(alsSpiel),
         kommend: kommend.map(alsSpiel),
         woche: woche[0]?.n ?? 0,
@@ -134,13 +141,14 @@ export async function holeNeuesDashboardDaten(p: {
   const kommende = [...daten.heute.filter((s) => s.start.getTime() >= jetzt.getTime()), ...daten.kommend];
 
   return {
-    hero: baueHero(daten.heute, daten.kommend, jetzt, staende),
+    hero: baueHero(daten.heute, daten.kommend, jetzt, staende, daten.bedarfEingerichtet),
     naechster: kommende[0] ?? null,
     spieleDieseWoche: daten.woche,
     mannschaftenAnzahl: daten.mannschaften,
     mitgliederAnzahl: daten.mitglieder,
     offeneDienste: unbesetzt7Tage,
     offeneDiensteGesamt: unbesetzte.length,
+    bedarfEingerichtet: daten.bedarfEingerichtet,
     aufgaben: baueAufgaben({
       unbesetzt7Tage,
       abmeldeanfragen: p.abmeldeanfragen,

@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, MinusCircle } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { mischeNachZeit, monatKey, monatsBereich, parseMonatParam } from "@/lib/kalender";
 import { kalenderArtenZusatz, parseKalenderArten } from "@/lib/kalender-arten";
@@ -54,6 +54,9 @@ export default async function AdminKalenderPage({
           </span>
           <span className="ml-3 inline-flex items-center gap-1">
             <AlertCircle className="size-3.5 text-destructive" /> Besetzung offen
+          </span>
+          <span className="ml-3 inline-flex items-center gap-1">
+            <MinusCircle className="size-3.5 text-muted-foreground" /> Kein Dienstbedarf
           </span>
         </p>
       </div>

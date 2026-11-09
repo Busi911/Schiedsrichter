@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CalendarIcon, Car, CheckCircle2, Dumbbell, Trophy, Users } from "lucide-react";
+import { AlertCircle, CalendarIcon, Car, CheckCircle2, Dumbbell, MinusCircle, Trophy, Users } from "lucide-react";
 import {
   monatKey,
   monatsGitter,
@@ -73,7 +73,8 @@ export type KalenderEintrag = {
   // undefined = für diesen Termin-Typ nicht zutreffend (z.B. Turnier-Container).
   // Wird bei vorhandenem ergebnis ignoriert (siehe unten) — ein bereits
   // abgepfiffenes Spiel braucht keinen Besetzungs-Hinweis mehr.
-  besetzung?: "vollstaendig" | "offen";
+  // "keinBedarf" = es werden bei diesem Termin keine Dienste gebraucht (nicht dasselbe wie „vollständig besetzt“).
+  besetzung?: "vollstaendig" | "offen" | "keinBedarf";
   // Auswärtsspiel (nur für eigene Dienste wie Fahrer angelegt, siehe lib/auswaerts-termine.ts): anders dargestellt (Auto-Symbol,
   // gestrichelter Rahmen), damit es sich auf einen Blick von Heimspielen mit allen Diensten unterscheidet.
   auswaerts?: boolean;
@@ -421,7 +422,9 @@ export function MonatsKalender({
                 >
                   {e.besetzung === "vollstaendig"
                     ? "Besetzung vollständig"
-                    : "Besetzung offen"}
+                    : e.besetzung === "keinBedarf"
+                      ? "Kein Dienstbedarf"
+                      : "Besetzung offen"}
                 </Badge>
               </div>
             )
@@ -685,15 +688,19 @@ export function MonatsKalender({
                       className={`ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                         e.besetzung === "vollstaendig"
                           ? "bg-emerald-700 text-white dark:bg-emerald-600"
-                          : "bg-red-700 text-white dark:bg-red-600"
+                          : e.besetzung === "keinBedarf"
+                            ? "border bg-muted text-muted-foreground"
+                            : "bg-red-700 text-white dark:bg-red-600"
                       }`}
                     >
                       {e.besetzung === "vollstaendig" ? (
                         <CheckCircle2 className="size-3" />
+                      ) : e.besetzung === "keinBedarf" ? (
+                        <MinusCircle className="size-3" />
                       ) : (
                         <AlertCircle className="size-3" />
                       )}
-                      {e.besetzung === "vollstaendig" ? "Vollständig" : "Offen"}
+                      {e.besetzung === "vollstaendig" ? "Vollständig" : e.besetzung === "keinBedarf" ? "Kein Bedarf" : "Offen"}
                     </span>
                   )
                 )}
@@ -876,6 +883,8 @@ export function MonatsKalender({
                             e.besetzung &&
                             (e.besetzung === "vollstaendig" ? (
                               <CheckCircle2 className="size-2.5 shrink-0 text-emerald-700 dark:text-emerald-500" />
+                            ) : e.besetzung === "keinBedarf" ? (
+                              <MinusCircle className="size-2.5 shrink-0 text-muted-foreground" aria-label="Kein Dienstbedarf" />
                             ) : (
                               <AlertCircle className="size-2.5 shrink-0 text-destructive" />
                             ))

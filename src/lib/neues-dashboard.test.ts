@@ -50,8 +50,9 @@ describe("besetzungsChips", () => {
       { text: "Helferdienst fehlt", offen: true },
     ]);
   });
-  it("ohne Eintrag in der Besetzungs-Rechnung ist alles besetzt", () => {
-    expect(besetzungsChips(undefined)).toEqual([{ text: "Alles besetzt", offen: false }]);
+  it("ohne Eintrag in der Besetzungs-Rechnung sind keine Dienste offen; ohne eingerichteten Bedarf sagt es das, statt „alles besetzt“", () => {
+    expect(besetzungsChips(undefined)).toEqual([{ text: "Keine offenen Dienste", offen: false }]);
+    expect(besetzungsChips(undefined, false)).toEqual([{ text: "Kein Dienstbedarf eingerichtet", offen: false }]);
   });
   it("zeigt fehlende Dienste und erledigte als Haken", () => {
     const chips = besetzungsChips({ schiriOffen: false, zeitnehmerOffen: true, helferdienstOffen: true });
@@ -135,7 +136,8 @@ describe("baueProfilHero", () => {
 
 describe("dienstHinweis", () => {
   it("nennt die Zeiträume", () => {
-    expect(dienstHinweis(0, 0)).toBe("alles besetzt");
+    expect(dienstHinweis(0, 0)).toBe("keine offenen Dienste");
+    expect(dienstHinweis(0, 0, false)).toBe("noch kein Dienstbedarf eingerichtet");
     expect(dienstHinweis(0, 2)).toBe("nächste 7 Tage: keine · insgesamt 2 offen");
     expect(dienstHinweis(1, 3)).toBe("nächste 7 Tage: 1 · insgesamt 3 offen");
   });
