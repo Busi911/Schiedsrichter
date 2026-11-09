@@ -5,6 +5,8 @@ import { requireAdmin } from "@/lib/session";
 import { withTenant } from "@/db";
 import { mannschaften, vereine } from "@/db/schema";
 import { sortiereMannschaften } from "@/lib/mannschaft-sortierung";
+import { findeGleichBezeichnete, herkunftText } from "@/lib/mannschaft-herkunft";
+import { ladeMannschaftsHerkunft } from "@/lib/mannschaft-herkunft-daten";
 import { holeUnbekannteMannschaften } from "@/lib/unbekannte-mannschaften";
 import {
   handballNetSynchronisieren,
@@ -74,6 +76,10 @@ export default async function MannschaftenPage({
   // Der Teamimport je Mannschaft läuft nur, solange der Hallenplan-/Teamimport des Vereins an ist (lib/handball-net-sync.ts);
   // sonst kommen die DHB-Spiele über die handball.net-Vereins-ID der öffentlichen Seite und die Team-ID hier wäre irreführend.
   const zeigeTeamId = !verein?.hallenplanImportAus;
+  // Woher jede Mannschaft stammt (Liga/Saison/Quelle) und welche gleich bezeichnet sind: macht doppelte Datensätze sichtbar, ohne zusammenzuführen.
+  const herkunft = await ladeMannschaftsHerkunft(liste);
+  const gleich = findeGleichBezeichnete(liste);
+  const listeMitHerkunft = liste.map((m) => ({ ...m, herkunft: herkunftText(herkunft.get(m.id)), gleichBezeichnet: gleich.has(m.id) }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -135,7 +141,7 @@ export default async function MannschaftenPage({
         </CardHeader>
         <CardContent>
           <MannschaftenTabelle
-            liste={liste}
+            liste={listeMitHerkunft}
             schreibzugriff={session.user.istAdmin}
             zeigeTeamId={zeigeTeamId}
           />

@@ -24,6 +24,10 @@ type Mannschaft = {
   name: string;
   altersklasse: string | null;
   handballNetTeamId: string | null;
+  /** Liga · Saison · Quelle bzw. „von Hand angelegt“ (lib/mannschaft-herkunft.ts). */
+  herkunft?: string;
+  /** Name und Altersklasse stimmen mit einer anderen Mannschaft überein. */
+  gleichBezeichnet?: boolean;
 };
 
 // Übersicht ohne direkt sichtbare Edit-Formulare (die machten die Liste bei
@@ -153,7 +157,15 @@ export function MannschaftenTabelle({
                     />
                   </TableCell>
                 )}
-                <TableCell className="font-medium">{m.name}</TableCell>
+                <TableCell className="font-medium">
+                  {m.name}
+                  {m.herkunft && <span className="block text-xs font-normal text-muted-foreground">{m.herkunft}</span>}
+                  {m.gleichBezeichnet && (
+                    <span className="mt-0.5 block text-xs font-normal text-amber-700 dark:text-amber-400">
+                      Gleiche Bezeichnung wie eine andere Mannschaft: bitte Liga/Saison vergleichen (kein automatisches Zusammenführen).
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell>{m.altersklasse ?? "—"}</TableCell>
                 {zeigeTeamId && <TableCell>{m.handballNetTeamId ?? "—"}</TableCell>}
                 <TableCell className="text-right">

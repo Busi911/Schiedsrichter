@@ -197,7 +197,9 @@ export default async function HilfePage() {
         <p className="text-sm text-muted-foreground">
           Ist der Spielplan angebunden, legt HandballerPate eure Mannschaften aus den Liga-Daten selbst an und ordnet neue
           Spiele automatisch der richtigen Mannschaft zu. Habt ihr schon eigene Mannschaften angelegt, legt es keine
-          zusätzlichen an (keine Doppelten), sondern ordnet Spiele über den Namen zu. Unter{" "}
+          zusätzlichen an (keine Doppelten), sondern ordnet Spiele über den Namen zu. In der Liste steht unter jedem Namen, woher die Mannschaft stammt (<strong>Liga, Saison und Quelle</strong>
+          bzw. „von Hand angelegt“). Haben zwei Mannschaften dieselbe Bezeichnung und Altersklasse, weist ein Hinweis darauf hin; im Trainingsplan steht dann die Liga dahinter.
+          Zusammengeführt wird nie automatisch: erst anhand von Liga und Saison prüfen, ob es zwei Wettbewerbe oder ein doppelter Eintrag sind. Unter{" "}
           <Link href="/admin/mannschaften" className="font-medium underline">
             Mannschaften
           </Link>{" "}
