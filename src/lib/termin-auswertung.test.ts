@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// Reine Funktionen: Datenbank-Anbindung wird nur durch den Import mitgezogen (läuft so auch ohne DATABASE_URL).
+vi.mock("server-only", () => ({}));
+vi.mock("@/db", () => ({ db: {}, withTenant: vi.fn() }));
+
 import {
   ergaenzeDienstZuordnungen,
   kombiniereSchiedsrichterZuordnungen,
@@ -114,6 +119,27 @@ function basisAuswertungsZeile(
 }
 
 describe("kombiniereSchiedsrichterZuordnungen", () => {
+  it("zeigt die von handball.net gemeldete Ansetzung mit dem Zusatz (Verband) statt '—'", () => {
+    const [zeile] = kombiniereSchiedsrichterZuordnungen(
+      [basisAuswertungsZeile({ handballNetSchiedsrichter: "Max Muster, Eva Beispiel" })],
+      []
+    );
+    expect(zeile.schiedsrichterName).toBe("Max Muster, Eva Beispiel (Verband)");
+  });
+
+  it("eine interne Zuordnung hat Vorrang vor der Verbandsansetzung", () => {
+    const [zeile] = kombiniereSchiedsrichterZuordnungen(
+      [basisAuswertungsZeile({ handballNetSchiedsrichter: "Max Muster" })],
+      [{ terminId: "t1", userId: "u1", name: "Sabrina Gerullis", email: "s@example.org" }]
+    );
+    expect(zeile.schiedsrichterName).toBe("Sabrina Gerullis");
+  });
+
+  it("leere Verbandsansetzung bleibt '—' (null)", () => {
+    const [zeile] = kombiniereSchiedsrichterZuordnungen([basisAuswertungsZeile({ handballNetSchiedsrichter: "  " })], []);
+    expect(zeile.schiedsrichterName).toBeNull();
+  });
+
   it("übernimmt die ICS-Selbst-Abo-Zuordnung, wenn keine manuelle Zuordnung existiert", () => {
     const [zeile] = kombiniereSchiedsrichterZuordnungen(
       [

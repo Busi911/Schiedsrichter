@@ -43,6 +43,8 @@ export type AuswertungsBasisZeile = {
   icsSchiedsrichterName: string | null;
   icsSchiedsrichterEmail: string | null;
   nuligaSchiedsrichterKuerzel: string | null;
+  // Von handball.net gemeldete Schiedsrichter-Ansetzung (Namen; Verbandsansetzung, keine interne Zuordnung).
+  handballNetSchiedsrichter?: string | null;
 };
 
 export type ManuelleSchiedsrichterZuordnung = {
@@ -179,7 +181,7 @@ export function mannschaftMitAltersklasse(
 // für denselben Termin vorhanden wäre. Ist noch niemand zugeordnet, aber
 // nuLiga hat für den Termin ein Schiedsrichter-Kürzel geliefert (siehe
 // nuligaSchiedsrichterKuerzel in rundenspiel-import.ts), wird das Kürzel als
-// Fallback angezeigt statt "—", aber bewusst nicht in schiedsrichterIds, da
+// Fallback angezeigt statt "—" (ebenso die von handball.net gemeldeten Namen, mit dem Zusatz "(Verband)"), aber bewusst nicht in schiedsrichterIds, da
 // es keine echte Person mit userId ist und daher nicht über den
 // Schiedsrichter-Filter gefunden werden kann.
 export function kombiniereSchiedsrichterZuordnungen(
@@ -203,7 +205,10 @@ export function kombiniereSchiedsrichterZuordnungen(
 
     const schiedsrichterName = manuell.length
       ? manuell.map((m) => m.name ?? m.email ?? "").join(" / ")
-      : t.icsSchiedsrichterName ?? t.nuligaSchiedsrichterKuerzel ?? null;
+      : t.icsSchiedsrichterName ??
+        t.nuligaSchiedsrichterKuerzel ??
+        // Verbandsansetzung (handball.net): Herkunft kenntlich machen, sie ist keine interne Einteilung (Testbericht 09.11.2026).
+        (t.handballNetSchiedsrichter?.trim() ? `${t.handballNetSchiedsrichter.trim()} (Verband)` : null);
 
     return {
       id: t.id,
@@ -300,6 +305,7 @@ export async function holeTermineFuerAuswertung(
         icsSchiedsrichterName: users.name,
         icsSchiedsrichterEmail: users.email,
         nuligaSchiedsrichterKuerzel: termine.nuligaSchiedsrichterKuerzel,
+        handballNetSchiedsrichter: termine.handballNetSchiedsrichter,
       })
       .from(termine)
       .leftJoin(mannschaften, eq(termine.mannschaftId, mannschaften.id))
