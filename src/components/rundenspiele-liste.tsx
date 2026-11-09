@@ -19,6 +19,7 @@ import {
   gruppiereNachTag,
 } from "@/lib/format";
 import { formatErgebnis } from "@/lib/termin-label";
+import { eindeutigeWerte, filtereNachAnsicht, type Ansicht } from "@/lib/rundenspiel-filter";
 
 type Rundenspiel = {
   id: string;
@@ -31,7 +32,11 @@ type Rundenspiel = {
   kategorie: string | null;
   ergebnisHeim: number | null;
   ergebnisAuswaerts: number | null;
+  /** Ort passt zu einer eigenen Spielhalle (true), zu einer fremden (false), nicht entscheidbar (null, z.B. keine Hallen eingetragen). */
+  eigeneHalle: boolean | null;
 };
+
+const SELECT_KLASSE = "h-8 rounded-lg border border-input bg-transparent px-2 text-sm dark:bg-input/30";
 
 // Gleiches Tabellen-Layout wie testspiele-liste.tsx (Datum/Mannschaft/Ort/
 // Beschreibung/Ergebnis-Spalten) statt einer abweichenden Kartenliste —
@@ -57,10 +62,16 @@ export function RundenspieleListe({ liste }: { liste: Rundenspiel[] }) {
   const [zeitraum, setZeitraum] = useState<"anstehend" | "vergangen">(
     "anstehend",
   );
+  const [ansicht, setAnsicht] = useState<Ansicht>("alle");
+  const [mannschaft, setMannschaft] = useState("");
+  const [halle, setHalle] = useState("");
+  const kannTrennen = liste.some((t) => t.eigeneHalle !== null);
+  const mannschaftsOptionen = useMemo(() => eindeutigeWerte(liste.map((t) => t.mannschaftName)), [liste]);
+  const hallenOptionen = useMemo(() => eindeutigeWerte(liste.map((t) => t.ort)), [liste]);
 
   const gefiltert = useMemo(() => {
     const q = suche.trim().toLowerCase();
-    const nachZeitraum = liste.filter((t) =>
+    const nachZeitraum = filtereNachAnsicht(liste, { ansicht, mannschaft, halle }).filter((t) =>
       zeitraum === "anstehend" ? t.start >= jetzt : t.start < jetzt,
     );
     const nachSuche = q
@@ -80,7 +91,7 @@ export function RundenspieleListe({ liste }: { liste: Rundenspiel[] }) {
     return zeitraum === "anstehend"
       ? [...nachSuche].sort((a, b) => a.start.getTime() - b.start.getTime())
       : [...nachSuche].sort((a, b) => b.start.getTime() - a.start.getTime());
-  }, [liste, suche, zeitraum, jetzt]);
+  }, [liste, suche, zeitraum, jetzt, ansicht, mannschaft, halle]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -119,6 +130,49 @@ export function RundenspieleListe({ liste }: { liste: Rundenspiel[] }) {
           onChange={(e) => setSuche(e.target.value)}
           className="max-w-xs"
         />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {kannTrennen ? (
+          <div role="group" aria-label="Ansicht" className="flex flex-wrap gap-1 rounded-lg border bg-muted p-1 text-xs">
+            {(
+              [
+                ["alle", "Alle Vereinsspiele"],
+                ["eigene", "Eigene Hallen (Heim)"],
+                ["auswaerts", "Auswärts / fremde Halle"],
+              ] as const
+            ).map(([wert, label]) => (
+              <button
+                key={wert}
+                type="button"
+                aria-pressed={ansicht === wert}
+                onClick={() => setAnsicht(wert)}
+                className={cn(buttonVariants({ variant: ansicht === wert ? "secondary" : "ghost", size: "xs" }), ansicht === wert && "shadow-sm")}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Heim und Auswärts lassen sich trennen, sobald unter Einstellungen → Spielhallen eure Hallen eingetragen sind.
+          </p>
+        )}
+        <select aria-label="Nach Mannschaft filtern" value={mannschaft} onChange={(e) => setMannschaft(e.target.value)} className={SELECT_KLASSE}>
+          <option value="">Alle Mannschaften</option>
+          {mannschaftsOptionen.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+        <select aria-label="Nach Halle filtern" value={halle} onChange={(e) => setHalle(e.target.value)} className={SELECT_KLASSE}>
+          <option value="">Alle Hallen</option>
+          {hallenOptionen.map((h) => (
+            <option key={h} value={h}>
+              {h}
+            </option>
+          ))}
+        </select>
       </div>
       {gefiltert.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -160,7 +214,7 @@ export function RundenspieleListe({ liste }: { liste: Rundenspiel[] }) {
                       </div>
                       {t.beschreibung && <span>{t.beschreibung}</span>}
                       <span className="text-xs text-muted-foreground">
-                        {[t.mannschaftName, t.ort]
+                        {[t.mannschaftName, t.ort, t.eigeneHalle === true ? "eigene Halle" : t.eigeneHalle === false ? "Auswärts" : null]
                           .filter(Boolean)
                           .join(" · ") || "—"}
                       </span>
@@ -177,6 +231,7 @@ export function RundenspieleListe({ liste }: { liste: Rundenspiel[] }) {
                   <TableHead>Datum</TableHead>
                   <TableHead>Mannschaft</TableHead>
                   <TableHead>Ort</TableHead>
+                  <TableHead>Heim/Auswärts</TableHead>
                   <TableHead>Beschreibung</TableHead>
                   <TableHead>Ergebnis</TableHead>
                 </TableRow>
@@ -191,6 +246,9 @@ export function RundenspieleListe({ liste }: { liste: Rundenspiel[] }) {
                       {t.mannschaftName ?? "—"}
                     </TableCell>
                     <TableCell>{t.ort ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {t.eigeneHalle === true ? "Eigene Halle" : t.eigeneHalle === false ? "Auswärts" : "—"}
+                    </TableCell>
                     <TableCell>{t.beschreibung ?? "—"}</TableCell>
                     <TableCell>
                       {formatErgebnis(t.ergebnisHeim, t.ergebnisAuswaerts) ??

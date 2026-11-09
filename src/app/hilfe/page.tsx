@@ -407,7 +407,7 @@ export default async function HilfePage() {
             Einstellungen → Öffentliche Vereinsseite → Eure Spielhallen
           </Link>{" "}
           eure Hallen ein: eine pro Zeile, ein eindeutiger Teil des Namens reicht (z.B. „Sporthalle Heuchelheim“),
-          Groß-/Kleinschreibung ist egal.
+          Groß-/Kleinschreibung ist egal. Dieselben Namen trennen auch die Liste unter <strong>Spiele &amp; Turniere → Hallenspielplan</strong>: mit „Eigene Hallen (Heim)“ und „Auswärts / fremde Halle“ seht ihr Hallenbelegung und Auswärtsspiele getrennt, dazu gibt es Filter nach Mannschaft und Halle.
         </p>
         <p className="text-sm text-muted-foreground">
           <strong>Ohne Eintrag wird kein Heimspiel angelegt</strong>, der Kalender bleibt leer. Nach dem Speichern werden
