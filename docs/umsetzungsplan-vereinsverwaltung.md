@@ -18,7 +18,7 @@ Ein Sponsor, der einem Handballverein die App ermöglichen möchte, übernimmt:
 2. Plus **200 € für den Sponsor-Platz** — das Bild beim Öffnen der Vereinsseite
 
 Der Verein zahlt nichts. Der Sponsor entscheidet, ob er nur die Basis oder auch das Add-on übernimmt.
-Interessierte Sponsoren melden sich bei info@deweconsulting.de.
+Interessierte Sponsoren melden sich bei info@handballerpate.de.
 
 ## Roadmap (öffentliche Roadmap-Seite: /roadmap)
 

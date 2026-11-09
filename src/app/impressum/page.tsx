@@ -23,7 +23,7 @@ export default function ImpressumPage() {
 
       <section className="flex flex-col gap-1 text-sm text-muted-foreground">
         <p className="font-medium text-foreground">Kontakt</p>
-        <p>E-Mail: info@deweconsulting.de</p>
+        <p>E-Mail: info@handballerpate.de</p>
         <p>Telefon: +49 15679 774 272</p>
       </section>
 

@@ -25,7 +25,7 @@ export const KEIN_RISIKO = "Vor dem Ende der Beta-Phase könnt ihr einfach Besch
 // Der Sponsor zahlt ALLES: den Vereinspreis (Beta: 200 €) UND den Sponsor-Platz (200 €) — der Verein selbst zahlt dann nichts.
 export const SPONSOR_KURZ = `Optional: Ein Sponsor kann beim Öffnen der Vereinsseite eingeblendet werden („Präsentiert von …“). Er zahlt ${PREIS_SPONSOR} € im Jahr für den Platz und übernimmt zusätzlich den Jahrespreis des Vereins (${PREIS_BETA} €) — der Verein zahlt dann nichts.`;
 
-export const KONTAKT_EMAIL = "info@deweconsulting.de";
+export const KONTAKT_EMAIL = "info@handballerpate.de";
 
 // Podcast-Partner "Handballkäs" (Danny Pieth, Mittelhessen): Registrierungen über die
 // Podcast-Seite (/podcast) bekommen 100 € Rabatt. Beta-Tester: 100 € statt 200 € im ersten Jahr;
