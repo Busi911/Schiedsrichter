@@ -66,7 +66,7 @@ export default async function MitgliederPage({ searchParams }: { searchParams: P
           <CardHeader>
             <CardTitle className="text-base">Noch nicht freigeschaltet</CardTitle>
             <CardDescription>
-              Die Vereinsverwaltung ist ein Zusatzangebot, das wir für euren Verein freischalten. Schreibt uns über „Feedback“ oder an info@deweconsulting.de, wenn ihr sie
+              Die Vereinsverwaltung ist ein Zusatzangebot, das wir für euren Verein freischalten. Schreibt uns über „Feedback“ oder an info@handballerpate.de, wenn ihr sie
               ausprobieren möchtet.
             </CardDescription>
           </CardHeader>

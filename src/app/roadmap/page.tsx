@@ -123,8 +123,8 @@ export default function RoadmapPage() {
         </h2>
         <p>
           Etwas fehlt oder stimmt nicht? Schreibt uns an{" "}
-          <a href="mailto:info@deweconsulting.de" className="underline">
-            info@deweconsulting.de
+          <a href="mailto:info@handballerpate.de" className="underline">
+            info@handballerpate.de
           </a>
           . Hilfe zur App findet ihr unter{" "}
           <Link href="/app-hilfe" className="underline">

@@ -174,7 +174,7 @@ export const ROADMAP: RoadmapPhase[] = [
       {
         titel: "Sponsor für einen Verein übernehmen",
         status: "fertig",
-        text: "Wer als Sponsor einem Handballverein die App ermöglichen möchte, kann sich melden. Der Sponsor übernimmt den kompletten Vereinspreis (Basis, auf Wunsch mit Vereinsverwaltung) plus 200 € für den Sponsor-Platz, ein Bild beim Öffnen der Vereinsseite. Der Verein zahlt dann nichts. Kontakt: info@deweconsulting.de.",
+        text: "Wer als Sponsor einem Handballverein die App ermöglichen möchte, kann sich melden. Der Sponsor übernimmt den kompletten Vereinspreis (Basis, auf Wunsch mit Vereinsverwaltung) plus 200 € für den Sponsor-Platz, ein Bild beim Öffnen der Vereinsseite. Der Verein zahlt dann nichts. Kontakt: info@handballerpate.de.",
       },
       {
         titel: "Sponsoren, Dokumente, Versammlungen",
