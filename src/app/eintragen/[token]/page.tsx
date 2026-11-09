@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ladeEintragungsTermine, rollenGruppenFuer } from "@/lib/eintragung-termine";
+import { leerErklaerung, type LeerErklaerung } from "@/lib/eintragung-leer";
 import { eintragenMehrfach, loginLinkAnfordern, mitfahren } from "./actions";
 import { ladeMitfahrAngebote } from "@/lib/mitfahren";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -58,7 +59,7 @@ export default async function EintragenPage({
   const session = await auth();
   const eingeloggtePerson = session?.user?.vereinId === verein.id ? { name: session.user.name ?? session.user.email ?? "" } : null;
 
-  const { alleMannschaften, termine, eigeneGruppen } = await ladeEintragungsTermine(verein, aktiv);
+  const { alleMannschaften, termine, eigeneGruppen, anstehendeAnzahl } = await ladeEintragungsTermine(verein, aktiv);
   const rollenGruppen = rollenGruppenFuer(aktiv, eigeneGruppen);
   const vereinsLogo = await holeVereinsLogoInfo(verein.id);
   // Fahrgemeinschaft: freie Mitfahrplätze (nur mit dem Link für eigene Dienste), siehe lib/mitfahren.ts.
@@ -146,7 +147,10 @@ export default async function EintragenPage({
       )}
 
       {gefilterteTermine.length === 0 ? (
-        <p className="text-base text-muted-foreground">Keine anstehenden Termine.</p>
+        <LeereEintragung
+          erklaerung={leerErklaerung({ anstehende: anstehendeAnzahl, mitBedarf: termine.length, gefiltert: !!mannschaftFilter })}
+          zeigeAdminHinweis={!!eingeloggtePerson && !!session?.user?.istAdmin}
+        />
       ) : (
         <TerminMehrfachAuswahl
           token={token}
@@ -242,5 +246,23 @@ export default async function EintragenPage({
 
       <p className="text-center text-xs text-muted-foreground">Selbsteintragung — HandballerPate</p>
     </main>
+  );
+}
+
+function LeereEintragung({ erklaerung, zeigeAdminHinweis }: { erklaerung: LeerErklaerung; zeigeAdminHinweis: boolean }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-base text-muted-foreground">{erklaerung.text}</p>
+      {zeigeAdminHinweis && erklaerung.fuerAdmin && (
+        <Alert>
+          <AlertDescription>
+            {erklaerung.fuerAdmin.text}{" "}
+            <Link href={erklaerung.fuerAdmin.href} className="font-medium underline">
+              {erklaerung.fuerAdmin.linkText}
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
   );
 }

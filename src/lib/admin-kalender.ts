@@ -284,10 +284,10 @@ export async function holeAdminKalenderDaten(
           externeZeitnehmerSekretaerAnzahl
         )
       : null;
-    let besetzung = besetzungsStatus
+    let besetzung: "vollstaendig" | "offen" | "keinBedarf" | undefined = besetzungsStatus
       ? istBesetzungVollstaendig(besetzungsStatus, t.typ, t.pflichtspiel)
-        ? ("vollstaendig" as const)
-        : ("offen" as const)
+        ? "vollstaendig"
+        : "offen"
       : undefined;
     // Rollen, für die eine weitere Zuordnung ohnehin abgelehnt würde (siehe
     // zuordnen in admin/zuordnung/actions.ts, das dieselbe Grenze serverseitig
@@ -440,6 +440,7 @@ export async function holeAdminKalenderDaten(
         });
       }
       let helferdienstOffen = false;
+      let hatHelferBedarf = false;
       for (const rolle of ORDNER_ROLLEN) {
         const vorhandeneAnzahl = eigeneZuordnungen.filter(
           (z) => z.funktionstraegerTyp === rolle
@@ -462,6 +463,7 @@ export async function holeAdminKalenderDaten(
         // "Person wählen…"-Dropdown eine ohnehin abgelehnte Zuordnung gar
         // nicht erst anbietet.
         if (vorhandeneAnzahl >= bedarf) volleRollen.push(rolle);
+        if (bedarf > 0) hatHelferBedarf = true;
         if (bedarf > 0 && vorhandeneAnzahl < bedarf) helferdienstOffen = true;
         if (bedarf > 0 && vorhandeneAnzahl === 0) {
           besetzungsDetails.push({
@@ -495,6 +497,19 @@ export async function holeAdminKalenderDaten(
       // Vom Verein definierte Dienste (Bedarf > 0 für Ordner/Kioskdienst/Kassierer und eigene Dienste) zählen zur Vollständigkeit:
       // ist einer davon nicht besetzt, gilt die Besetzung als offen — passend zur Liste "Offene Dienste".
       if (besetzung === "vollstaendig" && helferdienstOffen) besetzung = "offen";
+      // Weder Schiedsrichter (vom Verein) noch Zeitnehmer/Sekretär, Helferdienste oder eigene Dienste werden gebraucht und niemand ist
+      // eingeteilt: das ist NICHT „vollständig besetzt“ (suggeriert Einteilungen), sondern „kein Dienstbedarf“ (Testbericht 09.11.2026).
+      if (
+        besetzung === "vollstaendig" &&
+        t.typ !== "auswaertsspiel" &&
+        eigeneZuordnungen.length === 0 &&
+        zeitnehmerBedarf === 0 &&
+        !hatHelferBedarf &&
+        eigeneStellen.length === 0 &&
+        !brauchtSchiedsrichterVomVerein(t)
+      ) {
+        besetzung = "keinBedarf";
+      }
     }
 
     liste.push({

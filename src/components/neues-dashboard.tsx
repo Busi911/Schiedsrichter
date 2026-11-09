@@ -54,7 +54,7 @@ function baueKacheln(d: NeuesDashboardDaten, opt: { vereinsverwaltung: boolean; 
     {
       href: "/admin/bereich/dienste",
       label: "Dienste",
-      hinweis: dienstHinweis(d.offeneDienste, d.offeneDiensteGesamt),
+      hinweis: dienstHinweis(d.offeneDienste, d.offeneDiensteGesamt, d.bedarfEingerichtet),
       icon: ClipboardCheckIcon,
       badge: d.offeneDiensteGesamt,
     },
@@ -208,6 +208,11 @@ export function NeuesDashboard({
                     {chip.text}
                   </span>
                 ))}
+                {hero.bedarfFehlt && (
+                  <Link href="/admin/einstellungen#dienste-bedarf" className="inline-flex min-h-8 items-center text-sm font-semibold underline underline-offset-2">
+                    Dienstbedarf einrichten
+                  </Link>
+                )}
               </div>
               <div className="mt-auto flex flex-wrap gap-2.5">
                 <Link

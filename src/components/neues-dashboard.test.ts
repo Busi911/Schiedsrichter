@@ -15,6 +15,7 @@ const basis: NeuesDashboardDaten = {
   mitgliederAnzahl: 214,
   offeneDienste: 3,
   offeneDiensteGesamt: 3,
+  bedarfEingerichtet: true,
   aufgaben: [{ schluessel: "dienste", anzahl: 3, titel: "Termine mit offenen Diensten", hinweis: "nächste 7 Tage", href: "/admin/dienste", aktion: "Einteilen", ton: "warnung" }],
 };
 const rendere = (daten: NeuesDashboardDaten, opt: { vereinsverwaltung?: boolean; vereinstermine?: boolean } = {}) =>
@@ -60,15 +61,29 @@ describe("NeuesDashboard", () => {
     expect(html).toContain("nächste 7 Tage: keine · insgesamt 1 offen");
     expect(html).not.toContain("alles besetzt");
   });
+  it("ohne eingerichteten Dienstbedarf: Hinweis statt „alles besetzt“, mit Link zur Einstellung", () => {
+    const html = rendere({
+      ...basis,
+      bedarfEingerichtet: false,
+      offeneDienste: 0,
+      offeneDiensteGesamt: 0,
+      hero: { art: "heute", anzahlHeute: 1, spiel, chips: [{ text: "Kein Dienstbedarf eingerichtet", offen: false }], bedarfFehlt: true },
+    });
+    expect(html).toContain("Kein Dienstbedarf eingerichtet");
+    expect(html).toContain("Dienstbedarf einrichten");
+    expect(html).toContain('href="/admin/einstellungen#dienste-bedarf"');
+    expect(html).toContain("noch kein Dienstbedarf eingerichtet");
+    expect(html).not.toMatch(/alles besetzt/i);
+  });
   it("ohne Spiele und Aufgaben: ruhige Zustände statt leerer Flächen", () => {
     const html = rendere({ ...basis, hero: { art: "keins", anzahlHeute: 0, spiel: null, chips: [] }, naechster: null, aufgaben: [], offeneDienste: 0, offeneDiensteGesamt: 0, spieleDieseWoche: 0 });
     expect(html).toContain("Keine Spiele in Sicht");
     expect(html).toContain("Alles erledigt");
-    expect(html).toContain("alles besetzt");
+    expect(html).toContain("keine offenen Dienste");
     expect(html).toContain("keine in dieser Woche");
   });
   it("nächstes Spiel, wenn heute keins mehr ansteht", () => {
-    const html = rendere({ ...basis, hero: { art: "naechstes", anzahlHeute: 0, spiel, chips: [{ text: "Alles besetzt", offen: false }] } });
+    const html = rendere({ ...basis, hero: { art: "naechstes", anzahlHeute: 0, spiel, chips: [{ text: "Keine offenen Dienste", offen: false }] } });
     expect(html).toContain("Nächstes Spiel");
     expect(html).not.toContain("Spiele heute");
   });

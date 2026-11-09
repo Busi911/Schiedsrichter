@@ -206,6 +206,6 @@ export async function ladeEintragungsTermine(verein: Verein, aktiv: EintragungAk
         zuordnungen: eigeneZuordnungen.map((z) => ({ id: z.id, label: `${rollenLabel(z.funktionstraegerTyp, z.dienstArtId)}: ${z.name ?? z.externerName ?? "—"}${fahrtZusatz(z)}` })),
       });
     }
-    return { alleMannschaften, termine: ergebnis, eigeneGruppen };
+    return { alleMannschaften, termine: ergebnis, eigeneGruppen, anstehendeAnzahl: relevante.length };
   });
 }
