@@ -1,6 +1,6 @@
 // Reine Rechnung für den Start-Bildschirm im neuen App-Design (ohne DB, getestet in neues-dashboard.test.ts): Begrüßung, "Heute"-Karte,
 // Aufgaben ("Braucht dich") und die Wochen-/Tagesgrenzen in deutscher Zeit. Die Daten dazu lädt lib/neues-dashboard-daten.ts.
-import { addiereTage, berlinJetzt, wochentagVonDatum } from "./training-ausfall";
+import { addiereTage, berlinJetzt, berlinTagesbeginn, wochentagVonDatum } from "./training-ausfall";
 
 /** "Guten Morgen/Tag/Abend" nach deutscher Uhrzeit, mit Vorname, wenn bekannt. */
 export function begruessung(jetzt: Date, name?: string | null): string {
@@ -22,16 +22,6 @@ export function tagesGrenzen(jetzt: Date): { tagVon: Date; tagBis: Date; wocheVo
   };
 }
 
-// Mitternacht eines deutschen Kalendertags als Zeitpunkt. Eigene Rechnung statt parseBerlinDatumZeit: dessen Offset gilt für den ganzen Tag (aus 12:00 UTC
-// bestimmt) und wäre am Tag der Zeitumstellung um eine Stunde falsch. Hier gilt der Offset, bei dem 00:00 wirklich der erste Moment des Tages ist.
-function berlinTagesbeginn(datum: string): Date {
-  for (const offset of ["+01:00", "+02:00"]) {
-    const kandidat = new Date(`${datum}T00:00:00${offset}`);
-    if (berlinJetzt(kandidat).datum === datum && berlinJetzt(new Date(kandidat.getTime() - 60_000)).datum !== datum) return kandidat;
-  }
-  return new Date(`${datum}T00:00:00+01:00`);
-}
-
 export type SpielHeute = {
   id: string;
   start: Date;
@@ -39,7 +29,19 @@ export type SpielHeute = {
   titel: string | null;
   mannschaft: string | null;
   ort: string | null;
+  /** Von Hand angelegt (hat eine eigene Detailseite); importierte Ligaspiele haben keine. */
+  manuell?: boolean;
 };
+
+/**
+ * Ziel von „Zum Spiel“. Die Detailseite `/admin/termine/[id]` gibt es nur für von Hand angelegte Termine (sonst 404, Testbericht 09.11.2026);
+ * importierte Ligaspiele öffnen den Kalender am Tag des Spiels (`?monat=&tag=`), dort steht das Spiel mit seinen Diensten.
+ */
+export function spielLink(spiel: Pick<SpielHeute, "id" | "start" | "manuell">): string {
+  if (spiel.manuell) return `/admin/termine/${spiel.id}`;
+  const tag = berlinJetzt(spiel.start).datum;
+  return `/admin/kalender?monat=${tag.slice(0, 7)}&tag=${tag}`;
+}
 
 export type Besetzungsstand = {
   schiriOffen: boolean;

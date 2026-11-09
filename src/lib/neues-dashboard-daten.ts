@@ -43,6 +43,7 @@ type Zeile = {
   mannschaftName: string | null;
   mannschaftAltersklasse: string | null;
   kategorie: string | null;
+  quelle: string;
 };
 
 function alsSpiel(z: Zeile): SpielHeute {
@@ -52,6 +53,7 @@ function alsSpiel(z: Zeile): SpielHeute {
     titel: spielTitel(z.beschreibung),
     mannschaft: formatMannschaft(z),
     ort: z.ort,
+    manuell: z.quelle === "manuell",
   };
 }
 
@@ -78,6 +80,7 @@ export async function holeNeuesDashboardDaten(p: {
     mannschaftName: mannschaften.name,
     mannschaftAltersklasse: mannschaften.altersklasse,
     kategorie: termine.kategorie,
+    quelle: termine.quelle,
   };
 
   const [daten, unbesetzte] = await Promise.all([

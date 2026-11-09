@@ -55,6 +55,16 @@ export function berlinJetzt(jetzt: Date): { datum: string; minuten: number } {
   return { datum: `${w("year")}-${w("month")}-${w("day")}`, minuten: Number(w("hour")) * 60 + Number(w("minute")) };
 }
 
+// Mitternacht eines deutschen Kalendertags als Zeitpunkt. Eigene Rechnung statt parseBerlinDatumZeit: dessen Offset gilt für den ganzen Tag (aus 12:00 UTC
+// bestimmt) und wäre am Tag der Zeitumstellung um eine Stunde falsch. Hier gilt der Offset, bei dem 00:00 wirklich der erste Moment des Tages ist.
+export function berlinTagesbeginn(datum: string): Date {
+  for (const offset of ["+01:00", "+02:00"]) {
+    const kandidat = new Date(`${datum}T00:00:00${offset}`);
+    if (berlinJetzt(kandidat).datum === datum && berlinJetzt(new Date(kandidat.getTime() - 60_000)).datum !== datum) return kandidat;
+  }
+  return new Date(`${datum}T00:00:00+01:00`);
+}
+
 // Konkrete Trainings der nächsten `tage` Tage ab `abDatum` (einschließlich), nach Datum und Beginn sortiert. Ein Training, das heute schon
 // zu Ende ist (endMinuten <= jetzt), fällt weg; sonst zählt es.
 export function konkreteTrainings(

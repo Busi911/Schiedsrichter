@@ -948,7 +948,7 @@ export default async function HilfePage() {
           <Link href="/admin/auswertung" className="font-medium underline">
             Auswertung &amp; Export
           </Link>{" "}
-          steht der gesamte Dienstplan mit allen besetzten Rollen, filterbar nach Zeitraum. Einzelne Termine und Rollen lassen
+          steht der gesamte Dienstplan mit allen besetzten Rollen, filterbar nach Zeitraum (das „Bis“-Datum gilt einschließlich des ganzen Tages, in deutscher Zeit; „Von“ = „Bis“ zeigt also genau einen Tag). Einzelne Termine und Rollen lassen
           sich auswählen und als <strong>Excel</strong> oder <strong>PDF</strong> herunterladen, z.B. zum Aushang in der Halle.
         </p>
       </section>

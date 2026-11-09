@@ -11,11 +11,11 @@ import { HilfeHinweis } from "@/components/hilfe-hinweis";
 export default async function AdminKalenderPage({
   searchParams,
 }: {
-  searchParams: Promise<{ monat?: string; zeige?: string }>;
+  searchParams: Promise<{ monat?: string; zeige?: string; tag?: string }>;
 }) {
   const session = await requireAdmin();
   const vereinId = session.user.vereinId!;
-  const { monat, zeige } = await searchParams;
+  const { monat, zeige, tag } = await searchParams;
   const { jahr, monatNull } = parseMonatParam(monat);
   const arten = parseKalenderArten(zeige);
   const { von, bis } = monatsBereich(jahr, monatNull);
@@ -70,6 +70,7 @@ export default async function AdminKalenderPage({
         zuordenbarePersonen={zuordenbarePersonen}
         basisPfad="/admin/kalender"
         abfrageZusatz={kalenderArtenZusatz(arten)}
+        startTag={tag && tag.startsWith(monatKey(jahr, monatNull)) ? tag : undefined}
         schreibzugriff={session.user.istAdmin}
       />
     </div>

@@ -166,6 +166,7 @@ export function MonatsKalender({
   zuordenbarePersonen = [],
   basisPfad,
   abfrageZusatz = "",
+  startTag,
   // Default true: die anderen Aufrufstellen (z.B. /profil "Mein Kalender")
   // übergeben ohnehin keine zuordenbarePersonen/mannschaftsListe, die
   // schreibenden Formulare bleiben dort also unabhängig davon unsichtbar —
@@ -183,6 +184,8 @@ export function MonatsKalender({
   basisPfad: string;
   // Zusätzliche Suchparameter für die Monatslinks (z.B. "&zeige=training"), damit die Filterwahl beim Blättern bleibt.
   abfrageZusatz?: string;
+  /** Tag (YYYY-MM-DD), der beim Öffnen statt des Standardtags ausgewählt ist (Direktlink, z.B. „Zum Spiel“ vom Dashboard). Muss im Monat liegen. */
+  startTag?: string;
   schreibzugriff?: boolean;
 }) {
   const router = useRouter();
@@ -224,6 +227,7 @@ export function MonatsKalender({
   // Detailspalte nicht einfach leer beim 1. des Monats landet, obwohl der
   // Monat durchaus Termine hat.
   function ermittleStandardTag(): string {
+    if (startTag && tageDesMonats.some((t) => tagKey(t.datum) === startTag)) return startTag;
     if (istAktuellerMonat) return heuteKey;
     const ersterMitInhalt = tageDesMonats.find((t) => tagHatInhalt(tagKey(t.datum)));
     return tagKey((ersterMitInhalt ?? tageDesMonats[0]).datum);
