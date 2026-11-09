@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dienstHinweis, baueAufgaben, baueHero, baueProfilHero, begruessung, besetzungsChips, spielTitel, tagesGrenzen, type ProfilEinsatz, type SpielHeute } from "./neues-dashboard";
+import { spielLink, dienstHinweis, baueAufgaben, baueHero, baueProfilHero, begruessung, besetzungsChips, spielTitel, tagesGrenzen, type ProfilEinsatz, type SpielHeute } from "./neues-dashboard";
 
 describe("begruessung", () => {
   it("richtet sich nach deutscher Uhrzeit, nicht nach UTC", () => {
@@ -138,5 +138,18 @@ describe("dienstHinweis", () => {
     expect(dienstHinweis(0, 0)).toBe("alles besetzt");
     expect(dienstHinweis(0, 2)).toBe("nächste 7 Tage: keine · insgesamt 2 offen");
     expect(dienstHinweis(1, 3)).toBe("nächste 7 Tage: 1 · insgesamt 3 offen");
+  });
+});
+
+describe("spielLink", () => {
+  it("von Hand angelegtes Spiel: Detailseite", () => {
+    expect(spielLink({ id: "abc", start: new Date("2026-11-14T11:30:00Z"), manuell: true })).toBe("/admin/termine/abc");
+  });
+  it("importiertes Ligaspiel (keine Detailseite): Kalender am Tag in deutscher Zeit", () => {
+    expect(spielLink({ id: "abc", start: new Date("2026-11-14T11:30:00Z"), manuell: false })).toBe("/admin/kalender?monat=2026-11&tag=2026-11-14");
+    expect(spielLink({ id: "abc", start: new Date("2026-11-14T11:30:00Z") })).toBe("/admin/kalender?monat=2026-11&tag=2026-11-14");
+  });
+  it("kurz nach Mitternacht deutscher Zeit zählt der neue Tag (Vortag in UTC)", () => {
+    expect(spielLink({ id: "x", start: new Date("2026-11-13T23:30:00Z") })).toBe("/admin/kalender?monat=2026-11&tag=2026-11-14");
   });
 });

@@ -8,7 +8,7 @@ import {
   holeTermineFuerAuswertung,
   rollenZellenWert,
 } from "@/lib/termin-auswertung";
-import { tagKey } from "@/lib/kalender";
+import { berlinJetzt } from "@/lib/training-ausfall";
 import { AlleAuswaehlenCheckbox } from "@/components/alle-auswaehlen-checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,7 @@ export default async function AuswertungPage({
   // Deckt sich mit dem Default in holeTermineFuerAuswertung (dort greift er
   // serverseitig auch ohne explizites "von" in der URL) — hier nur, damit das
   // Datumsfeld den tatsächlich angewandten Wert zeigt statt leer zu wirken.
-  const heute = tagKey(new Date());
+  const heute = berlinJetzt(new Date()).datum;
 
   const [termineRoh, schiedsrichterListe] = await Promise.all([
     // +1 statt genau VORSCHAU_LIMIT, um zu erkennen, ob noch mehr Termine

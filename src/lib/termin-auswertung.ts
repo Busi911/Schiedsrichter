@@ -1,8 +1,8 @@
 import "server-only";
-import { and, asc, eq, gte, inArray, lte, ne, type SQL } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lt, ne, type SQL } from "drizzle-orm";
 import { withTenant } from "@/db";
 import { mannschaften, termine, terminZuordnungen, users, vereine } from "@/db/schema";
-import { tagKey } from "./kalender";
+import { auswertungsZeitraum } from "./auswertung-zeitraum";
 import { bedarfFuer, mannschaftBedarfDeaktiviertFuer, bedarfOverrideFuer } from "./dienste";
 import { dienstwartStellen, eigeneDiensteZellenText, type EingeteiltePerson } from "./eigene-dienste";
 import { ladeDienstArten, ladeEigeneDiensteKontext } from "./eigene-dienste-daten";
@@ -254,20 +254,16 @@ export async function holeTermineFuerAuswertung(
   limit?: number
 ) {
   return withTenant(vereinId, async (tx) => {
-    // Ohne explizites "von" gilt der Dienstplan ab heute (Europe/Berlin) statt
-    // der gesamten Vereinshistorie — "bis" bleibt dagegen bewusst unbegrenzt
-    // ("unendlich"), da es keinen sinnvollen oberen Standard-Wert gibt.
-    // "||" statt "??": ein geleertes <input type="date"> (siehe admin/
-    // auswertung/page.tsx) sendet einen leeren String, kein fehlendes Feld —
-    // der soll denselben Default auslösen wie gar kein "von" in der URL.
-    const vonEffektiv = filter.von || tagKey(new Date());
+    // Zeitraum in deutscher Zeit: "von" ab Tagesbeginn (ohne Angabe: heute), "bis" einschließlich des ganzen Tages
+    // (bis zum Beginn des Folgetags, exklusiv), ohne Angabe unbegrenzt. Siehe lib/auswertung-zeitraum.ts.
+    const { vonAb, bisVor } = auswertungsZeitraum(filter.von, filter.bis);
     const bedingungen: SQL[] = [
       eq(termine.vereinId, vereinId),
       ne(termine.typ, "spiel_ics"),
-      gte(termine.start, new Date(vonEffektiv)),
+      gte(termine.start, vonAb),
     ];
 
-    if (filter.bis) bedingungen.push(lte(termine.start, new Date(filter.bis)));
+    if (bisVor) bedingungen.push(lt(termine.start, bisVor));
     if (
       filter.typ &&
       (TERMIN_TYPEN as readonly string[]).includes(filter.typ)

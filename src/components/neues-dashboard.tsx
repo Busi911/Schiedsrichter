@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ZEITZONE, formatZeit } from "@/lib/format";
 import type { NeuesDashboardDaten } from "@/lib/neues-dashboard-daten";
-import { dienstHinweis, type Aufgabe, type ProfilHero } from "@/lib/neues-dashboard";
+import { dienstHinweis, spielLink, type Aufgabe, type ProfilHero } from "@/lib/neues-dashboard";
 
 // Start-Bildschirm im neuen App-Design (Mockup 18.10.2026): Begrüßung, "Heute"-Karte, "Braucht dich" und große Kacheln für die Bereiche.
 // Reine Darstellung (Server-Komponente); Daten kommen aus lib/neues-dashboard-daten.ts. Nur Design-Tokens, damit Hell/Dunkel stimmt.
@@ -211,7 +211,7 @@ export function NeuesDashboard({
               </div>
               <div className="mt-auto flex flex-wrap gap-2.5">
                 <Link
-                  href={`/admin/termine/${spiel.id}`}
+                  href={spielLink(spiel)}
                   className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-background px-5 text-base font-semibold text-primary md:w-auto"
                 >
                   Zum Spiel
