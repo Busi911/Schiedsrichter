@@ -5,7 +5,8 @@ import { ClipboardCheckIcon } from "lucide-react";
 import { BereichsTasten, NeuesDashboard, NeuesProfilStart } from "./neues-dashboard";
 import type { NeuesDashboardDaten } from "@/lib/neues-dashboard-daten";
 
-const spiel = { id: "t1", start: new Date("2026-10-18T12:00:00Z"), titel: "HSG A – HSG B", mannschaft: "männl. C-Jugend", ort: "Halle Süd" };
+// Importiertes Ligaspiel (keine Detailseite): „Zum Spiel“ öffnet den Kalender am Tag des Spiels.
+const spiel = { id: "t1", start: new Date("2026-10-18T12:00:00Z"), titel: "HSG A – HSG B", mannschaft: "männl. C-Jugend", ort: "Halle Süd", manuell: false };
 const basis: NeuesDashboardDaten = {
   hero: { art: "heute", anzahlHeute: 2, spiel, chips: [{ text: "Schiedsrichter ✓", offen: false }, { text: "Zeitnehmer fehlt", offen: true }] },
   naechster: spiel,
@@ -37,7 +38,11 @@ describe("NeuesDashboard", () => {
     expect(html).toContain("HSG A – HSG B");
     expect(html).toContain("Zeitnehmer fehlt");
     expect(html).toContain("Termine mit offenen Diensten");
-    expect(html).toContain('href="/admin/termine/t1"');
+    expect(html).toContain('href="/admin/kalender?monat=2026-10&amp;tag=2026-10-18"');
+    expect(html).not.toContain('href="/admin/termine/t1"');
+    // Von Hand angelegt: eigene Detailseite.
+    const manuell = rendere({ ...basis, hero: { ...basis.hero, spiel: { ...spiel, manuell: true } } });
+    expect(manuell).toContain('href="/admin/termine/t1"');
     expect(html).toContain("5 in dieser Woche");
     expect(html).toContain("12 Mannschaften");
     expect(html).toContain('href="/admin/bereich/dienste"');
