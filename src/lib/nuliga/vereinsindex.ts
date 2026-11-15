@@ -28,11 +28,15 @@ export async function aktualisiereVereinsindex(opt: {
   const warnungen: string[] = [];
   let vereine = 0;
 
+  // Bezirk-Verwaltungsobjekte (z.B. „Bezirk Gießen") sind keine echten Vereine und
+  // dürfen nicht in den Index geschrieben werden — sie würden den sonntäglichen Cron
+  // jedes Mal neu anlegen, obwohl sie manuell gelöscht wurden.
   const schreibe = async (eintraege: { clubId: string; name: string; nummer: string | null; bezirk: string | null }[]) => {
-    if (eintraege.length === 0) return;
+    const gefiltert = eintraege.filter((e) => !e.name.startsWith("Bezirk "));
+    if (gefiltert.length === 0) return;
     await opt.db
       .insert(nuligaVereinsindex)
-      .values(eintraege.map((e) => ({ ...e, verband, aktualisiertAm: jetzt })))
+      .values(gefiltert.map((e) => ({ ...e, verband, aktualisiertAm: jetzt })))
       .onConflictDoUpdate({
         target: [nuligaVereinsindex.verband, nuligaVereinsindex.clubId],
         set: {
@@ -42,7 +46,7 @@ export async function aktualisiereVereinsindex(opt: {
           aktualisiertAm: sql`excluded.aktualisiert_am`,
         },
       });
-    vereine += eintraege.length;
+    vereine += gefiltert.length;
   };
 
   const startUrl = baueNuligaUrl(verband, "clubSearch", { federation: verband });

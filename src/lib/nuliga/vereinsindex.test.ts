@@ -50,6 +50,13 @@ describe.skipIf(!ADMIN_URL)("Vereinsindex (Postgres)", () => {
     expect(alle.find((v) => v.clubId === "99999")).toBeUndefined();
   });
 
+  it("filtert Bezirk-Verwaltungsobjekte heraus", async () => {
+    await aktualisiereVereinsindex({ db: testDb, holeHtml });
+    const alle = await testDb.select().from(schema.nuligaVereinsindex);
+    expect(alle.some((v) => v.name.startsWith("Bezirk "))).toBe(false);
+    expect(alle.find((v) => v.clubId === "70000")).toBeUndefined();
+  });
+
   it("löscht bei einem Teillauf (Frist) nichts", async () => {
     await testDb.insert(schema.nuligaVereinsindex).values({ clubId: "88888", name: "Bleibt e.V.", aktualisiertAm: new Date("2020-01-01") });
     const r = await aktualisiereVereinsindex({ db: testDb, holeHtml, frist: Date.now() - 1 });
