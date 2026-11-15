@@ -15,7 +15,7 @@ describe("normalisiereInstagram", () => {
 });
 
 describe("ansprachetext", () => {
-  const text = ansprachetext({ vereinsname: "HSG Linden", vorschauUrl: "https://handballerpate.de/verein/hsg-linden/vorschau/abc", gueltigBis: new Date("2026-10-13T10:00:00Z"), });
+  const text = ansprachetext({ vereinsname: "HSG Linden", vorschauUrl: "https://handballerpate.de/verein/hsg-linden/vorschau/abc", gueltigBis: new Date("2026-10-13T10:00:00Z"), jetzt: new Date("2026-10-10T10:00:00Z") });
   it("enthält Verein, Link, Beta/kostenlos, Gültigkeit und Absender", () => {
     expect(text.startsWith("Guten Tag,")).toBe(true);
     expect(text).toContain("mein Name ist Dennis");
@@ -25,6 +25,13 @@ describe("ansprachetext", () => {
     expect(text).toContain("noch kostenlos");
     expect(text).toContain("Die Vorschau gilt bis 13.10.2026");
     expect(text.trimEnd().endsWith("Dennis")).toBe(true);
+  });
+  it("nennt nach dem Beta-Ende die Testphase statt der Beta", () => {
+    const nach = ansprachetext({ vereinsname: "HSG Linden", vorschauUrl: "https://handballerpate.de/verein/hsg-linden/vorschau/abc", gueltigBis: new Date("2026-12-10T10:00:00Z"), jetzt: new Date("2026-12-01T00:00:00+01:00") });
+    expect(nach).toContain("14 Tage kostenlos");
+    expect(nach).toContain("300 €");
+    expect(nach).not.toContain("Beta-Phase");
+    expect(nach.length).toBeLessThan(1000);
   });
   it("sagt, wie man den Zugang bekommt: Name und E-Mail-Adresse der verwaltenden Person", () => {
     expect(text).toContain("Namen und E-Mail-Adresse der Person, die den Verein verwalten soll");
