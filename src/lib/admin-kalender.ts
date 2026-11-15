@@ -438,6 +438,18 @@ export async function holeAdminKalenderDaten(
           label: "Zeitnehmer/Sekretär: offen",
           entfernbar: false,
         });
+      } else if (
+        zuordenbar &&
+        besetzungsStatus &&
+        besetzungsStatus.zeitnehmerSekretaerAnzahl > 0 &&
+        besetzungsStatus.zeitnehmerSekretaerAnzahl < zeitnehmerBedarf
+      ) {
+        // Teilweise besetzt (z.B. nur der Sekretär eingetragen, Bedarf 2): die fehlende Stelle muss sichtbar bleiben.
+        besetzungsDetails.push({
+          id: `teilweise-zeitnehmer-${t.id}`,
+          label: `Zeitnehmer/Sekretär: ${besetzungsStatus.zeitnehmerSekretaerAnzahl} von ${zeitnehmerBedarf} besetzt`,
+          entfernbar: false,
+        });
       }
       let helferdienstOffen = false;
       let hatHelferBedarf = false;
@@ -469,6 +481,12 @@ export async function holeAdminKalenderDaten(
           besetzungsDetails.push({
             id: `offen-${rolle}-${t.id}`,
             label: `${ROLLE_LABEL[rolle]}: offen`,
+            entfernbar: false,
+          });
+        } else if (bedarf > 0 && vorhandeneAnzahl < bedarf) {
+          besetzungsDetails.push({
+            id: `teilweise-${rolle}-${t.id}`,
+            label: `${ROLLE_LABEL[rolle]}: ${vorhandeneAnzahl} von ${bedarf} besetzt`,
             entfernbar: false,
           });
         }
