@@ -15,3 +15,9 @@ export function teilenPfadFuer(vereinSlug: string, mannschaften: { id: string; s
   const m = mannschaftIds.map((id) => mannschaften.find((x) => x.id === id)).find(Boolean);
   return m ? `/verein/${vereinSlug}/${m.slug}` : `/verein/${vereinSlug}`;
 }
+
+/** Seite der (ersten) eigenen Mannschaft eines Spiels, für den Link "Zur Mannschaft" im Spieldetail; ohne Treffer null (dann kein Link). */
+export function mannschaftPfadFuer(vereinSlug: string, mannschaften: { id: string; slug: string }[], mannschaftIds: string[]): string | null {
+  const m = mannschaftIds.map((id) => mannschaften.find((x) => x.id === id)).find(Boolean);
+  return m ? `/verein/${vereinSlug}/${m.slug}` : null;
+}

@@ -6,6 +6,7 @@ import { BereichsKopf } from "@/components/liga/bereichs-kopf";
 import { GefilterteListe } from "@/components/liga/gefilterte-liste";
 import { formatTagKopf, SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
 import { tagKey } from "@/lib/kalender";
+import { mannschaftPfadFuer } from "@/lib/teilen";
 import { ladeVereinsDaten } from "../laden";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -44,6 +45,7 @@ export default async function NaechsteSpieleSeite({ params }: Props) {
               eigenTeamtable={e.eigenTeamtable}
               teamLabel={e.teams.join(" · ")}
               nurUhrzeit
+              mannschaftPfad={mannschaftPfadFuer(verein.slug, mannschaften, e.mannschaftIds)}
             />
           ),
         }))}
