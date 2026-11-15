@@ -2,6 +2,7 @@
 // Gesendet wird bewusst von Hand — es gibt keinen automatischen Versand.
 
 import { BETA_ENDE, PREIS_BETA, PREIS_REGULAER } from "./beta-konditionen";
+import { betaVorbei } from "./abrechnung";
 
 const NAME = /^[A-Za-z0-9._]{1,30}$/;
 
@@ -22,9 +23,13 @@ const DATUM = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit
 // Absender der Ansprache (Vorname, wie er in der Nachricht steht).
 export const ANSPRACHE_ABSENDER = "Dennis";
 
-// Vorschlag für die erste Nachricht in der Sie-Form (Beta-Phase, kostenlos). Der Absender kann den Text vor dem Kopieren ändern.
-export function ansprachetext(opt: { vereinsname: string; vorschauUrl: string; gueltigBis: Date; absender?: string }): string {
+// Vorschlag für die erste Nachricht in der Sie-Form (während der Beta kostenlos, danach 14 Tage Test). Der Absender kann den Text vor dem Kopieren ändern.
+export function ansprachetext(opt: { vereinsname: string; vorschauUrl: string; gueltigBis: Date; absender?: string; jetzt?: Date }): string {
   const absender = opt.absender ?? ANSPRACHE_ABSENDER;
+  // Nach dem Beta-Ende gibt es kein Beta-Angebot mehr: 14 Tage kostenlos testen, danach entscheidet der Verein (wie in der Outreach-Mail).
+  const konditionen = betaVorbei(opt.jetzt ?? new Date())
+    ? `Sie testen HandballerPate 14 Tage kostenlos, danach entscheiden Sie (${PREIS_REGULAER} € netto im Jahr). Die Vorschau gilt bis ${DATUM.format(opt.gueltigBis)}.`
+    : `HandballerPate ist in der Beta-Phase und für Sie noch kostenlos (bis ${BETA_ENDE}, danach ${PREIS_BETA} statt ${PREIS_REGULAER} € netto im Jahr). Die Vorschau gilt bis ${DATUM.format(opt.gueltigBis)}.`;
   return [
     "Guten Tag,",
     "",
@@ -34,7 +39,7 @@ export function ansprachetext(opt: { vereinsname: string; vorschauUrl: string; g
     "",
     "2. Für den Verein: Schiedsrichter, Zeitnehmer, Ordner und Kiosk bei Heimspielen einteilen. Der Spielplan kommt automatisch aus nuLiga, Verlegungen und Erinnerungen gehen per Mail raus, offene Dienste sehen Sie auf einen Blick.",
     "",
-    `HandballerPate ist in der Beta-Phase und für Sie noch kostenlos (bis ${BETA_ENDE}, danach ${PREIS_BETA} statt ${PREIS_REGULAER} € netto im Jahr). Die Vorschau gilt bis ${DATUM.format(opt.gueltigBis)}.`,
+    konditionen,
     "",
     "Zum Übernehmen brauche ich nur Namen und E-Mail-Adresse der Person, die den Verein verwalten soll; sie meldet sich mit einem Link an, den ich per E-Mail schicke. Wenn es nicht passt, genügt ein kurzes „Kein Interesse“.",
     "",

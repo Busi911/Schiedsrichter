@@ -3,6 +3,7 @@ import { outreachInhalt } from "./outreach-mail";
 
 describe("outreachInhalt", () => {
   const inhalt = outreachInhalt({
+    jetzt: new Date("2026-11-01T10:00:00Z"),
     vereinsname: "HSG Linden",
     vorschauUrl: "https://handballerpate.de/verein/hsg-linden/vorschau/abc",
     gueltigBis: new Date("2026-10-15T10:00:00Z"),
@@ -76,6 +77,7 @@ describe("outreachInhalt", () => {
       email: "test@example.org",
       abmeldeUrl: "https://handballerpate.de/api/outreach/abmelden/token123",
       uebergabeUrl: "https://handballerpate.de/outreach/uebergabe/token456",
+      jetzt: new Date("2026-11-01T10:00:00Z"),
     };
     expect(JSON.stringify(inhalt.zeilen)).not.toContain("Beta-Platz");
     expect(JSON.stringify(outreachInhalt({ ...basis, betaPlaetzeFrei: 1 }).zeilen)).toContain("Es ist nur noch ein Beta-Platz frei.");
@@ -86,5 +88,26 @@ describe("outreachInhalt", () => {
     expect(text).toContain("14 Tage kostenlos");
     expect(text).not.toContain("komplett kostenlos");
     expect(voll.cta?.text).toBe("Verein übernehmen");
+  });
+
+  it("wechselt nach dem Beta-Ende von selbst auf Testphase und regulären Preis (auch bei freien Plätzen)", () => {
+    const basis = {
+      vereinsname: "HSG Linden",
+      vorschauUrl: "https://handballerpate.de/verein/hsg-linden/vorschau/abc",
+      gueltigBis: new Date("2026-12-10T10:00:00Z"),
+      email: "test@example.org",
+      abmeldeUrl: "https://handballerpate.de/api/outreach/abmelden/token123",
+      uebergabeUrl: "https://handballerpate.de/outreach/uebergabe/token456",
+      betaPlaetzeFrei: 1,
+    };
+    const vorher = outreachInhalt({ ...basis, jetzt: new Date("2026-11-30T22:59:00Z") });
+    expect(JSON.stringify(vorher.zeilen)).toContain("Beta-Phase");
+    const nachher = outreachInhalt({ ...basis, jetzt: new Date("2026-11-30T23:00:00Z") });
+    const text = JSON.stringify(nachher.zeilen);
+    expect(text).toContain("14 Tage kostenlos");
+    expect(text).toContain("300 €");
+    expect(text).not.toContain("Beta-Phase");
+    expect(text).not.toContain("Beta-Platz");
+    expect(nachher.cta?.text).toBe("Verein übernehmen");
   });
 });
