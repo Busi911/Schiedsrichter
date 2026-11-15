@@ -5,7 +5,7 @@ import { sammleVereinsSpiele } from "@/lib/liga-spiele-hilfen";
 import { BereichsKopf } from "@/components/liga/bereichs-kopf";
 import { GefilterteListe } from "@/components/liga/gefilterte-liste";
 import { formatTagKopf, SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
-import { teilenPfadFuer } from "@/lib/teilen";
+import { tagKey } from "@/lib/kalender";
 import { ladeVereinsDaten } from "../laden";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -24,7 +24,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function NaechsteSpieleSeite({ params }: Props) {
   const { slug } = await params;
   const { verein, mannschaften } = await ladeVereinsDaten(slug);
-  const { anstehend } = sammleVereinsSpiele(mannschaften, new Date());
+  const jetzt = new Date();
+  const heuteKey = tagKey(jetzt);
+  const { anstehend } = sammleVereinsSpiele(mannschaften, jetzt);
 
   return (
     <div className="space-y-5 pb-28 md:pb-0">
@@ -33,7 +35,7 @@ export default async function NaechsteSpieleSeite({ params }: Props) {
         leerText="Aktuell sind keine Spiele angesetzt."
         eintraege={anstehend.map((e) => ({
           id: e.spiel.id,
-          tag: formatTagKopf(e.spiel.datum),
+          tag: e.spiel.datum === heuteKey ? `Heute · ${formatTagKopf(e.spiel.datum)}` : formatTagKopf(e.spiel.datum),
           gruppe: e.gruppe,
           mannschaftIds: e.mannschaftIds,
           knoten: (
@@ -42,7 +44,6 @@ export default async function NaechsteSpieleSeite({ params }: Props) {
               eigenTeamtable={e.eigenTeamtable}
               teamLabel={e.teams.join(" · ")}
               nurUhrzeit
-              teilenPfad={teilenPfadFuer(verein.slug, mannschaften, e.mannschaftIds)}
             />
           ),
         }))}

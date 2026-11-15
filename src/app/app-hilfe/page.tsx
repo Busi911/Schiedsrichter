@@ -28,6 +28,7 @@ export default function AppHilfePage() {
             ["favoriten", "Favoriten merken"],
             ["statistik", "Statistik"],
             ["training", "Training"],
+            ["spieldetails", "Spieldetails und „Heute“"],
             ["teilen", "Ein Spiel teilen"],
             ["neuigkeiten", "Neuigkeiten"],
             ["spiele", "Live, Ergebnis folgt, vorläufig"],
@@ -117,10 +118,19 @@ export default function AppHilfePage() {
         </p>
       </section>
 
+      <section id="spieldetails" className="flex flex-col gap-2 scroll-mt-6">
+        <h2 className="font-heading text-lg font-medium">Spieldetails und „Heute“</h2>
+        <p className="text-sm text-muted-foreground">
+          Spiele von <strong>heute</strong> sind farbig umrandet und stehen auf der Startseite ganz oben unter „Heute“. Tippt auf eine Spielkarte, dann öffnet sich ein Fenster mit
+          Datum, Uhrzeit, beiden Mannschaften, Ergebnis, der Halle (mit „Route“ zur Karten-App) und, wenn vorhanden, Live-Ticker und Spielbericht. Tippt ihr direkt auf die Halle
+          oder einen Link in der Karte, öffnet sich nur dieser.
+        </p>
+      </section>
+
       <section id="teilen" className="flex flex-col gap-2 scroll-mt-6">
         <h2 className="font-heading text-lg font-medium">Ein Spiel teilen</h2>
         <p className="text-sm text-muted-foreground">
-          Auf jeder Spielkarte findet ihr <strong>Teilen</strong>. Das öffnet das Share-Menü eures Handys (WhatsApp, Nachrichten, Mail …) mit dem Link zur Mannschaftsseite
+          Auf den Spielkarten der <strong>Mannschaftsseiten</strong> (Reiter „Teams“) findet ihr <strong>Teilen</strong>; auf den Seiten „Ergebnisse“ und „Spiele“ gibt es den Knopf nicht. Das öffnet das Share-Menü eures Handys (WhatsApp, Nachrichten, Mail …) mit dem Link zur Mannschaftsseite
           des Spiels; wer ihn öffnet, sieht dort das Spiel und die Tabelle. Ohne Share-Menü (z.B. am Computer) wird der Link kopiert. Es wird nur der Link geteilt, nichts
           anderes und ohne Tracking.
         </p>

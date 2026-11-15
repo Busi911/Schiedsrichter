@@ -7,9 +7,11 @@ import { ZEITZONE } from "@/lib/format";
 import { istZwischenstand, laeuftVermutlich, liveTickerRelevant } from "@/lib/liga-spiel-status";
 import { quelleFuer } from "@/lib/match-provider";
 import { ursprungsTermin } from "@/lib/liga-spiele-hilfen";
+import { tagKey } from "@/lib/kalender";
 import { ergebnisHinweis, hatErgebnis, type MannschaftAnsicht, type SpielAnsicht } from "@/lib/liga-oeffentlich";
 import { FavoritStern } from "./favorit-stern";
 import { TeilenButton } from "./teilen-button";
+import { SpielDetail } from "./spiel-detail";
 
 export function formatSpieltag(datum: string, uhrzeit: string | null): string {
   const text = new Intl.DateTimeFormat("de-DE", {
@@ -72,6 +74,8 @@ export function SpielKarte({
   teilenPfad?: string;
 }) {
   const jetztSpiel = new Date();
+  // Spiele von heute heben sich ab (farbiger Rand und Hintergrund), damit man am Spieltag sofort sieht, was ansteht.
+  const istHeute = spiel.datum === tagKey(jetztSpiel);
 
   const laeuft = laeuftVermutlich(spiel, jetztSpiel);
   const zwischenstand = istZwischenstand(spiel, jetztSpiel);
@@ -92,11 +96,84 @@ export function SpielKarte({
   const liveUrl = liveTickerRelevant(spiel, jetzt) ? quelleFuer(spiel).liveUrl(spiel) : null;
   const fett = (tt: string | null) =>
     eigenTeamtable && tt === eigenTeamtable ? "font-semibold text-foreground" : "";
+  const titel = `${spiel.heimName} – ${spiel.gastName}`;
+  const detail = (
+    <div className="space-y-4 text-sm">
+      <div className="space-y-1">
+        <p className="inline-flex items-center gap-1.5 text-muted-foreground">
+          <CalendarIcon className="size-4" />
+          {formatSpieltag(spiel.datum, spiel.uhrzeit)}
+          {spiel.uhrzeit ? " Uhr" : ""}
+        </p>
+        {ursprungsTermin(spiel) && <p className="text-xs text-muted-foreground">Ursprünglich: {ursprungsTermin(spiel)}</p>}
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {teamLabel && <Badge variant="secondary">{teamLabel}</Badge>}
+          {laeuft && <Badge className="bg-rose-600 text-white">Live</Badge>}
+          {spiel.istFreundschaft && <Badge variant="outline">Freundschaftsspiel</Badge>}
+          {STATUS_LABEL[spiel.status] && <Badge variant="outline">{STATUS_LABEL[spiel.status]}</Badge>}
+        </div>
+      </div>
+      <div className="rounded-lg bg-muted/50 p-3">
+        <p className={cn("font-medium", fett(spiel.heimTeamtableId))}>{spiel.heimName}</p>
+        <p className={cn("font-medium", fett(spiel.gastTeamtableId))}>{spiel.gastName}</p>
+        {hinweis ? (
+          <p className={cn("mt-2 text-sm font-medium", hinweis === "laeuft" ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground")}>
+            {hinweis === "laeuft" ? "Läuft gerade" : hinweis === "ergebnis_folgt" ? "Ergebnis folgt" : "Ergebnis ausstehend"}
+          </p>
+        ) : hatErgebnis(spiel) && !zwischenstand ? (
+          <p className="mt-2 font-heading text-2xl font-bold tabular-nums">
+            {spiel.toreHeim}:{spiel.toreGast}
+            {!spiel.ergebnisBestaetigt && <span className="ml-2 text-xs font-normal text-muted-foreground">vorläufig</span>}
+            {spiel.halbzeitHeim !== null && spiel.halbzeitGast !== null && (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                Halbzeit {spiel.halbzeitHeim}:{spiel.halbzeitGast}
+              </span>
+            )}
+          </p>
+        ) : null}
+      </div>
+      {spiel.halleName && (
+        <div className="flex items-start justify-between gap-3">
+          <p className="inline-flex items-start gap-1.5">
+            <MapPinIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            {spiel.halleName}
+          </p>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spiel.halleName)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1 font-medium text-primary hover:underline"
+          >
+            Route
+            <ExternalLinkIcon className="size-3" />
+          </a>
+        </div>
+      )}
+      {(liveUrl || berichtUrl) && (
+        <div className="flex flex-wrap gap-x-4">
+          {liveUrl && (
+            <a href={liveUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 font-medium text-primary hover:underline">
+              Live-Ticker
+              <ExternalLinkIcon className="size-3" />
+            </a>
+          )}
+          {berichtUrl && (
+            <a href={berichtUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 font-medium text-primary hover:underline">
+              {quelleFuer(spiel).berichtLabel}
+              <ExternalLinkIcon className="size-3" />
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+  );
   return (
+    <SpielDetail titel={titel} detail={detail}>
     <Card
       size="sm"
       className={cn(
         "gap-2 px-4",
+        istHeute && "bg-primary/5 ring-2 ring-primary/50",
         ausgang === "S" && "border-l-4 border-l-emerald-700",
         ausgang === "U" && "border-l-4 border-l-slate-500",
         ausgang === "N" && "border-l-4 border-l-red-700"
@@ -203,6 +280,7 @@ export function SpielKarte({
         </span>
       </div>
     </Card>
+    </SpielDetail>
   );
 }
 
