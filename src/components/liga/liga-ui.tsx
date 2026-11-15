@@ -61,6 +61,7 @@ export function SpielKarte({
   nurUhrzeit,
   mitAusgang,
   teilenPfad,
+  mannschaftPfad,
 }: {
   spiel: SpielAnsicht;
   eigenTeamtable?: string | null;
@@ -72,6 +73,8 @@ export function SpielKarte({
   // Pfad der Seite, die der Teilen-Button weitergibt (die Mannschaftsseite zu diesem Spiel). Ohne Pfad gibt es keinen Button
   // (z.B. im Admin-Bereich, wo die Karte keine öffentliche Adresse hat).
   teilenPfad?: string;
+  // Seite der Mannschaft: im Spieldetail erscheint dann "Zur Mannschaft" (nur auf den vereinsweiten Listen, auf der Mannschaftsseite selbst überflüssig).
+  mannschaftPfad?: string | null;
 }) {
   const jetztSpiel = new Date();
   // Spiele von heute heben sich ab (farbiger Rand und Hintergrund), damit man am Spieltag sofort sieht, was ansteht.
@@ -107,7 +110,7 @@ export function SpielKarte({
         </p>
         {ursprungsTermin(spiel) && <p className="text-xs text-muted-foreground">Ursprünglich: {ursprungsTermin(spiel)}</p>}
         <div className="flex flex-wrap gap-1.5 pt-1">
-          {teamLabel && <Badge variant="secondary">{teamLabel}</Badge>}
+          {teamLabel && teamLabel !== spiel.heimName && teamLabel !== spiel.gastName && <Badge variant="secondary">{teamLabel}</Badge>}
           {laeuft && <Badge className="bg-rose-600 text-white">Live</Badge>}
           {spiel.istFreundschaft && <Badge variant="outline">Freundschaftsspiel</Badge>}
           {STATUS_LABEL[spiel.status] && <Badge variant="outline">{STATUS_LABEL[spiel.status]}</Badge>}
@@ -148,6 +151,12 @@ export function SpielKarte({
             <ExternalLinkIcon className="size-3" />
           </a>
         </div>
+      )}
+      {mannschaftPfad && (
+        <Link href={mannschaftPfad} className="inline-flex min-h-11 items-center gap-1 font-medium text-primary hover:underline">
+          Zur Mannschaft
+          <ChevronRightIcon className="size-4" />
+        </Link>
       )}
       {(liveUrl || berichtUrl) && (
         <div className="flex flex-wrap gap-x-4">
@@ -198,6 +207,7 @@ export function SpielKarte({
           )}
           {spiel.istFreundschaft && <Badge variant="outline">Freundschaftsspiel</Badge>}
           {STATUS_LABEL[spiel.status] && <Badge variant="outline">{STATUS_LABEL[spiel.status]}</Badge>}
+          <ChevronRightIcon className="size-4 shrink-0" aria-hidden />
         </span>
       </div>
       {ursprungsTermin(spiel) && <p className="text-xs text-muted-foreground">Ursprünglich: {ursprungsTermin(spiel)}</p>}
