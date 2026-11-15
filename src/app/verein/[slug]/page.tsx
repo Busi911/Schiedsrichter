@@ -9,7 +9,6 @@ import { BereichsKopf } from "@/components/liga/bereichs-kopf";
 import { GefilterteListe } from "@/components/liga/gefilterte-liste";
 import { InstallHinweis } from "@/components/liga/installieren";
 import { formatTagKopf, SpielKarte, StandHinweis } from "@/components/liga/liga-ui";
-import { teilenPfadFuer } from "@/lib/teilen";
 import { ladeVereinsDaten } from "./laden";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -76,7 +75,6 @@ export default async function ErgebnisseSeite({ params }: Props) {
                 teamLabel={e.teams.join(" · ")}
                 nurUhrzeit
                 mitAusgang
-                teilenPfad={teilenPfadFuer(verein.slug, mannschaften, e.mannschaftIds)}
               />
             ),
           }))}
