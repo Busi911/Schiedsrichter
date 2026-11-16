@@ -168,7 +168,10 @@ export function sammleVereinsSpiele(
     .sort(nachZeit);
   // "Heute": noch offene Spiele des heutigen Tages und laufende Spiele (auch nach Mitternacht).
   const heuteKey = tagKey(jetzt);
-  const heute = anstehend.filter((e) => e.spiel.datum === heuteKey || laeuftMitStand(e.spiel, jetzt));
+  // Abgesagte Spiele ans Ende (stabile Sortierung: sonst bleibt die Zeitreihenfolge), damit zuerst die echten Spiele stehen.
+  const heute = anstehend
+    .filter((e) => e.spiel.datum === heuteKey || laeuftMitStand(e.spiel, jetzt))
+    .sort((a, b) => Number(a.spiel.status === "abgesagt") - Number(b.spiel.status === "abgesagt"));
   return {
     heute,
     ergebnisse: eintraege

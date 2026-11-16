@@ -125,6 +125,10 @@ export default function AppHilfePage() {
           Datum, Uhrzeit, beiden Mannschaften, Ergebnis, der Halle (mit „Route“ zur Karten-App) und, wenn vorhanden, Live-Ticker und Spielbericht. Über „Zur Mannschaft“ kommt ihr direkt zur Mannschaftsseite. Tippt ihr direkt auf die Halle
           oder einen Link in der Karte, öffnet sich nur dieser.
         </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Abgesagte Spiele</strong> erkennt ihr an einem gelben Streifen („Heute abgesagt“), der durchgestrichenen Uhrzeit und der abgedunkelten Karte. Sie stehen am Ende der Liste „Heute“, und eine Zeile darüber nennt, wie viele Spiele heute
+          abgesagt sind. Die Absage erscheint, sobald die Daten des Verbands aktualisiert sind (das kann bis zu einer Stunde dauern).
+        </p>
       </section>
 
       <section id="teilen" className="flex flex-col gap-2 scroll-mt-6">
