@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { TriangleAlertIcon } from "lucide-react";
 import { appUrl } from "@/lib/app-url";
 import { holeMannschaften, holeVerein, holeVereinsDesign } from "@/lib/liga-oeffentlich";
 import { saisonLabel } from "@/lib/saison";
@@ -57,6 +58,18 @@ export default async function ErgebnisseSeite({ params }: Props) {
           Die Mannschaften werden gerade geladen. Bitte in Kürze erneut versuchen.
         </p>
       ) : (
+        <>
+        {heute.filter((e) => e.spiel.status === "abgesagt").length > 0 && (
+          <p
+            role="status"
+            className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-900 dark:bg-amber-500/20 dark:text-amber-200"
+          >
+            <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
+            {heute.filter((e) => e.spiel.status === "abgesagt").length === 1
+              ? "1 Spiel heute abgesagt"
+              : `${heute.filter((e) => e.spiel.status === "abgesagt").length} Spiele heute abgesagt`}
+          </p>
+        )}
         <GefilterteListe
           leerText="Noch keine Ergebnisse in dieser Saison."
           eintraege={[
@@ -81,6 +94,7 @@ export default async function ErgebnisseSeite({ params }: Props) {
             ),
           }))}
         />
+        </>
       )}
       <StandHinweis stand={verein.spieleSynchronisiertAm ?? verein.strukturSynchronisiertAm} />
     </div>

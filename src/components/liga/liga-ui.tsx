@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarIcon, ChevronRightIcon, ExternalLinkIcon, MapPinIcon } from "lucide-react";
+import { CalendarIcon, ChevronRightIcon, ExternalLinkIcon, MapPinIcon, TriangleAlertIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -80,6 +80,8 @@ export function SpielKarte({
   // Spiele von heute heben sich ab (farbiger Rand und Hintergrund), damit man am Spieltag sofort sieht, was ansteht.
   const istHeute = spiel.datum === tagKey(jetztSpiel);
 
+  // Abgesagte Spiele: Warnstreifen oben, Zeit durchgestrichen, Karte abgedämpft (nie Live/Ticker, siehe `laeuftVermutlich`).
+  const istAbgesagt = spiel.status === "abgesagt";
   const laeuft = laeuftVermutlich(spiel, jetztSpiel);
   const zwischenstand = istZwischenstand(spiel, jetztSpiel);
   // Statt einer Zahl: "Läuft gerade" / "Ergebnis folgt" / "Ergebnis ausstehend" (nie ein Zwischenstand als Ergebnis).
@@ -182,14 +184,21 @@ export function SpielKarte({
       size="sm"
       className={cn(
         "gap-2 px-4",
-        istHeute && "bg-primary/5 ring-2 ring-primary/50",
+        istHeute && !istAbgesagt && "bg-primary/5 ring-2 ring-primary/50",
+        istHeute && istAbgesagt && "bg-amber-50 ring-2 ring-amber-500/60 dark:bg-amber-500/10",
         ausgang === "S" && "border-l-4 border-l-emerald-700",
         ausgang === "U" && "border-l-4 border-l-slate-500",
         ausgang === "N" && "border-l-4 border-l-red-700"
       )}
     >
+      {istAbgesagt && (
+        <p className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900 dark:bg-amber-500/20 dark:text-amber-200">
+          <TriangleAlertIcon className="size-3.5 shrink-0" aria-hidden />
+          {istHeute ? "Heute abgesagt" : "Abgesagt"}
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
+        <span className={cn("inline-flex items-center gap-1.5", istAbgesagt && "line-through")}>
           <CalendarIcon className="size-3.5" />
           {nurUhrzeit
             ? spiel.uhrzeit
@@ -211,7 +220,7 @@ export function SpielKarte({
         </span>
       </div>
       {ursprungsTermin(spiel) && <p className="text-xs text-muted-foreground">Ursprünglich: {ursprungsTermin(spiel)}</p>}
-      <div className="flex items-center justify-between gap-3">
+      <div className={cn("flex items-center justify-between gap-3", istAbgesagt && "opacity-60")}>
         <div className="min-w-0 flex-1 space-y-0.5 text-sm">
           <p className={cn("truncate", fett(spiel.heimTeamtableId))}>{spiel.heimName}</p>
           <p className={cn("truncate", fett(spiel.gastTeamtableId))}>{spiel.gastName}</p>

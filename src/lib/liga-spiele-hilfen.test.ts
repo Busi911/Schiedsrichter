@@ -114,6 +114,13 @@ describe("laufende Spiele und fehlende Ergebnisse", () => {
     expect(r.heute.map((e) => e.spiel.id)).toEqual(["l"]);
   });
 
+  it("ein abgesagtes Spiel von heute steht unter 'Heute', aber hinter den echten Spielen", () => {
+    const frueh = spiel("frueh", "2026-10-04", { uhrzeit: "17:00", status: "abgesagt" });
+    const spaet = spiel("spaet", "2026-10-04", { uhrzeit: "19:00" });
+    const r = sammleVereinsSpiele(mannschaft([frueh, spaet]), jetzt);
+    expect(r.heute.map((e) => e.spiel.id)).toEqual(["spaet", "frueh"]);
+  });
+
   it("ein Spiel, das nach Mitternacht noch läuft, bleibt unter 'Heute'", () => {
     const nachMitternacht = new Date("2026-10-04T22:30:00Z"); // 00:30 am Folgetag
     const spaet = spiel("s", "2026-10-04", { meetingId: "5", beginn: new Date("2026-10-04T21:00:00Z"), toreHeim: 20, toreGast: 19 });
