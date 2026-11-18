@@ -83,6 +83,13 @@ export function SpielKarte({
   // Abgesagte Spiele: Warnstreifen oben, Zeit durchgestrichen, Karte abgedämpft (nie Live/Ticker, siehe `laeuftVermutlich`).
   const istAbgesagt = spiel.status === "abgesagt";
   const laeuft = laeuftVermutlich(spiel, jetztSpiel);
+  // Nicht angetreten ist endgültig (wird nicht nachgeholt): kurzer Hinweis, ob die Wertung vorliegt.
+  const nichtAngetretenHinweis =
+    spiel.status === "nicht_angetreten"
+      ? hatErgebnis(spiel)
+        ? "Nicht angetreten · wird nicht nachgeholt, gewertet"
+        : "Nicht angetreten · wird nicht nachgeholt, Wertung durch den Verband"
+      : null;
   const zwischenstand = istZwischenstand(spiel, jetztSpiel);
   // Statt einer Zahl: "Läuft gerade" / "Ergebnis folgt" / "Ergebnis ausstehend" (nie ein Zwischenstand als Ergebnis).
   const hinweis = ergebnisHinweis(spiel, jetztSpiel);
@@ -111,6 +118,7 @@ export function SpielKarte({
           {spiel.uhrzeit ? " Uhr" : ""}
         </p>
         {ursprungsTermin(spiel) && <p className="text-xs text-muted-foreground">Ursprünglich: {ursprungsTermin(spiel)}</p>}
+        {nichtAngetretenHinweis && <p className="text-xs text-muted-foreground">{nichtAngetretenHinweis}</p>}
         <div className="flex flex-wrap gap-1.5 pt-1">
           {teamLabel && teamLabel !== spiel.heimName && teamLabel !== spiel.gastName && <Badge variant="secondary">{teamLabel}</Badge>}
           {laeuft && <Badge className="bg-rose-600 text-white">Live</Badge>}
@@ -220,6 +228,7 @@ export function SpielKarte({
         </span>
       </div>
       {ursprungsTermin(spiel) && <p className="text-xs text-muted-foreground">Ursprünglich: {ursprungsTermin(spiel)}</p>}
+      {nichtAngetretenHinweis && <p className="text-xs text-muted-foreground">{nichtAngetretenHinweis}</p>}
       <div className={cn("flex items-center justify-between gap-3", istAbgesagt && "opacity-60")}>
         <div className="min-w-0 flex-1 space-y-0.5 text-sm">
           <p className={cn("truncate", fett(spiel.heimTeamtableId))}>{spiel.heimName}</p>
