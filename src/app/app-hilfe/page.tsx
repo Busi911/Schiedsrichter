@@ -166,6 +166,9 @@ export default function AppHilfePage() {
           <li>
             <strong>Verlegt / Abgesagt:</strong> Solche Spiele sind mit einem Hinweis gekennzeichnet. Bei verlegten Spielen aus nuLiga steht darunter, wann das Spiel ursprünglich angesetzt war („Ursprünglich: Sa., 10.10., 16:00 Uhr“). Ein nachgeholtes Spiel bekommt sein Ergebnis in der Regel kurz nach dem Spiel.
           </li>
+          <li>
+            <strong>Nicht angetreten:</strong> Eine Mannschaft ist nicht erschienen. Das Spiel gilt als abgeschlossen und wird nicht nachgeholt; es steht bei den Ergebnissen, mit dem Hinweis, ob die Wertung schon vorliegt.
+          </li>
         </ul>
       </section>
 
