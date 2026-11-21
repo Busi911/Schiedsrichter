@@ -35,10 +35,14 @@ export default async function EintragenPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ mannschaft?: string; mitgefahren?: string; mitfahrfehler?: string }>;
+  searchParams: Promise<{ mannschaft?: string; mitgefahren?: string; mitfahrfehler?: string; termin?: string; dienst?: string }>;
 }) {
   const { token } = await params;
-  const { mannschaft: mannschaftFilter, mitgefahren, mitfahrfehler } = await searchParams;
+  const { mannschaft: mannschaftFilter, mitgefahren, mitfahrfehler, termin: terminParam, dienst: dienstParam } = await searchParams;
+  // Aus der Erinnerungsmail: ein bestimmter Termin (nur die Id-Form wird akzeptiert, alles andere ignoriert).
+  const fokusTerminId = terminParam && /^[A-Za-z0-9-]{8,64}$/.test(terminParam) ? terminParam : undefined;
+  const fokusDienst = dienstParam && /^[a-z_]{3,30}$/.test(dienstParam) ? dienstParam : undefined;
+  const rueckPfad = `/eintragen/${token}${fokusTerminId ? `?termin=${fokusTerminId}${fokusDienst ? `&dienst=${fokusDienst}` : ""}` : ""}`;
 
   const verein = await adminDb.query.vereine.findFirst({
     where: or(
@@ -80,6 +84,8 @@ export default async function EintragenPage({
       <CardContent>
         <form action={loginLinkAnfordern} className="flex flex-col gap-3">
           <input type="hidden" name="token" value={token} />
+          {fokusTerminId && <input type="hidden" name="termin" value={fokusTerminId} />}
+          {fokusTerminId && fokusDienst && <input type="hidden" name="dienst" value={fokusDienst} />}
           <p className="text-sm text-muted-foreground">
             Wir schicken dir einen Login-Link per E-Mail. Danach kommst du hierher zurück und trägst dich mit einem Tipp ein.
           </p>
@@ -101,7 +107,7 @@ export default async function EintragenPage({
             Login-Link senden
           </SubmitButton>
           <Link
-            href={`/login?redirect=${encodeURIComponent(`/eintragen/${token}`)}`}
+            href={`/login?redirect=${encodeURIComponent(rueckPfad)}`}
             className="inline-flex min-h-11 items-center justify-center text-base underline"
           >
             Lieber mit Passwort einloggen
@@ -111,8 +117,22 @@ export default async function EintragenPage({
     </Card>
   );
 
+  const fokusTermin = fokusTerminId ? termine.find((t) => t.id === fokusTerminId) : undefined;
+  const fokusOffen = !!fokusTermin && fokusTermin.offeneRollen.length > 0;
+
   const termineBereich = (
     <>
+      {fokusTerminId && (
+        <Alert className={fokusOffen ? "border-primary/40 bg-primary/5" : undefined}>
+          <AlertDescription className="text-base">
+            {fokusOffen
+              ? `Euer Termin ist unten schon angetippt: ${fokusTermin.zeit}. Zum Eintragen unten auf „Eintragen“ tippen.`
+              : fokusTermin
+                ? "Für diesen Termin hat sich inzwischen jemand eingetragen. Unten seht ihr die übrigen Termine."
+                : "Dieser Termin ist nicht mehr offen (vorbei oder geändert). Unten seht ihr die aktuellen Termine."}
+          </AlertDescription>
+        </Alert>
+      )}
       {gefilterteTermine.length > 0 && (
         <p className="text-base font-medium">
           {offeneAnzahl} von {gefilterteTermine.length} {gefilterteTermine.length === 1 ? "Termin" : "Terminen"} noch nicht vollständig
@@ -157,6 +177,8 @@ export default async function EintragenPage({
           termine={eintragbareTermine}
           rollenGruppen={rollenGruppen}
           submitAction={eintragenMehrfach}
+          fokusTerminId={fokusTerminId}
+          fokusDienst={fokusDienst}
           eingeloggtAls={eingeloggtePerson?.name}
           zeigeEmailFeld={!eingeloggtePerson && !verein.istDemo}
         />

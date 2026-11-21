@@ -64,8 +64,8 @@ export async function sendeOffeneZeitnehmerErinnerungen() {
       const baldOffen = offeneTermine.filter((t) => t.start <= grenze);
       if (baldOffen.length === 0) continue;
 
-      const zeitnehmerwarte = await adminDb
-        .select({ id: users.id, email: users.email })
+      const wartKandidaten = await adminDb
+        .select({ id: users.id, email: users.email, istAdmin: users.istAdmin, adminHinweise: users.adminHinweiseAktiviert })
         .from(funktionstraegerRollen)
         .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
         .where(
@@ -76,6 +76,8 @@ export async function sendeOffeneZeitnehmerErinnerungen() {
             eq(users.offeneZeitnehmerErinnerungAktiviert, true)
           )
         );
+      // Admins bekommen dieselben Lücken schon in der Dienste-Übersicht (dienste-erinnerung.ts): keine zweite Mail für dieselbe Person.
+      const zeitnehmerwarte = wartKandidaten.filter((w) => !(w.istAdmin && w.adminHinweise));
       if (zeitnehmerwarte.length === 0) continue;
 
       const inhalt = offeneZeitnehmerInhalt(verein.name, baldOffen);
