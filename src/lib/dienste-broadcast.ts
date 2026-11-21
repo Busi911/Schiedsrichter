@@ -139,7 +139,7 @@ export async function sendeOffeneDiensteBroadcast() {
       for (const [rolle, termine] of terminProRolle) {
         if (ROLLE_ZU_FUNKTIONSTRAEGER_TYPEN[rolle].length === 0) continue;
         const kandidaten = await adminDb
-          .select({ id: users.id, email: users.email })
+          .select({ id: users.id, email: users.email, istAdmin: users.istAdmin, adminHinweise: users.adminHinweiseAktiviert })
           .from(funktionstraegerRollen)
           .innerJoin(users, eq(funktionstraegerRollen.userId, users.id))
           .where(
@@ -151,8 +151,8 @@ export async function sendeOffeneDiensteBroadcast() {
             )
           );
         // Eine Person kann mehrere Rollenzeilen haben (Zeitnehmer UND Sekretär): nur EINE Mail je Person.
-        // Auch Admins, die selbst die Rolle haben, bekommen diese Mail (mit Direktlink zum Eintragen), wie alle Rolleninhaber.
-        const rolleninhaber = [...new Map(kandidaten.map((k) => [k.id, k])).values()];
+        // Wer als Admin ohnehin die Übersicht aller offenen Dienste bekommt (dienste-erinnerung.ts), bekommt dieselben Lücken nicht noch einmal.
+        const rolleninhaber = [...new Map(kandidaten.filter((k) => !(k.istAdmin && k.adminHinweise)).map((k) => [k.id, k])).values()];
         if (rolleninhaber.length === 0) continue;
 
         const eintragungToken = eintragungsTokenFuerRolle(rolle, {
