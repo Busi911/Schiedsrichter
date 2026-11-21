@@ -5,7 +5,7 @@ import { funktionstraegerRollen, users } from "@/db/schema";
 import { holeOffenePosten, type OffenePosten } from "./dashboard";
 import { sendMail } from "./mailer";
 import { abmeldeInfo } from "./abmelden";
-import { emailAlsHtml, emailAlsText, type EmailInhalt } from "./email-layout";
+import { emailAlsHtml, emailAlsText, type EmailInhalt, type EmailZeile } from "./email-layout";
 import { formatDatumZeitLang } from "./format";
 import { appUrl } from "./app-url";
 
@@ -50,22 +50,52 @@ export function eintragungsTokenFuerRolle(
   return reihenfolge.find((t): t is string => !!t) ?? tokens.dienste ?? null;
 }
 
+// Eintragungslink: bei genau EINEM Termin führt er direkt zu diesem Spiel (Termin ist dort schon angetippt, die Seite
+// kennt `termin` und `dienst`, siehe app/eintragen/[token]/page.tsx), bei mehreren zur Liste.
+export function eintragungsLink(token: string, termine: OffenePosten[], rolle?: Rolle): string {
+  const basis = `${appUrl()}/eintragen/${encodeURIComponent(token)}`;
+  if (termine.length !== 1) return basis;
+  const dienst = rolle && rolle !== "eigener_dienst" ? `&dienst=${rolle}` : "";
+  return `${basis}?termin=${encodeURIComponent(termine[0].terminId)}${dienst}`;
+}
+
 export function offeneDiensteBroadcastInhalt(
   vereinName: string,
   rolleLabel: string,
   termine: OffenePosten[],
-  eintragungToken?: string | null
+  eintragungToken?: string | null,
+  rolle?: Rolle
 ): EmailInhalt {
   const profilUrl = `${appUrl()}/profil`;
+  const einzeln = termine.length === 1;
+  // Datum/Uhrzeit fett als Anker, darunter Mannschaft und Halle (vorher eine lange Zeile, die das Handy als Link einfärbte).
+  const terminZeilen = termine.flatMap((p, i): EmailZeile[] => {
+    const zusatz = [p.mannschaftLabel, p.ort].filter(Boolean).join(" · ");
+    return [{ text: formatDatumZeitLang(p.start), stark: true, neueGruppe: i > 0 }, ...(zusatz ? [zusatz] : [])];
+  });
+  const anleitung = eintragungToken
+    ? [
+        {
+          text: einzeln
+            ? "So geht’s: Unten auf „Jetzt eintragen“ tippen. Das Spiel ist dort schon ausgewählt, du bestätigst nur noch mit „Eintragen“."
+            : "So geht’s: Unten auf „Termine ansehen“ tippen, die Spiele antippen, bei denen du hilfst, und mit „Eintragen“ bestätigen.",
+          neueGruppe: true,
+        },
+        "Dort kannst du dich mit einem Login-Link per E-Mail anmelden oder dich nur mit deinem Namen eintragen.",
+        "Kannst du nicht? Dann musst du nichts tun.",
+      ]
+    : [
+        { text: "So geht’s: Unten auf „Zur Dienste-Übersicht“ tippen, einloggen und dich beim Termin eintragen.", neueGruppe: true },
+        "Kannst du nicht? Dann musst du nichts tun.",
+      ];
   return {
     vereinName,
-    ueberschrift: `Als ${rolleLabel} noch gesucht: ${termine.length} Termin${termine.length === 1 ? "" : "e"} in den nächsten ${FENSTER_TAGE} Tagen.`,
-    zeilen: [
-      ...termine.map(offenerPostenBroadcastZeile),
-      ...(eintragungToken ? [{ text: `Oder im Profil: ${profilUrl}`, neueGruppe: true }] : []),
-    ],
+    ueberschrift: einzeln
+      ? `Kannst du einspringen? Bei diesem Spiel in den nächsten ${FENSTER_TAGE} Tagen fehlt noch ein ${rolleLabel}:`
+      : `Kannst du einspringen? Bei diesen ${termine.length} Spielen in den nächsten ${FENSTER_TAGE} Tagen fehlt noch ein ${rolleLabel}:`,
+    zeilen: [...terminZeilen, ...anleitung],
     cta: eintragungToken
-      ? { text: "Direkt eintragen", url: `${appUrl()}/eintragen/${encodeURIComponent(eintragungToken)}` }
+      ? { text: einzeln ? "Jetzt eintragen" : "Termine ansehen", url: eintragungsLink(eintragungToken, termine, rolle) }
       : { text: "Zur Dienste-Übersicht", url: profilUrl },
     kleingedrucktes:
       "Du bekommst diese Mail, weil du diese Rolle im Verein innehast. Abschaltbar in deinen Benachrichtigungs-Einstellungen.",
@@ -127,7 +157,7 @@ export async function sendeOffeneDiensteBroadcast() {
           ordner: verein.ordnerSelbstanmeldungToken,
           dienste: verein.diensteSelbstanmeldungToken,
         });
-        const inhalt = offeneDiensteBroadcastInhalt(verein.name, ROLLE_LABEL[rolle], termine, eintragungToken);
+        const inhalt = offeneDiensteBroadcastInhalt(verein.name, ROLLE_LABEL[rolle], termine, eintragungToken, rolle);
         const betreff = `${ROLLE_LABEL[rolle]} gesucht: ${termine.length} unbesetzter Termin${termine.length === 1 ? "" : "e"}`;
         for (const person of rolleninhaber) {
           const mitAbmeldung = { ...inhalt, abmelden: abmeldeInfo(person.id, "broadcast") };

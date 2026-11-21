@@ -899,6 +899,13 @@ export default async function HilfePage() {
             Login-Link per Mail.
           </li>
           <li>
+            <strong>Link aus der Erinnerungsmail:</strong> Die Mail „… gesucht“ (Hinweise zu offenen Diensten) nennt Datum, Mannschaft
+            und Halle und erklärt in drei Sätzen, was zu tun ist. Bei genau einem offenen Spiel führt der Button „Jetzt eintragen“
+            direkt zu diesem Spiel: Es ist schon angetippt und steht oben, die passende Aufgabe ist gewählt; man bestätigt nur noch mit
+            „Eintragen“ (Login-Link bzw. Namen-Weg wie oben, der Termin bleibt dabei erhalten). Bei mehreren Spielen öffnet „Termine
+            ansehen“ die Liste. Ist der Termin inzwischen besetzt oder vorbei, steht oben ein Hinweis.
+          </li>
+          <li>
             <strong>Prüfen:</strong> Der Name wird mit den angelegten Funktionsträgern abgeglichen. Ist er eindeutig, zählt der
             Eintrag sofort. Sonst landet er beim zuständigen Wart unter „Selbsteintragungen zum Bestätigen“ (auch auf der
             Übersicht im Admin-Bereich).

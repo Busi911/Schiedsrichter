@@ -70,7 +70,12 @@ export function TerminMehrfachAuswahl({
   submitAction,
   eingeloggtAls,
   zeigeEmailFeld,
+  fokusTerminId,
+  fokusDienst,
 }: {
+  // Aus der Erinnerungsmail (/eintragen/<token>?termin=…&dienst=…): dieser Termin ist schon angetippt, die passende Gruppe gewählt und er steht oben.
+  fokusTerminId?: string;
+  fokusDienst?: string;
   token: string;
   termine: EintragbarerTermin[];
   rollenGruppen: RollenGruppe[];
@@ -85,12 +90,22 @@ export function TerminMehrfachAuswahl({
   // werden). Gibt es gar keine, bleiben alle stehen — dann erklärt die Meldung unten, dass es keine Termine mit Bedarf gibt.
   const mitBedarf = alleGruppen.filter((g) => termine.some((t) => t.rollenMitBedarf.some((r) => g.rollen.some((x) => x.value === r))));
   const rollenGruppen = mitBedarf.length > 0 ? mitBedarf : alleGruppen;
+  // Vorbelegung aus dem Mail-Link: der Termin, dessen Gruppe (passend zum Dienst aus der Mail, sonst die erste mit freiem Platz) und die erste freie Aufgabe.
+  const fokus = fokusTerminId ? termine.find((t) => t.id === fokusTerminId) : undefined;
+  const dienstRollen = fokusDienst === "zeitnehmer" ? ["zeitnehmer", "sekretaer"] : fokusDienst ? [fokusDienst] : [];
+  const fokusGruppe = fokus
+    ? (rollenGruppen.find((g) => g.rollen.some((r) => dienstRollen.includes(r.value) && fokus.offeneRollen.includes(r.value))) ??
+      rollenGruppen.find((g) => g.rollen.some((r) => fokus.offeneRollen.includes(r.value))))
+    : undefined;
+  const fokusRolle = fokus && fokusGruppe ? fokusGruppe.rollen.find((r) => fokus.offeneRollen.includes(r.value))?.value : undefined;
   // terminId -> gewählte Rolle (Aufgabe)
-  const [auswahl, setAuswahl] = useState<Map<string, string>>(new Map());
+  const [auswahl, setAuswahl] = useState<Map<string, string>>(() =>
+    fokus && fokusRolle ? new Map([[fokus.id, fokusRolle]]) : new Map()
+  );
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   // Nur eine Gruppe zur Wahl: gleich gewählt. Sonst muss man sie bewusst wählen (nicht raten, welche gemeint ist).
-  const [gruppeId, setGruppeId] = useState(rollenGruppen.length === 1 ? rollenGruppen[0].id : "");
+  const [gruppeId, setGruppeId] = useState(fokusGruppe?.id ?? (rollenGruppen.length === 1 ? rollenGruppen[0].id : ""));
   const gruppe = rollenGruppen.find((g) => g.id === gruppeId);
   const gruppenRollen = gruppe ? gruppe.rollen.map((r) => r.value) : [];
   const rollenLabel = (rolle: string) => gruppe?.rollen.find((r) => r.value === rolle)?.label ?? rolle;
@@ -102,7 +117,14 @@ export function TerminMehrfachAuswahl({
   const sichtbar = termine.filter((t) => t.rollenMitBedarf.some((r) => gruppenRollen.includes(r)));
   const offeneRollenIn = (t: EintragbarerTermin) => gruppenRollen.filter((r) => t.offeneRollen.includes(r));
   const waehlbar = (t: EintragbarerTermin) => offeneRollenIn(t).length > 0;
-  const anzeigeTermine = sortierung === "offen" ? [...sichtbar].sort((a, b) => Number(!waehlbar(a)) - Number(!waehlbar(b))) : sichtbar;
+  // Der Termin aus der Mail steht immer ganz oben.
+  const fokusZuerst = (a: EintragbarerTermin, b: EintragbarerTermin) => Number(b.id === fokusTerminId) - Number(a.id === fokusTerminId);
+  const anzeigeTermine =
+    sortierung === "offen"
+      ? [...sichtbar].sort((a, b) => fokusZuerst(a, b) || Number(!waehlbar(a)) - Number(!waehlbar(b)))
+      : fokusTerminId
+        ? [...sichtbar].sort(fokusZuerst)
+        : sichtbar;
   const mehrtaegig = sortierung === "datum" && new Set(sichtbar.map((t) => t.tag)).size > 1;
 
   const [status, submitActionState] = useActionState(

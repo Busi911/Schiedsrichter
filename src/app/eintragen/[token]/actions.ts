@@ -123,8 +123,14 @@ export async function loginLinkAnfordern(formData: FormData) {
   const email = formData.get("email");
   const token = formData.get("token");
   if (typeof email !== "string" || !email.trim() || typeof token !== "string" || !TOKEN_FORMAT.test(token)) return;
+  // Termin aus der Erinnerungsmail bleibt über den Login-Link erhalten.
+  const termin = formData.get("termin");
+  const dienst = formData.get("dienst");
+  const terminOk = typeof termin === "string" && /^[A-Za-z0-9-]{8,64}$/.test(termin);
+  const dienstOk = typeof dienst === "string" && /^[a-z_]{3,30}$/.test(dienst);
+  const ziel = `/eintragen/${token}${terminOk ? `?termin=${termin}${dienstOk ? `&dienst=${dienst}` : ""}` : ""}`;
   try {
-    await signIn("nodemailer", { email: email.trim(), redirectTo: `/eintragen/${token}` });
+    await signIn("nodemailer", { email: email.trim(), redirectTo: ziel });
   } catch (err) {
     if (err instanceof AuthError) redirect(`/login?error=${err.type}`);
     throw err;
